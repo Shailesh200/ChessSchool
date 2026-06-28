@@ -349,17 +349,19 @@ async function main() {
   // Bundle several drills into one multi-exercise lesson, and scale the lesson
   // count + exercises-per-lesson by difficulty (easy classes are short; harder
   // / higher classes are longer and give more XP).
-  function addThemeSemester(semId, title, blurb, color, stage, pool, classTitle, emoji, difficulty) {
+  function addThemeSemester(semId, title, blurb, color, stage, pool, classNames, emoji, difficulty) {
     const perLesson = Math.min(difficulty + 1, 6); // exercises (FENs) per lesson
     const perClass = (4 + difficulty * 2) * perLesson; // → 6/8/10/12 lessons per class
     semesters.push({ id: semId, title, blurb, color, stage, sortOrder: semesters.length });
     chunk(pool, perClass).forEach((group, ci) => {
       const classId = `${semId}-c${ci + 1}`;
       const lessonGroups = chunk(group, perLesson);
+      const name = classNames[ci % classNames.length];
+      const round = Math.floor(ci / classNames.length);
       classes.push({
         id: classId,
         semesterId: semId,
-        title: `${classTitle} ${ci + 1}`,
+        title: round > 0 ? `${name} ${round + 1}` : name,
         emoji,
         blurb: `${lessonGroups.length} lessons`,
         difficulty,
@@ -406,14 +408,18 @@ async function main() {
   }
   addCurated();
 
-  // difficulty grows through the ladder: easy → fewer/shorter, hard → more/longer
-  addThemeSemester("sem-gen-promo", "Pawn Promotion", "Queen your pawns", "#0f7a55", "elementary", promos, "Promotion Power", "👑", 1);
-  addThemeSemester("sem-gen-captures", "Tactics · Free Material", "Win undefended pieces", "#cf4324", "middle", captures, "Free Material", "🎯", 2);
-  addThemeSemester("sem-gen-checks", "Tactics · Spot the Check", "Find forcing checks", "#5b5bd6", "middle", checks, "Spot the Check", "⚡", 3);
-  addThemeSemester("sem-gen-mates", "Checkmate School", "Mate in one", "#7c5cd6", "middle", mates, "Mate in One", "♛", 4);
+  // Segregated by difficulty: Elementary → Middle → High, easy → hard.
+  addThemeSemester("sem-gen-promo", "Pawn Promotion", "Queen your pawns to win", "#0f7a55", "elementary", promos,
+    ["First Promotions", "Queening Pawns", "Promotion Races", "Underpromotion Tricks"], "👑", 1);
+  addThemeSemester("sem-gen-captures", "Winning Material", "Spot and grab undefended pieces", "#cf4324", "middle", captures,
+    ["Hanging Pieces", "Loose Pieces", "Undefended Targets", "Greedy Captures", "Material Edge"], "🎯", 2);
+  addThemeSemester("sem-gen-checks", "Checks & Threats", "Find the forcing checks", "#5b5bd6", "middle", checks,
+    ["Forcing Checks", "Check Hunts", "Royal Pressure", "Checking Patterns"], "⚡", 3);
+  addThemeSemester("sem-gen-mates", "Checkmate Patterns", "Deliver mate in one", "#7c5cd6", "high", mates,
+    ["Back-Rank Mates", "Mate in One", "Finishing Blows", "Delivering Mate"], "♛", 4);
 
-  // Openings — one class per opening
-  semesters.push({ id: "sem-gen-openings", title: "Opening Repertoire", blurb: "The famous openings", color: "#f59e0b", stage: "elementary", sortOrder: semesters.length });
+  // Openings — one class per opening (a High-School subject)
+  semesters.push({ id: "sem-gen-openings", title: "Opening Theory", blurb: "The famous openings", color: "#f59e0b", stage: "high", sortOrder: semesters.length });
   openings.forEach((l, oi) => {
     const classId = `sem-gen-openings-c${oi + 1}`;
     classes.push({ id: classId, semesterId: "sem-gen-openings", title: l.title, emoji: l.emoji, blurb: l.subtitle, difficulty: 2, sortOrder: cOrder++ });

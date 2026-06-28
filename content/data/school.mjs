@@ -2,7 +2,7 @@
 export const STAGES = [
   { id: "elementary", name: "Elementary School", emoji: "🎒", blurb: "Classes 1–5 · the essentials", status: "open" },
   { id: "middle", name: "Middle School", emoji: "📐", blurb: "Classes 6–8 · tactics & endgames", status: "open" },
-  { id: "high", name: "High School", emoji: "🎓", blurb: "Classes 9–12 · strategy & planning", status: "upcoming" },
+  { id: "high", name: "High School", emoji: "🎓", blurb: "Classes 9–12 · openings & checkmates", status: "open" },
   { id: "university", name: "University", emoji: "🏛️", blurb: "Classes 13–16 · deep theory", status: "upcoming" },
   { id: "master", name: "Master Program", emoji: "♛", blurb: "Classes 17–20 · the road to mastery", status: "upcoming" },
 ];
@@ -10,7 +10,7 @@ export const STAGES = [
 export const SEMESTERS = [
   {
     id: "sem-foundations",
-    title: "Semester 1 · Foundations",
+    title: "Foundations",
     blurb: "How the pieces move and how games end",
     color: "#5b5bd6",
     stage: "elementary",
@@ -36,10 +36,10 @@ export const SEMESTERS = [
   },
   {
     id: "sem-openings",
-    title: "Semester 2 · Opening School",
+    title: "Opening School",
     blurb: "Start every game like a pro",
     color: "#0f7a55",
-    stage: "elementary",
+    stage: "middle",
     classes: [
       {
         id: "class-principles",
@@ -61,7 +61,7 @@ export const SEMESTERS = [
   },
   {
     id: "sem-tactics",
-    title: "Semester 3 · Tactics Lab",
+    title: "Tactics Lab",
     blurb: "Win material with combinations",
     color: "#cf4324",
     stage: "middle",
@@ -86,7 +86,7 @@ export const SEMESTERS = [
   },
   {
     id: "sem-endgame",
-    title: "Semester 4 · Endgame School",
+    title: "Endgame School",
     blurb: "Convert advantages into wins",
     color: "#7c5cd6",
     stage: "middle",
