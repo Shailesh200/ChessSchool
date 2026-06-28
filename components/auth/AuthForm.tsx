@@ -94,7 +94,7 @@ function Field({
         type={type}
         required
         autoComplete={autoComplete}
-        className="h-12 rounded-card border border-hairline bg-surface-card px-3 text-sm font-semibold text-ink outline-none focus:border-brand"
+        className="h-12 rounded-card border border-hairline bg-surface-card px-3 text-base font-semibold text-ink outline-none focus:border-brand"
       />
     </label>
   );

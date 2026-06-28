@@ -318,3 +318,12 @@ html[data-school-theme="graduation"] {
   --brand-700: #4c1d95;
   --accent-500: #d97706;
 }
+
+/* Prevent iOS Safari from zooming when focusing a small input (font < 16px). */
+@media (max-width: 640px) {
+  input:not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

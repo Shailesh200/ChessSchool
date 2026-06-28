@@ -262,7 +262,12 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       <div className="pt-safe sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hairline bg-surface/90 px-3 py-2 backdrop-blur">
-        <BackButton fallback="/play" label="Leave" />
+        {/* No 'Leave' mid-game — you must resign to exit a live match. */}
+        {session?.status === "active" && color !== "spectator" ? (
+          <span className="w-16" />
+        ) : (
+          <BackButton fallback="/play" label="Leave" />
+        )}
         <span className="text-sm font-extrabold text-ink">
           {color === "spectator" ? "Spectating" : `You are ${color === "b" ? "Black" : "White"}`}
         </span>

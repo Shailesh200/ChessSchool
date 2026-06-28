@@ -75,7 +75,7 @@ export function MatchChooser() {
           active={mode === "pass"}
           emoji="👥"
           title="vs Human"
-          subtitle="Two players, one device"
+          subtitle="Two players, one device · or play online"
           onClick={() => { setMode("pass"); haptics.fire("select"); }}
         />
       </motion.div>
@@ -127,11 +127,14 @@ export function MatchChooser() {
 
       <motion.div variants={listItem} className="flex flex-col gap-2">
         <Button size="lg" block onClick={begin}>
-          Start match
+          {mode === "pass" ? "Start (one device)" : "Start match"}
         </Button>
-        <Button size="lg" variant="outline" block loading={creating} onClick={playOnline}>
-          🔗 Play a friend online (share link)
-        </Button>
+        {/* Online play is a Human-mode option only — hidden for vs Bot. */}
+        {mode === "pass" && (
+          <Button size="lg" variant="outline" block loading={creating} onClick={playOnline}>
+            🔗 Play a friend online (share link)
+          </Button>
+        )}
       </motion.div>
     </motion.div>
   );
