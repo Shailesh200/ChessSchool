@@ -24,17 +24,23 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const [showCompleted, setShowCompleted] = useState(false);
 
   const isDone = (cls: SchoolClass) => isClassGraduated(cls, records, graduated);
-  const gradCount = catalog.allClasses.filter(isDone).length;
+  // Everything before your current position (the first not-yet-graduated class)
+  // is "past" and hidden — whether it was completed or skipped via a placement.
+  const frontierIdx = (() => {
+    const i = catalog.allClasses.findIndex((c) => !isDone(c));
+    return i === -1 ? catalog.allClasses.length : i;
+  })();
+  const pastIds = new Set(catalog.allClasses.slice(0, frontierIdx).map((c) => c.id));
 
   return (
     <div className="flex flex-col gap-8">
-      {gradCount > 0 && (
+      {pastIds.size > 0 && (
         <div className="-mb-3 flex justify-end">
           <button
             onClick={() => setShowCompleted((v) => !v)}
             className="rounded-pill bg-surface-sunken px-3 py-1 text-xs font-bold text-ink-700"
           >
-            {showCompleted ? "Hide" : "Show"} completed ({gradCount})
+            {showCompleted ? "Hide" : "Show"} past classes ({pastIds.size})
           </button>
         </div>
       )}
@@ -43,7 +49,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
         const visibleSems = semesters
           .map((sem) => ({
             sem,
-            classes: showCompleted ? sem.classes : sem.classes.filter((c) => !isDone(c)),
+            classes: showCompleted ? sem.classes : sem.classes.filter((c) => !pastIds.has(c.id)),
           }))
           .filter((x) => x.classes.length > 0);
         const isUpcoming = stage.status === "upcoming" || semesters.length === 0;

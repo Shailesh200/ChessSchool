@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +28,7 @@ export function JourneyView({
   const router = useRouter();
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
+  const [shown, setShown] = useState(6);
 
   const unlockedClass = isClassUnlocked(cls.id, records, graduated, allClasses);
   const done = lessons.filter((l) => (records[l.id]?.mastery ?? 0) >= 0.9).length;
@@ -42,6 +44,8 @@ export function JourneyView({
       mastery >= 0.9 ? "completed" : i === activeIndex ? "active" : "locked";
     return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery, status };
   });
+  // Collapsed by default — always show up to the active milestone; load more on demand.
+  const visibleCount = Math.min(nodes.length, Math.max(shown, activeIndex + 1));
 
   function go(id: string, status: NodeStatus) {
     if (status === "locked") {
@@ -92,10 +96,21 @@ export function JourneyView({
 
       {/* Milestone path */}
       <ol className="relative mx-auto flex w-full max-w-xs flex-col items-center">
-        {nodes.map((n, i) => (
+        {nodes.slice(0, visibleCount).map((n, i) => (
           <JourneyNode key={n.id} node={n} index={i} onClick={() => go(n.id, n.status)} />
         ))}
-        {examLesson && (
+        {visibleCount < nodes.length && (
+          <li className="mt-3 w-full">
+            <Button
+              variant="ghost"
+              block
+              onClick={() => { setShown((s) => s + 8); haptics.fire("tap"); }}
+            >
+              Show {Math.min(8, nodes.length - visibleCount)} more lessons ▾
+            </Button>
+          </li>
+        )}
+        {examLesson && visibleCount >= nodes.length && (
           <JourneyNode
             node={{
               id: examLesson.id,

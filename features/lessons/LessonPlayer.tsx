@@ -18,7 +18,7 @@ import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import type { Lesson, LessonStep } from "./types";
-import type { MoveInput } from "@/core/types/chess";
+import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
 type Phase = "playing" | "correct" | "wrong" | "complete";
 
@@ -45,6 +45,7 @@ export function LessonPlayer({
   const [observeDone, setObserveDone] = useState(false);
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
+  const [hint, setHint] = useState(false);
   const timers = useRef<number[]>([]);
 
   const progression = useProgression();
@@ -57,6 +58,7 @@ export function LessonPlayer({
     setDisplayFen(step?.fen);
     setObserveDone(false);
     setPromoted(null);
+    setHint(false);
   }
 
   // Auto-play "observe" steps move-by-move.
@@ -185,6 +187,17 @@ export function LessonPlayer({
   }
 
   const isObserving = step.kind === "observe" && !observeDone;
+  const solvable = step.kind === "move" && phase === "playing";
+  const hintArrows: BoardArrow[] =
+    hint && solvable && step.solution?.[0]
+      ? [
+          {
+            startSquare: step.solution[0].split(":")[0] as Square,
+            endSquare: step.solution[0].split(":")[1] as Square,
+            color: "#f59e0b",
+          },
+        ]
+      : [];
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
@@ -234,7 +247,7 @@ export function LessonPlayer({
                 fen={displayFen ?? step.fen}
                 orientation={step.orientation ?? "white"}
                 onMove={handleMove}
-                arrows={phase === "playing" && !isObserving ? step.arrows : []}
+                arrows={phase === "playing" && !isObserving ? [...(step.arrows ?? []), ...hintArrows] : []}
                 highlight={phase === "playing" && !isObserving ? step.highlight : []}
                 interactive={step.kind === "move" && phase === "playing"}
               />
@@ -244,6 +257,20 @@ export function LessonPlayer({
 
         {isObserving && (
           <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>
+        )}
+
+        {solvable && (
+          <button
+            onClick={() => {
+              setHint(true);
+              audio.play("notify");
+              haptics.fire("tap");
+            }}
+            disabled={hint}
+            className="btn-tactile mx-auto rounded-pill bg-surface-sunken px-4 py-1.5 text-xs font-bold text-ink-700 disabled:opacity-50"
+          >
+            {hint ? "💡 Follow the arrow" : "💡 Show a hint"}
+          </button>
         )}
       </div>
 

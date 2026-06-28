@@ -30,23 +30,26 @@ export default async function ClassExamPage({
     .from(lessonT)
     .where(eq(lessonT.classId, id))
     .orderBy(asc(lessonT.sortOrder));
-  const lessonIds = rows.filter((r) => !r.isExam).map((r) => r.id);
-  const moveSteps = rows
-    .filter((r) => !r.isExam)
+  const teaching = rows.filter((r) => !r.isExam);
+  const lessonIds = teaching.map((r) => r.id);
+  // Test the most-recent lessons (the material just before this point), not the
+  // whole class from the start — a short, quick check.
+  const recent = teaching.slice(-2);
+  const moveSteps = (recent.length ? recent : teaching)
     .flatMap((r) => (JSON.parse(r.steps) as LessonStep[]).filter((s) => s.kind === "move"));
   if (moveSteps.length === 0) notFound();
 
   const exam: Lesson = {
     id: `exam-${id}`,
     unit: id,
-    title: `${clsRow.title} — Exam`,
-    subtitle: "Pass (≥67%) to test out and graduate this class",
+    title: `${clsRow.title} — Quick Test`,
+    subtitle: "Pass (≥67%) to graduate this class",
     emoji: "🎓",
     prerequisites: [],
     xp: 60,
     tag: "exam",
     exam: true,
-    steps: sample(moveSteps, 8),
+    steps: sample(moveSteps, 5),
   };
 
   // After passing, continue to the next class's first lesson.
