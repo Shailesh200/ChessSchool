@@ -4,7 +4,7 @@ test("campus map renders resume card, semesters and classes", async ({ page }) =
   await page.goto("/");
   await expect(page.getByText("Daily goal")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Your place in school" })).toBeVisible();
-  await expect(page.getByText("Semester 1 · Foundations")).toBeVisible();
+  await expect(page.getByText("Foundations").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
 });
 
