@@ -1,10 +1,12 @@
 "use client";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Chess } from "chess.js";
 import type { Realtime as AblyRealtime } from "ably";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Button } from "@/components/ui/Button";
+import { Confetti } from "@/components/ui/Confetti";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BackButton } from "@/components/ui/BackButton";
 import { useSquareSize } from "@/core/hooks/useSquareSize";
@@ -41,6 +43,7 @@ const JOIN_WINDOW_MS = 3 * 60 * 1000;
 
 export default function OnlineSessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const [boardBox, boardSize] = useSquareSize();
   const [session, setSession] = useState<SessionState | null>(null);
   const [color, setColor] = useState<"w" | "b" | "spectator" | null>(null);
@@ -203,6 +206,8 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       winner = "b";
       endReason = "checkmate";
     }
+    // Sound the result from this player's perspective.
+    audio.play(winner === null ? "notify" : winner === color ? "victory" : "fail");
     let moveCount = 0;
     try {
       const g = new Chess();
@@ -309,6 +314,31 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const myClock = color === "b" ? bMs : wMs;
   const oppClock = color === "b" ? wMs : bMs;
 
+  // Outcome from this player's perspective, for the game-over overlay.
+  const gameOver = (() => {
+    if (session?.status !== "over") return null;
+    const res = session.result ?? "1/2-1/2";
+    let winner: "w" | "b" | null = null;
+    let reason = "";
+    if (res.startsWith("resign:")) { winner = res.endsWith("w") ? "b" : "w"; reason = "by resignation"; }
+    else if (res.startsWith("time:")) { winner = res.endsWith("w") ? "w" : "b"; reason = "on time ⏱️"; }
+    else if (res === "1-0") { winner = "w"; reason = "checkmate"; }
+    else if (res === "0-1") { winner = "b"; reason = "checkmate"; }
+    const me = color === "w" || color === "b" ? color : null;
+    const draw = winner === null;
+    const win = !!me && winner === me;
+    const text = draw
+      ? "Draw"
+      : reason === "checkmate"
+        ? win ? "Checkmate — you win! 🏆" : "Checkmate — you lose"
+        : !me
+          ? `${winner === "w" ? "White" : "Black"} wins ${reason}`
+          : win
+            ? `You win ${reason}`
+            : `You lose ${reason}`;
+    return { text, win, draw };
+  })();
+
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       <div className="pt-safe sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hairline bg-surface/90 px-3 py-2 backdrop-blur">
@@ -363,7 +393,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       )}
 
       <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3 py-2">
-        <div style={{ width: boardSize || undefined, height: boardSize || undefined }}>
+        <div className="relative" style={{ width: boardSize || undefined, height: boardSize || undefined }}>
           {session && (
             <ChessBoard
               fen={boardFen}
@@ -372,6 +402,22 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
               lastMove={boardLast}
               interactive={canMove}
             />
+          )}
+          {gameOver && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-ink/45 backdrop-blur-sm">
+              {gameOver.win && <Confetti />}
+              <div className="rounded-card bg-surface-card px-7 py-6 text-center [box-shadow:var(--shadow-pop)]">
+                <div className="text-xl font-extrabold text-ink">{gameOver.text}</div>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => router.push(`/review/${id}`)}>
+                    Review
+                  </Button>
+                  <Button size="sm" onClick={() => router.push("/play")}>
+                    New game
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
