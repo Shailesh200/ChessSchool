@@ -377,6 +377,86 @@ function chunk(arr, size) {
   return out;
 }
 
+function findKing(g, color) {
+  for (const row of g.board()) for (const c of row) if (c && c.type === "k" && c.color === color) return c.square;
+  return null;
+}
+
+/**
+ * Add `fillers` extra pieces to a position without breaking the puzzle — making
+ * boards busier/harder + unique. `validate` re-checks the solution after each
+ * piece. Used to scale difficulty: more pieces in harder classes.
+ */
+function augmentFen(fen, fillers, validate) {
+  if (fillers <= 0) return fen;
+  let curFen = fen;
+  const occ = new Set();
+  for (const row of new Chess(fen).board()) for (const c of row) if (c) occ.add(c.square);
+  let added = 0;
+  let tries = 0;
+  while (added < fillers && tries < fillers * 22 + 14) {
+    tries++;
+    const file = FILES[rint(8)];
+    const r = 1 + rint(8);
+    const square = `${file}${r}`;
+    if (occ.has(square)) continue;
+    const color = Math.random() < 0.5 ? "w" : "b";
+    const type = pick(["q", "r", "b", "n", "p", "p", "b", "n"]); // bias toward minor/pawn clutter
+    if (type === "p" && (r === 1 || r === 8)) continue;
+    let g;
+    try {
+      g = new Chess(curFen);
+      g.put({ type, color }, square);
+    } catch {
+      continue;
+    }
+    let gg;
+    try {
+      gg = new Chess(g.fen());
+    } catch {
+      continue;
+    }
+    if (!validate(gg)) continue;
+    curFen = g.fen();
+    occ.add(square);
+    added++;
+  }
+  return curFen;
+}
+
+/** Augment a generated drill's position with `fillers` pieces (tag-aware). */
+function augmentDrill(drill, fillers) {
+  if (fillers <= 0) return drill;
+  const step = drill.steps.find((s) => s.kind === "move");
+  if (!step || !step.solution?.[0]) return drill;
+  const [from, to] = step.solution[0].split(":");
+  const turn = new Chess(step.fen).turn();
+  const opp = turn === "w" ? "b" : "w";
+  const tag = drill.tag;
+  const validate = (g) => {
+    if (g.turn() !== turn || g.inCheck()) return false; // side to move must be safe
+    const oppKing = findKing(g, opp);
+    if (oppKing && g.isAttacked(oppKing, turn)) return false; // opponent not already in check
+    const clone = new Chess(g.fen());
+    let m;
+    try {
+      m = clone.move({ from, to, promotion: "q" });
+    } catch {
+      return false;
+    }
+    if (!m) return false;
+    if (tag === "capture") return Boolean(m.captured) && !g.isAttacked(to, opp);
+    if (tag === "mate" || tag === "checkmate") return clone.isCheckmate();
+    if (tag === "check" || tag === "fork") return clone.inCheck();
+    if (tag === "promotion") return Boolean(m.promotion);
+    // unknown tag: at least keep the solving move legal
+    return true;
+  };
+  const fen = augmentFen(step.fen, fillers, validate);
+  if (fen === step.fen) return drill;
+  return { ...drill, steps: drill.steps.map((s) => (s === step ? { ...s, fen } : s)) };
+}
+
 // Famous named mate-in-one patterns (Master). Each is verified (isCheckmate) at
 // seed time; invalid ones are skipped + logged.
 const FAMOUS_MATES = [
@@ -436,17 +516,20 @@ async function main() {
         difficulty,
         sortOrder: cOrder++,
       });
+      // Harder classes get busier boards: more verified filler pieces.
+      const fillers = Math.min(2 + difficulty + Math.floor(ci / 3), 8);
       lessonGroups.forEach((drills, li) => {
-        // Merge the drills' positions into one lesson as sequential exercises.
-        const steps = drills.flatMap((d, di) => d.steps.map((s, si) => ({ ...s, id: `e${di}s${si}` })));
+        // Add pieces (unique per drill) + merge as sequential exercises.
+        const rich = drills.map((d) => augmentDrill(d, fillers));
+        const steps = rich.flatMap((d, di) => d.steps.map((s, si) => ({ ...s, id: `e${di}s${si}` })));
         lessons.push({
           id: `${classId}-l${li + 1}`,
           classId,
-          title: drills[0].title,
-          subtitle: drills.length > 1 ? `${drills.length} exercises` : drills[0].subtitle,
-          emoji: drills[0].emoji,
-          tag: drills[0].tag,
-          xp: drills.length * 10,
+          title: rich[0].title,
+          subtitle: rich.length > 1 ? `${rich.length} exercises` : rich[0].subtitle,
+          emoji: rich[0].emoji,
+          tag: rich[0].tag,
+          xp: rich.length * 10 + fillers * 2,
           isExam: 0,
           prerequisites: "[]",
           steps: JSON.stringify(steps),
