@@ -48,14 +48,22 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   // Optimistic move (shown instantly while the server confirms) + connection state.
   const [optimistic, setOptimistic] = useState<{ fen: string; from: string; to: string } | null>(null);
   const [online, setOnline] = useState(true);
+  const sigRef = useRef(""); // skip re-renders when the polled state is unchanged
   const colorRef = useRef(color);
   useEffect(() => {
     colorRef.current = color;
   }, [color]);
 
-  // Tick for the live clock countdown.
+  // Tick for the live clock countdown — only while a clock is actually running,
+  // so we don't re-render the board 4x/second (and disturb clicks) otherwise.
+  const tickRef = useRef(false);
   useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 250);
+    tickRef.current = !!(session && session.timeControlMin > 0 && session.status === "active");
+  }, [session]);
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (tickRef.current) setNow(Date.now());
+    }, 250);
     return () => clearInterval(iv);
   }, []);
 
@@ -95,7 +103,13 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
             return;
           }
           setOnline(true);
-          setSession(s);
+          // Only re-render when the game state actually changed — avoids resetting
+          // an in-progress click-to-move selection on every poll (#2 multi-click).
+          const sig = `${s.fen}|${s.turn}|${s.status}|${s.result}|${s.blackJoined}|${s.whiteMs}|${s.blackMs}`;
+          if (sig !== sigRef.current) {
+            sigRef.current = sig;
+            setSession(s);
+          }
           // Server is authoritative once our move lands — drop the optimistic view.
           if (s.status === "over" || s.turn === colorRef.current) setOptimistic(null);
           if (s.status === "waiting" && s.blackJoined === 0 && Date.now() - s.createdAt > JOIN_WINDOW_MS) {
