@@ -49,10 +49,15 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const [now, setNow] = useState(0);
   const flagged = useRef(false);
   // Optimistic move (shown instantly while the server confirms) + connection state.
-  const [optimistic, setOptimistic] = useState<{ fen: string; from: string; to: string } | null>(null);
+  const [optimistic, setOptimistic] = useState<{ fen: string; from: string; to: string; prevFen: string } | null>(null);
   const [online, setOnline] = useState(true);
   const sigRef = useRef(""); // skip re-renders when the polled state is unchanged
   const savedRef = useRef(false); // save the finished game to history once
+  const optimisticRef = useRef<typeof optimistic>(null);
+  const lastUpdatedRef = useRef(0); // newest server updatedAt we've applied (drop stale)
+  useEffect(() => {
+    optimisticRef.current = optimistic;
+  }, [optimistic]);
   const colorRef = useRef(color);
   useEffect(() => {
     colorRef.current = color;
@@ -95,12 +100,21 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   // in-progress click-to-move selection isn't reset on no-op updates (#2).
   const applyState = useCallback((s: SessionState) => {
     setOnline(true);
+    // Drop stale updates older than what we've already applied (out-of-order
+    // poll/push races) — but always allow terminal states through.
+    if (s.status !== "over" && s.updatedAt && s.updatedAt < lastUpdatedRef.current) return;
+    const opt = optimisticRef.current;
+    // While our move is pending, ignore any state still showing the pre-move
+    // position (a poll/push that left before the server saw our move) — this is
+    // what used to snap the move away until the POST returned.
+    if (opt && s.fen === opt.prevFen && s.status !== "over") return;
+    if (opt) setOptimistic(null); // server has advanced past our move
+    lastUpdatedRef.current = Math.max(lastUpdatedRef.current, s.updatedAt || 0);
     const sig = `${s.fen}|${s.turn}|${s.status}|${s.result}|${s.blackJoined}|${s.whiteMs}|${s.blackMs}`;
     if (sig !== sigRef.current) {
       sigRef.current = sig;
       setSession(s);
     }
-    if (s.status === "over" || s.turn === colorRef.current) setOptimistic(null);
     if (s.status === "waiting" && s.blackJoined === 0 && Date.now() - s.createdAt > JOIN_WINDOW_MS) {
       setExpired(true);
     }
@@ -228,7 +242,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       applied = null;
     }
     if (!applied) return false;
-    setOptimistic({ fen: g.fen(), from: move.from, to: move.to });
+    setOptimistic({ fen: g.fen(), from: move.from, to: move.to, prevFen: session.fen });
     audio.play(applied.captured ? "capture" : "move");
     if (g.inCheck()) audio.play("check");
     fetch(`/api/session/${id}`, {
@@ -238,8 +252,8 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((s: SessionState | null) => {
-        setOptimistic(null); // server is now authoritative (or rejected → revert)
-        if (s && !s.error) setSession(s);
+        if (s && !s.error) applyState(s); // authoritative post-move state clears the optimistic overlay
+        else setOptimistic(null); // server rejected → revert to the live state
       })
       .catch(() => setOptimistic(null));
     return true; // keep the piece where the player dropped it
