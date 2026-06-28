@@ -22,6 +22,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const isDone = (cls: SchoolClass) => isClassGraduated(cls, records, graduated);
   // Everything before your current position (the first not-yet-graduated class)
@@ -31,6 +32,12 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
     return i === -1 ? catalog.allClasses.length : i;
   })();
   const pastIds = new Set(catalog.allClasses.slice(0, frontierIdx).map((c) => c.id));
+
+  // Render only the current semester's classes; future semesters collapse to a
+  // tappable teaser (far less DOM → faster paint, less overwhelming).
+  const classIndex = new Map(catalog.allClasses.map((c, i) => [c.id, i]));
+  const isFutureSem = (sem: { classes: SchoolClass[] }) =>
+    Math.min(...sem.classes.map((c) => classIndex.get(c.id) ?? Infinity)) > frontierIdx;
 
   return (
     <div className="flex flex-col gap-8">
@@ -74,7 +81,9 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
               </div>
             ) : (
               <div className="flex flex-col gap-5">
-                {visibleSems.map(({ sem, classes }) => (
+                {visibleSems.map(({ sem, classes }) => {
+                  const collapsed = !showCompleted && isFutureSem(sem) && !expanded.has(sem.id);
+                  return (
                   <div key={sem.id}>
                     <div className="mb-2 flex items-center gap-2">
                       <span
@@ -85,6 +94,14 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                       </span>
                       <span className="truncate text-xs font-semibold text-ink-500">{sem.blurb}</span>
                     </div>
+                    {collapsed ? (
+                      <button
+                        onClick={() => setExpanded((s) => new Set(s).add(sem.id))}
+                        className="btn-tactile w-full rounded-card border border-dashed border-hairline bg-surface-card/60 p-3 text-center text-xs font-bold text-ink-500"
+                      >
+                        🔒 {classes.length} {classes.length === 1 ? "class" : "classes"} ahead — tap to preview
+                      </button>
+                    ) : (
                     <div className="flex flex-col gap-3">
                       {classes.map((cls, i) => (
                         <ClassCard
@@ -98,8 +115,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                         />
                       ))}
                     </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
