@@ -409,7 +409,6 @@ async function main() {
   const promos = collect(genPromotion, 250, "promotions");
   const mates = collect(genBackRankMate, 250, "back-rank mates");
   const forks = collect(genFork, 280, "knight forks");
-  const openings = OPENINGS.map(genOpening).filter(Boolean);
 
   const semesters = [];
   const classes = [];

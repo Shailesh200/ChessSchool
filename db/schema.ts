@@ -102,7 +102,23 @@ export const lessons = sqliteTable("lessons", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+// Shareable live PvP sessions (#10b) — both players poll for the latest state.
+export const gameSessions = sqliteTable("game_sessions", {
+  id: text("id").primaryKey(),
+  fen: text("fen").notNull(),
+  pgn: text("pgn").notNull().default(""),
+  lastFrom: text("last_from"),
+  lastTo: text("last_to"),
+  turn: text("turn").notNull().default("w"),
+  status: text("status").notNull().default("waiting"), // waiting | active | over
+  result: text("result"),
+  blackJoined: integer("black_joined").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export type DBUser = typeof users.$inferSelect;
 export type DBLesson = typeof lessons.$inferSelect;
 export type DBClass = typeof classes.$inferSelect;
 export type DBSemester = typeof semesters.$inferSelect;
+export type DBGameSession = typeof gameSessions.$inferSelect;

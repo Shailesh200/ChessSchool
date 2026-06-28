@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useMatch, type MatchMode } from "@/core/store/match.store";
 import { useSettings } from "@/core/store/settings.store";
+import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 import { listItem, listContainer } from "@/core/motion/variants";
@@ -25,11 +27,28 @@ export function MatchChooser() {
   const setSetting = useSettings((s) => s.set);
   const [mode, setMode] = useState<MatchMode>("bot");
   const [timeMin, setTimeMin] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const router = useRouter();
 
   function begin() {
     haptics.fire("success");
     audio.play("unlock");
     start(mode, targetElo, timeMin);
+  }
+
+  async function playOnline() {
+    setCreating(true);
+    haptics.fire("success");
+    try {
+      const r = await fetch("/api/session", { method: "POST" });
+      if (!r.ok) throw new Error();
+      const { id } = (await r.json()) as { id: string };
+      localStorage.setItem(`chessschool.online.${id}`, "w");
+      startNav();
+      router.push(`/play/online/${id}`);
+    } catch {
+      setCreating(false);
+    }
   }
 
   return (
@@ -100,9 +119,12 @@ export function MatchChooser() {
         </Card>
       </motion.div>
 
-      <motion.div variants={listItem}>
+      <motion.div variants={listItem} className="flex flex-col gap-2">
         <Button size="lg" block onClick={begin}>
           Start match
+        </Button>
+        <Button size="lg" variant="outline" block loading={creating} onClick={playOnline}>
+          🔗 Play a friend online (share link)
         </Button>
       </motion.div>
     </motion.div>

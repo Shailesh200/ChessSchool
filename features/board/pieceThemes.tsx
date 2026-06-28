@@ -40,7 +40,7 @@ export const PIECE_THEMES: PieceTheme[] = [
   { id: "neon", name: "Neon", emoji: "✨", style: "neon", white: { fill: "#0c1622", stroke: "#39e6b0" }, black: { fill: "#0c1622", stroke: "#3ad6ff" } },
   { id: "forest", name: "Forest", emoji: "🌲", style: "emoji", white: { fill: "#eaf4d6", stroke: "#4c6b2e" }, black: { fill: "#3f6130", stroke: "#21331a" }, glyphs: { p: "🌰", n: "🦌", b: "🦉", r: "🌲", q: "🦋", k: "🐻" } },
   { id: "ocean", name: "Ocean", emoji: "🌊", style: "emoji", white: { fill: "#e0f2fb", stroke: "#1f6f9a" }, black: { fill: "#1f6f9a", stroke: "#0b3147" }, glyphs: { p: "🐚", n: "🦐", b: "🐠", r: "🪸", q: "🐙", k: "🦈" } },
-  { id: "cute", name: "Cute", emoji: "🧸", style: "emoji", white: { fill: "#ffe6f1", stroke: "#d76aa3" }, black: { fill: "#c79bf5", stroke: "#7b45bd" }, glyphs: { p: "🐥", n: "🐴", b: "🐰", r: "🐘", q: "🦄", k: "🦁" } },
+  { id: "cute", name: "Critters", emoji: "🐾", style: "emoji", white: { fill: "#ffe6f1", stroke: "#d76aa3" }, black: { fill: "#c79bf5", stroke: "#7b45bd" }, glyphs: { p: "🐥", n: "🐴", b: "🐰", r: "🐘", q: "🦄", k: "🦁" } },
 ];
 
 export function getPieceTheme(id: string): PieceTheme {
@@ -89,19 +89,42 @@ function SilhouettePiece({ type, pal, gid, neon, svgStyle }: { type: PieceType; 
   );
 }
 
-/** Emoji piece on a side-coloured disc (light disc = white, dark disc = black). */
-function EmojiPiece({ glyph, pal, svgStyle }: { glyph: string; pal: Pal; svgStyle?: CSSProperties }) {
+/**
+ * Emoji piece on a glossy disc. White = bright disc + bright emoji; black = a
+ * darker disc + a dimmed, ringed emoji, so the two sides read clearly apart.
+ */
+function EmojiPiece({ glyph, pal, dark, gid, svgStyle }: { glyph: string; pal: Pal; dark: boolean; gid: string; svgStyle?: CSSProperties }) {
   return (
-    <svg viewBox="0 0 45 45" width="100%" height="100%" style={{ ...svgStyle, filter: "drop-shadow(0 1.5px 1px rgba(0,0,0,0.3))" }}>
-      <circle cx="22.5" cy="22.5" r="18.5" fill={pal.fill} stroke={pal.stroke} strokeWidth="1.8" />
-      <text x="22.5" y="24" fontSize="22" textAnchor="middle" dominantBaseline="central">{glyph}</text>
+    <svg viewBox="0 0 45 45" width="100%" height="100%" style={{ ...svgStyle, filter: "drop-shadow(0 1.6px 1.2px rgba(0,0,0,0.32))" }}>
+      <defs>
+        <radialGradient id={gid} cx="38%" cy="32%" r="75%">
+          <stop offset="0%" stopColor={shade(pal.fill, 0.5)} />
+          <stop offset="70%" stopColor={pal.fill} />
+          <stop offset="100%" stopColor={shade(pal.fill, -0.18)} />
+        </radialGradient>
+      </defs>
+      <circle cx="22.5" cy="22.5" r="19" fill={`url(#${gid})`} stroke={pal.stroke} strokeWidth="2" />
+      {/* gloss highlight ring */}
+      <circle cx="22.5" cy="22.5" r="16" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
+      {dark && <circle cx="22.5" cy="22.5" r="19" fill="rgba(10,14,22,0.28)" />}
+      <text
+        x="22.5"
+        y="24"
+        fontSize="22"
+        textAnchor="middle"
+        dominantBaseline="central"
+        style={dark ? { filter: "saturate(0.85) brightness(0.82) contrast(1.05)" } : undefined}
+      >
+        {glyph}
+      </text>
     </svg>
   );
 }
 
 function renderPiece(theme: PieceTheme, type: PieceType, color: "w" | "b", gid: string, svgStyle?: CSSProperties) {
   const pal = color === "w" ? theme.white : theme.black;
-  if (theme.style === "emoji" && theme.glyphs) return <EmojiPiece glyph={theme.glyphs[type]} pal={pal} svgStyle={svgStyle} />;
+  if (theme.style === "emoji" && theme.glyphs)
+    return <EmojiPiece glyph={theme.glyphs[type]} pal={pal} dark={color === "b"} gid={gid} svgStyle={svgStyle} />;
   return <SilhouettePiece type={type} pal={pal} gid={gid} neon={theme.style === "neon"} svgStyle={svgStyle} />;
 }
 
