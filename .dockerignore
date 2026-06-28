@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+local.db
+local.db-shm
+local.db-wal
+screenshots
+test-results
+playwright-report
+*.log

@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+/*
+  DuoChess Design Tokens
+  ----------------------
+  Original visual language: playful + premium, soft rounded geometry,
+  warm cream surfaces, indigo/violet brand, coral accent. Deliberately
+  distinct from any existing learning app.
+*/
+
+:root {
+  /* Brand */
+  --brand-50: #eef0ff;
+  --brand-100: #dfe3ff;
+  --brand-300: #aab2ff;
+  --brand-500: #5b5bd6;
+  --brand-600: #4b46c4;
+  --brand-700: #3b35a0;
+
+  /* Accent (coral) */
+  --accent-400: #ff9a76;
+  --accent-500: #ff7a59;
+  --accent-600: #f2613f;
+
+  /* Semantic */
+  --success-400: #34d399;
+  --success-500: #10b981;
+  --success-600: #059669;
+  --danger-400: #fb7185;
+  --danger-500: #f43f5e;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --gold-500: #f6c343;
+
+  /* Ink / surfaces */
+  --ink-900: #1c1b2e;
+  --ink-700: #3a3850;
+  --ink-500: #6b6982;
+  --ink-300: #a9a7bd;
+  --surface: #fbfaff;
+  --surface-card: #ffffff;
+  --surface-sunken: #f1f0f9;
+  --hairline: #e7e6f2;
+
+  /* Board */
+  --board-light: #ede7f6;
+  --board-dark: #b9a8e6;
+  --board-highlight: #ffe08a;
+  --board-move: #7be0b3;
+
+  /* Radii */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-pill: 999px;
+
+  /* Elevation — layered (ambient + key light, single source from top) */
+  --shadow-button: 0 4px 0 0 var(--brand-700);
+  --shadow-button-accent: 0 4px 0 0 var(--accent-600);
+  --elev-1: 0 1px 2px rgba(28, 27, 46, 0.06), 0 1px 1px rgba(28, 27, 46, 0.04);
+  --elev-2: 0 1px 2px rgba(28, 27, 46, 0.06), 0 6px 16px -8px rgba(28, 27, 46, 0.16);
+  --elev-3: 0 2px 4px rgba(28, 27, 46, 0.06), 0 14px 32px -12px rgba(28, 27, 46, 0.2);
+  --shadow-card: var(--elev-2);
+  --shadow-pop: 0 2px 6px rgba(28, 27, 46, 0.12), 0 24px 48px -12px rgba(91, 91, 214, 0.45);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+}
+
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-300: var(--brand-300);
+  --color-brand: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-accent: var(--accent-500);
+  --color-accent-400: var(--accent-400);
+  --color-accent-600: var(--accent-600);
+  --color-success: var(--success-500);
+  --color-success-400: var(--success-400);
+  --color-success-600: var(--success-600);
+  --color-danger: var(--danger-500);
+  --color-danger-400: var(--danger-400);
+  --color-warning: var(--warning-500);
+  --color-gold: var(--gold-500);
+  --color-ink: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-300: var(--ink-300);
+  --color-surface: var(--surface);
+  --color-surface-card: var(--surface-card);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-hairline: var(--hairline);
+
+  --radius-card: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+
+  --font-sans: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+
+  --ease-spring: var(--ease-spring);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background: var(--surface);
+  color: var(--ink-900);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Safe-area helpers for installed/standalone mobile */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0.75rem);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+.min-h-dvh {
+  min-height: 100dvh;
+}
+
+/* Tactile button press: the classic "squish + drop" feel */
+.btn-tactile {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+  will-change: transform;
+}
+.btn-tactile:active {
+  transform: translateY(3px);
+  box-shadow: none !important;
+}
+
+/* Keyframes */
+@keyframes dc-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes dc-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes dc-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes dc-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1.5deg);
+  }
+}
+
+.animate-float {
+  animation: dc-float 3.5s var(--ease-spring) infinite;
+}
+.animate-bob {
+  animation: dc-bob 4s ease-in-out infinite;
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 25%,
+    #e9e7f6 37%,
+    var(--surface-sunken) 63%
+  );
+  background-size: 200% 100%;
+  animation: dc-shimmer 1.4s ease infinite;
+}
+
+/* Focus ring — accessibility first */
+:focus-visible {
+  outline: 3px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced motion globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Colorblind-friendly board option toggled via data attr on <html> */
+html[data-cb="deuteranopia"] {
+  --board-light: #e8eef7;
+  --board-dark: #9bb8d3;
+  --board-move: #5aa9e6;
+  --board-highlight: #f2c14e;
+}
+
+/* Manual "reduce motion" toggle (independent of OS setting). */
+html[data-rm="1"] *,
+html[data-rm="1"] *::before,
+html[data-rm="1"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* High-contrast mode bumps hairlines and muted text. */
+html[data-contrast="high"] {
+  --hairline: #8a88a8;
+  --ink-500: #2a2840;
+  --ink-300: #6b6982;
+}
+
+/* App themes recolor global surfaces + ink (#106). Brand stays the school theme.
+   All combinations keep AA-contrast for body text. */
+html[data-app-theme="blue"] {
+  --surface: #eef4fb;
+  --surface-card: #ffffff;
+  --surface-sunken: #e0eaf6;
+  --hairline: #d4e1f0;
+}
+html[data-app-theme="forest"] {
+  --surface: #eef5ee;
+  --surface-card: #ffffff;
+  --surface-sunken: #e0ece0;
+  --hairline: #d3e3d3;
+}
+html[data-app-theme="ivory"] {
+  --surface: #faf8f2;
+  --surface-card: #fffdf8;
+  --surface-sunken: #efe9dc;
+  --hairline: #e6dfce;
+}
+html[data-app-theme="royal"] {
+  --surface: #f4eefb;
+  --surface-card: #ffffff;
+  --surface-sunken: #e9ddf6;
+  --hairline: #e0d2f2;
+}
+html[data-app-theme="midnight"] {
+  --surface: #14152b;
+  --surface-card: #1d1f3a;
+  --surface-sunken: #262947;
+  --hairline: #34376090;
+  --ink-900: #ededf6;
+  --ink-700: #c9c8de;
+  --ink-500: #a4a3c2;
+  --ink-300: #7b7a9c;
+  /* dark-appropriate brand tints so bg-brand-50 surfaces stay legible */
+  --brand-50: #2a2f57;
+  --brand-100: #343c6e;
+  --shadow-card: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 18px 40px -10px rgba(0, 0, 0, 0.6);
+}
+
+/* School themes retint the brand + accent (all AA-safe with white text). */
+html[data-school-theme="elementary"] {
+  --brand-500: #2563eb;
+  --brand-600: #1d4ed8;
+  --brand-700: #1e40af;
+  --accent-500: #f2613f;
+}
+html[data-school-theme="highschool"] {
+  --brand-500: #0f766e;
+  --brand-600: #0d655e;
+  --brand-700: #0a504a;
+  --accent-500: #cf4324;
+}
+html[data-school-theme="university"] {
+  --brand-500: #5b5bd6;
+  --brand-600: #4b46c4;
+  --brand-700: #3b35a0;
+}
+html[data-school-theme="graduation"] {
+  --brand-500: #6d28d9;
+  --brand-600: #5b21b6;
+  --brand-700: #4c1d95;
+  --accent-500: #d97706;
+}

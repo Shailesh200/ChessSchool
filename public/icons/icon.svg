@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7b6ff0"/>
+      <stop offset="100%" stop-color="#4b46c4"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <!-- open book -->
+  <path d="M150 320 Q256 285 256 320 Q256 285 362 320 V388 Q256 352 256 388 Q256 352 150 388 Z" fill="#ece9ff"/>
+  <path d="M256 320 V388" stroke="#4b46c4" stroke-width="6"/>
+  <!-- graduation cap -->
+  <path d="M256 150 L370 196 L256 242 L142 196 Z" fill="#2a2546"/>
+  <path d="M300 224 v44 c0 22 -88 22 -88 0 v-44" fill="#3a3850"/>
+  <circle cx="370" cy="196" r="11" fill="#f6c343"/>
+  <path d="M370 196 v52" stroke="#f6c343" stroke-width="7"/>
+  <circle cx="370" cy="252" r="11" fill="#f6c343"/>
+</svg>
