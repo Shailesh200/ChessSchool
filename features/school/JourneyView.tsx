@@ -29,6 +29,7 @@ export function JourneyView({
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
   const [shown, setShown] = useState(6);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const unlockedClass = isClassUnlocked(cls.id, records, graduated, allClasses);
   const done = lessons.filter((l) => (records[l.id]?.mastery ?? 0) >= 0.9).length;
@@ -53,6 +54,8 @@ export function JourneyView({
       audio.play("fail");
       return;
     }
+    if (busy) return; // ignore taps while a navigation is already in flight
+    setBusy(id);
     haptics.fire("tap");
     audio.play("transition");
     startNav();
@@ -87,6 +90,7 @@ export function JourneyView({
           <Button
             block
             className="mt-3"
+            loading={busy === firstActionable.id}
             onClick={() => go(firstActionable.id, firstActionable.status)}
           >
             {done > 0 ? "Continue journey" : "Start journey"}

@@ -389,10 +389,19 @@ function LessonComplete({
   onDone: () => void;
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const router = useRouter();
   const authed = useSession((s) => s.authed);
   // Prefer the DB-computed next lesson; fall back to the constants graph.
   const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
+  const go = (id: string, href: string, action?: () => void) => {
+    if (busy) return;
+    setBusy(id);
+    audio.play("transition");
+    startNav();
+    if (action) action();
+    else router.push(href);
+  };
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden bg-surface px-6 text-center">
       <Confetti count={graduatedTitle ? 40 : 28} />
@@ -442,7 +451,7 @@ function LessonComplete({
           <p className="mt-1 text-xs font-semibold text-ink-500">
             Enroll free to keep your XP and continue on any device — everything you&apos;ve done so far comes with you.
           </p>
-          <Button size="sm" block className="mt-3" onClick={() => { audio.play("transition"); router.push("/register"); }}>
+          <Button size="sm" block className="mt-3" loading={busy === "enroll"} onClick={() => go("enroll", "/register")}>
             Enroll free
           </Button>
         </motion.div>
@@ -450,19 +459,11 @@ function LessonComplete({
 
       <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
         {nextId ? (
-          <Button
-            size="lg"
-            block
-            onClick={() => {
-              audio.play("transition");
-              startNav();
-              router.push(`/lesson/${nextId}`);
-            }}
-          >
+          <Button size="lg" block loading={busy === "next"} onClick={() => go("next", `/lesson/${nextId}`)}>
             Continue learning →
           </Button>
         ) : (
-          <Button size="lg" block onClick={onDone}>
+          <Button size="lg" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
             Back to campus
           </Button>
         )}
@@ -471,7 +472,7 @@ function LessonComplete({
             📝 Reflect
           </Button>
           {nextId && (
-            <Button variant="ghost" block onClick={onDone}>
+            <Button variant="ghost" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
               Back to campus
             </Button>
           )}
