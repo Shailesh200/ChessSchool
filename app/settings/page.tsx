@@ -85,7 +85,7 @@ export default function SettingsPage() {
           </Row>
           <Row label="Bot difficulty" hint={`Target ELO ${s.targetElo}`}>
             <input
-              type="range" min={500} max={2500} step={100} value={s.targetElo}
+              type="range" min={300} max={2500} step={100} value={s.targetElo}
               onChange={(e) => s.set("targetElo", Number(e.target.value))}
               className="w-32 accent-[var(--brand-500)]"
               aria-label="Bot difficulty"

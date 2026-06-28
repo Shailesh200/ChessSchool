@@ -12,7 +12,7 @@ import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 import { listItem, listContainer } from "@/core/motion/variants";
 
-const ELO_PRESETS = [600, 900, 1200, 1600, 2000];
+const ELO_PRESETS = [300, 600, 900, 1200, 1600, 2000];
 const TIME_PRESETS = [
   { min: 0, label: "No clock" },
   { min: 5, label: "5 min" },
@@ -67,7 +67,7 @@ export function MatchChooser() {
           active={mode === "bot"}
           emoji="🤖"
           title="vs Bot"
-          subtitle="Adaptive AI 600–2000"
+          subtitle="Adaptive AI 300–2000"
           onClick={() => { setMode("bot"); haptics.fire("select"); }}
         />
         <ModeCard

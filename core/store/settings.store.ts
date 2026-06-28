@@ -54,7 +54,7 @@ const defaults = {
   pieceTheme: "classic" as PieceTheme,
   coachPersonality: "friendly" as CoachPersonality,
   diagnostics: false,
-  targetElo: 800,
+  targetElo: 600,
   textScale: 1,
 };
 

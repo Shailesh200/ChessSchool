@@ -66,12 +66,13 @@ export interface BotConfig {
 
 /** Map an ELO target to a search profile. */
 export function eloToConfig(elo: number): BotConfig {
-  const clamped = Math.max(500, Math.min(2500, elo));
+  const clamped = Math.max(300, Math.min(2500, elo));
+  if (clamped < 500) return { depth: 1, blunderChance: 0.72, jitter: 1.3 }; // easy mode — hangs pieces, plays loose
   if (clamped < 800) return { depth: 1, blunderChance: 0.45, jitter: 0.9 };
-  if (clamped < 1100) return { depth: 2, blunderChance: 0.3, jitter: 0.6 };
-  if (clamped < 1500) return { depth: 2, blunderChance: 0.15, jitter: 0.35 };
-  if (clamped < 1900) return { depth: 3, blunderChance: 0.06, jitter: 0.18 };
-  return { depth: 3, blunderChance: 0.0, jitter: 0.05 };
+  if (clamped < 1100) return { depth: 2, blunderChance: 0.28, jitter: 0.55 };
+  if (clamped < 1500) return { depth: 2, blunderChance: 0.14, jitter: 0.32 };
+  if (clamped < 1900) return { depth: 3, blunderChance: 0.05, jitter: 0.16 };
+  return { depth: 3, blunderChance: 0.0, jitter: 0.04 };
 }
 
 function evaluate(game: Chess): number {

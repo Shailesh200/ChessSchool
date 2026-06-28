@@ -13,12 +13,12 @@ import { rankForClasses } from "@/lib/rank";
 import { useMounted } from "@/core/hooks/useMounted";
 import { ACHIEVEMENTS } from "@/features/progression/achievements";
 
-const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: boolean }[] = [
-  { href: "/library", icon: "learn", label: "Library" },
-  { href: "/account", icon: "profile", label: "My ID" },
-  { href: "/dashboard", icon: "chart", label: "Dashboard" },
-  { href: "/plan", icon: "calendar", label: "Study Plan" },
-  { href: "/journal", icon: "journal", label: "Journal" },
+const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: boolean; authOnly?: boolean }[] = [
+  { href: "/library", icon: "learn", label: "Library", authOnly: true },
+  { href: "/account", icon: "profile", label: "My ID", authOnly: true },
+  { href: "/dashboard", icon: "chart", label: "Dashboard", authOnly: true },
+  { href: "/plan", icon: "calendar", label: "Study Plan", authOnly: true },
+  { href: "/journal", icon: "journal", label: "Journal", authOnly: true },
   { href: "/themes", icon: "palette", label: "Themes" },
   { href: "/playground", icon: "flask", label: "Playground", adminOnly: true },
   { href: "/settings", icon: "gear", label: "Settings" },
@@ -34,8 +34,11 @@ export default function ProfilePage() {
   const targetElo = useSettings((s) => s.targetElo);
   const graduated = useProgression((s) => s.graduatedClasses);
   const isAdmin = useSession((s) => s.isAdmin);
+  const authed = useSession((s) => s.authed);
   const user = useSession((s) => s.user);
-  const hubLinks = HUB_LINKS.filter((l) => !l.adminOnly || isAdmin);
+  const hubLinks = HUB_LINKS.filter(
+    (l) => (!l.adminOnly || isAdmin) && (!l.authOnly || authed === true),
+  );
   const rank = mounted ? rankForClasses(graduated.length) : "Novice";
 
   const mastered = mounted ? Object.values(lessons).filter((l) => l.mastery >= 0.9).length : 0;
@@ -56,6 +59,17 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
+
+        {mounted && authed === false && (
+          <Link
+            href="/login"
+            className="btn-tactile flex items-center justify-between rounded-card border border-brand/40 bg-brand-50 px-4 py-3"
+          >
+            <span className="text-sm font-extrabold text-brand">
+              Log in to unlock your Dashboard, Library, Study Plan &amp; ID →
+            </span>
+          </Link>
+        )}
 
         <div className="grid grid-cols-3 gap-2">
           {hubLinks.map((l) => (
