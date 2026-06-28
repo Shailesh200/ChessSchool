@@ -24,6 +24,10 @@ const ProgressSync = dynamic(
   () => import("@/components/providers/ProgressSync").then((m) => m.ProgressSync),
   { ssr: false },
 );
+const NavProgress = dynamic(
+  () => import("@/components/ui/NavProgress").then((m) => m.NavProgress),
+  { ssr: false },
+);
 
 /**
  * App-wide side-effect coordinator: keeps device subsystems (audio, haptics,
@@ -143,6 +147,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     <>
       {children}
       <ProgressSync />
+      <NavProgress />
       <Toaster />
       <Diagnostics />
     </>

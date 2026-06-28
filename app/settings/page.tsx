@@ -4,8 +4,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettings } from "@/core/store/settings.store";
-import Link from "next/link";
 import { useMounted } from "@/core/hooks/useMounted";
+import { useSession } from "@/core/store/session.store";
 import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
 
@@ -24,6 +24,8 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 export default function SettingsPage() {
   const mounted = useMounted();
   const s = useSettings();
+  const isAdmin = useSession((st) => st.isAdmin);
+  const user = useSession((st) => st.user);
 
   if (!mounted) {
     return (
@@ -72,28 +74,12 @@ export default function SettingsPage() {
               label="Colorblind board"
             />
           </Row>
-          <Row label="Text size" hint={`${Math.round(s.textScale * 100)}%`}>
-            <input
-              type="range" min={0.9} max={1.4} step={0.1} value={s.textScale}
-              onChange={(e) => s.set("textScale", Number(e.target.value))}
-              className="w-32 accent-[var(--brand-500)]"
-              aria-label="Text size"
-            />
-          </Row>
         </Card>
 
         <Card className="divide-y divide-hairline py-0">
           <Section title="Learning & Board" />
           <Row label="Coach hints" hint="Show arrows and tips">
             <Toggle checked={s.hints} onChange={(v) => s.set("hints", v)} label="Coach hints" />
-          </Row>
-          <Row label="Themes" hint="Board & school themes with live preview">
-            <Link
-              href="/themes"
-              className="rounded-pill bg-brand px-4 py-1.5 text-sm font-bold text-white"
-            >
-              Open Theme Studio →
-            </Link>
           </Row>
           <Row label="Bot difficulty" hint={`Target ELO ${s.targetElo}`}>
             <input
@@ -119,16 +105,20 @@ export default function SettingsPage() {
           </Row>
         </Card>
 
-        <Card className="divide-y divide-hairline py-0">
-          <Section title="Advanced" />
-          <Row label="Performance diagnostics" hint="Show FPS & route timing">
-            <Toggle checked={s.diagnostics} onChange={(v) => s.set("diagnostics", v)} label="Performance diagnostics" />
-          </Row>
-        </Card>
+        {isAdmin && (
+          <Card className="divide-y divide-hairline py-0">
+            <Section title="Advanced" />
+            <Row label="Performance diagnostics" hint="Show FPS & route timing">
+              <Toggle checked={s.diagnostics} onChange={(v) => s.set("diagnostics", v)} label="Performance diagnostics" />
+            </Row>
+          </Card>
+        )}
 
         <DataSection />
 
-        <p className="pb-4 text-center text-xs font-semibold text-ink-300">ChessSchool v3.0 · Guest mode</p>
+        <p className="pb-4 text-center text-xs font-semibold text-ink-300">
+          ChessSchool v3.0 · {user ? user.name : "Guest mode"}
+        </p>
       </div>
     </AppShell>
   );

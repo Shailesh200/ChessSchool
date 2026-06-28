@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { semesters, classes, lessons } from "@/db/schema";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LibraryPage() {
   const user = await getCurrentUser();
+  if (user?.role !== "admin") redirect("/"); // library is an admin tool now
   const sems = await db.select().from(semesters).orderBy(asc(semesters.sortOrder));
   const cls = await db.select().from(classes).orderBy(asc(classes.sortOrder));
   const meta = await db

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { isClassUnlocked, type SchoolClass } from "./structure";
 import { useProgression } from "@/core/store/progression.store";
+import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
@@ -50,6 +51,7 @@ export function JourneyView({
     }
     haptics.fire("tap");
     audio.play("transition");
+    startNav();
     router.push(`/lesson/${id}`);
   }
 
@@ -119,6 +121,7 @@ export function JourneyView({
             onClick={() => {
               haptics.fire("tap");
               audio.play("transition");
+              startNav();
               router.push(`/class/${cls.id}/exam`);
             }}
           >

@@ -32,9 +32,8 @@ test("dashboard shows skill tree and mistake DNA", async ({ page }) => {
   await expect(page.getByText("Mistake DNA")).toBeVisible();
 });
 
-test("settings exposes data export/import and theme studio link", async ({ page }) => {
+test("settings exposes data export/import", async ({ page }) => {
   await page.goto("/settings");
-  await expect(page.getByText("Open Theme Studio →")).toBeVisible();
   await expect(page.getByRole("button", { name: /Export backup/ })).toBeVisible();
 });
 

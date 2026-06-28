@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -10,11 +11,20 @@ import { hintArrow } from "@/features/coaching/coach";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { toast } from "@/core/store/toast.store";
+import { useSession } from "@/core/store/session.store";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 export default function PlaygroundPage() {
+  const router = useRouter();
+  const authed = useSession((s) => s.authed);
+  const isAdmin = useSession((s) => s.isAdmin);
+  // Playground is an admin tool — send non-admins back to campus.
+  useEffect(() => {
+    if (authed !== null && !isAdmin) router.replace("/");
+  }, [authed, isAdmin, router]);
+
   const engineRef = useRef(new ChessEngine());
   const [fen, setFen] = useState(START_FEN);
   const [flip, setFlip] = useState(false);

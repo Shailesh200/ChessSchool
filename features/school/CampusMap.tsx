@@ -14,6 +14,7 @@ import {
   type Catalog,
 } from "./structure";
 import { useProgression } from "@/core/store/progression.store";
+import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
@@ -130,6 +131,7 @@ function ClassCard({
     }
     haptics.fire("tap");
     audio.play("transition");
+    startNav();
     // Open the subject Journey (milestone path), not a raw lesson list.
     router.push(`/class/${cls.id}`);
   }

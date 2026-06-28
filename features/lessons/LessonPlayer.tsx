@@ -13,6 +13,8 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
+import { startNav } from "@/core/store/nav.store";
+import { useSquareSize } from "@/core/hooks/useSquareSize";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
@@ -44,6 +46,7 @@ export function LessonPlayer({
   const [observeDone, setObserveDone] = useState(false);
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
   const timers = useRef<number[]>([]);
+  const [boardBox, boardSize] = useSquareSize();
 
   const progression = useProgression();
   const step = lesson.steps[index] as LessonStep | undefined;
@@ -193,7 +196,7 @@ export function LessonPlayer({
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4">
+      <div className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-4 px-4 py-4">
         <div className="flex items-end gap-3">
           <Mascot expression={expression} size={64} float={phase === "playing"} />
           <motion.div
@@ -212,18 +215,18 @@ export function LessonPlayer({
         </div>
 
         {step.fen && (
-          <div
-            className="mx-auto w-full"
-            style={{ width: "min(100%, calc(100dvh - 19rem))", maxWidth: 460 }}
-          >
-            <ChessBoard
-              fen={displayFen ?? step.fen}
-              orientation={step.orientation ?? "white"}
-              onMove={handleMove}
-              arrows={phase === "playing" && !isObserving ? step.arrows : []}
-              highlight={phase === "playing" && !isObserving ? step.highlight : []}
-              interactive={step.kind === "move" && phase === "playing"}
-            />
+          <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center">
+            <div style={{ width: boardSize || undefined, height: boardSize || undefined }}>
+              <ChessBoard
+                key={index}
+                fen={displayFen ?? step.fen}
+                orientation={step.orientation ?? "white"}
+                onMove={handleMove}
+                arrows={phase === "playing" && !isObserving ? step.arrows : []}
+                highlight={phase === "playing" && !isObserving ? step.highlight : []}
+                interactive={step.kind === "move" && phase === "playing"}
+              />
+            </div>
           </div>
         )}
 
@@ -369,6 +372,7 @@ function LessonComplete({
             block
             onClick={() => {
               audio.play("transition");
+              startNav();
               router.push(`/lesson/${nextId}`);
             }}
           >

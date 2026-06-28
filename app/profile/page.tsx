@@ -8,17 +8,18 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { useProgression, levelForXp } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
+import { useSession } from "@/core/store/session.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { ACHIEVEMENTS } from "@/features/progression/achievements";
 
-const HUB_LINKS: { href: string; icon: IconName; label: string }[] = [
-  { href: "/library", icon: "learn", label: "Library" },
+const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: boolean }[] = [
+  { href: "/library", icon: "learn", label: "Library", adminOnly: true },
   { href: "/account", icon: "profile", label: "My ID" },
   { href: "/dashboard", icon: "chart", label: "Dashboard" },
   { href: "/plan", icon: "calendar", label: "Study Plan" },
   { href: "/journal", icon: "journal", label: "Journal" },
   { href: "/themes", icon: "palette", label: "Themes" },
-  { href: "/playground", icon: "flask", label: "Playground" },
+  { href: "/playground", icon: "flask", label: "Playground", adminOnly: true },
   { href: "/settings", icon: "gear", label: "Settings" },
 ];
 
@@ -30,6 +31,9 @@ export default function ProfilePage() {
   const weaknesses = useProgression((s) => s.weaknesses);
   const unlocked = useProgression((s) => s.unlockedAchievements);
   const targetElo = useSettings((s) => s.targetElo);
+  const isAdmin = useSession((s) => s.isAdmin);
+  const user = useSession((s) => s.user);
+  const hubLinks = HUB_LINKS.filter((l) => !l.adminOnly || isAdmin);
 
   const mastered = mounted ? Object.values(lessons).filter((l) => l.mastery >= 0.9).length : 0;
   const level = mounted ? levelForXp(xp) : 1;
@@ -43,13 +47,13 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4">
           <Mascot expression="happy" size={72} />
           <div>
-            <h1 className="text-2xl font-extrabold text-ink">Guest Player</h1>
+            <h1 className="text-2xl font-extrabold text-ink">{user?.name ?? "Guest Player"}</h1>
             <p className="text-sm font-semibold text-ink-500">Level {level} · {mounted ? xp : 0} XP</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          {HUB_LINKS.map((l) => (
+          {hubLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}

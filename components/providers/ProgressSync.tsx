@@ -15,7 +15,7 @@ import { useSession } from "@/core/store/session.store";
  * logged in: debounced push of the merged union back to the account.
  */
 export function ProgressSync() {
-  const setAuthed = useSession((s) => s.setAuthed);
+  const setSession = useSession((s) => s.setSession);
   const lastPushed = useRef<string>("");
 
   // Pull + merge on mount.
@@ -25,21 +25,21 @@ export function ProgressSync() {
       .then(async (r) => {
         if (cancelled) return;
         if (r.status === 401) {
-          setAuthed(false);
+          setSession(false, null);
           return;
         }
         if (!r.ok) return;
-        const snap = (await r.json()) as ProgressSnapshot;
-        useProgression.getState().mergeSnapshot(snap);
+        const data = (await r.json()) as ProgressSnapshot & { user: { name: string; role: string } };
+        useProgression.getState().mergeSnapshot(data);
         // Seed the dedupe key so the merge itself doesn't trigger a no-op push.
         lastPushed.current = JSON.stringify(progressSnapshot(useProgression.getState()));
-        setAuthed(true);
+        setSession(true, data.user);
       })
       .catch(() => void 0);
     return () => {
       cancelled = true;
     };
-  }, [setAuthed]);
+  }, [setSession]);
 
   // Debounced push on change (logged-in only).
   useEffect(() => {

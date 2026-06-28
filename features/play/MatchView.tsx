@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Confetti } from "@/components/ui/Confetti";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { materialAdvantage } from "@/features/chess-engine/material";
+import { useSquareSize } from "@/core/hooks/useSquareSize";
 import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
@@ -55,6 +56,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
 
+  const [boardBox, boardSize] = useSquareSize();
   const hasClock = active.timeControlMin > 0;
   const clockRef = useRef({ w: active.whiteMs, b: active.blackMs });
   const [clock, setClock] = useState({ w: active.whiteMs, b: active.blackMs });
@@ -307,12 +309,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         />
       </div>
 
-      {/* board fills remaining height (full-height in standalone PWA) */}
-      <div className="flex flex-1 items-center justify-center px-3 py-2">
-        <div
-          className="relative"
-          style={{ width: "min(96vw, calc(100dvh - 12rem))", maxWidth: 600 }}
-        >
+      {/* board spans the largest square that fits the remaining height/width */}
+      <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3 py-2">
+        <div className="relative" style={{ width: boardSize || undefined, height: boardSize || undefined }}>
           <ChessBoard
             fen={fen}
             orientation={orientation}

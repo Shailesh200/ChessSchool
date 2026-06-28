@@ -50,13 +50,15 @@ export default async function AccountPage() {
           <Stat label="Classes" value={JSON.parse(prog?.graduatedClasses ?? "[]").length} />
         </div>
 
-        <NavButton href="/library" block>
-          <Icon name="learn" size={20} className="text-white" /> Browse the lesson library
-        </NavButton>
         {user.role === "admin" && (
-          <NavButton href="/admin" variant="outline" block>
-            <Icon name="gear" size={20} className="text-ink-700" /> Curriculum admin
-          </NavButton>
+          <>
+            <NavButton href="/library" block>
+              <Icon name="learn" size={20} className="text-white" /> Browse the lesson library
+            </NavButton>
+            <NavButton href="/admin" variant="outline" block>
+              <Icon name="gear" size={20} className="text-ink-700" /> Curriculum admin
+            </NavButton>
+          </>
         )}
         <Link href="/" className="text-center text-sm font-bold text-ink-500">
           Go to campus →

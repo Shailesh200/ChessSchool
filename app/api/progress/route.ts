@@ -19,6 +19,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    user: { name: user.name, role: user.role },
     xp: p?.xp ?? 0,
     streak: p?.streak ?? 0,
     lastActiveDay: p?.lastActiveDay ?? null,
