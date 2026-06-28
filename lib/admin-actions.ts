@@ -16,6 +16,7 @@ async function requireAdmin(): Promise<{ ok: true } | { error: string }> {
 }
 
 function refresh() {
+  revalidatePath("/", "layout"); // refresh the ISR-cached campus/lesson pages
   revalidatePath("/admin");
   revalidatePath("/library");
 }

@@ -182,6 +182,50 @@ function genCheck() {
   };
 }
 
+const KNIGHT_OFFS = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+function knightTargets(f, r) {
+  return KNIGHT_OFFS.map(([df, dr]) => ({ f: f + df, r: r + dr })).filter((s) => s.f >= 0 && s.f < 8 && s.r >= 1 && s.r <= 8);
+}
+
+// Knight fork: a knight move that checks the king AND attacks a queen/rook.
+function genFork() {
+  const pieceType = pick(["q", "r"]);
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const fs = { f: rint(8), r: 1 + rint(8) };
+    const tg = knightTargets(fs.f, fs.r);
+    if (tg.length < 3) continue;
+    const sh = [...tg].sort(() => Math.random() - 0.5);
+    const [bk, bp, wn] = sh;
+    const occ = new Set([sq(fs.f, fs.r), sq(bk.f, bk.r), sq(bp.f, bp.r), sq(wn.f, wn.r)]);
+    let wk = null;
+    for (let i = 0; i < 60; i++) {
+      const c = { f: rint(8), r: 1 + rint(8) };
+      if (!occ.has(sq(c.f, c.r)) && cheb(c, bk) >= 2 && cheb(c, fs) >= 1) { wk = c; break; }
+    }
+    if (!wk) continue;
+    const fen = buildFen([{ ...wk, p: "K" }, { f: bk.f, r: bk.r, p: "k" }, { f: bp.f, r: bp.r, p: pieceType }, { f: wn.f, r: wn.r, p: "N" }], "w");
+    let g;
+    try { g = new Chess(fen); } catch { continue; }
+    if (g.isAttacked(sq(bk.f, bk.r), "w")) continue;
+    const from = sq(wn.f, wn.r), to = sq(fs.f, fs.r);
+    if (!g.moves({ square: from, verbose: true }).some((m) => m.to === to)) continue;
+    const c = new Chess(fen);
+    c.move({ from, to });
+    if (!c.isCheck() || !c.isAttacked(sq(bp.f, bp.r), "w")) continue;
+    return {
+      tag: "fork",
+      title: `Fork the king and ${PIECE_NAME[pieceType]}`,
+      subtitle: "Knight fork",
+      emoji: "🍴",
+      xp: 12,
+      steps: [
+        moveStep("fork", `Your knight can check the king AND attack the ${PIECE_NAME[pieceType]} in one move. Find the fork!`, fen, [`${from}:${to}`], { highlight: [sq(bp.f, bp.r), sq(bk.f, bk.r)], tag: "fork", successText: "Beautiful fork — you win the piece!" }),
+      ],
+    };
+  }
+  return null;
+}
+
 function genPromotion() {
   const k = placeKings();
   if (!k) return null;

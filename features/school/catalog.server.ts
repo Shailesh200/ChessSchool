@@ -10,6 +10,9 @@ import type { Catalog } from "./structure";
  * The live curriculum, read from the DB (the single source of truth — curated +
  * generated + anything added in /admin). Shaped exactly like the old constants
  * so the school logic/UI works unchanged.
+ *
+ * Pages that call this set `revalidate` (ISR) so the 500+-lesson read is cached
+ * between navigations; admin edits call revalidatePath to refresh.
  */
 export async function getCatalog(): Promise<Catalog> {
   const [sems, cls, les] = await Promise.all([
