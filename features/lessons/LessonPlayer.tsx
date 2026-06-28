@@ -230,17 +230,17 @@ export function LessonPlayer({
       </div>
 
       <div className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-        <div className="flex min-h-[5rem] items-end gap-3">
-          <Mascot expression={expression} size={64} float={phase === "playing"} />
+        <div className="flex h-[4.75rem] items-center gap-3">
+          <Mascot expression={expression} size={56} float={false} />
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative mb-2 flex min-h-[3.5rem] flex-1 items-center rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 py-3 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]"
+            className="relative flex h-[4.25rem] flex-1 items-center overflow-hidden rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]"
           >
-            {feedbackText}
+            <span className="line-clamp-3">{feedbackText}</span>
             {lesson.exam && (
-              <span className="ml-1 rounded-pill bg-warning/20 px-1.5 py-0.5 text-[10px] font-extrabold text-warning">
+              <span className="ml-1 shrink-0 rounded-pill bg-warning/20 px-1.5 py-0.5 text-[10px] font-extrabold text-warning">
                 EXAM
               </span>
             )}
@@ -265,23 +265,24 @@ export function LessonPlayer({
           </div>
         )}
 
-        {isObserving && (
-          <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>
-        )}
-
-        {solvable && (
-          <button
-            onClick={() => {
-              setHint(true);
-              audio.play("notify");
-              haptics.fire("tap");
-            }}
-            disabled={hint}
-            className="btn-tactile mx-auto rounded-pill bg-surface-sunken px-4 py-1.5 text-xs font-bold text-ink-700 disabled:opacity-50"
-          >
-            {hint ? "💡 Follow the arrow" : "💡 Show a hint"}
-          </button>
-        )}
+        {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
+        <div className="flex h-9 items-center justify-center">
+          {isObserving ? (
+            <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>
+          ) : solvable ? (
+            <button
+              onClick={() => {
+                setHint(true);
+                audio.play("notify");
+                haptics.fire("tap");
+              }}
+              disabled={hint}
+              className="btn-tactile rounded-pill bg-surface-sunken px-4 py-1.5 text-xs font-bold text-ink-700 disabled:opacity-50"
+            >
+              {hint ? "💡 Follow the arrow" : "💡 Show a hint"}
+            </button>
+          ) : null}
+        </div>
 
         {/* Fills the space below the board + reinforces the concept */}
         <div className="mx-auto mt-1 flex w-full max-w-xs items-start gap-2 rounded-card border border-hairline bg-surface-card/70 px-3 py-2">
