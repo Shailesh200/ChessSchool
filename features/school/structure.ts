@@ -13,19 +13,27 @@ import type { SchoolClass, Semester, Stage, ContentUnit } from "@/content/school
 export { SEMESTERS, STAGES };
 export type { SchoolClass, Semester, Stage, ContentUnit };
 
+/** The live curriculum shape (read from the DB at runtime; see catalog.server). */
+export interface Catalog {
+  stages: Stage[];
+  semesters: Semester[];
+  allClasses: SchoolClass[];
+  titles: Record<string, string>; // lessonId → title
+}
+
 export const ALL_CLASSES: SchoolClass[] = SEMESTERS.flatMap((s) => s.classes);
 
 /** Semesters belonging to a given stage. */
-export function semestersForStage(stageId: string): Semester[] {
-  return SEMESTERS.filter((s) => s.stage === stageId);
+export function semestersForStage(stageId: string, semesters: Semester[] = SEMESTERS): Semester[] {
+  return semesters.filter((s) => s.stage === stageId);
 }
 
-export function getClass(id: string): SchoolClass | undefined {
-  return ALL_CLASSES.find((c) => c.id === id);
+export function getClass(id: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
+  return allClasses.find((c) => c.id === id);
 }
 
-export function classByExamId(examId: string): SchoolClass | undefined {
-  return ALL_CLASSES.find((c) => c.examId === examId);
+export function classByExamId(examId: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
+  return allClasses.find((c) => c.examId === examId);
 }
 
 export function classLessons(cls: SchoolClass): Lesson[] {
@@ -60,10 +68,11 @@ export function isClassUnlocked(
   classId: string,
   records: Record<string, LessonRecord>,
   graduatedClasses: string[],
+  allClasses: SchoolClass[] = ALL_CLASSES,
 ): boolean {
-  const idx = ALL_CLASSES.findIndex((c) => c.id === classId);
+  const idx = allClasses.findIndex((c) => c.id === classId);
   if (idx <= 0) return true;
-  const prev = ALL_CLASSES[idx - 1]!;
+  const prev = allClasses[idx - 1]!;
   return isClassGraduated(prev, records, graduatedClasses);
 }
 
@@ -79,19 +88,19 @@ export function nextLessonInClass(
 }
 
 /** The class that owns a lesson (or whose exam it is). */
-export function classOfLesson(lessonId: string): SchoolClass | undefined {
-  return ALL_CLASSES.find(
+export function classOfLesson(lessonId: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
+  return allClasses.find(
     (c) => c.lessonIds.includes(lessonId) || c.examId === lessonId,
   );
 }
 
 /** The next lesson to study after finishing `lessonId` — powers "Continue". */
-export function nextLessonAfter(lessonId: string): string | null {
-  const cls = classOfLesson(lessonId);
+export function nextLessonAfter(lessonId: string, allClasses: SchoolClass[] = ALL_CLASSES): string | null {
+  const cls = classOfLesson(lessonId, allClasses);
   if (!cls) return null;
-  const classIdx = ALL_CLASSES.findIndex((c) => c.id === cls.id);
+  const classIdx = allClasses.findIndex((c) => c.id === cls.id);
   const nextClassFirst = () => {
-    const next = ALL_CLASSES[classIdx + 1];
+    const next = allClasses[classIdx + 1];
     return next?.lessonIds[0] ?? null;
   };
   // Exam → move to the next class.
@@ -119,35 +128,38 @@ export interface SchoolLocation {
 export function currentLocation(
   records: Record<string, LessonRecord>,
   graduatedClasses: string[],
+  semesters: Semester[] = SEMESTERS,
+  titles: Record<string, string> = {},
 ): SchoolLocation {
-  for (const semester of SEMESTERS) {
+  const allClasses = semesters.flatMap((s) => s.classes);
+  const titleOf = (id: string) => titles[id] ?? getLesson(id)?.title ?? "Lesson";
+  for (const semester of semesters) {
     for (const cls of semester.classes) {
       if (!isClassGraduated(cls, records, graduatedClasses)) {
-        const lessonId = nextLessonInClass(cls, records) ?? cls.lessonIds[0]!;
-        const lesson = getLesson(lessonId);
+        const lessonId = nextLessonInClass(cls, records) ?? cls.lessonIds[0] ?? "";
         return {
           semester,
           cls,
           lessonId,
-          lessonTitle: lesson?.title ?? "Lesson",
-          classIndex: ALL_CLASSES.findIndex((c) => c.id === cls.id) + 1,
-          totalClasses: ALL_CLASSES.length,
+          lessonTitle: titleOf(lessonId),
+          classIndex: allClasses.findIndex((c) => c.id === cls.id) + 1,
+          totalClasses: allClasses.length,
           complete: false,
         };
       }
     }
   }
   // everything graduated — point at the final class for review
-  const last = SEMESTERS[SEMESTERS.length - 1]!;
+  const last = semesters[semesters.length - 1]!;
   const cls = last.classes[last.classes.length - 1]!;
-  const lessonId = cls.lessonIds[0]!;
+  const lessonId = cls.lessonIds[0] ?? "";
   return {
     semester: last,
     cls,
     lessonId,
-    lessonTitle: getLesson(lessonId)?.title ?? "Lesson",
-    classIndex: ALL_CLASSES.length,
-    totalClasses: ALL_CLASSES.length,
+    lessonTitle: titleOf(lessonId),
+    classIndex: allClasses.length,
+    totalClasses: allClasses.length,
     complete: true,
   };
 }

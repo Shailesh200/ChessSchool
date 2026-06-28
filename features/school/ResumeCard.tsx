@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useProgression } from "@/core/store/progression.store";
 import { useMatch } from "@/core/store/match.store";
-import { currentLocation, classProgress } from "./structure";
+import { currentLocation, classProgress, type Catalog } from "./structure";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
@@ -15,13 +15,13 @@ import { audio } from "@/core/audio/audioEngine";
  * "Where am I + Continue" card (#61/#64). Always-visible breadcrumb of the
  * student's place in school plus the single most useful next action.
  */
-export function ResumeCard() {
+export function ResumeCard({ catalog }: { catalog: Catalog }) {
   const router = useRouter();
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
   const activeMatch = useMatch((s) => s.active);
 
-  const loc = currentLocation(records, graduated);
+  const loc = currentLocation(records, graduated, catalog.semesters, catalog.titles);
   const prog = classProgress(loc.cls, records);
   const semesterShort = loc.semester.title.split("·")[0]?.trim() ?? loc.semester.title;
 

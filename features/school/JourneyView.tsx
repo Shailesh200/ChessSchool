@@ -3,27 +3,31 @@
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { getClass, classLessons, isClassUnlocked } from "./structure";
-import { getLesson } from "@/features/lessons/curriculum";
+import { isClassUnlocked, type SchoolClass } from "./structure";
 import { useProgression } from "@/core/store/progression.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
 type NodeStatus = "completed" | "active" | "locked" | "exam";
+type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
 
 /** Subject Journey — a connected milestone path of lessons → exam (#96/#97). */
-export function JourneyView({ classId }: { classId: string }) {
+export function JourneyView({
+  cls,
+  lessons,
+  examLesson,
+  allClasses,
+}: {
+  cls: { id: string; title: string; emoji: string; blurb: string; examId?: string };
+  lessons: LessonLite[];
+  examLesson: { id: string; title: string } | null;
+  allClasses: SchoolClass[];
+}) {
   const router = useRouter();
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
-  const cls = getClass(classId);
 
-  if (!cls) {
-    return <p className="p-6 text-center text-sm font-bold text-ink">Class not found.</p>;
-  }
-
-  const lessons = classLessons(cls);
-  const unlockedClass = isClassUnlocked(cls.id, records, graduated);
+  const unlockedClass = isClassUnlocked(cls.id, records, graduated, allClasses);
   const done = lessons.filter((l) => (records[l.id]?.mastery ?? 0) >= 0.9).length;
   const minutes = (lessons.length + (cls.examId ? 1 : 0)) * 3;
 
@@ -37,9 +41,6 @@ export function JourneyView({ classId }: { classId: string }) {
       mastery >= 0.9 ? "completed" : i === activeIndex ? "active" : "locked";
     return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery, status };
   });
-
-  // Exam node unlocks once unlockedClass (you can always test out).
-  const examLesson = cls.examId ? getLesson(cls.examId) : undefined;
 
   function go(id: string, status: NodeStatus) {
     if (status === "locked") {

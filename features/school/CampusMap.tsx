@@ -5,25 +5,25 @@ import { motion } from "framer-motion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
 import {
-  STAGES,
   semestersForStage,
   classProgress,
   isClassGraduated,
   isClassUnlocked,
   type SchoolClass,
+  type Catalog,
 } from "./structure";
 import { useProgression } from "@/core/store/progression.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
-export function CampusMap() {
+export function CampusMap({ catalog }: { catalog: Catalog }) {
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
 
   return (
     <div className="flex flex-col gap-8">
-      {STAGES.map((stage) => {
-        const semesters = semestersForStage(stage.id);
+      {catalog.stages.map((stage) => {
+        const semesters = semestersForStage(stage.id, catalog.semesters);
         return (
           <section key={stage.id}>
             {/* Stage header — the full Elementary → Master ladder */}
@@ -62,6 +62,7 @@ export function CampusMap() {
                           color={sem.color}
                           records={records}
                           graduated={graduated}
+                          allClasses={catalog.allClasses}
                           delay={i * 0.05}
                         />
                       ))}
@@ -82,16 +83,18 @@ function ClassCard({
   color,
   records,
   graduated,
+  allClasses,
   delay,
 }: {
   cls: SchoolClass;
   color: string;
   records: ReturnType<typeof useProgression.getState>["lessons"];
   graduated: string[];
+  allClasses: SchoolClass[];
   delay: number;
 }) {
   const router = useRouter();
-  const unlocked = isClassUnlocked(cls.id, records, graduated);
+  const unlocked = isClassUnlocked(cls.id, records, graduated, allClasses);
   const grad = isClassGraduated(cls, records, graduated);
   const { done, total } = classProgress(cls, records);
 

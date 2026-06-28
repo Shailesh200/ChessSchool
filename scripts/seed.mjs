@@ -10,6 +10,8 @@
  */
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
+import { SEMESTERS as CURATED_SEMS } from "../content/data/school.mjs";
+import { LESSONS as CURATED_LESSONS } from "../content/data/lessons.mjs";
 
 const DB_PATH = (process.env.DATABASE_URL ?? "local.db").replace(/^file:/, "");
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -375,6 +377,27 @@ async function main() {
     });
   }
 
+  // Curated, hand-authored curriculum first (Elementary foundations, openings…)
+  function addCurated() {
+    const byId = new Map(CURATED_LESSONS.map((l) => [l.id, l]));
+    const pushLesson = (l, classId, sortOrder, isExam = 0) =>
+      lessons.push({
+        id: l.id, classId, title: l.title, subtitle: l.subtitle, emoji: l.emoji,
+        tag: l.tag, xp: l.xp, isExam,
+        prerequisites: JSON.stringify(l.prerequisites ?? []),
+        steps: JSON.stringify(l.steps), sortOrder,
+      });
+    for (const sem of CURATED_SEMS) {
+      semesters.push({ id: sem.id, title: sem.title, blurb: sem.blurb, color: sem.color, stage: sem.stage, sortOrder: semesters.length });
+      for (const cls of sem.classes) {
+        classes.push({ id: cls.id, semesterId: sem.id, title: cls.title, emoji: cls.emoji, blurb: cls.blurb, difficulty: cls.difficulty ?? 1, examId: cls.examId ?? null, sortOrder: cOrder++ });
+        cls.lessonIds.forEach((lid, li) => { const l = byId.get(lid); if (l) pushLesson(l, cls.id, li); });
+        if (cls.examId) { const ex = byId.get(cls.examId); if (ex) pushLesson(ex, cls.id, 99, 1); }
+      }
+    }
+  }
+  addCurated();
+
   addThemeSemester("sem-gen-captures", "Tactics · Free Material", "Win undefended pieces", "#cf4324", "middle", captures, 40, "Free Material", "🎯", 2);
   addThemeSemester("sem-gen-checks", "Tactics · Spot the Check", "Find forcing checks", "#5b5bd6", "middle", checks, 40, "Spot the Check", "⚡", 2);
   addThemeSemester("sem-gen-mates", "Checkmate School", "Mate in one", "#7c5cd6", "middle", mates, 30, "Mate in One", "♛", 3);
@@ -403,10 +426,10 @@ async function main() {
   console.log(`\nTotals: ${semesters.length} semesters · ${classes.length} classes · ${lessons.length} lessons`);
 
   const SEM_SQL = "INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES (?,?,?,?,?,?)";
-  const CLASS_SQL = "INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,exam_id,sort_order) VALUES (?,?,?,?,?,?,NULL,?)";
+  const CLASS_SQL = "INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,exam_id,sort_order) VALUES (?,?,?,?,?,?,?,?)";
   const LESSON_SQL = "INSERT INTO lessons (id,class_id,title,subtitle,emoji,tag,xp,is_exam,prerequisites,steps,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
   const semArgs = (s) => [s.id, s.title, s.blurb, s.color, s.stage, s.sortOrder];
-  const classArgs = (c) => [c.id, c.semesterId, c.title, c.emoji, c.blurb, c.difficulty, c.sortOrder];
+  const classArgs = (c) => [c.id, c.semesterId, c.title, c.emoji, c.blurb, c.difficulty, c.examId ?? null, c.sortOrder];
   const lessonArgs = (l) => [l.id, l.classId, l.title, l.subtitle, l.emoji, l.tag, l.xp, l.isExam, l.prerequisites, l.steps, l.sortOrder];
 
   const rawUrl = process.env.DATABASE_URL ?? "file:local.db";

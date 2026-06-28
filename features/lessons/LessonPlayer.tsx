@@ -20,7 +20,13 @@ import type { MoveInput } from "@/core/types/chess";
 
 type Phase = "playing" | "correct" | "wrong" | "complete";
 
-export function LessonPlayer({ lesson }: { lesson: Lesson }) {
+export function LessonPlayer({
+  lesson,
+  nextLessonId,
+}: {
+  lesson: Lesson;
+  nextLessonId?: string | null;
+}) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("playing");
@@ -154,6 +160,7 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
         lesson={lesson}
         correct={correctCount}
         graduatedTitle={graduatedTitle}
+        nextLessonId={nextLessonId}
         onDone={() => router.push("/")}
       />
     );
@@ -275,16 +282,19 @@ function LessonComplete({
   lesson,
   correct,
   graduatedTitle,
+  nextLessonId,
   onDone,
 }: {
   lesson: Lesson;
   correct: number;
   graduatedTitle: string | null;
+  nextLessonId?: string | null;
   onDone: () => void;
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const router = useRouter();
-  const nextId = nextLessonAfter(lesson.id);
+  // Prefer the DB-computed next lesson; fall back to the constants graph.
+  const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden bg-surface px-6 text-center">
       <Confetti count={graduatedTitle ? 40 : 28} />
