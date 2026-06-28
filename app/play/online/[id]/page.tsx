@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Chess } from "chess.js";
 import type { Realtime as AblyRealtime } from "ably";
@@ -235,34 +235,37 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     });
   }, [session, color]);
 
-  function onMove(move: MoveInput): boolean {
-    if (!session || color === "spectator" || color === null) return false;
-    if (session.status !== "active" || session.turn !== color || optimistic) return false;
-    // Validate + apply locally first so the piece moves instantly (no snap-back).
-    const g = new Chess(session.fen);
-    let applied;
-    try {
-      applied = g.move({ from: move.from, to: move.to, promotion: (move.promotion as "q") ?? "q" });
-    } catch {
-      applied = null;
-    }
-    if (!applied) return false;
-    setOptimistic({ fen: g.fen(), from: move.from, to: move.to, prevFen: session.fen });
-    audio.play(applied.captured ? "capture" : "move");
-    if (g.inCheck()) audio.play("check");
-    fetch(`/api/session/${id}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "move", color, from: move.from, to: move.to, promotion: move.promotion }),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((s: SessionState | null) => {
-        if (s && !s.error) applyState(s); // authoritative post-move state clears the optimistic overlay
-        else setOptimistic(null); // server rejected → revert to the live state
+  const onMove = useCallback(
+    (move: MoveInput): boolean => {
+      if (!session || color === "spectator" || color === null) return false;
+      if (session.status !== "active" || session.turn !== color || optimistic) return false;
+      // Validate + apply locally first so the piece moves instantly (no snap-back).
+      const g = new Chess(session.fen);
+      let applied;
+      try {
+        applied = g.move({ from: move.from, to: move.to, promotion: (move.promotion as "q") ?? "q" });
+      } catch {
+        applied = null;
+      }
+      if (!applied) return false;
+      setOptimistic({ fen: g.fen(), from: move.from, to: move.to, prevFen: session.fen });
+      audio.play(applied.captured ? "capture" : "move");
+      if (g.inCheck()) audio.play("check");
+      fetch(`/api/session/${id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "move", color, from: move.from, to: move.to, promotion: move.promotion }),
       })
-      .catch(() => setOptimistic(null));
-    return true; // keep the piece where the player dropped it
-  }
+        .then((r) => (r.ok ? r.json() : null))
+        .then((s: SessionState | null) => {
+          if (s && !s.error) applyState(s); // authoritative post-move state clears the optimistic overlay
+          else setOptimistic(null); // server rejected → revert to the live state
+        })
+        .catch(() => setOptimistic(null));
+      return true; // keep the piece where the player dropped it
+    },
+    [session, color, optimistic, id, applyState],
+  );
 
   function shareLink() {
     const url = `${window.location.origin}/play/online/${id}`;
@@ -285,11 +288,18 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const canMove = !!myTurn && !optimistic; // lock the board once a move is in flight
   const orientation = color === "b" ? "black" : "white";
   const boardFen = optimistic?.fen ?? session?.fen ?? "";
-  const boardLast = optimistic
-    ? { from: optimistic.from as never, to: optimistic.to as never }
-    : session?.lastFrom && session?.lastTo
-      ? { from: session.lastFrom as never, to: session.lastTo as never }
-      : null;
+  const lastFrom = optimistic ? optimistic.from : session?.lastFrom ?? null;
+  const lastTo = optimistic ? optimistic.to : session?.lastTo ?? null;
+
+  // Memoize the board so background re-renders (clock tick, deduped polls) don't
+  // re-render it mid-interaction — that was occasionally dropping a click/tap.
+  const boardEl = useMemo(() => {
+    if (!boardFen) return null;
+    const last = lastFrom && lastTo ? { from: lastFrom as never, to: lastTo as never } : null;
+    return (
+      <ChessBoard fen={boardFen} orientation={orientation} onMove={onMove} lastMove={last} interactive={canMove} />
+    );
+  }, [boardFen, orientation, onMove, lastFrom, lastTo, canMove]);
 
   // Live clocks: deduct elapsed from the side to move.
   const active = session?.status === "active";
@@ -394,15 +404,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
       <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3 py-2">
         <div className="relative" style={{ width: boardSize || undefined, height: boardSize || undefined }}>
-          {session && (
-            <ChessBoard
-              fen={boardFen}
-              orientation={orientation}
-              onMove={onMove}
-              lastMove={boardLast}
-              interactive={canMove}
-            />
-          )}
+          {boardEl}
           {gameOver && (
             <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-ink/45 backdrop-blur-sm">
               {gameOver.win && <Confetti />}
