@@ -57,6 +57,8 @@ const PST: Record<PieceSymbol, number[]> = {
 };
 
 export interface BotConfig {
+  /** the (clamped) target ELO — drives Stockfish strength */
+  elo: number;
   /** 0..1 deterministic seed substitute for reproducible "randomness". */
   jitter: number;
   depth: number;
@@ -67,12 +69,12 @@ export interface BotConfig {
 /** Map an ELO target to a search profile. */
 export function eloToConfig(elo: number): BotConfig {
   const clamped = Math.max(300, Math.min(2500, elo));
-  if (clamped < 500) return { depth: 1, blunderChance: 0.72, jitter: 1.3 }; // easy mode — hangs pieces, plays loose
-  if (clamped < 800) return { depth: 1, blunderChance: 0.45, jitter: 0.9 };
-  if (clamped < 1100) return { depth: 2, blunderChance: 0.28, jitter: 0.55 };
-  if (clamped < 1500) return { depth: 2, blunderChance: 0.14, jitter: 0.32 };
-  if (clamped < 1900) return { depth: 3, blunderChance: 0.05, jitter: 0.16 };
-  return { depth: 3, blunderChance: 0.0, jitter: 0.04 };
+  if (clamped < 500) return { elo: clamped, depth: 1, blunderChance: 0.72, jitter: 1.3 }; // easy mode — hangs pieces, plays loose
+  if (clamped < 800) return { elo: clamped, depth: 1, blunderChance: 0.45, jitter: 0.9 };
+  if (clamped < 1100) return { elo: clamped, depth: 2, blunderChance: 0.28, jitter: 0.55 };
+  if (clamped < 1500) return { elo: clamped, depth: 2, blunderChance: 0.14, jitter: 0.32 };
+  if (clamped < 1900) return { elo: clamped, depth: 3, blunderChance: 0.05, jitter: 0.16 };
+  return { elo: clamped, depth: 3, blunderChance: 0.0, jitter: 0.04 };
 }
 
 function evaluate(game: Chess): number {
@@ -171,7 +173,20 @@ export function chooseMove(
   };
 }
 
-/** Async-shaped wrapper around the search (kept async so callers don't block on it). */
-export function getBotMove(fen: string, config: BotConfig, seed = 0.5): Promise<MoveInput | null> {
-  return Promise.resolve(chooseMove(fen, config, seed));
+/**
+ * Best move for the bot. Uses Stockfish (real engine strength, accurately
+ * calibrated by ELO) for ≥800; below that — and whenever Stockfish can't load —
+ * falls back to the in-house JS search so play never breaks (offline included).
+ */
+export async function getBotMove(fen: string, config: BotConfig, seed = 0.5): Promise<MoveInput | null> {
+  if (config.elo >= 800) {
+    try {
+      const { stockfishMove } = await import("./stockfish");
+      const sf = await stockfishMove(fen, config.elo);
+      if (sf) return sf;
+    } catch {
+      // fall through to the JS engine
+    }
+  }
+  return chooseMove(fen, config, seed);
 }

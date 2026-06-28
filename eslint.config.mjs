@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Stockfish engine (minified WASM loader) — not ours to lint.
+    "public/engine/**",
   ]),
 ]);
 

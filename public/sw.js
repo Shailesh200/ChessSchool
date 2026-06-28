@@ -4,7 +4,7 @@
  * offline fallback, cache-first immutable static assets.
  */
 // Bump this on any content/curriculum change to purge stale caches.
-const VERSION = "chessschool-v4";
+const VERSION = "chessschool-v5";
 const APP_SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
@@ -50,7 +50,8 @@ function isStatic(url) {
     url.pathname.startsWith("/_next/static") ||
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/fonts/") ||
-    /\.(?:css|js|woff2?|png|svg|jpg|jpeg|webp)$/.test(url.pathname)
+    url.pathname.startsWith("/engine/") || // Stockfish wasm/js — cache-first after first use
+    /\.(?:css|js|woff2?|png|svg|jpg|jpeg|webp|wasm)$/.test(url.pathname)
   );
 }
 
