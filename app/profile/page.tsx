@@ -65,9 +65,7 @@ export default function ProfilePage() {
             href="/login"
             className="btn-tactile flex items-center justify-between rounded-card border border-brand/40 bg-brand-50 px-4 py-3"
           >
-            <span className="text-sm font-extrabold text-brand">
-              Log in to unlock your Dashboard, Library, Study Plan &amp; ID →
-            </span>
+            <span className="text-sm font-extrabold text-brand">Log in to unlock more features →</span>
           </Link>
         )}
 
@@ -84,6 +82,9 @@ export default function ProfilePage() {
           ))}
         </div>
 
+        {/* Personal data — only for logged-in users (never the previous account's). */}
+        {authed === true && (
+        <>
         <div className="grid grid-cols-2 gap-3">
           <Stat label="Day streak" value={mounted ? streak : 0} icon="flame" tone="text-accent" />
           <Stat label="Lessons mastered" value={mastered} icon="check" tone="text-success" />
@@ -133,6 +134,8 @@ export default function ProfilePage() {
             })}
           </div>
         </section>
+        </>
+        )}
       </div>
     </AppShell>
   );

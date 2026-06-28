@@ -359,6 +359,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       New game
                     </Button>
                   </div>
+                  <button
+                    onClick={() => { clear(); router.push("/"); }}
+                    className="mt-3 text-xs font-bold text-ink-500 underline-offset-2 hover:underline"
+                  >
+                    ← Back to campus
+                  </button>
                 </motion.div>
               </motion.div>
             )}

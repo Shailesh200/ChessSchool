@@ -28,6 +28,7 @@ export interface ProgressionState {
   /** YYYY-MM-DD -> XP earned that day, for the streak heatmap */
   activityDays: Record<string, number>;
 
+  reset: () => void;
   awardXp: (amount: number) => void;
   setDailyGoalXp: (xp: number) => void;
   recordLesson: (id: string, correct: number, total: number) => void;
@@ -100,6 +101,9 @@ export const useProgression = create<ProgressionState>()(
   persist(
     (set, get) => ({
       ...defaults,
+
+      // Wipe all personal progress (used on logout so the next user/guest starts clean).
+      reset: () => set({ ...defaults }),
 
       awardXp: (amount) =>
         set((s) => {

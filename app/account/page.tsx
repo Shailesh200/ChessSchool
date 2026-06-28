@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
-import { logoutAction } from "@/lib/auth-actions";
+import { LogoutButton } from "@/components/account/LogoutButton";
 import { db } from "@/db";
 import { profiles, progress } from "@/db/schema";
 import { Logo } from "@/components/ui/Logo";
@@ -29,11 +29,7 @@ export default async function AccountPage() {
         <BackButton />
         <div className="flex items-center justify-between">
           <Logo />
-          <form action={logoutAction}>
-            <button className="rounded-pill border-2 border-hairline px-4 py-1.5 text-sm font-bold text-ink-700">
-              Log out
-            </button>
-          </form>
+          <LogoutButton />
         </div>
 
         <StudentIdCard
