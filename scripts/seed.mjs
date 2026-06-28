@@ -488,23 +488,37 @@ async function main() {
   addThemeSemester("sem-gen-mates", "Checkmate Patterns", "Deliver mate in one", "#7c5cd6", "high", mates,
     ["Back-Rank Mates", "Mate in One", "Finishing Blows", "Delivering Mate"], "♛", 4);
 
-  // Openings — one class per opening (a High-School subject)
+  // Openings — one class per opening, now with several lessons each (watch the
+  // line + play its key moves as puzzles).
   semesters.push({ id: "sem-gen-openings", title: "Opening Theory", blurb: "The famous openings", color: "#f59e0b", stage: "high", sortOrder: semesters.length });
-  openings.forEach((l, oi) => {
+  OPENINGS.forEach(([name, sub, emoji, moves], oi) => {
+    const verify = new Chess();
+    let ok = true;
+    for (const mv of moves) { const [f, t] = mv.split(":"); if (!verify.move({ from: f, to: t, promotion: "q" })) { ok = false; break; } }
+    if (!ok) return;
     const classId = `sem-gen-openings-c${oi + 1}`;
-    classes.push({ id: classId, semesterId: "sem-gen-openings", title: l.title, emoji: l.emoji, blurb: l.subtitle, difficulty: 2, sortOrder: cOrder++ });
+    classes.push({ id: classId, semesterId: "sem-gen-openings", title: name, emoji, blurb: sub, difficulty: 2, sortOrder: cOrder++ });
+    // Lesson 1 — watch the main line.
     lessons.push({
-      id: `${classId}-l1`,
-      classId,
-      title: l.title,
-      subtitle: l.subtitle,
-      emoji: l.emoji,
-      tag: l.tag,
-      xp: l.xp,
-      isExam: 0,
-      prerequisites: "[]",
-      steps: JSON.stringify(l.steps),
+      id: `${classId}-l1`, classId, title: `${name}: Main Line`, subtitle: sub, emoji, tag: "opening", xp: 20, isExam: 0, prerequisites: "[]",
+      steps: JSON.stringify([
+        { id: "intro", kind: "info", coach: `The ${name} — one of chess's great openings. Watch the main line, then play it yourself.`, fen: START_FEN },
+        { id: "watch", kind: "observe", coach: `Watch the ${name} unfold move by move.`, fen: START_FEN, moves },
+      ]),
       sortOrder: 0,
+    });
+    // Lessons 2..N — play White's moves of the line as puzzles (2 per lesson).
+    const replay = new Chess();
+    const whitePuzzles = [];
+    for (const mv of moves) {
+      const fenBefore = replay.fen();
+      const [f, t] = mv.split(":");
+      if (replay.turn() === "w") whitePuzzles.push({ fen: fenBefore, sol: mv, to: t });
+      replay.move({ from: f, to: t, promotion: "q" });
+    }
+    chunk(whitePuzzles, 2).forEach((grp, li) => {
+      const steps = grp.map((p, si) => ({ id: `s${si}`, kind: "move", coach: `Play the ${name}'s next book move.`, fen: p.fen, solution: [p.sol], highlight: [p.to], successText: "Right move!", failText: "That's not the main line — try again.", tag: "opening" }));
+      lessons.push({ id: `${classId}-l${li + 2}`, classId, title: `${name}: Key Moves ${li + 1}`, subtitle: `${grp.length} moves`, emoji, tag: "opening", xp: 15, isExam: 0, prerequisites: "[]", steps: JSON.stringify(steps), sortOrder: li + 1 });
     });
   });
 

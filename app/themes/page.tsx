@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { ChessBoard } from "@/features/board/ChessBoard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useSettings, type PieceTheme } from "@/core/store/settings.store";
@@ -41,6 +43,7 @@ export default function ThemesPage() {
   const schoolTheme = useSettings((s) => s.schoolTheme);
   const appTheme = useSettings((s) => s.appTheme);
   const set = useSettings((s) => s.set);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   if (!mounted) {
     return (
@@ -71,9 +74,30 @@ export default function ThemesPage() {
             <p className="mt-1 truncate text-sm font-extrabold text-ink">
               {getBoardTheme(boardTheme).name} board
             </p>
-            <Button size="sm" className="mt-2">Continue</Button>
+            <Button size="sm" className="mt-2" onClick={() => setPreviewOpen(true)}>
+              Preview
+            </Button>
           </div>
         </Card>
+
+        {/* Full read-only board preview */}
+        {previewOpen && (
+          <div
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/55 p-6 backdrop-blur-sm"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              <ChessBoard
+                fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                interactive={false}
+                showNotation
+              />
+              <Button block className="mt-3" variant="outline" onClick={() => setPreviewOpen(false)}>
+                Close preview
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* App color themes */}
         <section>
