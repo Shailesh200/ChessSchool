@@ -34,7 +34,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const s = await load(id);
   if (!s) return NextResponse.json({ error: "not found" }, { status: 404 });
   const body = (await req.json()) as {
-    action: "move" | "resign";
+    action: "move" | "resign" | "timeout";
     color?: "w" | "b";
     from?: string;
     to?: string;
@@ -45,6 +45,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await db
       .update(gameSessions)
       .set({ status: "over", result: `resign:${body.color}`, updatedAt: Date.now() })
+      .where(eq(gameSessions.id, id));
+    return NextResponse.json(await load(id));
+  }
+
+  if (body.action === "timeout") {
+    const winner = body.color === "w" ? "b" : "w";
+    await db
+      .update(gameSessions)
+      .set({ status: "over", result: `time:${winner}`, updatedAt: Date.now() })
       .where(eq(gameSessions.id, id));
     return NextResponse.json(await load(id));
   }
@@ -61,6 +70,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (body.color && g.turn() !== body.color) {
     return NextResponse.json({ error: "not your turn" }, { status: 409 });
   }
+
+  // Deduct the mover's elapsed time; flag (lose on time) if it runs out.
+  const now = Date.now();
+  const mover = g.turn();
+  let whiteMs = s.whiteMs;
+  let blackMs = s.blackMs;
+  if (s.status === "active" && s.timeControlMin > 0) {
+    const elapsed = Math.max(0, now - s.updatedAt);
+    if (mover === "w") whiteMs = Math.max(0, whiteMs - elapsed);
+    else blackMs = Math.max(0, blackMs - elapsed);
+    if ((mover === "w" && whiteMs <= 0) || (mover === "b" && blackMs <= 0)) {
+      await db
+        .update(gameSessions)
+        .set({ status: "over", result: `time:${mover === "w" ? "b" : "w"}`, whiteMs, blackMs, updatedAt: now })
+        .where(eq(gameSessions.id, id));
+      return NextResponse.json(await load(id));
+    }
+  }
+
   let applied;
   try {
     applied = g.move({ from: body.from!, to: body.to!, promotion: (body.promotion as "q") ?? "q" });
@@ -87,7 +115,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       lastTo: body.to,
       status: over ? "over" : "active",
       result,
-      updatedAt: Date.now(),
+      whiteMs,
+      blackMs,
+      updatedAt: now,
     })
     .where(eq(gameSessions.id, id));
   return NextResponse.json(await load(id));

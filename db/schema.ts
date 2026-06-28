@@ -113,6 +113,9 @@ export const gameSessions = sqliteTable("game_sessions", {
   status: text("status").notNull().default("waiting"), // waiting | active | over
   result: text("result"),
   blackJoined: integer("black_joined").notNull().default(0),
+  timeControlMin: integer("time_control_min").notNull().default(10),
+  whiteMs: integer("white_ms").notNull().default(600000),
+  blackMs: integer("black_ms").notNull().default(600000),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
