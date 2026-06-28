@@ -32,9 +32,11 @@ test("dashboard shows skill tree and mistake DNA", async ({ page }) => {
   await expect(page.getByText("Mistake DNA")).toBeVisible();
 });
 
-test("settings exposes data export/import", async ({ page }) => {
+test("settings renders (data tools are logged-in only)", async ({ page }) => {
   await page.goto("/settings");
-  await expect(page.getByRole("button", { name: /Export backup/ })).toBeVisible();
+  // Guests see the settings page but NOT the personal data export/import section.
+  await expect(page.getByText("Sound & Feel")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Export backup/ })).toHaveCount(0);
 });
 
 test("lesson loads with coach narration", async ({ page }) => {

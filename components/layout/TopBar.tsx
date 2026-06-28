@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useProgression, levelForXp, xpProgress } from "@/core/store/progression.store";
+import { useSession } from "@/core/store/session.store";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
@@ -9,8 +11,22 @@ export function TopBar() {
   const xp = useProgression((s) => s.xp);
   const streak = useProgression((s) => s.streak);
   const graduated = useProgression((s) => s.graduatedClasses.length);
+  const authed = useSession((s) => s.authed);
   const level = levelForXp(xp);
   const { into, need } = xpProgress(xp);
+
+  // Guests don't have a tracked streak/level — invite them to enroll instead.
+  if (authed !== true) {
+    return (
+      <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-2.5">
+          <Link href="/login" className="text-sm font-extrabold text-brand">
+            Enroll to the academy to track your progress →
+          </Link>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">

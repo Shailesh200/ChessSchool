@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { NavButton } from "@/components/ui/NavButton";
 import { useProgression } from "@/core/store/progression.store";
+import { useSession } from "@/core/store/session.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import type { Catalog } from "@/features/school/structure";
 
@@ -17,6 +18,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const streak = useProgression((s) => s.streak);
   const lessons = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
+  const authed = useSession((s) => s.authed);
   const mounted = useMounted();
   const isNew = mounted && Object.keys(lessons).length === 0 && graduated.length === 0;
 
@@ -27,10 +29,12 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           <Mascot expression="wave" size={64} float={false} />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-extrabold text-ink">
-              {streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
+              {authed === true && streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
             </h1>
             <p className="text-sm font-semibold text-ink-500">
-              Graduate through classes. Become a stronger player.
+              {authed === true
+                ? "Graduate through classes. Become a stronger player."
+                : "Enroll to the academy to track your progress."}
             </p>
           </div>
         </div>
