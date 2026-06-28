@@ -6,8 +6,12 @@
  * auth/user tables use CREATE TABLE IF NOT EXISTS so a remote re-seed preserves accounts.
  */
 import Database from "better-sqlite3";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, existsSync } from "node:fs";
 
+if (!existsSync("local.db")) {
+  console.error("✗ local.db not found. Create it first:\n    pnpm db:fresh\n  (then optionally `pnpm db:import-puzzles <file>`), then re-run `pnpm db:dump`.");
+  process.exit(1);
+}
 const db = new Database("local.db", { readonly: true });
 const tables = db
   .prepare("SELECT name, sql FROM sqlite_master WHERE type='table' AND sql IS NOT NULL ORDER BY rowid")

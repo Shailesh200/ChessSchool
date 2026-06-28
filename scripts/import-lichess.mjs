@@ -14,7 +14,7 @@
  * is auto-applied, you play the next move…). Every line is re-validated with chess.js.
  */
 import { spawn } from "node:child_process";
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { createInterface } from "node:readline";
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
@@ -191,7 +191,16 @@ for (const g of GROUPS) {
 console.log(`Built ${lessons.length} lessons (${total} puzzles + tutorials) · ${classes.length} classes · ${semesters.length} semesters · invalid skipped: ${invalid}`);
 
 // ── Write into local.db (replaces a prior import; leaves seed.mjs content intact) ──
+if (!existsSync("local.db")) {
+  console.error("✗ local.db not found. Run `pnpm db:fresh` first to create the schema + base curriculum, then re-run this import.");
+  process.exit(1);
+}
 const db = new Database("local.db");
+const hasTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='lessons'").get();
+if (!hasTables) {
+  console.error("✗ local.db has no schema. Run `pnpm db:fresh` first, then re-run this import.");
+  process.exit(1);
+}
 db.exec("DELETE FROM lessons WHERE class_id LIKE 'pz-%'; DELETE FROM classes WHERE id LIKE 'pz-%'; DELETE FROM semesters WHERE id LIKE 'pz-%';");
 const insSem = db.prepare("INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES (@id,@title,@blurb,@color,@stage,@sortOrder)");
 const insCls = db.prepare("INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,sort_order) VALUES (@id,@semesterId,@title,@emoji,@blurb,@difficulty,@sortOrder)");

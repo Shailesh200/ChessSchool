@@ -50,6 +50,7 @@ the Lichess import below.
 The bulk of high-quality puzzles come from the open **Lichess puzzle DB** (real games,
 rated, themed, multi-move). The office proxy 403s the download, so run off-network:
 ```
+pnpm install && pnpm db:fresh                      # FIRST: create local.db (schema + base)
 curl -L -o lichess_db_puzzle.csv.zst https://database.lichess.org/lichess_db_puzzle.csv.zst
 pnpm db:import-puzzles lichess_db_puzzle.csv.zst   # LIMIT=5200 by default
 pnpm db:dump && pnpm db:remote
