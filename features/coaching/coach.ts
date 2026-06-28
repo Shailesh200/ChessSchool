@@ -81,6 +81,7 @@ export function commentOnMove(before: string, move: VerboseMove, seed: number): 
   const p = persona();
   const engine = new ChessEngine(before);
   if (move.san.includes("#")) return p.mate;
+  if (move.promotion) return `Promotion! Your pawn becomes a ${pieceName(move.promotion)}.`;
   if (move.captured) return p.capture(pieceName(move.captured));
   if (move.san.includes("+")) return p.check;
   if (engine.inCheck()) return "Careful — you were in check.";

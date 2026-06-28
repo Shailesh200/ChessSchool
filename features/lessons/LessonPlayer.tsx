@@ -14,7 +14,6 @@ import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { startNav } from "@/core/store/nav.store";
-import { useSquareSize } from "@/core/hooks/useSquareSize";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
@@ -45,8 +44,8 @@ export function LessonPlayer({
   const [prevIndex, setPrevIndex] = useState(0);
   const [observeDone, setObserveDone] = useState(false);
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
+  const [promoted, setPromoted] = useState<string | null>(null);
   const timers = useRef<number[]>([]);
-  const [boardBox, boardSize] = useSquareSize();
 
   const progression = useProgression();
   const step = lesson.steps[index] as LessonStep | undefined;
@@ -57,6 +56,7 @@ export function LessonPlayer({
     setPrevIndex(index);
     setDisplayFen(step?.fen);
     setObserveDone(false);
+    setPromoted(null);
   }
 
   // Auto-play "observe" steps move-by-move.
@@ -149,6 +149,7 @@ export function LessonPlayer({
     if (step.solution?.includes(key)) {
       setDisplayFen(engine.fen());
       setCorrectCount((c) => c + 1);
+      setPromoted(applied.promotion ?? null);
       setPhase("correct");
       audio.play(applied.captured ? "capture" : "success");
       haptics.fire("success");
@@ -161,9 +162,12 @@ export function LessonPlayer({
     return false;
   }
 
+  const PROMO_NAMES: Record<string, string> = { q: "queen", r: "rook", b: "bishop", n: "knight" };
   const feedbackText =
     phase === "correct"
-      ? (step.successText ?? "Nice work!")
+      ? promoted
+        ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
+        : (step.successText ?? "Nice work!")
       : phase === "wrong"
         ? (step.failText ?? "Not quite — try again!")
         : step.coach;
@@ -221,8 +225,10 @@ export function LessonPlayer({
         </div>
 
         {step.fen && (
-          <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center">
-            <div style={{ width: boardSize || undefined, height: boardSize || undefined }}>
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            {/* Viewport-based size = never re-measured, so the board cannot
+                resize/flicker when the feedback footer or coach text changes. */}
+            <div style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}>
               <ChessBoard
                 key={index}
                 fen={displayFen ?? step.fen}

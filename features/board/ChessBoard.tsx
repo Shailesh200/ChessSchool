@@ -119,7 +119,7 @@ export function ChessBoard({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-card [box-shadow:var(--shadow-card)] ${
+      className={`relative overflow-hidden rounded-lg [box-shadow:var(--shadow-card)] ${
         fill ? "h-full w-full" : "aspect-square w-full"
       }`}
     >
