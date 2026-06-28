@@ -24,9 +24,16 @@ type Phase = "playing" | "correct" | "wrong" | "complete";
 export function LessonPlayer({
   lesson,
   nextLessonId,
+  graduateClassId,
+  graduateClassTitle,
+  graduateClassLessonIds,
 }: {
   lesson: Lesson;
   nextLessonId?: string | null;
+  /** when set, passing this (exam) graduates that class — powers "test out" (#12) */
+  graduateClassId?: string;
+  graduateClassTitle?: string;
+  graduateClassLessonIds?: string[];
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -102,6 +109,14 @@ export function LessonPlayer({
 
     // Exam: passing graduates the whole class.
     if (lesson.exam && ratio >= 0.67) {
+      // Generic "test out" exam — graduate the explicitly named class.
+      if (graduateClassId) {
+        (graduateClassLessonIds ?? []).forEach((id) => progression.recordLesson(id, 1, 1));
+        progression.graduateClass(graduateClassId);
+        setGraduatedTitle(graduateClassTitle ?? "Class");
+        audio.play("graduation");
+        return;
+      }
       const cls = classByExamId(lesson.id);
       if (cls) {
         cls.lessonIds.forEach((id) => progression.recordLesson(id, 1, 1));

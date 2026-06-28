@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { profiles, progress } from "@/db/schema";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
+import { NavButton } from "@/components/ui/NavButton";
 import { StudentIdCard } from "@/components/account/StudentIdCard";
 
 export const metadata = { title: "My account" };
@@ -49,19 +50,13 @@ export default async function AccountPage() {
           <Stat label="Classes" value={JSON.parse(prog?.graduatedClasses ?? "[]").length} />
         </div>
 
-        <Link
-          href="/library"
-          className="btn-tactile flex items-center justify-center gap-2 rounded-pill bg-brand px-6 py-3 font-bold text-white [box-shadow:var(--shadow-button)]"
-        >
+        <NavButton href="/library" block>
           <Icon name="learn" size={20} className="text-white" /> Browse the lesson library
-        </Link>
+        </NavButton>
         {user.role === "admin" && (
-          <Link
-            href="/admin"
-            className="btn-tactile flex items-center justify-center gap-2 rounded-pill border-2 border-hairline bg-surface-card px-6 py-3 font-bold text-ink"
-          >
+          <NavButton href="/admin" variant="outline" block>
             <Icon name="gear" size={20} className="text-ink-700" /> Curriculum admin
-          </Link>
+          </NavButton>
         )}
         <Link href="/" className="text-center text-sm font-bold text-ink-500">
           Go to campus →

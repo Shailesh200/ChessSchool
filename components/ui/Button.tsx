@@ -13,6 +13,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   block?: boolean;
+  /** show a spinner + disable (e.g. while navigating) */
+  loading?: boolean;
 }
 
 const base =
@@ -37,13 +39,15 @@ const sizes: Record<Size, string> = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", block, className, onClick, children, ...rest },
+  { variant = "primary", size = "md", block, className, onClick, children, loading, disabled, ...rest },
   ref,
 ) {
   return (
     <button
       ref={ref}
       className={cn(base, variants[variant], sizes[size], block && "w-full", className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       onClick={(e) => {
         haptics.fire("tap");
         audio.play("select");
@@ -51,7 +55,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       }}
       {...rest}
     >
-      {children}
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        </span>
+      )}
+      <span className={cn("inline-flex max-w-full items-center justify-center gap-2", loading && "opacity-0")}>
+        {children}
+      </span>
     </button>
   );
 });

@@ -1,17 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
+import { Select as UiSelect } from "@/components/ui/Select";
 import {
   createSemester,
   createClass,
   createLesson,
   deleteLesson,
+  importContent,
 } from "@/lib/admin-actions";
+
+const IMPORT_EXAMPLE = `{
+  "semester": { "title": "Semester 7 · Imports", "stage": "middle", "color": "#5b5bd6" },
+  "classes": [
+    {
+      "title": "Imported Tactics", "emoji": "🎯", "blurb": "From file",
+      "lessons": [
+        {
+          "title": "Win the rook", "xp": 20,
+          "steps": [
+            { "fen": "k7/8/8/8/3r4/8/8/3R3K w - - 0 1", "solution": "d1:d4", "coach": "Take it!" }
+          ]
+        }
+      ]
+    }
+  ]
+}`;
 
 type Opt = { id: string; title: string };
 
@@ -81,6 +100,9 @@ export function AdminPanel({
           </FormBlock>
         </Section>
 
+        {/* Bulk import (#14) */}
+        <ImportSection />
+
         {/* Recent admin lessons */}
         {recent.length > 0 && (
           <Section title="Recently added">
@@ -114,6 +136,51 @@ function Stat({ label, value }: { label: string; value: number }) {
       <div className="text-xl font-extrabold tabular-nums text-ink">{value.toLocaleString()}</div>
       <div className="text-[10px] font-semibold text-ink-500">{label}</div>
     </div>
+  );
+}
+
+function ImportSection() {
+  const [state, formAction, pending] = useActionState(importContent, undefined);
+  const [json, setJson] = useState("");
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) setJson(await file.text());
+  }
+
+  return (
+    <Section title="Import a class / semester (JSON)">
+      <Card>
+        <form action={formAction} className="flex flex-col gap-3">
+          <p className="text-xs font-semibold text-ink-500">
+            Upload or paste a JSON file. Every FEN + move is validated with chess.js before anything is saved.
+          </p>
+          <input
+            type="file"
+            accept="application/json,.json,.txt"
+            onChange={onFile}
+            className="text-xs font-semibold text-ink-700 file:mr-3 file:rounded-pill file:border-0 file:bg-surface-sunken file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-ink-700"
+          />
+          <textarea
+            name="json"
+            value={json}
+            onChange={(e) => setJson(e.target.value)}
+            rows={8}
+            placeholder={IMPORT_EXAMPLE}
+            className="rounded-card border border-hairline bg-surface px-3 py-2 font-mono text-[11px] leading-relaxed text-ink outline-none focus:border-brand"
+          />
+          {state?.error && <p className="text-xs font-bold text-danger">{state.error}</p>}
+          {state?.ok && <p className="text-xs font-bold text-success">✓ {state.message}</p>}
+          <Button type="submit" size="sm" disabled={pending}>
+            {pending ? "Importing…" : "Import content"}
+          </Button>
+          <details className="text-xs text-ink-500">
+            <summary className="cursor-pointer font-bold">Expected format</summary>
+            <pre className="mt-2 overflow-auto rounded-card bg-surface-sunken p-2 text-[10px] leading-relaxed">{IMPORT_EXAMPLE}</pre>
+          </details>
+        </form>
+      </Card>
+    </Section>
   );
 }
 
@@ -164,16 +231,5 @@ function Input({ name, label, placeholder, mono }: { name: string; label: string
 }
 
 function Select({ name, label, options }: { name: string; label: string; options: Opt[] }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs font-extrabold text-ink-700">{label}</span>
-      <select name={name} className="h-11 rounded-card border border-hairline bg-surface px-3 text-sm font-semibold text-ink">
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.title}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <UiSelect name={name} label={label} options={options} />;
 }
