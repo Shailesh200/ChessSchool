@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
-export type PieceTheme = "classic" | "forest" | "ocean" | "cute" | "sunset" | "neon";
+export type PieceTheme = "classic" | "crystal" | "neon" | "forest" | "ocean" | "cute";
 export type ColorblindMode = "none" | "deuteranopia";
 export type CoachPersonality =
   | "friendly"
