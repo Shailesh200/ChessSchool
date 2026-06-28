@@ -251,7 +251,7 @@ export function LessonPlayer({
           <div className="flex min-h-0 flex-1 items-center justify-center">
             {/* Viewport-based size = never re-measured, so the board cannot
                 resize/flicker when the feedback footer or coach text changes. */}
-            <div style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}>
+            <div className="relative" style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}>
               <ChessBoard
                 key={index}
                 fen={displayFen ?? step.fen}
@@ -261,6 +261,22 @@ export function LessonPlayer({
                 highlight={phase === "playing" && !isObserving ? step.highlight : []}
                 interactive={step.kind === "move" && phase === "playing"}
               />
+              {/* When waiting on feedback the board is locked — tap anywhere on it to move on. */}
+              {(phase === "correct" || phase === "wrong") && (
+                <button
+                  onClick={phase === "correct" ? advance : () => setPhase("playing")}
+                  aria-label={phase === "correct" ? "Continue" : "Try again"}
+                  className="absolute inset-0 z-10 flex items-end justify-center pb-3"
+                >
+                  <span
+                    className={`animate-bounce rounded-pill px-4 py-2 text-sm font-extrabold text-white shadow-lg ${
+                      phase === "correct" ? "bg-success" : "bg-danger"
+                    }`}
+                  >
+                    {phase === "correct" ? "Tap to continue →" : "Tap to try again ↻"}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         )}
