@@ -53,7 +53,7 @@ export interface JournalEntry {
   ref: string | null; // lesson/game id
 }
 
-const db = new Dexie("duochess") as Dexie & {
+const db = new Dexie("chessschool") as Dexie & {
   games: EntityTable<SavedGame, "id">;
   reviews: EntityTable<ReviewItem, "id">;
   journal: EntityTable<JournalEntry, "id">;

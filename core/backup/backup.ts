@@ -10,8 +10,8 @@ import { db, type SavedGame, type JournalEntry } from "@/core/db/db";
 export const BACKUP_SCHEMA = 3;
 
 const LS_KEYS = [
-  "duochess.settings",
-  "duochess.progression",
+  "chessschool.settings",
+  "chessschool.progression",
   "chessschool.plan",
   "chessschool.activematch",
 ];

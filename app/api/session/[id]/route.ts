@@ -3,11 +3,19 @@ import { and, eq } from "drizzle-orm";
 import { Chess } from "chess.js";
 import { db } from "@/db";
 import { gameSessions } from "@/db/schema";
+import { publishSession } from "@/lib/ably-server";
 
 export const dynamic = "force-dynamic";
 
 async function load(id: string) {
   return (await db.select().from(gameSessions).where(eq(gameSessions.id, id)).limit(1))[0];
+}
+
+/** Load the latest state, push it to realtime subscribers, and return it. */
+async function respond(id: string) {
+  const state = await load(id);
+  await publishSession(id, state);
+  return NextResponse.json(state);
 }
 
 /** Get session state. `?join=1` claims the Black seat if it's open. */
@@ -25,6 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .where(and(eq(gameSessions.id, id), eq(gameSessions.blackJoined, 0)));
     claimed = (res as { rowsAffected?: number }).rowsAffected === 1;
     s = (await load(id))!;
+    if (claimed) await publishSession(id, s); // notify the creator their opponent joined
   }
   return NextResponse.json({ ...s, claimed });
 }
@@ -46,7 +55,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .update(gameSessions)
       .set({ status: "over", result: `resign:${body.color}`, updatedAt: Date.now() })
       .where(eq(gameSessions.id, id));
-    return NextResponse.json(await load(id));
+    return respond(id);
   }
 
   if (body.action === "timeout") {
@@ -55,7 +64,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .update(gameSessions)
       .set({ status: "over", result: `time:${winner}`, updatedAt: Date.now() })
       .where(eq(gameSessions.id, id));
-    return NextResponse.json(await load(id));
+    return respond(id);
   }
 
   // move
@@ -85,7 +94,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .update(gameSessions)
         .set({ status: "over", result: `time:${mover === "w" ? "b" : "w"}`, whiteMs, blackMs, updatedAt: now })
         .where(eq(gameSessions.id, id));
-      return NextResponse.json(await load(id));
+      return respond(id);
     }
   }
 
@@ -120,5 +129,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       updatedAt: now,
     })
     .where(eq(gameSessions.id, id));
-  return NextResponse.json(await load(id));
+  return respond(id);
 }

@@ -30,7 +30,7 @@ export const useSession = create<SessionState>()(
       setSession: (authed, user) => set({ authed, user, isAdmin: user?.role === "admin" }),
     }),
     {
-      name: "duochess.session",
+      name: "chessschool.session",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
     },

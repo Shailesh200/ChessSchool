@@ -1,6 +1,6 @@
 import type { Variants, Transition } from "framer-motion";
 
-/** Shared spring — the signature DuoChess "bouncy but controlled" feel. */
+/** Shared spring — the signature ChessSchool "bouncy but controlled" feel. */
 export const spring: Transition = {
   type: "spring",
   stiffness: 420,

@@ -68,7 +68,7 @@ export const useSettings = create<SettingsState>()(
       reset: () => set({ ...defaults }),
     }),
     {
-      name: "duochess.settings",
+      name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
       version: 2,
       skipHydration: true,

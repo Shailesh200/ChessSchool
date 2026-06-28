@@ -65,6 +65,13 @@ solutions into multi-step lessons, and chess.js-validates every line (ids prefix
 - `db/seed.sql` is **non-destructive**: it DROP+CREATE+INSERTs the content tables (`semesters`, `classes`, `lessons`) but uses `CREATE TABLE IF NOT EXISTS` for auth tables — re-seeding **preserves user accounts**.
 - Schema lives in `db/schema.ts` (users, sessions, profiles, progress, lessonRecords, semesters, classes, lessons). Lesson `steps` are JSON text.
 
+## Realtime (online PvP)
+Online games use **optimistic moves + adaptive polling** by default. For instant
+push, set **`ABLY_API_KEY`** (Ably free tier) in Vercel + `.env`: the server
+publishes each move to `game:<id>` and clients subscribe (token-auth via
+`/api/ably-token`, subscribe-only). With no key, `/api/ably-token` 503s and clients
+silently fall back to polling — nothing breaks.
+
 ## Deployment
 - **Vercel** native Git integration auto-deploys `main` (no Action/secrets). Env vars (`DATABASE_URL`, `DATABASE_AUTH_TOKEN`) live in Vercel only. CI (`.github/workflows/ci.yml`) runs typecheck/lint/test/build.
 - **Make an admin**: register on the live site, then run `UPDATE users SET role='admin' WHERE email='…'` via the Turso web SQL console (app.turso.tech) or `turso db shell` off-network.

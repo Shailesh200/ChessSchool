@@ -189,7 +189,7 @@ export const useProgression = create<ProgressionState>()(
         }),
     }),
     {
-      name: "duochess.progression",
+      name: "chessschool.progression",
       storage: createJSONStorage(() => localStorage),
       version: 2,
       skipHydration: true,

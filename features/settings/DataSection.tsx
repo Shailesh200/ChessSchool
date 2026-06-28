@@ -47,13 +47,13 @@ export function DataSection() {
   function resetAll() {
     if (!confirm("Reset ALL progress and data? This cannot be undone.")) return;
     [
-      "duochess.settings",
-      "duochess.progression",
+      "chessschool.settings",
+      "chessschool.progression",
       "chessschool.plan",
       "chessschool.activematch",
       "chessschool.install.dismissed",
     ].forEach((k) => localStorage.removeItem(k));
-    indexedDB.deleteDatabase("duochess");
+    indexedDB.deleteDatabase("chessschool");
     location.reload();
   }
 

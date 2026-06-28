@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
+import type { Realtime as AblyRealtime } from "ably";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -90,8 +91,54 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       .catch(() => void 0);
   }, [id]);
 
-  // Poll for the latest state. Self-scheduling so we can poll FAST while it's the
-  // opponent's move (snappy) and ease off otherwise (cheap).
+  // Apply a fresh state from either source (poll or realtime), de-duped so an
+  // in-progress click-to-move selection isn't reset on no-op updates (#2).
+  const applyState = useCallback((s: SessionState) => {
+    setOnline(true);
+    const sig = `${s.fen}|${s.turn}|${s.status}|${s.result}|${s.blackJoined}|${s.whiteMs}|${s.blackMs}`;
+    if (sig !== sigRef.current) {
+      sigRef.current = sig;
+      setSession(s);
+    }
+    if (s.status === "over" || s.turn === colorRef.current) setOptimistic(null);
+    if (s.status === "waiting" && s.blackJoined === 0 && Date.now() - s.createdAt > JOIN_WINDOW_MS) {
+      setExpired(true);
+    }
+  }, []);
+
+  // Realtime push via Ably (instant). Falls back silently to polling if Ably
+  // isn't configured (token endpoint 503s) or the connection fails.
+  const ablyRef = useRef(false);
+  useEffect(() => {
+    let client: AblyRealtime | null = null;
+    let cancelled = false;
+    // Probe first so we don't load the Ably bundle / connect when it's not set up.
+    void fetch("/api/ably-token")
+      .then((r) => (r.ok ? import("ably") : null))
+      .then((mod) => {
+        if (!mod || cancelled) return;
+        const { Realtime } = mod;
+        client = new Realtime({ authUrl: "/api/ably-token", autoConnect: true });
+        client.connection.on("connected", () => { ablyRef.current = true; });
+        client.connection.on("failed", () => { ablyRef.current = false; });
+        client.connection.on("disconnected", () => { ablyRef.current = false; });
+        client.channels.get(`game:${id}`).subscribe("state", (msg) => {
+          if (msg?.data) applyState(msg.data as SessionState);
+        });
+      })
+      .catch(() => void 0);
+    return () => {
+      cancelled = true;
+      try {
+        client?.close();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [id, applyState]);
+
+  // Poll: fast while waiting on the opponent, but just a slow backstop once
+  // realtime is connected.
   useEffect(() => {
     let alive = true;
     let t: ReturnType<typeof setTimeout>;
@@ -102,36 +149,25 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
           if (!alive) return;
           if (!s || s.error) {
             setOnline(false);
-            t = setTimeout(tick, 1500);
+            t = setTimeout(tick, 2000);
             return;
           }
-          setOnline(true);
-          // Only re-render when the game state actually changed — avoids resetting
-          // an in-progress click-to-move selection on every poll (#2 multi-click).
-          const sig = `${s.fen}|${s.turn}|${s.status}|${s.result}|${s.blackJoined}|${s.whiteMs}|${s.blackMs}`;
-          if (sig !== sigRef.current) {
-            sigRef.current = sig;
-            setSession(s);
-          }
-          // Server is authoritative once our move lands — drop the optimistic view.
-          if (s.status === "over" || s.turn === colorRef.current) setOptimistic(null);
-          if (s.status === "waiting" && s.blackJoined === 0 && Date.now() - s.createdAt > JOIN_WINDOW_MS) {
-            setExpired(true);
-          }
+          applyState(s);
           const waitingOnOpponent = s.status === "active" && s.turn !== colorRef.current;
-          t = setTimeout(tick, waitingOnOpponent ? 650 : 1600);
+          const delay = ablyRef.current ? 5000 : waitingOnOpponent ? 650 : 1600;
+          t = setTimeout(tick, delay);
         })
         .catch(() => {
           if (!alive) return;
           setOnline(false);
-          t = setTimeout(tick, 1500);
+          t = setTimeout(tick, 2000);
         });
     tick();
     return () => {
       alive = false;
       clearTimeout(t);
     };
-  }, [id]);
+  }, [id, applyState]);
 
   // Save a finished online game into the local match history (#3).
   useEffect(() => {

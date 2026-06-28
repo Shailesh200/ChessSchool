@@ -5,7 +5,7 @@ semesters, master openings and endgames, play adaptive bots, and review every
 game move-by-move. **Guest-only, zero login, no backend, offline-first,
 local-first.** Original brand, art, and sound.
 
-> Evolved from the earlier "DuoChess" game-first build into an academy
+> Evolved from the earlier game-first build into an academy
 > experience. This is a complete, runnable slice — build, typecheck, lint, unit
 > + e2e tests, and Lighthouse are all green. Some systems are seeded to scale
 > (see **Known limitations & roadmap**).
@@ -72,20 +72,12 @@ unlock, exam, graduation, victory, ambience).
 
 ---
 
-## 🧭 Migration notes (DuoChess → ChessSchool)
+## 🧭 Storage keys
 
-- **Settings store** `duochess.settings` v1→**v2**: adds `schoolTheme`; legacy
-  board themes (`violet`/`slate`/`forest`) still resolve. Migrated, non-breaking.
-- **Progression store** `duochess.progression` v1→**v2**: removes `hearts`,
-  `maxHearts`, `heartsUpdatedAt`; adds `graduatedClasses`. **XP, streak, mastery,
-  achievements, and weaknesses are preserved.**
-- **New stores:** `chessschool.activematch` (active game) and
-  `chessschool.install.dismissed` (install banner).
-- **IndexedDB** `duochess` bumped to **v2** (`games` gains review fields:
-  `endReason`, `winner`, `moveCount`, `elo`, `durationMs`, `createdAt`). Old rows
-  remain readable.
-- Persisted DB/localStorage keys keep the `duochess` name to avoid wiping
-  existing local data on upgrade.
+- All localStorage keys and the IndexedDB database use the `chessschool` /
+  `chessschool.*` namespace (settings, progression, session, activematch, plan).
+- Renamed from the earlier `duochess.*` namespace — existing **local guest** data
+  resets once on upgrade; logged-in progress re-syncs from the account.
 
 ---
 
