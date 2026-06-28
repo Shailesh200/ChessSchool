@@ -186,8 +186,14 @@ export function LessonPlayer({
     <div className="flex min-h-dvh flex-col bg-surface">
       <div className="pt-safe sticky top-0 z-20 bg-surface/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center gap-3">
-          <button onClick={() => router.push("/")} aria-label="Exit lesson" className="text-ink-300 hover:text-ink">
-            ✕
+          <button
+            onClick={() => { startNav(); router.push("/"); }}
+            aria-label="Back to campus"
+            className="btn-tactile flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-card text-ink-700 [box-shadow:var(--shadow-card)] hover:text-brand"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="m15 18-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
           <ProgressBar value={index + (phase === "correct" ? 1 : 0)} max={total} tone="success" className="flex-1" />
           <span className="text-xs font-bold text-ink-500">

@@ -13,6 +13,7 @@ import {
   getBoardTheme,
 } from "@/core/themes/themes";
 import { PIECE_THEMES, PiecePreview } from "@/features/board/pieceThemes";
+import { BackButton } from "@/components/ui/BackButton";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
@@ -52,6 +53,7 @@ export default function ThemesPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
+        <BackButton />
         <div>
           <h1 className="text-xl font-extrabold text-ink">Theme Studio</h1>
           <p className="text-sm font-semibold text-ink-500">Preview and switch instantly.</p>

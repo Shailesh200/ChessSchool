@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useProgression, isoDay } from "@/core/store/progression.store";
@@ -44,6 +45,7 @@ export default function PlanPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
+        <BackButton />
         <h1 className="text-xl font-extrabold text-ink">Study Plan</h1>
 
         {daysAway >= 2 && (

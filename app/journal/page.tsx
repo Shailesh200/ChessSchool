@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useProgression } from "@/core/store/progression.store";
@@ -46,6 +47,7 @@ export default function JournalPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
+        <BackButton />
         <h1 className="text-xl font-extrabold text-ink">Learning Journal</h1>
 
         <Card>

@@ -8,6 +8,7 @@ import { profiles, progress } from "@/db/schema";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
 import { NavButton } from "@/components/ui/NavButton";
+import { BackButton } from "@/components/ui/BackButton";
 import { StudentIdCard } from "@/components/account/StudentIdCard";
 
 export const metadata = { title: "My account" };
@@ -24,6 +25,7 @@ export default async function AccountPage() {
   return (
     <div className="min-h-dvh bg-surface px-5 py-8">
       <div className="mx-auto flex max-w-md flex-col gap-5">
+        <BackButton />
         <div className="flex items-center justify-between">
           <Logo />
           <form action={logoutAction}>

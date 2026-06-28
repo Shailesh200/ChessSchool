@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Icon } from "@/components/ui/Icon";
@@ -62,6 +63,7 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
+        <BackButton />
         <h1 className="text-xl font-extrabold text-ink">School Dashboard</h1>
 
         {/* Skill estimate + identity */}

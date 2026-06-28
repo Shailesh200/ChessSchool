@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { ChessBoard } from "@/features/board/ChessBoard";
@@ -102,6 +103,7 @@ export default function PlaygroundPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-4">
+        <BackButton />
         <h1 className="text-xl font-extrabold text-ink">Playground</h1>
         <div className="rounded-card border border-hairline bg-surface-card px-3 py-2 text-center text-sm font-bold text-ink">
           {msg}
