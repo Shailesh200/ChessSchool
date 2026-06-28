@@ -4,7 +4,7 @@
  * offline fallback, cache-first immutable static assets.
  */
 // Bump this on any content/curriculum change to purge stale caches.
-const VERSION = "chessschool-v3";
+const VERSION = "chessschool-v4";
 const APP_SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
