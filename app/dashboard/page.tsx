@@ -9,6 +9,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { SkillRadar } from "@/components/dashboard/SkillRadar";
+import { StreakHeatmap } from "@/components/dashboard/StreakHeatmap";
 import { useProgression } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -35,7 +36,9 @@ export default function DashboardPage() {
   const weaknesses = useProgression((s) => s.weaknesses);
   const graduated = useProgression((s) => s.graduatedClasses);
   const streak = useProgression((s) => s.streak);
+  const activityDays = useProgression((s) => s.activityDays);
   const unlocked = useProgression((s) => s.unlockedAchievements);
+  const [today] = useState(() => new Date());
   const targetElo = useSettings((s) => s.targetElo);
   const [games, setGames] = useState<SavedGame[]>([]);
   const [curr, setCurr] = useState<{ totalClasses: number; lessonsByTag: Record<string, string[]> } | null>(null);
@@ -134,6 +137,17 @@ export default function DashboardPage() {
               : `~${forecast.estDays} active days to graduation`}
           </p>
         </Card>
+
+        {/* Activity heatmap */}
+        <section>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-extrabold text-ink">
+            <Icon name="flame" size={18} className="text-accent" /> Activity ·{" "}
+            <span className="text-ink-500">{streak}-day streak</span>
+          </h2>
+          <Card>
+            <StreakHeatmap activityDays={activityDays} today={today} />
+          </Card>
+        </section>
 
         {/* Mistake DNA */}
         <section>

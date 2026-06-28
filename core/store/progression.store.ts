@@ -25,6 +25,8 @@ export interface ProgressionState {
   weaknesses: Record<string, number>;
   /** classes the student has graduated from (class ids) */
   graduatedClasses: string[];
+  /** YYYY-MM-DD -> XP earned that day, for the streak heatmap */
+  activityDays: Record<string, number>;
 
   awardXp: (amount: number) => void;
   setDailyGoalXp: (xp: number) => void;
@@ -91,6 +93,7 @@ const defaults = {
   lessons: {} as Record<string, LessonRecord>,
   weaknesses: {} as Record<string, number>,
   graduatedClasses: [] as string[],
+  activityDays: {} as Record<string, number>,
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -106,6 +109,7 @@ export const useProgression = create<ProgressionState>()(
             xp: s.xp + amount,
             todayXp: (sameDay ? s.todayXp : 0) + amount,
             todayKey: today,
+            activityDays: { ...s.activityDays, [today]: (s.activityDays[today] ?? 0) + amount },
           };
         }),
 
