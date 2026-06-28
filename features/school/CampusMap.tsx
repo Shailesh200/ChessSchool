@@ -82,10 +82,22 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
             ) : (
               <div className="flex flex-col gap-5">
                 {visibleSems.map(({ sem, classes }) => {
-                  const collapsed = !showCompleted && isFutureSem(sem) && !expanded.has(sem.id);
+                  // Default: future class-groups collapsed, current one expanded.
+                  // `expanded` holds the ids the user toggled away from that default,
+                  // so ANY group can be collapsed/expanded with a tap.
+                  const future = !showCompleted && isFutureSem(sem);
+                  const toggled = expanded.has(sem.id);
+                  const collapsed = future ? !toggled : toggled;
+                  const toggle = () =>
+                    setExpanded((s) => {
+                      const n = new Set(s);
+                      if (n.has(sem.id)) n.delete(sem.id);
+                      else n.add(sem.id);
+                      return n;
+                    });
                   return (
                   <div key={sem.id}>
-                    <div className="mb-2 flex items-center gap-2">
+                    <button onClick={toggle} className="btn-tactile mb-2 flex w-full items-center gap-2 text-left">
                       <span
                         className="shrink-0 rounded-pill px-3 py-1 text-xs font-extrabold text-white"
                         style={{ backgroundColor: sem.color }}
@@ -93,13 +105,19 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                         {sem.title}
                       </span>
                       <span className="truncate text-xs font-semibold text-ink-500">{sem.blurb}</span>
-                    </div>
+                      <svg
+                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        className={`ml-auto shrink-0 text-ink-500 transition-transform ${collapsed ? "" : "rotate-180"}`}
+                      >
+                        <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
                     {collapsed ? (
                       <button
-                        onClick={() => setExpanded((s) => new Set(s).add(sem.id))}
+                        onClick={toggle}
                         className="btn-tactile w-full rounded-card border border-dashed border-hairline bg-surface-card/60 p-3 text-center text-xs font-bold text-ink-500"
                       >
-                        🔒 {classes.length} {classes.length === 1 ? "class" : "classes"} ahead — tap to preview
+                        {future ? "🔒 " : ""}{classes.length} {classes.length === 1 ? "class" : "classes"} — tap to preview
                       </button>
                     ) : (
                     <div className="flex flex-col gap-3">
