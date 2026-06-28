@@ -54,7 +54,7 @@ export function MatchChooser() {
         <ModeCard
           active={mode === "pass"}
           emoji="👥"
-          title="Pass & Play"
+          title="vs Human"
           subtitle="Two players, one device"
           onClick={() => { setMode("pass"); haptics.fire("select"); }}
         />

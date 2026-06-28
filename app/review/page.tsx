@@ -97,7 +97,7 @@ export default function ReviewPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-extrabold text-ink">
-                          {g.mode === "bot" ? `vs Bot ${g.elo ?? ""}` : "Pass & Play"}
+                          {g.mode === "bot" ? `vs Bot ${g.elo ?? ""}` : "vs Human"}
                         </p>
                         <p className="truncate text-xs font-semibold text-ink-500">
                           {g.moveCount} moves · {g.endReason} · {new Date(g.createdAt).toLocaleDateString()}

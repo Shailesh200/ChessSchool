@@ -33,6 +33,10 @@ export interface ChessBoardProps {
   highlight?: Square[];
   checkSquare?: Square | null;
   interactive?: boolean;
+  /** show file/rank coordinates — only on in review mode by default */
+  showNotation?: boolean;
+  /** fill the parent container (allow non-square) instead of forcing a square */
+  fill?: boolean;
 }
 
 export function ChessBoard({
@@ -44,6 +48,8 @@ export function ChessBoard({
   highlight = [],
   checkSquare,
   interactive = true,
+  showNotation = false,
+  fill = false,
 }: ChessBoardProps) {
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
@@ -112,14 +118,18 @@ export function ChessBoard({
   }, [lastMove, highlight, selected, targets, checkSquare]);
 
   return (
-    <div className="relative aspect-square w-full overflow-hidden rounded-card [box-shadow:var(--shadow-card)]">
+    <div
+      className={`relative overflow-hidden rounded-card [box-shadow:var(--shadow-card)] ${
+        fill ? "h-full w-full" : "aspect-square w-full"
+      }`}
+    >
       <Chessboard
         options={{
           position: fen,
           boardOrientation: orientation,
           allowDragging: interactive,
           animationDurationInMs: 220,
-          showNotation: true,
+          showNotation,
           lightSquareStyle: { backgroundColor: colors.light },
           darkSquareStyle: { backgroundColor: colors.dark },
           pieces,

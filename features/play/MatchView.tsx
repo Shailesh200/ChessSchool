@@ -277,7 +277,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       <div className="pt-safe sticky top-0 z-20 border-b border-hairline bg-surface/90 px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
           <span className="text-sm font-extrabold text-ink">
-            {isBot ? `vs Bot ${active.targetElo}` : "Pass & Play"}
+            {isBot ? `vs Bot ${active.targetElo}` : "vs Human"}
           </span>
           <div className="flex items-center gap-1.5">
             <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
@@ -374,7 +374,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}
         kind="match"
-        title={isBot ? `Match vs Bot ${active.targetElo}` : "Pass & Play match"}
+        title={isBot ? `Match vs Bot ${active.targetElo}` : "vs Human match"}
         summary={over?.text ?? "Match complete."}
         refId={active.id}
       />

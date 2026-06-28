@@ -97,6 +97,7 @@ export function GameReplay({ id }: { id: string }) {
           fen={frame?.fen ?? game.fen}
           orientation="white"
           interactive={false}
+          showNotation
           lastMove={frame?.from && frame?.to ? { from: frame.from, to: frame.to } : null}
           arrows={arrows}
           highlight={highlight}

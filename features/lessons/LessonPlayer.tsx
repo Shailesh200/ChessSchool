@@ -203,13 +203,13 @@ export function LessonPlayer({
       </div>
 
       <div className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-        <div className="flex items-end gap-3">
+        <div className="flex min-h-[5rem] items-end gap-3">
           <Mascot expression={expression} size={64} float={phase === "playing"} />
           <motion.div
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="relative mb-2 flex-1 rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 py-3 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]"
+            className="relative mb-2 flex min-h-[3.5rem] flex-1 items-center rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 py-3 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]"
           >
             {feedbackText}
             {lesson.exam && (
@@ -267,19 +267,22 @@ function FeedbackBar({
   const showContinue =
     phase === "playing" && (stepKind === "info" || (stepKind === "observe" && observeReady));
   const show = phase === "correct" || phase === "wrong" || showContinue;
-  const tone = phase === "wrong" ? "bg-danger/10" : phase === "correct" ? "bg-success/10" : "bg-surface";
+  const tone = phase === "wrong" ? "bg-danger/10" : phase === "correct" ? "bg-success/10" : "bg-surface-card";
 
+  // Always reserve the footer height so the board never resizes when feedback
+  // appears/disappears (no CLS / flicker).
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ y: 80 }}
-          animate={{ y: 0 }}
-          exit={{ y: 80 }}
-          transition={{ type: "spring", stiffness: 380, damping: 32 }}
-          className={`pb-safe sticky bottom-0 z-20 border-t border-hairline px-4 pt-4 ${tone}`}
-        >
-          <div className="mx-auto flex max-w-xl items-center justify-between gap-4">
+    <div className="pb-safe sticky bottom-0 z-20 min-h-[5.25rem] px-4 pt-3">
+      <AnimatePresence mode="wait">
+        {show && (
+          <motion.div
+            key={phase === "wrong" ? "wrong" : phase === "correct" ? "correct" : "continue"}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            className={`mx-auto flex max-w-xl items-center justify-between gap-4 rounded-2xl border border-hairline px-4 py-3 ${tone}`}
+          >
             <span className="text-sm font-extrabold">
               {phase === "correct" && "🎉 Correct!"}
               {phase === "wrong" && "💡 Let's try again"}
@@ -291,10 +294,10 @@ function FeedbackBar({
             >
               {phase === "wrong" ? "Got it" : "Continue"}
             </Button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
