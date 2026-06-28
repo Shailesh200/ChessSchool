@@ -54,9 +54,13 @@ export default function ProfilePage() {
           <Mascot expression="happy" size={72} />
           <div>
             <h1 className="text-2xl font-extrabold text-ink">{user?.name ?? "Guest Player"}</h1>
-            <p className="text-sm font-semibold text-ink-500">
-              <span className="font-extrabold text-brand">{rank}</span> · Level {level} · {mounted ? xp : 0} XP
-            </p>
+            {authed === true ? (
+              <p className="text-sm font-semibold text-ink-500">
+                <span className="font-extrabold text-brand">{rank}</span> · Level {level} · {mounted ? xp : 0} XP
+              </p>
+            ) : (
+              <p className="text-sm font-semibold text-ink-500">Playing as guest</p>
+            )}
           </div>
         </div>
 

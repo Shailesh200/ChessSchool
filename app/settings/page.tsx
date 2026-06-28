@@ -26,6 +26,7 @@ export default function SettingsPage() {
   const mounted = useMounted();
   const s = useSettings();
   const isAdmin = useSession((st) => st.isAdmin);
+  const authed = useSession((st) => st.authed);
   const user = useSession((st) => st.user);
 
   if (!mounted) {
@@ -116,7 +117,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        <DataSection />
+        {authed === true && <DataSection />}
 
         <p className="pb-4 text-center text-xs font-semibold text-ink-300">
           ChessSchool v3.0 · {user ? user.name : "Guest mode"}
