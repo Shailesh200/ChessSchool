@@ -95,6 +95,22 @@ function evaluate(game: Chess): number {
   return game.turn() === "w" ? score : -score;
 }
 
+const ORDER_VAL: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+
+/** Move ordering (MVV-LVA + promotions/checks first) → much tighter pruning. */
+function orderMoves<T extends { captured?: string; piece: string; promotion?: string; san?: string }>(moves: T[]): T[] {
+  return moves
+    .map((m) => {
+      let s = 0;
+      if (m.captured) s += 10 * (ORDER_VAL[m.captured] ?? 0) - (ORDER_VAL[m.piece] ?? 0);
+      if (m.promotion) s += 8;
+      if (m.san?.includes("+")) s += 1;
+      return { m, s };
+    })
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.m);
+}
+
 function negamax(
   game: Chess,
   depth: number,
@@ -107,7 +123,7 @@ function negamax(
     return evaluate(game);
   }
   let best = -Infinity;
-  const moves = game.moves({ verbose: true });
+  const moves = orderMoves(game.moves({ verbose: true }));
   for (const m of moves) {
     game.move(m as never);
     const score = -negamax(game, depth - 1, -beta, -alpha);
@@ -126,7 +142,7 @@ export function chooseMove(
   seed = 0.5,
 ): MoveInput | null {
   const game = new Chess(fen);
-  const moves = game.moves({ verbose: true });
+  const moves = orderMoves(game.moves({ verbose: true }));
   if (moves.length === 0) return null;
 
   const scored = moves.map((m, i) => {
@@ -152,4 +168,9 @@ export function chooseMove(
     to: chosen.move.to,
     promotion: (chosen.move.promotion as PieceSymbol | undefined) ?? undefined,
   };
+}
+
+/** Async-shaped wrapper around the search (kept async so callers don't block on it). */
+export function getBotMove(fen: string, config: BotConfig, seed = 0.5): Promise<MoveInput | null> {
+  return Promise.resolve(chooseMove(fen, config, seed));
 }

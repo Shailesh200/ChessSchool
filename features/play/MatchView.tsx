@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
-import { chooseMove, eloToConfig } from "@/features/chess-engine/bot";
+import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
 import { commentOnMove } from "@/features/coaching/coach";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -151,8 +151,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const e = engineRef.current;
     if (e.isGameOver()) return;
     setThinking(true);
-    window.setTimeout(() => {
-      const move = chooseMove(e.fen(), eloToConfig(active.targetElo), Math.random());
+    // Search runs in a Web Worker (no UI freeze), overlapped with a ≥1s beat.
+    Promise.all([
+      getBotMove(e.fen(), eloToConfig(active.targetElo), Math.random()),
+      new Promise((r) => window.setTimeout(r, 1000)),
+    ]).then(([move]) => {
       if (move) {
         const applied = e.move(move);
         if (applied) {
@@ -165,7 +168,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       }
       setThinking(false);
       checkOver();
-    }, 1000); // give the bot a deliberate ≥1s "thinking" beat
+    });
   }, [active.targetElo, persist, checkOver]);
 
   // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
