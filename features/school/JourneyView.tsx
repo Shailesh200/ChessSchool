@@ -110,8 +110,8 @@ export function JourneyView({
         )}
       </ol>
 
-      {/* Test out (#12) — pass a quick exam to skip straight to the next class */}
-      {unlockedClass && (
+      {/* Test out (#12/#2) — appears once you're ≥50% through the class. */}
+      {unlockedClass && lessons.length > 0 && done / lessons.length >= 0.5 && done < lessons.length && (
         <div className="mx-auto w-full max-w-xs">
           <Button
             variant="outline"
@@ -125,7 +125,7 @@ export function JourneyView({
             🎓 Test out of this class
           </Button>
           <p className="mt-1 text-center text-[11px] font-semibold text-ink-500">
-            Pass the exam (≥67%) to skip straight to the next class.
+            You&apos;re halfway — pass the exam (≥67%) to skip straight to the next class.
           </p>
         </div>
       )}

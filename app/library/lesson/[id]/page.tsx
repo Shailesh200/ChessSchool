@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { lessons } from "@/db/schema";
+import { getCatalog } from "@/features/school/catalog.server";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
@@ -29,5 +30,11 @@ export default async function LibraryLessonPage({
     steps: JSON.parse(row.steps) as LessonStep[],
   };
 
-  return <LessonPlayer lesson={lesson} />;
+  const catalog = await getCatalog();
+  const owner = catalog.allClasses.find((c) => c.id === row.classId);
+  const lessonClass = owner
+    ? { id: owner.id, title: owner.title, lessonIds: owner.lessonIds }
+    : undefined;
+
+  return <LessonPlayer lesson={lesson} lessonClass={lessonClass} />;
 }

@@ -58,9 +58,7 @@ export default async function ClassExamPage({
     <LessonPlayer
       lesson={exam}
       nextLessonId={nextLessonId}
-      graduateClassId={id}
-      graduateClassTitle={clsRow.title}
-      graduateClassLessonIds={lessonIds}
+      lessonClass={{ id, title: clsRow.title, lessonIds }}
     />
   );
 }

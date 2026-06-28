@@ -33,6 +33,10 @@ export default async function LessonPage({
 
   const catalog = await getCatalog();
   const nextLessonId = nextLessonAfter(id, catalog.allClasses);
+  const owner = catalog.allClasses.find((c) => c.id === row.classId);
+  const lessonClass = owner
+    ? { id: owner.id, title: owner.title, lessonIds: owner.lessonIds }
+    : undefined;
 
-  return <LessonPlayer lesson={lesson} nextLessonId={nextLessonId} />;
+  return <LessonPlayer lesson={lesson} nextLessonId={nextLessonId} lessonClass={lessonClass} />;
 }

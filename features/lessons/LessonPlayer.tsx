@@ -14,7 +14,7 @@ import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
-import { getClass, classByExamId, isClassGraduated, nextLessonAfter } from "@/features/school/structure";
+import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import type { Lesson, LessonStep } from "./types";
 import type { MoveInput } from "@/core/types/chess";
@@ -24,16 +24,16 @@ type Phase = "playing" | "correct" | "wrong" | "complete";
 export function LessonPlayer({
   lesson,
   nextLessonId,
-  graduateClassId,
-  graduateClassTitle,
-  graduateClassLessonIds,
+  lessonClass,
 }: {
   lesson: Lesson;
   nextLessonId?: string | null;
-  /** when set, passing this (exam) graduates that class — powers "test out" (#12) */
-  graduateClassId?: string;
-  graduateClassTitle?: string;
-  graduateClassLessonIds?: string[];
+  /**
+   * The lesson's owning class, from the DB (so graduation works for generated
+   * classes that aren't in the constants). Completing all its lessons — or
+   * passing this as an exam — graduates the class.
+   */
+  lessonClass?: { id: string; title: string; lessonIds: string[] };
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -107,31 +107,26 @@ export function LessonPlayer({
       mastered: Object.keys(progression.lessons).length + 1,
     }).forEach((id) => progression.unlockAchievement(id));
 
+    // Resolve the lesson's class — prefer the DB-passed class (works for
+    // generated classes); fall back to the constants for older callers.
+    const dbClass = lessonClass ?? null;
+    const constCls = !dbClass ? getClass(lesson.unit) ?? classByExamId(lesson.id) : null;
+    const cls = dbClass ?? (constCls ? { id: constCls.id, title: constCls.title, lessonIds: constCls.lessonIds } : null);
+
     // Exam: passing graduates the whole class.
-    if (lesson.exam && ratio >= 0.67) {
-      // Generic "test out" exam — graduate the explicitly named class.
-      if (graduateClassId) {
-        (graduateClassLessonIds ?? []).forEach((id) => progression.recordLesson(id, 1, 1));
-        progression.graduateClass(graduateClassId);
-        setGraduatedTitle(graduateClassTitle ?? "Class");
-        audio.play("graduation");
-        return;
-      }
-      const cls = classByExamId(lesson.id);
-      if (cls) {
-        cls.lessonIds.forEach((id) => progression.recordLesson(id, 1, 1));
-        progression.graduateClass(cls.id);
-        setGraduatedTitle(cls.title);
-        audio.play("graduation");
-        return;
-      }
+    if (lesson.exam && ratio >= 0.67 && cls) {
+      cls.lessonIds.forEach((id) => progression.recordLesson(id, 1, 1));
+      progression.graduateClass(cls.id);
+      setGraduatedTitle(cls.title);
+      audio.play("graduation");
+      return;
     }
 
-    // Normal lesson: did this complete (graduate) its class?
-    const cls = getClass(lesson.unit);
+    // Normal lesson: did finishing it complete (graduate) the whole class?
     if (cls && !progression.graduatedClasses.includes(cls.id)) {
       const records = useProgression.getState().lessons;
-      if (isClassGraduated(cls, records, useProgression.getState().graduatedClasses)) {
+      const allMastered = cls.lessonIds.length > 0 && cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= 0.9);
+      if (allMastered) {
         progression.graduateClass(cls.id);
         setGraduatedTitle(cls.title);
         audio.play("graduation");

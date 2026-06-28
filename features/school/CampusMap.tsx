@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -19,11 +20,34 @@ import { audio } from "@/core/audio/audioEngine";
 export function CampusMap({ catalog }: { catalog: Catalog }) {
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  const isDone = (cls: SchoolClass) => isClassGraduated(cls, records, graduated);
+  const gradCount = catalog.allClasses.filter(isDone).length;
 
   return (
     <div className="flex flex-col gap-8">
+      {gradCount > 0 && (
+        <div className="-mb-3 flex justify-end">
+          <button
+            onClick={() => setShowCompleted((v) => !v)}
+            className="rounded-pill bg-surface-sunken px-3 py-1 text-xs font-bold text-ink-700"
+          >
+            {showCompleted ? "Hide" : "Show"} completed ({gradCount})
+          </button>
+        </div>
+      )}
       {catalog.stages.map((stage) => {
         const semesters = semestersForStage(stage.id, catalog.semesters);
+        const visibleSems = semesters
+          .map((sem) => ({
+            sem,
+            classes: showCompleted ? sem.classes : sem.classes.filter((c) => !isDone(c)),
+          }))
+          .filter((x) => x.classes.length > 0);
+        const isUpcoming = stage.status === "upcoming" || semesters.length === 0;
+        // A fully-completed (non-upcoming) stage collapses away unless "show completed".
+        if (!isUpcoming && visibleSems.length === 0) return null;
         return (
           <section key={stage.id}>
             {/* Stage header — the full Elementary → Master ladder */}
@@ -35,7 +59,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
               </div>
             </div>
 
-            {stage.status === "upcoming" || semesters.length === 0 ? (
+            {isUpcoming ? (
               <div className="rounded-card border border-dashed border-hairline bg-surface-sunken/50 p-4 text-center">
                 <p className="text-xs font-bold text-ink-500">
                   🔒 Unlocks after you graduate the earlier stages — more classes coming.
@@ -43,7 +67,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
               </div>
             ) : (
               <div className="flex flex-col gap-5">
-                {semesters.map((sem) => (
+                {visibleSems.map(({ sem, classes }) => (
                   <div key={sem.id}>
                     <div className="mb-2 flex items-center gap-2">
                       <span
@@ -55,7 +79,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                       <span className="truncate text-xs font-semibold text-ink-500">{sem.blurb}</span>
                     </div>
                     <div className="flex flex-col gap-3">
-                      {sem.classes.map((cls, i) => (
+                      {classes.map((cls, i) => (
                         <ClassCard
                           key={cls.id}
                           cls={cls}
