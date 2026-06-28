@@ -10,6 +10,8 @@ export interface LessonRecord {
   lastSeen: number; // epoch ms
   /** next review due date (epoch ms) for spaced repetition */
   dueAt: number;
+  /** wrong moves in the best run (for report-card scoring); undefined on old data */
+  incorrect?: number;
 }
 
 export interface ProgressionState {
@@ -31,7 +33,7 @@ export interface ProgressionState {
   reset: () => void;
   awardXp: (amount: number) => void;
   setDailyGoalXp: (xp: number) => void;
-  recordLesson: (id: string, correct: number, total: number) => void;
+  recordLesson: (id: string, correct: number, total: number, incorrect?: number) => void;
   recordWeakness: (tag: string) => void;
   unlockAchievement: (id: string) => boolean;
   registerActivity: (today: string) => void;
@@ -119,12 +121,14 @@ export const useProgression = create<ProgressionState>()(
 
       setDailyGoalXp: (xp) => set({ dailyGoalXp: Math.max(10, Math.round(xp)) }),
 
-      recordLesson: (id, correct, total) =>
+      recordLesson: (id, correct, total, incorrect = 0) =>
         set((s) => {
           const prev = s.lessons[id];
           const score = total > 0 ? correct / total : 0;
           const mastery = prev ? prev.mastery * 0.5 + score * 0.5 : score;
           const days = mastery > 0.9 ? 14 : mastery > 0.7 ? 5 : mastery > 0.4 ? 2 : 1;
+          // Keep the best (fewest mistakes) run for scoring.
+          const bestIncorrect = prev?.incorrect === undefined ? incorrect : Math.min(prev.incorrect, incorrect);
           return {
             lessons: {
               ...s.lessons,
@@ -133,6 +137,7 @@ export const useProgression = create<ProgressionState>()(
                 attempts: (prev?.attempts ?? 0) + 1,
                 lastSeen: Date.now(),
                 dueAt: Date.now() + days * 24 * 3600 * 1000,
+                incorrect: bestIncorrect,
               },
             },
           };

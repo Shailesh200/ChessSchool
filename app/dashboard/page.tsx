@@ -10,6 +10,8 @@ import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { SkillRadar } from "@/components/dashboard/SkillRadar";
 import { StreakHeatmap } from "@/components/dashboard/StreakHeatmap";
+import { ReportCard } from "@/components/dashboard/ReportCard";
+import type { ReportClass } from "@/features/dashboard/reportCard";
 import { useProgression } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -42,12 +44,17 @@ export default function DashboardPage() {
   const targetElo = useSettings((s) => s.targetElo);
   const [games, setGames] = useState<SavedGame[]>([]);
   const [curr, setCurr] = useState<{ totalClasses: number; lessonsByTag: Record<string, string[]> } | null>(null);
+  const [reportClasses, setReportClasses] = useState<ReportClass[]>([]);
 
   useEffect(() => {
     listGames().then(setGames);
     fetch("/api/curriculum-stats")
       .then((r) => (r.ok ? r.json() : null))
       .then(setCurr)
+      .catch(() => void 0);
+    fetch("/api/report-classes")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setReportClasses(d?.classes ?? []))
       .catch(() => void 0);
   }, []);
 
@@ -77,6 +84,9 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-5">
         <BackButton />
         <h1 className="text-xl font-extrabold text-ink">School Dashboard</h1>
+
+        {/* Report card — per-class grades */}
+        <ReportCard classes={reportClasses} records={records} graduated={graduated} />
 
         {/* Skill estimate + identity */}
         <Card className="flex items-center gap-4">

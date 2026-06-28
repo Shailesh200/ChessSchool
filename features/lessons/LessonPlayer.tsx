@@ -77,6 +77,7 @@ export function LessonPlayer({
   const [movedTo, setMovedTo] = useState<Square | null>(null);
   const [oppMove, setOppMove] = useState<{ from: Square; to: Square } | null>(null);
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
+  const wrongRef = useRef(0); // wrong moves this attempt → report-card scoring
   const timers = useRef<number[]>([]);
 
   const progression = useProgression();
@@ -141,7 +142,7 @@ export function LessonPlayer({
     const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
     const correct = correctRef.current; // fresh count (state may lag the auto-advance)
     const ratio = correct / interactive;
-    progression.recordLesson(lesson.id, correct, interactive);
+    progression.recordLesson(lesson.id, correct, interactive, wrongRef.current);
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());
     checkLessonAchievements(lesson.id, {
@@ -214,6 +215,7 @@ export function LessonPlayer({
       return true;
     }
     setPhase("wrong");
+    wrongRef.current += 1;
     audio.play("fail");
     haptics.fire("error");
     if (step.tag) progression.recordWeakness(step.tag);
