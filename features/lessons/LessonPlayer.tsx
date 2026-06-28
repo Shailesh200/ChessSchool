@@ -22,6 +22,16 @@ import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
 type Phase = "playing" | "correct" | "wrong" | "complete";
 
+const LESSON_TIPS: Record<string, string> = {
+  capture: "Scan for enemy pieces that aren't defended — you can win them for free.",
+  check: "A check forces a reply. Look for the most forcing move first.",
+  checkmate: "Checkmate = the king is attacked with no legal escape square.",
+  mate: "Checkmate = the king is attacked with no legal escape square.",
+  fork: "A knight fork hits two pieces at once — aim at the king and a big piece.",
+  promotion: "Reach the last rank to promote — usually a queen, but a knight can fork!",
+  opening: "In the opening: develop your pieces, control the centre, and castle early.",
+};
+
 export function LessonPlayer({
   lesson,
   nextLessonId,
@@ -223,9 +233,9 @@ export function LessonPlayer({
         <div className="flex min-h-[5rem] items-end gap-3">
           <Mascot expression={expression} size={64} float={phase === "playing"} />
           <motion.div
-            key={`${index}-${phase}`}
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            key={index}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
             className="relative mb-2 flex min-h-[3.5rem] flex-1 items-center rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 py-3 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]"
           >
             {feedbackText}
@@ -272,6 +282,14 @@ export function LessonPlayer({
             {hint ? "💡 Follow the arrow" : "💡 Show a hint"}
           </button>
         )}
+
+        {/* Fills the space below the board + reinforces the concept */}
+        <div className="mx-auto mt-1 flex w-full max-w-xs items-start gap-2 rounded-card border border-hairline bg-surface-card/70 px-3 py-2">
+          <span className="text-base leading-none">🎓</span>
+          <p className="text-[11px] font-semibold leading-snug text-ink-500">
+            {LESSON_TIPS[step.tag ?? ""] ?? LESSON_TIPS[lesson.tag] ?? "Take your time and calculate before you move."}
+          </p>
+        </div>
       </div>
 
       <FeedbackBar
@@ -306,7 +324,7 @@ function FeedbackBar({
   // appears/disappears (no CLS / flicker).
   return (
     <div className="pb-safe sticky bottom-0 z-20 min-h-[5.25rem] px-4 pt-3">
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {show && (
           <motion.div
             key={phase === "wrong" ? "wrong" : phase === "correct" ? "correct" : "continue"}
