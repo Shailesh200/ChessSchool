@@ -20,6 +20,10 @@ const Diagnostics = dynamic(
   () => import("@/components/dev/Diagnostics").then((m) => m.Diagnostics),
   { ssr: false },
 );
+const ProgressSync = dynamic(
+  () => import("@/components/providers/ProgressSync").then((m) => m.ProgressSync),
+  { ssr: false },
+);
 
 /**
  * App-wide side-effect coordinator: keeps device subsystems (audio, haptics,
@@ -138,6 +142,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      <ProgressSync />
       <Toaster />
       <Diagnostics />
     </>

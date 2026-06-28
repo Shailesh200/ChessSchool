@@ -12,6 +12,7 @@ import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { useSession } from "@/core/store/session.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, isClassGraduated, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
@@ -293,6 +294,7 @@ function LessonComplete({
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const router = useRouter();
+  const authed = useSession((s) => s.authed);
   // Prefer the DB-computed next lesson; fall back to the constants graph.
   const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
   return (
@@ -332,6 +334,24 @@ function LessonComplete({
         <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
         <StatPill label="Correct" value={`${correct}`} tone="text-success" />
       </div>
+
+      {/* Guest → enroll prompt (#2): progress is saved locally and follows you up. */}
+      {authed === false && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-xs rounded-card border border-brand-100 bg-brand-50 p-4 text-center"
+        >
+          <p className="text-sm font-extrabold text-ink">📌 Save your progress</p>
+          <p className="mt-1 text-xs font-semibold text-ink-500">
+            Enroll free to keep your XP and continue on any device — everything you&apos;ve done so far comes with you.
+          </p>
+          <Button size="sm" block className="mt-3" onClick={() => { audio.play("transition"); router.push("/register"); }}>
+            Enroll free
+          </Button>
+        </motion.div>
+      )}
+
       <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
         {nextId ? (
           <Button

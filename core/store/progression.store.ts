@@ -33,6 +33,27 @@ export interface ProgressionState {
   unlockAchievement: (id: string) => boolean;
   registerActivity: (today: string) => void;
   graduateClass: (classId: string) => void;
+  /** merge a server snapshot into local state (taking the better of each) */
+  mergeSnapshot: (snap: ProgressSnapshot) => void;
+}
+
+/** The account-syncable slice of progression (server <-> client). */
+export interface ProgressSnapshot {
+  xp: number;
+  streak: number;
+  lastActiveDay: string | null;
+  graduatedClasses: string[];
+  lessons: Record<string, LessonRecord>;
+}
+
+export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
+  return {
+    xp: s.xp,
+    streak: s.streak,
+    lastActiveDay: s.lastActiveDay,
+    graduatedClasses: s.graduatedClasses,
+    lessons: s.lessons,
+  };
 }
 
 export function levelForXp(xp: number): number {
@@ -135,6 +156,24 @@ export const useProgression = create<ProgressionState>()(
             ? s
             : { graduatedClasses: [...s.graduatedClasses, classId] },
         ),
+      mergeSnapshot: (snap) =>
+        set((s) => {
+          const lessons = { ...s.lessons };
+          for (const [id, r] of Object.entries(snap.lessons)) {
+            const cur = lessons[id];
+            lessons[id] =
+              !cur || r.mastery >= cur.mastery
+                ? { ...r, attempts: Math.max(cur?.attempts ?? 0, r.attempts) }
+                : { ...cur, attempts: Math.max(cur.attempts, r.attempts) };
+          }
+          return {
+            xp: Math.max(s.xp, snap.xp),
+            streak: Math.max(s.streak, snap.streak),
+            lastActiveDay: s.lastActiveDay ?? snap.lastActiveDay,
+            graduatedClasses: Array.from(new Set([...s.graduatedClasses, ...snap.graduatedClasses])),
+            lessons,
+          };
+        }),
     }),
     {
       name: "duochess.progression",
