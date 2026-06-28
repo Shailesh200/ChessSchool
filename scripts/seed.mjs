@@ -346,31 +346,39 @@ async function main() {
   const lessons = [];
   let cOrder = 0;
 
-  function addThemeSemester(semId, title, blurb, color, stage, pool, perClass, classTitle, emoji, difficulty) {
+  // Bundle several drills into one multi-exercise lesson, and scale the lesson
+  // count + exercises-per-lesson by difficulty (easy classes are short; harder
+  // / higher classes are longer and give more XP).
+  function addThemeSemester(semId, title, blurb, color, stage, pool, classTitle, emoji, difficulty) {
+    const perLesson = Math.min(difficulty + 1, 6); // exercises (FENs) per lesson
+    const perClass = (4 + difficulty * 2) * perLesson; // → 6/8/10/12 lessons per class
     semesters.push({ id: semId, title, blurb, color, stage, sortOrder: semesters.length });
     chunk(pool, perClass).forEach((group, ci) => {
       const classId = `${semId}-c${ci + 1}`;
+      const lessonGroups = chunk(group, perLesson);
       classes.push({
         id: classId,
         semesterId: semId,
         title: `${classTitle} ${ci + 1}`,
         emoji,
-        blurb: `${group.length} drills`,
+        blurb: `${lessonGroups.length} lessons`,
         difficulty,
         sortOrder: cOrder++,
       });
-      group.forEach((l, li) => {
+      lessonGroups.forEach((drills, li) => {
+        // Merge the drills' positions into one lesson as sequential exercises.
+        const steps = drills.flatMap((d, di) => d.steps.map((s, si) => ({ ...s, id: `e${di}s${si}` })));
         lessons.push({
           id: `${classId}-l${li + 1}`,
           classId,
-          title: l.title,
-          subtitle: l.subtitle,
-          emoji: l.emoji,
-          tag: l.tag,
-          xp: l.xp,
+          title: drills[0].title,
+          subtitle: drills.length > 1 ? `${drills.length} exercises` : drills[0].subtitle,
+          emoji: drills[0].emoji,
+          tag: drills[0].tag,
+          xp: drills.length * 10,
           isExam: 0,
           prerequisites: "[]",
-          steps: JSON.stringify(l.steps),
+          steps: JSON.stringify(steps),
           sortOrder: li,
         });
       });
@@ -398,10 +406,11 @@ async function main() {
   }
   addCurated();
 
-  addThemeSemester("sem-gen-captures", "Tactics · Free Material", "Win undefended pieces", "#cf4324", "middle", captures, 40, "Free Material", "🎯", 2);
-  addThemeSemester("sem-gen-checks", "Tactics · Spot the Check", "Find forcing checks", "#5b5bd6", "middle", checks, 40, "Spot the Check", "⚡", 2);
-  addThemeSemester("sem-gen-mates", "Checkmate School", "Mate in one", "#7c5cd6", "middle", mates, 30, "Mate in One", "♛", 3);
-  addThemeSemester("sem-gen-promo", "Pawn Promotion", "Queen your pawns", "#0f7a55", "elementary", promos, 40, "Promotion Power", "👑", 2);
+  // difficulty grows through the ladder: easy → fewer/shorter, hard → more/longer
+  addThemeSemester("sem-gen-promo", "Pawn Promotion", "Queen your pawns", "#0f7a55", "elementary", promos, "Promotion Power", "👑", 1);
+  addThemeSemester("sem-gen-captures", "Tactics · Free Material", "Win undefended pieces", "#cf4324", "middle", captures, "Free Material", "🎯", 2);
+  addThemeSemester("sem-gen-checks", "Tactics · Spot the Check", "Find forcing checks", "#5b5bd6", "middle", checks, "Spot the Check", "⚡", 3);
+  addThemeSemester("sem-gen-mates", "Checkmate School", "Mate in one", "#7c5cd6", "middle", mates, "Mate in One", "♛", 4);
 
   // Openings — one class per opening
   semesters.push({ id: "sem-gen-openings", title: "Opening Repertoire", blurb: "The famous openings", color: "#f59e0b", stage: "elementary", sortOrder: semesters.length });
