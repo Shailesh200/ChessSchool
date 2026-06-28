@@ -12,6 +12,7 @@ import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
@@ -56,9 +57,13 @@ export function LessonPlayer({
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
   const [hint, setHint] = useState(false);
+  const [movedTo, setMovedTo] = useState<Square | null>(null);
+  const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
   const timers = useRef<number[]>([]);
 
   const progression = useProgression();
+  const sound = useSettings((s) => s.sound);
+  const toggleSetting = useSettings((s) => s.toggle);
   const step = lesson.steps[index] as LessonStep | undefined;
   const total = lesson.steps.length;
 
@@ -69,6 +74,7 @@ export function LessonPlayer({
     setObserveDone(false);
     setPromoted(null);
     setHint(false);
+    setMovedTo(null);
   }
 
   // Auto-play "observe" steps move-by-move.
@@ -114,8 +120,9 @@ export function LessonPlayer({
   function finish() {
     setPhase("complete");
     const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
-    const ratio = correctCount / interactive;
-    progression.recordLesson(lesson.id, correctCount, interactive);
+    const correct = correctRef.current; // fresh count (state may lag the auto-advance)
+    const ratio = correct / interactive;
+    progression.recordLesson(lesson.id, correct, interactive);
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());
     checkLessonAchievements(lesson.id, {
@@ -159,18 +166,24 @@ export function LessonPlayer({
     if (!applied) return false;
     const key = `${move.from}:${move.to}`;
     if (step.solution?.includes(key)) {
+      correctRef.current += 1;
       setDisplayFen(engine.fen());
-      setCorrectCount((c) => c + 1);
+      setCorrectCount(correctRef.current);
       setPromoted(applied.promotion ?? null);
+      setMovedTo(move.to as Square);
       setPhase("correct");
       audio.play(applied.captured ? "capture" : "success");
       haptics.fire("success");
+      // Flash the square green, then auto-advance — no "tap to continue".
+      timers.current.push(window.setTimeout(() => advance(), 950));
       return true;
     }
     setPhase("wrong");
     audio.play("fail");
     haptics.fire("error");
     if (step.tag) progression.recordWeakness(step.tag);
+    // Briefly show the miss, then unlock the board to retry.
+    timers.current.push(window.setTimeout(() => setPhase("playing"), 1200));
     return false;
   }
 
@@ -198,6 +211,8 @@ export function LessonPlayer({
 
   const isObserving = step.kind === "observe" && !observeDone;
   const solvable = step.kind === "move" && phase === "playing";
+  const toMove: "w" | "b" | null =
+    step.kind === "move" && step.fen ? (new ChessEngine(step.fen).turn() as "w" | "b") : null;
   const hintArrows: BoardArrow[] =
     hint && solvable && step.solution?.[0]
       ? [
@@ -226,6 +241,18 @@ export function LessonPlayer({
           <span className="text-xs font-bold text-ink-500">
             {index + 1}/{total}
           </span>
+          <button
+            onClick={() => {
+              audio.unlock(); // resume the audio context (fixes "no sound" after idle)
+              toggleSetting("sound");
+              if (!sound) audio.play("notify");
+            }}
+            aria-label={sound ? "Mute sounds" : "Unmute sounds"}
+            aria-pressed={sound}
+            className="btn-tactile flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-card text-ink-700 [box-shadow:var(--shadow-card)]"
+          >
+            {sound ? "🔊" : "🔇"}
+          </button>
         </div>
       </div>
 
@@ -259,30 +286,21 @@ export function LessonPlayer({
                 onMove={handleMove}
                 arrows={phase === "playing" && !isObserving ? [...(step.arrows ?? []), ...hintArrows] : []}
                 highlight={phase === "playing" && !isObserving ? step.highlight : []}
+                successSquare={phase === "correct" ? movedTo : null}
                 interactive={step.kind === "move" && phase === "playing"}
               />
-              {/* When waiting on feedback the board is locked — tap anywhere on it to move on. */}
-              {(phase === "correct" || phase === "wrong") && (
-                <button
-                  onClick={phase === "correct" ? advance : () => setPhase("playing")}
-                  aria-label={phase === "correct" ? "Continue" : "Try again"}
-                  className="absolute inset-0 z-10 flex items-end justify-center pb-3"
-                >
-                  <span
-                    className={`animate-bounce rounded-pill px-4 py-2 text-sm font-extrabold text-white shadow-lg ${
-                      phase === "correct" ? "bg-success" : "bg-danger"
-                    }`}
-                  >
-                    {phase === "correct" ? "Tap to continue →" : "Tap to try again ↻"}
-                  </span>
-                </button>
-              )}
             </div>
           </div>
         )}
 
         {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
-        <div className="flex h-9 items-center justify-center">
+        <div className="relative flex h-9 items-center justify-center">
+          {toMove && (
+            <span className="absolute left-0 flex items-center gap-1.5 rounded-pill bg-surface-sunken px-2.5 py-1 text-[11px] font-extrabold text-ink-700">
+              <span className={`h-2.5 w-2.5 rounded-full ${toMove === "w" ? "bg-white ring-1 ring-ink-300" : "bg-ink-900"}`} />
+              {toMove === "w" ? "White" : "Black"} to move
+            </span>
+          )}
           {isObserving ? (
             <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>
           ) : solvable ? (
@@ -310,57 +328,45 @@ export function LessonPlayer({
       </div>
 
       <FeedbackBar
-        phase={phase}
         stepKind={step.kind}
         observeReady={step.kind !== "observe" || observeDone}
-        onContinue={
-          phase === "correct" ? advance : phase === "wrong" ? () => setPhase("playing") : advance
-        }
+        playing={phase === "playing"}
+        onContinue={advance}
       />
     </div>
   );
 }
 
 function FeedbackBar({
-  phase,
   stepKind,
   observeReady,
+  playing,
   onContinue,
 }: {
-  phase: Phase;
   stepKind: string;
   observeReady: boolean;
+  playing: boolean;
   onContinue: () => void;
 }) {
-  const showContinue =
-    phase === "playing" && (stepKind === "info" || (stepKind === "observe" && observeReady));
-  const show = phase === "correct" || phase === "wrong" || showContinue;
-  const tone = phase === "wrong" ? "bg-danger/10" : phase === "correct" ? "bg-success/10" : "bg-surface-card";
+  // Move steps auto-advance (green flash) / auto-retry — the footer button is only
+  // for info/observe steps that need a manual "Continue".
+  const show = playing && (stepKind === "info" || (stepKind === "observe" && observeReady));
 
-  // Always reserve the footer height so the board never resizes when feedback
-  // appears/disappears (no CLS / flicker).
+  // Always reserve the footer height so the board never resizes (no CLS / flicker).
   return (
     <div className="pb-safe sticky bottom-0 z-20 min-h-[5.25rem] px-4 pt-3">
       <AnimatePresence>
         {show && (
           <motion.div
-            key={phase === "wrong" ? "wrong" : phase === "correct" ? "correct" : "continue"}
+            key="continue"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className={`mx-auto flex max-w-xl items-center justify-between gap-4 rounded-2xl border border-hairline px-4 py-3 ${tone}`}
+            className="mx-auto flex max-w-xl items-center justify-end gap-4 rounded-2xl border border-hairline bg-surface-card px-4 py-3"
           >
-            <span className="text-sm font-extrabold">
-              {phase === "correct" && "🎉 Correct!"}
-              {phase === "wrong" && "💡 Let's try again"}
-            </span>
-            <Button
-              variant={phase === "wrong" ? "danger" : "success"}
-              onClick={onContinue}
-              className="min-w-32"
-            >
-              {phase === "wrong" ? "Got it" : "Continue"}
+            <Button variant="success" onClick={onContinue} block>
+              Continue
             </Button>
           </motion.div>
         )}

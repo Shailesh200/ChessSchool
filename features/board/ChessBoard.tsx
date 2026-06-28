@@ -32,6 +32,8 @@ export interface ChessBoardProps {
   arrows?: BoardArrow[];
   highlight?: Square[];
   checkSquare?: Square | null;
+  /** flash a square green (e.g. a correct move) */
+  successSquare?: Square | null;
   interactive?: boolean;
   /** show file/rank coordinates — only on in review mode by default */
   showNotation?: boolean;
@@ -47,6 +49,7 @@ export function ChessBoard({
   arrows = [],
   highlight = [],
   checkSquare,
+  successSquare,
   interactive = true,
   showNotation = false,
   fill = false,
@@ -114,8 +117,16 @@ export function ChessBoard({
         borderRadius: "8px",
       };
     }
+    if (successSquare) {
+      styles[successSquare] = {
+        ...(styles[successSquare] ?? {}),
+        background: "rgba(34,197,94,0.5)",
+        boxShadow: "inset 0 0 0 4px rgba(34,197,94,0.9)",
+        borderRadius: "8px",
+      };
+    }
     return styles;
-  }, [lastMove, highlight, selected, targets, checkSquare]);
+  }, [lastMove, highlight, selected, targets, checkSquare, successSquare]);
 
   return (
     <div
