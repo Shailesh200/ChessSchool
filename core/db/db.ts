@@ -17,7 +17,7 @@ export type EndReason =
 
 export interface SavedGame {
   id: string;
-  mode: "bot" | "pass" | "sandbox";
+  mode: "bot" | "pass" | "sandbox" | "online";
   pgn: string;
   fen: string;
   whiteName: string;

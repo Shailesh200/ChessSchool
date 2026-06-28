@@ -9,6 +9,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { useSquareSize } from "@/core/hooks/useSquareSize";
 import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
+import { saveGame, type EndReason } from "@/core/db/db";
 import type { MoveInput } from "@/core/types/chess";
 
 interface SessionState {
@@ -18,6 +19,7 @@ interface SessionState {
   status: "waiting" | "active" | "over";
   result: string | null;
   blackJoined: number;
+  pgn: string;
   lastFrom: string | null;
   lastTo: string | null;
   timeControlMin: number;
@@ -49,6 +51,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const [optimistic, setOptimistic] = useState<{ fen: string; from: string; to: string } | null>(null);
   const [online, setOnline] = useState(true);
   const sigRef = useRef(""); // skip re-renders when the polled state is unchanged
+  const savedRef = useRef(false); // save the finished game to history once
   const colorRef = useRef(color);
   useEffect(() => {
     colorRef.current = color;
@@ -129,6 +132,53 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       clearTimeout(t);
     };
   }, [id]);
+
+  // Save a finished online game into the local match history (#3).
+  useEffect(() => {
+    if (!session || session.status !== "over" || savedRef.current || color === null || color === "spectator") return;
+    savedRef.current = true;
+    const res = session.result ?? "1/2-1/2";
+    let winner: "w" | "b" | null = null;
+    let endReason: EndReason = "draw";
+    if (res.startsWith("resign:")) {
+      winner = res.endsWith("w") ? "b" : "w";
+      endReason = "resign";
+    } else if (res.startsWith("time:")) {
+      winner = res.endsWith("w") ? "w" : "b";
+      endReason = "timeout";
+    } else if (res === "1-0") {
+      winner = "w";
+      endReason = "checkmate";
+    } else if (res === "0-1") {
+      winner = "b";
+      endReason = "checkmate";
+    }
+    let moveCount = 0;
+    try {
+      const g = new Chess();
+      g.loadPgn(session.pgn ?? "");
+      moveCount = g.history().length;
+    } catch {
+      /* ignore */
+    }
+    void saveGame({
+      id: session.id,
+      mode: "online",
+      pgn: session.pgn ?? "",
+      fen: session.fen,
+      whiteName: color === "w" ? "You" : "Opponent",
+      blackName: color === "b" ? "You" : "Opponent",
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      turn: session.turn,
+      result: winner === "w" ? "1-0" : winner === "b" ? "0-1" : "1/2-1/2",
+      endReason,
+      winner,
+      moveCount,
+      elo: null,
+      durationMs: session.updatedAt - session.createdAt,
+    });
+  }, [session, color]);
 
   function onMove(move: MoveInput): boolean {
     if (!session || color === "spectator" || color === null) return false;

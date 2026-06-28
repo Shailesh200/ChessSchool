@@ -19,8 +19,13 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 function outcome(g: SavedGame): keyof typeof RESULT_BADGE {
-  if (g.endReason === "resign") return g.mode === "bot" ? "resign" : "win";
   if (g.winner === null) return "draw";
+  // Online: "You" may be white or black — result is relative to your seat.
+  if (g.mode === "online") {
+    const myColor = g.whiteName === "You" ? "w" : "b";
+    return g.winner === myColor ? "win" : "loss";
+  }
+  if (g.endReason === "resign") return g.mode === "bot" ? "resign" : "win";
   // vs bot: player is white
   if (g.mode === "bot") return g.winner === "w" ? "win" : "loss";
   return "win";
@@ -97,7 +102,7 @@ export default function ReviewPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-extrabold text-ink">
-                          {g.mode === "bot" ? `vs Bot ${g.elo ?? ""}` : "vs Human"}
+                          {g.mode === "bot" ? `vs Bot ${g.elo ?? ""}` : g.mode === "online" ? "vs Friend (online)" : "vs Human"}
                         </p>
                         <p className="truncate text-xs font-semibold text-ink-500">
                           {g.moveCount} moves · {g.endReason} · {new Date(g.createdAt).toLocaleDateString()}
