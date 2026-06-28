@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSettings } from "@/core/store/settings.store";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { useSession } from "@/core/store/session.store";
 import { useMatch } from "@/core/store/match.store";
 import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { usePwa, type BeforeInstallPromptEvent } from "@/core/pwa/usePwa";
@@ -43,6 +44,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void useSettings.persist.rehydrate();
     void useProgression.persist.rehydrate();
+    void useSession.persist.rehydrate();
     void useMatch.persist.rehydrate();
     void Promise.resolve(usePlan.persist.rehydrate()).then(() => {
       const plan = usePlan.getState();
