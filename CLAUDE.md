@@ -36,8 +36,22 @@ pnpm dev            # ensure-db + next dev (Turbopack)
 pnpm build / start  # production
 pnpm typecheck | lint | test | e2e
 pnpm db:fresh       # reset + push schema + seed (local)
+pnpm db:dump        # regenerate db/seed.sql from local.db
 pnpm db:remote      # seed a REMOTE Turso DB from db/seed.sql (run off corp network)
 ```
+
+### Premium puzzle import (Lichess, hybrid plan)
+The bulk of high-quality puzzles come from the open **Lichess puzzle DB** (real games,
+rated, themed, multi-move). The office proxy 403s the download, so run off-network:
+```
+curl -L -o lichess_db_puzzle.csv.zst https://database.lichess.org/lichess_db_puzzle.csv.zst
+pnpm db:import-puzzles lichess_db_puzzle.csv.zst   # LIMIT=5200 by default
+pnpm db:dump && pnpm db:remote
+```
+`scripts/import-lichess.mjs` buckets puzzles by school stage (← rating) × concept (←
+theme), gives each class a hand-authored tutorial + ~18 puzzles, converts multi-move
+solutions into multi-step lessons, and chess.js-validates every line (ids prefixed
+`pz-`). Re-running replaces the `pz-` set and leaves seed.mjs content intact.
 
 ## Database
 - Local: `DATABASE_URL` unset → `file:local.db`. Remote: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN`.
