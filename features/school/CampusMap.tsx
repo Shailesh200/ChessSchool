@@ -122,6 +122,8 @@ function ClassCard({
   const unlocked = isClassUnlocked(cls.id, records, graduated, allClasses);
   const grad = isClassGraduated(cls, records, graduated);
   const { done, total } = classProgress(cls, records);
+  const idx = allClasses.findIndex((c) => c.id === cls.id);
+  const prevId = idx > 0 ? allClasses[idx - 1]!.id : null;
 
   function openClass() {
     if (!unlocked) {
@@ -191,6 +193,23 @@ function ClassCard({
             </Button>
           )}
         </div>
+      )}
+
+      {!unlocked && prevId && (
+        <Button
+          size="sm"
+          variant="outline"
+          block
+          className="mt-3"
+          onClick={() => {
+            haptics.fire("tap");
+            audio.play("transition");
+            startNav();
+            router.push(`/class/${prevId}/exam`);
+          }}
+        >
+          🎓 Test to unlock
+        </Button>
       )}
     </motion.div>
   );
