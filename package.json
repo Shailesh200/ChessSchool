@@ -25,7 +25,8 @@
     "db:import-puzzles": "node scripts/import-lichess.mjs",
     "db:reset": "rm -f local.db local.db-shm local.db-wal",
     "db:fresh": "pnpm db:reset && pnpm db:push && pnpm db:seed",
-    "db:remote": "node scripts/seed-remote.mjs"
+    "db:remote": "node scripts/seed-remote.mjs",
+    "db:remote-clean": "node scripts/clean-seed-remote.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

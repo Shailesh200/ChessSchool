@@ -37,8 +37,14 @@ pnpm build / start  # production
 pnpm typecheck | lint | test | e2e
 pnpm db:fresh       # reset + push schema + seed (local)
 pnpm db:dump        # regenerate db/seed.sql from local.db
-pnpm db:remote      # seed a REMOTE Turso DB from db/seed.sql (run off corp network)
+pnpm db:remote      # seed a REMOTE Turso DB from db/seed.sql (non-destructive — keeps users)
+pnpm db:remote-clean  # ⚠️ DESTRUCTIVE: wipes ALL users + reseeds (needs CONFIRM=WIPE) — testing only
 ```
+
+`scripts/seed.mjs` now seeds only the **hand-authored base** (Foundations, Opening
+School/Theory, Tactics Lab, Endgame School, Famous Mates, Immortal Games ≈ 53 lessons).
+The auto-generated drill semesters were **retired**; the premium puzzle bulk comes from
+the Lichess import below.
 
 ### Premium puzzle import (Lichess, hybrid plan)
 The bulk of high-quality puzzles come from the open **Lichess puzzle DB** (real games,

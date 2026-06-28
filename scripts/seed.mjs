@@ -483,12 +483,10 @@ const FAMOUS_GAMES = [
 ];
 
 async function main() {
-  console.log("Generating verified lessons…");
-  const captures = collect(genCapture, 700, "captures");
-  const checks = collect(genCheck, 400, "checks");
-  const promos = collect(genPromotion, 250, "promotions");
-  const mates = collect(genBackRankMate, 250, "back-rank mates");
-  const forks = collect(genFork, 280, "knight forks");
+  console.log("Building hand-authored base curriculum…");
+  // Auto-generated drill semesters are retired — the premium puzzle bulk now comes
+  // from the Lichess import (scripts/import-lichess.mjs, `pz-` ids). This seed keeps
+  // only the hand-authored quality: Foundations, Openings, Famous Mates, Immortal Games.
 
   const semesters = [];
   const classes = [];
@@ -560,16 +558,6 @@ async function main() {
   }
   addCurated();
 
-  // Segregated by difficulty: Elementary → Middle → High, easy → hard.
-  addThemeSemester("sem-gen-promo", "Pawn Promotion", "Queen your pawns to win", "#0f7a55", "elementary", promos,
-    ["First Promotions", "Queening Pawns", "Promotion Races", "Underpromotion Tricks"], "👑", 1);
-  addThemeSemester("sem-gen-captures", "Winning Material", "Spot and grab undefended pieces", "#cf4324", "middle", captures,
-    ["Hanging Pieces", "Loose Pieces", "Undefended Targets", "Greedy Captures", "Material Edge"], "🎯", 2);
-  addThemeSemester("sem-gen-checks", "Checks & Threats", "Find the forcing checks", "#5b5bd6", "middle", checks,
-    ["Forcing Checks", "Check Hunts", "Royal Pressure", "Checking Patterns"], "⚡", 3);
-  addThemeSemester("sem-gen-mates", "Checkmate Patterns", "Deliver mate in one", "#7c5cd6", "high", mates,
-    ["Back-Rank Mates", "Mate in One", "Finishing Blows", "Delivering Mate"], "♛", 4);
-
   // Openings — one class per opening, now with several lessons each (watch the
   // line + play its key moves as puzzles).
   semesters.push({ id: "sem-gen-openings", title: "Opening Theory", blurb: "The famous openings", color: "#f59e0b", stage: "high", sortOrder: semesters.length });
@@ -603,10 +591,6 @@ async function main() {
       lessons.push({ id: `${classId}-l${li + 2}`, classId, title: `${name}: Key Moves ${li + 1}`, subtitle: `${grp.length} moves`, emoji, tag: "opening", xp: 15, isExam: 0, prerequisites: "[]", steps: JSON.stringify(steps), sortOrder: li + 1 });
     });
   });
-
-  // ── University: Advanced Tactics (knight forks) ──
-  addThemeSemester("sem-uni-forks", "Advanced Tactics", "Win material with knight forks", "#9333ea", "university", forks,
-    ["Knight Forks", "Royal Forks", "Winning Forks", "Fork Mastery"], "🍴", 4);
 
   // ── Master: Famous Checkmates (named patterns, verified) ──
   {
