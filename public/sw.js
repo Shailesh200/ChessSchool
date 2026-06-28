@@ -3,7 +3,8 @@
  * Strategies mirror Workbox: precache app shell, network-first navigation with
  * offline fallback, cache-first immutable static assets.
  */
-const VERSION = "duochess-v1";
+// Bump this on any content/curriculum change to purge stale caches.
+const VERSION = "chessschool-v3";
 const APP_SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
