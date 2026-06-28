@@ -1,21 +1,16 @@
--- ChessSchool seed: schema + curriculum content (auto-generated). Safe to re-run.
+-- ChessSchool seed. Refreshes curriculum content; PRESERVES user data (auth tables use IF NOT EXISTS).
 PRAGMA foreign_keys=OFF;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS semesters;
-DROP TABLE IF EXISTS progress;
-DROP TABLE IF EXISTS profiles;
 DROP TABLE IF EXISTS lessons;
-DROP TABLE IF EXISTS lesson_records;
 DROP TABLE IF EXISTS classes;
 CREATE TABLE `classes` ( `id` text PRIMARY KEY NOT NULL, `semester_id` text NOT NULL, `title` text NOT NULL, `emoji` text DEFAULT '♟️' NOT NULL, `blurb` text DEFAULT '' NOT NULL, `difficulty` integer DEFAULT 1 NOT NULL, `exam_id` text, `sort_order` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`semester_id`) REFERENCES `semesters`(`id`) ON UPDATE no action ON DELETE cascade );
-CREATE TABLE `lesson_records` ( `id` text PRIMARY KEY NOT NULL, `user_id` text NOT NULL, `lesson_id` text NOT NULL, `mastery` real DEFAULT 0 NOT NULL, `attempts` integer DEFAULT 0 NOT NULL, `last_seen` integer DEFAULT 0 NOT NULL, `due_at` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
+CREATE TABLE IF NOT EXISTS `lesson_records` ( `id` text PRIMARY KEY NOT NULL, `user_id` text NOT NULL, `lesson_id` text NOT NULL, `mastery` real DEFAULT 0 NOT NULL, `attempts` integer DEFAULT 0 NOT NULL, `last_seen` integer DEFAULT 0 NOT NULL, `due_at` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
 CREATE TABLE `lessons` ( `id` text PRIMARY KEY NOT NULL, `class_id` text NOT NULL, `title` text NOT NULL, `subtitle` text DEFAULT '' NOT NULL, `emoji` text DEFAULT '♟️' NOT NULL, `tag` text DEFAULT 'drill' NOT NULL, `xp` integer DEFAULT 20 NOT NULL, `is_exam` integer DEFAULT 0 NOT NULL, `prerequisites` text DEFAULT '[]' NOT NULL, `steps` text NOT NULL, `sort_order` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`class_id`) REFERENCES `classes`(`id`) ON UPDATE no action ON DELETE cascade );
-CREATE TABLE `profiles` ( `user_id` text PRIMARY KEY NOT NULL, `student_no` text NOT NULL, `enrolled_at` integer NOT NULL, `rank_title` text DEFAULT 'Novice' NOT NULL, `avatar_url` text, `goal` text, `house` text, `onboarded` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
-CREATE TABLE `progress` ( `user_id` text PRIMARY KEY NOT NULL, `xp` integer DEFAULT 0 NOT NULL, `streak` integer DEFAULT 0 NOT NULL, `last_active_day` text, `daily_goal_xp` integer DEFAULT 50 NOT NULL, `graduated_classes` text DEFAULT '[]' NOT NULL, `updated_at` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
+CREATE TABLE IF NOT EXISTS `profiles` ( `user_id` text PRIMARY KEY NOT NULL, `student_no` text NOT NULL, `enrolled_at` integer NOT NULL, `rank_title` text DEFAULT 'Novice' NOT NULL, `avatar_url` text, `goal` text, `house` text, `onboarded` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
+CREATE TABLE IF NOT EXISTS `progress` ( `user_id` text PRIMARY KEY NOT NULL, `xp` integer DEFAULT 0 NOT NULL, `streak` integer DEFAULT 0 NOT NULL, `last_active_day` text, `daily_goal_xp` integer DEFAULT 50 NOT NULL, `graduated_classes` text DEFAULT '[]' NOT NULL, `updated_at` integer DEFAULT 0 NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
 CREATE TABLE `semesters` ( `id` text PRIMARY KEY NOT NULL, `title` text NOT NULL, `blurb` text DEFAULT '' NOT NULL, `color` text DEFAULT '#5b5bd6' NOT NULL, `stage` text DEFAULT 'elementary' NOT NULL, `sort_order` integer DEFAULT 0 NOT NULL );
-CREATE TABLE `sessions` ( `id` text PRIMARY KEY NOT NULL, `user_id` text NOT NULL, `expires_at` integer NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
-CREATE TABLE `users` ( `id` text PRIMARY KEY NOT NULL, `email` text NOT NULL, `password_hash` text NOT NULL, `name` text NOT NULL, `role` text DEFAULT 'student' NOT NULL, `created_at` integer NOT NULL );
+CREATE TABLE IF NOT EXISTS `sessions` ( `id` text PRIMARY KEY NOT NULL, `user_id` text NOT NULL, `expires_at` integer NOT NULL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade );
+CREATE TABLE IF NOT EXISTS `users` ( `id` text PRIMARY KEY NOT NULL, `email` text NOT NULL, `password_hash` text NOT NULL, `name` text NOT NULL, `role` text DEFAULT 'student' NOT NULL, `created_at` integer NOT NULL );
 INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES ('sem-foundations','Semester 1 · Foundations','How the pieces move and how games end','#5b5bd6','elementary',0);
 INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES ('sem-openings','Semester 2 · Opening School','Start every game like a pro','#0f7a55','elementary',1);
 INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES ('sem-tactics','Semester 3 · Tactics Lab','Win material with combinations','#cf4324','middle',2);
