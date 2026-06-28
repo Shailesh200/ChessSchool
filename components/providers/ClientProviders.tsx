@@ -6,6 +6,7 @@ import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useMatch } from "@/core/store/match.store";
 import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { usePwa, type BeforeInstallPromptEvent } from "@/core/pwa/usePwa";
+import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import dynamic from "next/dynamic";
@@ -103,6 +104,17 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     window.addEventListener("load", onLoad);
     return () => window.removeEventListener("load", onLoad);
   }, []);
+
+  // Prompt to reload when a new build is ready (the SW already skipWaiting'd;
+  // a reload swaps in the new assets).
+  useEffect(() => {
+    if (!pwa.updateReady) return;
+    toast("A new version is ready", {
+      tone: "success",
+      sticky: true,
+      action: { label: "Reload", onClick: () => window.location.reload() },
+    });
+  }, [pwa.updateReady]);
 
   // Capture install prompt + installed state.
   useEffect(() => {

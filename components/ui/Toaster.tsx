@@ -26,11 +26,19 @@ export function Toaster() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 460, damping: 30 }}
-            onClick={() => dismiss(t.id)}
+            onClick={() => { if (!t.action) dismiss(t.id); }}
             className="pointer-events-auto flex max-w-sm items-center gap-2.5 rounded-pill border border-hairline bg-surface-card px-4 py-2.5 [box-shadow:var(--shadow-pop)]"
           >
             {t.icon && <Icon name={t.icon} size={18} className={TONE[t.tone]} />}
             <span className="text-sm font-bold text-ink">{t.message}</span>
+            {t.action && (
+              <button
+                onClick={(e) => { e.stopPropagation(); t.action!.onClick(); }}
+                className="btn-tactile ml-1 shrink-0 rounded-pill bg-brand px-3 py-1 text-xs font-extrabold text-white"
+              >
+                {t.action.label}
+              </button>
+            )}
           </motion.div>
         ))}
       </AnimatePresence>

@@ -4,9 +4,14 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { ChessEngine } from "@/features/chess-engine/engine";
-import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
+import type { BoardArrow, MoveInput, PieceSymbol, Square } from "@/core/types/chess";
 import { useSettings } from "@/core/store/settings.store";
 import { getBoardTheme } from "@/core/themes/themes";
+
+const PROMO_GLYPHS: Record<"w" | "b", Record<"q" | "r" | "b" | "n", string>> = {
+  w: { q: "♕", r: "♖", b: "♗", n: "♘" },
+  b: { q: "♛", r: "♜", b: "♝", n: "♞" },
+};
 
 // react-chessboard touches the DOM; load client-only to avoid hydration drift.
 const Chessboard = dynamic(
@@ -42,6 +47,7 @@ export function ChessBoard({
   const boardTheme = useSettings((s) => s.boardTheme);
   const colors = getBoardTheme(boardTheme);
   const [selected, setSelected] = useState<Square | null>(null);
+  const [promo, setPromo] = useState<{ from: Square; to: Square; color: "w" | "b" } | null>(null);
 
   const targets = useMemo(() => {
     if (!selected) return [] as Square[];
@@ -50,9 +56,23 @@ export function ChessBoard({
 
   function tryMove(from: Square, to: Square): boolean {
     if (!onMove) return false;
+    const engine = new ChessEngine(fen);
+    // If this move can promote, ask which piece instead of forcing a queen.
+    const isPromotion = engine.legalMoves(from).some((m) => m.to === to && m.promotion);
+    if (isPromotion) {
+      setPromo({ from, to, color: engine.turn() });
+      setSelected(null);
+      return false; // wait for the user's choice
+    }
     const ok = onMove({ from, to, promotion: "q" });
     if (ok) setSelected(null);
     return ok;
+  }
+
+  function choosePromotion(piece: PieceSymbol) {
+    if (!promo || !onMove) return;
+    onMove({ from: promo.from, to: promo.to, promotion: piece });
+    setPromo(null);
   }
 
   const squareStyles = useMemo(() => {
@@ -85,7 +105,7 @@ export function ChessBoard({
   }, [lastMove, highlight, selected, targets, checkSquare]);
 
   return (
-    <div className="aspect-square w-full overflow-hidden rounded-card [box-shadow:var(--shadow-card)]">
+    <div className="relative aspect-square w-full overflow-hidden rounded-card [box-shadow:var(--shadow-card)]">
       <Chessboard
         options={{
           position: fen,
@@ -115,6 +135,26 @@ export function ChessBoard({
           },
         }}
       />
+
+      {promo && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/45 backdrop-blur-sm">
+          <div className="rounded-card border border-hairline bg-surface-card p-3 [box-shadow:var(--shadow-pop)]">
+            <p className="mb-2 text-center text-xs font-extrabold text-ink-700">Promote to</p>
+            <div className="flex gap-2">
+              {(["q", "r", "b", "n"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => choosePromotion(p)}
+                  aria-label={`Promote to ${p}`}
+                  className="btn-tactile flex h-14 w-14 items-center justify-center rounded-card border-2 border-hairline bg-surface text-3xl hover:border-brand"
+                >
+                  {PROMO_GLYPHS[promo.color][p]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

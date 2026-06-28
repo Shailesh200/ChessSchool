@@ -19,12 +19,17 @@ export interface ActiveMatch {
   lastTo: string | null;
   /** set once the game ends; until then the match is "in progress" */
   finished: boolean;
+  /** time control in minutes (0 = no clock) */
+  timeControlMin: number;
+  whiteMs: number;
+  blackMs: number;
 }
 
 interface MatchStore {
   active: ActiveMatch | null;
-  start: (mode: MatchMode, targetElo: number) => void;
+  start: (mode: MatchMode, targetElo: number, timeControlMin: number) => void;
   sync: (patch: { fen: string; pgn: string; from?: string; to?: string }) => void;
+  setClocks: (whiteMs: number, blackMs: number) => void;
   markFinished: () => void;
   clear: () => void;
 }
@@ -33,7 +38,7 @@ export const useMatch = create<MatchStore>()(
   persist(
     (set) => ({
       active: null,
-      start: (mode, targetElo) =>
+      start: (mode, targetElo, timeControlMin) =>
         set({
           active: {
             id: `g${Date.now()}`,
@@ -45,6 +50,9 @@ export const useMatch = create<MatchStore>()(
             lastFrom: null,
             lastTo: null,
             finished: false,
+            timeControlMin,
+            whiteMs: timeControlMin * 60_000,
+            blackMs: timeControlMin * 60_000,
           },
         }),
       sync: (patch) =>
@@ -61,6 +69,8 @@ export const useMatch = create<MatchStore>()(
               }
             : s,
         ),
+      setClocks: (whiteMs, blackMs) =>
+        set((s) => (s.active ? { active: { ...s.active, whiteMs, blackMs } } : s)),
       markFinished: () =>
         set((s) => (s.active ? { active: { ...s.active, finished: true } } : s)),
       clear: () => set({ active: null }),
@@ -68,8 +78,18 @@ export const useMatch = create<MatchStore>()(
     {
       name: "chessschool.activematch",
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       skipHydration: true,
+      // v1 matches had no clock fields — default them to "no clock".
+      migrate: (persisted) => {
+        const s = persisted as { active?: ActiveMatch | null };
+        if (s?.active && s.active.timeControlMin === undefined) {
+          s.active.timeControlMin = 0;
+          s.active.whiteMs = 0;
+          s.active.blackMs = 0;
+        }
+        return s as { active: ActiveMatch | null };
+      },
     },
   ),
 );

@@ -10,6 +10,8 @@ import { commentOnMove } from "@/features/coaching/coach";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Confetti } from "@/components/ui/Confetti";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { materialAdvantage } from "@/features/chess-engine/material";
 import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
@@ -31,6 +33,7 @@ function engineFromPgn(pgn: string): ChessEngine {
 export function MatchView({ active }: { active: ActiveMatch }) {
   const router = useRouter();
   const sync = useMatch((s) => s.sync);
+  const persistClocks = useMatch((s) => s.setClocks);
   const markFinished = useMatch((s) => s.markFinished);
   const clear = useMatch((s) => s.clear);
   const progression = useProgression();
@@ -50,6 +53,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [over, setOver] = useState<null | { text: string; win: boolean; gameId: string }>(null);
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [resignOpen, setResignOpen] = useState(false);
+
+  const hasClock = active.timeControlMin > 0;
+  const clockRef = useRef({ w: active.whiteMs, b: active.blackMs });
+  const [clock, setClock] = useState({ w: active.whiteMs, b: active.blackMs });
 
   const isBot = active.mode === "bot";
   const playerColor: "w" | "b" = "w";
@@ -57,6 +65,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const persist = useCallback(
     (from?: string, to?: string) => {
       const e = engineRef.current;
+      persistClocks(clockRef.current.w, clockRef.current.b);
       sync({ fen: e.fen(), pgn: e.pgn(), from, to });
     },
     [sync],
@@ -95,18 +104,23 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       } else {
         audio.play("fail");
       }
+      const sideName = winner === "w" ? "White" : "Black";
       const text =
         reason === "resign"
           ? winner === playerColor || !isBot
-            ? `${winner === "w" ? "White" : "Black"} wins by resignation`
+            ? `${sideName} wins by resignation`
             : "You resigned"
-          : reason === "checkmate"
-            ? playerWon
-              ? "Checkmate — you win! 🏆"
-              : isBot
-                ? "Checkmate — bot wins"
-                : `Checkmate — ${winner === "w" ? "White" : "Black"} wins`
-            : "Draw";
+          : reason === "timeout"
+            ? winner === playerColor || !isBot
+              ? `${sideName} wins on time ⏱️`
+              : "You lost on time"
+            : reason === "checkmate"
+              ? playerWon
+                ? "Checkmate — you win! 🏆"
+                : isBot
+                  ? "Checkmate — bot wins"
+                  : `Checkmate — ${sideName} wins`
+              : "Draw";
       setOver({ text, win: playerWon, gameId: active.id });
     },
     [active, isBot, markFinished, progression],
@@ -149,7 +163,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       }
       setThinking(false);
       checkOver();
-    }, 240);
+    }, 1000); // give the bot a deliberate ≥1s "thinking" beat
   }, [active.targetElo, persist, checkOver]);
 
   // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
@@ -170,6 +184,27 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [over]);
+
+  // Chess clock — ticks down for the side to move; flag = loss on time.
+  useEffect(() => {
+    if (!hasClock || over) return;
+    let last = performance.now();
+    const id = window.setInterval(() => {
+      const now = performance.now();
+      const dt = now - last;
+      last = now;
+      const turn = engineRef.current.turn();
+      const c = clockRef.current;
+      if (turn === "w") c.w = Math.max(0, c.w - dt);
+      else c.b = Math.max(0, c.b - dt);
+      setClock({ w: c.w, b: c.b });
+      if (c.w <= 0 || c.b <= 0) {
+        window.clearInterval(id);
+        void finalize("timeout", c.w <= 0 ? "b" : "w");
+      }
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [hasClock, over, finalize]);
 
   const handleMove = useCallback(
     (move: MoveInput): boolean => {
@@ -193,9 +228,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     [thinking, isBot, persist, checkOver, botMove],
   );
 
-  function resign() {
+  function doResign() {
+    setResignOpen(false);
     if (over) return;
-    if (!confirm("Resign this game? It will be saved to your review history.")) return;
     const e = engineRef.current;
     // In pass-and-play the side to move resigns; vs bot the player (white) resigns.
     const loser = isBot ? playerColor : e.turn();
@@ -225,6 +260,14 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const orientation: "white" | "black" =
     isBot ? "white" : flip && view.turn() === "b" ? "black" : "white";
   const checkSquare = view.inCheck() ? view.kingSquare(view.turn()) : null;
+  const mat = useMemo(() => materialAdvantage(fen), [fen]);
+  const turn = view.turn();
+
+  // Bottom row is always White (the player vs bot); top row is the opponent.
+  const bottomClock = clock.w;
+  const topClock = clock.b;
+  const bottomAdv = mat.diff > 0 ? mat.diff : 0;
+  const topAdv = mat.diff < 0 ? -mat.diff : 0;
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
@@ -246,7 +289,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                 New game
               </Button>
             ) : (
-              <Button size="sm" variant="danger" onClick={resign}>
+              <Button size="sm" variant="danger" onClick={() => setResignOpen(true)}>
                 Resign
               </Button>
             )}
@@ -254,18 +297,21 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         </div>
       </div>
 
-      {/* coach line */}
-      <div className="mx-auto w-full max-w-xl px-4 pt-3">
-        <div className="rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-3 py-2 text-center text-sm font-semibold text-ink">
-          {thinking ? "Thinking…" : coach}
-        </div>
+      {/* opponent bar (clock + captured material) */}
+      <div className="mx-auto w-full max-w-xl px-3 pt-2">
+        <PlayerBar
+          name={isBot ? `Bot ${active.targetElo}` : "Black"}
+          advantage={topAdv}
+          ms={hasClock ? topClock : null}
+          active={hasClock && !over && turn === "b"}
+        />
       </div>
 
       {/* board fills remaining height (full-height in standalone PWA) */}
-      <div className="flex flex-1 items-center justify-center px-3 py-3">
+      <div className="flex flex-1 items-center justify-center px-3 py-2">
         <div
           className="relative"
-          style={{ width: "min(92vw, calc(100dvh - 13rem))", maxWidth: 560 }}
+          style={{ width: "min(96vw, calc(100dvh - 12rem))", maxWidth: 600 }}
         >
           <ChessBoard
             fen={fen}
@@ -308,6 +354,23 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         </div>
       </div>
 
+      {/* player bar (clock + captured material) */}
+      <div className="mx-auto w-full max-w-xl px-3">
+        <PlayerBar
+          name={isBot ? "You" : "White"}
+          advantage={bottomAdv}
+          ms={hasClock ? bottomClock : null}
+          active={hasClock && !over && turn === "w"}
+        />
+      </div>
+
+      {/* coach caption */}
+      <div className="mx-auto w-full max-w-xl px-4 pb-3 pt-2">
+        <p className="truncate text-center text-sm font-semibold text-ink-500">
+          {thinking ? "Thinking…" : coach}
+        </p>
+      </div>
+
       <ReflectSheet
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}
@@ -316,6 +379,57 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         summary={over?.text ?? "Match complete."}
         refId={active.id}
       />
+
+      <ConfirmDialog
+        open={resignOpen}
+        title="Resign this game?"
+        message="It will be saved to your review history."
+        confirmLabel="Resign"
+        tone="danger"
+        onConfirm={doResign}
+        onCancel={() => setResignOpen(false)}
+      />
+    </div>
+  );
+}
+
+function fmtClock(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function PlayerBar({
+  name,
+  advantage,
+  ms,
+  active,
+}: {
+  name: string;
+  advantage: number;
+  ms: number | null;
+  active: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-extrabold text-ink">{name}</span>
+        {advantage > 0 && (
+          <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-xs font-bold text-ink-700">
+            +{advantage}
+          </span>
+        )}
+      </div>
+      {ms !== null && (
+        <span
+          className={`rounded-lg px-2.5 py-1 font-mono text-base font-extrabold tabular-nums ${
+            active ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"
+          }`}
+        >
+          {fmtClock(ms)}
+        </span>
+      )}
     </div>
   );
 }

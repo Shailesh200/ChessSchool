@@ -11,17 +11,25 @@ import { audio } from "@/core/audio/audioEngine";
 import { listItem, listContainer } from "@/core/motion/variants";
 
 const ELO_PRESETS = [600, 900, 1200, 1600, 2000];
+const TIME_PRESETS = [
+  { min: 0, label: "No clock" },
+  { min: 5, label: "5 min" },
+  { min: 10, label: "10 min" },
+  { min: 20, label: "20 min" },
+  { min: 30, label: "30 min" },
+];
 
 export function MatchChooser() {
   const start = useMatch((s) => s.start);
   const targetElo = useSettings((s) => s.targetElo);
   const setSetting = useSettings((s) => s.set);
   const [mode, setMode] = useState<MatchMode>("bot");
+  const [timeMin, setTimeMin] = useState(0);
 
   function begin() {
     haptics.fire("success");
     audio.play("unlock");
-    start(mode, targetElo);
+    start(mode, targetElo, timeMin);
   }
 
   return (
@@ -72,6 +80,25 @@ export function MatchChooser() {
           </Card>
         </motion.div>
       )}
+
+      <motion.div variants={listItem}>
+        <Card>
+          <p className="mb-2 text-sm font-extrabold text-ink">Time control</p>
+          <div className="flex flex-wrap gap-2">
+            {TIME_PRESETS.map((t) => (
+              <button
+                key={t.min}
+                onClick={() => { setTimeMin(t.min); haptics.fire("select"); }}
+                className={`rounded-pill px-3 py-1 text-sm font-bold transition-colors ${
+                  timeMin === t.min ? "bg-brand text-white" : "bg-surface-sunken text-ink-500"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </Card>
+      </motion.div>
 
       <motion.div variants={listItem}>
         <Button size="lg" block onClick={begin}>
