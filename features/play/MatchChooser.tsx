@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useMatch, type MatchMode } from "@/core/store/match.store";
 import { useSettings } from "@/core/store/settings.store";
+import { botProfile } from "@/features/play/bots";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
@@ -96,6 +97,11 @@ export function MatchChooser() {
                 </button>
               ))}
             </div>
+            <p className="mt-3 flex items-center gap-2 text-sm font-bold text-ink">
+              <span className="text-lg">{botProfile(targetElo).emoji}</span>
+              {botProfile(targetElo).name}
+              <span className="font-semibold text-ink-500">· {botProfile(targetElo).blurb}</span>
+            </p>
           </Card>
         </motion.div>
       )}

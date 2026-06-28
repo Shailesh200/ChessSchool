@@ -7,6 +7,7 @@ import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
 import { commentOnMove } from "@/features/coaching/coach";
+import { botProfile } from "@/features/play/bots";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Confetti } from "@/components/ui/Confetti";
@@ -49,7 +50,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   );
   const [flip, setFlip] = useState(active.mode === "pass");
   const [coach, setCoach] = useState(
-    active.pgn ? "Welcome back — your game is right where you left it." : "Your move. Good luck!",
+    active.pgn
+      ? "Welcome back — your game is right where you left it."
+      : active.mode === "bot"
+        ? `${botProfile(active.targetElo).emoji} ${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
+        : "Your move. Good luck!",
   );
   const [over, setOver] = useState<null | { text: string; win: boolean; gameId: string }>(null);
   const [copied, setCopied] = useState(false);
@@ -62,6 +67,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [clock, setClock] = useState({ w: active.whiteMs, b: active.blackMs });
 
   const isBot = active.mode === "bot";
+  const bot = botProfile(active.targetElo);
+  const botName = `${bot.emoji} ${bot.name}`;
   const playerColor: "w" | "b" = "w";
 
   const persist = useCallback(
@@ -83,7 +90,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         pgn: e.pgn(),
         fen: e.fen(),
         whiteName: isBot ? "You" : "White",
-        blackName: isBot ? `Bot ${active.targetElo}` : "Black",
+        blackName: isBot ? `${bot.name} (${active.targetElo})` : "Black",
         createdAt: active.createdAt,
         updatedAt: Date.now(),
         turn: e.turn(),
@@ -152,6 +159,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     if (e.isGameOver()) return;
     setThinking(true);
     // Search runs in a Web Worker (no UI freeze), overlapped with a ≥1s beat.
+    const before = e.fen();
     Promise.all([
       getBotMove(e.fen(), eloToConfig(active.targetElo), Math.random()),
       new Promise((r) => window.setTimeout(r, 1000)),
@@ -163,13 +171,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           setFen(e.fen());
           audio.play(applied.captured ? "capture" : "move");
           if (e.inCheck()) audio.play("check");
+          // The bot reacts to its own move (flavoured by the coach personality).
+          setCoach(`${botName}: ${commentOnMove(before, applied, Math.random())}`);
           persist(move.from, move.to);
         }
       }
       setThinking(false);
       checkOver();
     });
-  }, [active.targetElo, persist, checkOver]);
+  }, [active.targetElo, persist, checkOver, botName]);
 
   // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
   useEffect(() => {
@@ -280,7 +290,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       <div className="pt-safe sticky top-0 z-20 border-b border-hairline bg-surface/90 px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
           <span className="text-sm font-extrabold text-ink">
-            {isBot ? `vs Bot ${active.targetElo}` : "vs Human"}
+            {isBot ? `vs ${botName} · ${active.targetElo}` : "vs Human"}
           </span>
           <div className="flex items-center gap-1.5">
             <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
@@ -305,7 +315,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* opponent bar (clock + captured material) */}
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <PlayerBar
-          name={isBot ? `Bot ${active.targetElo}` : "Black"}
+          name={isBot ? `${botName} · ${active.targetElo}` : "Black"}
           advantage={topAdv}
           ms={hasClock ? topClock : null}
           active={hasClock && !over && turn === "b"}
@@ -377,7 +387,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}
         kind="match"
-        title={isBot ? `Match vs Bot ${active.targetElo}` : "vs Human match"}
+        title={isBot ? `Match vs ${bot.name} (${active.targetElo})` : "vs Human match"}
         summary={over?.text ?? "Match complete."}
         refId={active.id}
       />
