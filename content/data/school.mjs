@@ -3,8 +3,8 @@ export const STAGES = [
   { id: "elementary", name: "Elementary School", emoji: "🎒", blurb: "Classes 1–5 · the essentials", status: "open" },
   { id: "middle", name: "Middle School", emoji: "📐", blurb: "Classes 6–8 · tactics & endgames", status: "open" },
   { id: "high", name: "High School", emoji: "🎓", blurb: "Classes 9–12 · openings & checkmates", status: "open" },
-  { id: "university", name: "University", emoji: "🏛️", blurb: "Classes 13–16 · deep theory", status: "upcoming" },
-  { id: "master", name: "Master Program", emoji: "♛", blurb: "Classes 17–20 · the road to mastery", status: "upcoming" },
+  { id: "university", name: "University", emoji: "🏛️", blurb: "Advanced tactics & combinations", status: "open" },
+  { id: "master", name: "Master Program", emoji: "♛", blurb: "Famous checkmates & immortal games", status: "open" },
 ];
 
 export const SEMESTERS = [

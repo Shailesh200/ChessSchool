@@ -377,12 +377,38 @@ function chunk(arr, size) {
   return out;
 }
 
+// Famous named mate-in-one patterns (Master). Each is verified (isCheckmate) at
+// seed time; invalid ones are skipped + logged.
+const FAMOUS_MATES = [
+  { name: "Smothered Mate", emoji: "🐴", fen: "6rk/6pp/3N4/8/8/8/8/7K w - - 0 1", solution: "d6:f7", coach: "The king is hemmed in by its own pieces. Nf7 is the famous smothered mate." },
+  { name: "Arabian Mate", emoji: "🏜️", fen: "7k/8/5N2/8/8/8/8/K6R w - - 0 1", solution: "h1:h7", coach: "Rook + knight in the corner: Rh7 — the knight guards the rook and covers g8." },
+  { name: "Back-Rank Mate", emoji: "🎯", fen: "6k1/5ppp/8/8/8/8/8/R6K w - - 0 1", solution: "a1:a8", coach: "The king is trapped behind its own pawns. Ra8 delivers back-rank mate." },
+  { name: "Ladder Mate", emoji: "🪜", fen: "7k/R7/1R6/8/8/8/8/7K w - - 0 1", solution: "b6:b8", coach: "Two rooks climb the board: one seals the 7th rank, the other mates on the 8th." },
+  { name: "Queen Mate", emoji: "👑", fen: "6k1/8/5QK1/8/8/8/8/8 w - - 0 1", solution: "f6:g7", coach: "Bring the queen beside the king, defended by your own king: Qg7 is mate." },
+  { name: "Scholar's Mate", emoji: "🎓", fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w - - 0 1", solution: "h5:f7", coach: "The four-move attack: Qxf7 — the bishop guards the queen. Beware this trap!" },
+];
+
+// Famous games (Master) — shown as an "observe" of the brilliant finish.
+const FAMOUS_GAMES = [
+  {
+    name: "The Opera Game", sub: "Morphy, 1858",
+    coach: "Morphy's masterpiece: a queen sacrifice (Qb8+!!) sets up a rook mate. Watch the finish.",
+    sans: ["e4", "e5", "Nf3", "d6", "d4", "Bg4", "dxe5", "Bxf3", "Qxf3", "dxe5", "Bc4", "Nf6", "Qb3", "Qe7", "Nc3", "c6", "Bg5", "b5", "Nxb5", "cxb5", "Bxb5+", "Nbd7", "O-O-O", "Rd8", "Rxd7", "Rxd7", "Rd1", "Qe6", "Bxd7+", "Nxd7", "Qb8+", "Nxb8", "Rd8#"],
+  },
+  {
+    name: "The Evergreen Game", sub: "Anderssen, 1852",
+    coach: "Anderssen's brilliancy ends with Qxd7+!! and a bishop net. Watch the combination.",
+    sans: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4", "Bxb4", "c3", "Ba5", "d4", "exd4", "O-O", "d3", "Qb3", "Qf6", "e5", "Qg6", "Re1", "Nge7", "Ba3", "b5", "Qxb5", "Rb8", "Qa4", "Bb6", "Nbd2", "Bb7", "Ne4", "Qf5", "Bxd3", "Qh5", "Nf6+", "gxf6", "exf6", "Rg8", "Rad1", "Qxf3", "Rxe7+", "Nxe7", "Qxd7+", "Kxd7", "Bf5+", "Ke8", "Bd7+", "Kf8", "Bxe7#"],
+  },
+];
+
 async function main() {
   console.log("Generating verified lessons…");
   const captures = collect(genCapture, 700, "captures");
   const checks = collect(genCheck, 400, "checks");
   const promos = collect(genPromotion, 250, "promotions");
   const mates = collect(genBackRankMate, 250, "back-rank mates");
+  const forks = collect(genFork, 280, "knight forks");
   const openings = OPENINGS.map(genOpening).filter(Boolean);
 
   const semesters = [];
@@ -481,6 +507,77 @@ async function main() {
       sortOrder: 0,
     });
   });
+
+  // ── University: Advanced Tactics (knight forks) ──
+  addThemeSemester("sem-uni-forks", "Advanced Tactics", "Win material with knight forks", "#9333ea", "university", forks,
+    ["Knight Forks", "Royal Forks", "Winning Forks", "Fork Mastery"], "🍴", 4);
+
+  // ── Master: Famous Checkmates (named patterns, verified) ──
+  {
+    const valid = FAMOUS_MATES.filter((m) => {
+      try {
+        const g = new Chess(m.fen);
+        const [f, t] = m.solution.split(":");
+        return g.move({ from: f, to: t, promotion: "q" }) && g.isCheckmate();
+      } catch {
+        return false;
+      }
+    });
+    if (valid.length) {
+      console.log(`  famous mates verified: ${valid.length}/${FAMOUS_MATES.length}`);
+      semesters.push({ id: "sem-master-mates", title: "Famous Checkmates", blurb: "The classic mating patterns every master knows", color: "#7c3aed", stage: "master", sortOrder: semesters.length });
+      chunk(valid, 3).forEach((group, ci) => {
+        const classId = `sem-master-mates-c${ci + 1}`;
+        classes.push({ id: classId, semesterId: "sem-master-mates", title: `Mating Patterns ${ci + 1}`, emoji: "♚", blurb: `${group.length} patterns`, difficulty: 5, sortOrder: cOrder++ });
+        group.forEach((m, li) => {
+          const [f, t] = m.solution.split(":");
+          lessons.push({
+            id: `${classId}-l${li + 1}`, classId, title: m.name, subtitle: "Deliver mate in one", emoji: m.emoji, tag: "mate", xp: 20, isExam: 0, prerequisites: "[]",
+            steps: JSON.stringify([
+              { id: "info", kind: "info", coach: m.coach, fen: m.fen },
+              { id: "mate", kind: "move", coach: `Deliver ${m.name}!`, fen: m.fen, solution: [`${f}:${t}`], highlight: [t], successText: "Checkmate! 🏆", failText: "Not mate — find the finishing move.", tag: "mate" },
+            ]),
+            sortOrder: li,
+          });
+        });
+      });
+    }
+  }
+
+  // ── Master: Immortal Games (watch the brilliant finish) ──
+  {
+    const valid = [];
+    for (const game of FAMOUS_GAMES) {
+      const g = new Chess();
+      let ok = true;
+      for (const san of game.sans) {
+        try { if (!g.move(san)) { ok = false; break; } } catch { ok = false; break; }
+      }
+      if (ok) valid.push(game);
+    }
+    if (valid.length) {
+      console.log(`  famous games verified: ${valid.length}/${FAMOUS_GAMES.length}`);
+      semesters.push({ id: "sem-master-games", title: "Immortal Games", blurb: "Learn from the masters' brilliancies", color: "#b8860b", stage: "master", sortOrder: semesters.length });
+      const classId = "sem-master-games-c1";
+      classes.push({ id: classId, semesterId: "sem-master-games", title: "Brilliant Finishes", emoji: "🎭", blurb: `${valid.length} games`, difficulty: 5, sortOrder: cOrder++ });
+      valid.forEach((game, gi) => {
+        const r = new Chess();
+        const start = Math.max(0, game.sans.length - 7);
+        for (let i = 0; i < start; i++) r.move(game.sans[i]);
+        const fen = r.fen();
+        const moves = [];
+        for (let i = start; i < game.sans.length; i++) { const mv = r.move(game.sans[i]); moves.push(`${mv.from}:${mv.to}`); }
+        lessons.push({
+          id: `${classId}-l${gi + 1}`, classId, title: game.name, subtitle: game.sub, emoji: "🎭", tag: "famous", xp: 25, isExam: 0, prerequisites: "[]",
+          steps: JSON.stringify([
+            { id: "intro", kind: "info", coach: game.coach, fen },
+            { id: "watch", kind: "observe", coach: "Watch the combination unfold…", fen, moves },
+          ]),
+          sortOrder: gi,
+        });
+      });
+    }
+  }
 
   console.log(`\nTotals: ${semesters.length} semesters · ${classes.length} classes · ${lessons.length} lessons`);
 
