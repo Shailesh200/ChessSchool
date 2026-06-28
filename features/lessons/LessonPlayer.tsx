@@ -33,6 +33,23 @@ const LESSON_TIPS: Record<string, string> = {
   opening: "In the opening: develop your pieces, control the centre, and castle early.",
 };
 
+/** The single legal move that turns fenA into fenB (the opponent's reply), or null. */
+function findReply(fenA: string, fenB: string): { from: Square; to: Square } | null {
+  try {
+    const g = new ChessEngine(fenA);
+    const target = fenB.split(" ")[0];
+    for (const m of g.legalMoves()) {
+      const t = g.clone();
+      if (t.move({ from: m.from, to: m.to, promotion: m.promotion }) && t.fen().split(" ")[0] === target) {
+        return { from: m.from as Square, to: m.to as Square };
+      }
+    }
+  } catch {
+    /* not a single-move continuation */
+  }
+  return null;
+}
+
 export function LessonPlayer({
   lesson,
   nextLessonId,
@@ -58,6 +75,7 @@ export function LessonPlayer({
   const [promoted, setPromoted] = useState<string | null>(null);
   const [hint, setHint] = useState(false);
   const [movedTo, setMovedTo] = useState<Square | null>(null);
+  const [oppMove, setOppMove] = useState<{ from: Square; to: Square } | null>(null);
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
   const timers = useRef<number[]>([]);
 
@@ -75,6 +93,7 @@ export function LessonPlayer({
     setPromoted(null);
     setHint(false);
     setMovedTo(null);
+    setOppMove(null);
   }
 
   // Auto-play "observe" steps move-by-move.
@@ -174,8 +193,24 @@ export function LessonPlayer({
       setPhase("correct");
       audio.play(applied.captured ? "capture" : "success");
       haptics.fire("success");
-      // Flash the square green, then auto-advance — no "tap to continue".
-      timers.current.push(window.setTimeout(() => advance(), 950));
+      // If the next step continues this position (opponent replied), animate that
+      // reply so the player sees what changed before their next move (#multistep).
+      const next = lesson.steps[index + 1] as LessonStep | undefined;
+      const reply = next?.kind === "move" && next.fen ? findReply(engine.fen(), next.fen) : null;
+      if (reply && next?.fen) {
+        timers.current.push(
+          window.setTimeout(() => {
+            setMovedTo(null);
+            setOppMove(reply);
+            setDisplayFen(next.fen); // board animates the opponent's reply
+            audio.play("move");
+          }, 850),
+        );
+        timers.current.push(window.setTimeout(() => advance(), 1850));
+      } else {
+        // Flash the square green, then auto-advance — no "tap to continue".
+        timers.current.push(window.setTimeout(() => advance(), 950));
+      }
       return true;
     }
     setPhase("wrong");
@@ -286,6 +321,7 @@ export function LessonPlayer({
                 onMove={handleMove}
                 arrows={phase === "playing" && !isObserving ? [...(step.arrows ?? []), ...hintArrows] : []}
                 highlight={phase === "playing" && !isObserving ? step.highlight : []}
+                lastMove={oppMove}
                 successSquare={phase === "correct" ? movedTo : null}
                 interactive={step.kind === "move" && phase === "playing"}
               />
@@ -294,12 +330,22 @@ export function LessonPlayer({
         )}
 
         {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
-        <div className="relative flex h-9 items-center justify-center">
-          {toMove && (
-            <span className="absolute left-0 flex items-center gap-1.5 rounded-pill bg-surface-sunken px-2.5 py-1 text-[11px] font-extrabold text-ink-700">
-              <span className={`h-2.5 w-2.5 rounded-full ${toMove === "w" ? "bg-white ring-1 ring-ink-300" : "bg-ink-900"}`} />
+        <div className="flex h-10 items-center justify-between gap-2">
+          {toMove ? (
+            <span
+              className={`flex items-center gap-2 rounded-pill px-3 py-1.5 text-sm font-extrabold ${
+                toMove === "w" ? "bg-surface-sunken text-ink" : "bg-ink-900 text-white"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full border-2 ${
+                  toMove === "w" ? "border-ink-400 bg-white" : "border-white/70 bg-ink-700"
+                }`}
+              />
               {toMove === "w" ? "White" : "Black"} to move
             </span>
+          ) : (
+            <span />
           )}
           {isObserving ? (
             <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>

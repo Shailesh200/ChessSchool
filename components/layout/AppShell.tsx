@@ -19,9 +19,11 @@ export function AppShell({
     return <div className="flex min-h-dvh flex-col bg-surface">{children}</div>;
   }
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="flex h-dvh flex-col overflow-hidden bg-surface">
       <TopBar />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-5">
+      {/* Only this area scrolls, and only when content overflows — no page-level
+          rubber-band bounce on short tabs (play/review/profile). */}
+      <main className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto overscroll-contain px-4 py-5">
         <InstallPrompt />
         {children}
       </main>
