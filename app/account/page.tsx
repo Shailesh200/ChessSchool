@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { NavButton } from "@/components/ui/NavButton";
 import { BackButton } from "@/components/ui/BackButton";
 import { StudentIdCard } from "@/components/account/StudentIdCard";
+import { rankForClasses } from "@/lib/rank";
 
 export const metadata = { title: "My account" };
 export const dynamic = "force-dynamic";
@@ -39,7 +40,7 @@ export default async function AccountPage() {
           name={user.name}
           email={user.email}
           studentNo={profile?.studentNo ?? "—"}
-          rank={profile?.rankTitle ?? "Novice"}
+          rank={rankForClasses(JSON.parse(prog?.graduatedClasses ?? "[]").length)}
           house={profile?.house ?? "Pawns"}
           enrolled={enrolled}
           avatar={profile?.avatarUrl ?? null}

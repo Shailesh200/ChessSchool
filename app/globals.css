@@ -137,6 +137,14 @@ body {
     transform var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
   will-change: transform;
+  /* remove the 300ms mobile tap delay + double-tap-to-zoom so taps register on the first touch */
+  touch-action: manipulation;
+}
+/* Nav links + anchors also need fast, single-tap activation on touch. */
+a,
+button,
+[role="button"] {
+  touch-action: manipulation;
 }
 .btn-tactile:active {
   transform: translateY(3px);

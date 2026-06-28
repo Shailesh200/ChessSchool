@@ -6,6 +6,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useSession } from "@/core/store/session.store";
+import { BackButton } from "@/components/ui/BackButton";
 import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
 
@@ -38,6 +39,7 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
+        <BackButton />
         <h1 className="text-xl font-extrabold text-ink">Settings</h1>
 
         <Card className="divide-y divide-hairline py-0">

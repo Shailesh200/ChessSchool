@@ -1,22 +1,23 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { semesters, classes, lessons } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
+import { BackButton } from "@/components/ui/BackButton";
+import { MyCompletedLibrary } from "@/components/library/MyCompletedLibrary";
 
 export const metadata = { title: "Lesson library" };
 export const dynamic = "force-dynamic";
 
 export default async function LibraryPage() {
   const user = await getCurrentUser();
-  if (user?.role !== "admin") redirect("/"); // library is an admin tool now
+  const isAdmin = user?.role === "admin";
   const sems = await db.select().from(semesters).orderBy(asc(semesters.sortOrder));
   const cls = await db.select().from(classes).orderBy(asc(classes.sortOrder));
   const meta = await db
-    .select({ id: lessons.id, classId: lessons.classId, sortOrder: lessons.sortOrder })
+    .select({ id: lessons.id, classId: lessons.classId, title: lessons.title, emoji: lessons.emoji, sortOrder: lessons.sortOrder })
     .from(lessons)
     .orderBy(asc(lessons.sortOrder));
 
@@ -28,9 +29,29 @@ export default async function LibraryPage() {
   }
   const total = meta.length;
 
+  // Regular students see only the lessons they've completed.
+  if (!isAdmin) {
+    const classNameById = new Map(cls.map((c) => [c.id, c.title]));
+    const libLessons = meta.map((m) => ({
+      id: m.id,
+      title: m.title,
+      emoji: m.emoji,
+      className: classNameById.get(m.classId) ?? "Lessons",
+    }));
+    return (
+      <div className="min-h-dvh bg-surface px-5 py-8">
+        <div className="mx-auto flex max-w-2xl flex-col gap-5">
+          <BackButton />
+          <MyCompletedLibrary lessons={libLessons} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-surface px-5 py-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <BackButton />
         <div className="flex items-center justify-between">
           <Logo />
           <Link

@@ -9,11 +9,12 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { useProgression, levelForXp } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
+import { rankForClasses } from "@/lib/rank";
 import { useMounted } from "@/core/hooks/useMounted";
 import { ACHIEVEMENTS } from "@/features/progression/achievements";
 
 const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: boolean }[] = [
-  { href: "/library", icon: "learn", label: "Library", adminOnly: true },
+  { href: "/library", icon: "learn", label: "Library" },
   { href: "/account", icon: "profile", label: "My ID" },
   { href: "/dashboard", icon: "chart", label: "Dashboard" },
   { href: "/plan", icon: "calendar", label: "Study Plan" },
@@ -31,9 +32,11 @@ export default function ProfilePage() {
   const weaknesses = useProgression((s) => s.weaknesses);
   const unlocked = useProgression((s) => s.unlockedAchievements);
   const targetElo = useSettings((s) => s.targetElo);
+  const graduated = useProgression((s) => s.graduatedClasses);
   const isAdmin = useSession((s) => s.isAdmin);
   const user = useSession((s) => s.user);
   const hubLinks = HUB_LINKS.filter((l) => !l.adminOnly || isAdmin);
+  const rank = mounted ? rankForClasses(graduated.length) : "Novice";
 
   const mastered = mounted ? Object.values(lessons).filter((l) => l.mastery >= 0.9).length : 0;
   const level = mounted ? levelForXp(xp) : 1;
@@ -48,7 +51,9 @@ export default function ProfilePage() {
           <Mascot expression="happy" size={72} />
           <div>
             <h1 className="text-2xl font-extrabold text-ink">{user?.name ?? "Guest Player"}</h1>
-            <p className="text-sm font-semibold text-ink-500">Level {level} · {mounted ? xp : 0} XP</p>
+            <p className="text-sm font-semibold text-ink-500">
+              <span className="font-extrabold text-brand">{rank}</span> · Level {level} · {mounted ? xp : 0} XP
+            </p>
           </div>
         </div>
 
