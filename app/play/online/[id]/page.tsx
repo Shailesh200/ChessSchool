@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
+import { Chess } from "chess.js";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -44,6 +45,13 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const [expired, setExpired] = useState(false);
   const [now, setNow] = useState(0);
   const flagged = useRef(false);
+  // Optimistic move (shown instantly while the server confirms) + connection state.
+  const [optimistic, setOptimistic] = useState<{ fen: string; from: string; to: string } | null>(null);
+  const [online, setOnline] = useState(true);
+  const colorRef = useRef(color);
+  useEffect(() => {
+    colorRef.current = color;
+  }, [color]);
 
   // Tick for the live clock countdown.
   useEffect(() => {
@@ -71,31 +79,58 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       .catch(() => void 0);
   }, [id]);
 
-  // Poll for the latest state.
+  // Poll for the latest state. Self-scheduling so we can poll FAST while it's the
+  // opponent's move (snappy) and ease off otherwise (cheap).
   useEffect(() => {
     let alive = true;
+    let t: ReturnType<typeof setTimeout>;
     const tick = () =>
       fetch(`/api/session/${id}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((s: SessionState | null) => {
-          if (!alive || !s || s.error) return;
+          if (!alive) return;
+          if (!s || s.error) {
+            setOnline(false);
+            t = setTimeout(tick, 1500);
+            return;
+          }
+          setOnline(true);
           setSession(s);
+          // Server is authoritative once our move lands — drop the optimistic view.
+          if (s.status === "over" || s.turn === colorRef.current) setOptimistic(null);
           if (s.status === "waiting" && s.blackJoined === 0 && Date.now() - s.createdAt > JOIN_WINDOW_MS) {
             setExpired(true);
           }
+          const waitingOnOpponent = s.status === "active" && s.turn !== colorRef.current;
+          t = setTimeout(tick, waitingOnOpponent ? 650 : 1600);
         })
-        .catch(() => void 0);
+        .catch(() => {
+          if (!alive) return;
+          setOnline(false);
+          t = setTimeout(tick, 1500);
+        });
     tick();
-    const iv = setInterval(tick, 1500);
     return () => {
       alive = false;
-      clearInterval(iv);
+      clearTimeout(t);
     };
   }, [id]);
 
   function onMove(move: MoveInput): boolean {
     if (!session || color === "spectator" || color === null) return false;
-    if (session.status !== "active" || session.turn !== color) return false;
+    if (session.status !== "active" || session.turn !== color || optimistic) return false;
+    // Validate + apply locally first so the piece moves instantly (no snap-back).
+    const g = new Chess(session.fen);
+    let applied;
+    try {
+      applied = g.move({ from: move.from, to: move.to, promotion: (move.promotion as "q") ?? "q" });
+    } catch {
+      applied = null;
+    }
+    if (!applied) return false;
+    setOptimistic({ fen: g.fen(), from: move.from, to: move.to });
+    audio.play(applied.captured ? "capture" : "move");
+    if (g.inCheck()) audio.play("check");
     fetch(`/api/session/${id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -103,13 +138,11 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((s: SessionState | null) => {
-        if (s && !s.error) {
-          setSession(s);
-          audio.play("move");
-        }
+        setOptimistic(null); // server is now authoritative (or rejected → revert)
+        if (s && !s.error) setSession(s);
       })
-      .catch(() => void 0);
-    return false; // server is the source of truth; board updates from the response
+      .catch(() => setOptimistic(null));
+    return true; // keep the piece where the player dropped it
   }
 
   function shareLink() {
@@ -130,7 +163,14 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const waiting = session?.status === "waiting";
   const myTurn =
     session?.status === "active" && (color === "w" || color === "b") && session?.turn === color;
+  const canMove = !!myTurn && !optimistic; // lock the board once a move is in flight
   const orientation = color === "b" ? "black" : "white";
+  const boardFen = optimistic?.fen ?? session?.fen ?? "";
+  const boardLast = optimistic
+    ? { from: optimistic.from as never, to: optimistic.to as never }
+    : session?.lastFrom && session?.lastTo
+      ? { from: session.lastFrom as never, to: session.lastTo as never }
+      : null;
 
   // Live clocks: deduct elapsed from the side to move.
   const active = session?.status === "active";
@@ -188,7 +228,9 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
                 : session.result}
           </p>
         ) : (
-          <p className="text-sm font-bold text-ink">{myTurn ? "Your move" : "Opponent's move…"}</p>
+          <p className="text-sm font-bold text-ink">
+            {!online ? "🔌 Reconnecting…" : canMove ? "Your move" : optimistic ? "Move sent…" : "Opponent's move…"}
+          </p>
         )}
       </div>
 
@@ -205,11 +247,11 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
         <div style={{ width: boardSize || undefined, height: boardSize || undefined }}>
           {session && (
             <ChessBoard
-              fen={session.fen}
+              fen={boardFen}
               orientation={orientation}
               onMove={onMove}
-              lastMove={session.lastFrom && session.lastTo ? { from: session.lastFrom, to: session.lastTo } : null}
-              interactive={!!myTurn}
+              lastMove={boardLast}
+              interactive={canMove}
             />
           )}
         </div>
