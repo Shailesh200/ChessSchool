@@ -6,16 +6,23 @@ import type { SavedGame } from "@/core/db/db";
 /** Maps a lesson tag to one of the five skill-tree areas (#36). */
 const TAG_AREA: Record<string, string> = {
   openings: "Openings",
+  opening: "Openings",
   fork: "Tactics",
   tactics: "Tactics",
+  capture: "Tactics",
   checkmate: "Calculation",
   checks: "Calculation",
+  check: "Calculation",
+  mate: "Calculation",
+  famous: "Calculation",
   endgame: "Endgames",
   opposition: "Endgames",
+  promotion: "Endgames",
   basics: "Strategy",
   pawns: "Strategy",
   rooks: "Strategy",
   knights: "Strategy",
+  drill: "Strategy",
 };
 
 export const SKILL_AREAS = ["Openings", "Tactics", "Strategy", "Endgames", "Calculation"];
@@ -27,9 +34,12 @@ export interface SkillNode {
   done: number;
 }
 
-export function skillTree(records: Record<string, LessonRecord>): SkillNode[] {
+export function skillTree(
+  records: Record<string, LessonRecord>,
+  lessonList: { id: string; tag: string }[] = LESSONS,
+): SkillNode[] {
   return SKILL_AREAS.map((area) => {
-    const lessons = LESSONS.filter((l) => TAG_AREA[l.tag] === area);
+    const lessons = lessonList.filter((l) => TAG_AREA[l.tag] === area);
     const masteries = lessons.map((l) => records[l.id]?.mastery ?? 0);
     const sum = masteries.reduce((a, b) => a + b, 0);
     const done = masteries.filter((m) => m >= 0.9).length;
@@ -158,9 +168,10 @@ export interface GraduationForecast {
 export function graduationForecast(
   graduatedClasses: string[],
   streak: number,
+  totalClasses = ALL_CLASSES.length,
 ): GraduationForecast {
-  const total = ALL_CLASSES.length;
-  const grad = graduatedClasses.length;
+  const total = totalClasses;
+  const grad = Math.min(graduatedClasses.length, total);
   const remaining = Math.max(0, total - grad);
   // assume ~1 class every 3 active days; nudge faster for active streaks
   const pace = streak >= 5 ? 2 : 3;

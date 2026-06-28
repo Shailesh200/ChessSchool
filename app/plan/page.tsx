@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import {
@@ -23,6 +24,9 @@ export default function PlanPage() {
   const plan = usePlan();
   const setDailyGoalXp = useProgression((s) => s.setDailyGoalXp);
   const lastActiveDay = useProgression((s) => s.lastActiveDay);
+  const todayXp = useProgression((s) => s.todayXp);
+  const dailyGoalXp = useProgression((s) => s.dailyGoalXp);
+  const streak = useProgression((s) => s.streak);
 
   // Keep the daily XP goal in sync with the chosen plan.
   useEffect(() => {
@@ -47,6 +51,23 @@ export default function PlanPage() {
       <div className="flex flex-col gap-5">
         <BackButton />
         <h1 className="text-xl font-extrabold text-ink">Study Plan</h1>
+
+        {/* Today's progress toward the goal */}
+        <Card>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-extrabold text-ink">🎯 Today&apos;s goal</span>
+            <span className="text-xs font-bold text-ink-500">
+              {Math.min(todayXp, dailyGoalXp)}/{dailyGoalXp} XP
+            </span>
+          </div>
+          <ProgressBar className="mt-2" tone="gold" value={todayXp} max={dailyGoalXp} label="Daily goal progress" />
+          <div className="mt-3 flex items-center gap-2 text-xs font-bold text-ink-700">
+            <span className="rounded-pill bg-accent/10 px-2 py-1 text-accent-600">🔥 {streak}-day streak</span>
+            <span className="rounded-pill bg-surface-sunken px-2 py-1">
+              {todayXp >= dailyGoalXp ? "Goal reached — well done! 🎉" : `${dailyGoalXp - todayXp} XP to go`}
+            </span>
+          </div>
+        </Card>
 
         {daysAway >= 2 && (
           <Card className="border-accent-400 bg-accent/5">

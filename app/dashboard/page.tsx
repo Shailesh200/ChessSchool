@@ -37,9 +37,14 @@ export default function DashboardPage() {
   const unlocked = useProgression((s) => s.unlockedAchievements);
   const targetElo = useSettings((s) => s.targetElo);
   const [games, setGames] = useState<SavedGame[]>([]);
+  const [curr, setCurr] = useState<{ totalClasses: number; lessonsByTag: Record<string, string[]> } | null>(null);
 
   useEffect(() => {
     listGames().then(setGames);
+    fetch("/api/curriculum-stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setCurr)
+      .catch(() => void 0);
   }, []);
 
   if (!mounted) {
@@ -50,12 +55,15 @@ export default function DashboardPage() {
     );
   }
 
+  const lessonList = curr
+    ? Object.entries(curr.lessonsByTag).flatMap(([tag, ids]) => ids.map((id) => ({ id, tag })))
+    : undefined;
   const stats = gameStats(games);
   const estimate = skillEstimate(targetElo, stats, records);
-  const tree = skillTree(records);
+  const tree = skillTree(records, lessonList);
   const findings = mistakeDNA(weaknesses, stats);
   const identity = chessIdentity(stats, records);
-  const forecast = graduationForecast(graduated, streak);
+  const forecast = graduationForecast(graduated, streak, curr?.totalClasses);
   const bestGame = games
     .filter((g) => g.mode === "bot" && g.winner === "w")
     .sort((a, b) => b.moveCount - a.moveCount)[0];
