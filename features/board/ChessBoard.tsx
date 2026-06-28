@@ -7,6 +7,7 @@ import { ChessEngine } from "@/features/chess-engine/engine";
 import type { BoardArrow, MoveInput, PieceSymbol, Square } from "@/core/types/chess";
 import { useSettings } from "@/core/store/settings.store";
 import { getBoardTheme } from "@/core/themes/themes";
+import { buildPieces } from "./pieceThemes";
 
 const PROMO_GLYPHS: Record<"w" | "b", Record<"q" | "r" | "b" | "n", string>> = {
   w: { q: "♕", r: "♖", b: "♗", n: "♘" },
@@ -45,7 +46,9 @@ export function ChessBoard({
   interactive = true,
 }: ChessBoardProps) {
   const boardTheme = useSettings((s) => s.boardTheme);
+  const pieceTheme = useSettings((s) => s.pieceTheme);
   const colors = getBoardTheme(boardTheme);
+  const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{ from: Square; to: Square; color: "w" | "b" } | null>(null);
 
@@ -115,6 +118,7 @@ export function ChessBoard({
           showNotation: true,
           lightSquareStyle: { backgroundColor: colors.light },
           darkSquareStyle: { backgroundColor: colors.dark },
+          pieces,
           squareStyles,
           arrows,
           onSquareClick: ({ square, piece }) => {

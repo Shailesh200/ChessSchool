@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
-export type PieceTheme = "classic" | "rounded";
+export type PieceTheme = "classic" | "forest" | "ocean" | "cute" | "sunset" | "neon";
 export type ColorblindMode = "none" | "deuteranopia";
 export type CoachPersonality =
   | "friendly"
@@ -51,7 +51,7 @@ const defaults = {
   boardTheme: "classic" as BoardTheme,
   schoolTheme: "university" as SchoolTheme,
   appTheme: "default",
-  pieceTheme: "rounded" as PieceTheme,
+  pieceTheme: "classic" as PieceTheme,
   coachPersonality: "friendly" as CoachPersonality,
   diagnostics: false,
   targetElo: 800,

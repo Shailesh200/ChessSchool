@@ -3,7 +3,7 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { useSettings } from "@/core/store/settings.store";
+import { useSettings, type PieceTheme } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import {
   BOARD_THEMES,
@@ -12,6 +12,7 @@ import {
   APP_THEMES,
   getBoardTheme,
 } from "@/core/themes/themes";
+import { PIECE_THEMES, PiecePreview } from "@/features/board/pieceThemes";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
@@ -35,6 +36,7 @@ function MiniBoard({ themeId, size = 8 }: { themeId: string; size?: number }) {
 export default function ThemesPage() {
   const mounted = useMounted();
   const boardTheme = useSettings((s) => s.boardTheme);
+  const pieceTheme = useSettings((s) => s.pieceTheme);
   const schoolTheme = useSettings((s) => s.schoolTheme);
   const appTheme = useSettings((s) => s.appTheme);
   const set = useSettings((s) => s.set);
@@ -115,6 +117,30 @@ export default function ThemesPage() {
                 >
                   <MiniBoard themeId={id} size={6} />
                   <p className="mt-1.5 truncate text-xs font-extrabold text-ink">{BOARD_THEMES[id]!.name}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Piece sets */}
+        <section>
+          <h2 className="mb-2 text-sm font-extrabold text-ink">Piece sets</h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {PIECE_THEMES.map((p) => {
+              const active = pieceTheme === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => { set("pieceTheme", p.id as PieceTheme); haptics.fire("select"); audio.play("transition"); }}
+                  className={`btn-tactile flex flex-col items-center gap-1 rounded-card border-2 p-2 ${
+                    active ? "border-brand bg-brand-50" : "border-hairline bg-surface-card"
+                  }`}
+                >
+                  <div className="rounded-lg bg-surface-sunken px-1 py-1.5">
+                    <PiecePreview themeId={p.id} />
+                  </div>
+                  <p className="truncate text-[11px] font-extrabold text-ink">{p.emoji} {p.name}</p>
                 </button>
               );
             })}
