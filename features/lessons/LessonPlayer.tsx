@@ -73,7 +73,7 @@ export function LessonPlayer({
   const [observeDone, setObserveDone] = useState(false);
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
-  const [hint, setHint] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
   const [movedTo, setMovedTo] = useState<Square | null>(null);
   const [oppMove, setOppMove] = useState<{ from: Square; to: Square } | null>(null);
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
@@ -92,7 +92,7 @@ export function LessonPlayer({
     setDisplayFen(step?.fen);
     setObserveDone(false);
     setPromoted(null);
-    setHint(false);
+    setHintLevel(0);
     setMovedTo(null);
     setOppMove(null);
   }
@@ -138,6 +138,18 @@ export function LessonPlayer({
   }
 
   function finish() {
+    // Tutorials (no puzzles to solve) just mark done and flow to the next lesson —
+    // no "lesson complete" celebration screen.
+    const isTutorial = !lesson.steps.some((s) => s.kind === "move");
+    if (isTutorial) {
+      progression.recordLesson(lesson.id, 1, 1); // counts as completed
+      progression.awardXp(lesson.xp);
+      progression.registerActivity(isoDay());
+      const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
+      startNav();
+      router.push(nextId ? `/lesson/${nextId}` : "/");
+      return;
+    }
     setPhase("complete");
     const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
     const correct = correctRef.current; // fresh count (state may lag the auto-advance)
@@ -214,14 +226,23 @@ export function LessonPlayer({
       }
       return true;
     }
+    // Wrong but legal: let the move play so the user sees it, flag it red, then
+    // revert the position so they can try again.
+    setDisplayFen(engine.fen());
+    setMovedTo(move.to as Square);
     setPhase("wrong");
     wrongRef.current += 1;
     audio.play("fail");
     haptics.fire("error");
     if (step.tag) progression.recordWeakness(step.tag);
-    // Briefly show the miss, then unlock the board to retry.
-    timers.current.push(window.setTimeout(() => setPhase("playing"), 1200));
-    return false;
+    timers.current.push(
+      window.setTimeout(() => {
+        setDisplayFen(step.fen);
+        setMovedTo(null);
+        setPhase("playing");
+      }, 1300),
+    );
+    return true; // keep the piece on the board; we control it via displayFen
   }
 
   const PROMO_NAMES: Record<string, string> = { q: "queen", r: "rook", b: "bishop", n: "knight" };
@@ -250,8 +271,11 @@ export function LessonPlayer({
   const solvable = step.kind === "move" && phase === "playing";
   const toMove: "w" | "b" | null =
     step.kind === "move" && step.fen ? (new ChessEngine(step.fen).turn() as "w" | "b") : null;
+  // Two-stage hint: 1 = highlight the piece to move, 2 = also show the arrow.
+  const hintFrom: Square | null =
+    hintLevel >= 1 && solvable && step.solution?.[0] ? (step.solution[0].split(":")[0] as Square) : null;
   const hintArrows: BoardArrow[] =
-    hint && solvable && step.solution?.[0]
+    hintLevel >= 2 && solvable && step.solution?.[0]
       ? [
           {
             startSquare: step.solution[0].split(":")[0] as Square,
@@ -322,9 +346,14 @@ export function LessonPlayer({
                 orientation={step.orientation ?? "white"}
                 onMove={handleMove}
                 arrows={phase === "playing" && !isObserving ? [...(step.arrows ?? []), ...hintArrows] : []}
-                highlight={phase === "playing" && !isObserving ? step.highlight : []}
+                highlight={
+                  phase === "playing" && !isObserving
+                    ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
+                    : []
+                }
                 lastMove={oppMove}
                 successSquare={phase === "correct" ? movedTo : null}
+                checkSquare={phase === "wrong" ? movedTo : null}
                 interactive={step.kind === "move" && phase === "playing"}
               />
             </div>
@@ -334,14 +363,10 @@ export function LessonPlayer({
         {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
         <div className="flex h-10 items-center justify-between gap-2">
           {toMove ? (
-            <span
-              className={`flex items-center gap-2 rounded-pill px-3 py-1.5 text-sm font-extrabold ${
-                toMove === "w" ? "bg-surface-sunken text-ink" : "bg-ink-900 text-white"
-              }`}
-            >
+            <span className="flex items-center gap-2 rounded-pill bg-surface-sunken px-3 py-1.5 text-sm font-extrabold text-ink">
               <span
-                className={`inline-block h-4 w-4 rounded-full border-2 ${
-                  toMove === "w" ? "border-ink-400 bg-white" : "border-white/70 bg-ink-700"
+                className={`inline-block h-4 w-4 rounded-full border border-ink-300 ${
+                  toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
                 }`}
               />
               {toMove === "w" ? "White" : "Black"} to move
@@ -354,14 +379,14 @@ export function LessonPlayer({
           ) : solvable ? (
             <button
               onClick={() => {
-                setHint(true);
+                setHintLevel((h) => Math.min(h + 1, 2));
                 audio.play("notify");
                 haptics.fire("tap");
               }}
-              disabled={hint}
+              disabled={hintLevel >= 2}
               className="btn-tactile rounded-pill bg-surface-sunken px-4 py-1.5 text-xs font-bold text-ink-700 disabled:opacity-50"
             >
-              {hint ? "💡 Follow the arrow" : "💡 Show a hint"}
+              {hintLevel === 0 ? "💡 Show a hint" : hintLevel === 1 ? "💡 Show the move" : "💡 Follow the arrow"}
             </button>
           ) : null}
         </div>

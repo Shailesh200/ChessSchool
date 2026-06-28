@@ -42,7 +42,6 @@ export function classLessons(cls: SchoolClass): Lesson[] {
     .filter((l): l is Lesson => Boolean(l));
 }
 
-const MASTERY = 0.5;
 const MASTERED = 0.9;
 
 export function classProgress(
@@ -81,10 +80,22 @@ export function nextLessonInClass(
   cls: SchoolClass,
   records: Record<string, LessonRecord>,
 ): string | null {
+  // Serialized forward progress: the first lesson never attempted, so "Continue"
+  // never replays one you've already completed.
   for (const id of cls.lessonIds) {
-    if ((records[id]?.mastery ?? 0) < MASTERY) return id;
+    if ((records[id]?.attempts ?? 0) === 0) return id;
   }
-  return null;
+  // All attempted but the class isn't mastered → the weakest, to push toward graduation.
+  let weakest: string | null = null;
+  let low = Infinity;
+  for (const id of cls.lessonIds) {
+    const m = records[id]?.mastery ?? 0;
+    if (m < MASTERED && m < low) {
+      low = m;
+      weakest = id;
+    }
+  }
+  return weakest;
 }
 
 /** The class that owns a lesson (or whose exam it is). */
