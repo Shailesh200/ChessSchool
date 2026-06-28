@@ -62,9 +62,26 @@ const TUTORIALS = {
 
 // ── CSV stream ───────────────────────────────────────────────────────────────
 function lineStream(path) {
+  if (!existsSync(path)) {
+    console.error(`✗ File not found: ${path}`);
+    process.exit(1);
+  }
   if (path.endsWith(".zst")) {
     const zstd = spawn("zstd", ["-dc", path]);
-    zstd.stderr.on("data", () => {});
+    zstd.on("error", (e) => {
+      console.error(
+        `✗ Could not run zstd (${e.code || e.message}). Either install it:\n` +
+          `    macOS: brew install zstd   ·   Linux: sudo apt-get install -y zstd\n` +
+          `  …or decompress manually and import the .csv:\n` +
+          `    zstd -d ${path}\n` +
+          `    pnpm db:import-puzzles ${path.replace(/\.zst$/, "")}`,
+      );
+      process.exit(1);
+    });
+    zstd.stderr.on("data", (d) => {
+      const s = String(d);
+      if (/error|not found|No such|cannot/i.test(s)) process.stderr.write(s);
+    });
     return createInterface({ input: zstd.stdout, crlfDelay: Infinity });
   }
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
@@ -111,6 +128,7 @@ const PER_BUCKET_CAP = Math.ceil(TARGET_TOTAL / (GROUPS.length * 3)) + PER_CLASS
 const buckets = new Map(); // key `${stage}:${group}` -> puzzles[]
 let scanned = 0;
 let kept = 0;
+let lastKeptAt = 0;
 
 console.log(`Reading ${INPUT} … target ${TARGET_TOTAL} puzzles`);
 const rl = lineStream(INPUT);
@@ -118,7 +136,10 @@ let header = true;
 for await (const line of rl) {
   if (header) { header = false; continue; } // PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags
   scanned++;
-  if (kept >= TARGET_TOTAL * 1.4) break; // collected enough to fill buckets
+  if (scanned % 500000 === 0) process.stdout.write(`\r  scanned ${scanned.toLocaleString()} rows · kept ${kept}…`);
+  // Stop once we have plenty, or once buckets stop filling (avoids scanning all ~5M rows).
+  if (kept >= TARGET_TOTAL * 1.4) break;
+  if (kept > 0 && scanned - lastKeptAt > 1_500_000) break;
   const c = line.split(",");
   if (c.length < 8) continue;
   const rating = Number(c[3]);
@@ -135,8 +156,9 @@ for await (const line of rl) {
   if (arr.length >= PER_BUCKET_CAP) continue;
   arr.push({ id: c[0], fen: c[1], moves: c[2], rating, themes, stage, group });
   kept++;
+  lastKeptAt = scanned;
 }
-console.log(`Scanned ${scanned} rows, collected ${kept} candidates across ${buckets.size} buckets.`);
+console.log(`\nScanned ${scanned.toLocaleString()} rows, collected ${kept} candidates across ${buckets.size} buckets.`);
 
 // ── Build semesters/classes/lessons + validate ───────────────────────────────
 const semesters = [];
