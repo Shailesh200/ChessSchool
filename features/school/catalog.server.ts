@@ -34,18 +34,37 @@ export async function getCatalog(): Promise<Catalog> {
     lessonIdsByClass.set(l.classId, arr);
   }
 
-  const allClasses: SchoolClass[] = cls.map((c) => ({
-    id: c.id,
-    title: c.title,
-    emoji: c.emoji,
-    blurb: c.blurb,
-    difficulty: c.difficulty,
-    examId: c.examId ?? undefined,
-    lessonIds: lessonIdsByClass.get(c.id) ?? [],
-  }));
-  const classById = new Map(allClasses.map((c) => [c.id, c]));
+  const classById = new Map(
+    cls.map((c) => [
+      c.id,
+      {
+        id: c.id,
+        title: c.title,
+        emoji: c.emoji,
+        blurb: c.blurb,
+        difficulty: c.difficulty,
+        examId: c.examId ?? undefined,
+        lessonIds: lessonIdsByClass.get(c.id) ?? [],
+      } as SchoolClass,
+    ]),
+  );
 
-  const semesters: Semester[] = sems.map((s) => ({
+  // Order curriculum so a beginner builds up properly: per stage, the hand-authored
+  // basics come first, then the imported puzzle concepts easiest-first (win material →
+  // forks → pins → mates → advanced). Drives both the campus AND the unlock frontier.
+  const CONCEPT_ORDER = ["trapped", "fork", "pin", "mate", "discovered", "endgame", "sacrifice", "advantage"];
+  const semKey = (s: (typeof sems)[number]) => {
+    const stageIdx = STAGES.findIndex((st) => st.id === s.stage);
+    let priority = s.sortOrder; // curated keep their relative order (all small)
+    if (s.id.startsWith("pz-")) {
+      const gi = CONCEPT_ORDER.indexOf(s.id.split("-")[2] ?? "");
+      priority = 100 + (gi === -1 ? 50 : gi); // premium always after curated
+    }
+    return (stageIdx < 0 ? STAGES.length : stageIdx) * 1000 + priority;
+  };
+  const sortedSems = [...sems].sort((a, b) => semKey(a) - semKey(b));
+
+  const semesters: Semester[] = sortedSems.map((s) => ({
     id: s.id,
     title: s.title,
     blurb: s.blurb,
@@ -53,6 +72,9 @@ export async function getCatalog(): Promise<Catalog> {
     stage: s.stage,
     classes: cls.filter((c) => c.semesterId === s.id).map((c) => classById.get(c.id)!),
   }));
+
+  // Frontier order = classes flattened in the same curated-first, easiest-first order.
+  const allClasses: SchoolClass[] = semesters.flatMap((s) => s.classes);
 
   return { stages: STAGES, semesters, allClasses, titles };
 }
