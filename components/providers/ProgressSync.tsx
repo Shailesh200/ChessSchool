@@ -7,6 +7,7 @@ import {
   type ProgressSnapshot,
 } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
+import { toast } from "@/core/store/toast.store";
 
 /**
  * Two-way progress sync (#1). On mount: pull the account snapshot and merge it
@@ -30,10 +31,17 @@ export function ProgressSync() {
         }
         if (!r.ok) return;
         const data = (await r.json()) as ProgressSnapshot & { user: { name: string; role: string } };
+        // Guest→account migration: local progress that the empty account lacks.
+        const before = progressSnapshot(useProgression.getState());
+        const guestHadProgress = before.xp > 0 || Object.keys(before.lessons).length > 0;
+        const accountEmpty = data.xp === 0 && Object.keys(data.lessons ?? {}).length === 0;
         useProgression.getState().mergeSnapshot(data);
         // Seed the dedupe key so the merge itself doesn't trigger a no-op push.
         lastPushed.current = JSON.stringify(progressSnapshot(useProgression.getState()));
         setSession(true, data.user);
+        if (guestHadProgress && accountEmpty) {
+          toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
+        }
       })
       .catch(() => void 0);
     return () => {

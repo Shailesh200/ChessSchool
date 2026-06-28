@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { SkillRadar } from "@/components/dashboard/SkillRadar";
 import { useProgression } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -95,6 +96,7 @@ export default function DashboardPage() {
         <section>
           <h2 className="mb-2 text-sm font-extrabold text-ink">Skill tree</h2>
           <Card className="flex flex-col gap-3">
+            <SkillRadar data={tree.map((n) => ({ area: n.area, mastery: n.mastery }))} />
             {tree.map((node) => (
               <div key={node.area}>
                 <div className="flex items-center justify-between text-xs font-bold">
