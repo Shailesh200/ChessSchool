@@ -3,7 +3,8 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
-import { useSettings } from "@/core/store/settings.store";
+import { useSettings, type CoachPersonality } from "@/core/store/settings.store";
+import { Select } from "@/components/ui/Select";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
@@ -92,20 +93,20 @@ export default function SettingsPage() {
               aria-label="Bot difficulty"
             />
           </Row>
-          <Row label="Coach personality" hint="Tone of feedback">
-            <select
+          <div className="px-0.5 pt-1">
+            <Select
+              label="Coach personality"
+              options={[
+                { id: "friendly", title: "😊 Friendly Teacher" },
+                { id: "strict", title: "🎩 Strict Grandmaster" },
+                { id: "mentor", title: "🧑‍🏫 Mentor" },
+                { id: "tactical", title: "⚔️ Tactical" },
+                { id: "minimal", title: "🔇 Minimal" },
+              ]}
               value={s.coachPersonality}
-              onChange={(e) => s.set("coachPersonality", e.target.value as typeof s.coachPersonality)}
-              className="rounded-pill border border-hairline bg-surface px-3 py-1.5 text-sm font-bold"
-              aria-label="Coach personality"
-            >
-              <option value="friendly">😊 Friendly Teacher</option>
-              <option value="strict">🎩 Strict Grandmaster</option>
-              <option value="mentor">🧑‍🏫 Mentor</option>
-              <option value="tactical">⚔️ Tactical</option>
-              <option value="minimal">🔇 Minimal</option>
-            </select>
-          </Row>
+              onChange={(v) => s.set("coachPersonality", v as CoachPersonality)}
+            />
+          </div>
         </Card>
 
         {isAdmin && (

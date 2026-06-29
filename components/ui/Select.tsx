@@ -18,13 +18,23 @@ export function Select({
   label,
   options,
   defaultValue,
+  value: controlled,
+  onChange,
 }: {
-  name: string;
+  name?: string;
   label?: string;
   options: SelectOption[];
   defaultValue?: string;
+  /** controlled value (omit for uncontrolled/form usage) */
+  value?: string;
+  onChange?: (value: string) => void;
 }) {
-  const [value, setValue] = useState(defaultValue ?? options[0]?.id ?? "");
+  const [internal, setInternal] = useState(defaultValue ?? options[0]?.id ?? "");
+  const value = controlled ?? internal;
+  const setValue = (v: string) => {
+    setInternal(v);
+    onChange?.(v);
+  };
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -41,7 +51,7 @@ export function Select({
   return (
     <div ref={ref} className="relative flex flex-col gap-1">
       {label && <span className="text-xs font-extrabold text-ink-700">{label}</span>}
-      <input type="hidden" name={name} value={value} />
+      {name && <input type="hidden" name={name} value={value} />}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

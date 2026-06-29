@@ -18,36 +18,68 @@ interface Persona {
 
 const PERSONAS: Record<CoachPersonality, Persona> = {
   friendly: {
-    praise: ["Great instinct!", "You're getting sharper.", "Nice — keep it up!", "That's the idea!"],
-    nudge: ["Hmm, is your king safe?", "Any pieces hanging?", "Can you make a threat?"],
+    praise: [
+      "Great instinct!", "You're getting sharper.", "Nice — keep it up!", "That's the idea!",
+      "Ooh, I like that.", "Solid move!", "You're in the zone.", "Smart choice.",
+      "Look at you go!", "That's improving!", "Confident play.", "Good eye!",
+    ],
+    nudge: [
+      "Hmm, is your king safe?", "Any pieces hanging?", "Can you make a threat?",
+      "What's your opponent planning?", "Where's your worst piece?", "Take your time here.",
+      "Could you develop something?", "Any checks worth a look?",
+    ],
     capture: (p) => `Captured a ${p}! Lovely.`,
     check: "Check! Keep the king on the run.",
     mate: "Checkmate — brilliant finish! 👑",
   },
   strict: {
-    praise: ["Acceptable.", "Correct. Continue.", "As expected.", "Good. Don't relax."],
-    nudge: ["Calculate before you move.", "Check every threat first.", "Is that truly best?"],
+    praise: [
+      "Acceptable.", "Correct. Continue.", "As expected.", "Good. Don't relax.",
+      "Precise.", "That holds.", "Disciplined.", "Maintain that standard.",
+      "Adequate. Push on.", "No errors. Good.", "Sound.", "Continue calculating.",
+    ],
+    nudge: [
+      "Calculate before you move.", "Check every threat first.", "Is that truly best?",
+      "Account for the reply.", "Loose pieces lose games.", "Verify your king's safety.",
+      "Do not drift. Have a plan.", "Tempo matters — don't waste it.",
+    ],
     capture: (p) => `You won a ${p}. Now convert it.`,
     check: "Check. Do not lose the initiative.",
     mate: "Checkmate. Textbook. 👑",
   },
   mentor: {
-    praise: ["Well reasoned.", "You're building good habits.", "I like your plan.", "Steady progress."],
-    nudge: ["What does your opponent want?", "Look one move deeper.", "Improve your worst piece."],
+    praise: [
+      "Well reasoned.", "You're building good habits.", "I like your plan.", "Steady progress.",
+      "That shows understanding.", "Patient and sound.", "Good structure.", "Thoughtful.",
+      "You're seeing more each game.", "Nicely judged.", "Principled play.", "That'll pay off.",
+    ],
+    nudge: [
+      "What does your opponent want?", "Look one move deeper.", "Improve your worst piece.",
+      "Which plan fits this position?", "Trade when ahead, complicate when behind.",
+      "Where do your pieces belong?", "Control the centre.", "Don't rush — assess first.",
+    ],
     capture: (p) => `A ${p} for you — material adds up over a game.`,
     check: "Check — use the tempo wisely.",
     mate: "Checkmate. You saw it through — well done. 👑",
   },
   tactical: {
-    praise: ["Sharp!", "Tactical eye!", "Boom.", "Pressure!"],
-    nudge: ["Any forks or pins?", "Look for a tactic!", "Can you sacrifice?"],
+    praise: [
+      "Sharp!", "Tactical eye!", "Boom.", "Pressure!",
+      "Aggressive — I like it.", "Now you're attacking!", "Punchy.", "Keep swinging!",
+      "Calculated and bold.", "Initiative is yours.", "Relentless.", "Strike!",
+    ],
+    nudge: [
+      "Any forks or pins?", "Look for a tactic!", "Can you sacrifice?",
+      "Loose piece to grab?", "Is the king exposed?", "Double attack anywhere?",
+      "Can you open lines?", "Hunt for a combination.",
+    ],
     capture: (p) => `Snagged a ${p}! Keep attacking.`,
     check: "Check! Hunt the king.",
     mate: "CHECKMATE! Devastating. 👑",
   },
   minimal: {
-    praise: ["Good.", "OK.", "Fine.", "Yes."],
-    nudge: ["Think.", "Careful.", "Better square?"],
+    praise: ["Good.", "OK.", "Fine.", "Yes.", "Mm.", "Right.", "Sure.", "Noted."],
+    nudge: ["Think.", "Careful.", "Better square?", "Look again.", "Plan?", "Safe?"],
     capture: (p) => `Won a ${p}.`,
     check: "Check.",
     mate: "Checkmate.",
