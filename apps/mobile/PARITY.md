@@ -204,3 +204,6 @@ NOT replicated: today-XP + `activityDays` heatmap (→ mobile daily-goal bar use
 24. **Lesson completion** not saving / not matching web behaviour; also the **primary** button should be **"Continue learning"** with **Reflect** + **Back to campus** as **secondary** (currently Back-to-academy is primary when no next).
 25. **Lesson-completion stat pills** dimensions don't match web.
 26. **Play screen**: show the **user's avatar** (not 🙂) for "You"; the **bot chat bubble is too small** — match web dimensions.
+
+## More noted points (batch 5 — fix after the 26)
+27. **Themes not working in app** — match web parity for **app themes + board themes + chess piece themes** (ties to #22 settings sync; ensure each theme actually applies + persists per user).
