@@ -8,6 +8,7 @@ import { Icon } from "@/Icon";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
+import { applyMatchEnd } from "@/progression";
 import { colors, font, radius, space, type } from "@/theme";
 
 const BOTS = [
@@ -45,8 +46,9 @@ async function saveGame(moves: string[], result: "win" | "loss" | "draw", elo: n
   try {
     const cur = await api<Record<string, unknown>>("/api/progress");
     const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-    const games = [{ moves, result, elo, at: Date.now() }, ...((snap.recentGames as unknown[]) ?? [])].slice(0, 20);
-    await api("/api/progress", { method: "POST", body: { ...snap, recentGames: games } });
+    const next = applyMatchEnd(snap, { botElo: elo, result });
+    const games = [{ moves, result, elo, at: Date.now() }, ...((next.recentGames as unknown[]) ?? [])].slice(0, 20);
+    await api("/api/progress", { method: "POST", body: { ...next, recentGames: games } });
   } catch {
     /* ignore */
   }

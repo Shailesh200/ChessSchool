@@ -9,9 +9,10 @@ import { Icon } from "@/Icon";
 import { Button } from "@/Button";
 import { CampusMap, type CampusStage } from "@/CampusMap";
 import { TopBar } from "@/TopBar";
+import { isoDay } from "@/progression";
 import { colors, font, radius, space, type } from "@/theme";
 
-type Progress = { xp: number; streak: number; dailyGoalXp: number; rating: number; lessons: Record<string, unknown> };
+type Progress = { xp: number; streak: number; dailyGoalXp: number; rating: number; lessons: Record<string, unknown>; activityDays: Record<string, number> };
 type Resume = {
   complete: boolean;
   lessonId?: string;
@@ -53,7 +54,7 @@ export default function LearnScreen() {
   }, []);
 
   const goal = p?.dailyGoalXp ?? 50;
-  const todayXp = p?.xp ?? 0;
+  const todayXp = (p?.activityDays ?? {})[isoDay()] ?? 0;
   const streak = p?.streak ?? 0;
   const rating = p?.rating ?? 800;
   const isNew = !!p && Object.keys(p.lessons ?? {}).length === 0;

@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { settings, useSettings } from "@/settings";
+import { isoDay } from "@/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
@@ -34,18 +35,18 @@ type Hw = { id: string; title: string; tag: string };
 export default function PlanScreen() {
   const router = useRouter();
   const s = useSettings();
-  const [p, setP] = useState<{ xp: number; streak: number; homeworkStreak: number }>({ xp: 0, streak: 0, homeworkStreak: 0 });
+  const [p, setP] = useState<{ today: number; streak: number; homeworkStreak: number }>({ today: 0, streak: 0, homeworkStreak: 0 });
   const [byType, setByType] = useState<Record<string, Hw[]>>({});
 
   useEffect(() => {
-    api<{ xp: number; streak: number; homeworkStreak: number }>("/api/progress")
-      .then((d) => setP({ xp: d.xp ?? 0, streak: d.streak ?? 0, homeworkStreak: d.homeworkStreak ?? 0 }))
+    api<{ streak: number; homeworkStreak: number; activityDays: Record<string, number> }>("/api/progress")
+      .then((d) => setP({ today: (d.activityDays ?? {})[isoDay()] ?? 0, streak: d.streak ?? 0, homeworkStreak: d.homeworkStreak ?? 0 }))
       .catch(() => void 0);
     api<{ byType: Record<string, Hw[]> }>("/api/homework").then((d) => setByType(d.byType ?? {})).catch(() => void 0);
   }, []);
 
   const goal = PLAN_SPECS[s.planTier].goalXp;
-  const todayXp = Math.min(p.xp, goal);
+  const todayXp = Math.min(p.today, goal);
 
   async function setTier(tier: PlanTier) {
     settings.set("planTier", tier);

@@ -11,6 +11,7 @@ import { Confetti } from "@/Confetti";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
+import { applyLessonComplete, type Mistake } from "@/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Step = {
@@ -24,6 +25,7 @@ type Step = {
   moves?: string[];
   arrows?: { startSquare: string; endSquare: string; color?: string }[];
   highlight?: string[];
+  tag?: string;
   successText?: string;
   failText?: string;
 };
@@ -44,6 +46,7 @@ export default function LessonScreen() {
   const [nextId, setNextId] = useState<string | null>(null);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
+  const mistakesRef = useRef<Mistake[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -103,16 +106,14 @@ export default function LessonScreen() {
 
   async function finish() {
     setPhase("complete");
-    const ratio = correctRef.current / interactive;
+    const moveSteps = lesson!.steps.filter((st) => st.kind === "move").length;
+    const total = moveSteps || 1;
+    const correct = moveSteps === 0 ? 1 : correctRef.current;
     try {
       const cur = await api<Record<string, unknown>>("/api/progress");
       const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-      const lessons = { ...((snap.lessons as Record<string, unknown>) ?? {}) };
-      lessons[lesson!.id] = { mastery: ratio, attempts: 1, lastSeen: Date.now(), dueAt: Date.now() + 86400000 };
-      await api("/api/progress", {
-        method: "POST",
-        body: { ...snap, xp: ((snap.xp as number) ?? 0) + lesson!.xp, lessons },
-      });
+      const next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+      await api("/api/progress", { method: "POST", body: next });
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch {
@@ -143,6 +144,7 @@ export default function LessonScreen() {
     haptics.error();
     sfx.play("error");
     wrongRef.current += 1;
+    if (step.fen) mistakesRef.current.push({ fen: step.fen, played: `${from}:${to}`, best: step.solution?.[0] ?? "", tag: step.tag ?? "tactics", at: Date.now() });
     setPhase("wrong");
     timers.current.push(setTimeout(() => setPhase("playing"), 900));
     return false;
