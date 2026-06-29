@@ -140,20 +140,6 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
               )}
             </div>
 
-            {/* School exam — the shortcut to unlock the next school. */}
-            {!cleared && nextName && (
-              <button
-                onClick={() => { haptics.fire("tap"); audio.play("exam"); startNav(); router.push(`/exam/school/${stage.id}`); }}
-                className="btn-tactile mb-4 flex w-full items-center justify-between rounded-card border-2 border-gold/50 bg-gold/10 px-4 py-3 text-left"
-              >
-                <span>
-                  <span className="block text-sm font-extrabold text-ink">📝 {stage.name} Exam</span>
-                  <span className="block text-xs font-semibold text-ink-500">Pass to unlock {nextName} →</span>
-                </span>
-                <span className="text-xl">🎓</span>
-              </button>
-            )}
-
             {
               <div className="flex flex-col gap-5">
                 {visibleSems.map(({ sem, classes }) => {
@@ -214,6 +200,20 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                 })}
               </div>
             }
+
+            {/* School exam — the gateway to the next school (sits just above it). */}
+            {!cleared && nextName && (
+              <button
+                onClick={() => { haptics.fire("tap"); audio.play("exam"); startNav(); router.push(`/exam/school/${stage.id}`); }}
+                className="btn-tactile mt-4 flex w-full items-center justify-between rounded-card border-2 border-gold/50 bg-gold/10 px-4 py-3 text-left"
+              >
+                <span>
+                  <span className="block text-sm font-extrabold text-ink">📝 {stage.name} Exam</span>
+                  <span className="block text-xs font-semibold text-ink-500">Pass to unlock {nextName} →</span>
+                </span>
+                <span className="text-xl">🎓</span>
+              </button>
+            )}
           </section>
         );
       })}
