@@ -117,7 +117,7 @@ export default function PlaySetupScreen() {
         <View style={{ marginTop: space[2] }}>
           <Button
             label="Start match"
-            onPress={() => router.push({ pathname: "/play/game", params: { elo: String(effectiveElo), time } })}
+            onPress={() => (mode === "human" ? router.push("/play/pass") : router.push({ pathname: "/play/game", params: { elo: String(effectiveElo), time } }))}
           />
         </View>
       </ScrollView>
