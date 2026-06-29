@@ -197,3 +197,10 @@ NOT replicated: today-XP + `activityDays` heatmap (→ mobile daily-goal bar use
 19. **Profile stat cards** (Day streak / Lessons mastered / …) don't match web UI; **data also misaligned** — retain the same values/semantics as web.
 20. **vs Human** mode doesn't reveal the **PvP options** (online / pass-and-play) in Play setup.
 21. **Achievement card dimensions** don't align with web.
+
+## More noted points (batch 4 — fix later)
+22. **Piece themes not working properly** in app; also **settings (piece/board theme, etc.) must persist server-side per user** so they sync across web + app (currently app-local only).
+23. **Board move animation doesn't match web** (app) — ⚠️ PRIORITY, fix once all screens done.
+24. **Lesson completion** not saving / not matching web behaviour; also the **primary** button should be **"Continue learning"** with **Reflect** + **Back to campus** as **secondary** (currently Back-to-academy is primary when no next).
+25. **Lesson-completion stat pills** dimensions don't match web.
+26. **Play screen**: show the **user's avatar** (not 🙂) for "You"; the **bot chat bubble is too small** — match web dimensions.
