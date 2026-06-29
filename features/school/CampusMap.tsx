@@ -49,12 +49,12 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
       return { stage, semesters, classes, cleared };
     })
     .filter((i) => i.classes.length > 0);
-  let prevCleared = true;
-  const stages = stageInfos.map((info, idx) => {
-    const unlocked = prevCleared;
-    prevCleared = info.cleared;
-    return { ...info, unlocked, prevName: idx > 0 ? stageInfos[idx - 1]!.stage.name : "" };
-  });
+  const stages = stageInfos.map((info, idx) => ({
+    ...info,
+    // Unlocked once every earlier school is cleared.
+    unlocked: idx === 0 || stageInfos.slice(0, idx).every((s) => s.cleared),
+    prevName: idx > 0 ? stageInfos[idx - 1]!.stage.name : "",
+  }));
 
   return (
     <div className="flex flex-col gap-8">
