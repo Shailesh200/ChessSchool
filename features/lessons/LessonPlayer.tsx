@@ -54,6 +54,7 @@ export function LessonPlayer({
   lesson,
   nextLessonId,
   lessonClass,
+  schoolExam,
 }: {
   lesson: Lesson;
   nextLessonId?: string | null;
@@ -63,6 +64,8 @@ export function LessonPlayer({
    * passing this as an exam — graduates the class.
    */
   lessonClass?: { id: string; title: string; lessonIds: string[] };
+  /** when set, this is a school exam — passing unlocks the next school */
+  schoolExam?: { stage: string; nextName: string };
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -166,6 +169,18 @@ export function LessonPlayer({
       xp: st.xp,
       streak: st.streak,
     }).forEach((id) => progression.unlockAchievement(id));
+
+    // School exam: passing unlocks the next school (no class to graduate).
+    if (schoolExam) {
+      if (ratio >= 0.67) {
+        progression.passSchoolExam(schoolExam.stage);
+        setGraduatedTitle(`${schoolExam.nextName} unlocked!`);
+        audio.play("graduation");
+      } else {
+        audio.play("fail");
+      }
+      return;
+    }
 
     // Resolve the lesson's class — prefer the DB-passed class (works for
     // generated classes); fall back to the constants for older callers.

@@ -33,10 +33,13 @@ export interface ProgressionState {
   rating: number;
   /** total bot wins (for achievements) */
   botWins: number;
+  /** stage ids whose school exam has been passed (unlocks the next school) */
+  schoolExamsPassed: string[];
 
   reset: () => void;
   /** apply an ELO update after a bot game: score = 1 win / 0.5 draw / 0 loss */
   updateRating: (botElo: number, score: number) => void;
+  passSchoolExam: (stage: string) => void;
   awardXp: (amount: number) => void;
   setDailyGoalXp: (xp: number) => void;
   recordLesson: (id: string, correct: number, total: number, incorrect?: number) => void;
@@ -105,6 +108,7 @@ const defaults = {
   activityDays: {} as Record<string, number>,
   rating: 800,
   botWins: 0,
+  schoolExamsPassed: [] as string[],
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -122,6 +126,11 @@ export const useProgression = create<ProgressionState>()(
           const rating = Math.max(100, Math.round(s.rating + K * (score - expected)));
           return { rating, botWins: s.botWins + (score === 1 ? 1 : 0) };
         }),
+
+      passSchoolExam: (stage) =>
+        set((s) =>
+          s.schoolExamsPassed.includes(stage) ? s : { schoolExamsPassed: [...s.schoolExamsPassed, stage] },
+        ),
 
       awardXp: (amount) =>
         set((s) => {

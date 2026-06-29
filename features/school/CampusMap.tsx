@@ -21,6 +21,8 @@ import { audio } from "@/core/audio/audioEngine";
 export function CampusMap({ catalog }: { catalog: Catalog }) {
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
+  const examsPassed = useProgression((s) => s.schoolExamsPassed);
+  const router = useRouter();
   const [showCompleted, setShowCompleted] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -45,7 +47,8 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
     .map((stage) => {
       const semesters = semestersForStage(stage.id, catalog.semesters);
       const classes = semesters.flatMap((s) => s.classes);
-      const cleared = classes.length > 0 && classes.every(isDone);
+      // Cleared = all classes graduated, OR the school exam passed (the shortcut).
+      const cleared = examsPassed.includes(stage.id) || (classes.length > 0 && classes.every(isDone));
       return { stage, semesters, classes, cleared };
     })
     .filter((i) => i.classes.length > 0);
@@ -68,9 +71,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
           </button>
         </div>
       )}
-      {stages.map(({ stage, semesters, classes: stageClasses, cleared, unlocked, prevName }) => {
+      {stages.map(({ stage, semesters, classes: stageClasses, cleared, unlocked, prevName }, sIdx) => {
         const classCount = stageClasses.length;
         const descriptor = stage.blurb.split("·")[1]?.trim();
+        const nextName = stages[sIdx + 1]?.stage.name;
 
         // Locked school — must clear the previous one first.
         if (!unlocked) {
@@ -135,6 +139,20 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                 </button>
               )}
             </div>
+
+            {/* School exam — the shortcut to unlock the next school. */}
+            {!cleared && nextName && (
+              <button
+                onClick={() => { haptics.fire("tap"); audio.play("exam"); startNav(); router.push(`/exam/school/${stage.id}`); }}
+                className="btn-tactile mb-4 flex w-full items-center justify-between rounded-card border-2 border-gold/50 bg-gold/10 px-4 py-3 text-left"
+              >
+                <span>
+                  <span className="block text-sm font-extrabold text-ink">📝 {stage.name} Exam</span>
+                  <span className="block text-xs font-semibold text-ink-500">Pass to unlock {nextName} →</span>
+                </span>
+                <span className="text-xl">🎓</span>
+              </button>
+            )}
 
             {
               <div className="flex flex-col gap-5">
