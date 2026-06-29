@@ -91,7 +91,7 @@ export default function LearnScreen() {
                 <Text style={styles.placementTitle}>🎯 New here? Take a quick placement test</Text>
                 <Text style={styles.placementSub}>8 puzzles (~2 min) — we'll place you in Elementary, Middle, or High School.</Text>
                 <View style={{ marginTop: space[3], alignSelf: "flex-start" }}>
-                  <Button label="Start placement test →" size="sm" onPress={() => resume?.lessonId && router.push({ pathname: "/lesson/[id]", params: { id: resume.lessonId } })} />
+                  <Button label="Start placement test →" size="sm" onPress={() => router.push("/placement")} />
                 </View>
               </View>
             )}

@@ -25,6 +25,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const router = useRouter();
   const [showCompleted, setShowCompleted] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [semShown, setSemShown] = useState<Record<string, number>>({});
 
   const isDone = (cls: SchoolClass) => isClassGraduated(cls, records, graduated);
   // Everything before your current position (the first not-yet-graduated class)
@@ -182,7 +183,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                       </button>
                     ) : (
                     <div className="flex flex-col gap-3">
-                      {classes.map((cls, i) => (
+                      {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
                         <ClassCard
                           key={cls.id}
                           cls={cls}
@@ -193,6 +194,14 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                           delay={i * 0.05}
                         />
                       ))}
+                      {(semShown[sem.id] ?? 8) < classes.length && (
+                        <button
+                          onClick={() => setSemShown((s) => ({ ...s, [sem.id]: (s[sem.id] ?? 8) + 8 }))}
+                          className="btn-tactile py-2 text-sm font-bold text-brand"
+                        >
+                          Show {Math.min(8, classes.length - (semShown[sem.id] ?? 8))} more classes ▾
+                        </button>
+                      )}
                     </div>
                     )}
                   </div>
