@@ -21,6 +21,18 @@ import { Chess } from "chess.js";
 // Defaults to OUR committed curated set; pass the raw Lichess file to re-curate.
 const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
 
+// No puzzle file? Derive the homework pool from the already-seeded curriculum
+// (zero downloads) — same as `db:seed-homework`.
+if (!existsSync(INPUT)) {
+  if (!process.argv[2]) {
+    console.log(`ℹ ${INPUT} not found — deriving homework from the already-seeded curriculum instead.`);
+    await import("./seed-homework.mjs");
+    process.exit(0);
+  }
+  console.error(`✗ File not found: ${INPUT}`);
+  process.exit(1);
+}
+
 const PUZZLES_PER = 4; // puzzles in one homework session
 const MAX_SESSIONS = 21; // ~3 weeks of daily rotation per type
 const SKIP_PER_TYPE = 600; // skip the curriculum's head so puzzles don't overlap
