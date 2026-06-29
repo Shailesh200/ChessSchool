@@ -21,6 +21,7 @@ interface ExtraData {
   homeworkStreak?: number;
   homeworkLastDay?: string | null;
   recentGames?: unknown[];
+  settings?: Record<string, unknown>;
 }
 
 /** Pull the account's saved progress (merged into / hydrated onto the client on login). */
@@ -59,6 +60,7 @@ export async function GET(req: Request) {
     homeworkStreak: extra.homeworkStreak ?? 0,
     homeworkLastDay: extra.homeworkLastDay ?? null,
     recentGames: extra.recentGames ?? [],
+    settings: extra.settings ?? null,
   });
 }
 
@@ -79,6 +81,7 @@ interface PushBody {
   homeworkStreak?: number;
   homeworkLastDay?: string | null;
   recentGames?: unknown[];
+  settings?: Record<string, unknown>;
 }
 
 /** Push the client's merged snapshot to the account. */
@@ -109,6 +112,7 @@ export async function POST(req: Request) {
     homeworkStreak: body.homeworkStreak,
     homeworkLastDay: body.homeworkLastDay,
     recentGames: body.recentGames,
+    settings: body.settings,
   };
   const data: ExtraData = { ...prev };
   for (const [k, v] of Object.entries(incoming)) if (v !== undefined) (data as Record<string, unknown>)[k] = v;
