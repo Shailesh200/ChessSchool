@@ -65,9 +65,17 @@ export function ChessBoard({
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{ from: Square; to: Square; color: "w" | "b" } | null>(null);
 
-  const targets = useMemo(() => {
-    if (!selected) return [] as Square[];
-    return new ChessEngine(fen).legalTargets(selected);
+  // Split the selected piece's legal moves into quiet moves (dots) and captures
+  // (rings), so the board shows which squares win an opponent's piece.
+  const { dotTargets, captureTargets } = useMemo(() => {
+    if (!selected) return { dotTargets: [] as Square[], captureTargets: [] as Square[] };
+    const dot: Square[] = [];
+    const cap: Square[] = [];
+    for (const m of new ChessEngine(fen).legalMoves(selected)) {
+      if (m.captured || (m.flags && /[ce]/.test(m.flags))) cap.push(m.to as Square);
+      else dot.push(m.to as Square);
+    }
+    return { dotTargets: dot, captureTargets: cap };
   }, [selected, fen]);
 
   function tryMove(from: Square, to: Square): boolean {
@@ -103,11 +111,18 @@ export function ChessBoard({
     if (selected) {
       styles[selected] = { background: "rgba(123, 224, 179, 0.45)" };
     }
-    for (const t of targets) {
+    for (const t of dotTargets) {
       styles[t] = {
         ...(styles[t] ?? {}),
-        background:
-          "radial-gradient(circle, rgba(91,91,214,0.45) 22%, transparent 24%)",
+        background: "radial-gradient(circle, rgba(91,91,214,0.45) 22%, transparent 24%)",
+      };
+    }
+    // Capturable pieces: a ring around the square so you can see the target.
+    for (const t of captureTargets) {
+      styles[t] = {
+        ...(styles[t] ?? {}),
+        background: "radial-gradient(circle, transparent 0%, transparent 78%, rgba(244,63,94,0.55) 80%)",
+        borderRadius: "8px",
       };
     }
     if (checkSquare) {
@@ -126,7 +141,7 @@ export function ChessBoard({
       };
     }
     return styles;
-  }, [lastMove, highlight, selected, targets, checkSquare, successSquare]);
+  }, [lastMove, highlight, selected, dotTargets, captureTargets, checkSquare, successSquare]);
 
   return (
     <div
@@ -139,6 +154,9 @@ export function ChessBoard({
           position: fen,
           boardOrientation: orientation,
           allowDragging: interactive,
+          // Default is 1px — on touch a tap jitters >1px and becomes a drag, eating
+          // the click-to-move. Require real movement before a drag starts.
+          dragActivationDistance: 10,
           animationDurationInMs: 220,
           showNotation,
           lightSquareStyle: { backgroundColor: colors.light },

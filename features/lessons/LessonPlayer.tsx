@@ -606,9 +606,15 @@ function LessonComplete({
 
       <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
         {isHomework ? (
-          <Button size="lg" block loading={busy === "hw"} onClick={() => go("hw", "/plan")}>
-            Back to homework →
-          </Button>
+          allHomeworkDone ? (
+            <Button size="lg" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
+              Back to academy →
+            </Button>
+          ) : (
+            <Button size="lg" block loading={busy === "hw"} onClick={() => go("hw", "/plan")}>
+              Continue your homework →
+            </Button>
+          )
         ) : nextId ? (
           <Button size="lg" block loading={busy === "next"} onClick={() => go("next", `/lesson/${nextId}`)}>
             Continue learning →
