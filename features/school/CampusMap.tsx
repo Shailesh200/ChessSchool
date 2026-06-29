@@ -53,6 +53,8 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
       )}
       {catalog.stages.map((stage) => {
         const semesters = semestersForStage(stage.id, catalog.semesters);
+        const classCount = semesters.reduce((n, s) => n + s.classes.length, 0);
+        const descriptor = stage.blurb.split("·")[1]?.trim();
         const visibleSems = semesters
           .map((sem) => ({
             sem,
@@ -69,7 +71,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
               <span className="text-xl">{stage.emoji}</span>
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-extrabold text-ink">{stage.name}</h2>
-                <p className="truncate text-[11px] font-semibold text-ink-500">{stage.blurb}</p>
+                <p className="truncate text-[11px] font-semibold text-ink-500">
+                  {classCount} {classCount === 1 ? "class" : "classes"}
+                  {descriptor ? ` · ${descriptor}` : ""}
+                </p>
               </div>
             </div>
 
