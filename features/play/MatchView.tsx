@@ -33,6 +33,22 @@ function engineFromPgn(pgn: string): ChessEngine {
   }
 }
 
+/** FEN after each ply (start … current) for the view-only rewind/forward control. */
+function framesFromPgn(pgn: string): string[] {
+  const replay = new ChessEngine();
+  const frames = [replay.fen()];
+  try {
+    const src = ChessEngine.fromPgn(pgn || "");
+    for (const m of src.history()) {
+      replay.move({ from: m.from, to: m.to, promotion: m.promotion });
+      frames.push(replay.fen());
+    }
+  } catch {
+    /* no history */
+  }
+  return frames;
+}
+
 export function MatchView({ active }: { active: ActiveMatch }) {
   const router = useRouter();
   const sync = useMatch((s) => s.sync);
@@ -61,6 +77,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
+  const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const [boardBox, boardSize] = useSquareSize();
   const hasClock = active.timeControlMin > 0;
@@ -180,8 +197,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           setFen(e.fen());
           audio.play(applied.captured ? "capture" : "move");
           if (e.inCheck()) audio.play("check");
-          // The bot reacts to its own move (flavoured by the coach personality).
-          setCoach(`${botName}: ${commentOnMove(before, applied, Math.random())}`);
+          // The bot reacts to its own move (the bubble shows who's speaking).
+          setCoach(commentOnMove(before, applied, Math.random()));
           persist(move.from, move.to);
         }
       }
@@ -293,6 +310,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const bottomAdv = mat.diff > 0 ? mat.diff : 0;
   const topAdv = mat.diff < 0 ? -mat.diff : 0;
 
+  // View-only rewind/forward through the game's moves (doesn't change the game).
+  const frames = useMemo(() => framesFromPgn(engineRef.current.pgn()), [fen]);
+  const [lastFen, setLastFen] = useState(fen);
+  if (fen !== lastFen) {
+    setLastFen(fen);
+    setViewPly(null); // a new move snaps back to the live position
+  }
+  const viewing = viewPly !== null;
+  const displayFen = viewing && frames[viewPly] ? frames[viewPly] : fen;
+
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       {/* top action bar */}
@@ -333,16 +360,31 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         />
       </div>
 
+      {/* Conversation bubble (top) — the bot / coach speaking. Uses the space above the board. */}
+      <div className="mx-auto w-full max-w-xl px-3 pt-2">
+        <div className="flex items-start gap-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">
+            {isBot ? bot.emoji : "💬"}
+          </div>
+          <div className="min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border border-hairline bg-surface-card px-3 py-2 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]">
+            <span className="block text-[10px] font-extrabold uppercase tracking-wide text-ink-500">
+              {isBot ? bot.name : "Coach"}
+            </span>
+            <span className="line-clamp-2">{thinking ? "Thinking…" : coach}</span>
+          </div>
+        </div>
+      </div>
+
       {/* board spans the largest square that fits the remaining height/width */}
       <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3 py-2">
         <div className="relative" style={{ width: boardSize || undefined, height: boardSize || undefined }}>
           <ChessBoard
-            fen={fen}
+            fen={displayFen}
             orientation={orientation}
             onMove={handleMove}
             lastMove={lastMove}
             checkSquare={checkSquare}
-            interactive={!over && !thinking}
+            interactive={!over && !thinking && !viewing}
           />
           <AnimatePresence>
             {over && (
@@ -393,11 +435,29 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         />
       </div>
 
-      {/* coach caption */}
-      <div className="mx-auto w-full max-w-xl px-4 pb-3 pt-2">
-        <p className="truncate text-center text-sm font-semibold text-ink-500">
-          {thinking ? "Thinking…" : coach}
-        </p>
+      {/* Rewind / forward — view earlier positions without changing the game. */}
+      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-3 px-4 pb-3 pt-2">
+        <IconBtn
+          label="Previous move"
+          onClick={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
+        >
+          <span className="text-base font-extrabold">⏪</span>
+        </IconBtn>
+        <span className="min-w-24 text-center text-xs font-bold text-ink-500">
+          {viewing ? `move ${viewPly}/${frames.length - 1}` : "● live"}
+        </span>
+        <IconBtn
+          label="Next move"
+          onClick={() =>
+            setViewPly((v) => {
+              if (v === null) return null;
+              const n = v + 1;
+              return n >= frames.length - 1 ? null : n;
+            })
+          }
+        >
+          <span className="text-base font-extrabold">⏩</span>
+        </IconBtn>
       </div>
 
       <ReflectSheet
