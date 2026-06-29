@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { NavButton } from "@/components/ui/NavButton";
 import { BackButton } from "@/components/ui/BackButton";
 import { StudentIdCard } from "@/components/account/StudentIdCard";
+import { RatingBadge } from "@/components/account/RatingBadge";
 import { rankForClasses } from "@/lib/rank";
 
 export const metadata = { title: "My account" };
@@ -41,6 +42,8 @@ export default async function AccountPage() {
           enrolled={enrolled}
           avatar={profile?.avatarUrl ?? null}
         />
+
+        <RatingBadge />
 
         {/* User-specific progress */}
         <div className="grid grid-cols-3 gap-3">

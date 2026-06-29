@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { useProgression, levelForXp } from "@/core/store/progression.store";
-import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { rankForClasses } from "@/lib/rank";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -31,7 +30,7 @@ export default function ProfilePage() {
   const lessons = useProgression((s) => s.lessons);
   const weaknesses = useProgression((s) => s.weaknesses);
   const unlocked = useProgression((s) => s.unlockedAchievements);
-  const targetElo = useSettings((s) => s.targetElo);
+  const rating = useProgression((s) => s.rating);
   const graduated = useProgression((s) => s.graduatedClasses);
   const isAdmin = useSession((s) => s.isAdmin);
   const authed = useSession((s) => s.authed);
@@ -92,7 +91,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-3">
           <Stat label="Day streak" value={mounted ? streak : 0} icon="flame" tone="text-accent" />
           <Stat label="Lessons mastered" value={mastered} icon="check" tone="text-success" />
-          <Stat label="Bot ELO" value={targetElo} icon="target" tone="text-brand" />
+          <Stat label="Rating" value={mounted ? rating : 800} icon="target" tone="text-brand" />
           <Stat label="Badges" value={mounted ? unlocked.length : 0} icon="trophy" tone="text-gold" />
         </div>
 

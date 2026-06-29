@@ -157,8 +157,12 @@ export function LessonPlayer({
     progression.recordLesson(lesson.id, correct, interactive, wrongRef.current);
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());
+    const st = useProgression.getState();
     checkLessonAchievements(lesson.id, {
-      mastered: Object.keys(progression.lessons).length + 1,
+      mastered: Object.values(st.lessons).filter((l) => l.mastery >= 0.9).length,
+      perfect: wrongRef.current === 0 && correct === interactive,
+      xp: st.xp,
+      streak: st.streak,
     }).forEach((id) => progression.unlockAchievement(id));
 
     // Resolve the lesson's class — prefer the DB-passed class (works for

@@ -19,6 +19,7 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useMatch, type ActiveMatch } from "@/core/store/match.store";
 import { useProgression } from "@/core/store/progression.store";
+import { checkMatchAchievements } from "@/features/progression/achievements";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
 import type { MoveInput, Square } from "@/core/types/chess";
@@ -104,9 +105,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       await saveGame(game);
       markFinished();
       const playerWon = isBot && winner === playerColor;
+      // Update the player's ELO from this bot game + unlock rating/win achievements.
+      if (isBot) {
+        const score = winner === null ? 0.5 : playerWon ? 1 : 0;
+        progression.updateRating(active.targetElo, score);
+        const st = useProgression.getState();
+        checkMatchAchievements({ won: playerWon, wins: st.botWins, botElo: active.targetElo, rating: st.rating }).forEach(
+          (id) => progression.unlockAchievement(id),
+        );
+      }
       if (playerWon) {
         progression.awardXp(40);
-        progression.unlockAchievement("first-win");
         audio.play("victory");
       } else if (winner === null) {
         audio.play("notify");

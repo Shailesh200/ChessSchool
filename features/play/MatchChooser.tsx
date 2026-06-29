@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useMatch, type MatchMode } from "@/core/store/match.store";
 import { useSettings } from "@/core/store/settings.store";
+import { useProgression } from "@/core/store/progression.store";
 import { botProfile } from "@/features/play/bots";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
@@ -26,7 +27,9 @@ export function MatchChooser() {
   const start = useMatch((s) => s.start);
   const targetElo = useSettings((s) => s.targetElo);
   const setSetting = useSettings((s) => s.set);
+  const rating = useProgression((s) => s.rating);
   const [mode, setMode] = useState<MatchMode>("bot");
+  const [adaptive, setAdaptive] = useState(false);
   const [timeMin, setTimeMin] = useState(0);
   const [creating, setCreating] = useState(false);
   const router = useRouter();
@@ -34,7 +37,8 @@ export function MatchChooser() {
   function begin() {
     haptics.fire("success");
     audio.play("unlock");
-    start(mode, targetElo, timeMin);
+    // Adaptive: the bot plays at your current rating (which then moves with results).
+    start(mode, adaptive ? rating : targetElo, timeMin);
   }
 
   async function playOnline() {
@@ -84,7 +88,21 @@ export function MatchChooser() {
         <motion.div variants={listItem}>
           <Card>
             <p className="mb-2 text-sm font-extrabold text-ink">Opponent strength</p>
-            <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { setAdaptive((a) => !a); haptics.fire("select"); }}
+              className={`mb-2 flex w-full items-center justify-between rounded-card border-2 px-3 py-2 text-left transition-colors ${
+                adaptive ? "border-brand bg-brand-50" : "border-hairline bg-surface-card"
+              }`}
+            >
+              <span>
+                <span className="text-sm font-extrabold text-ink">🎯 Adaptive bot</span>
+                <span className="block text-xs font-semibold text-ink-500">
+                  Matches your level (~{rating}) &amp; adjusts as you play
+                </span>
+              </span>
+              <span className={`h-5 w-5 shrink-0 rounded-full border-2 ${adaptive ? "border-brand bg-brand" : "border-ink-300"}`} />
+            </button>
+            <div className={`flex flex-wrap gap-2 ${adaptive ? "pointer-events-none opacity-40" : ""}`}>
               {ELO_PRESETS.map((elo) => (
                 <button
                   key={elo}
@@ -97,11 +115,13 @@ export function MatchChooser() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 flex items-center gap-2 text-sm font-bold text-ink">
-              <span className="text-lg">{botProfile(targetElo).emoji}</span>
-              {botProfile(targetElo).name}
-              <span className="font-semibold text-ink-500">· {botProfile(targetElo).blurb}</span>
-            </p>
+            {!adaptive && (
+              <p className="mt-3 flex items-center gap-2 text-sm font-bold text-ink">
+                <span className="text-lg">{botProfile(targetElo).emoji}</span>
+                {botProfile(targetElo).name}
+                <span className="font-semibold text-ink-500">· {botProfile(targetElo).blurb}</span>
+              </p>
+            )}
           </Card>
         </motion.div>
       )}

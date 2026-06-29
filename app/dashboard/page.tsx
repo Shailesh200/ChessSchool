@@ -13,18 +13,24 @@ import { StreakHeatmap } from "@/components/dashboard/StreakHeatmap";
 import { ReportCard } from "@/components/dashboard/ReportCard";
 import type { ReportClass } from "@/features/dashboard/reportCard";
 import { useProgression } from "@/core/store/progression.store";
-import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { listGames, type SavedGame } from "@/core/db/db";
 import { ACHIEVEMENTS } from "@/features/progression/achievements";
 import {
   skillTree,
   gameStats,
-  skillEstimate,
   mistakeDNA,
-  chessIdentity,
   graduationForecast,
 } from "@/features/dashboard/analytics";
+
+function ratingTitle(r: number): string {
+  if (r >= 2000) return "Master";
+  if (r >= 1600) return "Expert";
+  if (r >= 1300) return "Advanced";
+  if (r >= 1000) return "Intermediate";
+  if (r >= 700) return "Improver";
+  return "Beginner";
+}
 
 const SEV: Record<string, string> = {
   high: "bg-danger/15 text-danger",
@@ -38,10 +44,10 @@ export default function DashboardPage() {
   const weaknesses = useProgression((s) => s.weaknesses);
   const graduated = useProgression((s) => s.graduatedClasses);
   const streak = useProgression((s) => s.streak);
+  const rating = useProgression((s) => s.rating);
   const activityDays = useProgression((s) => s.activityDays);
   const unlocked = useProgression((s) => s.unlockedAchievements);
   const [today] = useState(() => new Date());
-  const targetElo = useSettings((s) => s.targetElo);
   const [games, setGames] = useState<SavedGame[]>([]);
   const [curr, setCurr] = useState<{ totalClasses: number; lessonsByTag: Record<string, string[]> } | null>(null);
   const [reportClasses, setReportClasses] = useState<ReportClass[]>([]);
@@ -70,10 +76,8 @@ export default function DashboardPage() {
     ? Object.entries(curr.lessonsByTag).flatMap(([tag, ids]) => ids.map((id) => ({ id, tag })))
     : undefined;
   const stats = gameStats(games);
-  const estimate = skillEstimate(targetElo, stats, records);
   const tree = skillTree(records, lessonList);
   const findings = mistakeDNA(weaknesses, stats);
-  const identity = chessIdentity(stats, records);
   const forecast = graduationForecast(graduated, streak, curr?.totalClasses);
   const bestGame = games
     .filter((g) => g.mode === "bot" && g.winner === "w")
@@ -85,25 +89,25 @@ export default function DashboardPage() {
         <BackButton />
         <h1 className="text-xl font-extrabold text-ink">Report Card</h1>
 
-        {/* Report card — per-class grades */}
-        <ReportCard classes={reportClasses} records={records} graduated={graduated} />
-
-        {/* Skill estimate + identity */}
+        {/* Chess identity + live ELO rating (recomputed from every bot game) */}
         <Card className="flex items-center gap-4">
           <div className="text-center">
-            <AnimatedNumber value={estimate} className="block text-4xl font-extrabold text-brand" />
-            <div className="text-[11px] font-semibold text-ink-500">est. strength</div>
+            <AnimatedNumber value={rating} className="block text-4xl font-extrabold text-brand" />
+            <div className="text-[11px] font-semibold text-ink-500">your rating (ELO)</div>
           </div>
           <div className="flex-1">
             <p className="text-sm font-extrabold text-ink">Your chess identity</p>
             <span className="mt-1 inline-block rounded-pill bg-brand-50 px-3 py-1 text-sm font-extrabold text-brand">
-              {identity}
+              {ratingTitle(rating)}
             </span>
             <p className="mt-1 text-xs font-semibold text-ink-500">
               {stats.total} games · {Math.round(stats.winRate * 100)}% win rate
             </p>
           </div>
         </Card>
+
+        {/* Report card — per-class grades */}
+        <ReportCard classes={reportClasses} records={records} graduated={graduated} />
 
         {/* Skill tree */}
         <section>

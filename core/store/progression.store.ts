@@ -29,8 +29,14 @@ export interface ProgressionState {
   graduatedClasses: string[];
   /** YYYY-MM-DD -> XP earned that day, for the streak heatmap */
   activityDays: Record<string, number>;
+  /** the player's live ELO rating, updated after each bot game */
+  rating: number;
+  /** total bot wins (for achievements) */
+  botWins: number;
 
   reset: () => void;
+  /** apply an ELO update after a bot game: score = 1 win / 0.5 draw / 0 loss */
+  updateRating: (botElo: number, score: number) => void;
   awardXp: (amount: number) => void;
   setDailyGoalXp: (xp: number) => void;
   recordLesson: (id: string, correct: number, total: number, incorrect?: number) => void;
@@ -97,6 +103,8 @@ const defaults = {
   weaknesses: {} as Record<string, number>,
   graduatedClasses: [] as string[],
   activityDays: {} as Record<string, number>,
+  rating: 800,
+  botWins: 0,
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -106,6 +114,14 @@ export const useProgression = create<ProgressionState>()(
 
       // Wipe all personal progress (used on logout so the next user/guest starts clean).
       reset: () => set({ ...defaults }),
+
+      updateRating: (botElo, score) =>
+        set((s) => {
+          const K = 32;
+          const expected = 1 / (1 + Math.pow(10, (botElo - s.rating) / 400));
+          const rating = Math.max(100, Math.round(s.rating + K * (score - expected)));
+          return { rating, botWins: s.botWins + (score === 1 ? 1 : 0) };
+        }),
 
       awardXp: (amount) =>
         set((s) => {
