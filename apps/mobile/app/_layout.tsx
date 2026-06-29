@@ -14,18 +14,18 @@ import { AuthProvider, useAuth } from "@/auth";
 import { colors } from "@/theme";
 
 function Gate() {
-  const { user, loading } = useAuth();
+  const { user, loading, needsOnboarding } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
     const onLogin = segments[0] === "login";
-    // Kick unauthed users to login; move authed users off the login screen.
-    // (Don't bounce every non-tab route — that would block /lesson/[id], etc.)
+    const onOnboarding = segments[0] === "onboarding";
     if (!user && !onLogin) router.replace("/login");
-    else if (user && onLogin) router.replace("/(tabs)");
-  }, [user, loading, segments]);
+    else if (user && needsOnboarding && !onOnboarding) router.replace("/onboarding");
+    else if (user && !needsOnboarding && (onLogin || onOnboarding)) router.replace("/(tabs)");
+  }, [user, loading, needsOnboarding, segments]);
 
   if (loading) {
     return (

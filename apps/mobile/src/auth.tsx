@@ -6,6 +6,8 @@ export type User = { id: string; name: string; email: string; role: string };
 type AuthState = {
   user: User | null;
   loading: boolean;
+  needsOnboarding: boolean;
+  finishOnboarding: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -16,6 +18,7 @@ const AuthCtx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -47,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password, name },
     });
     await setToken(token);
+    setNeedsOnboarding(true);
     setUser(user);
   };
 
@@ -60,7 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  return <AuthCtx.Provider value={{ user, loading, login, register, logout }}>{children}</AuthCtx.Provider>;
+  return (
+    <AuthCtx.Provider value={{ user, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), login, register, logout }}>
+      {children}
+    </AuthCtx.Provider>
+  );
 }
 
 export function useAuth(): AuthState {

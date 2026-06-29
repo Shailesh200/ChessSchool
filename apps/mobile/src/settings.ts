@@ -15,6 +15,9 @@ export type Settings = {
   targetElo: number;
   planTier: "casual" | "standard" | "serious" | "competitive" | "custom";
   schedule: "daily" | "weekdays" | "weekends";
+  avatar: string;
+  coachPersonality: string;
+  goal: string;
   boardTheme: BoardTheme;
   pieceTheme: PieceThemeId;
 };
@@ -32,6 +35,9 @@ let state: Settings = {
   targetElo: 600,
   planTier: "standard",
   schedule: "daily",
+  avatar: "🎓",
+  coachPersonality: "friendly",
+  goal: "",
   boardTheme: "classic",
   pieceTheme: "classic",
 };
