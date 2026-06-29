@@ -169,3 +169,12 @@ NOT replicated: today-XP + `activityDays` heatmap (→ mobile daily-goal bar use
 5. **Play**: New-match setup + clock + material + move-list + resign + adaptive + (later) Stockfish WASM.
 6. **Lesson**: progressive hints, wrong-move-shown-red, opponent-reply animation, richer complete screen.
 7. **Onboarding + placement**, **exams + journey map**, **dashboard**, **practice/mistakes**, **online PvP**.
+
+---
+# 🔧 Polish backlog (noted by user — fix later, not now)
+1. **Journey connector lines misalign with the node circles** — bug present in BOTH web and app (the vertical connectors don't line up with the zigzag-offset circles).
+2. **TopBar progress refetches `/api/progress` on every screen** — same data + component, should dedupe/cache (don't refetch per tab). Also add an **initial-load animation** to the progress bar fill.
+3. **Journey "Show more lessons" button** → should have a **transparent/ghost** background.
+4. **Journey view lacks the TopBar + bottom nav** in the app (it's a bare stack screen; web keeps the chrome).
+5. **Font sizes across the app** can be **increased slightly** (global bump).
+6. **Data fetching/caching optimisation** — lots of redundant `/api/progress` (and other) fetches across screens; introduce a shared cached store / SWR-style caching + dedupe. Significant optimisation scope.
