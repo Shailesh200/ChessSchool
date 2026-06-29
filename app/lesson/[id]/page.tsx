@@ -11,10 +11,13 @@ export const dynamic = "force-dynamic";
 
 export default async function LessonPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ hw?: string }>;
 }) {
   const { id } = await params;
+  const { hw } = await searchParams;
   const row = (await db.select().from(lessons).where(eq(lessons.id, id)).limit(1))[0];
   if (!row) notFound();
 
@@ -38,5 +41,12 @@ export default async function LessonPage({
     ? { id: owner.id, title: owner.title, lessonIds: owner.lessonIds }
     : undefined;
 
-  return <LessonPlayer lesson={lesson} nextLessonId={nextLessonId} lessonClass={lessonClass} />;
+  return (
+    <LessonPlayer
+      lesson={lesson}
+      nextLessonId={nextLessonId}
+      lessonClass={lessonClass}
+      homeworkStep={hw}
+    />
+  );
 }

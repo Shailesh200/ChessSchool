@@ -56,6 +56,7 @@ export function LessonPlayer({
   nextLessonId,
   lessonClass,
   schoolExam,
+  homeworkStep,
 }: {
   lesson: Lesson;
   nextLessonId?: string | null;
@@ -67,6 +68,8 @@ export function LessonPlayer({
   lessonClass?: { id: string; title: string; lessonIds: string[] };
   /** when set, this is a school exam — passing unlocks the next school */
   schoolExam?: { stage: string; nextName: string };
+  /** when launched from homework, which routine step to check off on completion */
+  homeworkStep?: string;
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -142,6 +145,18 @@ export function LessonPlayer({
     }
   }
 
+  // Check off the homework on completion: the specific routine step when launched
+  // from homework, otherwise the generic lesson/practice steps.
+  function markHomeworkDone() {
+    const day = isoDay();
+    if (homeworkStep) {
+      usePlan.getState().markActivity(homeworkStep, day);
+    } else {
+      usePlan.getState().markActivity("lesson", day);
+      usePlan.getState().markActivity("practice", day);
+    }
+  }
+
   function finish() {
     // Tutorials (no puzzles to solve) just mark done and flow to the next lesson —
     // no "lesson complete" celebration screen.
@@ -150,8 +165,7 @@ export function LessonPlayer({
       progression.recordLesson(lesson.id, 1, 1); // counts as completed
       progression.awardXp(lesson.xp);
       progression.registerActivity(isoDay());
-      usePlan.getState().markActivity("lesson", isoDay());
-      usePlan.getState().markActivity("practice", isoDay());
+      markHomeworkDone();
       const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
       startNav();
       router.push(nextId ? `/lesson/${nextId}` : "/");
@@ -165,8 +179,7 @@ export function LessonPlayer({
     progression.recordLesson(lesson.id, correct, interactive, wrongRef.current);
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());
-    usePlan.getState().markActivity("lesson", isoDay());
-    usePlan.getState().markActivity("practice", isoDay());
+    markHomeworkDone();
     const st = useProgression.getState();
     checkLessonAchievements(lesson.id, {
       mastered: Object.values(st.lessons).filter((l) => l.mastery >= 0.9).length,
