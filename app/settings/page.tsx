@@ -93,12 +93,12 @@ export default function SettingsPage() {
               aria-label="Bot difficulty"
             />
           </Row>
-          <div className="px-0.5 pt-1">
+          <Row label="Coach personality" hint="Tone of feedback">
             <Select
-              label="Coach personality"
+              className="w-40 shrink-0"
               options={[
-                { id: "friendly", title: "😊 Friendly Teacher" },
-                { id: "strict", title: "🎩 Strict Grandmaster" },
+                { id: "friendly", title: "😊 Friendly" },
+                { id: "strict", title: "🎩 Strict" },
                 { id: "mentor", title: "🧑‍🏫 Mentor" },
                 { id: "tactical", title: "⚔️ Tactical" },
                 { id: "minimal", title: "🔇 Minimal" },
@@ -106,7 +106,7 @@ export default function SettingsPage() {
               value={s.coachPersonality}
               onChange={(v) => s.set("coachPersonality", v as CoachPersonality)}
             />
-          </div>
+          </Row>
         </Card>
 
         {isAdmin && (

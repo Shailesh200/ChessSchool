@@ -20,6 +20,7 @@ export function Select({
   defaultValue,
   value: controlled,
   onChange,
+  className,
 }: {
   name?: string;
   label?: string;
@@ -28,6 +29,8 @@ export function Select({
   /** controlled value (omit for uncontrolled/form usage) */
   value?: string;
   onChange?: (value: string) => void;
+  /** extra classes on the root (e.g. a fixed width for inline use) */
+  className?: string;
 }) {
   const [internal, setInternal] = useState(defaultValue ?? options[0]?.id ?? "");
   const value = controlled ?? internal;
@@ -49,7 +52,7 @@ export function Select({
   const selected = options.find((o) => o.id === value);
 
   return (
-    <div ref={ref} className="relative flex flex-col gap-1">
+    <div ref={ref} className={cn("relative flex flex-col gap-1", className)}>
       {label && <span className="text-xs font-extrabold text-ink-700">{label}</span>}
       {name && <input type="hidden" name={name} value={value} />}
       <button
