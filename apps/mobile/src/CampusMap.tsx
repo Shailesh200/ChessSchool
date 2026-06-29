@@ -67,13 +67,16 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
   }, [stages]);
 
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [more, setMore] = useState<Record<string, number>>({});
   const isOpen = (id: string) => open[id] ?? id === defaultOpen;
   const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !isOpen(id) }));
+  const shownOf = (id: string) => more[id] ?? 6;
 
   return (
     <View style={{ gap: space[8] }}>
-      {stages.map((stage) => {
+      {stages.map((stage, i) => {
         const descriptor = stage.blurb.split("·")[1]?.trim();
+        const nextName = stages[i + 1]?.name;
         if (stage.locked) {
           return (
             <View key={stage.id} style={{ opacity: 0.7 }}>
@@ -109,7 +112,7 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
                     </Pressable>
                     {o ? (
                       <View style={{ gap: space[3] }}>
-                        {sem.classes.map((cls) => (
+                        {sem.classes.slice(0, shownOf(sem.id)).map((cls) => (
                           <ClassCard
                             key={cls.id}
                             cls={cls}
@@ -117,6 +120,11 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
                             onOpen={() => router.push({ pathname: "/class/[id]", params: { id: cls.id } })}
                           />
                         ))}
+                        {shownOf(sem.id) < sem.classes.length && (
+                          <Pressable style={styles.loadMore} onPress={() => setMore((m) => ({ ...m, [sem.id]: shownOf(sem.id) + 6 }))}>
+                            <Text style={styles.loadMoreText}>Show {Math.min(6, sem.classes.length - shownOf(sem.id))} more classes ▾</Text>
+                          </Pressable>
+                        )}
                       </View>
                     ) : (
                       <Pressable style={styles.teaser} onPress={() => toggle(sem.id)}>
@@ -127,6 +135,17 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
                 );
               })}
             </View>
+
+            {/* School exam — gateway to the next school */}
+            {!stage.cleared && nextName && (
+              <Pressable style={styles.examBtn} onPress={() => router.push({ pathname: "/class/[id]", params: { id: stage.semesters[0]?.classes[0]?.id ?? "" } })}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.examTitle}>📝 {stage.name} Exam</Text>
+                  <Text style={styles.examSub}>Pass to unlock {nextName} →</Text>
+                </View>
+                <Text style={{ fontSize: 20 }}>🎓</Text>
+              </Pressable>
+            )}
           </View>
         );
       })}
@@ -163,4 +182,9 @@ const styles = StyleSheet.create({
   endBanner: { borderRadius: radius.card, borderWidth: 1, borderStyle: "dashed", borderColor: colors.hairline, backgroundColor: colors.surfaceSunken, padding: space[4], alignItems: "center" },
   endTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
   endSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", marginTop: space[1] },
+  examBtn: { marginTop: space[4], flexDirection: "row", alignItems: "center", borderRadius: radius.card, borderWidth: 2, borderColor: "rgba(246,195,67,0.5)", backgroundColor: "#fdf6e0", paddingHorizontal: space[4], paddingVertical: space[3] },
+  examTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  examSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+  loadMore: { paddingVertical: space[3], alignItems: "center" },
+  loadMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
 });

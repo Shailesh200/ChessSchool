@@ -7,6 +7,8 @@ import { settings, useSettings } from "@/settings";
 import { isoDay } from "@/progression";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
+import { Button } from "@/Button";
+import { Slider } from "@/Slider";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
@@ -47,7 +49,7 @@ export default function PlanScreen() {
     api<{ byType: Record<string, Hw[]> }>("/api/homework").then((d) => setByType(d.byType ?? {})).catch(() => void 0);
   }, []);
 
-  const goal = PLAN_SPECS[s.planTier].goalXp;
+  const goal = s.planTier === "custom" ? s.customGoalXp : PLAN_SPECS[s.planTier].goalXp;
   const todayXp = Math.min(p.today, goal);
 
   async function setTier(tier: PlanTier) {
@@ -111,6 +113,17 @@ export default function PlanScreen() {
             })}
           </View>
           <Text style={styles.paceBlurb}>{PLAN_SPECS[s.planTier].blurb} · Goal: {goal} XP/day · {PLAN_SPECS[s.planTier].lessonsPerDay} lessons</Text>
+          {s.planTier === "custom" && (
+            <View style={{ marginTop: space[3] }}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.goalTitle}>Daily XP goal</Text>
+                <Text style={styles.muted}>{s.customGoalXp} XP</Text>
+              </View>
+              <View style={{ marginTop: space[2] }}>
+                <Slider value={s.customGoalXp} min={10} max={200} step={10} onChange={(v) => settings.set("customGoalXp", v)} />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Schedule */}
@@ -146,6 +159,9 @@ export default function PlanScreen() {
                 </Pressable>
               );
             })}
+          </View>
+          <View style={{ marginTop: space[3] }}>
+            <Button label="Start today's homework →" onPress={() => openRoutine("warmup")} />
           </View>
         </View>
       </ScrollView>

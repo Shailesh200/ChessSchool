@@ -14,6 +14,7 @@ export type Settings = {
   hints: boolean;
   targetElo: number;
   planTier: "casual" | "standard" | "serious" | "competitive" | "custom";
+  customGoalXp: number;
   schedule: "daily" | "weekdays" | "weekends";
   avatar: string;
   coachPersonality: string;
@@ -34,6 +35,7 @@ let state: Settings = {
   hints: true,
   targetElo: 600,
   planTier: "standard",
+  customGoalXp: 60,
   schedule: "daily",
   avatar: "🎓",
   coachPersonality: "friendly",
