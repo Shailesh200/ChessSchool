@@ -11,6 +11,7 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { SkillRadar } from "@/components/dashboard/SkillRadar";
 import { StreakHeatmap } from "@/components/dashboard/StreakHeatmap";
 import { ReportCard } from "@/components/dashboard/ReportCard";
+import { MistakeReview } from "@/components/dashboard/MistakeReview";
 import type { ReportClass } from "@/features/dashboard/reportCard";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const graduated = useProgression((s) => s.graduatedClasses);
   const streak = useProgression((s) => s.streak);
   const rating = useProgression((s) => s.rating);
+  const mistakeLog = useProgression((s) => s.mistakeLog);
   const activityDays = useProgression((s) => s.activityDays);
   const unlocked = useProgression((s) => s.unlockedAchievements);
   const [today] = useState(() => new Date());
@@ -181,6 +183,10 @@ export default function DashboardPage() {
               </Card>
             ))}
           </div>
+          <h3 className="mb-2 mt-3 text-xs font-extrabold uppercase tracking-wide text-ink-500">
+            Recent mistakes — tap to see the better move
+          </h3>
+          <MistakeReview mistakes={mistakeLog} />
         </section>
 
         {/* Trophy room */}

@@ -256,6 +256,15 @@ export function LessonPlayer({
     audio.play("fail");
     haptics.fire("error");
     if (step.tag) progression.recordWeakness(step.tag);
+    if (step.fen && step.solution?.[0]) {
+      progression.logMistake({
+        fen: step.fen,
+        played: `${move.from}:${move.to}`,
+        best: step.solution[0],
+        tag: step.tag ?? "",
+        at: Date.now(),
+      });
+    }
     timers.current.push(
       window.setTimeout(() => {
         setDisplayFen(step.fen);

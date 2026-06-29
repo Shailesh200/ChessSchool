@@ -3,6 +3,14 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
+export interface MistakeEntry {
+  fen: string;
+  played: string; // "from:to"
+  best: string; // "from:to"
+  tag: string;
+  at: number;
+}
+
 export interface LessonRecord {
   /** 0..1 mastery from spaced-repetition style scoring */
   mastery: number;
@@ -35,8 +43,11 @@ export interface ProgressionState {
   botWins: number;
   /** stage ids whose school exam has been passed (unlocks the next school) */
   schoolExamsPassed: string[];
+  /** recent mistakes (position + played + best) for the Mistake DNA detail */
+  mistakeLog: MistakeEntry[];
 
   reset: () => void;
+  logMistake: (m: MistakeEntry) => void;
   /** apply an ELO update after a bot game: score = 1 win / 0.5 draw / 0 loss */
   updateRating: (botElo: number, score: number) => void;
   passSchoolExam: (stage: string) => void;
@@ -109,6 +120,7 @@ const defaults = {
   rating: 800,
   botWins: 0,
   schoolExamsPassed: [] as string[],
+  mistakeLog: [] as MistakeEntry[],
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -131,6 +143,8 @@ export const useProgression = create<ProgressionState>()(
         set((s) =>
           s.schoolExamsPassed.includes(stage) ? s : { schoolExamsPassed: [...s.schoolExamsPassed, stage] },
         ),
+
+      logMistake: (m) => set((s) => ({ mistakeLog: [m, ...s.mistakeLog].slice(0, 30) })),
 
       awardXp: (amount) =>
         set((s) => {
