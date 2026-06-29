@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { semesters, classes, lessons, lessonRecords } from "@/db/schema";
+import { semesters, classes, lessons, lessonRecords, progress } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -24,8 +24,15 @@ export async function GET(req: Request) {
     db.select({ id: lessons.id, classId: lessons.classId }).from(lessons),
   ]);
   const mastery: Record<string, number> = {};
+  let examsPassed: string[] = [];
   if (user) {
     for (const r of await db.select().from(lessonRecords).where(eq(lessonRecords.userId, user.id))) mastery[r.lessonId] = r.mastery;
+    const prow = (await db.select({ data: progress.data }).from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
+    try {
+      examsPassed = (prow?.data ? (JSON.parse(prow.data).schoolExamsPassed as string[]) : []) ?? [];
+    } catch {
+      examsPassed = [];
+    }
   }
   const counts: Record<string, { done: number; total: number }> = {};
   for (const l of les) {
@@ -79,7 +86,7 @@ export async function GET(req: Request) {
 
   let prevCleared = true;
   for (const s of stages) {
-    const cleared = s.doneClasses >= s.totalClasses;
+    const cleared = s.doneClasses >= s.totalClasses || examsPassed.includes(s.id);
     (s as typeof s & { locked: boolean; cleared: boolean }).locked = !prevCleared;
     (s as typeof s & { locked: boolean; cleared: boolean }).cleared = cleared;
     prevCleared = cleared;

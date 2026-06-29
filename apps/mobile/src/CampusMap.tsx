@@ -138,7 +138,7 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
 
             {/* School exam — gateway to the next school */}
             {!stage.cleared && nextName && (
-              <Pressable style={styles.examBtn} onPress={() => router.push({ pathname: "/class/[id]", params: { id: stage.semesters[0]?.classes[0]?.id ?? "" } })}>
+              <Pressable style={styles.examBtn} onPress={() => router.push({ pathname: "/exam/school/[stage]", params: { stage: stage.id } })}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.examTitle}>📝 {stage.name} Exam</Text>
                   <Text style={styles.examSub}>Pass to unlock {nextName} →</Text>
