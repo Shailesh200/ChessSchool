@@ -90,11 +90,12 @@ export default function PlaySetupScreen() {
               </View>
               <View style={[styles.radio, styles.radioOn]}><View style={styles.radioDot} /></View>
             </Pressable>
-            <Pressable style={[styles.adaptive, { opacity: 0.5, marginBottom: 0 }]} disabled>
+            <Pressable style={[styles.adaptive, { marginBottom: 0 }]} onPress={() => router.push("/play/online")}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.adaptiveTitle}>🌐 Play online</Text>
-                <Text style={styles.adaptiveSub}>Share a link to play a friend · coming soon</Text>
+                <Text style={styles.adaptiveSub}>Create a game & share the code with a friend</Text>
               </View>
+              <Text style={{ fontSize: 18, color: colors.ink300 }}>›</Text>
             </Pressable>
           </View>
         )}
