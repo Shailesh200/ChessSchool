@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
+.turbo/
 /.pnp
 .pnp.*
 .yarn/*
@@ -14,7 +15,7 @@
 /coverage
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
@@ -49,3 +50,20 @@ local.db-wal
 lichess_db_puzzle.csv
 lichess_db_puzzle.csv.zst
 *.csv.zst
+
+# test + build artifacts
+test-results/
+*.tsbuildinfo
+.turbo/
+
+# expo
+.expo/
+apps/*/.expo/
+ios/
+android/
+*.orig.*
+
+# expo web export + parity harness output (build artifacts)
+apps/mobile/dist/
+parity-shots/
+apps/web/parity-shots/

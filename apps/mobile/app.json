@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "ChessSchool",
+    "slug": "chess-school",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "chessschool",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chessschool.app"
+    },
+    "android": {
+      "package": "com.chessschool.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-audio"
+    ]
+  }
+}
