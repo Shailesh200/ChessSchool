@@ -59,6 +59,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
 
   const engineRef = useRef<ChessEngine>(engineFromPgn(active.pgn));
   const [fen, setFen] = useState(active.fen);
+  const [pgn, setPgn] = useState(active.pgn);
   const [thinking, setThinking] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(
     active.lastFrom && active.lastTo
@@ -195,6 +196,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         if (applied) {
           setLastMove({ from: move.from, to: move.to });
           setFen(e.fen());
+          setPgn(e.pgn());
           audio.play(applied.captured ? "capture" : "move");
           if (e.inCheck()) audio.play("check");
           // The bot reacts to its own move (the bubble shows who's speaking).
@@ -257,6 +259,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       if (!applied) return false;
       setLastMove({ from: move.from, to: move.to });
       setFen(e.fen());
+      setPgn(e.pgn());
       audio.play(applied.captured ? "capture" : "move");
       if (applied.promotion) audio.play("promotion");
       if (e.inCheck()) audio.play("check");
@@ -311,7 +314,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const topAdv = mat.diff < 0 ? -mat.diff : 0;
 
   // View-only rewind/forward through the game's moves (doesn't change the game).
-  const frames = useMemo(() => framesFromPgn(engineRef.current.pgn()), [fen]);
+  const frames = useMemo(() => framesFromPgn(pgn), [pgn]);
   const [lastFen, setLastFen] = useState(fen);
   if (fen !== lastFen) {
     setLastFen(fen);
