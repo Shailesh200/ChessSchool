@@ -1,143 +1,131 @@
-import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChessEngine, getBotMove, eloToConfig } from "@chess-school/core";
-import { ChessBoard } from "@/ChessBoard";
-import { Cody, type CodyExpression } from "@/Cody";
-import { Button } from "@/Button";
-import { haptics } from "@/haptics";
-import { sfx } from "@/sfx";
+import { useRouter } from "expo-router";
 import { api } from "@/api";
-import { colors, font, radius } from "@/theme";
+import { Button } from "@/Button";
+import { colors, font, radius, space, type } from "@/theme";
 
-async function saveGame(moves: string[], result: "win" | "loss" | "draw", elo: number) {
-  try {
-    const cur = await api<Record<string, unknown>>("/api/progress");
-    const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-    const games = [{ moves, result, elo, at: Date.now() }, ...((snap.recentGames as unknown[]) ?? [])].slice(0, 20);
-    await api("/api/progress", { method: "POST", body: { ...snap, recentGames: games } });
-  } catch {
-    /* ignore */
-  }
+const ELOS = [300, 600, 900, 1200, 1600, 2000];
+const TIMES = [
+  { id: "none", label: "No clock" },
+  { id: "5", label: "5 min" },
+  { id: "10", label: "10 min" },
+  { id: "20", label: "20 min" },
+  { id: "30", label: "30 min" },
+];
+
+function personality(elo: number): string {
+  if (elo < 800) return "🙂 Cody · Casual beginner";
+  if (elo < 1100) return "🤔 Cody · Steady improver";
+  if (elo < 1500) return "😏 Cody · Sharp tactician";
+  return "😎 Cody · Seasoned master";
 }
 
-const ELOS = [600, 1000, 1400, 1800];
+export default function PlaySetupScreen() {
+  const router = useRouter();
+  const [rating, setRating] = useState(800);
+  const [mode, setMode] = useState<"bot" | "human">("bot");
+  const [adaptive, setAdaptive] = useState(false);
+  const [elo, setElo] = useState(600);
+  const [time, setTime] = useState("none");
 
-export default function PlayScreen() {
-  const { width } = useWindowDimensions();
-  const boardSize = Math.min(width - 32, 440);
-  const engineRef = useRef(new ChessEngine());
-  const [fen, setFen] = useState(engineRef.current.fen());
-  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
-  const [thinking, setThinking] = useState(false);
-  const [over, setOver] = useState<string | null>(null);
-  const [elo, setElo] = useState(1000);
-  const [mood, setMood] = useState<CodyExpression>("happy");
+  useEffect(() => {
+    api<{ rating: number }>("/api/progress").then((d) => setRating(d.rating ?? 800)).catch(() => void 0);
+  }, []);
 
-  function reset(newElo = elo) {
-    engineRef.current = new ChessEngine();
-    setFen(engineRef.current.fen());
-    setLastMove(null);
-    setOver(null);
-    setThinking(false);
-    setMood("happy");
-    setElo(newElo);
-  }
-
-  function checkOver(): boolean {
-    const e = engineRef.current;
-    if (!e.isGameOver()) return false;
-    const status = e.status();
-    const moves = e.history().map((m) => `${m.from}:${m.to}`);
-    if (status === "checkmate") {
-      const youWon = e.turn() === "b"; // side to move is mated
-      setOver(youWon ? "Checkmate — you win! 🏆" : "Checkmate — bot wins");
-      setMood(youWon ? "cheer" : "sad");
-      youWon ? haptics.success() : haptics.error();
-      youWon ? sfx.play("win") : sfx.play("error");
-      void saveGame(moves, youWon ? "win" : "loss", elo);
-    } else {
-      setOver("Draw");
-      setMood("happy");
-      void saveGame(moves, "draw", elo);
-    }
-    return true;
-  }
-
-  function handleMove(from: string, to: string): boolean {
-    const e = engineRef.current;
-    if (over || thinking || e.turn() !== "w") return false;
-    const applied = e.move({ from, to, promotion: "q" });
-    if (!applied) return false;
-    haptics.tap();
-    const h = e.history();
-    sfx.play(h[h.length - 1]?.captured ? "capture" : "move");
-    setFen(e.fen());
-    setLastMove({ from, to });
-    setMood("think");
-    if (checkOver()) return true;
-
-    setThinking(true);
-    setTimeout(async () => {
-      const mv = await getBotMove(e.fen(), eloToConfig(elo), Math.random());
-      if (mv) {
-        e.move(mv);
-        const bh = e.history();
-        sfx.play(bh[bh.length - 1]?.captured ? "capture" : "move");
-        setFen(e.fen());
-        setLastMove({ from: mv.from, to: mv.to });
-      }
-      setThinking(false);
-      if (!checkOver()) setMood("happy");
-    }, 350);
-    return true;
-  }
-
-  const status = over ?? (thinking ? "Bot is thinking…" : engineRef.current.turn() === "w" ? "Your move" : "");
+  const effectiveElo = adaptive ? rating : elo;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.header}>
-        <Cody expression={mood} size={56} />
-        <View style={{ flex: 1, marginLeft: 8 }}>
-          <Text style={styles.title}>Play vs Bot</Text>
-          <Text style={styles.status}>{status}</Text>
-        </View>
-      </View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.h1}>New match</Text>
 
-      <View style={styles.elos}>
-        {ELOS.map((e) => (
-          <Pressable key={e} onPress={() => reset(e)} style={[styles.elo, e === elo && styles.eloOn]}>
-            <Text style={[styles.eloText, e === elo && styles.eloTextOn]}>{e}</Text>
+        {/* Mode cards */}
+        <View style={styles.modeRow}>
+          <Pressable style={[styles.mode, mode === "bot" && styles.modeOn]} onPress={() => setMode("bot")}>
+            <Text style={styles.modeEmoji}>🤖</Text>
+            <Text style={styles.modeTitle}>vs Bot</Text>
+            <Text style={styles.modeSub}>Adaptive AI 300–2000</Text>
           </Pressable>
-        ))}
-      </View>
+          <Pressable style={[styles.mode, mode === "human" && styles.modeOn]} onPress={() => setMode("human")}>
+            <Text style={styles.modeEmoji}>👥</Text>
+            <Text style={styles.modeTitle}>vs Human</Text>
+            <Text style={styles.modeSub}>Two players, one device · or play online</Text>
+          </Pressable>
+        </View>
 
-      <View style={{ alignItems: "center", marginTop: 8 }}>
-        <ChessBoard
-          fen={fen}
-          size={boardSize}
-          onMove={handleMove}
-          interactive={!over && !thinking}
-          lastMove={lastMove}
-        />
-      </View>
+        {/* Opponent strength */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Opponent strength</Text>
+          <Pressable style={styles.adaptive} onPress={() => setAdaptive(true)}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adaptiveTitle}>🎯 Adaptive bot</Text>
+              <Text style={styles.adaptiveSub}>Matches your level (~{rating}) & adjusts as you play</Text>
+            </View>
+            <View style={[styles.radio, adaptive && styles.radioOn]}>{adaptive && <View style={styles.radioDot} />}</View>
+          </Pressable>
+          <View style={styles.pills}>
+            {ELOS.map((e) => {
+              const on = !adaptive && e === elo;
+              return (
+                <Pressable key={e} style={[styles.pill, on && styles.pillOn]} onPress={() => { setAdaptive(false); setElo(e); }}>
+                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{e}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.persona}>{personality(effectiveElo)}</Text>
+        </View>
 
-      <View style={{ marginTop: 18, width: 220, alignSelf: "center" }}>
-        <Button label={over ? "New game" : "Restart"} onPress={() => reset()} />
-      </View>
+        {/* Time control */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Time control</Text>
+          <View style={styles.pills}>
+            {TIMES.map((t) => {
+              const on = t.id === time;
+              return (
+                <Pressable key={t.id} style={[styles.pill, on && styles.pillOn]} onPress={() => setTime(t.id)}>
+                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={{ marginTop: space[2] }}>
+          <Button
+            label="Start match"
+            onPress={() => router.push({ pathname: "/play/game", params: { elo: String(effectiveElo), time } })}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 6 },
-  title: { fontSize: 20, fontFamily: font.bold, color: colors.ink },
-  status: { fontSize: 14, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
-  elos: { flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 10 },
-  elo: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken },
-  eloOn: { backgroundColor: colors.brand },
-  eloText: { fontFamily: font.bold, color: colors.ink500, fontSize: 13 },
-  eloTextOn: { color: "#fff" },
+  content: { padding: space[5], gap: space[4], paddingBottom: 40 },
+  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+  modeRow: { flexDirection: "row", gap: space[3] },
+  mode: { flex: 1, borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4] },
+  modeOn: { borderColor: colors.brand, backgroundColor: colors.brand50 },
+  modeEmoji: { fontSize: 26 },
+  modeTitle: { ...type.base, fontFamily: font.bold, color: colors.ink, marginTop: space[3] },
+  modeSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+  card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], shadowColor: "#1c1b2e", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  cardLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginBottom: space[3] },
+  adaptive: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.md, borderWidth: 1, borderColor: colors.hairline, padding: space[3], marginBottom: space[3] },
+  adaptiveTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  adaptiveSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.ink300, justifyContent: "center", alignItems: "center" },
+  radioOn: { borderColor: colors.brand },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.brand },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  pill: { paddingHorizontal: space[4], paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken },
+  pillOn: { backgroundColor: colors.brand },
+  pillText: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
+  pillTextOn: { color: "#fff" },
+  persona: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginTop: space[3] },
 });
