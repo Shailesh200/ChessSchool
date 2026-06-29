@@ -9,6 +9,7 @@ import { Icon } from "@/Icon";
 import { Button } from "@/Button";
 import { CampusMap, type CampusStage } from "@/CampusMap";
 import { TopBar } from "@/TopBar";
+import { useProgress, fetchProgress } from "@/progressStore";
 import { isoDay } from "@/progression";
 import { colors, font, radius, space, type } from "@/theme";
 
@@ -28,21 +29,20 @@ type Resume = {
 export default function LearnScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const [p, setP] = useState<Progress | null>(null);
+  const p = useProgress() as Progress | null;
   const [resume, setResume] = useState<Resume | null>(null);
   const [stages, setStages] = useState<CampusStage[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const [pr, rs, cp] = await Promise.all([
-        api<Progress>("/api/progress"),
+      const [rs, cp] = await Promise.all([
         api<Resume>("/api/next-lesson"),
         api<{ stages: CampusStage[] }>("/api/campus"),
       ]);
-      setP(pr);
       setResume(rs);
       setStages(cp.stages ?? []);
+      void fetchProgress(true);
     } catch {
       /* keep defaults */
     } finally {

@@ -1,8 +1,7 @@
-import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
-import { api } from "@/api";
+import { useRouter } from "expo-router";
+import { useProgress } from "@/progressStore";
 import { Cody } from "@/Cody";
 import { Icon } from "@/Icon";
 import { Button } from "@/Button";
@@ -18,15 +17,7 @@ const RESULT = {
 
 export default function ReviewScreen() {
   const router = useRouter();
-  const [games, setGames] = useState<Game[]>([]);
-
-  useFocusEffect(
-    useCallback(() => {
-      api<{ recentGames: Game[] }>("/api/progress")
-        .then((d) => setGames(d.recentGames ?? []))
-        .catch(() => void 0);
-    }, []),
-  );
+  const games = ((useProgress()?.recentGames as Game[]) ?? []);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>

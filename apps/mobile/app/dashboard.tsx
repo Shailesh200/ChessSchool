@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, Line, Polygon, Text as SvgText } from "react-native-svg";
 import { api } from "@/api";
+import { useProgress } from "@/progressStore";
 import { Icon } from "@/Icon";
 import { TopBar } from "@/TopBar";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -73,11 +74,10 @@ type Progress = { rating: number; streak: number; lessons: Record<string, { mast
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const [p, setP] = useState<Progress | null>(null);
+  const p = useProgress() as Progress | null;
   const [byTag, setByTag] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    api<Progress>("/api/progress").then(setP).catch(() => void 0);
     api<{ lessonsByTag: Record<string, string[]> }>("/api/curriculum-stats").then((d) => setByTag(d.lessonsByTag ?? {})).catch(() => void 0);
   }, []);
 

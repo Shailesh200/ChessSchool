@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { settings, useSettings } from "@/settings";
+import { useProgress } from "@/progressStore";
 import { isoDay } from "@/progression";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
@@ -39,13 +40,15 @@ type Hw = { id: string; title: string; tag: string };
 export default function PlanScreen() {
   const router = useRouter();
   const s = useSettings();
-  const [p, setP] = useState<{ today: number; streak: number; homeworkStreak: number }>({ today: 0, streak: 0, homeworkStreak: 0 });
+  const prog = useProgress();
+  const p = {
+    today: ((prog?.activityDays as Record<string, number>) ?? {})[isoDay()] ?? 0,
+    streak: (prog?.streak as number) ?? 0,
+    homeworkStreak: (prog?.homeworkStreak as number) ?? 0,
+  };
   const [byType, setByType] = useState<Record<string, Hw[]>>({});
 
   useEffect(() => {
-    api<{ streak: number; homeworkStreak: number; activityDays: Record<string, number> }>("/api/progress")
-      .then((d) => setP({ today: (d.activityDays ?? {})[isoDay()] ?? 0, streak: d.streak ?? 0, homeworkStreak: d.homeworkStreak ?? 0 }))
-      .catch(() => void 0);
     api<{ byType: Record<string, Hw[]> }>("/api/homework").then((d) => setByType(d.byType ?? {})).catch(() => void 0);
   }, []);
 

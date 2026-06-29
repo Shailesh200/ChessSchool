@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ACHIEVEMENTS } from "@chess-school/core";
 import { useAuth } from "@/auth";
-import { api } from "@/api";
+import { useProgress } from "@/progressStore";
 import { Cody } from "@/Cody";
 import { Icon, type IconName } from "@/Icon";
 import { TopBar } from "@/TopBar";
@@ -23,8 +22,8 @@ type Progress = {
 };
 
 const HUB: { icon: IconName; label: string; route: string }[] = [
-  { icon: "learn", label: "Library", route: "/classes" },
-  { icon: "profile", label: "My ID", route: "/dashboard" },
+  { icon: "learn", label: "Library", route: "/library" },
+  { icon: "profile", label: "My ID", route: "/account" },
   { icon: "chart", label: "Report Card", route: "/dashboard" },
   { icon: "calendar", label: "Homework", route: "/homework" },
   { icon: "journal", label: "Journal", route: "/journal" },
@@ -35,11 +34,7 @@ const HUB: { icon: IconName; label: string; route: string }[] = [
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [p, setP] = useState<Progress | null>(null);
-
-  useEffect(() => {
-    api<Progress>("/api/progress").then(setP).catch(() => void 0);
-  }, []);
+  const p = useProgress() as Progress | null;
 
   const xp = p?.xp ?? 0;
   const rating = p?.rating ?? 800;
