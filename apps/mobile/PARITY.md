@@ -207,3 +207,11 @@ NOT replicated: today-XP + `activityDays` heatmap (→ mobile daily-goal bar use
 
 ## More noted points (batch 5 — fix after the 26)
 27. **Themes not working in app** — match web parity for **app themes + board themes + chess piece themes** (ties to #22 settings sync; ensure each theme actually applies + persists per user).
+
+## RESOLUTION (autonomous cycle)
+All 27 backlog items addressed: polish batch (lesson/board/chrome/play/campus/homework/journey/font),
+shared cached progress store, per-user settings sync (themes verified), and the remaining new screens
+— Account, Library, Placement, Pass & play, **School exam**, and **Online PvP** (verified with two
+live clients). 20 unit tests added. Backend additions deployed additively (web e2e 9/9 each time).
+Left intentionally: #1 connector-line/zigzag misalignment (bug in web too — shared fix later);
+full web↔app settings sync (needs a small additive web change). See DELIVERY_REPORT.md.
