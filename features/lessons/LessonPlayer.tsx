@@ -368,8 +368,8 @@ export function LessonPlayer({
       </div>
 
       <div className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-        <div className="flex h-[4.75rem] items-center gap-3">
-          <Mascot expression={expression} size={56} float={false} />
+        <div className="flex h-[4.75rem] items-center gap-2">
+          <Mascot expression={expression} size={100} float={false} className="-my-3 shrink-0" />
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 6 }}

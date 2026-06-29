@@ -43,6 +43,8 @@ interface Voice {
   cutoff?: number;
   /** amount sent to the space/delay bus 0..1 */
   space?: number;
+  /** attack time in seconds (default 0.012 — raise for a soft, blooming onset) */
+  attack?: number;
 }
 
 // note helper (equal temperament, A4 = 440)
@@ -60,6 +62,7 @@ function chord(freqs: number[], opts: Partial<Voice>, stagger = 0): Voice[] {
     gain: opts.gain ?? 0.22,
     cutoff: opts.cutoff ?? 3200,
     space: opts.space ?? 0.25,
+    attack: opts.attack,
     delay: (opts.delay ?? 0) + i * stagger,
   }));
 }
@@ -71,21 +74,28 @@ const RECIPES: Record<SoundName, Voice[]> = {
     { freq: 98, type: "sine", dur: 0.09, gain: 0.18, cutoff: 1200 },
   ],
   capture: [
-    { freq: 150, type: "sawtooth", dur: 0.12, gain: 0.24, glideTo: 70, cutoff: 1400, space: 0.18 },
-    { freq: 300, type: "triangle", dur: 0.06, gain: 0.16, cutoff: 2200 },
+    // Cleaner thud (triangle, not buzzy sawtooth) + a soft click transient.
+    { freq: 165, type: "triangle", dur: 0.12, gain: 0.26, glideTo: 78, cutoff: 1600, space: 0.18 },
+    { freq: 340, type: "sine", dur: 0.05, gain: 0.13, cutoff: 2600 },
   ],
-  promotion: chord([N.C4!, N.E4!, N.G4!, N.C5!], { type: "triangle", dur: 0.34, gain: 0.18, space: 0.4 }, 0.06),
+  promotion: chord([N.C4!, N.E4!, N.G4!, N.C5!, N.E5!], { type: "triangle", dur: 0.34, gain: 0.17, space: 0.42, attack: 0.01 }, 0.06),
   check: [
     { freq: N.E5!, type: "sine", dur: 0.12, gain: 0.24, cutoff: 4000, space: 0.3 },
     { freq: N.B4!, type: "sine", dur: 0.14, gain: 0.2, delay: 0.05, space: 0.3 },
   ],
-  success: chord([N.C5!, N.E5!, N.G5!], { type: "sine", dur: 0.18, gain: 0.2, space: 0.35 }, 0.07),
-  fail: [
-    { freq: N.A3!, type: "sawtooth", dur: 0.26, gain: 0.2, glideTo: 110, cutoff: 1300, space: 0.2 },
+  // Bright, rewarding rising "ding!" with an octave sparkle on top.
+  success: [
+    ...chord([N.C5!, N.E5!, N.G5!], { type: "sine", dur: 0.2, gain: 0.2, space: 0.38, attack: 0.006 }, 0.045),
+    { freq: N.C6!, type: "sine", dur: 0.26, gain: 0.16, delay: 0.14, space: 0.5, attack: 0.006 },
   ],
-  reward: chord([N.E5!, N.A5!, N.C6!], { type: "triangle", dur: 0.24, gain: 0.2, space: 0.45 }, 0.08),
-  streak: chord([N.G4!, N.B4!, N.D5!, N.G5!], { type: "sine", dur: 0.2, gain: 0.18, space: 0.4 }, 0.06),
-  levelup: chord([N.C5!, N.G5!, N.C6!], { type: "sine", dur: 0.3, gain: 0.2, space: 0.5 }, 0.1),
+  // Gentle, non-punishing "aw" — soft descending pair, no harsh sawtooth.
+  fail: [
+    { freq: N.E4!, type: "triangle", dur: 0.2, gain: 0.16, glideTo: N.C4!, cutoff: 1500, space: 0.14, attack: 0.02 },
+    { freq: N.C4!, type: "sine", dur: 0.24, gain: 0.12, delay: 0.09, glideTo: N.A3!, cutoff: 1200, space: 0.16, attack: 0.02 },
+  ],
+  reward: chord([N.E5!, N.A5!, N.C6!, N.E6!], { type: "triangle", dur: 0.24, gain: 0.18, space: 0.48, attack: 0.008 }, 0.07),
+  streak: chord([N.G4!, N.B4!, N.D5!, N.G5!], { type: "sine", dur: 0.2, gain: 0.18, space: 0.42, attack: 0.008 }, 0.06),
+  levelup: chord([N.C5!, N.G5!, N.C6!, N.E6!], { type: "sine", dur: 0.32, gain: 0.18, space: 0.52, attack: 0.01 }, 0.09),
   unlock: [
     { freq: N.G4!, type: "triangle", dur: 0.12, gain: 0.2, space: 0.3 },
     { freq: N.C5!, type: "triangle", dur: 0.2, gain: 0.22, delay: 0.08, space: 0.4 },
@@ -100,7 +110,8 @@ const RECIPES: Record<SoundName, Voice[]> = {
   ],
   victory: [
     ...chord([N.C5!, N.E5!, N.G5!], { type: "triangle", dur: 0.16, gain: 0.2, space: 0.4 }, 0.05),
-    { freq: N.C6!, type: "sine", dur: 0.5, gain: 0.22, delay: 0.2, space: 0.6 },
+    { freq: N.C6!, type: "sine", dur: 0.5, gain: 0.22, delay: 0.2, space: 0.6, attack: 0.01 },
+    { freq: N.E6!, type: "sine", dur: 0.4, gain: 0.14, delay: 0.34, space: 0.6, attack: 0.01 },
   ],
   ambience: chord([N.C3!, N.G3!, N.C4!, N.E4!], { type: "sine", dur: 1.6, gain: 0.06, cutoff: 1400, space: 0.7 }),
   transition: [{ freq: N.A4!, type: "sine", dur: 0.08, gain: 0.12, glideTo: N.E5!, cutoff: 3000, space: 0.2 }],
@@ -174,7 +185,7 @@ class AudioEngine {
 
     const env = this.ctx.createGain();
     env.gain.setValueAtTime(0.0001, start);
-    env.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), start + 0.012);
+    env.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), start + (v.attack ?? 0.012));
     env.gain.exponentialRampToValueAtTime(0.0001, start + v.dur);
 
     const filter = this.ctx.createBiquadFilter();
