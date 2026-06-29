@@ -24,6 +24,7 @@ export const sfx = {
         p = createAudioPlayer(SOURCES[name]);
         players[name] = p;
       }
+      p.volume = settings.get().volume;
       p.seekTo(0);
       p.play();
     } catch {

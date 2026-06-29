@@ -4,11 +4,33 @@ import * as SecureStore from "expo-secure-store";
 import type { PieceThemeId } from "./Piece";
 
 export type BoardTheme = "classic" | "green" | "wood";
-export type Settings = { haptics: boolean; sound: boolean; reducedMotion: boolean; boardTheme: BoardTheme; pieceTheme: PieceThemeId };
+export type Settings = {
+  haptics: boolean;
+  sound: boolean;
+  volume: number;
+  reducedMotion: boolean;
+  highContrast: boolean;
+  colorblind: boolean;
+  hints: boolean;
+  targetElo: number;
+  boardTheme: BoardTheme;
+  pieceTheme: PieceThemeId;
+};
 
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
-let state: Settings = { haptics: true, sound: true, reducedMotion: false, boardTheme: "classic", pieceTheme: "classic" };
+let state: Settings = {
+  haptics: true,
+  sound: true,
+  volume: 0.8,
+  reducedMotion: false,
+  highContrast: false,
+  colorblind: false,
+  hints: true,
+  targetElo: 600,
+  boardTheme: "classic",
+  pieceTheme: "classic",
+};
 const listeners = new Set<() => void>();
 
 function emit() {
