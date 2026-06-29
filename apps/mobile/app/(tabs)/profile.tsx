@@ -7,26 +7,30 @@ import { useAuth } from "@/auth";
 import { api } from "@/api";
 import { Cody } from "@/Cody";
 import { Icon, type IconName } from "@/Icon";
-import { colors, font, radius, shadowCard } from "@/theme";
+import { TopBar } from "@/TopBar";
+import { levelForXp, rankForClasses } from "@/progress-utils";
+import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
-type Mistake = { fen: string; played: string; best: string; tag: string };
+type Lesson = { mastery: number };
 type Progress = {
-  rating: number;
   xp: number;
+  rating: number;
   streak: number;
   unlockedAchievements: string[];
-  mistakeLog: Mistake[];
+  graduatedClasses: string[];
+  lessons: Record<string, Lesson>;
+  weaknesses: Record<string, number>;
 };
 
-function ratingTitle(r: number): string {
-  if (r >= 2000) return "Master";
-  if (r >= 1600) return "Expert";
-  if (r >= 1300) return "Advanced";
-  if (r >= 1000) return "Intermediate";
-  if (r >= 700) return "Improver";
-  return "Beginner";
-}
-const fmt = (m: string) => m.replace(":", "→");
+const HUB: { icon: IconName; label: string; route: string }[] = [
+  { icon: "learn", label: "Library", route: "/classes" },
+  { icon: "profile", label: "My ID", route: "/settings" },
+  { icon: "chart", label: "Report Card", route: "/journal" },
+  { icon: "calendar", label: "Homework", route: "/homework" },
+  { icon: "journal", label: "Journal", route: "/journal" },
+  { icon: "palette", label: "Themes", route: "/settings" },
+  { icon: "gear", label: "Settings", route: "/settings" },
+];
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -37,49 +41,63 @@ export default function ProfileScreen() {
     api<Progress>("/api/progress").then(setP).catch(() => void 0);
   }, []);
 
-  const unlocked = new Set(p?.unlockedAchievements ?? []);
+  const xp = p?.xp ?? 0;
   const rating = p?.rating ?? 800;
+  const graduated = p?.graduatedClasses?.length ?? 0;
+  const rank = rankForClasses(graduated);
+  const level = levelForXp(xp);
+  const mastered = Object.values(p?.lessons ?? {}).filter((l) => l.mastery >= 0.9).length;
+  const unlocked = new Set(p?.unlockedAchievements ?? []);
+  const weakTags = Object.entries(p?.weaknesses ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.h1}>Report Card</Text>
-          <Pressable testID="open-settings" onPress={() => router.push("/settings")} hitSlop={10}>
-            <Icon name="gear" size={24} color={colors.ink500} />
-          </Pressable>
-        </View>
-
         {/* ID card */}
         <View style={styles.idCard}>
-          <Cody expression="happy" size={76} />
-          <View style={{ flex: 1, marginLeft: 8 }}>
+          <Cody expression="happy" size={72} />
+          <View style={{ flex: 1, marginLeft: space[2] }}>
             <Text style={styles.name}>{user?.name}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>
-                {rating} · {ratingTitle(rating)}
-              </Text>
-            </View>
+            <Text style={styles.idSub}>{rank} · Level {level} · {xp} XP</Text>
           </View>
         </View>
 
-        {/* Quick stats */}
-        <View style={styles.row}>
-          <Stat label="Rating" value={`${rating}`} />
-          <Stat label="Streak" value={`${p?.streak ?? 0}`} />
-          <Stat label="Badges" value={`${unlocked.size}`} />
+        {/* Hub grid */}
+        <View style={styles.hub}>
+          {HUB.map((h) => (
+            <Pressable key={h.label} style={styles.hubCard} testID={`hub-${h.label}`} onPress={() => router.push(h.route as never)}>
+              <Icon name={h.icon} size={22} color={colors.brand} duotone />
+              <Text style={styles.hubLabel}>{h.label}</Text>
+            </Pressable>
+          ))}
         </View>
 
-        {/* Hub menu */}
-        <View style={styles.menu}>
-          <MenuRow icon="journal" label="Journal" onPress={() => router.push("/journal")} />
-          <MenuRow icon="calendar" label="Today's homework" onPress={() => router.push("/homework")} />
-          <MenuRow icon="learn" label="Browse all classes" onPress={() => router.push("/classes")} />
-          <MenuRow icon="gear" label="Settings & themes" onPress={() => router.push("/settings")} last />
+        {/* Stat tiles 2x2 */}
+        <View style={styles.stats}>
+          <Stat icon="flame" tint={colors.accent} value={`${p?.streak ?? 0}`} label="Day streak" />
+          <Stat icon="check" tint={colors.success} value={`${mastered}`} label="Lessons mastered" />
+          <Stat icon="target" tint={colors.brand} value={`${rating}`} label="Rating" />
+          <Stat icon="trophy" tint={colors.gold} value={`${unlocked.size}`} label="Badges" />
         </View>
 
-        {/* Achievements (shared ACHIEVEMENTS from @chess-school/core) */}
+        {/* Learning profile */}
+        <Text style={styles.h2}>Learning profile</Text>
+        <View style={styles.card}>
+          {weakTags.length === 0 ? (
+            <Text style={styles.muted}>No weak spots yet — keep playing and I'll track what to review.</Text>
+          ) : (
+            <View style={styles.tagRow}>
+              {weakTags.map(([tag, n]) => (
+                <View key={tag} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag} · {n}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Achievements */}
         <Text style={styles.h2}>Achievements</Text>
         <View style={styles.badges}>
           {ACHIEVEMENTS.map((a) => {
@@ -87,29 +105,11 @@ export default function ProfileScreen() {
             return (
               <View key={a.id} style={[styles.badge, has ? styles.badgeOn : styles.badgeOff]}>
                 <Text style={{ fontSize: 24, opacity: has ? 1 : 0.4 }}>{a.emoji}</Text>
-                <Text style={styles.badgeTitle} numberOfLines={1}>
-                  {a.title}
-                </Text>
+                <Text style={styles.badgeTitle} numberOfLines={1}>{a.title}</Text>
               </View>
             );
           })}
         </View>
-
-        {/* Recent mistakes */}
-        <Text style={styles.h2}>Recent mistakes</Text>
-        {p?.mistakeLog?.length ? (
-          p.mistakeLog.slice(0, 6).map((m, i) => (
-            <View key={i} style={styles.mistake}>
-              <Text style={styles.mistakeTag}>{m.tag || "mistake"}</Text>
-              <Text style={styles.mistakeText}>
-                you played <Text style={{ color: colors.danger }}>{fmt(m.played)}</Text> · better{" "}
-                <Text style={{ color: colors.success }}>{fmt(m.best)}</Text>
-              </Text>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.empty}>No mistakes logged yet — they’ll show here as you play lessons.</Text>
-        )}
 
         <Pressable style={styles.logout} onPress={logout}>
           <Text style={styles.logoutText}>Log out</Text>
@@ -119,53 +119,40 @@ export default function ProfileScreen() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ icon, tint, value, label }: { icon: IconName; tint: string; value: string; label: string }) {
   return (
     <View style={styles.stat}>
+      <Icon name={icon} size={18} color={tint} />
       <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
-  );
-}
-
-function MenuRow({ icon, label, onPress, last }: { icon: IconName; label: string; onPress: () => void; last?: boolean }) {
-  return (
-    <Pressable style={[styles.menuRow, !last && styles.menuDivider]} onPress={onPress}>
-      <Icon name={icon} size={20} color={colors.brand} duotone />
-      <Text style={styles.menuLabel}>{label}</Text>
-      <Icon name="chevronRight" size={18} color={colors.ink300} />
-    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: 20, paddingBottom: 40 },
-  menu: { marginTop: 16, backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: 16, ...shadowCard },
-  menuRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 15 },
-  menuDivider: { borderBottomWidth: 1, borderBottomColor: colors.hairline },
-  menuLabel: { flex: 1, fontSize: 15, fontFamily: font.bold, color: colors.ink },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  h1: { fontSize: 22, fontFamily: font.bold, color: colors.ink },
-  h2: { fontSize: 15, fontFamily: font.bold, color: colors.ink, marginTop: 24, marginBottom: 10 },
-  idCard: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: 16, ...shadowCard },
-  name: { fontSize: 20, fontFamily: font.bold, color: colors.ink },
-  email: { fontSize: 13, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
-  pill: { alignSelf: "flex-start", marginTop: 8, backgroundColor: colors.brand50, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5 },
-  pillText: { color: colors.brand, fontFamily: font.bold, fontSize: 13 },
-  row: { flexDirection: "row", gap: 10, marginTop: 14 },
-  stat: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.md, paddingVertical: 14, alignItems: "center", ...shadowCard },
-  statValue: { fontSize: 20, fontFamily: font.bold, color: colors.ink },
-  statLabel: { fontSize: 11, fontFamily: font.medium, color: colors.ink500, marginTop: 2 },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  badge: { width: "30.5%", borderRadius: radius.md, paddingVertical: 14, alignItems: "center", borderWidth: 1 },
-  badgeOn: { backgroundColor: "#fff7e0", borderColor: colors.gold },
-  badgeOff: { backgroundColor: colors.surfaceSunken, borderColor: colors.hairline },
-  badgeTitle: { fontSize: 10, fontFamily: font.semibold, color: colors.ink, marginTop: 4, textAlign: "center" },
-  mistake: { backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.hairline },
-  mistakeTag: { fontSize: 11, fontFamily: font.bold, color: colors.ink, textTransform: "capitalize" },
-  mistakeText: { fontSize: 13, fontFamily: font.medium, color: colors.ink500, marginTop: 2 },
-  empty: { fontSize: 13, fontFamily: font.medium, color: colors.ink500 },
-  logout: { marginTop: 28, alignSelf: "center", borderWidth: 1, borderColor: colors.danger, borderRadius: radius.md, paddingVertical: 13, paddingHorizontal: 44 },
+  content: { padding: space[5], gap: space[5], paddingBottom: 40 },
+  idCard: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
+  name: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+  idSub: { ...type.sm, fontFamily: font.semibold, color: colors.brand, marginTop: 2 },
+  hub: { flexDirection: "row", flexWrap: "wrap", gap: space[3] },
+  hubCard: { width: "31%", alignItems: "center", gap: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingVertical: space[4], ...shadowCard },
+  hubLabel: { ...type.xs, fontFamily: font.bold, color: colors.ink },
+  stats: { flexDirection: "row", flexWrap: "wrap", gap: space[3] },
+  stat: { width: "47.5%", alignItems: "center", backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingVertical: space[4], gap: 4, ...shadowCard },
+  statValue: { ...type["2xl"], fontFamily: font.bold, color: colors.ink },
+  statLabel: { ...type.xs, fontFamily: font.semibold, color: colors.ink500 },
+  h2: { ...type.base, fontFamily: font.bold, color: colors.ink },
+  card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
+  muted: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: 20 },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  tag: { backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 6 },
+  tagText: { ...type.xs, fontFamily: font.bold, color: colors.ink700, textTransform: "capitalize" },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  badge: { width: "31.5%", alignItems: "center", borderRadius: radius.md, paddingVertical: space[3], gap: 4 },
+  badgeOn: { backgroundColor: colors.brand50 },
+  badgeOff: { backgroundColor: colors.surfaceSunken },
+  badgeTitle: { ...type.caption, fontFamily: font.bold, color: colors.ink },
+  logout: { alignSelf: "center", borderWidth: 1, borderColor: colors.danger, borderRadius: radius.md, paddingVertical: 13, paddingHorizontal: 44 },
   logoutText: { color: colors.danger, fontFamily: font.bold, fontSize: 15 },
 });

@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/api";
 import { Icon } from "@/Icon";
+import { TopBar } from "@/TopBar";
 import { colors, font, radius, shadowCard } from "@/theme";
 
 type Game = { moves: string[]; result: "win" | "loss" | "draw"; elo: number; at: number };
@@ -27,6 +28,7 @@ export default function ReviewScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.h1}>Review</Text>
         {games.length === 0 ? (

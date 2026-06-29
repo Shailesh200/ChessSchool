@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { Button } from "@/Button";
+import { TopBar } from "@/TopBar";
 import { colors, font, radius, space, type } from "@/theme";
 
 const ELOS = [300, 600, 900, 1200, 1600, 2000];
@@ -38,6 +39,7 @@ export default function PlaySetupScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.h1}>New match</Text>
 

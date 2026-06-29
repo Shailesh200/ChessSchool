@@ -8,6 +8,7 @@ import { Cody } from "@/Cody";
 import { Icon } from "@/Icon";
 import { Button } from "@/Button";
 import { CampusMap, type CampusStage } from "@/CampusMap";
+import { TopBar } from "@/TopBar";
 import { colors, font, radius, space, type } from "@/theme";
 
 type Progress = { xp: number; streak: number; dailyGoalXp: number; rating: number; lessons: Record<string, unknown> };
@@ -59,6 +60,7 @@ export default function LearnScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.brand} />}
