@@ -11,6 +11,7 @@ import { Confetti } from "@/Confetti";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
+import { progressStore } from "@/progressStore";
 import { applyLessonComplete, type Mistake } from "@/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
@@ -116,6 +117,7 @@ export default function LessonScreen() {
       const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
       const next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
       await api("/api/progress", { method: "POST", body: next });
+      progressStore.set(next);
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch {

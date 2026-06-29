@@ -8,6 +8,7 @@ import { Icon } from "@/Icon";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
+import { progressStore } from "@/progressStore";
 import { applyMatchEnd } from "@/progression";
 import { colors, font, radius, space, type } from "@/theme";
 
@@ -48,7 +49,9 @@ async function saveGame(moves: string[], result: "win" | "loss" | "draw", elo: n
     const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
     const next = applyMatchEnd(snap, { botElo: elo, result });
     const games = [{ moves, result, elo, at: Date.now() }, ...((next.recentGames as unknown[]) ?? [])].slice(0, 20);
-    await api("/api/progress", { method: "POST", body: { ...next, recentGames: games } });
+    const body = { ...next, recentGames: games };
+    await api("/api/progress", { method: "POST", body });
+    progressStore.set(body);
   } catch {
     /* ignore */
   }

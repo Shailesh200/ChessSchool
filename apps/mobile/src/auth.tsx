@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, setToken, clearToken, getToken } from "./api";
+import { progressStore } from "./progressStore";
 
 export type User = { id: string; name: string; email: string; role: string };
 
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password },
     });
     await setToken(token);
+    progressStore.clear();
     setUser(user);
   };
 
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     await clearToken();
+    progressStore.clear();
     setUser(null);
   };
 

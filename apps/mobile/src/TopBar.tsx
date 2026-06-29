@@ -1,7 +1,6 @@
-import { useCallback, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { api } from "./api";
+import { useEffect, useRef } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
+import { useProgress } from "./progressStore";
 import { Icon } from "./Icon";
 import { colors, font, radius, space, type } from "./theme";
 
@@ -19,34 +18,35 @@ function levelInfo(xp: number): { level: number; into: number; need: number } {
 }
 
 export function TopBar() {
-  const [d, setD] = useState({ xp: 0, streak: 0, graduated: 0 });
+  const d = useProgress();
+  const xp = (d?.xp as number) ?? 0;
+  const streak = (d?.streak as number) ?? 0;
+  const graduated = ((d?.graduatedClasses as string[]) ?? []).length;
+  const { level, into, need } = levelInfo(xp);
+  const pct = need > 0 ? into / need : 0;
 
-  useFocusEffect(
-    useCallback(() => {
-      api<{ xp: number; streak: number; graduatedClasses: string[] }>("/api/progress")
-        .then((p) => setD({ xp: p.xp ?? 0, streak: p.streak ?? 0, graduated: (p.graduatedClasses ?? []).length }))
-        .catch(() => void 0);
-    }, []),
-  );
+  const w = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(w, { toValue: pct, duration: 600, useNativeDriver: false }).start();
+  }, [pct, w]);
 
-  const { level, into, need } = levelInfo(d.xp);
   return (
     <View style={styles.bar}>
       <View style={styles.side}>
         <Icon name="flame" size={20} color={colors.accent} />
-        <Text style={styles.num}>{d.streak}</Text>
+        <Text style={styles.num}>{streak}</Text>
       </View>
       <View style={styles.mid}>
         <View style={styles.lpill}>
           <Text style={styles.ltext}>L{level}</Text>
         </View>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: `${(into / need) * 100}%` }]} />
+          <Animated.View style={[styles.fill, { width: w.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]} />
         </View>
       </View>
       <View style={styles.gpill}>
         <Icon name="cap" size={16} color={colors.gold} />
-        <Text style={styles.num}>{d.graduated}</Text>
+        <Text style={styles.num}>{graduated}</Text>
       </View>
     </View>
   );
