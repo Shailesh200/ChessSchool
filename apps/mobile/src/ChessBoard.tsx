@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import Svg, { G, Line, Polygon } from "react-native-svg";
 import { ChessEngine } from "@chess-school/core";
 import { colors } from "./theme";
@@ -18,7 +18,8 @@ function AnimatedPiece({ type, color, size, gid, themeId, delta, animKey }: { ty
   const t = useRef(new Animated.ValueXY(delta)).current;
   useEffect(() => {
     t.setValue(delta);
-    Animated.timing(t, { toValue: ZERO, duration: 180, useNativeDriver: true }).start();
+    // Match web (react-chessboard) tween: ~220ms ease-out.
+    Animated.timing(t, { toValue: ZERO, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animKey]);
   return (

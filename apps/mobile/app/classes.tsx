@@ -4,7 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { Icon } from "@/Icon";
-import { colors, font, radius, shadowCard } from "@/theme";
+import { TopBar } from "@/TopBar";
+import { BackButton } from "@/BackButton";
+import { colors, font, radius, shadowCard, space } from "@/theme";
 
 type Sem = { id: string; title: string; stage: string };
 type Cls = { id: string; title: string; emoji: string; blurb: string; semesterId: string };
@@ -26,10 +28,9 @@ export default function ClassesScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.close}>✕</Text>
-        </Pressable>
+        <BackButton />
         <Text style={styles.h1}>All classes</Text>
       </View>
 
@@ -68,8 +69,7 @@ export default function ClassesScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8 },
-  close: { fontSize: 20, color: colors.ink500, fontFamily: font.bold },
+  header: { paddingHorizontal: 20, paddingTop: space[2], paddingBottom: space[2], gap: space[2] },
   h1: { fontSize: 22, fontFamily: font.bold, color: colors.ink },
   content: { paddingHorizontal: 20, paddingBottom: 30 },
   semTitle: { fontSize: 13, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginBottom: 8 },

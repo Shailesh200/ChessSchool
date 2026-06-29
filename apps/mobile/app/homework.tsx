@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { settings, useSettings } from "@/settings";
 import { isoDay } from "@/progression";
+import { TopBar } from "@/TopBar";
+import { BackButton } from "@/BackButton";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
@@ -70,9 +72,10 @@ export default function PlanScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
+          <BackButton />
           <Text style={styles.h1}>Homework</Text>
         </View>
 
@@ -153,8 +156,7 @@ export default function PlanScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   content: { padding: space[5], gap: space[5], paddingBottom: 40 },
-  header: { flexDirection: "row", alignItems: "center", gap: space[3] },
-  close: { fontSize: 20, color: colors.ink500, fontFamily: font.bold },
+  header: { gap: space[2] },
   h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
   h2: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginBottom: space[2] },
   card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },

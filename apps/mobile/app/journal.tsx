@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { ChessBoard } from "@/ChessBoard";
 import { Icon } from "@/Icon";
-import { colors, font, radius, shadowCard } from "@/theme";
+import { TopBar } from "@/TopBar";
+import { BackButton } from "@/BackButton";
+import { colors, font, radius, shadowCard, space } from "@/theme";
 
 type Mistake = { fen: string; played: string; best: string; tag: string };
 
 export default function JournalScreen() {
-  const router = useRouter();
   const [mistakes, setMistakes] = useState<Mistake[]>([]);
 
   useEffect(() => {
@@ -21,10 +21,9 @@ export default function JournalScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.close}>✕</Text>
-        </Pressable>
+        <BackButton />
         <Text style={styles.h1}>Journal</Text>
       </View>
 
@@ -58,8 +57,7 @@ export default function JournalScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
-  header: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8 },
-  close: { fontSize: 20, color: colors.ink500, fontFamily: font.bold },
+  header: { paddingHorizontal: 20, paddingTop: space[2], gap: space[2] },
   h1: { fontSize: 22, fontFamily: font.bold, color: colors.ink },
   empty: { alignItems: "center", marginTop: 60, paddingHorizontal: 30 },
   emptyText: { textAlign: "center", marginTop: 12, fontSize: 14, fontFamily: font.medium, color: colors.ink500, lineHeight: 20 },

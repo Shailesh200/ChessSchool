@@ -1,9 +1,10 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { settings, useSettings, BOARD_THEMES, type BoardTheme } from "@/settings";
 import { Piece, PIECE_THEMES } from "@/Piece";
 import { Slider } from "@/Slider";
+import { TopBar } from "@/TopBar";
+import { BackButton } from "@/BackButton";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 const THEMES: { id: BoardTheme; label: string }[] = [
@@ -14,18 +15,14 @@ const THEMES: { id: BoardTheme; label: string }[] = [
 const track = { true: colors.brand, false: colors.surfaceSunken };
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const s = useSettings();
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={styles.close}>✕</Text>
-          </Pressable>
-          <Text style={styles.h1}>Settings</Text>
-        </View>
+        <BackButton />
+        <Text style={styles.h1}>Settings</Text>
 
         <Text style={styles.section}>Sound & feel</Text>
         <View style={styles.card}>
@@ -130,9 +127,7 @@ const Divider = () => <View style={styles.divider} />;
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   content: { padding: space[5] },
-  header: { flexDirection: "row", alignItems: "center", gap: space[3], marginBottom: space[2] },
-  close: { fontSize: 20, color: colors.ink500, fontFamily: font.bold },
-  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink, marginTop: space[3], marginBottom: space[1] },
   section: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginTop: space[5], marginBottom: space[2] },
   card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], ...shadowCard },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: space[3] },

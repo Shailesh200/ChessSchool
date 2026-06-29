@@ -35,7 +35,7 @@ export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const boardSize = Math.min(width - 24, 430);
+  const boardSize = Math.min(width - 16, 470);
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [index, setIndex] = useState(0);
@@ -106,6 +106,8 @@ export default function LessonScreen() {
 
   async function finish() {
     setPhase("complete");
+    haptics.success();
+    sfx.play("win");
     const moveSteps = lesson!.steps.filter((st) => st.kind === "move").length;
     const total = moveSteps || 1;
     const correct = moveSteps === 0 ? 1 : correctRef.current;
@@ -163,14 +165,19 @@ export default function LessonScreen() {
             <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} />
           </View>
           <View style={{ marginTop: space[6], width: 280, gap: space[2] }}>
-            {nextId ? (
-              <>
-                <Button label="Continue learning →" variant="success" onPress={() => router.replace({ pathname: "/lesson/[id]", params: { id: nextId } })} />
-                <Button label="Back to campus" variant="outline" onPress={() => router.back()} />
-              </>
-            ) : (
-              <Button label="Back to academy" variant="success" onPress={() => router.back()} />
-            )}
+            <Button
+              label={nextId ? "Continue learning →" : "Back to academy"}
+              variant="success"
+              onPress={() => (nextId ? router.replace({ pathname: "/lesson/[id]", params: { id: nextId } }) : router.back())}
+            />
+            <View style={{ flexDirection: "row", gap: space[2] }}>
+              <View style={{ flex: 1 }}>
+                <Button label="📝 Reflect" variant="outline" size="sm" onPress={() => router.replace("/journal")} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button label="Back to campus" variant="outline" size="sm" onPress={() => router.back()} />
+              </View>
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -212,6 +219,12 @@ export default function LessonScreen() {
 
       {/* Board fills the remaining space, centered */}
       <View style={styles.boardWrap}>
+        {step.kind === "move" && phase === "playing" && (
+          <View style={styles.turnRow}>
+            <View style={[styles.turnDot, { backgroundColor: (displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? colors.ink : "#fff" }]} />
+            <Text style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
+          </View>
+        )}
         <ChessBoard
           fen={displayFen ?? step.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"}
           size={boardSize}
@@ -263,13 +276,16 @@ const styles = StyleSheet.create({
   bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: 18, paddingVertical: 16, ...shadowCard },
   bubbleText: { fontSize: 17, fontFamily: font.bold, color: colors.ink, lineHeight: 24 },
   boardWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
-  hintBar: { marginHorizontal: 16, backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingVertical: 12, paddingHorizontal: 16, alignItems: "center", ...shadowCard },
-  hintText: { fontSize: 13, fontFamily: font.semibold, color: colors.ink500 },
+  hintBar: { marginHorizontal: 16, backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 18, alignItems: "center", ...shadowCard },
+  hintText: { fontSize: 15, fontFamily: font.semibold, color: colors.ink500 },
+  turnRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2] },
+  turnDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: colors.ink300 },
+  turnText: { fontSize: 13, fontFamily: font.bold, color: colors.ink500 },
   bottom: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, minHeight: 64, justifyContent: "center" },
   moveCue: { textAlign: "center", fontSize: 14, fontFamily: font.semibold, color: colors.ink500 },
   doneTitle: { ...type["3xl"], fontFamily: font.bold, color: colors.ink, marginTop: 16 },
-  pills: { flexDirection: "row", gap: space[3], marginTop: space[4] },
-  pill: { backgroundColor: colors.surfaceCard, borderRadius: radius.md, borderWidth: 1, borderColor: colors.hairline, paddingVertical: space[2], paddingHorizontal: space[3], alignItems: "center", minWidth: 84 },
-  pillValue: { ...type.xl, fontFamily: font.bold },
-  pillLabel: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+  pills: { flexDirection: "row", gap: space[2], marginTop: space[4] },
+  pill: { backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3], paddingHorizontal: space[4], alignItems: "center", minWidth: 92 },
+  pillValue: { ...type["2xl"], fontFamily: font.bold },
+  pillLabel: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
 });
