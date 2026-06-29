@@ -39,6 +39,23 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const isFutureSem = (sem: { classes: SchoolClass[] }) =>
     Math.min(...sem.classes.map((c) => classIndex.get(c.id) ?? Infinity)) > frontierIdx;
 
+  // Sequential schools: a stage is "cleared" when all its classes are graduated;
+  // the next stage unlocks only once the previous is cleared.
+  const stageInfos = catalog.stages
+    .map((stage) => {
+      const semesters = semestersForStage(stage.id, catalog.semesters);
+      const classes = semesters.flatMap((s) => s.classes);
+      const cleared = classes.length > 0 && classes.every(isDone);
+      return { stage, semesters, classes, cleared };
+    })
+    .filter((i) => i.classes.length > 0);
+  let prevCleared = true;
+  const stages = stageInfos.map((info, idx) => {
+    const unlocked = prevCleared;
+    prevCleared = info.cleared;
+    return { ...info, unlocked, prevName: idx > 0 ? stageInfos[idx - 1]!.stage.name : "" };
+  });
+
   return (
     <div className="flex flex-col gap-8">
       {pastIds.size > 0 && (
@@ -51,40 +68,75 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
           </button>
         </div>
       )}
-      {catalog.stages.map((stage) => {
-        const semesters = semestersForStage(stage.id, catalog.semesters);
-        const classCount = semesters.reduce((n, s) => n + s.classes.length, 0);
+      {stages.map(({ stage, semesters, classes: stageClasses, cleared, unlocked, prevName }) => {
+        const classCount = stageClasses.length;
         const descriptor = stage.blurb.split("·")[1]?.trim();
+
+        // Locked school — must clear the previous one first.
+        if (!unlocked) {
+          return (
+            <section key={stage.id} className="opacity-70">
+              <div className="rounded-card border border-dashed border-hairline bg-surface-sunken/40 p-4 text-center">
+                <p className="text-2xl">🔒</p>
+                <p className="mt-1 text-sm font-extrabold text-ink">{stage.name}</p>
+                <p className="text-xs font-semibold text-ink-500">
+                  Graduate {prevName} to unlock · {classCount} {classCount === 1 ? "class" : "classes"}
+                </p>
+              </div>
+            </section>
+          );
+        }
+
+        // Cleared school — collapse to a graduated banner (tap to review).
+        const stageOpen = expanded.has(stage.id);
+        if (cleared && !stageOpen) {
+          return (
+            <section key={stage.id}>
+              <button
+                onClick={() => setExpanded((s) => new Set(s).add(stage.id))}
+                className="btn-tactile flex w-full items-center gap-2 rounded-card border border-gold/50 bg-gold/10 p-3 text-left"
+              >
+                <span className="text-xl">{stage.emoji}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-extrabold text-ink">🎓 {stage.name} — graduated</span>
+                  <span className="block text-[11px] font-semibold text-ink-500">
+                    {classCount} {classCount === 1 ? "class" : "classes"} · tap to review
+                  </span>
+                </span>
+              </button>
+            </section>
+          );
+        }
+
         const visibleSems = semesters
           .map((sem) => ({
             sem,
-            classes: showCompleted ? sem.classes : sem.classes.filter((c) => !pastIds.has(c.id)),
+            classes: showCompleted || cleared ? sem.classes : sem.classes.filter((c) => !pastIds.has(c.id)),
           }))
           .filter((x) => x.classes.length > 0);
-        const isUpcoming = stage.status === "upcoming" || semesters.length === 0;
-        // A fully-completed (non-upcoming) stage collapses away unless "show completed".
-        if (!isUpcoming && visibleSems.length === 0) return null;
         return (
           <section key={stage.id}>
             {/* Stage header — the full Elementary → Master ladder */}
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xl">{stage.emoji}</span>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h2 className="truncate text-sm font-extrabold text-ink">{stage.name}</h2>
                 <p className="truncate text-[11px] font-semibold text-ink-500">
                   {classCount} {classCount === 1 ? "class" : "classes"}
                   {descriptor ? ` · ${descriptor}` : ""}
                 </p>
               </div>
+              {cleared && stageOpen && (
+                <button
+                  onClick={() => setExpanded((s) => { const n = new Set(s); n.delete(stage.id); return n; })}
+                  className="shrink-0 rounded-pill bg-surface-sunken px-2.5 py-1 text-[11px] font-bold text-ink-500"
+                >
+                  Hide
+                </button>
+              )}
             </div>
 
-            {isUpcoming ? (
-              <div className="rounded-card border border-dashed border-hairline bg-surface-sunken/50 p-4 text-center">
-                <p className="text-xs font-bold text-ink-500">
-                  🔒 Unlocks after you graduate the earlier stages — more classes coming.
-                </p>
-              </div>
-            ) : (
+            {
               <div className="flex flex-col gap-5">
                 {visibleSems.map(({ sem, classes }) => {
                   // Default: future class-groups collapsed, current one expanded.
@@ -143,10 +195,18 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                   );
                 })}
               </div>
-            )}
+            }
           </section>
         );
       })}
+
+      {/* End of the ladder */}
+      <div className="rounded-card border border-dashed border-hairline bg-surface-sunken/40 p-4 text-center">
+        <p className="text-sm font-extrabold text-ink">🚧 More schools coming soon</p>
+        <p className="mt-1 text-xs font-semibold text-ink-500">
+          New programs are being added — keep climbing the ladder!
+        </p>
+      </div>
     </div>
   );
 }
