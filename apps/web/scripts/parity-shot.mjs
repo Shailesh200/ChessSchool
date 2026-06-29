@@ -42,6 +42,11 @@ const SPECS = {
     app: async (p) => { await p.getByText("Play", { exact: true }).click().catch(() => {}); },
     ready: "Start match",
   },
+  game: {
+    web: async (p) => { await p.goto(`${PROD}/play`, { waitUntil: "domcontentloaded" }); await p.waitForTimeout(1500); await p.getByText("Start match").click().catch(() => {}); await p.waitForTimeout(2500); },
+    app: async (p) => { await p.getByText("Play", { exact: true }).click().catch(() => {}); await p.waitForTimeout(1500); await p.getByText("Start match").click().catch(() => {}); await p.waitForTimeout(2500); },
+    ready: null,
+  },
   profile: {
     web: async (p) => { await p.goto(`${PROD}/profile`, { waitUntil: "domcontentloaded" }); },
     app: async (p) => { await p.getByText("Profile", { exact: true }).click().catch(() => {}); },
