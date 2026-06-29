@@ -35,7 +35,7 @@ const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: bool
   { href: "/library", icon: "learn", label: "Library", authOnly: true },
   { href: "/account", icon: "profile", label: "My ID", authOnly: true },
   { href: "/dashboard", icon: "chart", label: "Report Card", authOnly: true },
-  { href: "/plan", icon: "calendar", label: "Study Plan", authOnly: true },
+  { href: "/plan", icon: "calendar", label: "Homework", authOnly: true },
   { href: "/journal", icon: "journal", label: "Journal", authOnly: true },
   { href: "/themes", icon: "palette", label: "Themes" },
   { href: "/playground", icon: "flask", label: "Playground", adminOnly: true },

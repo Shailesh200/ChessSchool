@@ -18,7 +18,8 @@ import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useMatch, type ActiveMatch } from "@/core/store/match.store";
-import { useProgression } from "@/core/store/progression.store";
+import { useProgression, isoDay } from "@/core/store/progression.store";
+import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
@@ -122,6 +123,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       };
       await saveGame(game);
       markFinished();
+      usePlan.getState().markActivity("match", isoDay());
       const playerWon = isBot && winner === playerColor;
       // Update the player's ELO from this bot game + unlock rating/win achievements.
       if (isBot) {

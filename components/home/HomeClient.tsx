@@ -7,7 +7,9 @@ import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { NavButton } from "@/components/ui/NavButton";
+import Link from "next/link";
 import { useProgression } from "@/core/store/progression.store";
+import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import type { Catalog } from "@/features/school/structure";
@@ -19,6 +21,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const lessons = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
   const authed = useSession((s) => s.authed);
+  const homeworkDone = usePlan((s) => s.routineDone.length);
   const mounted = useMounted();
   const isNew = mounted && Object.keys(lessons).length === 0 && graduated.length === 0;
 
@@ -52,6 +55,22 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
         )}
 
         <ResumeCard catalog={catalog} />
+
+        {/* Today's homework prompt (logged-in) */}
+        {authed === true && homeworkDone < ROUTINE_STEPS.length && (
+          <Link
+            href="/plan"
+            className="btn-tactile flex items-center justify-between rounded-card border border-gold/40 bg-gold/10 px-4 py-3"
+          >
+            <span>
+              <span className="block text-sm font-extrabold text-ink">📋 Today&apos;s homework</span>
+              <span className="block text-xs font-semibold text-ink-500">
+                {homeworkDone}/{ROUTINE_STEPS.length} done — finish it to keep your streak
+              </span>
+            </span>
+            <span className="text-sm font-bold text-brand">Open →</span>
+          </Link>
+        )}
 
         <Card className="flex items-center gap-4">
           <div className="min-w-0 flex-1">

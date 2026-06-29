@@ -40,15 +40,25 @@ interface PlanState {
   schedule: Schedule;
   routineDay: string | null;
   routineDone: string[];
+  homeworkStreak: number;
+  homeworkLastDay: string | null;
   setTier: (tier: PlanTier) => void;
   setSchedule: (s: Schedule) => void;
   setCustomGoal: (xp: number) => void;
   ensureDay: (today: string) => void;
   completeStep: (id: string) => void;
+  /** mark an activity done for today's homework (auto-checks the box) */
+  markActivity: (id: string, today: string) => void;
 }
 
 export function planGoalXp(state: { tier: PlanTier; customGoalXp: number }): number {
   return state.tier === "custom" ? state.customGoalXp : PLAN_SPECS[state.tier].goalXp;
+}
+
+function addDay(iso: string, delta: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
 }
 
 export const usePlan = create<PlanState>()(
@@ -59,6 +69,8 @@ export const usePlan = create<PlanState>()(
       schedule: "daily",
       routineDay: null,
       routineDone: [],
+      homeworkStreak: 0,
+      homeworkLastDay: null,
       setTier: (tier) => set({ tier }),
       setSchedule: (schedule) => set({ schedule }),
       setCustomGoal: (xp) => set({ customGoalXp: Math.max(10, Math.round(xp)) }),
@@ -66,11 +78,23 @@ export const usePlan = create<PlanState>()(
         if (get().routineDay !== today) set({ routineDay: today, routineDone: [] });
       },
       completeStep: (id) =>
-        set((s) =>
-          s.routineDone.includes(id)
-            ? s
-            : { routineDone: [...s.routineDone, id] },
-        ),
+        set((s) => (s.routineDone.includes(id) ? s : { routineDone: [...s.routineDone, id] })),
+      markActivity: (id, today) => {
+        const s = get();
+        if (s.routineDay !== today) set({ routineDay: today, routineDone: [id] });
+        else if (!s.routineDone.includes(id)) set({ routineDone: [...s.routineDone, id] });
+        // All steps done today → bump the homework streak (once per day).
+        const done = get().routineDone;
+        const all = ROUTINE_STEPS.every((step) => done.includes(step.id));
+        if (all && get().homeworkLastDay !== today) {
+          const prev = get().homeworkLastDay;
+          const yesterday = addDay(today, -1);
+          set({
+            homeworkStreak: prev === yesterday ? get().homeworkStreak + 1 : 1,
+            homeworkLastDay: today,
+          });
+        }
+      },
     }),
     {
       name: "chessschool.plan",

@@ -50,7 +50,7 @@ export default function PlanPage() {
     <AppShell>
       <div className="flex flex-col gap-5">
         <BackButton />
-        <h1 className="text-xl font-extrabold text-ink">Study Plan</h1>
+        <h1 className="text-xl font-extrabold text-ink">Homework</h1>
 
         {/* Today's progress toward the goal */}
         <Card>
@@ -149,39 +149,51 @@ export default function PlanPage() {
           </div>
         </section>
 
-        {/* Daily routine */}
+        {/* Today's homework */}
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-ink">Today&apos;s routine</h2>
-            <span className="text-xs font-bold text-ink-500">{routineDone}/{ROUTINE_STEPS.length}</span>
+            <h2 className="text-sm font-extrabold text-ink">Today&apos;s homework</h2>
+            <span className="text-xs font-bold text-ink-500">
+              {routineDone}/{ROUTINE_STEPS.length} · 🔥 {plan.homeworkStreak}d
+            </span>
           </div>
           <div className="flex flex-col gap-2">
             {ROUTINE_STEPS.map((step) => {
               const done = plan.routineDone.includes(step.id);
+              const visitMarks = step.id === "warmup" || step.id === "review" || step.id === "reflection";
               return (
                 <Card key={step.id} className="flex items-center gap-3 p-3">
-                  <button
-                    onClick={() => {
-                      plan.completeStep(step.id);
-                      haptics.fire("success");
-                      audio.play("success");
-                    }}
-                    aria-label={`Mark ${step.label} done`}
+                  {/* Display-only — checks itself when you actually do the activity. */}
+                  <span
+                    aria-label={done ? `${step.label} done` : `${step.label} not done`}
                     className={`flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs ${
                       done ? "border-success bg-success text-white" : "border-hairline text-transparent"
                     }`}
                   >
                     ✓
-                  </button>
+                  </span>
                   <span className="text-lg">{step.emoji}</span>
                   <span className={`flex-1 text-sm font-bold ${done ? "text-ink-300 line-through" : "text-ink"}`}>
                     {step.label}
                   </span>
-                  <Link href={step.href} className="text-sm font-bold text-brand">Go →</Link>
+                  <Link
+                    href={step.href}
+                    onClick={() => {
+                      if (visitMarks) plan.markActivity(step.id, isoDay());
+                    }}
+                    className="text-sm font-bold text-brand"
+                  >
+                    {done ? "Again" : "Go →"}
+                  </Link>
                 </Card>
               );
             })}
           </div>
+          {routineDone === ROUTINE_STEPS.length && (
+            <p className="mt-2 text-center text-xs font-extrabold text-success">
+              🎉 Homework complete — {plan.homeworkStreak}-day streak!
+            </p>
+          )}
         </section>
       </div>
     </AppShell>

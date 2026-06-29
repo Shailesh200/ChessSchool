@@ -12,6 +12,7 @@ import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { usePlan } from "@/core/store/plan.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { startNav } from "@/core/store/nav.store";
@@ -149,6 +150,8 @@ export function LessonPlayer({
       progression.recordLesson(lesson.id, 1, 1); // counts as completed
       progression.awardXp(lesson.xp);
       progression.registerActivity(isoDay());
+      usePlan.getState().markActivity("lesson", isoDay());
+      usePlan.getState().markActivity("practice", isoDay());
       const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
       startNav();
       router.push(nextId ? `/lesson/${nextId}` : "/");
@@ -162,6 +165,8 @@ export function LessonPlayer({
     progression.recordLesson(lesson.id, correct, interactive, wrongRef.current);
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());
+    usePlan.getState().markActivity("lesson", isoDay());
+    usePlan.getState().markActivity("practice", isoDay());
     const st = useProgression.getState();
     checkLessonAchievements(lesson.id, {
       mastered: Object.values(st.lessons).filter((l) => l.mastery >= 0.9).length,
