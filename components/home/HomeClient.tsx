@@ -5,6 +5,7 @@ import { CampusMap } from "@/features/school/CampusMap";
 import { ResumeCard } from "@/features/school/ResumeCard";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { NavButton } from "@/components/ui/NavButton";
 import Link from "next/link";
@@ -21,6 +22,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const lessons = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
   const authed = useSession((s) => s.authed);
+  const rating = useProgression((s) => s.rating);
   const homeworkDone = usePlan((s) => s.routineDone.length);
   const mounted = useMounted();
   const isNew = mounted && Object.keys(lessons).length === 0 && graduated.length === 0;
@@ -30,7 +32,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
           <Mascot expression="wave" size={64} float={false} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-extrabold text-ink">
               {authed === true && streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
             </h1>
@@ -40,6 +42,16 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
                 : "Enroll to the academy to track your progress."}
             </p>
           </div>
+          {authed === true && (
+            <Link
+              href="/dashboard"
+              aria-label="Your rating"
+              className="btn-tactile flex shrink-0 items-center gap-1.5 self-start rounded-pill border border-hairline bg-surface-card px-3 py-1.5 [box-shadow:var(--shadow-card)]"
+            >
+              <Icon name="target" size={16} className="text-brand" />
+              <span className="text-sm font-extrabold text-ink">{mounted ? rating : 800}</span>
+            </Link>
+          )}
         </div>
 
         {isNew && (

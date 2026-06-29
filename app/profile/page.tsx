@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
@@ -55,6 +55,14 @@ export default function ProfilePage() {
   const authed = useSession((s) => s.authed);
   const user = useSession((s) => s.user);
   const [openTag, setOpenTag] = useState<string | null>(null);
+  const [lessonsByTag, setLessonsByTag] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    fetch("/api/curriculum-stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setLessonsByTag(d?.lessonsByTag ?? {}))
+      .catch(() => void 0);
+  }, []);
   const hubLinks = HUB_LINKS.filter(
     (l) => (!l.adminOnly || isAdmin) && (!l.authOnly || authed === true),
   );
@@ -138,10 +146,27 @@ export default function ProfilePage() {
                   ))}
                 </div>
                 {openTag && (
-                  <p className="mt-3 rounded-card bg-surface-sunken p-3 text-xs font-semibold leading-snug text-ink-700">
-                    <span className="font-extrabold text-ink">{openTag}:</span>{" "}
-                    {TAG_INFO[openTag] ?? "Keep practising this theme — tap a lesson tagged with it to drill it."}
-                  </p>
+                  <div className="mt-3 rounded-card bg-surface-sunken p-3">
+                    <p className="text-xs font-semibold leading-snug text-ink-700">
+                      <span className="font-extrabold capitalize text-ink">{openTag}:</span>{" "}
+                      {TAG_INFO[openTag] ?? "Keep practising this theme to turn it into a strength."}
+                    </p>
+                    {lessonsByTag[openTag]?.length ? (
+                      <Link
+                        href={`/lesson/${lessonsByTag[openTag][0]}`}
+                        className="btn-tactile mt-2 inline-flex items-center gap-1 rounded-pill bg-brand px-3 py-1 text-xs font-extrabold text-white"
+                      >
+                        🎯 Practice {openTag} now →
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/review"
+                        className="btn-tactile mt-2 inline-flex items-center gap-1 rounded-pill bg-brand px-3 py-1 text-xs font-extrabold text-white"
+                      >
+                        🔍 Review your games →
+                      </Link>
+                    )}
+                  </div>
                 )}
               </>
             )}
