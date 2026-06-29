@@ -183,13 +183,26 @@ for (const g of GROUPS) {
       made.push({ pz, steps });
       if (made.length >= TARGET_TOTAL) break;
     }
-    // chunk into classes
+    // chunk into classes with meaningful, rating-banded names (not "Forks 1/2/3")
+    const LEVELS = ["Basics", "Building Up", "Sharper", "Tougher", "Advanced", "Tricky", "Expert", "Mastery"];
     for (let ci = 0; ci * PER_CLASS < made.length; ci++) {
       const slice = made.slice(ci * PER_CLASS, (ci + 1) * PER_CLASS);
       if (!slice.length) break;
       const classId = `${semId}-c${ci + 1}`;
       const difficulty = Math.min(6, st.order + 1 + Math.floor(ci / 3));
-      classes.push({ id: classId, semesterId: semId, title: `${g.label} ${ci + 1}`, emoji: g.emoji, blurb: `${slice.length} puzzles`, difficulty, sortOrder: sortClass++ });
+      const level = LEVELS[ci] ?? `Set ${ci + 1}`;
+      const lo = slice[0].pz.rating;
+      const hi = slice[slice.length - 1].pz.rating;
+      const singular = g.label.replace(/s$/, "");
+      classes.push({
+        id: classId,
+        semesterId: semId,
+        title: `${singular}: ${level}`,
+        emoji: g.emoji,
+        blurb: `${slice.length} puzzles · ${lo}–${hi}`,
+        difficulty,
+        sortOrder: sortClass++,
+      });
       // Lesson 1 of every class: the hand-authored concept tutorial.
       lessons.push({
         id: `${classId}-tutorial`, classId, title: `${g.label}: the idea`, subtitle: "Tutorial", emoji: "🎓",
