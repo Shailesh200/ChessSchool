@@ -8,6 +8,59 @@ Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ N/A (web-only / not appli
 > content (16k lessons) is real. Blind spots that need **on-device** checks: **audio**, **animation/motion**,
 > native feel. Those are marked 🎧/🎬 below.
 
+---
+# 📊 CURRENT-STATE AUDIT (Phase B in progress — updated)
+
+## Routes / screens (web → app)
+| Web route | App screen | Status | Gap |
+|---|---|---|---|
+| `/login` `/register` | `login.tsx` | ✅ | combined; no onboarding after enroll |
+| `/onboarding` `/welcome` | — | ❌ | new-user wizard (house/avatar/coach/pace) |
+| `/placement` | — | ❌ | card shows on Learn, but no 8-puzzle test |
+| `/` (home + campus) | `(tabs)/index` | ✅ | matched: campus accordion, TopBar, resume, placement card, daily goal |
+| `/lesson/[id]` | `lesson/[id]` | ✅ | residual: exact react-chessboard piece art |
+| **`/class/[id]` (Journey)** | `class/[id]` | 🟡 | **app = flat lesson list; web = milestone journey path (nodes/stations)** |
+| `/class/[id]/exam` | — | ❌ | class graduation exam |
+| `/exam/school/[stage]` | — | ❌ | school/stage exam |
+| `/library` `/library/lesson/[id]` | `classes.tsx` | 🟡 | browse only; no search / free-lesson view |
+| `/play` (setup) | `(tabs)/play` | ✅ | New-match setup matched |
+| `/play` (in-game) | `play/game.tsx` | 🟡 | no clock/material/move-list/resign; JS bot not Stockfish |
+| `/play/online/[id]` | — | ❌ | online PvP (Ably) |
+| `/playground` | — | ❌ | free analysis board |
+| `/review` `/review/[id]` | `(tabs)/review` `replay/[index]` | 🟡 | list + replay ok; no move-list/eval in replay |
+| `/practice/mistakes` | — | ❌ | drill logged mistakes |
+| `/journal` | `journal.tsx` | 🟡 | shows mistakes; none get logged from app (P1) |
+| `/dashboard` | — | ❌ | skill radar + activity heatmap (Profile has basic stats) |
+| `/profile` | `(tabs)/profile` | ✅ | matched: hub grid, stats, learning profile |
+| `/plan` `/homework/[id]` | `homework.tsx` | 🟡 | opens lessons; no routine/streak gating |
+| `/settings` `/themes` | `settings.tsx` | ✅ | sound/haptics/reduce-motion + board + piece themes |
+| `/account` | — | ❌ | email/password/delete |
+| `/admin` | — | ⛔ | web CMS |
+| `/offline` | — | ⛔ | native handles offline differently |
+| — | `stage/[id]` | ⚠️ | app-only; now orphaned (campus links straight to class) |
+
+## Components (web → app)
+| Web component | App | Status |
+|---|---|---|
+| TopBar · BottomNav · Mascot · Button · Icon · CampusMap · ResumeCard · ChessBoard · pieceThemes · MatchChooser | TopBar · (tabs) · Cody · Button · Icon(28) · CampusMap · (inline) · ChessBoard · Piece · play setup | ✅ |
+| AppShell (shared chrome) | per-screen SafeAreaView | 🟡 no shared shell |
+| Card · ProgressBar · NavButton | inline styles | 🟡 not extracted as primitives |
+| Toggle | RN Switch | ✅ |
+| LessonPlayer · MatchView | lesson · play/game | 🟡 MatchView missing clock/material/movelist/resign |
+| AnimatedNumber | static text | ❌ |
+| Confetti | — | ❌ (no lesson-complete celebration) |
+| ConfirmDialog · Sheet · Toaster · Select · NavProgress · Logo | — | ❌ |
+| SkillRadar · StreakHeatmap (dashboard) | — | ❌ |
+| OnboardingWizard | — | ❌ |
+
+## Feature areas (web `features/*` → app)
+board ✅ · chess-engine ✅(core) · lessons ✅ · school ✅campus/🟡journey · play ✅setup/🟡game · review 🟡 · settings ✅ · journal 🟡 · coaching 🟡(text only) · **progression ❌ (the root-cause logic gap — see below)** · placement ❌ · dashboard ❌
+
+## Headline
+**Visually matched:** Learn, Lesson, Play-setup, Profile, TopBar.
+**Biggest open items:** ① **class Journey** (flat list → milestone path) · ② **progression logic** (`packages/progression` — drives mistakes/streak/XP/ELO/achievements) · ③ missing screens (onboarding, placement, exams, dashboard, account, practice, online PvP) · ④ missing UI primitives (Confetti, Sheet, Toaster, Select, AnimatedNumber, dashboard viz).
+
+---
 ## Content / data
 | Item | Status | Notes |
 |---|---|---|
