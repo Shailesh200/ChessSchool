@@ -58,27 +58,46 @@ export default function PlaySetupScreen() {
         </View>
 
         {/* Opponent strength */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Opponent strength</Text>
-          <Pressable style={styles.adaptive} onPress={() => setAdaptive(true)}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.adaptiveTitle}>🎯 Adaptive bot</Text>
-              <Text style={styles.adaptiveSub}>Matches your level (~{rating}) & adjusts as you play</Text>
+        {mode === "bot" ? (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Opponent strength</Text>
+            <Pressable style={styles.adaptive} onPress={() => setAdaptive(true)}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adaptiveTitle}>🎯 Adaptive bot</Text>
+                <Text style={styles.adaptiveSub}>Matches your level (~{rating}) & adjusts as you play</Text>
+              </View>
+              <View style={[styles.radio, adaptive && styles.radioOn]}>{adaptive && <View style={styles.radioDot} />}</View>
+            </Pressable>
+            <View style={styles.pills}>
+              {ELOS.map((e) => {
+                const on = !adaptive && e === elo;
+                return (
+                  <Pressable key={e} style={[styles.pill, on && styles.pillOn]} onPress={() => { setAdaptive(false); setElo(e); }}>
+                    <Text style={[styles.pillText, on && styles.pillTextOn]}>{e}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
-            <View style={[styles.radio, adaptive && styles.radioOn]}>{adaptive && <View style={styles.radioDot} />}</View>
-          </Pressable>
-          <View style={styles.pills}>
-            {ELOS.map((e) => {
-              const on = !adaptive && e === elo;
-              return (
-                <Pressable key={e} style={[styles.pill, on && styles.pillOn]} onPress={() => { setAdaptive(false); setElo(e); }}>
-                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{e}</Text>
-                </Pressable>
-              );
-            })}
+            <Text style={styles.persona}>{personality(effectiveElo)}</Text>
           </View>
-          <Text style={styles.persona}>{personality(effectiveElo)}</Text>
-        </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>How to play</Text>
+            <Pressable style={styles.adaptive}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adaptiveTitle}>👥 Pass & play</Text>
+                <Text style={styles.adaptiveSub}>Two players take turns on this device</Text>
+              </View>
+              <View style={[styles.radio, styles.radioOn]}><View style={styles.radioDot} /></View>
+            </Pressable>
+            <Pressable style={[styles.adaptive, { opacity: 0.5, marginBottom: 0 }]} disabled>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adaptiveTitle}>🌐 Play online</Text>
+                <Text style={styles.adaptiveSub}>Share a link to play a friend · coming soon</Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
 
         {/* Time control */}
         <View style={styles.card}>

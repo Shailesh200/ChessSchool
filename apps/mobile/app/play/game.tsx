@@ -10,7 +10,8 @@ import { sfx } from "@/sfx";
 import { api } from "@/api";
 import { progressStore } from "@/progressStore";
 import { applyMatchEnd } from "@/progression";
-import { colors, font, radius, space, type } from "@/theme";
+import { useSettings } from "@/settings";
+import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 const BOTS = [
   { max: 500, name: "Pip", emoji: "🐣", blurb: "Just learning the moves" },
@@ -72,6 +73,7 @@ export default function GameScreen() {
   const { elo: eloParam } = useLocalSearchParams<{ elo: string }>();
   const elo = Number(eloParam) || 1000;
   const bot = botProfile(elo);
+  const { avatar } = useSettings();
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 24, 440);
   const engineRef = useRef(new ChessEngine());
@@ -161,7 +163,7 @@ export default function GameScreen() {
 
       {/* Bot tip bubble */}
       <View style={styles.coach}>
-        <Text style={{ fontSize: 24 }}>{bot.emoji}</Text>
+        <Text style={{ fontSize: 30 }}>{bot.emoji}</Text>
         <View style={styles.bubble}>
           <Text style={styles.bubbleText}>
             {bot.name}: {over ?? (thinking ? "Thinking…" : moves.length === 0 ? `Hi! I'm rated ${elo}. Good luck!` : "Your move")}
@@ -185,7 +187,7 @@ export default function GameScreen() {
       </View>
 
       {/* Player bar */}
-      <PlayerBar name="You" emoji="🙂" advantage={Math.max(0, mat.w - mat.b)} />
+      <PlayerBar name="You" emoji={avatar || "🎓"} advantage={Math.max(0, mat.w - mat.b)} />
 
       {/* Rewind / forward scrubber */}
       <View style={styles.scrubber}>
@@ -218,9 +220,9 @@ const styles = StyleSheet.create({
   playerEmoji: { fontSize: 22 },
   playerName: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
   advantage: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
-  coach: { flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[4], marginTop: space[2] },
-  bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: space[3], paddingVertical: space[2], borderWidth: 1, borderColor: colors.hairline },
-  bubbleText: { ...type.sm, fontFamily: font.semibold, color: colors.ink },
+  coach: { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], marginTop: space[2] },
+  bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: space[4], paddingVertical: space[3], borderWidth: 1, borderColor: colors.hairline, ...shadowCard },
+  bubbleText: { ...type.base, fontFamily: font.semibold, color: colors.ink },
   scrubber: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[3], marginTop: space[3] },
   scrubBtn: { minWidth: 56, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceCard, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: colors.hairline },
   scrubIcon: { fontSize: 16, color: colors.ink },
