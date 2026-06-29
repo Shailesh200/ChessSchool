@@ -21,10 +21,11 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node scripts/seed.mjs",
+    "db:seed-homework": "node scripts/seed-homework.mjs",
     "db:dump": "node scripts/dump.mjs",
     "db:import-puzzles": "node scripts/import-lichess.mjs",
     "db:reset": "rm -f local.db local.db-shm local.db-wal",
-    "db:fresh": "pnpm db:reset && pnpm db:push && pnpm db:seed",
+    "db:fresh": "pnpm db:reset && pnpm db:push && pnpm db:seed && pnpm db:seed-homework",
     "db:remote": "node scripts/seed-remote.mjs",
     "db:remote-clean": "node scripts/clean-seed-remote.mjs"
   },

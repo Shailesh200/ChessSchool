@@ -102,6 +102,21 @@ export const lessons = sqliteTable("lessons", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+// Dedicated homework lessons — a pool separate from the school curriculum, so
+// daily homework never collides with serial school progression. `type` is the
+// routine (warmup | practice | review | reflection); the client rotates by day.
+export const homeworkLessons = sqliteTable("homework_lessons", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(), // warmup | practice | review | reflection
+  title: text("title").notNull(),
+  subtitle: text("subtitle").notNull().default(""),
+  emoji: text("emoji").notNull().default("♟️"),
+  tag: text("tag").notNull().default("drill"),
+  xp: integer("xp").notNull().default(20),
+  steps: text("steps").notNull(), // JSON LessonStep[]
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 // Shareable live PvP sessions (#10b) — both players poll for the latest state.
 export const gameSessions = sqliteTable("game_sessions", {
   id: text("id").primaryKey(),

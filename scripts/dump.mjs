@@ -16,8 +16,8 @@ const db = new Database("local.db", { readonly: true });
 const tables = db
   .prepare("SELECT name, sql FROM sqlite_master WHERE type='table' AND sql IS NOT NULL ORDER BY rowid")
   .all();
-const RESET = new Set(["semesters", "classes", "lessons", "game_sessions"]);
-const SEED = ["semesters", "classes", "lessons"];
+const RESET = new Set(["semesters", "classes", "lessons", "homework_lessons", "game_sessions"]);
+const SEED = ["semesters", "classes", "lessons", "homework_lessons"];
 const esc = (v) =>
   v === null ? "NULL" : typeof v === "number" ? String(v) : `'${String(v).replace(/'/g, "''")}'`;
 

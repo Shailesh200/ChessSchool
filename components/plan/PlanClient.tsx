@@ -22,14 +22,6 @@ import { useMatch } from "@/core/store/match.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 
-// Each homework routine draws from a pool of themes; rotates daily.
-const ROUTINE_POOLS: Record<string, string[]> = {
-  warmup: ["capture", "piece", "check", "basics"],
-  practice: ["fork", "pin", "skewer", "discovered", "tactics"],
-  review: ["checkmate", "mate", "endgame"],
-  reflection: ["opening", "promotion", "endgame", "strategy"],
-};
-
 export function PlanClient({ catalog }: { catalog: Catalog }) {
   const router = useRouter();
   const mounted = useMounted();
@@ -43,12 +35,12 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
   const dailyGoalXp = useProgression((s) => s.dailyGoalXp);
   const streak = useProgression((s) => s.streak);
-  const [lessonsByTag, setLessonsByTag] = useState<Record<string, string[]>>({});
+  const [homeworkByType, setHomeworkByType] = useState<Record<string, { id: string; title: string }[]>>({});
 
   useEffect(() => {
-    fetch("/api/curriculum-stats")
+    fetch("/api/homework")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setLessonsByTag(d?.lessonsByTag ?? {}))
+      .then((d) => setHomeworkByType(d?.byType ?? {}))
       .catch(() => void 0);
   }, []);
 
@@ -73,15 +65,11 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   const loc = currentLocation(records, graduated, catalog.semesters, catalog.titles);
   const nextLessonId = loc.complete ? null : loc.lessonId;
 
-  // A different lesson each day per routine type (rotates by day number).
+  // A different homework lesson each day per routine type (rotates by day number).
   const dayIndex = Math.floor(Date.parse(isoDay() + "T00:00:00Z") / 86400000);
-  const pickLesson = (stepId: string): string | null => {
-    for (const tag of ROUTINE_POOLS[stepId] ?? []) {
-      const ids = lessonsByTag[tag];
-      if (ids?.length) return ids[dayIndex % ids.length]!;
-    }
-    const all = Object.values(lessonsByTag).flat();
-    return all.length ? all[dayIndex % all.length]! : null;
+  const pickHomework = (type: string): { id: string; title: string } | null => {
+    const pool = homeworkByType[type];
+    return pool?.length ? pool[dayIndex % pool.length]! : null;
   };
 
   function startAdaptiveMatch() {
@@ -206,11 +194,23 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
             {ROUTINE_STEPS.map((step) => {
               const done = plan.routineDone.includes(step.id);
               const isMatch = step.id === "match";
-              // The "lesson" step is your next lesson; other lesson steps rotate daily by type.
-              const lessonId = step.id === "lesson" ? nextLessonId : pickLesson(step.id);
-              const href = lessonId ? `/lesson/${lessonId}?hw=${step.id}` : step.href;
+              // "lesson" continues the school curriculum; the drills (warmup/practice/
+              // review/reflection) draw from the separate homework pool, rotating daily.
+              const hw = step.id === "lesson" ? null : pickHomework(step.id);
+              const href =
+                step.id === "lesson"
+                  ? nextLessonId
+                    ? `/lesson/${nextLessonId}?hw=lesson`
+                    : step.href
+                  : hw
+                    ? `/homework/${hw.id}?hw=${step.id}`
+                    : step.href;
               const label =
-                step.id === "lesson" && nextLessonId ? `Lesson: ${loc.lessonTitle}` : step.label;
+                step.id === "lesson" && nextLessonId
+                  ? `Lesson: ${loc.lessonTitle}`
+                  : hw
+                    ? `${step.label}: ${hw.title}`
+                    : step.label;
               return (
                 <Card key={step.id} className="flex items-center gap-3 p-3">
                   {/* Display-only — checks itself when you complete the activity. */}
