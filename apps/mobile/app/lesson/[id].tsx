@@ -160,7 +160,7 @@ export default function LessonScreen() {
   const mood: CodyExpression = phase === "correct" ? "cheer" : phase === "wrong" ? "sad" : step.kind === "move" ? "think" : "happy";
   const showContinue = step.kind === "info" || step.kind === "observe";
   const feedback = phase === "wrong" ? step.failText ?? "Not quite — try again." : phase === "correct" ? step.successText ?? "Correct! 🎉" : step.coach;
-  const hint = step.hint ?? (step.kind === "move" ? "Take your time and calculate before you move." : "Tap Continue when you're ready.");
+  const hint = step.hint ?? "Take your time and calculate before you move.";
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>

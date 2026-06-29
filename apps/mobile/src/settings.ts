@@ -8,7 +8,7 @@ export type Settings = { haptics: boolean; sound: boolean; reducedMotion: boolea
 
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
-let state: Settings = { haptics: true, sound: true, reducedMotion: false, boardTheme: "classic", pieceTheme: "marble" };
+let state: Settings = { haptics: true, sound: true, reducedMotion: false, boardTheme: "classic", pieceTheme: "classic" };
 const listeners = new Set<() => void>();
 
 function emit() {
