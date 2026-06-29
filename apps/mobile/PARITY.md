@@ -187,3 +187,13 @@ NOT replicated: today-XP + `activityDays` heatmap (→ mobile daily-goal bar use
 11. **Lesson-completion has no sound** in app (web plays a completion/celebration sound).
 12. **Campus reloads** when returning from a class — cache data + smoother UX (ties to backlog #6 caching).
 13. **Play-vs-Bot (in-game) screen** doesn't match web — missing **bot name/avatar, tips, rewind/forward** controls, material.
+
+## More noted points (batch 3 — fix later)
+14. **Homework** "Today's homework" section missing an **action button** (web has one).
+15. **Custom pace** doesn't show the **daily-XP-goal slider** in app (skipped).
+16. Sub-screens use **✕** icon — web uses a **Back button**; maintain parity (Back, not ✕).
+17. **TopBar missing** on Homework + Settings + other sub-screens (web keeps the chrome).
+18. **Profile hub routing wrong**: "My ID" → opens Settings, "Report Card" → opens Journal, etc. Fix to correct destinations (account, dashboard, …).
+19. **Profile stat cards** (Day streak / Lessons mastered / …) don't match web UI; **data also misaligned** — retain the same values/semantics as web.
+20. **vs Human** mode doesn't reveal the **PvP options** (online / pass-and-play) in Play setup.
+21. **Achievement card dimensions** don't align with web.
