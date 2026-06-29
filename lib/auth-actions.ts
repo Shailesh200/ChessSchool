@@ -25,7 +25,7 @@ export async function loginAction(
     String(formData.get("password") ?? ""),
   );
   if ("error" in res) return { error: res.error };
-  redirect("/"); // land on the Learn tab after login
+  redirect("/welcome"); // pull account progress behind a loader, then → Learn tab
 }
 
 export async function logoutAction(): Promise<void> {

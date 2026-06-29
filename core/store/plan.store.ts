@@ -49,6 +49,8 @@ interface PlanState {
   completeStep: (id: string) => void;
   /** mark an activity done for today's homework (auto-checks the box) */
   markActivity: (id: string, today: string) => void;
+  /** apply a synced homework streak (account is source of truth) */
+  setHomework: (streak: number, lastDay: string | null) => void;
 }
 
 export function planGoalXp(state: { tier: PlanTier; customGoalXp: number }): number {
@@ -95,6 +97,11 @@ export const usePlan = create<PlanState>()(
           });
         }
       },
+      setHomework: (streak, lastDay) =>
+        set((s) => ({
+          homeworkStreak: Math.max(s.homeworkStreak, streak),
+          homeworkLastDay: lastDay ?? s.homeworkLastDay,
+        })),
     }),
     {
       name: "chessschool.plan",

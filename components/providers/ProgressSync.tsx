@@ -1,62 +1,45 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  useProgression,
-  progressSnapshot,
-  type ProgressSnapshot,
-} from "@/core/store/progression.store";
+import { useProgression } from "@/core/store/progression.store";
+import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
+import { pullProgress, fullSnapshot } from "@/core/sync/pullProgress";
 import { toast } from "@/core/store/toast.store";
 
 /**
- * Two-way progress sync (#1). On mount: pull the account snapshot and merge it
- * into the local store (this also carries a guest's local progress up to a
- * freshly-created account — guest→account migration). On any change while
- * logged in: debounced push of the merged union back to the account.
+ * Two-way progress sync (#1). On mount: pull the account snapshot (the account is
+ * the source of truth — it hydrates local state, or absorbs a guest's progress on
+ * first login). On any change while logged in: debounced push of the full snapshot
+ * (progression + homework) back to the account.
  */
 export function ProgressSync() {
-  const setSession = useSession((s) => s.setSession);
   const lastPushed = useRef<string>("");
 
-  // Pull + merge on mount.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/progress")
-      .then(async (r) => {
-        if (cancelled) return;
-        if (r.status === 401) {
-          setSession(false, null);
-          return;
-        }
-        if (!r.ok) return;
-        const data = (await r.json()) as ProgressSnapshot & { user: { name: string; role: string } };
-        // Guest→account migration: local progress that the empty account lacks.
-        const before = progressSnapshot(useProgression.getState());
-        const guestHadProgress = before.xp > 0 || Object.keys(before.lessons).length > 0;
-        const accountEmpty = data.xp === 0 && Object.keys(data.lessons ?? {}).length === 0;
-        useProgression.getState().mergeSnapshot(data);
-        // Seed the dedupe key so the merge itself doesn't trigger a no-op push.
-        lastPushed.current = JSON.stringify(progressSnapshot(useProgression.getState()));
-        setSession(true, data.user);
-        if (guestHadProgress && accountEmpty) {
-          toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
-        }
-      })
-      .catch(() => void 0);
+    const before = useProgression.getState();
+    const guestHadProgress = before.xp > 0 || Object.keys(before.lessons).length > 0;
+    pullProgress().then((user) => {
+      if (cancelled || !user) return;
+      lastPushed.current = JSON.stringify(fullSnapshot());
+      if (guestHadProgress) {
+        toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
+      }
+    });
     return () => {
       cancelled = true;
     };
-  }, [setSession]);
+  }, []);
 
-  // Debounced push on change (logged-in only).
+  // Debounced push on change to either store (logged-in only).
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsub = useProgression.subscribe(() => {
+    const schedule = () => {
       if (useSession.getState().authed !== true) return;
       clearTimeout(timer);
       timer = setTimeout(() => {
-        const body = JSON.stringify(progressSnapshot(useProgression.getState()));
+        const body = JSON.stringify(fullSnapshot());
         if (body === lastPushed.current) return;
         lastPushed.current = body;
         fetch("/api/progress", {
@@ -65,10 +48,13 @@ export function ProgressSync() {
           body,
         }).catch(() => void 0);
       }, 1500);
-    });
+    };
+    const unsubP = useProgression.subscribe(schedule);
+    const unsubPlan = usePlan.subscribe(schedule);
     return () => {
       clearTimeout(timer);
-      unsub();
+      unsubP();
+      unsubPlan();
     };
   }, []);
 

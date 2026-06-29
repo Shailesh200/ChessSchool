@@ -83,7 +83,8 @@ export function OnboardingWizard({ name }: { name: string }) {
     audio.play("graduation");
     haptics.fire("success");
     await saveOnboarding({ goal, avatar });
-    window.setTimeout(() => router.push("/account"), 1700);
+    // Through the loader so the account's progress is pulled before the UI shows.
+    window.setTimeout(() => router.push("/welcome?next=/account"), 1700);
   }
 
   if (finishing) {

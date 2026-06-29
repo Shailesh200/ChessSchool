@@ -6,16 +6,38 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-/** Pull the account's saved progress (used to merge into the client on login). */
+type LessonRec = { mastery: number; attempts: number; lastSeen: number; dueAt: number; incorrect?: number };
+
+/** Everything beyond the typed columns lives in progress.data (JSON). */
+interface ExtraData {
+  rating?: number;
+  botWins?: number;
+  dailyGoalXp?: number;
+  unlockedAchievements?: string[];
+  schoolExamsPassed?: string[];
+  weaknesses?: Record<string, number>;
+  activityDays?: Record<string, number>;
+  mistakeLog?: unknown[];
+  homeworkStreak?: number;
+  homeworkLastDay?: string | null;
+}
+
+/** Pull the account's saved progress (merged into / hydrated onto the client on login). */
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const p = (await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
   const recs = await db.select().from(lessonRecords).where(eq(lessonRecords.userId, user.id));
-  const lessons: Record<string, { mastery: number; attempts: number; lastSeen: number; dueAt: number }> = {};
+  const lessons: Record<string, LessonRec> = {};
   for (const r of recs) {
     lessons[r.lessonId] = { mastery: r.mastery, attempts: r.attempts, lastSeen: r.lastSeen, dueAt: r.dueAt };
+  }
+  let extra: ExtraData = {};
+  try {
+    extra = p?.data ? (JSON.parse(p.data) as ExtraData) : {};
+  } catch {
+    extra = {};
   }
 
   return NextResponse.json({
@@ -25,6 +47,16 @@ export async function GET() {
     lastActiveDay: p?.lastActiveDay ?? null,
     graduatedClasses: p ? (JSON.parse(p.graduatedClasses) as string[]) : [],
     lessons,
+    rating: extra.rating ?? 800,
+    botWins: extra.botWins ?? 0,
+    dailyGoalXp: extra.dailyGoalXp ?? p?.dailyGoalXp ?? 50,
+    unlockedAchievements: extra.unlockedAchievements ?? [],
+    schoolExamsPassed: extra.schoolExamsPassed ?? [],
+    weaknesses: extra.weaknesses ?? {},
+    activityDays: extra.activityDays ?? {},
+    mistakeLog: extra.mistakeLog ?? [],
+    homeworkStreak: extra.homeworkStreak ?? 0,
+    homeworkLastDay: extra.homeworkLastDay ?? null,
   });
 }
 
@@ -33,7 +65,17 @@ interface PushBody {
   streak: number;
   lastActiveDay: string | null;
   graduatedClasses: string[];
-  lessons: Record<string, { mastery: number; attempts: number; lastSeen: number; dueAt: number }>;
+  lessons: Record<string, LessonRec>;
+  rating?: number;
+  botWins?: number;
+  dailyGoalXp?: number;
+  unlockedAchievements?: string[];
+  schoolExamsPassed?: string[];
+  weaknesses?: Record<string, number>;
+  activityDays?: Record<string, number>;
+  mistakeLog?: unknown[];
+  homeworkStreak?: number;
+  homeworkLastDay?: string | null;
 }
 
 /** Push the client's merged snapshot to the account. */
@@ -43,27 +85,32 @@ export async function POST(req: Request) {
 
   const body = (await req.json()) as PushBody;
   const now = Date.now();
+  const data: ExtraData = {
+    rating: body.rating,
+    botWins: body.botWins,
+    dailyGoalXp: body.dailyGoalXp,
+    unlockedAchievements: body.unlockedAchievements,
+    schoolExamsPassed: body.schoolExamsPassed,
+    weaknesses: body.weaknesses,
+    activityDays: body.activityDays,
+    mistakeLog: body.mistakeLog,
+    homeworkStreak: body.homeworkStreak,
+    homeworkLastDay: body.homeworkLastDay,
+  };
+  const row = {
+    xp: body.xp,
+    streak: body.streak,
+    lastActiveDay: body.lastActiveDay,
+    graduatedClasses: JSON.stringify(body.graduatedClasses ?? []),
+    dailyGoalXp: body.dailyGoalXp ?? 50,
+    data: JSON.stringify(data),
+    updatedAt: now,
+  };
 
   await db
     .insert(progress)
-    .values({
-      userId: user.id,
-      xp: body.xp,
-      streak: body.streak,
-      lastActiveDay: body.lastActiveDay,
-      graduatedClasses: JSON.stringify(body.graduatedClasses ?? []),
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: progress.userId,
-      set: {
-        xp: body.xp,
-        streak: body.streak,
-        lastActiveDay: body.lastActiveDay,
-        graduatedClasses: JSON.stringify(body.graduatedClasses ?? []),
-        updatedAt: now,
-      },
-    });
+    .values({ userId: user.id, ...row })
+    .onConflictDoUpdate({ target: progress.userId, set: row });
 
   // The snapshot is the full client union, so replace the user's records.
   await db.delete(lessonRecords).where(eq(lessonRecords.userId, user.id));

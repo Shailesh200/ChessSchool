@@ -58,8 +58,10 @@ export interface ProgressionState {
   unlockAchievement: (id: string) => boolean;
   registerActivity: (today: string) => void;
   graduateClass: (classId: string) => void;
-  /** merge a server snapshot into local state (taking the better of each) */
+  /** merge a server snapshot into local state (taking the better of each) — guest→account carry-up */
   mergeSnapshot: (snap: ProgressSnapshot) => void;
+  /** replace local state with the server snapshot — the account is the source of truth */
+  hydrateSnapshot: (snap: ProgressSnapshot) => void;
 }
 
 /** The account-syncable slice of progression (server <-> client). */
@@ -69,6 +71,15 @@ export interface ProgressSnapshot {
   lastActiveDay: string | null;
   graduatedClasses: string[];
   lessons: Record<string, LessonRecord>;
+  // Extended sync (everything that used to be device-local):
+  rating: number;
+  botWins: number;
+  dailyGoalXp: number;
+  unlockedAchievements: string[];
+  schoolExamsPassed: string[];
+  weaknesses: Record<string, number>;
+  activityDays: Record<string, number>;
+  mistakeLog: MistakeEntry[];
 }
 
 export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
@@ -78,6 +89,14 @@ export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
     lastActiveDay: s.lastActiveDay,
     graduatedClasses: s.graduatedClasses,
     lessons: s.lessons,
+    rating: s.rating,
+    botWins: s.botWins,
+    dailyGoalXp: s.dailyGoalXp,
+    unlockedAchievements: s.unlockedAchievements,
+    schoolExamsPassed: s.schoolExamsPassed,
+    weaknesses: s.weaknesses,
+    activityDays: s.activityDays,
+    mistakeLog: s.mistakeLog,
   };
 }
 
@@ -218,14 +237,51 @@ export const useProgression = create<ProgressionState>()(
                 ? { ...r, attempts: Math.max(cur?.attempts ?? 0, r.attempts) }
                 : { ...cur, attempts: Math.max(cur.attempts, r.attempts) };
           }
+          const mergeMap = (a: Record<string, number>, b: Record<string, number> = {}) => {
+            const out = { ...a };
+            for (const [k, v] of Object.entries(b)) out[k] = Math.max(out[k] ?? 0, v);
+            return out;
+          };
+          const mistakes = [...(snap.mistakeLog ?? []), ...s.mistakeLog];
+          const seen = new Set<string>();
+          const mistakeLog = mistakes.filter((m) => {
+            const key = `${m.fen}|${m.at}`;
+            return seen.has(key) ? false : (seen.add(key), true);
+          }).slice(0, 30);
           return {
             xp: Math.max(s.xp, snap.xp),
             streak: Math.max(s.streak, snap.streak),
             lastActiveDay: s.lastActiveDay ?? snap.lastActiveDay,
             graduatedClasses: Array.from(new Set([...s.graduatedClasses, ...snap.graduatedClasses])),
             lessons,
+            rating: Math.max(s.rating, snap.rating ?? 800),
+            botWins: Math.max(s.botWins, snap.botWins ?? 0),
+            dailyGoalXp: Math.max(s.dailyGoalXp, snap.dailyGoalXp ?? 50),
+            unlockedAchievements: Array.from(new Set([...s.unlockedAchievements, ...(snap.unlockedAchievements ?? [])])),
+            schoolExamsPassed: Array.from(new Set([...s.schoolExamsPassed, ...(snap.schoolExamsPassed ?? [])])),
+            weaknesses: mergeMap(s.weaknesses, snap.weaknesses),
+            activityDays: mergeMap(s.activityDays, snap.activityDays),
+            mistakeLog,
           };
         }),
+
+      // Account is the source of truth: overwrite local with the server snapshot.
+      hydrateSnapshot: (snap) =>
+        set(() => ({
+          xp: snap.xp,
+          streak: snap.streak,
+          lastActiveDay: snap.lastActiveDay,
+          graduatedClasses: snap.graduatedClasses ?? [],
+          lessons: snap.lessons ?? {},
+          rating: snap.rating ?? 800,
+          botWins: snap.botWins ?? 0,
+          dailyGoalXp: snap.dailyGoalXp ?? 50,
+          unlockedAchievements: snap.unlockedAchievements ?? [],
+          schoolExamsPassed: snap.schoolExamsPassed ?? [],
+          weaknesses: snap.weaknesses ?? {},
+          activityDays: snap.activityDays ?? {},
+          mistakeLog: snap.mistakeLog ?? [],
+        })),
     }),
     {
       name: "chessschool.progression",

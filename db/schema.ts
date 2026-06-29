@@ -48,6 +48,9 @@ export const progress = sqliteTable("progress", {
   lastActiveDay: text("last_active_day"),
   dailyGoalXp: integer("daily_goal_xp").notNull().default(50),
   graduatedClasses: text("graduated_classes").notNull().default("[]"), // JSON
+  /** JSON blob of the extended sync (rating, achievements, school exams, weaknesses,
+   * activity days, mistake log, homework streak) — added so all progress follows the account. */
+  data: text("data").notNull().default("{}"),
   updatedAt: integer("updated_at").notNull().default(0),
 });
 
