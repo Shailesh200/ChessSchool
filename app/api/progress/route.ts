@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { progress, lessonRecords } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +20,12 @@ interface ExtraData {
   mistakeLog?: unknown[];
   homeworkStreak?: number;
   homeworkLastDay?: string | null;
+  recentGames?: unknown[];
 }
 
 /** Pull the account's saved progress (merged into / hydrated onto the client on login). */
-export async function GET() {
-  const user = await getCurrentUser();
+export async function GET(req: Request) {
+  const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const p = (await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
@@ -57,6 +58,7 @@ export async function GET() {
     mistakeLog: extra.mistakeLog ?? [],
     homeworkStreak: extra.homeworkStreak ?? 0,
     homeworkLastDay: extra.homeworkLastDay ?? null,
+    recentGames: extra.recentGames ?? [],
   });
 }
 
@@ -76,16 +78,26 @@ interface PushBody {
   mistakeLog?: unknown[];
   homeworkStreak?: number;
   homeworkLastDay?: string | null;
+  recentGames?: unknown[];
 }
 
 /** Push the client's merged snapshot to the account. */
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
+  const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = (await req.json()) as PushBody;
   const now = Date.now();
-  const data: ExtraData = {
+  // Merge over existing data so a client that omits a field (e.g. web doesn't
+  // send recentGames) doesn't wipe it.
+  const existing = (await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
+  let prev: ExtraData = {};
+  try {
+    prev = existing?.data ? (JSON.parse(existing.data) as ExtraData) : {};
+  } catch {
+    prev = {};
+  }
+  const incoming: ExtraData = {
     rating: body.rating,
     botWins: body.botWins,
     dailyGoalXp: body.dailyGoalXp,
@@ -96,7 +108,10 @@ export async function POST(req: Request) {
     mistakeLog: body.mistakeLog,
     homeworkStreak: body.homeworkStreak,
     homeworkLastDay: body.homeworkLastDay,
+    recentGames: body.recentGames,
   };
+  const data: ExtraData = { ...prev };
+  for (const [k, v] of Object.entries(incoming)) if (v !== undefined) (data as Record<string, unknown>)[k] = v;
   const row = {
     xp: body.xp,
     streak: body.streak,
