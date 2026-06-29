@@ -78,6 +78,7 @@ export function LessonPlayer({
   const [oppMove, setOppMove] = useState<{ from: Square; to: Square } | null>(null);
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
   const wrongRef = useRef(0); // wrong moves this attempt → report-card scoring
+  const [finalMistakes, setFinalMistakes] = useState(0);
   const timers = useRef<number[]>([]);
 
   const progression = useProgression();
@@ -153,6 +154,7 @@ export function LessonPlayer({
     setPhase("complete");
     const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
     const correct = correctRef.current; // fresh count (state may lag the auto-advance)
+    setFinalMistakes(wrongRef.current);
     const ratio = correct / interactive;
     progression.recordLesson(lesson.id, correct, interactive, wrongRef.current);
     progression.awardXp(lesson.xp);
@@ -264,7 +266,7 @@ export function LessonPlayer({
       <LessonComplete
         lesson={lesson}
         correct={correctCount}
-        mistakes={wrongRef.current}
+        mistakes={finalMistakes}
         graduatedTitle={graduatedTitle}
         nextLessonId={nextLessonId}
         onDone={() => router.push("/")}
