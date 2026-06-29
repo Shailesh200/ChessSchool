@@ -16,17 +16,15 @@
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { createGunzip } from "node:zlib";
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
 
-const INPUT = process.argv[2];
+// Defaults to OUR committed curated set; pass the raw Lichess file to re-curate.
+const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
 const TARGET_TOTAL = Number(process.env.LIMIT ?? 5200); // ~5000+ premium lessons
 const PER_CLASS = 18; // puzzles (lessons) per class
 const MIN_POPULARITY = 80; // Lichess popularity score 0–100; keep well-liked puzzles
-if (!INPUT) {
-  console.error("usage: node scripts/import-lichess.mjs <lichess_db_puzzle.csv[.zst]>");
-  process.exit(1);
-}
 
 // ── Curriculum mapping ───────────────────────────────────────────────────────
 const STAGE = (r) =>
@@ -83,6 +81,9 @@ function lineStream(path) {
       if (/error|not found|No such|cannot/i.test(s)) process.stderr.write(s);
     });
     return createInterface({ input: zstd.stdout, crlfDelay: Infinity });
+  }
+  if (path.endsWith(".gz")) {
+    return createInterface({ input: createReadStream(path).pipe(createGunzip()), crlfDelay: Infinity });
   }
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
 }

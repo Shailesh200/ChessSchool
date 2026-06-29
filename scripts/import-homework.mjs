@@ -14,14 +14,12 @@
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { createGunzip } from "node:zlib";
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
 
-const INPUT = process.argv[2];
-if (!INPUT) {
-  console.error("usage: node scripts/import-homework.mjs <lichess_db_puzzle.csv[.zst]>");
-  process.exit(1);
-}
+// Defaults to OUR committed curated set; pass the raw Lichess file to re-curate.
+const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
 
 const PUZZLES_PER = 4; // puzzles in one homework session
 const MAX_SESSIONS = 21; // ~3 weeks of daily rotation per type
@@ -70,6 +68,9 @@ function lineStream(path) {
       process.exit(1);
     });
     return createInterface({ input: zstd.stdout, crlfDelay: Infinity });
+  }
+  if (path.endsWith(".gz")) {
+    return createInterface({ input: createReadStream(path).pipe(createGunzip()), crlfDelay: Infinity });
   }
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
 }

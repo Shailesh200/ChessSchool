@@ -23,6 +23,7 @@
     "db:seed": "node scripts/seed.mjs",
     "db:seed-homework": "node scripts/seed-homework.mjs",
     "db:import-homework": "node scripts/import-homework.mjs",
+    "db:build-puzzles": "node scripts/build-puzzle-set.mjs",
     "db:dump": "node scripts/dump.mjs",
     "db:import-puzzles": "node scripts/import-lichess.mjs",
     "db:reset": "rm -f local.db local.db-shm local.db-wal",

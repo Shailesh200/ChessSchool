@@ -46,15 +46,27 @@ School/Theory, Tactics Lab, Endgame School, Famous Mates, Immortal Games ≈ 53 
 The auto-generated drill semesters were **retired**; the premium puzzle bulk comes from
 the Lichess import below.
 
-### Premium puzzle import (Lichess, hybrid plan)
-The bulk of high-quality puzzles come from the open **Lichess puzzle DB** (real games,
-rated, themed, multi-move). The office proxy 403s the download, so run off-network:
+### Our curated puzzle set (hybrid plan)
+The bulk of puzzles are sourced from the open **Lichess puzzle DB** (CC0; real
+games, rated, themed) but packaged as **our own committed dataset**:
+`data/chess-school-puzzles.csv.gz` — a quality-filtered, balanced spread across our
+stage×concept matrix (~a few MB, in the repo). After the one-time build, seeding
+needs **no 300 MB download and no external tools** (gzip is built into Node).
+
+One-time build (off-network — the office proxy 403s database.lichess.org):
 ```
-pnpm install && pnpm db:fresh                      # FIRST: create local.db (schema + base)
 curl -L -o lichess_db_puzzle.csv.zst https://database.lichess.org/lichess_db_puzzle.csv.zst
-pnpm db:import-puzzles lichess_db_puzzle.csv.zst   # LIMIT=5200 by default
+pnpm db:build-puzzles lichess_db_puzzle.csv.zst    # → data/chess-school-puzzles.csv.gz (commit it)
+```
+Seed from our committed set (no args = reads `data/chess-school-puzzles.csv.gz`):
+```
+pnpm install && pnpm db:fresh        # create local.db (schema + base + fallback homework)
+pnpm db:import-puzzles               # curriculum from our curated set (LIMIT=5200)
+pnpm db:import-homework              # SEPARATE homework pool (disjoint slice, concept-tagged)
 pnpm db:dump && pnpm db:remote
 ```
+Phase 2 (planned): personalized puzzles generated from users' own Mistake-DNA
+positions + saved games, verified with the in-app Stockfish.
 `scripts/import-lichess.mjs` buckets puzzles by school stage (← rating) × concept (←
 theme), gives each class a hand-authored tutorial + ~18 puzzles, converts multi-move
 solutions into multi-step lessons, and chess.js-validates every line (ids prefixed
