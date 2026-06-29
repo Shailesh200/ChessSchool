@@ -183,9 +183,16 @@ export default function DashboardPage() {
               </Card>
             ))}
           </div>
-          <h3 className="mb-2 mt-3 text-xs font-extrabold uppercase tracking-wide text-ink-500">
-            Recent mistakes — tap to see the better move
-          </h3>
+          <div className="mb-2 mt-3 flex items-center justify-between gap-2">
+            <h3 className="text-xs font-extrabold uppercase tracking-wide text-ink-500">
+              Recent mistakes — tap to see the better move
+            </h3>
+            {mistakeLog.length > 0 && (
+              <Link href="/practice/mistakes" className="shrink-0 text-xs font-extrabold text-brand">
+                🎯 Practice these →
+              </Link>
+            )}
+          </div>
           <MistakeReview mistakes={mistakeLog} />
         </section>
 

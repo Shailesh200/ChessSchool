@@ -22,7 +22,7 @@ import { Chess } from "chess.js";
 
 // Defaults to OUR committed curated set; pass the raw Lichess file to re-curate.
 const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
-const TARGET_TOTAL = Number(process.env.LIMIT ?? 5200); // ~5000+ premium lessons
+const TARGET_TOTAL = Number(process.env.LIMIT ?? 16000); // full curated pool by default; override with LIMIT=
 const PER_CLASS = 18; // puzzles (lessons) per class
 const MIN_POPULARITY = 80; // Lichess popularity score 0–100; keep well-liked puzzles
 
