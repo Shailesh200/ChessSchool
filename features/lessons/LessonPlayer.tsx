@@ -264,6 +264,7 @@ export function LessonPlayer({
       <LessonComplete
         lesson={lesson}
         correct={correctCount}
+        mistakes={wrongRef.current}
         graduatedTitle={graduatedTitle}
         nextLessonId={nextLessonId}
         onDone={() => router.push("/")}
@@ -455,12 +456,14 @@ function FeedbackBar({
 function LessonComplete({
   lesson,
   correct,
+  mistakes,
   graduatedTitle,
   nextLessonId,
   onDone,
 }: {
   lesson: Lesson;
   correct: number;
+  mistakes: number;
   graduatedTitle: string | null;
   nextLessonId?: string | null;
   onDone: () => void;
@@ -515,6 +518,7 @@ function LessonComplete({
       <div className="flex gap-3">
         <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
         <StatPill label="Correct" value={`${correct}`} tone="text-success" />
+        <StatPill label="Mistakes" value={`${mistakes}`} tone={mistakes === 0 ? "text-success" : "text-danger"} />
       </div>
 
       {/* Guest → enroll prompt (#2): progress is saved locally and follows you up. */}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +12,24 @@ import { useSession } from "@/core/store/session.store";
 import { rankForClasses } from "@/lib/rank";
 import { useMounted } from "@/core/hooks/useMounted";
 import { ACHIEVEMENTS } from "@/features/progression/achievements";
+
+const TAG_INFO: Record<string, string> = {
+  fork: "A fork attacks two pieces at once (often with a knight) — your opponent can only save one.",
+  pin: "A pin freezes a piece because moving it would expose a more valuable piece behind it.",
+  skewer: "A skewer hits a valuable piece so it must move, letting you win the piece behind it.",
+  capture: "Spotting undefended (hanging) pieces you can win for free.",
+  check: "A forcing move attacking the king — your opponent must respond to it.",
+  checkmate: "The king is attacked with no legal escape — that wins the game.",
+  mate: "The king is attacked with no legal escape — that wins the game.",
+  promotion: "Push a pawn to the last rank to make a new queen (or a knight to fork!).",
+  discovered: "Move one piece to unleash an attack from another piece behind it.",
+  discoveredAttack: "Move one piece to unleash an attack from another piece behind it.",
+  sacrifice: "Give up material for a bigger gain — a mating attack or winning combination.",
+  endgame: "The final phase: activate your king, push passed pawns, use the opposition.",
+  advantage: "Convert a winning position: trade pieces (not pawns), avoid counterplay.",
+  opening: "Develop your pieces, control the centre, and castle early.",
+  trapped: "Trapping a piece that has no safe squares to escape to.",
+};
 
 const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: boolean; authOnly?: boolean }[] = [
   { href: "/library", icon: "learn", label: "Library", authOnly: true },
@@ -35,6 +54,7 @@ export default function ProfilePage() {
   const isAdmin = useSession((s) => s.isAdmin);
   const authed = useSession((s) => s.authed);
   const user = useSession((s) => s.user);
+  const [openTag, setOpenTag] = useState<string | null>(null);
   const hubLinks = HUB_LINKS.filter(
     (l) => (!l.adminOnly || isAdmin) && (!l.authOnly || authed === true),
   );
@@ -103,16 +123,27 @@ export default function ProfilePage() {
                 No weak spots yet — keep playing and I&apos;ll track what to review.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {weakTags.map(([tag, count]) => (
-                  <span
-                    key={tag}
-                    className="rounded-pill bg-danger/10 px-3 py-1 text-xs font-bold text-danger"
-                  >
-                    {tag} ×{count}
-                  </span>
-                ))}
-              </div>
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {weakTags.map(([tag, count]) => (
+                    <button
+                      key={tag}
+                      onClick={() => setOpenTag(openTag === tag ? null : tag)}
+                      className={`btn-tactile rounded-pill px-3 py-1 text-xs font-bold ${
+                        openTag === tag ? "bg-danger text-white" : "bg-danger/10 text-danger"
+                      }`}
+                    >
+                      {tag} ×{count}
+                    </button>
+                  ))}
+                </div>
+                {openTag && (
+                  <p className="mt-3 rounded-card bg-surface-sunken p-3 text-xs font-semibold leading-snug text-ink-700">
+                    <span className="font-extrabold text-ink">{openTag}:</span>{" "}
+                    {TAG_INFO[openTag] ?? "Keep practising this theme — tap a lesson tagged with it to drill it."}
+                  </p>
+                )}
+              </>
             )}
           </Card>
         </section>
