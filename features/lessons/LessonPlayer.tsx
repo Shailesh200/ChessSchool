@@ -12,7 +12,7 @@ import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
-import { usePlan } from "@/core/store/plan.store";
+import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { startNav } from "@/core/store/nav.store";
@@ -311,6 +311,7 @@ export function LessonPlayer({
         mistakes={finalMistakes}
         graduatedTitle={graduatedTitle}
         nextLessonId={nextLessonId}
+        homeworkStep={homeworkStep}
         onDone={() => router.push("/")}
       />
     );
@@ -503,6 +504,7 @@ function LessonComplete({
   mistakes,
   graduatedTitle,
   nextLessonId,
+  homeworkStep,
   onDone,
 }: {
   lesson: Lesson;
@@ -510,14 +512,19 @@ function LessonComplete({
   mistakes: number;
   graduatedTitle: string | null;
   nextLessonId?: string | null;
+  homeworkStep?: string;
   onDone: () => void;
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const router = useRouter();
   const authed = useSession((s) => s.authed);
+  const homeworkDoneCount = usePlan((s) => s.routineDone.length);
+  const isHomework = !!homeworkStep;
+  const allHomeworkDone = homeworkDoneCount >= ROUTINE_STEPS.length;
   // Prefer the DB-computed next lesson; fall back to the constants graph.
-  const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
+  // Homework never chains into "continue learning" — it returns to the homework screen.
+  const nextId = isHomework ? null : nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
   const go = (id: string, href: string, action?: () => void) => {
     if (busy) return;
     setBusy(id);
@@ -548,6 +555,21 @@ function LessonComplete({
           <h1 className="text-3xl font-extrabold text-ink">{graduatedTitle}</h1>
           <p className="text-sm font-semibold text-ink-500">
             You&apos;ve mastered this class. The next one is unlocked!
+          </p>
+        </>
+      ) : isHomework ? (
+        <>
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-extrabold text-ink"
+          >
+            {allHomeworkDone ? "All homework done for today! 🎉" : "Homework done! ✅"}
+          </motion.h1>
+          <p className="text-sm font-semibold text-ink-500">
+            {allHomeworkDone
+              ? "You've completed every routine today — see you tomorrow!"
+              : "Nice work. Head back to finish the rest of today's homework."}
           </p>
         </>
       ) : (
@@ -583,7 +605,11 @@ function LessonComplete({
       )}
 
       <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
-        {nextId ? (
+        {isHomework ? (
+          <Button size="lg" block loading={busy === "hw"} onClick={() => go("hw", "/plan")}>
+            Back to homework →
+          </Button>
+        ) : nextId ? (
           <Button size="lg" block loading={busy === "next"} onClick={() => go("next", `/lesson/${nextId}`)}>
             Continue learning →
           </Button>
@@ -596,7 +622,7 @@ function LessonComplete({
           <Button variant="ghost" block onClick={() => setReflectOpen(true)}>
             📝 Reflect
           </Button>
-          {nextId && (
+          {!isHomework && nextId && (
             <Button variant="ghost" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
               Back to campus
             </Button>
