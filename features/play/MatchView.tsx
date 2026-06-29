@@ -75,7 +75,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         ? `${botProfile(active.targetElo).emoji} ${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
         : "Your move. Good luck!",
   );
-  const [over, setOver] = useState<null | { text: string; win: boolean; gameId: string }>(null);
+  const [over, setOver] = useState<null | { text: string; win: boolean; gameId: string; ratingDelta: number; newRating: number }>(null);
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
@@ -126,6 +126,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       usePlan.getState().markActivity("match", isoDay());
       const playerWon = isBot && winner === playerColor;
       // Update the player's ELO from this bot game + unlock rating/win achievements.
+      const ratingBefore = useProgression.getState().rating;
       if (isBot) {
         const score = winner === null ? 0.5 : playerWon ? 1 : 0;
         progression.updateRating(active.targetElo, score);
@@ -134,6 +135,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           (id) => progression.unlockAchievement(id),
         );
       }
+      const ratingAfter = useProgression.getState().rating;
       if (playerWon) {
         progression.awardXp(40);
         audio.play("victory");
@@ -159,7 +161,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   ? "Checkmate — bot wins"
                   : `Checkmate — ${sideName} wins`
               : "Draw";
-      setOver({ text, win: playerWon, gameId: active.id });
+      setOver({ text, win: playerWon, gameId: active.id, ratingDelta: ratingAfter - ratingBefore, newRating: ratingAfter });
     },
     [active, isBot, markFinished, progression],
   );
@@ -405,7 +407,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   animate={{ scale: 1, y: 0 }}
                   className="rounded-card bg-surface-card px-8 py-6 text-center [box-shadow:var(--shadow-pop)]"
                 >
-                  <div className="text-2xl font-extrabold text-ink">{over.text}</div>
+                  <div className="text-3xl">{over.win ? "🏆" : over.text.startsWith("Draw") ? "🤝" : "♟️"}</div>
+                  <div className="mt-1 text-2xl font-extrabold text-ink">{over.text}</div>
+                  {isBot && over.ratingDelta !== 0 && (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-pill bg-surface-sunken px-4 py-1.5">
+                      <span className="text-xs font-bold text-ink-500">Rating</span>
+                      <span className={`text-sm font-extrabold ${over.ratingDelta > 0 ? "text-success" : "text-danger"}`}>
+                        {over.ratingDelta > 0 ? "+" : ""}{over.ratingDelta}
+                      </span>
+                      <span className="text-sm font-extrabold text-ink">→ {over.newRating}</span>
+                    </div>
+                  )}
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => setReflectOpen(true)}>
                       📝 Reflect
