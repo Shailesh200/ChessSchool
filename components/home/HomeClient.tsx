@@ -69,20 +69,34 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
         <ResumeCard catalog={catalog} />
 
         {/* Today's homework prompt (logged-in) */}
-        {authed === true && homeworkDone < ROUTINE_STEPS.length && (
-          <Link
-            href="/plan"
-            className="btn-tactile flex items-center justify-between rounded-card border border-gold/40 bg-gold/10 px-4 py-3"
-          >
-            <span>
-              <span className="block text-sm font-extrabold text-ink">📋 Today&apos;s homework</span>
-              <span className="block text-xs font-semibold text-ink-500">
-                {homeworkDone}/{ROUTINE_STEPS.length} done — finish it to keep your streak
+        {authed === true &&
+          (homeworkDone < ROUTINE_STEPS.length ? (
+            <Link
+              href="/plan"
+              className="btn-tactile flex items-center justify-between rounded-card border border-gold/40 bg-gold/10 px-4 py-3"
+            >
+              <span>
+                <span className="block text-sm font-extrabold text-ink">📋 Today&apos;s homework</span>
+                <span className="block text-xs font-semibold text-ink-500">
+                  {homeworkDone}/{ROUTINE_STEPS.length} done — finish it to keep your streak
+                </span>
               </span>
-            </span>
-            <span className="text-sm font-bold text-brand">Open →</span>
-          </Link>
-        )}
+              <span className="text-sm font-bold text-brand">Open →</span>
+            </Link>
+          ) : (
+            <Link
+              href="/plan"
+              className="btn-tactile flex items-center justify-between rounded-card border border-success/40 bg-success/10 px-4 py-3"
+            >
+              <span>
+                <span className="block text-sm font-extrabold text-ink">✅ Homework done for today!</span>
+                <span className="block text-xs font-semibold text-ink-500">
+                  Nice work — come back tomorrow for a fresh set.
+                </span>
+              </span>
+              <span className="text-sm font-bold text-brand">Review →</span>
+            </Link>
+          ))}
 
         <Card className="flex items-center gap-4">
           <div className="min-w-0 flex-1">

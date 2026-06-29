@@ -74,31 +74,37 @@ const insert = db.prepare(
 const allSteps = [...byTag.values()].flat();
 let total = 0;
 for (const [type, tags] of Object.entries(TYPE_TAGS)) {
-  let pool = shuffle(tags.flatMap((t) => byTag.get(t) ?? []));
-  // Fall back to any puzzles so every type always has homework (sparse local seed).
-  if (pool.length < PUZZLES_PER * 2) pool = shuffle([...allSteps]);
-  if (!pool.length) {
-    console.warn(`  ⚠ no puzzles available for ${type}`);
-    continue;
-  }
   let made = 0;
-  for (let i = 0; i < pool.length && made < MAX_PER_TYPE; i += PUZZLES_PER) {
-    const chunk = pool.slice(i, i + PUZZLES_PER);
-    if (chunk.length < 2) break; // need at least a couple of puzzles
-    const steps = chunk.map((s, j) => ({ ...s, id: `s${j}`, tag: type }));
+  const emit = (concept, steps) => {
     insert.run(
       `hw-${type}-${made + 1}`,
       type,
-      `${LABEL[type]} #${made + 1}`,
-      `${chunk.length}-puzzle ${type} session`,
+      concept === "tactics" ? `${LABEL[type]} #${made + 1}` : `${LABEL[type]}: ${concept}`,
+      `${steps.length}-puzzle ${concept} session`,
       EMOJI[type],
-      type,
+      concept, // tag = topic, for "already learned" filtering
       15,
-      JSON.stringify(steps),
+      JSON.stringify(steps.map((s, j) => ({ ...s, id: `s${j}` }))),
       made,
     );
     made++;
     total++;
+  };
+  // Single-concept sessions per source tag this type covers.
+  const concepts = tags.filter((t) => (byTag.get(t)?.length ?? 0) >= 2);
+  if (concepts.length) {
+    for (const concept of concepts) {
+      const pool = shuffle([...(byTag.get(concept) ?? [])]);
+      for (let i = 0; i + 2 <= pool.length && made < MAX_PER_TYPE; i += PUZZLES_PER) {
+        emit(concept, pool.slice(i, i + PUZZLES_PER));
+      }
+    }
+  } else {
+    // Sparse local seed: fall back to mixed puzzles so the type still has homework.
+    const pool = shuffle([...allSteps]);
+    for (let i = 0; i + 2 <= pool.length && made < MAX_PER_TYPE; i += PUZZLES_PER) {
+      emit("tactics", pool.slice(i, i + PUZZLES_PER));
+    }
   }
   console.log(`  ${EMOJI[type]} ${type}: ${made} sessions`);
 }

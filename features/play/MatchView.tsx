@@ -425,15 +425,21 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                     <Button variant="outline" size="sm" onClick={() => { const g = over.gameId; clear(); router.push(`/review/${g}`); }}>
                       Review
                     </Button>
-                    <Button size="sm" onClick={() => { clear(); audio.play("transition"); }}>
-                      New game
-                    </Button>
+                    {active.fromHomework ? (
+                      <Button size="sm" onClick={() => { clear(); router.push("/plan"); }}>
+                        Back to homework
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => { clear(); audio.play("transition"); }}>
+                        New game
+                      </Button>
+                    )}
                   </div>
                   <button
-                    onClick={() => { clear(); router.push("/"); }}
+                    onClick={() => { clear(); router.push(active.fromHomework ? "/plan" : "/"); }}
                     className="mt-3 text-xs font-bold text-ink-500 underline-offset-2 hover:underline"
                   >
-                    ← Back to campus
+                    {active.fromHomework ? "← Back to homework" : "← Back to campus"}
                   </button>
                 </motion.div>
               </motion.div>

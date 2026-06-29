@@ -44,6 +44,20 @@ const typeFor = (themes, rating) => {
   return null;
 };
 
+// Concept (topic) tag — aligned with the curriculum's tags so homework can be
+// filtered to topics the student has already studied.
+const CONCEPTS = [
+  { id: "mate", themes: ["mateIn1", "mateIn2", "mateIn3", "backRankMate", "smotheredMate", "mate", "hookMate"] },
+  { id: "fork", themes: ["fork"] },
+  { id: "pin", themes: ["pin", "skewer"] },
+  { id: "discovered", themes: ["discoveredAttack", "doubleCheck"] },
+  { id: "sacrifice", themes: ["sacrifice", "attraction", "deflection", "clearance", "interference", "decoy"] },
+  { id: "trapped", themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"] },
+  { id: "endgame", themes: ["endgame", "rookEndgame", "pawnEndgame", "queenEndgame", "promotion", "advancedPawn", "zugzwang"] },
+  { id: "advantage", themes: ["advantage", "crushing", "quietMove", "intermezzo", "defensiveMove"] },
+];
+const conceptOf = (themes) => (CONCEPTS.find((c) => c.themes.some((t) => themes.includes(t))) ?? { id: "tactics" }).id;
+
 function lineStream(path) {
   if (!existsSync(path)) {
     console.error(`✗ File not found: ${path}`);
@@ -116,7 +130,7 @@ for await (const line of rl) {
   if (n <= SKIP_PER_TYPE) continue; // skip the curriculum's head
   const arr = picked.get(type);
   if (arr.length >= NEED) continue;
-  arr.push({ id: c[0], fen: c[1], moves: c[2], rating });
+  arr.push({ id: c[0], fen: c[1], moves: c[2], rating, concept: conceptOf(themes) });
 }
 console.log(`\nScanned ${scanned.toLocaleString()} rows.`);
 
@@ -139,29 +153,36 @@ const insert = db.prepare(
 let total = 0;
 for (const [type, meta] of Object.entries(TYPES)) {
   const pool = picked.get(type);
+  // Single-concept sessions so each can be filtered to topics the student has learned.
+  const byConcept = new Map();
+  for (const pz of pool) {
+    if (!byConcept.has(pz.concept)) byConcept.set(pz.concept, []);
+    byConcept.get(pz.concept).push(pz);
+  }
   let made = 0;
-  for (let i = 0; i < pool.length && made < MAX_SESSIONS; ) {
-    const chunk = [];
-    while (chunk.length < PUZZLES_PER && i < pool.length) {
-      const pz = pool[i++];
-      const steps = buildSteps(pz.fen, pz.moves, meta.label);
-      if (steps) chunk.push({ pz, steps });
+  for (const [concept, puzzles] of byConcept) {
+    for (let i = 0; i + 2 <= puzzles.length && made < MAX_SESSIONS; i += PUZZLES_PER) {
+      const chunk = [];
+      for (const pz of puzzles.slice(i, i + PUZZLES_PER)) {
+        const steps = buildSteps(pz.fen, pz.moves, meta.label);
+        if (steps) chunk.push(steps);
+      }
+      if (chunk.length < 2) break;
+      const steps = chunk.flatMap((s, k) => s.map((x, j) => ({ ...x, id: `s${k}_${j}` })));
+      insert.run(
+        `hw-${type}-${made + 1}`,
+        type,
+        `${meta.label}: ${concept}`,
+        `${chunk.length}-puzzle ${concept} session`,
+        meta.emoji,
+        concept, // tag = topic, for "already learned" filtering
+        15,
+        JSON.stringify(steps),
+        made,
+      );
+      made++;
+      total++;
     }
-    if (chunk.length < 2) break;
-    const steps = chunk.flatMap(({ steps }, k) => steps.map((s, j) => ({ ...s, id: `s${k}_${j}` })));
-    insert.run(
-      `hw-${type}-${made + 1}`,
-      type,
-      `${meta.label} #${made + 1}`,
-      `${chunk.length}-puzzle ${type} session`,
-      meta.emoji,
-      type,
-      15,
-      JSON.stringify(steps),
-      made,
-    );
-    made++;
-    total++;
   }
   console.log(`  ${meta.emoji} ${type}: ${made} sessions (${pool.length} puzzles)`);
 }

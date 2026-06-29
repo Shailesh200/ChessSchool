@@ -35,12 +35,22 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
   const dailyGoalXp = useProgression((s) => s.dailyGoalXp);
   const streak = useProgression((s) => s.streak);
-  const [homeworkByType, setHomeworkByType] = useState<Record<string, { id: string; title: string }[]>>({});
+  const [homeworkByType, setHomeworkByType] = useState<Record<string, { id: string; title: string; tag: string }[]>>({});
+  const [lessonTag, setLessonTag] = useState<Record<string, string>>({}); // lessonId -> concept tag
 
   useEffect(() => {
     fetch("/api/homework")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setHomeworkByType(d?.byType ?? {}))
+      .catch(() => void 0);
+    fetch("/api/curriculum-stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const map: Record<string, string> = {};
+        for (const [tag, ids] of Object.entries((d?.lessonsByTag ?? {}) as Record<string, string[]>))
+          for (const id of ids) map[id] = tag;
+        setLessonTag(map);
+      })
       .catch(() => void 0);
   }, []);
 
@@ -61,21 +71,30 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
 
   const daysAway = lastActiveDay ? daysBetween(lastActiveDay, isoDay()) : 0;
   const routineDone = plan.routineDone.length;
-  // The student's actual next lesson — homework points straight at it.
   const loc = currentLocation(records, graduated, catalog.semesters, catalog.titles);
   const nextLessonId = loc.complete ? null : loc.lessonId;
 
+  // Topics (concept tags) the student has already studied — homework reviews these.
+  const learnedConcepts = new Set(
+    Object.keys(records)
+      .map((id) => lessonTag[id])
+      .filter(Boolean),
+  );
+
   // A different homework lesson each day per routine type (rotates by day number).
+  // Drawn from topics already learned; "lesson" reviews across all types.
   const dayIndex = Math.floor(Date.parse(isoDay() + "T00:00:00Z") / 86400000);
-  const pickHomework = (type: string): { id: string; title: string } | null => {
-    const pool = homeworkByType[type];
-    return pool?.length ? pool[dayIndex % pool.length]! : null;
+  const pickHomework = (type: string): { id: string; title: string; tag: string } | null => {
+    const pool = type === "lesson" ? Object.values(homeworkByType).flat() : homeworkByType[type] ?? [];
+    const learned = pool.filter((h) => learnedConcepts.has(h.tag));
+    const usable = learned.length ? learned : pool; // fall back to all while nothing's learned yet
+    return usable.length ? usable[dayIndex % usable.length]! : null;
   };
 
   function startAdaptiveMatch() {
     haptics.fire("success");
     audio.play("unlock");
-    startMatch("bot", rating, 0); // adaptive: bot plays at your current rating
+    startMatch("bot", rating, 0, true); // adaptive: bot plays at your current rating
     router.push("/play");
   }
 
@@ -194,23 +213,11 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
             {ROUTINE_STEPS.map((step) => {
               const done = plan.routineDone.includes(step.id);
               const isMatch = step.id === "match";
-              // "lesson" continues the school curriculum; the drills (warmup/practice/
-              // review/reflection) draw from the separate homework pool, rotating daily.
-              const hw = step.id === "lesson" ? null : pickHomework(step.id);
-              const href =
-                step.id === "lesson"
-                  ? nextLessonId
-                    ? `/lesson/${nextLessonId}?hw=lesson`
-                    : step.href
-                  : hw
-                    ? `/homework/${hw.id}?hw=${step.id}`
-                    : step.href;
-              const label =
-                step.id === "lesson" && nextLessonId
-                  ? `Lesson: ${loc.lessonTitle}`
-                  : hw
-                    ? `${step.label}: ${hw.title}`
-                    : step.label;
+              // Every drill (incl. "lesson") draws from the homework pool — separate
+              // puzzles, no tutorials, only topics the student has already learned.
+              const hw = isMatch ? null : pickHomework(step.id);
+              const href = hw ? `/homework/${hw.id}?hw=${step.id}` : step.href;
+              const label = hw ? `${step.label}: ${hw.title.replace(/^.*?: /, "")}` : step.label;
               return (
                 <Card key={step.id} className="flex items-center gap-3 p-3">
                   {/* Display-only — checks itself when you complete the activity. */}

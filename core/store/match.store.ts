@@ -23,11 +23,13 @@ export interface ActiveMatch {
   timeControlMin: number;
   whiteMs: number;
   blackMs: number;
+  /** launched from the homework screen — game-over returns there */
+  fromHomework?: boolean;
 }
 
 interface MatchStore {
   active: ActiveMatch | null;
-  start: (mode: MatchMode, targetElo: number, timeControlMin: number) => void;
+  start: (mode: MatchMode, targetElo: number, timeControlMin: number, fromHomework?: boolean) => void;
   sync: (patch: { fen: string; pgn: string; from?: string; to?: string }) => void;
   setClocks: (whiteMs: number, blackMs: number) => void;
   markFinished: () => void;
@@ -38,7 +40,7 @@ export const useMatch = create<MatchStore>()(
   persist(
     (set) => ({
       active: null,
-      start: (mode, targetElo, timeControlMin) =>
+      start: (mode, targetElo, timeControlMin, fromHomework) =>
         set({
           active: {
             id: `g${Date.now()}`,
@@ -53,6 +55,7 @@ export const useMatch = create<MatchStore>()(
             timeControlMin,
             whiteMs: timeControlMin * 60_000,
             blackMs: timeControlMin * 60_000,
+            fromHomework: fromHomework ?? false,
           },
         }),
       sync: (patch) =>
