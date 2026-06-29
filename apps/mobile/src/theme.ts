@@ -32,15 +32,16 @@ export const radius = { sm: 8, md: 14, card: 20, xl: 28, pill: 999 } as const;
 export const space = { 1: 4, 1.5: 6, 2: 8, 2.5: 10, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32 } as const;
 
 // Tailwind type scale (size / line-height), matched 1:1 so text blocks align with web.
+// Slightly larger than web's Tailwind scale (user preference for bigger app text).
 export const type = {
-  caption: { fontSize: 11, lineHeight: 16 }, // text-[11px]
-  xs: { fontSize: 12, lineHeight: 16 },
-  sm: { fontSize: 14, lineHeight: 20 },
-  base: { fontSize: 16, lineHeight: 24 },
-  lg: { fontSize: 18, lineHeight: 28 },
-  xl: { fontSize: 20, lineHeight: 28 },
-  "2xl": { fontSize: 24, lineHeight: 32 },
-  "3xl": { fontSize: 30, lineHeight: 36 },
+  caption: { fontSize: 12, lineHeight: 16 },
+  xs: { fontSize: 13, lineHeight: 18 },
+  sm: { fontSize: 15, lineHeight: 21 },
+  base: { fontSize: 17, lineHeight: 25 },
+  lg: { fontSize: 19, lineHeight: 28 },
+  xl: { fontSize: 22, lineHeight: 30 },
+  "2xl": { fontSize: 26, lineHeight: 34 },
+  "3xl": { fontSize: 32, lineHeight: 38 },
 } as const;
 
 // Fredoka weight variants (custom fonts use family-per-weight, not fontWeight).

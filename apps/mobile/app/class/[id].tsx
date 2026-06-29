@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Circle, G } from "react-native-svg";
 import { api } from "@/api";
 import { Button } from "@/Button";
+import { TopBar } from "@/TopBar";
 import { haptics } from "@/haptics";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
@@ -91,6 +92,7 @@ export default function ClassJourneyScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={styles.back}>← Campus</Text>
@@ -123,9 +125,9 @@ export default function ClassJourneyScreen() {
             <JourneyNode key={n.id} node={n} index={i} onPress={() => go(n.id, n.status)} />
           ))}
           {visibleCount < nodes.length && (
-            <View style={{ width: "100%", marginTop: space[3] }}>
-              <Button label={`Show ${Math.min(8, nodes.length - visibleCount)} more lessons ▾`} variant="outline" onPress={() => setShown((s) => s + 8)} />
-            </View>
+            <Pressable style={styles.showMore} onPress={() => setShown((s) => s + 8)}>
+              <Text style={styles.showMoreText}>Show {Math.min(8, nodes.length - visibleCount)} more lessons ▾</Text>
+            </Pressable>
           )}
           {data.exam && visibleCount >= nodes.length && (
             <JourneyNode
@@ -145,6 +147,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: { padding: space[5], gap: space[5], paddingBottom: 40 },
   back: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+  showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
+  showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
   header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },
   headerRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
   emojiTile: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.brand50, justifyContent: "center", alignItems: "center" },
