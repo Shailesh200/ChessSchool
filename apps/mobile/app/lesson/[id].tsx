@@ -7,10 +7,11 @@ import { ChessBoard } from "@/ChessBoard";
 import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
 import { Icon } from "@/Icon";
+import { Confetti } from "@/Confetti";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
-import { colors, font, radius, shadowCard } from "@/theme";
+import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Step = {
   id: string;
@@ -40,7 +41,9 @@ export default function LessonScreen() {
   const [flipped, setFlipped] = useState(false);
   const [displayFen, setDisplayFen] = useState<string | undefined>();
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+  const [nextId, setNextId] = useState<string | null>(null);
   const correctRef = useRef(0);
+  const wrongRef = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -110,6 +113,8 @@ export default function LessonScreen() {
         method: "POST",
         body: { ...snap, xp: ((snap.xp as number) ?? 0) + lesson!.xp, lessons },
       });
+      const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
+      if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch {
       /* ignore */
     }
@@ -137,6 +142,7 @@ export default function LessonScreen() {
     }
     haptics.error();
     sfx.play("error");
+    wrongRef.current += 1;
     setPhase("wrong");
     timers.current.push(setTimeout(() => setPhase("playing"), 900));
     return false;
@@ -145,12 +151,24 @@ export default function LessonScreen() {
   if (phase === "complete") {
     return (
       <SafeAreaView style={styles.safe}>
+        <Confetti count={28} />
         <View style={styles.center}>
           <Cody expression="cheer" size={140} />
           <Text style={styles.doneTitle}>Lesson complete!</Text>
-          <Text style={styles.doneSub}>+{lesson.xp} XP · {correctRef.current}/{interactive} correct</Text>
-          <View style={{ marginTop: 22, width: 260 }}>
-            <Button label="Back to academy" variant="success" onPress={() => router.back()} />
+          <View style={styles.pills}>
+            <StatPill label="XP earned" value={`+${lesson.xp}`} tone={colors.brand} />
+            <StatPill label="Correct" value={`${correctRef.current}`} tone={colors.success} />
+            <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} />
+          </View>
+          <View style={{ marginTop: space[6], width: 280, gap: space[2] }}>
+            {nextId ? (
+              <>
+                <Button label="Continue learning →" variant="success" onPress={() => router.replace({ pathname: "/lesson/[id]", params: { id: nextId } })} />
+                <Button label="Back to campus" variant="outline" onPress={() => router.back()} />
+              </>
+            ) : (
+              <Button label="Back to academy" variant="success" onPress={() => router.back()} />
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -221,6 +239,15 @@ export default function LessonScreen() {
   );
 }
 
+function StatPill({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <View style={styles.pill}>
+      <Text style={[styles.pillValue, { color: tone }]}>{value}</Text>
+      <Text style={styles.pillLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const CIRCLE = 44;
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
@@ -238,6 +265,9 @@ const styles = StyleSheet.create({
   hintText: { fontSize: 13, fontFamily: font.semibold, color: colors.ink500 },
   bottom: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, minHeight: 64, justifyContent: "center" },
   moveCue: { textAlign: "center", fontSize: 14, fontFamily: font.semibold, color: colors.ink500 },
-  doneTitle: { fontSize: 26, fontFamily: font.bold, color: colors.ink, marginTop: 16 },
-  doneSub: { fontSize: 15, fontFamily: font.semibold, color: colors.ink500, marginTop: 6 },
+  doneTitle: { ...type["3xl"], fontFamily: font.bold, color: colors.ink, marginTop: 16 },
+  pills: { flexDirection: "row", gap: space[3], marginTop: space[4] },
+  pill: { backgroundColor: colors.surfaceCard, borderRadius: radius.md, borderWidth: 1, borderColor: colors.hairline, paddingVertical: space[2], paddingHorizontal: space[3], alignItems: "center", minWidth: 84 },
+  pillValue: { ...type.xl, fontFamily: font.bold },
+  pillLabel: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
 });
