@@ -296,9 +296,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
               <Icon name="flip" size={18} />
             </IconBtn>
-            <IconBtn label="Share PGN" onClick={share}>
-              <Icon name={copied ? "check" : "share"} size={18} />
-            </IconBtn>
+            {!isBot && (
+              <IconBtn label="Share PGN" onClick={share}>
+                <Icon name={copied ? "check" : "share"} size={18} />
+              </IconBtn>
+            )}
             {over ? (
               <Button size="sm" onClick={() => { clear(); audio.play("transition"); }}>
                 New game
@@ -352,7 +354,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                     <Button variant="outline" size="sm" onClick={() => setReflectOpen(true)}>
                       📝 Reflect
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/review/${over.gameId}`)}>
+                    <Button variant="outline" size="sm" onClick={() => { const g = over.gameId; clear(); router.push(`/review/${g}`); }}>
                       Review
                     </Button>
                     <Button size="sm" onClick={() => { clear(); audio.play("transition"); }}>

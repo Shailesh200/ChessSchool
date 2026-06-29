@@ -376,7 +376,7 @@ export function LessonPlayer({
           )}
           {isObserving ? (
             <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>
-          ) : solvable ? (
+          ) : solvable && !lesson.exam ? (
             <button
               onClick={() => {
                 setHintLevel((h) => Math.min(h + 1, 2));

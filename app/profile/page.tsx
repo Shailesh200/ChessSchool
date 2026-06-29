@@ -16,7 +16,7 @@ import { ACHIEVEMENTS } from "@/features/progression/achievements";
 const HUB_LINKS: { href: string; icon: IconName; label: string; adminOnly?: boolean; authOnly?: boolean }[] = [
   { href: "/library", icon: "learn", label: "Library", authOnly: true },
   { href: "/account", icon: "profile", label: "My ID", authOnly: true },
-  { href: "/dashboard", icon: "chart", label: "Dashboard", authOnly: true },
+  { href: "/dashboard", icon: "chart", label: "Report Card", authOnly: true },
   { href: "/plan", icon: "calendar", label: "Study Plan", authOnly: true },
   { href: "/journal", icon: "journal", label: "Journal", authOnly: true },
   { href: "/themes", icon: "palette", label: "Themes" },

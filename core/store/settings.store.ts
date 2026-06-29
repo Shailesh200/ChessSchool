@@ -42,7 +42,7 @@ type BooleanSettingKey = {
 
 const defaults = {
   sound: true,
-  volume: 0.7,
+  volume: 1,
   haptics: true,
   reducedMotion: false,
   hints: true,

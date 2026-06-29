@@ -83,7 +83,7 @@ export default function DashboardPage() {
     <AppShell>
       <div className="flex flex-col gap-5">
         <BackButton />
-        <h1 className="text-xl font-extrabold text-ink">School Dashboard</h1>
+        <h1 className="text-xl font-extrabold text-ink">Report Card</h1>
 
         {/* Report card — per-class grades */}
         <ReportCard classes={reportClasses} records={records} graduated={graduated} />
