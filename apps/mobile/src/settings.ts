@@ -13,6 +13,8 @@ export type Settings = {
   colorblind: boolean;
   hints: boolean;
   targetElo: number;
+  planTier: "casual" | "standard" | "serious" | "competitive" | "custom";
+  schedule: "daily" | "weekdays" | "weekends";
   boardTheme: BoardTheme;
   pieceTheme: PieceThemeId;
 };
@@ -28,6 +30,8 @@ let state: Settings = {
   colorblind: false,
   hints: true,
   targetElo: 600,
+  planTier: "standard",
+  schedule: "daily",
   boardTheme: "classic",
   pieceTheme: "classic",
 };
