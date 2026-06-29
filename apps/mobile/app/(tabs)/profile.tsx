@@ -24,8 +24,8 @@ type Progress = {
 
 const HUB: { icon: IconName; label: string; route: string }[] = [
   { icon: "learn", label: "Library", route: "/classes" },
-  { icon: "profile", label: "My ID", route: "/settings" },
-  { icon: "chart", label: "Report Card", route: "/journal" },
+  { icon: "profile", label: "My ID", route: "/dashboard" },
+  { icon: "chart", label: "Report Card", route: "/dashboard" },
   { icon: "calendar", label: "Homework", route: "/homework" },
   { icon: "journal", label: "Journal", route: "/journal" },
   { icon: "palette", label: "Themes", route: "/settings" },

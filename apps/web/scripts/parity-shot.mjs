@@ -62,6 +62,11 @@ const SPECS = {
     app: profileThen("hub-Journal"),
     ready: null,
   },
+  dashboard: {
+    web: async (p) => { await p.goto(`${PROD}/dashboard`, { waitUntil: "domcontentloaded" }); },
+    app: profileThen("hub-Report Card"),
+    ready: null,
+  },
   homework: {
     web: async (p) => { await p.goto(`${PROD}/plan`, { waitUntil: "domcontentloaded" }); },
     app: async (p) => { await p.getByTestId("homework").click().catch(() => {}); await p.waitForTimeout(1800); },
