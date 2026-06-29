@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, setToken, clearToken, getToken } from "./api";
 import { progressStore } from "./progressStore";
+import { loadSettingsFromAccount } from "./settings";
 
 export type User = { id: string; name: string; email: string; role: string };
 
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const { user } = await api<{ user: User }>("/api/auth/me");
           setUser(user);
+          void loadSettingsFromAccount();
         } catch {
           await clearToken();
         }
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setToken(token);
     progressStore.clear();
     setUser(user);
+    void loadSettingsFromAccount();
   };
 
   const register = async (email: string, password: string, name: string) => {

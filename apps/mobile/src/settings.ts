@@ -72,12 +72,50 @@ function persist() {
   }
 })();
 
+// --- Per-user account sync (so settings follow the user across web + app) ---
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+async function pushToAccount() {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    try {
+      const { api } = await import("./api");
+      const { progressStore } = await import("./progressStore");
+      const snap = (progressStore.get() as Record<string, unknown> | null) ?? (await api<Record<string, unknown>>("/api/progress"));
+      const { user: _u, ...rest } = snap as { user?: unknown } & Record<string, unknown>;
+      const body = { ...rest, settings: state };
+      await api("/api/progress", { method: "POST", body });
+      progressStore.set(body);
+    } catch {
+      /* ignore (offline / logged out) */
+    }
+  }, 700);
+}
+
+/** Apply settings stored on the account (called on login). Does not re-sync. */
+export function hydrateSettings(remote: Partial<Settings> | null | undefined) {
+  if (!remote || typeof remote !== "object") return;
+  state = { ...state, ...remote };
+  persist();
+  emit();
+}
+/** Pull settings from the account and apply them. */
+export async function loadSettingsFromAccount() {
+  try {
+    const { api } = await import("./api");
+    const p = await api<{ settings?: Partial<Settings> | null }>("/api/progress");
+    hydrateSettings(p.settings);
+  } catch {
+    /* ignore */
+  }
+}
+
 export const settings = {
   get: () => state,
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => {
     state = { ...state, [key]: value };
     persist();
     emit();
+    void pushToAccount();
   },
   subscribe: (l: () => void) => {
     listeners.add(l);
