@@ -22,9 +22,16 @@ const PW = process.env.PARITY_PW || "parity12345";
 const OUT = "parity-shots";
 const screen = process.argv[2] || "home";
 
+const goP = async (p) => { await p.waitForTimeout(300); };
+const profileThen = (testId) => async (p) => {
+  await p.getByText("Profile", { exact: true }).click().catch(() => {});
+  await p.waitForTimeout(1400);
+  await p.getByTestId(testId).click().catch(() => {});
+  await p.waitForTimeout(1800);
+};
 // Per-screen: how to reach the same view on each surface, and what to wait for.
 const SPECS = {
-  home: { web: async () => {}, app: async () => {}, ready: "Start learning" },
+  home: { web: goP, app: goP, ready: "Start learning" },
   lesson: {
     web: async (p) => { await p.goto(`${PROD}/lesson/board-basics`, { waitUntil: "domcontentloaded" }); },
     app: async (p) => { await p.getByText("Start learning").first().click().catch(() => {}); },
@@ -33,21 +40,48 @@ const SPECS = {
   play: {
     web: async (p) => { await p.goto(`${PROD}/play`, { waitUntil: "domcontentloaded" }); },
     app: async (p) => { await p.getByText("Play", { exact: true }).click().catch(() => {}); },
-    ready: null,
+    ready: "Start match",
   },
   profile: {
     web: async (p) => { await p.goto(`${PROD}/profile`, { waitUntil: "domcontentloaded" }); },
     app: async (p) => { await p.getByText("Profile", { exact: true }).click().catch(() => {}); },
-    ready: null,
+    ready: "Achievements",
   },
   settings: {
     web: async (p) => { await p.goto(`${PROD}/settings`, { waitUntil: "domcontentloaded" }); },
-    app: async (p) => { await p.getByText("Profile", { exact: true }).click().catch(() => {}); await p.waitForTimeout(1200); await p.getByTestId("open-settings").click().catch(() => {}); },
+    app: profileThen("hub-Settings"),
     ready: null,
   },
   journal: {
     web: async (p) => { await p.goto(`${PROD}/journal`, { waitUntil: "domcontentloaded" }); },
-    app: async (p) => { await p.getByText("Profile", { exact: true }).click().catch(() => {}); await p.waitForTimeout(1200); await p.getByText("Journal", { exact: true }).first().click().catch(() => {}); },
+    app: profileThen("hub-Journal"),
+    ready: null,
+  },
+  homework: {
+    web: async (p) => { await p.goto(`${PROD}/plan`, { waitUntil: "domcontentloaded" }); },
+    app: async (p) => { await p.getByTestId("homework").click().catch(() => {}); await p.waitForTimeout(1800); },
+    ready: null,
+  },
+  review: {
+    web: async (p) => { await p.goto(`${PROD}/review`, { waitUntil: "domcontentloaded" }); },
+    app: async (p) => { await p.getByText("Review", { exact: true }).click().catch(() => {}); await p.waitForTimeout(1600); },
+    ready: null,
+  },
+  classes: {
+    web: async (p) => { await p.goto(`${PROD}/library`, { waitUntil: "domcontentloaded" }); },
+    app: profileThen("hub-Library"),
+    ready: null,
+  },
+  class: {
+    web: async (p) => { await p.goto(`${PROD}/class/class-pieces`, { waitUntil: "domcontentloaded" }); },
+    app: async (p) => {
+      await p.getByText("Profile", { exact: true }).click().catch(() => {});
+      await p.waitForTimeout(1400);
+      await p.getByTestId("hub-Library").click().catch(() => {});
+      await p.waitForTimeout(1800);
+      await p.getByTestId("class-class-pieces").click().catch(() => {});
+      await p.waitForTimeout(1800);
+    },
     ready: null,
   },
 };
