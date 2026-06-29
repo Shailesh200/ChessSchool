@@ -1,9 +1,11 @@
 /**
- * Seed the dedicated homework pool (`homework_lessons`) from already-validated
- * curriculum puzzles, bucketed by routine type. Homework stays SEPARATE from the
- * school curriculum so daily homework never collides with serial progression.
+ * FALLBACK homework seeder (no CSV needed) — derives the `homework_lessons` pool
+ * from puzzles already in the `lessons` table, bucketed by routine type. Runs in
+ * `db:fresh` so local dev always has homework.
  *
- * Flow:  pnpm db:fresh  [→ pnpm db:import-puzzles <file>]  → pnpm db:seed-homework → pnpm db:dump
+ * For a homework pool that's DISTINCT from the curriculum puzzles, use
+ * `pnpm db:import-homework <lichess_db_puzzle.csv[.zst]>` instead — it pulls a
+ * separate slice of puzzles straight from the Lichess DB.
  */
 import Database from "better-sqlite3";
 import { existsSync } from "node:fs";
