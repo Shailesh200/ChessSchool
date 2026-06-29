@@ -178,3 +178,12 @@ NOT replicated: today-XP + `activityDays` heatmap (→ mobile daily-goal bar use
 4. **Journey view lacks the TopBar + bottom nav** in the app (it's a bare stack screen; web keeps the chrome).
 5. **Font sizes across the app** can be **increased slightly** (global bump).
 6. **Data fetching/caching optimisation** — lots of redundant `/api/progress` (and other) fetches across screens; introduce a shared cached store / SWR-style caching + dedupe. Significant optimisation scope.
+
+## More noted points (batch 2 — fix later)
+7. **"Test to unlock next school"** button missing in Learn campus (web shows a school-exam button above the next, locked school).
+8. **"Load more classes"** button per school (pagination within a school) — wanted in BOTH app and web.
+9. **Turn indicator** (whose move — black/white) missing on the lesson screen in app.
+10. **Bottom tip** can be larger; lots of empty space below the board (both app and web).
+11. **Lesson-completion has no sound** in app (web plays a completion/celebration sound).
+12. **Campus reloads** when returning from a class — cache data + smoother UX (ties to backlog #6 caching).
+13. **Play-vs-Bot (in-game) screen** doesn't match web — missing **bot name/avatar, tips, rewind/forward** controls, material.
