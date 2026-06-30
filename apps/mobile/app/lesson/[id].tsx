@@ -131,31 +131,36 @@ export default function LessonScreen() {
 
   function onMove(from: string, to: string): boolean {
     if (!step || step.kind !== "move" || phase !== "playing") return false;
+    const e = new ChessEngine(step.fen);
+    const mv = e.move({ from, to, promotion: "q" });
+    if (!mv) return false; // illegal — board snaps back
     const ok = step.solution?.includes(`${from}:${to}`) ?? false;
+    // Show & animate the played move (correct OR wrong) with move/capture sound.
+    setDisplayFen(e.fen());
+    setLastMove({ from, to });
+    sfx.play(mv.captured ? "capture" : "move");
     if (ok) {
       haptics.success();
-      sfx.play("success");
+      timers.current.push(setTimeout(() => sfx.play("success"), 160));
       correctRef.current += 1;
-      // show the moved position
-      try {
-        const e = new ChessEngine(step.fen);
-        e.move({ from, to, promotion: "q" });
-        setLastMove({ from, to });
-        setDisplayFen(e.fen());
-      } catch {
-        /* keep fen */
-      }
       setPhase("correct");
-      timers.current.push(setTimeout(advance, 750));
-      return true;
+      timers.current.push(setTimeout(advance, 850));
+    } else {
+      haptics.error();
+      timers.current.push(setTimeout(() => sfx.play("error"), 160));
+      wrongRef.current += 1;
+      if (step.fen) mistakesRef.current.push({ fen: step.fen, played: `${from}:${to}`, best: step.solution?.[0] ?? "", tag: step.tag ?? "tactics", at: Date.now() });
+      setPhase("wrong");
+      // revert to the puzzle position so they can retry
+      timers.current.push(
+        setTimeout(() => {
+          setDisplayFen(step.fen);
+          setLastMove(null);
+          setPhase("playing");
+        }, 1100),
+      );
     }
-    haptics.error();
-    sfx.play("error");
-    wrongRef.current += 1;
-    if (step.fen) mistakesRef.current.push({ fen: step.fen, played: `${from}:${to}`, best: step.solution?.[0] ?? "", tag: step.tag ?? "tactics", at: Date.now() });
-    setPhase("wrong");
-    timers.current.push(setTimeout(() => setPhase("playing"), 900));
-    return false;
+    return true;
   }
 
   if (phase === "complete") {

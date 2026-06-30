@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Easing, PanResponder, StyleSheet, View } from "react-native";
 import Svg, { G, Line, Polygon } from "react-native-svg";
 import { ChessEngine } from "@chess-school/core";
 import { colors } from "./theme";
@@ -18,7 +18,6 @@ function AnimatedPiece({ type, color, size, gid, themeId, delta, animKey }: { ty
   const t = useRef(new Animated.ValueXY(delta)).current;
   useEffect(() => {
     t.setValue(delta);
-    // Match web (react-chessboard) tween: ~220ms ease-out.
     Animated.timing(t, { toValue: ZERO, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animKey]);
@@ -68,6 +67,18 @@ export function ChessBoard({
   const cell = size / 8;
   const board = useMemo(() => fenToBoard(fen), [fen]);
 
+  // Visual order: white at bottom → rank 8..1 top-to-bottom; flip for black.
+  const ranks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
+  const files = orientation === "white" ? FILES : [...FILES].reverse();
+  const visPos = (sq: string) => ({ col: files.indexOf(sq[0]!), row: ranks.indexOf(Number(sq[1])) });
+  const pieceAt = (sq: string): Cell => board[8 - Number(sq[1])]?.[FILES.indexOf(sq[0]!)] ?? null;
+  const sqAt = (x: number, y: number): string | null => {
+    const col = Math.floor(x / cell);
+    const row = Math.floor(y / cell);
+    if (col < 0 || col > 7 || row < 0 || row > 7) return null;
+    return `${files[col]}${ranks[row]}`;
+  };
+
   const { dots, captures } = useMemo(() => {
     if (!selected) return { dots: new Set<string>(), captures: new Set<string>() };
     const d = new Set<string>();
@@ -83,11 +94,7 @@ export function ChessBoard({
     return { dots: d, captures: c };
   }, [selected, fen]);
 
-  // Visual order: white at bottom → rank 8..1 top-to-bottom; flip for black.
-  const ranks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
-  const files = orientation === "white" ? FILES : [...FILES].reverse();
-  const visPos = (sq: string) => ({ col: files.indexOf(sq[0]!), row: ranks.indexOf(Number(sq[1])) });
-
+  // Tap-to-move fallback (used when the gesture didn't drag).
   function tap(sq: string, piece: Cell) {
     if (!interactive || !onMove) return;
     if (selected && sq !== selected) {
@@ -100,10 +107,76 @@ export function ChessBoard({
     }
   }
 
+  // Drag-to-move: a board-level responder handles both a drag (piece follows the
+  // finger, drop = move) and a plain tap (no movement → tap-to-select/move).
+  const dragRef = useRef<{ from: string; piece: Cell } | null>(null);
+  const movedRef = useRef(false);
+  const noAnimRef = useRef<string | null>(null); // square a drag just dropped on → don't replay the slide
+  const [dragFrom, setDragFrom] = useState<string | null>(null);
+  const [dragXY, setDragXY] = useState<{ x: number; y: number } | null>(null);
+
+  // Keep the latest closures available to the (stable) PanResponder created once below.
+  const sqAtRef = useRef(sqAt);
+  const pieceAtRef = useRef(pieceAt);
+  const tapRef = useRef(tap);
+  const onMoveRef = useRef(onMove);
+  const interactiveRef = useRef(interactive);
+  sqAtRef.current = sqAt;
+  pieceAtRef.current = pieceAt;
+  tapRef.current = tap;
+  onMoveRef.current = onMove;
+  interactiveRef.current = interactive;
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        movedRef.current = false;
+        const { locationX, locationY } = e.nativeEvent;
+        const sq = sqAtRef.current(locationX, locationY);
+        dragRef.current = sq ? { from: sq, piece: pieceAtRef.current(sq) } : null;
+      },
+      onPanResponderMove: (e) => {
+        movedRef.current = true;
+        // start the floating ghost only once the finger actually moves (so a tap doesn't flash it)
+        if (dragRef.current?.piece && interactiveRef.current) {
+          setDragFrom(dragRef.current.from);
+          setDragXY({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
+        }
+      },
+      onPanResponderRelease: (e) => {
+        const { locationX, locationY } = e.nativeEvent;
+        const d = dragRef.current;
+        const target = sqAtRef.current(locationX, locationY);
+        dragRef.current = null;
+        setDragFrom(null);
+        setDragXY(null);
+        if (!d) return;
+        const draggedFar = movedRef.current && target && target !== d.from;
+        if (draggedFar && d.piece) {
+          noAnimRef.current = target!; // already shown by the drag — skip the slide replay
+          onMoveRef.current?.(d.from, target!);
+          setSelected(null);
+        } else {
+          noAnimRef.current = null;
+          tapRef.current(d.from, d.piece); // treat as a tap
+        }
+      },
+      onPanResponderTerminate: () => {
+        dragRef.current = null;
+        setDragFrom(null);
+        setDragXY(null);
+      },
+    }),
+  ).current;
+
+  const dragPiece = dragFrom ? pieceAt(dragFrom) : null;
+
   return (
-    <View style={[styles.board, { width: size, height: size }]}>
+    <View style={[styles.board, { width: size, height: size }]} {...(interactive && onMove ? pan.panHandlers : {})}>
       {ranks.map((rank, r) => (
-        <View key={rank} style={{ flexDirection: "row" }}>
+        <View key={rank} style={{ flexDirection: "row" }} pointerEvents="none">
           {files.map((file, f) => {
             const sq = `${file}${rank}`;
             const piece = board[8 - rank]![FILES.indexOf(file)]!;
@@ -111,11 +184,11 @@ export function ChessBoard({
             const isSel = selected === sq;
             const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
             const isHL = highlights?.includes(sq);
+            const hidden = dragFrom === sq; // piece being dragged is rendered as the floating ghost
             return (
-              <Pressable
+              <View
                 key={sq}
                 testID={`sq-${sq}`}
-                onPress={() => tap(sq, piece)}
                 style={[
                   { width: cell, height: cell, backgroundColor: isLight ? LIGHT : DARK },
                   styles.sq,
@@ -127,7 +200,8 @@ export function ChessBoard({
                 {captures.has(sq) && <View style={[styles.ring, { width: cell * 0.9, height: cell * 0.9, borderRadius: cell }]} />}
                 {dots.has(sq) && <View style={styles.dot} />}
                 {piece &&
-                  (lastMove && lastMove.to === sq ? (
+                  !hidden &&
+                  (lastMove && lastMove.to === sq && noAnimRef.current !== sq ? (
                     <AnimatedPiece
                       type={piece.type}
                       color={piece.color}
@@ -140,11 +214,18 @@ export function ChessBoard({
                   ) : (
                     <Piece type={piece.type} color={piece.color} size={cell * 0.86} gid={`p${sq}`} themeId={pieceTheme} />
                   ))}
-              </Pressable>
+              </View>
             );
           })}
         </View>
       ))}
+
+      {/* Floating dragged piece (follows the finger) */}
+      {dragPiece && dragXY && (
+        <View pointerEvents="none" style={[styles.ghost, { left: dragXY.x - cell * 0.6, top: dragXY.y - cell * 0.6, width: cell * 1.2, height: cell * 1.2 }]}>
+          <Piece type={dragPiece.type} color={dragPiece.color} size={cell * 1.05} gid="drag" themeId={pieceTheme} />
+        </View>
+      )}
 
       {/* Teaching arrows overlay */}
       {arrows && arrows.length > 0 && (
@@ -185,4 +266,5 @@ const styles = StyleSheet.create({
   highlight: { backgroundColor: "#f6cd56" },
   dot: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "rgba(91,91,214,0.5)" },
   ring: { position: "absolute", borderWidth: 4, borderColor: "rgba(244,63,94,0.55)" },
+  ghost: { position: "absolute", justifyContent: "center", alignItems: "center", zIndex: 10 },
 });
