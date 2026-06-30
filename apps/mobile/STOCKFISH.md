@@ -2,6 +2,16 @@
 
 Goal: the app plays at true **web/chess.com strength** by bundling the real **Stockfish** C++ engine (same engine the web uses, capped to the chosen ELO), instead of the in-house JS bot. This requires a **dev build** (Expo Go can't load native modules).
 
+## ⏱️ Build progress (live)
+- ✅ **Native engine COMPILES for iOS** — `xcodebuild -target Stockfish -sdk iphonesimulator` → **BUILD SUCCEEDED**. The whole native integration (podspec, Swift UCI bridge, incbin NNUE embedding, C++ engine) is correct and builds. **This was the real risk and it's retired.**
+- ✅ Xcode 26.6 installed; `expo prebuild` done; Stockfish pod autolinked; 66 MB nets fetched + embedded.
+- ⛔ **Blocked on the iOS Simulator runtime mount.** Xcode 26 downloads the iOS 26.5 runtime as a *Cryptex disk image* that this machine's CoreSimulator won't mount/register: `xcrun simctl runtime list` shows it "Ready" but `xcrun simctl list runtimes` stays **empty**, so no simulator device can be created/booted. A clean delete + re-download did not change it. This is an environment issue, not a code issue.
+
+### To finish (you — one of these unblocks it)
+1. **Reboot the Mac** (most reliable — Cryptex runtimes mount at boot), then check `xcrun simctl list runtimes`. If iOS 26.5 appears, run `cd apps/mobile && npx expo run:ios` and the app builds + boots with native Stockfish.
+2. If a reboot doesn't register it: open **Xcode → Settings → Components** and (re)install the iOS 26.5 Simulator there, or `sudo xcrun simctl runtime add <path-to-runtime.dmg>`.
+Once `simctl list runtimes` shows iOS 26.5, ping me and I'll build the full app + verify the bot in the simulator (screenshot + a launch-time UCI log proving Stockfish returns strong moves).
+
 ## Status (what's done — committed on this branch)
 - ✅ **JS engine adapter** (`src/stockfish.ts`): UCI command builder, `bestmove` parser, `eloToUci` strength mapping (`UCI_Elo` ≥1320, `Skill Level` below), safety timeout. Unit-tested (`src/stockfish.test.ts`, 9 tests).
 - ✅ **Wired** into `app/play/game.tsx`: uses native Stockfish for every level when present, **falls back to the JS engine** (so Expo Go / web still work).
