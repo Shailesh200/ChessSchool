@@ -3,7 +3,17 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { PieceThemeId } from "./Piece";
 
-export type BoardTheme = "classic" | "green" | "wood";
+export type BoardTheme =
+  | "classic"
+  | "chalkboard"
+  | "marble"
+  | "tournament"
+  | "wooden"
+  | "neon"
+  | "paper"
+  | "midnight"
+  | "green" // legacy alias → tournament
+  | "wood"; // legacy alias → wooden
 export type Settings = {
   haptics: boolean;
   sound: boolean;
@@ -130,8 +140,22 @@ export function useSettings(): Settings {
 }
 
 /** Board square colors per theme — matched 1:1 to web (core/themes/themes.ts). */
-export const BOARD_THEMES: Record<BoardTheme, { light: string; dark: string }> = {
-  classic: { light: "#eef0f4", dark: "#7c8aa5" },
-  green: { light: "#e9eef0", dark: "#6a9b78" },
-  wood: { light: "#e8cfa6", dark: "#a9743f" },
+export const BOARD_THEMES: Record<BoardTheme, { light: string; dark: string; move: string }> = {
+  classic: { light: "#eef0f4", dark: "#7c8aa5", move: "#7be0b3" },
+  chalkboard: { light: "#5b6b63", dark: "#2f3b38", move: "#9fe3c5" },
+  marble: { light: "#f3efe9", dark: "#b9b2a7", move: "#9ad0c2" },
+  tournament: { light: "#e9eef0", dark: "#6a9b78", move: "#f2c14e" },
+  wooden: { light: "#e8cfa6", dark: "#a9743f", move: "#7fd1a8" },
+  neon: { light: "#1f2238", dark: "#3a2f6b", move: "#41e0c8" },
+  paper: { light: "#faf7f0", dark: "#cdbf9c", move: "#8fd0b0" },
+  midnight: { light: "#3a3f5c", dark: "#1c2036", move: "#5aa9e6" },
+  // legacy aliases so previously-saved settings still resolve
+  green: { light: "#e9eef0", dark: "#6a9b78", move: "#f2c14e" },
+  wood: { light: "#e8cfa6", dark: "#a9743f", move: "#7fd1a8" },
+};
+
+/** Themes shown in the picker (excludes legacy aliases). */
+export const SELECTABLE_BOARD_THEMES: BoardTheme[] = ["classic", "chalkboard", "marble", "tournament", "wooden", "neon", "paper", "midnight"];
+export const BOARD_THEME_NAMES: Record<string, string> = {
+  classic: "Classic", chalkboard: "Chalkboard", marble: "Marble", tournament: "Tournament", wooden: "Wooden", neon: "Neon", paper: "Paper", midnight: "Midnight",
 };

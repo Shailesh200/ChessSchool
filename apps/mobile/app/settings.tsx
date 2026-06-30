@@ -1,17 +1,13 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { settings, useSettings, BOARD_THEMES, type BoardTheme } from "@/settings";
+import { settings, useSettings, BOARD_THEMES, SELECTABLE_BOARD_THEMES, BOARD_THEME_NAMES, type BoardTheme } from "@/settings";
 import { Piece, PIECE_THEMES } from "@/Piece";
 import { Slider } from "@/Slider";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
-const THEMES: { id: BoardTheme; label: string }[] = [
-  { id: "classic", label: "Classic" },
-  { id: "green", label: "Green" },
-  { id: "wood", label: "Wood" },
-];
+const THEMES: { id: BoardTheme; label: string }[] = SELECTABLE_BOARD_THEMES.map((id) => ({ id, label: BOARD_THEME_NAMES[id] ?? id }));
 const track = { true: colors.brand, false: colors.surfaceSunken };
 
 export default function SettingsScreen() {
