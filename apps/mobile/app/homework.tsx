@@ -67,11 +67,12 @@ export default function PlanScreen() {
   }
 
   const dayIndex = Math.floor(Date.now() / 86400000);
+  const doneToday = ((prog?.homeworkDone as Record<string, string[]>) ?? {})[isoDay()] ?? [];
+  const allDone = ROUTINE.every((r) => doneToday.includes(r.id));
   const openRoutine = (id: string) => {
-    if (id === "lesson") return router.back();
     if (id === "match") return router.push("/play");
     const pool = byType[id] ?? [];
-    if (pool.length) router.push({ pathname: "/lesson/[id]", params: { id: pool[dayIndex % pool.length]!.id } });
+    if (pool.length) router.push({ pathname: "/lesson/[id]", params: { id: pool[dayIndex % pool.length]!.id, hw: id } });
     else router.push("/play");
   };
 
@@ -148,24 +149,35 @@ export default function PlanScreen() {
         <View>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Today's homework</Text>
-            <Text style={styles.muted}>0/{ROUTINE.length} · 🔥 {p.homeworkStreak}d</Text>
+            <Text style={styles.muted}>{doneToday.length}/{ROUTINE.length} · 🔥 {p.homeworkStreak}d</Text>
           </View>
+          {allDone && (
+            <View style={styles.doneBanner}>
+              <Text style={styles.doneBannerText}>🎉 All done for today — come back tomorrow for a fresh set!</Text>
+            </View>
+          )}
           <View style={styles.card}>
             {ROUTINE.map((step, i) => {
               const hw = byType[step.id]?.[dayIndex % (byType[step.id]?.length || 1)];
               const label = hw ? `${step.label}: ${hw.title.replace(/^.*?: /, "")}` : step.label;
+              const checked = doneToday.includes(step.id);
               return (
-                <Pressable key={step.id} testID={`routine-${step.id}`} style={[styles.routineRow, i > 0 && styles.routineDivider]} onPress={() => openRoutine(step.id)}>
-                  <View style={styles.checkbox} />
+                <View key={step.id} testID={`routine-${step.id}`} style={[styles.routineRow, i > 0 && styles.routineDivider]}>
+                  <View style={[styles.checkbox, checked && styles.checkboxOn]}>{checked && <Text style={styles.checkmark}>✓</Text>}</View>
                   <Text style={{ fontSize: 18 }}>{step.emoji}</Text>
-                  <Text style={styles.routineLabel} numberOfLines={1}>{label}</Text>
-                </Pressable>
+                  <Text style={[styles.routineLabel, checked && styles.routineLabelDone]} numberOfLines={1}>{label}</Text>
+                  <Pressable style={[styles.goBtn, checked && styles.goBtnDone]} onPress={() => openRoutine(step.id)} hitSlop={6}>
+                    <Text style={[styles.goText, checked && { color: colors.ink500 }]}>{checked ? "Redo" : "Go →"}</Text>
+                  </Pressable>
+                </View>
               );
             })}
           </View>
-          <View style={{ marginTop: space[3] }}>
-            <Button label="Start today's homework →" onPress={() => openRoutine("warmup")} />
-          </View>
+          {!allDone && (
+            <View style={{ marginTop: space[3] }}>
+              <Button label="Start today's homework →" onPress={() => openRoutine(ROUTINE.find((r) => !doneToday.includes(r.id))?.id ?? "warmup")} />
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -199,6 +211,14 @@ const styles = StyleSheet.create({
   pillTextOn: { color: "#fff" },
   routineRow: { flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3] },
   routineDivider: { borderTopWidth: 1, borderTopColor: colors.hairline },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.ink300 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.ink300, justifyContent: "center", alignItems: "center" },
+  checkboxOn: { backgroundColor: colors.success, borderColor: colors.success },
+  checkmark: { color: "#fff", fontSize: 13, fontFamily: font.bold },
   routineLabel: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
+  routineLabelDone: { color: colors.ink500, textDecorationLine: "line-through" },
+  goBtn: { borderRadius: radius.pill, backgroundColor: colors.brand, paddingHorizontal: space[3], paddingVertical: 6 },
+  goBtnDone: { backgroundColor: colors.surfaceSunken },
+  goText: { ...type.xs, fontFamily: font.bold, color: "#fff" },
+  doneBanner: { backgroundColor: "#e7f7ef", borderRadius: radius.card, padding: space[3], marginTop: space[2], borderWidth: 1, borderColor: "rgba(12,155,110,0.3)" },
+  doneBannerText: { ...type.sm, fontFamily: font.bold, color: colors.success600, textAlign: "center" },
 });

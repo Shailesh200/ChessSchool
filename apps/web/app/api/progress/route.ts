@@ -22,6 +22,8 @@ interface ExtraData {
   homeworkLastDay?: string | null;
   recentGames?: unknown[];
   settings?: Record<string, unknown>;
+  homeworkDone?: Record<string, string[]>;
+  placementDone?: boolean;
 }
 
 /** Pull the account's saved progress (merged into / hydrated onto the client on login). */
@@ -61,6 +63,8 @@ export async function GET(req: Request) {
     homeworkLastDay: extra.homeworkLastDay ?? null,
     recentGames: extra.recentGames ?? [],
     settings: extra.settings ?? null,
+    homeworkDone: extra.homeworkDone ?? {},
+    placementDone: extra.placementDone ?? false,
   });
 }
 
@@ -82,6 +86,8 @@ interface PushBody {
   homeworkLastDay?: string | null;
   recentGames?: unknown[];
   settings?: Record<string, unknown>;
+  homeworkDone?: Record<string, string[]>;
+  placementDone?: boolean;
 }
 
 /** Push the client's merged snapshot to the account. */
@@ -113,6 +119,8 @@ export async function POST(req: Request) {
     homeworkLastDay: body.homeworkLastDay,
     recentGames: body.recentGames,
     settings: body.settings,
+    homeworkDone: body.homeworkDone,
+    placementDone: body.placementDone,
   };
   const data: ExtraData = { ...prev };
   for (const [k, v] of Object.entries(incoming)) if (v !== undefined) (data as Record<string, unknown>)[k] = v;

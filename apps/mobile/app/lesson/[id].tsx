@@ -12,7 +12,7 @@ import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
 import { progressStore } from "@/progressStore";
-import { applyLessonComplete, type Mistake } from "@/progression";
+import { applyLessonComplete, isoDay, type Mistake } from "@/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Step = {
@@ -33,7 +33,7 @@ type Step = {
 type Lesson = { id: string; title: string; xp: number; steps: Step[] };
 
 export default function LessonScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, hw } = useLocalSearchParams<{ id: string; hw?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 470);
@@ -117,7 +117,13 @@ export default function LessonScreen() {
     try {
       const cur = await api<Record<string, unknown>>("/api/progress");
       const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-      const next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+      let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+      if (hw) {
+        const today = isoDay();
+        const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
+        hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
+        next = { ...next, homeworkDone: hd };
+      }
       await api("/api/progress", { method: "POST", body: next });
       progressStore.set(next);
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
@@ -169,7 +175,8 @@ export default function LessonScreen() {
         <Confetti count={28} />
         <View style={styles.center}>
           <Cody expression="cheer" size={140} />
-          <Text style={styles.doneTitle}>Lesson complete!</Text>
+          <Text style={styles.doneTitle}>{hw ? "Homework done! 🎉" : "Lesson complete!"}</Text>
+          {hw && <Text style={styles.doneSub}>One step done — keep going to finish today's set.</Text>}
           <View style={styles.pills}>
             <StatPill label="XP earned" value={`+${lesson.xp}`} tone={colors.brand} />
             <StatPill label="Correct" value={`${correctRef.current}`} tone={colors.success} />
@@ -181,6 +188,8 @@ export default function LessonScreen() {
                 <ActivityIndicator color="#fff" />
                 <Text style={styles.loadingBtnText}>Saving…</Text>
               </View>
+            ) : hw ? (
+              <Button label="Back to homework →" variant="success" onPress={() => router.back()} />
             ) : (
               <Button
                 label={nextId ? "Continue learning →" : "Back to academy"}
@@ -302,6 +311,7 @@ const styles = StyleSheet.create({
   bottom: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, minHeight: 64, justifyContent: "center" },
   moveCue: { textAlign: "center", fontSize: 14, fontFamily: font.semibold, color: colors.ink500 },
   doneTitle: { ...type["3xl"], fontFamily: font.bold, color: colors.ink, marginTop: 16 },
+  doneSub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: 6, textAlign: "center" },
   pills: { flexDirection: "row", gap: space[2], marginTop: space[4] },
   pill: { backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3], paddingHorizontal: space[4], alignItems: "center", minWidth: 92 },
   pillValue: { ...type["2xl"], fontFamily: font.bold },
