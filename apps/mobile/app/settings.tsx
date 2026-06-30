@@ -8,6 +8,12 @@ import { BackButton } from "@/BackButton";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 const THEMES: { id: BoardTheme; label: string }[] = SELECTABLE_BOARD_THEMES.map((id) => ({ id, label: BOARD_THEME_NAMES[id] ?? id }));
+const COACHES = [
+  { value: "friendly", label: "Friendly", emoji: "😊" },
+  { value: "strict", label: "Strict", emoji: "🎩" },
+  { value: "mentor", label: "Mentor", emoji: "🧑‍🏫" },
+  { value: "tactical", label: "Tactical", emoji: "⚔️" },
+];
 const track = { true: colors.brand, false: colors.surfaceSunken };
 
 export default function SettingsScreen() {
@@ -55,6 +61,19 @@ export default function SettingsScreen() {
           </Row>
           <Divider />
           <SliderRow label="Bot difficulty" hint={`Target ELO ${s.targetElo}`} value={s.targetElo} min={300} max={2500} step={100} onChange={(v) => settings.set("targetElo", v)} />
+        </View>
+
+        <Text style={styles.section}>Coach personality</Text>
+        <View style={styles.coachGrid}>
+          {COACHES.map((c) => {
+            const on = s.coachPersonality === c.value;
+            return (
+              <Pressable key={c.value} style={[styles.coachCard, on && styles.coachCardOn]} onPress={() => settings.set("coachPersonality", c.value)}>
+                <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
+                <Text style={[styles.coachLabel, on && { color: colors.brand }]} numberOfLines={1}>{c.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={styles.section}>Piece set</Text>
@@ -125,6 +144,10 @@ const styles = StyleSheet.create({
   content: { padding: space[5] },
   h1: { ...type.xl, fontFamily: font.bold, color: colors.ink, marginTop: space[3], marginBottom: space[1] },
   section: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginTop: space[5], marginBottom: space[2] },
+  coachGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  coachCard: { width: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.md, paddingHorizontal: space[3], paddingVertical: space[3], borderWidth: 2, borderColor: "transparent", ...shadowCard },
+  coachCardOn: { borderColor: colors.brand },
+  coachLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
   card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], ...shadowCard },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: space[3] },
   sliderRow: { paddingVertical: space[3] },
