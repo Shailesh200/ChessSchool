@@ -41,7 +41,8 @@ const THEME: Opt[] = [
   { value: "midnight", label: "Midnight", emoji: "🌙" },
 ];
 const AVATARS = ["🦊", "🦁", "🐼", "🦉", "🐯", "🐺", "🐲", "🦄", "♞", "♛", "🎓", "🐴"];
-const THEME_MAP: Record<string, "classic" | "green" | "wood"> = { default: "classic", blue: "classic", forest: "green", midnight: "wood" };
+// Each onboarding theme maps to a distinct board theme so the choice visibly applies.
+const THEME_MAP: Record<string, import("@/settings").BoardTheme> = { default: "classic", blue: "midnight", forest: "tournament", midnight: "neon" };
 
 export default function OnboardingScreen() {
   const router = useRouter();

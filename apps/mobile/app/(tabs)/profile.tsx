@@ -27,7 +27,7 @@ const HUB: { icon: IconName; label: string; route: string }[] = [
   { icon: "chart", label: "Report Card", route: "/dashboard" },
   { icon: "calendar", label: "Homework", route: "/homework" },
   { icon: "journal", label: "Journal", route: "/journal" },
-  { icon: "palette", label: "Themes", route: "/settings" },
+  { icon: "palette", label: "Themes", route: "/themes" },
   { icon: "gear", label: "Settings", route: "/settings" },
 ];
 
