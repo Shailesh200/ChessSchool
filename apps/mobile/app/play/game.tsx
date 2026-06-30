@@ -58,11 +58,12 @@ async function saveGame(moves: string[], result: "win" | "loss" | "draw", elo: n
   }
 }
 
-function PlayerBar({ name, emoji, advantage }: { name: string; emoji: string; advantage: number }) {
+function PlayerBar({ name, emoji, advantage, active }: { name: string; emoji: string; advantage: number; active?: boolean }) {
   return (
-    <View style={styles.playerBar}>
+    <View style={[styles.playerBar, active && styles.playerBarActive]}>
       <Text style={styles.playerEmoji}>{emoji}</Text>
       <Text style={styles.playerName} numberOfLines={1}>{name}</Text>
+      {active && <View style={styles.turnDot} />}
       {advantage > 0 && <Text style={styles.advantage}>+{advantage}</Text>}
     </View>
   );
@@ -171,23 +172,23 @@ export default function GameScreen() {
         </View>
       </View>
 
-      {/* Opponent bar */}
-      <PlayerBar name={`${bot.name} · ${elo}`} emoji={bot.emoji} advantage={Math.max(0, mat.b - mat.w)} />
+      {/* Board + bars, vertically centered in the remaining space */}
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <PlayerBar name={`${bot.name} · ${elo}`} emoji={bot.emoji} advantage={Math.max(0, mat.b - mat.w)} active={thinking && !over} />
 
-      {/* Board */}
-      <View style={{ alignItems: "center", marginVertical: space[2] }}>
-        <ChessBoard
-          fen={shownFen}
-          size={boardSize}
-          orientation={flipped ? "black" : "white"}
-          onMove={handleMove}
-          interactive={!over && !thinking && !viewing}
-          lastMove={viewing ? null : lastMove}
-        />
+        <View style={{ alignItems: "center", marginVertical: space[2] }}>
+          <ChessBoard
+            fen={shownFen}
+            size={boardSize}
+            orientation={flipped ? "black" : "white"}
+            onMove={handleMove}
+            interactive={!over && !thinking && !viewing}
+            lastMove={viewing ? null : lastMove}
+          />
+        </View>
+
+        <PlayerBar name="You" emoji={avatar || "🎓"} advantage={Math.max(0, mat.w - mat.b)} active={!thinking && !over && !viewing} />
       </View>
-
-      {/* Player bar */}
-      <PlayerBar name="You" emoji={avatar || "🎓"} advantage={Math.max(0, mat.w - mat.b)} />
 
       {/* Rewind / forward scrubber */}
       <View style={styles.scrubber}>
@@ -216,7 +217,9 @@ const styles = StyleSheet.create({
   title: { flex: 1, ...type.base, fontFamily: font.bold, color: colors.ink },
   resign: { borderRadius: radius.md, backgroundColor: colors.danger, paddingHorizontal: space[3], paddingVertical: 8 },
   resignText: { ...type.xs, fontFamily: font.bold, color: "#fff" },
-  playerBar: { flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[4], paddingVertical: space[2] },
+  playerBar: { flexDirection: "row", alignItems: "center", gap: space[2], marginHorizontal: space[4], paddingHorizontal: space[3], paddingVertical: space[2], borderRadius: radius.md, borderWidth: 1, borderColor: "transparent" },
+  playerBarActive: { backgroundColor: colors.surfaceCard, borderColor: colors.brand100, ...shadowCard },
+  turnDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
   playerEmoji: { fontSize: 22 },
   playerName: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
   advantage: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },

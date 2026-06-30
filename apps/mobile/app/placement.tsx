@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { ChessEngine } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
 import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
@@ -29,6 +30,8 @@ export default function PlacementScreen() {
   const [i, setI] = useState(0);
   const correctRef = useRef(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [displayFen, setDisplayFen] = useState<string | undefined>();
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -64,15 +67,23 @@ export default function PlacementScreen() {
 
   function onMove(from: string, to: string): boolean {
     if (feedback) return false;
+    const e = new ChessEngine(puzzle.fen);
+    const mv = e.move({ from, to, promotion: "q" });
+    if (!mv) return false; // illegal — board snaps back, no penalty
     const ok = puzzle.solution.includes(`${from}:${to}`);
-    if (ok) { correctRef.current += 1; haptics.success(); sfx.play("success"); } else { haptics.error(); sfx.play("error"); }
+    setDisplayFen(e.fen()); // show + animate the played move
+    setLastMove({ from, to });
+    sfx.play(mv.captured ? "capture" : "move");
+    if (ok) { correctRef.current += 1; haptics.success(); setTimeout(() => sfx.play("success"), 180); } else { haptics.error(); setTimeout(() => sfx.play("error"), 180); }
     setFeedback(ok ? "correct" : "wrong");
     setTimeout(() => {
       setFeedback(null);
+      setDisplayFen(undefined);
+      setLastMove(null);
       if (i + 1 >= puzzles!.length) setDone(true);
       else setI((n) => n + 1);
-    }, ok ? 700 : 1100);
-    return ok;
+    }, ok ? 900 : 1250);
+    return true;
   }
 
   return (
@@ -93,7 +104,7 @@ export default function PlacementScreen() {
       </View>
 
       <View style={styles.boardWrap}>
-        <ChessBoard fen={puzzle.fen} size={boardSize} onMove={onMove} interactive={!feedback} />
+        <ChessBoard fen={displayFen ?? puzzle.fen} size={boardSize} orientation={turn === "Black" ? "black" : "white"} onMove={onMove} interactive={!feedback} lastMove={lastMove} />
       </View>
     </SafeAreaView>
   );

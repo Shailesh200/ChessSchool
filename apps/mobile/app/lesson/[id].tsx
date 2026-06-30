@@ -45,6 +45,7 @@ export default function LessonScreen() {
   const [displayFen, setDisplayFen] = useState<string | undefined>();
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
+  const [resolvingNext, setResolvingNext] = useState(false);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
   const mistakesRef = useRef<Mistake[]>([]);
@@ -107,6 +108,7 @@ export default function LessonScreen() {
 
   async function finish() {
     setPhase("complete");
+    setResolvingNext(true);
     haptics.success();
     sfx.play("win");
     const moveSteps = lesson!.steps.filter((st) => st.kind === "move").length;
@@ -122,6 +124,8 @@ export default function LessonScreen() {
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch {
       /* ignore */
+    } finally {
+      setResolvingNext(false);
     }
   }
 
@@ -167,11 +171,18 @@ export default function LessonScreen() {
             <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} />
           </View>
           <View style={{ marginTop: space[6], width: 280, gap: space[2] }}>
-            <Button
-              label={nextId ? "Continue learning →" : "Back to academy"}
-              variant="success"
-              onPress={() => (nextId ? router.replace({ pathname: "/lesson/[id]", params: { id: nextId } }) : router.back())}
-            />
+            {resolvingNext ? (
+              <View style={styles.loadingBtn}>
+                <ActivityIndicator color="#fff" />
+                <Text style={styles.loadingBtnText}>Saving…</Text>
+              </View>
+            ) : (
+              <Button
+                label={nextId ? "Continue learning →" : "Back to academy"}
+                variant="success"
+                onPress={() => (nextId ? router.replace({ pathname: "/lesson/[id]", params: { id: nextId } }) : router.back())}
+              />
+            )}
             <View style={{ flexDirection: "row", gap: space[2] }}>
               <View style={{ flex: 1 }}>
                 <Button label="📝 Reflect" variant="outline" size="sm" onPress={() => router.replace("/journal")} />
@@ -290,4 +301,6 @@ const styles = StyleSheet.create({
   pill: { backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3], paddingHorizontal: space[4], alignItems: "center", minWidth: 92 },
   pillValue: { ...type["2xl"], fontFamily: font.bold },
   pillLabel: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+  loadingBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.success, borderRadius: radius.pill, paddingVertical: 15 },
+  loadingBtnText: { ...type.base, fontFamily: font.bold, color: "#fff" },
 });

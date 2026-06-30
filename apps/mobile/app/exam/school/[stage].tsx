@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ChessEngine } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
 import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
@@ -36,6 +37,8 @@ export default function SchoolExamScreen() {
   const [i, setI] = useState(0);
   const correctRef = useRef(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [displayFen, setDisplayFen] = useState<string | undefined>();
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -108,17 +111,25 @@ export default function SchoolExamScreen() {
 
   function onMove(from: string, to: string): boolean {
     if (feedback) return false;
+    const e = new ChessEngine(step.fen);
+    const mv = e.move({ from, to, promotion: "q" });
+    if (!mv) return false; // illegal — board snaps back
     const ok = step.solution.includes(`${from}:${to}`);
-    if (ok) { correctRef.current += 1; haptics.success(); sfx.play("success"); } else { haptics.error(); sfx.play("error"); }
+    setDisplayFen(e.fen());
+    setLastMove({ from, to });
+    sfx.play(mv.captured ? "capture" : "move");
+    if (ok) { correctRef.current += 1; haptics.success(); setTimeout(() => sfx.play("success"), 180); } else { haptics.error(); setTimeout(() => sfx.play("error"), 180); }
     setFeedback(ok ? "correct" : "wrong");
     setTimeout(() => {
       setFeedback(null);
+      setDisplayFen(undefined);
+      setLastMove(null);
       if (i + 1 >= steps!.length) {
         if (correctRef.current >= Math.ceil(steps!.length * PASS_RATIO)) void recordPass();
         setDone(true);
       } else setI((n) => n + 1);
-    }, ok ? 700 : 1100);
-    return ok;
+    }, ok ? 900 : 1250);
+    return true;
   }
 
   return (
@@ -139,7 +150,7 @@ export default function SchoolExamScreen() {
       </View>
 
       <View style={styles.boardWrap}>
-        <ChessBoard fen={step.fen} size={boardSize} orientation={turn === "Black" ? "black" : "white"} onMove={onMove} interactive={!feedback} />
+        <ChessBoard fen={displayFen ?? step.fen} size={boardSize} orientation={turn === "Black" ? "black" : "white"} onMove={onMove} interactive={!feedback} lastMove={lastMove} />
       </View>
     </SafeAreaView>
   );

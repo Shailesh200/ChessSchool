@@ -1,31 +1,48 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type LayoutChangeEvent, PanResponder, StyleSheet, View } from "react-native";
 import { colors, radius } from "./theme";
 
-/** Minimal tap/drag slider — works on native and the react-native-web export. */
+/**
+ * Tap/drag slider. Flicker-free: a local `drag` value drives the visual (no
+ * dependency on the parent re-rendering), `onChange` only fires when the
+ * *stepped* value changes, and the children are pointer-transparent so the
+ * touch x stays relative to the track.
+ */
 export function Slider({ value, min, max, step, onChange }: { value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
   const [w, setW] = useState(1);
-  const pct = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  const [drag, setDrag] = useState<number | null>(null);
+  const lastEmit = useRef(value);
+  const shown = drag ?? value;
+  const pct = Math.max(0, Math.min(1, (shown - min) / (max - min)));
 
-  const setFromX = (x: number) => {
+  const compute = (x: number) => {
     const ratio = Math.max(0, Math.min(1, x / w));
-    let v = min + ratio * (max - min);
-    v = Math.round(v / step) * step;
-    onChange(Math.max(min, Math.min(max, v)));
+    const v = Math.round((min + ratio * (max - min)) / step) * step;
+    return Math.max(min, Math.min(max, v));
+  };
+  const apply = (x: number, release: boolean) => {
+    const v = compute(x);
+    setDrag(release ? null : v);
+    if (release || v !== lastEmit.current) {
+      lastEmit.current = v;
+      onChange(v);
+    }
   };
   const pan = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (e) => setFromX(e.nativeEvent.locationX),
-    onPanResponderMove: (e) => setFromX(e.nativeEvent.locationX),
+    onPanResponderGrant: (e) => apply(e.nativeEvent.locationX, false),
+    onPanResponderMove: (e) => apply(e.nativeEvent.locationX, false),
+    onPanResponderRelease: (e) => apply(e.nativeEvent.locationX, true),
+    onPanResponderTerminate: () => setDrag(null),
   });
 
   return (
     <View style={styles.wrap} onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)} {...pan.panHandlers}>
-      <View style={styles.track}>
+      <View style={styles.track} pointerEvents="none">
         <View style={[styles.fill, { width: `${pct * 100}%` }]} />
       </View>
-      <View style={[styles.thumb, { left: `${pct * 100}%` }]} />
+      <View style={[styles.thumb, { left: `${pct * 100}%` }]} pointerEvents="none" />
     </View>
   );
 }
