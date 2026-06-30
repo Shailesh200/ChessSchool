@@ -4,3 +4,12 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Native Stockfish module: track the wrapper (swift/podspec/bridge), but NOT the
+# GPLv3 engine source + 66MB NNUE nets (fetched locally — see STOCKFISH.md). The
+# generic `ios/` rule above would otherwise ignore the whole module/ios dir.
+!modules/stockfish/ios/
+!modules/stockfish/ios/*.swift
+!modules/stockfish/ios/*.podspec
+!modules/stockfish/ios/*.h
+modules/stockfish/ios/engine/
