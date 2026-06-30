@@ -8,6 +8,7 @@ import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
 import { BackButton } from "@/BackButton";
 import { api } from "@/api";
+import { progressStore } from "@/progressStore";
 import { settings } from "@/settings";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
@@ -15,11 +16,11 @@ import { colors, font, radius, space, type } from "@/theme";
 
 type Puzzle = { fen: string; solution: string[] };
 
-function placedElo(pct: number): { elo: number; label: string } {
-  if (pct >= 0.85) return { elo: 1400, label: "High School" };
-  if (pct >= 0.55) return { elo: 1000, label: "Middle School" };
-  if (pct >= 0.3) return { elo: 700, label: "Elementary School" };
-  return { elo: 500, label: "Elementary School" };
+function placedElo(pct: number): { elo: number; label: string; skip: string[] } {
+  if (pct >= 0.85) return { elo: 1400, label: "High School", skip: ["elementary", "middle"] };
+  if (pct >= 0.55) return { elo: 1000, label: "Middle School", skip: ["elementary"] };
+  if (pct >= 0.3) return { elo: 700, label: "Elementary School", skip: [] };
+  return { elo: 500, label: "Elementary School", skip: [] };
 }
 
 export default function PlacementScreen() {
@@ -44,9 +45,24 @@ export default function PlacementScreen() {
     );
   }
 
+  async function recordPlacement(elo: number, skip: string[]) {
+    settings.set("targetElo", elo);
+    try {
+      const snap = (progressStore.get() as Record<string, unknown> | null) ?? (await api<Record<string, unknown>>("/api/progress"));
+      const { user: _u, ...rest } = snap as { user?: unknown } & Record<string, unknown>;
+      const passed = Array.from(new Set([...(((rest.schoolExamsPassed as string[]) ?? [])), ...skip]));
+      const body = { ...rest, schoolExamsPassed: passed, rating: elo, placementDone: true };
+      await api("/api/progress", { method: "POST", body });
+      progressStore.set(body);
+    } catch {
+      /* ignore */
+    }
+    router.replace("/(tabs)");
+  }
+
   if (done || puzzles.length === 0) {
     const pct = puzzles.length ? correctRef.current / puzzles.length : 0;
-    const { elo, label } = placedElo(pct);
+    const { elo, label, skip } = placedElo(pct);
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
@@ -54,7 +70,7 @@ export default function PlacementScreen() {
           <Text style={styles.doneTitle}>You're placed!</Text>
           <Text style={styles.doneSub}>{correctRef.current}/{puzzles.length} correct · starting in {label}</Text>
           <View style={{ marginTop: space[5], width: 260 }}>
-            <Button label="Start learning →" variant="success" onPress={() => { settings.set("targetElo", elo); router.replace("/(tabs)"); }} />
+            <Button label="Start learning →" variant="success" onPress={() => recordPlacement(elo, skip)} />
           </View>
         </View>
       </SafeAreaView>
