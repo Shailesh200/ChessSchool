@@ -7,20 +7,33 @@ export type User = { id: string; name: string; email: string; role: string };
 
 type AuthState = {
   user: User | null;
+  guest: boolean;
   loading: boolean;
   needsOnboarding: boolean;
   finishOnboarding: () => void;
+  continueAsGuest: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
+const GUEST_USER: User = { id: "guest", name: "Guest", email: "", role: "guest" };
+
 const AuthCtx = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [guest, setGuest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  const continueAsGuest = () => {
+    void clearToken();
+    progressStore.clear();
+    setNeedsOnboarding(false);
+    setGuest(true);
+    setUser(GUEST_USER);
+  };
 
   useEffect(() => {
     (async () => {
@@ -45,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     await setToken(token);
     progressStore.clear();
+    setGuest(false);
     setUser(user);
     void loadSettingsFromAccount();
   };
@@ -56,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     await setToken(token);
     setNeedsOnboarding(true);
+    setGuest(false);
     setUser(user);
   };
 
@@ -67,11 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     await clearToken();
     progressStore.clear();
+    setGuest(false);
     setUser(null);
   };
 
   return (
-    <AuthCtx.Provider value={{ user, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), login, register, logout }}>
+    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, login, register, logout }}>
       {children}
     </AuthCtx.Provider>
   );

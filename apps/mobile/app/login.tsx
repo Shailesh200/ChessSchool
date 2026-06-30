@@ -11,11 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/auth";
-import { API_URL } from "@/api";
 import { colors, font, radius } from "@/theme";
 
 export default function LoginScreen() {
-  const { login, register } = useAuth();
+  const { login, register, continueAsGuest } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -84,7 +83,15 @@ export default function LoginScreen() {
           <Text style={styles.switch}>{isRegister ? "Already enrolled? Log in" : "New here? Enroll now"}</Text>
         </Pressable>
 
-        <Text style={styles.api}>API: {API_URL}</Text>
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.or}>or</Text>
+          <View style={styles.line} />
+        </View>
+        <Pressable style={styles.guestButton} onPress={continueAsGuest} disabled={busy}>
+          <Text style={styles.guestText}>Continue as a guest</Text>
+        </Pressable>
+        <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -119,5 +126,10 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "#fff", fontSize: 17, fontFamily: font.bold },
   switch: { color: colors.brand, fontFamily: font.semibold, textAlign: "center", marginTop: 18 },
-  api: { color: colors.ink300, fontSize: 11, fontFamily: font.regular, textAlign: "center", marginTop: 24 },
+  divider: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 22, marginBottom: 14 },
+  line: { flex: 1, height: 1, backgroundColor: colors.hairline },
+  or: { color: colors.ink300, fontFamily: font.bold, fontSize: 13 },
+  guestButton: { height: 50, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.brand, justifyContent: "center", alignItems: "center", backgroundColor: colors.surfaceCard },
+  guestText: { color: colors.brand, fontSize: 16, fontFamily: font.bold },
+  guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
 });
