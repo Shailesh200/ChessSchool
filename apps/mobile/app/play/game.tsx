@@ -9,6 +9,7 @@ import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
+import { material } from "@/chess-utils";
 import { applyMatchEnd } from "@/progression";
 import { useSettings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -24,15 +25,6 @@ const BOTS = [
 ];
 const botProfile = (elo: number) => BOTS.find((b) => elo <= b.max) ?? BOTS[BOTS.length - 1]!;
 
-const VAL: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-function material(fen: string): { w: number; b: number } {
-  let w = 0, b = 0;
-  for (const ch of fen.split(" ")[0]!) {
-    const v = VAL[ch.toLowerCase()];
-    if (v) ch === ch.toUpperCase() ? (w += v) : (b += v);
-  }
-  return { w, b };
-}
 function buildFrames(moves: string[]): string[] {
   const e = new ChessEngine();
   const frames = [e.fen()];

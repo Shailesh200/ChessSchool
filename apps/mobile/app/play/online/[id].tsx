@@ -7,6 +7,7 @@ import { ChessBoard } from "@/ChessBoard";
 import { Button } from "@/Button";
 import { Icon } from "@/Icon";
 import { api } from "@/api";
+import { clock, onlineOutcome } from "@/chess-utils";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -15,11 +16,6 @@ type Session = {
   id: string; fen: string; pgn: string; turn: "w" | "b"; status: "waiting" | "active" | "over";
   result: string | null; blackJoined: number; lastFrom: string | null; lastTo: string | null;
   whiteMs: number; blackMs: number; error?: string;
-};
-
-const clock = (ms: number) => {
-  const t = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
 };
 
 export default function OnlineGameScreen() {
@@ -98,10 +94,9 @@ export default function OnlineGameScreen() {
   let bannerTone: string = colors.ink500;
   if (state.status === "waiting") banner = `Share code “${sid}” — waiting for opponent…`;
   else if (state.status === "over") {
-    const r = state.result ?? "";
-    const iWon = (myColor === "w" && (r === "1-0" || r.includes("resign:b") || r.includes("time:w"))) || (myColor === "b" && (r === "0-1" || r.includes("resign:w") || r.includes("time:b")));
-    banner = r.includes("1/2") ? "Draw" : iWon ? "You won! 🏆" : "You lost";
-    bannerTone = iWon ? colors.success600 : colors.ink500;
+    const outcome = onlineOutcome(state.result, myColor);
+    banner = outcome === "draw" ? "Draw" : outcome === "win" ? "You won! 🏆" : "You lost";
+    bannerTone = outcome === "win" ? colors.success600 : colors.ink500;
   } else banner = myTurn ? "Your move" : "Opponent's move…";
 
   return (

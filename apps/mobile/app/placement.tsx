@@ -9,19 +9,13 @@ import { Button } from "@/Button";
 import { BackButton } from "@/BackButton";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
+import { placement } from "@/chess-utils";
 import { settings } from "@/settings";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, space, type } from "@/theme";
 
 type Puzzle = { fen: string; solution: string[] };
-
-function placedElo(pct: number): { elo: number; label: string; skip: string[] } {
-  if (pct >= 0.85) return { elo: 1400, label: "High School", skip: ["elementary", "middle"] };
-  if (pct >= 0.55) return { elo: 1000, label: "Middle School", skip: ["elementary"] };
-  if (pct >= 0.3) return { elo: 700, label: "Elementary School", skip: [] };
-  return { elo: 500, label: "Elementary School", skip: [] };
-}
 
 export default function PlacementScreen() {
   const router = useRouter();
@@ -56,7 +50,7 @@ export default function PlacementScreen() {
 
   if (done || puzzles.length === 0) {
     const pct = puzzles.length ? correctRef.current / puzzles.length : 0;
-    const { elo, label, skip } = placedElo(pct);
+    const { elo, label, skip } = placement(pct);
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
