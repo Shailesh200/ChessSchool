@@ -2,7 +2,7 @@
 
 Native **React Native (Expo) app** for ChessSchool, built for **full feature + UI/UX parity** with the web PWA (`apps/web`). Same monorepo, shared chess/bot/achievements logic in `packages/core`. The USP is the teaching UX and lessons — the app mirrors web's behaviour, not just its screens.
 
-> New here? Read this file, then `../../CODE_REVIEW.md` (known issues), then `DELIVERY_REPORT.md` (what's built). The root `../../CLAUDE.md` covers the web app + DB/curriculum.
+> New here? Read this file, then `../../CODE_REVIEW.md` (known issues), then `DELIVERY_REPORT.md` (what's built). To run the native dev build (with **native Stockfish**) in the **iOS Simulator**, see **`SIMULATOR.md`** (step-by-step) and **`STOCKFISH.md`** (engine integration). The root `../../CLAUDE.md` covers the web app + DB/curriculum.
 
 ---
 
