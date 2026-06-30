@@ -66,16 +66,29 @@ export interface BotConfig {
   blunderChance: number;
 }
 
-/** Map an ELO target to a search profile. */
+/** Map an ELO target to a search profile. Depth is the *full-width* depth; a
+ * quiescence search always extends captures on top, so even depth 2 plays
+ * tactically sound chess (no horizon-effect hangs). */
 export function eloToConfig(elo: number): BotConfig {
   const clamped = Math.max(300, Math.min(2500, elo));
-  if (clamped < 500) return { elo: clamped, depth: 1, blunderChance: 0.72, jitter: 1.3 }; // easy mode — hangs pieces, plays loose
-  if (clamped < 800) return { elo: clamped, depth: 1, blunderChance: 0.45, jitter: 0.9 };
-  if (clamped < 1100) return { elo: clamped, depth: 2, blunderChance: 0.28, jitter: 0.55 };
-  if (clamped < 1500) return { elo: clamped, depth: 2, blunderChance: 0.14, jitter: 0.32 };
-  if (clamped < 1900) return { elo: clamped, depth: 3, blunderChance: 0.05, jitter: 0.16 };
+  if (clamped < 500) return { elo: clamped, depth: 1, blunderChance: 0.6, jitter: 1 }; // beginner — frequent mistakes, but legal/sane moves
+  if (clamped < 800) return { elo: clamped, depth: 2, blunderChance: 0.4, jitter: 0.6 };
+  if (clamped < 1100) return { elo: clamped, depth: 2, blunderChance: 0.22, jitter: 0.4 };
+  if (clamped < 1500) return { elo: clamped, depth: 2, blunderChance: 0.1, jitter: 0.25 };
+  if (clamped < 1900) return { elo: clamped, depth: 3, blunderChance: 0.03, jitter: 0.12 };
   return { elo: clamped, depth: 3, blunderChance: 0.0, jitter: 0.04 };
 }
+
+// Tiny opening book so the bot opens like a human instead of a depth-2 search.
+const OPENING_BOOK: Record<string, string[]> = {
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": ["e2e4", "d2d4", "g1f3", "c2c4"],
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1": ["c7c5", "e7e5", "e7e6", "c7c6"],
+  "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1": ["g8f6", "d7d5"],
+  "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1": ["e7e5", "g8f6", "c7c5"],
+  "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2": ["g1f3", "c2c3", "b1c3"],
+};
+const NODE_CAP = 2800; // chess.js is slow per node; this keeps a "think" ~1s (phones ~1.5–2s)
+const QMAX = 2; // shallow quiescence (resolve immediate recaptures) — bounds explosion
 
 function evaluate(game: Chess): number {
   // Positive = good for side to move.
@@ -114,26 +127,52 @@ function orderMoves<T extends { captured?: string; piece: string; promotion?: st
     .map((x) => x.m);
 }
 
+/**
+ * Quiescence search — at a leaf, keep searching *captures* (and promotions)
+ * until the position is quiet, so the static eval is never taken in the middle
+ * of an exchange. This is what removes the horizon-effect blunders.
+ */
+function quiesce(game: Chess, alpha: number, beta: number, nodes: { n: number }, qply: number): number {
+  const stand = evaluate(game);
+  if (stand >= beta) return beta;
+  if (stand > alpha) alpha = stand;
+  if (qply <= 0 || nodes.n > NODE_CAP) return alpha;
+  const caps = orderMoves(game.moves({ verbose: true }).filter((m) => m.captured || m.promotion));
+  for (const m of caps) {
+    nodes.n++;
+    game.move(m as never);
+    const score = -quiesce(game, -beta, -alpha, nodes, qply - 1);
+    game.undo();
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+  }
+  return alpha;
+}
+
 function negamax(
   game: Chess,
   depth: number,
   alpha: number,
   beta: number,
+  nodes: { n: number },
 ): number {
-  if (depth === 0 || game.isGameOver()) {
-    if (game.isCheckmate()) return -100000 - depth;
-    if (game.isGameOver()) return 0;
-    return evaluate(game);
+  if (game.isGameOver()) {
+    if (game.isCheckmate()) return -100000 - depth; // prefer faster mates
+    return 0; // stalemate / draw
   }
+  if (nodes.n > NODE_CAP) return evaluate(game); // hard budget guard — bail with static eval
+  if (depth === 0) return quiesce(game, alpha, beta, nodes, QMAX);
   let best = -Infinity;
   const moves = orderMoves(game.moves({ verbose: true }));
   for (const m of moves) {
+    nodes.n++;
     game.move(m as never);
-    const score = -negamax(game, depth - 1, -beta, -alpha);
+    const score = -negamax(game, depth - 1, -beta, -alpha, nodes);
     game.undo();
     if (score > best) best = score;
     if (best > alpha) alpha = best;
     if (alpha >= beta) break; // prune
+    if (nodes.n > NODE_CAP) break;
   }
   return best;
 }
@@ -145,21 +184,52 @@ export function chooseMove(
   seed = 0.5,
 ): MoveInput | null {
   const game = new Chess(fen);
-  const moves = orderMoves(game.moves({ verbose: true }));
-  if (moves.length === 0) return null;
+  const legal = game.moves({ verbose: true });
+  if (legal.length === 0) return null;
 
-  const scored = moves.map((m, i) => {
-    game.move(m as never);
-    const score = -negamax(game, config.depth - 1, -Infinity, Infinity);
-    game.undo();
-    // light deterministic jitter keyed off seed + index for variety
-    const noise = ((Math.sin((i + 1) * (seed + 0.13)) + 1) / 2) * 60 * config.jitter;
-    return { move: m, score: score + noise };
-  });
+  // Opening book — open like a human rather than a shallow search.
+  const book = OPENING_BOOK[fen];
+  if (book) {
+    const candidates = book.filter((uci) => legal.some((m) => `${m.from}${m.to}` === uci));
+    if (candidates.length) {
+      const m = legal.find((x) => `${x.from}${x.to}` === candidates[Math.floor(seed * candidates.length) % candidates.length])!;
+      return { from: m.from, to: m.to, promotion: (m.promotion as PieceSymbol | undefined) ?? undefined };
+    }
+  }
 
-  scored.sort((a, b) => b.score - a.score);
+  let moves = orderMoves(legal);
+  const nodes = { n: 0 };
+  let scored: { move: (typeof legal)[number]; score: number }[] = moves.map((m) => ({ move: m, score: 0 }));
 
-  // Blunder: pick a sub-optimal but legal move to emulate a weaker player.
+  // Iterative deepening: each *completed* depth refines the scores and re-orders
+  // moves best-first for sharper pruning next time. If the node budget runs out
+  // mid-iteration we keep the last fully-searched depth's result — so the move is
+  // always sound and the "think" is bounded (responsive on a phone).
+  for (let d = 1; d <= config.depth; d++) {
+    const partial: { move: (typeof legal)[number]; score: number }[] = [];
+    let aborted = false;
+    for (const m of moves) {
+      game.move(m as never);
+      const s = -negamax(game, d - 1, -Infinity, Infinity, nodes);
+      game.undo();
+      partial.push({ move: m, score: s });
+      if (nodes.n > NODE_CAP) { aborted = true; break; }
+    }
+    if (!aborted) {
+      partial.sort((a, b) => b.score - a.score);
+      scored = partial;
+      moves = scored.map((x) => x.move);
+    }
+    if (aborted) break;
+  }
+
+  // tiny deterministic tie-break (≤4cp) so near-equal positions vary a little
+  scored = scored
+    .map((x, i) => ({ move: x.move, score: x.score + ((Math.sin((i + 1) * (seed + 0.13)) + 1) / 2) * 4 * config.jitter }))
+    .sort((a, b) => b.score - a.score);
+
+  // Weakness model: with blunderChance pick a sub-optimal — but still searched,
+  // sane — move from the top few, instead of injecting random noise everywhere.
   const pickIndex =
     seed < config.blunderChance && scored.length > 2
       ? 1 + Math.floor(seed * Math.min(3, scored.length - 1))

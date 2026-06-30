@@ -10,6 +10,7 @@ import { sfx } from "@/sfx";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
 import { material } from "@/chess-utils";
+import { stockfishAvailable, nativeBestMove } from "@/stockfish";
 import { applyMatchEnd } from "@/progression";
 import { useSettings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -123,9 +124,11 @@ export default function GameScreen() {
 
     setThinking(true);
     setTimeout(async () => {
-      const m = await getBotMove(e.fen(), eloToConfig(elo), Math.random());
+      // Native Stockfish (dev build) for true web-strength; falls back to the JS engine.
+      let m = stockfishAvailable() ? await nativeBestMove(e.fen(), elo) : null;
+      if (!m) m = await getBotMove(e.fen(), eloToConfig(elo), Math.random());
       if (m) {
-        e.move(m);
+        e.move(m as never);
         const bh = e.history();
         sfx.play(bh[bh.length - 1]?.captured ? "capture" : "move");
         setFen(e.fen());
