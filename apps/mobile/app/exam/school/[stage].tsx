@@ -9,7 +9,7 @@ import { Button } from "@/Button";
 import { BackButton } from "@/BackButton";
 import { Confetti } from "@/Confetti";
 import { api } from "@/api";
-import { progressStore } from "@/progressStore";
+import { mutateProgress } from "@/progressStore";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, space, type } from "@/theme";
@@ -50,16 +50,10 @@ export default function SchoolExamScreen() {
   const nextName = STAGE_NAME[STAGE_ORDER[idx + 1] ?? ""] ?? "the next school";
 
   async function recordPass() {
-    try {
-      const snap = (progressStore.get() as Record<string, unknown> | null) ?? (await api<Record<string, unknown>>("/api/progress"));
-      const { user: _u, ...rest } = snap as { user?: unknown } & Record<string, unknown>;
-      const passed = Array.from(new Set([...(((rest.schoolExamsPassed as string[]) ?? [])), stageId]));
-      const body = { ...rest, schoolExamsPassed: passed, xp: ((rest.xp as number) ?? 0) + 60 };
-      await api("/api/progress", { method: "POST", body });
-      progressStore.set(body);
-    } catch {
-      /* ignore */
-    }
+    await mutateProgress((snap) => {
+      const passed = Array.from(new Set([...(((snap.schoolExamsPassed as string[]) ?? [])), stageId]));
+      return { ...snap, schoolExamsPassed: passed, xp: ((snap.xp as number) ?? 0) + 60 };
+    });
   }
 
   if (!steps) {

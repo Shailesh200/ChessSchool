@@ -27,6 +27,28 @@ export const progressStore = {
   subscribe: (l: () => void) => { listeners.add(l); return () => listeners.delete(l); },
 };
 
+// Serialized read-modify-write so concurrent writers (lesson finish, settings sync,
+// match end, …) can't clobber each other: every mutation waits for the previous and
+// re-reads the freshest snapshot before applying. `fn` receives the snapshot WITHOUT
+// the `user` field and returns the next snapshot to POST.
+let writeChain: Promise<unknown> = Promise.resolve();
+export function mutateProgress(fn: (snap: Record<string, unknown>) => Record<string, unknown>): Promise<void> {
+  const run = async () => {
+    try {
+      const cur = (cache as Record<string, unknown> | null) ?? (await api<Record<string, unknown>>("/api/progress"));
+      const { user: _u, ...rest } = (cur ?? {}) as { user?: unknown } & Record<string, unknown>;
+      const next = fn(rest);
+      await api("/api/progress", { method: "POST", body: next });
+      cache = next;
+      emit();
+    } catch {
+      /* offline / logged out — the next successful write reconciles */
+    }
+  };
+  writeChain = writeChain.then(run, run);
+  return writeChain as Promise<void>;
+}
+
 /** Cached progress; fetches once on first use. Pass `refresh` to force a reload on mount. */
 export function useProgress(refresh = false): ProgressSnap {
   const data = useSyncExternalStore(progressStore.subscribe, () => cache, () => cache);

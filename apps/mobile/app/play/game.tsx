@@ -8,7 +8,7 @@ import { Icon } from "@/Icon";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
-import { progressStore } from "@/progressStore";
+import { mutateProgress } from "@/progressStore";
 import { applyMatchEnd } from "@/progression";
 import { useSettings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -46,13 +46,11 @@ function buildFrames(moves: string[]): string[] {
 
 async function saveGame(moves: string[], result: "win" | "loss" | "draw", elo: number) {
   try {
-    const cur = await api<Record<string, unknown>>("/api/progress");
-    const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-    const next = applyMatchEnd(snap, { botElo: elo, result });
-    const games = [{ moves, result, elo, at: Date.now() }, ...((next.recentGames as unknown[]) ?? [])].slice(0, 20);
-    const body = { ...next, recentGames: games };
-    await api("/api/progress", { method: "POST", body });
-    progressStore.set(body);
+    void mutateProgress((snap) => {
+      const next = applyMatchEnd(snap, { botElo: elo, result });
+      const games = [{ moves, result, elo, at: Date.now() }, ...((snap.recentGames as unknown[]) ?? [])].slice(0, 20);
+      return { ...next, recentGames: games };
+    });
   } catch {
     /* ignore */
   }

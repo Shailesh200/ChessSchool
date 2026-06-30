@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, setToken, clearToken, getToken } from "./api";
+import { api, setToken, clearToken, getToken, setUnauthorizedHandler } from "./api";
 import { progressStore } from "./progressStore";
 import { loadSettingsFromAccount } from "./settings";
 
@@ -26,6 +26,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [guest, setGuest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  // An expired session anywhere → drop to the login screen instead of silent failures.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      progressStore.clear();
+      setGuest(false);
+      setUser(null);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   const continueAsGuest = () => {
     void clearToken();

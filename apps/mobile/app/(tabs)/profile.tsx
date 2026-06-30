@@ -53,7 +53,7 @@ export default function ProfileScreen() {
         <View style={styles.idCard}>
           <Cody expression="happy" size={72} />
           <View style={{ flex: 1, marginLeft: space[2] }}>
-            <Text style={styles.name}>{user?.name}</Text>
+            <Text style={styles.name} numberOfLines={1}>{user?.name}</Text>
             <Text style={styles.idSub}>{rank} · Level {level} · {xp} XP</Text>
           </View>
         </View>

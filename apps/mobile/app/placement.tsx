@@ -8,7 +8,7 @@ import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
 import { BackButton } from "@/BackButton";
 import { api } from "@/api";
-import { progressStore } from "@/progressStore";
+import { mutateProgress } from "@/progressStore";
 import { settings } from "@/settings";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
@@ -47,16 +47,10 @@ export default function PlacementScreen() {
 
   async function recordPlacement(elo: number, skip: string[]) {
     settings.set("targetElo", elo);
-    try {
-      const snap = (progressStore.get() as Record<string, unknown> | null) ?? (await api<Record<string, unknown>>("/api/progress"));
-      const { user: _u, ...rest } = snap as { user?: unknown } & Record<string, unknown>;
-      const passed = Array.from(new Set([...(((rest.schoolExamsPassed as string[]) ?? [])), ...skip]));
-      const body = { ...rest, schoolExamsPassed: passed, rating: elo, placementDone: true };
-      await api("/api/progress", { method: "POST", body });
-      progressStore.set(body);
-    } catch {
-      /* ignore */
-    }
+    await mutateProgress((snap) => {
+      const passed = Array.from(new Set([...(((snap.schoolExamsPassed as string[]) ?? [])), ...skip]));
+      return { ...snap, schoolExamsPassed: passed, rating: elo, placementDone: true };
+    });
     router.replace("/(tabs)");
   }
 

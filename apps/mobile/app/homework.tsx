@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { settings, useSettings } from "@/settings";
-import { useProgress } from "@/progressStore";
+import { useProgress, mutateProgress } from "@/progressStore";
 import { isoDay } from "@/progression";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
@@ -57,13 +57,7 @@ export default function PlanScreen() {
 
   async function setTier(tier: PlanTier) {
     settings.set("planTier", tier);
-    try {
-      const cur = await api<Record<string, unknown>>("/api/progress");
-      const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-      await api("/api/progress", { method: "POST", body: { ...snap, dailyGoalXp: PLAN_SPECS[tier].goalXp } });
-    } catch {
-      /* ignore */
-    }
+    await mutateProgress((snap) => ({ ...snap, dailyGoalXp: PLAN_SPECS[tier].goalXp }));
   }
 
   const dayIndex = Math.floor(Date.now() / 86400000);

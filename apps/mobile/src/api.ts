@@ -28,7 +28,24 @@ export const clearToken = async (): Promise<void> => {
   else await SecureStore.deleteItemAsync(TOKEN_KEY);
 };
 
-/** Fetch helper that attaches the bearer token + JSON. Throws on non-2xx. */
+/** Error carrying the HTTP status so callers can branch (e.g. 401 vs network). */
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+// The AuthProvider registers this so an expired session (401) can force re-auth
+// from anywhere, instead of every screen silently failing its writes.
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: (() => void) | null): void {
+  onUnauthorized = fn;
+}
+
+/** Fetch helper that attaches the bearer token + JSON. Throws ApiError on non-2xx. */
 export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = await getToken();
   const headers: Record<string, string> = { "content-type": "application/json" };
@@ -40,7 +57,13 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   });
   if (!res.ok) {
     const msg = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(msg.error ?? `HTTP ${res.status}`);
+    // A 401 with a token means the session expired → clear it and force re-auth.
+    // Guests (no token) legitimately get 401s on auth-only routes; don't bounce them.
+    if (res.status === 401 && token) {
+      await clearToken();
+      onUnauthorized?.();
+    }
+    throw new ApiError(res.status, msg.error ?? `HTTP ${res.status}`);
   }
   return (await res.json()) as T;
 }

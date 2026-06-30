@@ -11,7 +11,7 @@ import { Confetti } from "@/Confetti";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
-import { progressStore } from "@/progressStore";
+import { mutateProgress } from "@/progressStore";
 import { applyLessonComplete, isoDay, type Mistake } from "@/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
@@ -115,17 +115,16 @@ export default function LessonScreen() {
     const total = moveSteps || 1;
     const correct = moveSteps === 0 ? 1 : correctRef.current;
     try {
-      const cur = await api<Record<string, unknown>>("/api/progress");
-      const { user: _u, ...snap } = cur as { user?: unknown } & Record<string, unknown>;
-      let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
-      if (hw) {
-        const today = isoDay();
-        const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
-        hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
-        next = { ...next, homeworkDone: hd };
-      }
-      await api("/api/progress", { method: "POST", body: next });
-      progressStore.set(next);
+      await mutateProgress((snap) => {
+        let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+        if (hw) {
+          const today = isoDay();
+          const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
+          hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
+          next = { ...next, homeworkDone: hd };
+        }
+        return next;
+      });
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch {

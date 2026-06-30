@@ -57,7 +57,7 @@ export default function LearnScreen() {
   const todayXp = (p?.activityDays ?? {})[isoDay()] ?? 0;
   const streak = p?.streak ?? 0;
   const rating = p?.rating ?? 800;
-  const isNew = !!p && Object.keys(p.lessons ?? {}).length === 0;
+  const isNew = !!p && !(p as { placementDone?: boolean }).placementDone && Object.keys(p.lessons ?? {}).length === 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>

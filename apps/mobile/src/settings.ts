@@ -90,13 +90,8 @@ async function pushToAccount() {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {
     try {
-      const { api } = await import("./api");
-      const { progressStore } = await import("./progressStore");
-      const snap = (progressStore.get() as Record<string, unknown> | null) ?? (await api<Record<string, unknown>>("/api/progress"));
-      const { user: _u, ...rest } = snap as { user?: unknown } & Record<string, unknown>;
-      const body = { ...rest, settings: state };
-      await api("/api/progress", { method: "POST", body });
-      progressStore.set(body);
+      const { mutateProgress } = await import("./progressStore");
+      await mutateProgress((snap) => ({ ...snap, settings: state }));
     } catch {
       /* ignore (offline / logged out) */
     }
