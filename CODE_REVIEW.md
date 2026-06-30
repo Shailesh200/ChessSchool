@@ -96,6 +96,16 @@ The mobile app is **stylistically clean** (0 `any`, 0 `console.*`, 0 TODO, ~5k L
 
 ---
 
+## 4b. Autonomous session — what was FIXED (this branch)
+
+**Device-test bugs (all fixed + verified):** drag-to-move (board was tap-only), exam/placement/lesson move animation (correct *and* wrong), lesson completion flash, vs-Bot board centering + turn dot, vs-Human player bars + resign, slider flicker, placement unlocks the placed school, board themes 3→8, **dedicated /themes page with live preview**, **Continue-as-guest**, onboarding theme applies (distinct board theme), coach-personality setting, **homework Go button + checkbox sync + homework-specific completion**, learning-profile card → report card, **audio regenerated from web's exact synth recipes**.
+
+**Review fixes (app, in this branch):** 401 → forced re-auth (guest-safe) centralized in `api.ts`; **serialized `mutateProgress` write queue** — all 6 progress writers routed through it, so concurrent writes can't clobber (fixes the data-loss race A-H3/A-H2 on the client); placement-aware `isNew`; profile name overflow; API-URL leak removed; pure helpers extracted to `chess-utils.ts` (dedup) with tests.
+
+**Verification (all green):** mobile `typecheck` clean · `test` 36 passing · **coverage 97% stmts / 100% lines / 86% branch / 96% func** on the pure-logic modules (>85% thresholds enforced in `vitest.config.ts`) · web export builds. Web `typecheck` clean · `lint` 0 errors (11 pre-existing warnings) · `test` 19 passing · `build` ok · **e2e 9/9**.
+
+**Still open (need a `main` deploy + re-verify — not done because pushing to main is out of scope now):** the web CRITICAL items — C1 (unauthenticated online session: anyone can move both sides) and C2 (guessable game id) — plus H1 (progress POST delete-all / no transaction) and H2 (typed-column max-merge). These change production behaviour and the online-PvP contract, so they must be deployed and re-verified together; the `apps/web` code changes are *not* yet made for C1/H1 to avoid breaking the verified online feature without a deploy to test against. `homeworkDone`/`placementDone` persistence is wired in `apps/web` (additive) and takes effect on the next `main` deploy; until then it lives in the local cache (works in-session). **e2e coverage %**: the mobile app has no instrumented native e2e harness (Detox/Maestro) — verification is via the Playwright parity harness (all major screens + two-client online PvP) and the web e2e (9/9). A native e2e suite is a scoped follow-up.
+
 ## 5. Recommended order to ship
 
 1. **Web security:** C1 (session seat auth) + C2 (game id) — these are the only true *security* holes.
