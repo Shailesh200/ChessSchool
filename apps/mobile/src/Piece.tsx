@@ -1,4 +1,5 @@
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from "react-native-svg";
+import { STAUNTON } from "./staunton-pieces";
 
 // Staunton piece silhouettes + themes — ported 1:1 from the web
 // (features/board/pieceThemes.tsx) so mobile pieces share geometry, palettes and finish.
@@ -51,6 +52,28 @@ function shade(hex: string, amt: number): string {
 }
 
 export function Piece({ type, color, size, gid, themeId = "marble" }: { type: PieceType; color: "w" | "b"; size: number; gid: string; themeId?: PieceThemeId }) {
+  // "classic" → the exact Cburnett Staunton set the web uses (react-chessboard default).
+  if (themeId === "classic") {
+    const paths = STAUNTON[`${color}${type.toUpperCase()}`] ?? [];
+    return (
+      <Svg viewBox="0 0 45 45" width={size} height={size}>
+        <Ellipse cx="22.5" cy="40" rx="11" ry="2" fill="rgba(0,0,0,0.14)" />
+        {paths.map((p, i) => (
+          <Path
+            key={i}
+            d={p.d}
+            fill={p.fill ?? "none"}
+            fillOpacity={p.fo}
+            stroke={p.stroke}
+            strokeWidth={p.sw}
+            strokeLinejoin={(p.lj as "round" | "miter" | "bevel") ?? "round"}
+            strokeLinecap={(p.lc as "round" | "butt" | "square") ?? "round"}
+          />
+        ))}
+      </Svg>
+    );
+  }
+
   const theme = getPieceTheme(themeId);
   const neon = !!theme.neon;
   const pal = color === "w" ? theme.white : theme.black;
