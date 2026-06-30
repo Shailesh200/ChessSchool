@@ -16,8 +16,8 @@ Pod::Spec.new do |s|
 
   s.dependency 'ExpoModulesCore'
 
-  # Swift module + the Stockfish C++ engine sources (added under ios/engine — see STOCKFISH.md).
-  s.source_files = 'StockfishModule.swift', 'stockfish-bridge.h', 'engine/**/*.{cpp,h}'
+  # Swift module + the C-linkage shim + the Stockfish C++ engine sources (under ios/engine — see STOCKFISH.md).
+  s.source_files = 'StockfishModule.swift', 'stockfish-bridge.h', 'stockfish-shim.cpp', 'engine/**/*.{cpp,h}'
   # Only the C bridge is public → it lands in the framework umbrella so Swift can
   # see `stockfish_main` (bridging headers aren't allowed for framework targets).
   s.public_header_files = 'stockfish-bridge.h'
@@ -28,9 +28,9 @@ Pod::Spec.new do |s|
     'DEFINES_MODULE' => 'YES',
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
     'CLANG_CXX_LIBRARY' => 'libc++',
-    # Rename Stockfish's main() so we can call it from Swift as stockfish_main(),
-    # and let the assembler find the embedded NNUE nets next to evaluate.cpp.
-    'GCC_PREPROCESSOR_DEFINITIONS' => 'main=stockfish_main',
+    # Rename Stockfish's main() → stockfish_cpp_main (C++); the shim re-exports it
+    # with C linkage as stockfish_main for Swift. -I engine lets incbin find the nets.
+    'GCC_PREPROCESSOR_DEFINITIONS' => 'main=stockfish_cpp_main',
     'OTHER_CFLAGS' => '-I${PODS_TARGET_SRCROOT}/engine',
     'OTHER_CPLUSPLUSFLAGS' => '-I${PODS_TARGET_SRCROOT}/engine',
   }

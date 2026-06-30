@@ -125,7 +125,9 @@ export default function GameScreen() {
     setThinking(true);
     setTimeout(async () => {
       // Native Stockfish (dev build) for true web-strength; falls back to the JS engine.
-      let m = stockfishAvailable() ? await nativeBestMove(e.fen(), elo) : null;
+      const sfReady = stockfishAvailable();
+      let m = sfReady ? await nativeBestMove(e.fen(), elo) : null;
+      console.log(`[bot-engine] stockfish=${sfReady} nativeMove=${m ? `${m.from}${m.to}` : "null"} elo=${elo}`);
       if (!m) m = await getBotMove(e.fen(), eloToConfig(elo), Math.random());
       if (m) {
         e.move(m as never);
