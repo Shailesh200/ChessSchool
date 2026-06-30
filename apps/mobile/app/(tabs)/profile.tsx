@@ -76,21 +76,28 @@ export default function ProfileScreen() {
           <Stat icon="trophy" tint={colors.gold} value={`${unlocked.size}`} label="Badges" />
         </View>
 
-        {/* Learning profile */}
+        {/* Learning profile → full report card */}
         <Text style={styles.h2}>Learning profile</Text>
-        <View style={styles.card}>
+        <Pressable style={styles.card} onPress={() => router.push("/dashboard")}>
           {weakTags.length === 0 ? (
             <Text style={styles.muted}>No weak spots yet — keep playing and I'll track what to review.</Text>
           ) : (
-            <View style={styles.tagRow}>
-              {weakTags.map(([tag, n]) => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag} · {n}</Text>
-                </View>
-              ))}
-            </View>
+            <>
+              <Text style={styles.muted}>Topics to review — tap for your full report card.</Text>
+              <View style={[styles.tagRow, { marginTop: space[2] }]}>
+                {weakTags.map(([tag, n]) => (
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag} · {n}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
           )}
-        </View>
+          <View style={styles.cardCta}>
+            <Text style={styles.cardCtaText}>View report card</Text>
+            <Icon name="chevronRight" size={16} color={colors.brand} />
+          </View>
+        </Pressable>
 
         {/* Achievements */}
         <Text style={styles.h2}>Achievements</Text>
@@ -143,6 +150,8 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   tag: { backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 6 },
   tagText: { ...type.xs, fontFamily: font.bold, color: colors.ink700, textTransform: "capitalize" },
+  cardCta: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: space[3] },
+  cardCtaText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   badge: { width: "31.5%", alignItems: "center", borderRadius: radius.md, paddingVertical: space[3], gap: 4 },
   badgeOn: { backgroundColor: colors.brand50 },
