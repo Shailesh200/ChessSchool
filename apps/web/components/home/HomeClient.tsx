@@ -13,8 +13,9 @@ import Link from "next/link";
 import { useProgression } from "@/core/store/progression.store";
 import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
+import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
-import { dueLessonIds, isDailyPuzzleDone } from "@chess-school/progression";
+import { dueLessonIds, isDailyPuzzleDone, needsPlacementTest, shouldRecommendPreschool } from "@chess-school/progression";
 import type { Catalog } from "@/features/school/structure";
 
 type DailyPuzzle = { day: string; lessonId: string | null; title: string | null; tag: string | null; emoji: string | null };
@@ -23,14 +24,21 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
   const dailyGoal = useProgression((s) => s.dailyGoalXp);
   const streak = useProgression((s) => s.streak);
+  const xp = useProgression((s) => s.xp);
+  const placementDone = useProgression((s) => s.placementDone);
   const lessons = useProgression((s) => s.lessons);
-  const graduated = useProgression((s) => s.graduatedClasses);
   const authed = useSession((s) => s.authed);
   const rating = useProgression((s) => s.rating);
   const dailyPuzzleDay = useProgression((s) => s.dailyPuzzleDay);
   const homeworkDone = usePlan((s) => s.routineDone.length);
+  const targetElo = useSettings((s) => s.targetElo);
+  const graduatedClasses = useProgression((s) => s.graduatedClasses);
   const mounted = useMounted();
-  const isNew = mounted && Object.keys(lessons).length === 0 && graduated.length === 0;
+  const showPlacement = authed === true && mounted && needsPlacementTest({ placementDone, xp });
+  const recommendPreschool =
+    authed === true &&
+    mounted &&
+    shouldRecommendPreschool(targetElo, { lessons, graduatedClasses });
   const dueIds = dueLessonIds(lessons);
   const [daily, setDaily] = useState<DailyPuzzle | null>(null);
 
@@ -71,7 +79,19 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           )}
         </div>
 
-        {isNew && (
+        {recommendPreschool && (
+          <div className="rounded-card border border-hairline bg-surface-sunken/80 p-4">
+            <p className="text-sm font-extrabold text-ink">🧸 Optional: Pre-School for complete beginners</p>
+            <p className="mt-1 text-xs font-semibold text-ink-500">
+              Learn the board, pieces, and notation (d6, Nf3, Qd5) at your own pace — skip anytime if you already know the rules.
+            </p>
+            <NavButton href="/class/class-pre-board" size="sm" className="mt-3">
+              Start Pre-School →
+            </NavButton>
+          </div>
+        )}
+
+        {showPlacement && (
           <div className="rounded-card border border-brand-100 bg-brand-50 p-4">
             <p className="text-sm font-extrabold text-ink">🎯 New here? Take a quick placement test</p>
             <p className="mt-1 text-xs font-semibold text-ink-500">

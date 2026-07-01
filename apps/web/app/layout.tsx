@@ -9,7 +9,7 @@ const fredoka = Fredoka({
   weight: ["400", "500", "600", "700"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school-alpha.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school.in";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

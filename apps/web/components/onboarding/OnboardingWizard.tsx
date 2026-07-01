@@ -127,6 +127,11 @@ export function OnboardingWizard({ name }: { name: string }) {
             <p className="mb-5 text-sm font-semibold text-ink-500">
               {isAvatarStep ? "It appears on your Student ID." : current!.sub}
             </p>
+            {!isAvatarStep && step === 1 && elo === "600" && (
+              <p className="-mt-3 mb-4 rounded-card border border-hairline bg-surface-sunken/80 px-3 py-2 text-xs font-semibold text-ink-500">
+                🧸 We&apos;ll recommend our optional <span className="font-extrabold text-ink">Pre-School</span> first — board, pieces &amp; notation. Skip anytime if you prefer.
+              </p>
+            )}
 
             {isAvatarStep ? (
               <div className="grid grid-cols-4 gap-3">

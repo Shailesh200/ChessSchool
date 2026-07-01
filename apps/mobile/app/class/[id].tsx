@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Circle, G } from "react-native-svg";
 import { api } from "@/api";
 import { Button } from "@/Button";
 import { FetchErrorView } from "@/FetchErrorView";
 import { TopBar } from "@/TopBar";
 import { haptics } from "@/haptics";
+import { fetchProgress, lessonRecordsFromCache, progressStore } from "@/progressStore";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
@@ -56,16 +57,18 @@ export default function ClassJourneyScreen() {
   const [records, setRecords] = useState<Record<string, { mastery: number }>>({});
   const [shown, setShown] = useState(6);
 
+  async function loadProgressRecords() {
+    await fetchProgress(false);
+    setRecords(lessonRecordsFromCache());
+  }
+
   async function loadClass() {
     setLoadError(false);
     setData(null);
     try {
-      const [classData, progress] = await Promise.all([
-        api<ClassData>(`/api/class/${id}`),
-        api<{ lessons: Record<string, { mastery: number }> }>("/api/progress").catch(() => ({ lessons: {} })),
-      ]);
+      const classData = await api<ClassData>(`/api/class/${id}`);
       setData(classData);
-      setRecords(progress.lessons ?? {});
+      await loadProgressRecords();
     } catch {
       setLoadError(true);
     }
@@ -74,6 +77,21 @@ export default function ClassJourneyScreen() {
   useEffect(() => {
     void loadClass();
   }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProgressRecords();
+    }, []),
+  );
+
+  useEffect(() => {
+    const unsub = progressStore.subscribe(() => {
+      setRecords(lessonRecordsFromCache());
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
 
   const { nodes, done, activeIndex, minutes } = useMemo(() => {
     const lessons = data?.lessons ?? [];

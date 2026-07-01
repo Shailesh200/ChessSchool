@@ -18,6 +18,7 @@ export type Snap = {
   activityDays?: Record<string, number>;
   mistakeLog?: Mistake[];
   lessons?: Record<string, LessonRec>;
+  schoolExamsPassed?: string[];
   [k: string]: unknown;
 };
 
@@ -109,3 +110,103 @@ export function applyMatchEnd(s: Snap, a: { botElo: number; result: "win" | "los
 
 export * from "./gameHistory";
 export * from "./spacedRep";
+export * from "./formatCoach";
+export * from "./boardGrid";
+export * from "./preschool";
+
+/** Enrolled users with low XP see the placement CTA; guests never do. */
+export const PLACEMENT_XP_CAP = 200;
+
+export function needsPlacementTest(snap: { placementDone?: boolean; xp?: number }): boolean {
+  if (snap.placementDone) return false;
+  return (snap.xp ?? 0) < PLACEMENT_XP_CAP;
+}
+
+/** True when the account (or local guest) snapshot has no meaningful progress yet. */
+export function accountProgressEmpty(snap: Snap & { placementDone?: boolean }): boolean {
+  return (
+    (snap.xp ?? 0) === 0 &&
+    Object.keys(snap.lessons ?? {}).length === 0 &&
+    (snap.graduatedClasses ?? []).length === 0 &&
+    !snap.placementDone &&
+    (snap.schoolExamsPassed ?? []).length === 0
+  );
+}
+
+export function localProgressPresent(snap: Snap & { placementDone?: boolean }): boolean {
+  return !accountProgressEmpty(snap);
+}
+
+/** Guest → new account: carry the better of local and server fields. */
+type MergeSnap = Snap & { placementDone?: boolean };
+
+/** Shape expected by POST /api/progress — fills defaults so partial client snapshots validate. */
+export function normalizeProgressPush(snap: Snap & { placementDone?: boolean }): MergeSnap {
+  const lessons = (snap.lessons ?? {}) as Record<string, LessonRec>;
+  return {
+    xp: Math.max(0, Math.floor(Number(snap.xp ?? 0))),
+    streak: Math.max(0, Math.floor(Number(snap.streak ?? 0))),
+    lastActiveDay: typeof snap.lastActiveDay === "string" ? snap.lastActiveDay : null,
+    graduatedClasses: Array.isArray(snap.graduatedClasses) ? snap.graduatedClasses : [],
+    lessons,
+    rating: Number(snap.rating ?? 800),
+    botWins: Math.max(0, Math.floor(Number(snap.botWins ?? 0))),
+    dailyGoalXp: Math.max(1, Math.floor(Number(snap.dailyGoalXp ?? 50))),
+    unlockedAchievements: Array.isArray(snap.unlockedAchievements) ? snap.unlockedAchievements : [],
+    schoolExamsPassed: Array.isArray(snap.schoolExamsPassed) ? snap.schoolExamsPassed : [],
+    weaknesses: (snap.weaknesses ?? {}) as Record<string, number>,
+    activityDays: (snap.activityDays ?? {}) as Record<string, number>,
+    mistakeLog: Array.isArray(snap.mistakeLog) ? snap.mistakeLog : [],
+    homeworkStreak: Math.max(0, Math.floor(Number(snap.homeworkStreak ?? 0))),
+    homeworkLastDay: typeof snap.homeworkLastDay === "string" ? snap.homeworkLastDay : null,
+    recentGames: Array.isArray(snap.recentGames) ? snap.recentGames : [],
+    dailyPuzzleDay: typeof snap.dailyPuzzleDay === "string" ? snap.dailyPuzzleDay : null,
+    homeworkDone: (snap.homeworkDone ?? {}) as Record<string, string[]>,
+    placementDone: Boolean(snap.placementDone),
+    journalEntries: Array.isArray(snap.journalEntries) ? snap.journalEntries : [],
+    settings: snap.settings as Record<string, unknown> | undefined,
+  };
+}
+
+export function mergeProgressSnapshots(local: MergeSnap, server: MergeSnap): MergeSnap {
+  const lessons = { ...(local.lessons ?? {}) };
+  for (const [id, r] of Object.entries(server.lessons ?? {})) {
+    const cur = lessons[id];
+    lessons[id] =
+      !cur || r.mastery >= cur.mastery
+        ? { ...r, attempts: Math.max(cur?.attempts ?? 0, r.attempts) }
+        : { ...cur, attempts: Math.max(cur.attempts, r.attempts) };
+  }
+  const mergeMap = (a: Record<string, number>, b: Record<string, number> = {}) => {
+    const out = { ...a };
+    for (const [k, v] of Object.entries(b)) out[k] = Math.max(out[k] ?? 0, v);
+    return out;
+  };
+  const mistakes = [...(server.mistakeLog ?? []), ...(local.mistakeLog ?? [])];
+  const seen = new Set<string>();
+  const mistakeLog = mistakes
+    .filter((m) => {
+      const key = `${m.fen}|${m.at}`;
+      return seen.has(key) ? false : (seen.add(key), true);
+    })
+    .slice(0, 30);
+  return {
+    xp: Math.max(local.xp ?? 0, server.xp ?? 0),
+    streak: Math.max(local.streak ?? 0, server.streak ?? 0),
+    lastActiveDay: local.lastActiveDay ?? server.lastActiveDay ?? null,
+    graduatedClasses: Array.from(new Set([...(local.graduatedClasses ?? []), ...(server.graduatedClasses ?? [])])),
+    lessons,
+    rating: Math.max(local.rating ?? 800, server.rating ?? 800),
+    botWins: Math.max(local.botWins ?? 0, server.botWins ?? 0),
+    dailyGoalXp: Math.max(Number(local.dailyGoalXp ?? 50), Number(server.dailyGoalXp ?? 50)),
+    unlockedAchievements: Array.from(
+      new Set([...(local.unlockedAchievements ?? []), ...(server.unlockedAchievements ?? [])]),
+    ),
+    schoolExamsPassed: Array.from(new Set([...(local.schoolExamsPassed ?? []), ...(server.schoolExamsPassed ?? [])])),
+    weaknesses: mergeMap(local.weaknesses ?? {}, server.weaknesses ?? {}),
+    activityDays: mergeMap(local.activityDays ?? {}, server.activityDays ?? {}),
+    mistakeLog,
+    dailyPuzzleDay: server.dailyPuzzleDay ?? local.dailyPuzzleDay ?? null,
+    placementDone: Boolean(local.placementDone || server.placementDone),
+  };
+}

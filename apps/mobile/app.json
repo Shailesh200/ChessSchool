@@ -60,7 +60,8 @@
             "backgroundColor": "#1c1b2e"
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "router": {},

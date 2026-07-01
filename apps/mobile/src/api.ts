@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
-const PRODUCTION = "https://chess-school-alpha.vercel.app";
+const PRODUCTION = "https://chess-school.in";
 
 function normalizeUrl(raw: string): string {
   const trimmed = raw.trim().replace(/\/+$/, "");

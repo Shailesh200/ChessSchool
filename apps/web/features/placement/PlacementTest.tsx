@@ -40,27 +40,24 @@ export function PlacementTest({
 }) {
   const router = useRouter();
   const graduateClass = useProgression((s) => s.graduateClass);
+  const markPlacementDone = useProgression((s) => s.markPlacementDone);
   const [boardBox, boardSize] = useSquareSize();
   const [i, setI] = useState(0);
   const [correct, setCorrect] = useState(0);
-  const [prevI, setPrevI] = useState(0);
-  const [displayFen, setDisplayFen] = useState(questions[0]?.fen ?? "");
+  const [movedFen, setMovedFen] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [done, setDone] = useState(false);
 
   const q = questions[i];
-  if (i !== prevI) {
-    setPrevI(i);
-    setDisplayFen(questions[i]?.fen ?? "");
-    setFeedback(null);
-  }
+  const displayFen = movedFen ?? q?.fen ?? "";
 
   function onMove(move: MoveInput): boolean {
-    if (feedback) return false;
+    const q = questions[i];
+    if (!q || feedback) return false;
     const eng = new ChessEngine(q.fen);
     const applied = eng.move(move);
     if (!applied) return false;
-    setDisplayFen(eng.fen());
+    setMovedFen(eng.fen());
     const [from, to] = q.solution.split(":");
     const ok = move.from === from && move.to === to;
     if (ok) {
@@ -73,7 +70,11 @@ export function PlacementTest({
     haptics.fire(ok ? "success" : "error");
     window.setTimeout(() => {
       if (i + 1 >= questions.length) setDone(true);
-      else setI(i + 1);
+      else {
+        setFeedback(null);
+        setMovedFen(null);
+        setI(i + 1);
+      }
     }, 750);
     return true;
   }
@@ -86,6 +87,7 @@ export function PlacementTest({
 
     const admit = (idx: number) => {
       stages.slice(0, idx).forEach((s) => s.classIds.forEach((id) => graduateClass(id)));
+      markPlacementDone();
       audio.play("graduation");
       startNav();
       router.push("/");

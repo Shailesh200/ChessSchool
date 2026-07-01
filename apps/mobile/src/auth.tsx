@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, setToken, clearToken, getToken, setUnauthorizedHandler } from "./api";
-import { progressStore, fetchProgress } from "./progressStore";
+import { progressStore, fetchProgress, syncProgressAfterAuth, clearGuestProgress } from "./progressStore";
 import { loadSettingsFromAccount, settings } from "./settings";
 
 export type User = { id: string; name: string; email: string; role: string };
@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const continueAsGuest = () => {
+    void clearGuestProgress();
     void clearToken();
     progressStore.clear();
     settings.reset();
@@ -50,8 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const exitGuest = () => {
     if (!guest) return;
-    progressStore.clear();
-    settings.reset();
     setNeedsOnboarding(false);
     setGuest(false);
     setUser(null);
@@ -80,11 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password },
     });
     await setToken(token);
-    progressStore.clear();
     setGuest(false);
     setUser(user);
     void loadSettingsFromAccount();
-    void fetchProgress(true).catch(() => void 0);
+    void syncProgressAfterAuth().catch(() => void 0);
   };
 
   const register = async (email: string, password: string, name: string) => {
@@ -96,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsOnboarding(true);
     setGuest(false);
     setUser(user);
-    void fetchProgress(true).catch(() => void 0);
+    void syncProgressAfterAuth().catch(() => void 0);
   };
 
   const logout = async () => {

@@ -47,12 +47,21 @@ export async function GET(req: Request) {
     extra = {};
   }
 
+  let graduatedClasses: string[] = [];
+  if (p?.graduatedClasses) {
+    try {
+      graduatedClasses = JSON.parse(p.graduatedClasses) as string[];
+    } catch {
+      graduatedClasses = [];
+    }
+  }
+
   return NextResponse.json({
     user: { name: user.name, role: user.role },
     xp: p?.xp ?? 0,
     streak: p?.streak ?? 0,
     lastActiveDay: p?.lastActiveDay ?? null,
-    graduatedClasses: p ? (JSON.parse(p.graduatedClasses) as string[]) : [],
+    graduatedClasses,
     lessons,
     rating: extra.rating ?? 800,
     botWins: extra.botWins ?? 0,

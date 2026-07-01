@@ -16,20 +16,24 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://chess-school-alpha.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://chess-school.in"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "image": "sdk-54",
+        "gradleCommand": ":app:assembleRelease --no-configure-on-demand"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://chess-school-alpha.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://chess-school.in"
       },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "sdk-54",
+        "gradleCommand": ":app:bundleRelease --no-configure-on-demand"
       }
     }
   },

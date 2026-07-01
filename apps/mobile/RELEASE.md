@@ -15,8 +15,8 @@ Android-first guide for EAS Build, EAS Update (OTA), and Google Play Store submi
    ```
 
 4. **Google Play Console** — developer account verified ($25).
-5. **Privacy policy live** — `https://chess-school-alpha.vercel.app/privacy`
-6. **Production API** — `https://chess-school-alpha.vercel.app` (set in `eas.json` for all release profiles).
+5. **Privacy policy live** — `https://chess-school.in/privacy`
+6. **Production API** — `https://chess-school.in` (set in `eas.json` for all release profiles).
 
 ---
 
@@ -129,7 +129,7 @@ Fill in Play Console while verification completes:
 |-------|-------|
 | App name | ChessSchool |
 | Short description | Graduate through chess classes, puzzles, and matches. |
-| Privacy policy URL | `https://chess-school-alpha.vercel.app/privacy` |
+| Privacy policy URL | `https://chess-school.in/privacy` |
 | Category | Education |
 | Content rating | Complete IARC → likely Everyone |
 | Target audience | 13+ (accounts + online play) |

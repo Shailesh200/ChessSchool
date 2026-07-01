@@ -7,7 +7,11 @@ import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { listJournal, replaceJournalEntries, replaceGamesFromSync, listGames, type JournalEntry } from "@/core/db/db";
-import { normalizeSyncGame } from "@chess-school/progression";
+import {
+  accountProgressEmpty,
+  localProgressPresent,
+  normalizeSyncGame,
+} from "@chess-school/progression";
 
 export type ServerSnapshot = ProgressSnapshot & {
   user: { name: string; role: string };
@@ -67,14 +71,14 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
   if (!r.ok) return null;
   const data = (await r.json()) as ServerSnapshot;
 
-  const local = progressSnapshot(useProgression.getState());
-  const guestHadProgress = local.xp > 0 || Object.keys(local.lessons).length > 0;
-  const accountEmpty = data.xp === 0 && Object.keys(data.lessons ?? {}).length === 0;
+  const localSnap = progressSnapshot(useProgression.getState());
+  const guestHadProgress = localProgressPresent({ ...localSnap, placementDone: useProgression.getState().placementDone });
+  const accountEmpty = accountProgressEmpty({ ...data, placementDone: data.placementDone });
 
   if (accountEmpty && guestHadProgress) {
-    useProgression.getState().mergeSnapshot(data); // guest → new account: carry progress up
+    useProgression.getState().mergeSnapshot({ ...data, placementDone: data.placementDone });
   } else {
-    useProgression.getState().hydrateSnapshot(data); // established account is authoritative
+    useProgression.getState().hydrateSnapshot({ ...data, placementDone: data.placementDone });
   }
   if (data.dailyPuzzleDay !== undefined) {
     useProgression.setState({ dailyPuzzleDay: data.dailyPuzzleDay ?? null });

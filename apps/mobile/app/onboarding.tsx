@@ -96,6 +96,11 @@ export default function OnboardingScreen() {
 
         <Text style={styles.title}>{isAvatar ? "Pick your avatar" : current!.title}</Text>
         <Text style={styles.sub}>{isAvatar ? "It appears on your Student ID." : current!.sub}</Text>
+        {!isAvatar && step === 1 && elo === "600" && (
+          <Text style={styles.preschoolTip}>
+            🧸 We'll recommend optional Pre-School first — board, pieces & notation. Skip anytime.
+          </Text>
+        )}
 
         {isAvatar ? (
           <View style={styles.avatarGrid}>
@@ -146,6 +151,7 @@ const styles = StyleSheet.create({
   stepCount: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
   title: { ...type["2xl"], fontFamily: font.bold, color: colors.ink },
   sub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1], marginBottom: space[4] },
+  preschoolTip: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: -space[2], marginBottom: space[4], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceSunken, padding: space[3] },
   optGrid: { gap: space[2] },
   opt: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4] },
   optLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },

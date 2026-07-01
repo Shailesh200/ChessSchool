@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { ChessEngine } from "@/features/chess-engine/engine";
+import { CHESS_FILES } from "@chess-school/progression";
 import type { BoardArrow, MoveInput, PieceSymbol, Square } from "@/core/types/chess";
 import { useSettings } from "@/core/store/settings.store";
 import { getBoardTheme } from "@/core/themes/themes";
@@ -31,6 +32,10 @@ export interface ChessBoardProps {
   lastMove?: { from: Square; to: Square } | null;
   arrows?: BoardArrow[];
   highlight?: Square[];
+  /** tint whole columns (files) — e.g. `"e"` for the e-file */
+  highlightFiles?: string[];
+  /** tint whole rows (ranks) — e.g. `4` for the 4th rank */
+  highlightRanks?: number[];
   checkSquare?: Square | null;
   /** flash a square green (e.g. a correct move) */
   successSquare?: Square | null;
@@ -48,6 +53,8 @@ export function ChessBoard({
   lastMove,
   arrows = [],
   highlight = [],
+  highlightFiles = [],
+  highlightRanks = [],
   checkSquare,
   successSquare,
   interactive = true,
@@ -101,6 +108,27 @@ export function ChessBoard({
 
   const squareStyles = useMemo(() => {
     const styles: Record<string, CSSProperties> = {};
+    const fileSet = new Set(highlightFiles);
+    const rankSet = new Set(highlightRanks);
+    if (fileSet.size || rankSet.size) {
+      for (let rank = 1; rank <= 8; rank++) {
+        for (const file of CHESS_FILES) {
+          const sq = `${file}${rank}`;
+          const onFile = fileSet.has(file);
+          const onRank = rankSet.has(rank);
+          if (!onFile && !onRank) continue;
+          styles[sq] = {
+            ...(styles[sq] ?? {}),
+            background:
+              onFile && onRank
+                ? "rgba(91,91,214,0.34)"
+                : onFile
+                  ? "rgba(91,91,214,0.17)"
+                  : "rgba(52,211,153,0.17)",
+          };
+        }
+      }
+    }
     if (lastMove) {
       styles[lastMove.from] = { background: "rgba(255, 224, 138, 0.55)" };
       styles[lastMove.to] = { background: "rgba(255, 224, 138, 0.55)" };
@@ -141,7 +169,7 @@ export function ChessBoard({
       };
     }
     return styles;
-  }, [lastMove, highlight, selected, dotTargets, captureTargets, checkSquare, successSquare]);
+  }, [lastMove, highlight, highlightFiles, highlightRanks, selected, dotTargets, captureTargets, checkSquare, successSquare]);
 
   return (
     <div

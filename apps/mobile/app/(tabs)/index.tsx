@@ -13,7 +13,8 @@ import { LearnScreenSkeleton } from "@/Shimmer";
 import { useAppTheme } from "@/ThemeProvider";
 import { useProgress } from "@/progressStore";
 import { useLearnData } from "@/useLearnData";
-import { dueLessonIds, isDailyPuzzleDone, isoDay } from "@/progression";
+import { useSettings } from "@/settings";
+import { dueLessonIds, isDailyPuzzleDone, isoDay, needsPlacementTest, shouldRecommendPreschool } from "@/progression";
 import { font, radius, space, type } from "@/theme";
 
 type Progress = {
@@ -21,6 +22,7 @@ type Progress = {
   streak: number;
   dailyGoalXp: number;
   rating: number;
+  placementDone?: boolean;
   lessons: Record<string, { dueAt: number; mastery: number }>;
   activityDays: Record<string, number>;
   dailyPuzzleDay?: string | null;
@@ -31,6 +33,7 @@ export default function LearnScreen() {
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
   const p = useProgress() as Progress | null;
+  const { targetElo } = useSettings();
   const { data, initialLoading, pullRefreshing, error, refresh } = useLearnData();
 
   const resume = data?.resume ?? null;
@@ -62,6 +65,7 @@ export default function LearnScreen() {
           elevation: 2,
         },
         ratingText: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+        placementOptional: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceSunken, padding: space[4] },
         placement: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.brand100, backgroundColor: colors.brand50, padding: space[4] },
         placementTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
         placementSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
@@ -127,7 +131,13 @@ export default function LearnScreen() {
   const todayXp = (p?.activityDays ?? {})[today] ?? 0;
   const streak = p?.streak ?? 0;
   const rating = p?.rating ?? 800;
-  const isNew = !!p && !(p as { placementDone?: boolean }).placementDone && Object.keys(p.lessons ?? {}).length === 0;
+  const showPlacement = !guest && !!p && needsPlacementTest(p);
+  const recommendPreschool =
+    !guest &&
+    shouldRecommendPreschool(targetElo, {
+      lessons: (p?.lessons ?? {}) as Record<string, { mastery?: number; attempts?: number }>,
+      graduatedClasses: (p as { graduatedClasses?: string[] } | null)?.graduatedClasses,
+    });
   const dueIds = dueLessonIds((p?.lessons ?? {}) as Record<string, { mastery: number; attempts: number; lastSeen: number; dueAt: number }>);
   const dailyDone = daily ? isDailyPuzzleDone(daily.day, p?.dailyPuzzleDay) : false;
   const showSkeleton = initialLoading && !data;
@@ -168,7 +178,19 @@ export default function LearnScreen() {
           <LearnScreenSkeleton />
         ) : (
           <>
-            {isNew && (
+            {recommendPreschool && (
+              <View style={styles.placementOptional}>
+                <Text style={styles.placementTitle}>🧸 Optional: Pre-School for complete beginners</Text>
+                <Text style={styles.placementSub}>
+                  Learn the board, pieces, and notation (d6, Nf3, Qd5) — skip anytime if you know the rules.
+                </Text>
+                <View style={{ marginTop: space[3], alignSelf: "flex-start" }}>
+                  <Button label="Start Pre-School →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
+                </View>
+              </View>
+            )}
+
+            {showPlacement && (
               <View style={styles.placement}>
                 <Text style={styles.placementTitle}>🎯 New here? Take a quick placement test</Text>
                 <Text style={styles.placementSub}>8 puzzles (~2 min) — we'll place you in Elementary, Middle, or High School.</Text>

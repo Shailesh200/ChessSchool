@@ -6,7 +6,7 @@ import { colors, font, radius, space, type } from "./theme";
 
 export type CampusClass = { id: string; title: string; emoji: string; blurb: string; done: number; total: number; graduated: boolean; unlocked: boolean; examId?: string | null };
 export type CampusSemester = { id: string; title: string; color: string; blurb: string; classes: CampusClass[] };
-export type CampusStage = { id: string; name: string; emoji: string; blurb: string; semesters: CampusSemester[]; doneClasses: number; totalClasses: number; locked: boolean; cleared: boolean };
+export type CampusStage = { id: string; name: string; emoji: string; blurb: string; optional?: boolean; semesters: CampusSemester[]; doneClasses: number; totalClasses: number; locked: boolean; cleared: boolean };
 
 function Chevron({ open }: { open: boolean }) {
   return <Text style={[styles.chev, open && { transform: [{ rotate: "180deg" }] }]}>⌄</Text>;
@@ -107,9 +107,14 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
             <View style={styles.stageHeader}>
               <Text style={{ fontSize: 20 }}>{stage.emoji}</Text>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.stageName} numberOfLines={1}>{stage.name}</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.stageName} numberOfLines={1}>{stage.name}</Text>
+                  {stage.optional && (
+                    <Text style={styles.optionalPill}>Optional</Text>
+                  )}
+                </View>
                 <Text style={styles.stageSub} numberOfLines={1}>
-                  {stage.totalClasses} classes{descriptor ? ` · ${descriptor}` : ""}
+                  {stage.totalClasses} classes{descriptor ? ` · ${descriptor}` : ""}{stage.optional ? " · skip if you know the rules" : ""}
                 </Text>
               </View>
             </View>
@@ -160,7 +165,7 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
             </View>
 
             {/* School exam — gateway to the next school */}
-            {!stage.cleared && nextName && (
+            {!stage.cleared && !stage.optional && nextName && (
               <Pressable style={styles.examBtn} onPress={() => router.push({ pathname: "/exam/school/[stage]", params: { stage: stage.id } })}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.examTitle}>📝 {stage.name} Exam</Text>
@@ -194,6 +199,7 @@ const styles = StyleSheet.create({
   stageHeader: { flexDirection: "row", alignItems: "center", gap: space[2], marginBottom: space[3] },
   stageName: { ...type.sm, fontFamily: font.bold, color: colors.ink },
   stageSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
+  optionalPill: { ...type.caption, fontFamily: font.bold, color: colors.ink500, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" },
   semHeader: { flexDirection: "row", alignItems: "center", gap: space[2], marginBottom: space[2] },
   semPill: { borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1], ...type.xs, fontFamily: font.bold, color: "#fff", overflow: "hidden" },
   semBlurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, flexShrink: 1 },

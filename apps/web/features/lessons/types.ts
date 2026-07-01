@@ -1,13 +1,33 @@
 import type { BoardArrow, Square } from "@/core/types/chess";
 
 /**
- * Lesson step kinds — the school flow is Learn → Observe → Try → Master, with
- * no quiz/questionnaire steps:
+ * Lesson step kinds — the school flow is Learn → Observe → Try → Master.
+ * Pre-School Q&A uses interactive `quiz` steps (no board).
  *  - "info":    explanation on a static board
  *  - "observe": an auto-played example line the student watches
  *  - "move":    the student must find the correct move
+ *  - "quiz":    multiple-choice question with illustrated visuals
  */
-export type StepKind = "info" | "observe" | "move";
+export type StepKind = "info" | "observe" | "move" | "quiz";
+
+/** Animated illustration keys for Pre-School quiz steps. */
+export type PreschoolVisual =
+  | "board-grid"
+  | "square"
+  | "square-path"
+  | "files"
+  | "ranks"
+  | "e-file"
+  | "start-ranks"
+  | "piece-roster"
+  | "royalty"
+  | "notation-letters"
+  | "notation-capture";
+
+export interface QuizOption {
+  label: string;
+  emoji?: string;
+}
 
 export interface LessonStep {
   id: string;
@@ -22,10 +42,23 @@ export interface LessonStep {
   moves?: string[];
   arrows?: BoardArrow[];
   highlight?: Square[];
+  /** highlight entire files (columns a–h) while teaching */
+  highlightFiles?: string[];
+  /** highlight entire ranks (rows 1–8) while teaching */
+  highlightRanks?: number[];
   successText?: string;
   failText?: string;
   /** weakness tag for mistake clustering */
   tag?: string;
+  /** "quiz" steps */
+  question?: string;
+  options?: QuizOption[];
+  correct?: number;
+  explain?: string;
+  visual?: PreschoolVisual;
+  /** optional square highlight for visual helpers */
+  visualSquare?: string;
+  visualSquares?: [string, string];
 }
 
 export interface Lesson {

@@ -6,7 +6,7 @@ A premium, offline-capable **chess-learning PWA** structured like a school: stud
 graduate through Classes → Semesters → Stages, playing FEN-verified lessons and
 matches. Deployed on Vercel + Turso (usage-based, scale-to-zero).
 
-Live: https://chess-school-alpha.vercel.app · Repo: `Shailesh200/ChessSchool` (personal GitHub).
+Live: https://chess-school.in · Repo: `Shailesh200/ChessSchool` (personal GitHub).
 
 ## Stack
 - **Next.js 16** (App Router, Turbopack, async `params`, Server Actions, `force-dynamic`)

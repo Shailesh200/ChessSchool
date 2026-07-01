@@ -103,8 +103,11 @@ export function ChessBoard({
   lastMove,
   arrows,
   highlights,
+  highlightFiles,
+  highlightRanks,
   checkSquare,
   successSquare,
+  showNotation = false,
 }: {
   fen: string;
   size: number;
@@ -114,8 +117,14 @@ export function ChessBoard({
   lastMove?: { from: string; to: string } | null;
   arrows?: Arrow[];
   highlights?: string[];
+  /** tint whole files (columns) while teaching */
+  highlightFiles?: string[];
+  /** tint whole ranks (rows) while teaching */
+  highlightRanks?: number[];
   checkSquare?: string | null;
   successSquare?: string | null;
+  /** Pre-School: show a–h / 1–8 coordinates on the board edge. */
+  showNotation?: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [promo, setPromo] = useState<{ from: string; to: string; color: "w" | "b" } | null>(null);
@@ -267,6 +276,17 @@ export function ChessBoard({
     }),
   ).current;
 
+  const fileSet = useMemo(() => new Set(highlightFiles ?? []), [highlightFiles]);
+  const rankSet = useMemo(() => new Set(highlightRanks ?? []), [highlightRanks]);
+
+  const fileRankOverlay = (sq: string): string | null => {
+    const onFile = fileSet.has(sq[0]!);
+    const onRank = rankSet.has(Number(sq[1]));
+    if (onFile && onRank) return "rgba(91,91,214,0.34)";
+    if (onFile) return "rgba(91,91,214,0.17)";
+    if (onRank) return "rgba(52,211,153,0.17)";
+    return null;
+  };
   const dragPiece = dragFrom ? pieceAt(dragFrom) : null;
   const animSeq = useRef(0);
   useEffect(() => {
@@ -295,7 +315,11 @@ export function ChessBoard({
             const isHL = highlights?.includes(sq);
             const isCheck = checkSquare === sq;
             const isSuccess = successSquare === sq;
-            const hidden = dragFrom === sq || Boolean(moveAnim && moveAnim.to === sq); // rendered by drag/animation overlay
+            const hidden = dragFrom === sq || Boolean(moveAnim && moveAnim.to === sq);
+            const showFile = showNotation && rank === (orientation === "white" ? 1 : 8);
+            const showRank = showNotation && file === (orientation === "white" ? "a" : "h");
+            const coordColor = isLight ? "rgba(28,27,46,0.55)" : "rgba(255,255,255,0.75)";
+            const tint = fileRankOverlay(sq);
             return (
               <View
                 key={sq}
@@ -304,11 +328,18 @@ export function ChessBoard({
                   { width: cell, height: cell, backgroundColor: isLight ? LIGHT : DARK },
                   styles.sq,
                   isHL && styles.highlight,
-                  isSel && { backgroundColor: selectedTint },
                   isCheck && styles.check,
                   isSuccess && styles.success,
                 ]}
               >
+                {tint ? <View style={[styles.fileRankOverlay, { backgroundColor: tint }]} /> : null}
+                {isSel ? <View style={[styles.fileRankOverlay, { backgroundColor: selectedTint }]} /> : null}
+                {showRank && (
+                  <Text style={[styles.coord, styles.coordRank, { color: coordColor }]}>{rank}</Text>
+                )}
+                {showFile && (
+                  <Text style={[styles.coord, styles.coordFile, { color: coordColor }]}>{file}</Text>
+                )}
                 {isLast && <View style={[styles.lastMoveOverlay, { backgroundColor: lastTone.fill, borderColor: lastTone.border }]} />}
                 {captures.has(sq) && <View style={styles.captureBorder} />}
                 {dots.has(sq) && <View style={styles.dot} />}
@@ -389,6 +420,10 @@ export function ChessBoard({
 const styles = StyleSheet.create({
   board: { borderRadius: 10, overflow: "hidden", ...shadowCard },
   sq: { justifyContent: "center", alignItems: "center" },
+  fileRankOverlay: { ...StyleSheet.absoluteFillObject },
+  coord: { position: "absolute", fontFamily: font.bold, fontSize: 10, lineHeight: 12 },
+  coordRank: { top: 2, left: 3 },
+  coordFile: { right: 3, bottom: 1 },
   lastMoveOverlay: { ...StyleSheet.absoluteFillObject, borderWidth: 3, borderRadius: 8 },
   highlight: { borderWidth: 4, borderColor: "rgba(91,91,214,0.7)", borderRadius: 8 },
   check: { borderWidth: 4, borderColor: "rgba(244,63,94,0.85)", borderRadius: 8 },

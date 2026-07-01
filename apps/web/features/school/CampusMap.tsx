@@ -10,6 +10,7 @@ import {
   classProgress,
   isClassGraduated,
   isClassUnlocked,
+  isOptionalClass,
   type SchoolClass,
   type Catalog,
 } from "./structure";
@@ -28,19 +29,22 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const [semShown, setSemShown] = useState<Record<string, number>>({});
 
   const isDone = (cls: SchoolClass) => isClassGraduated(cls, records, graduated);
-  // Everything before your current position (the first not-yet-graduated class)
-  // is "past" and hidden — whether it was completed or skipped via a placement.
+  const requiredClasses = catalog.allClasses.filter((c) => !isOptionalClass(c.id, catalog.semesters));
   const frontierIdx = (() => {
-    const i = catalog.allClasses.findIndex((c) => !isDone(c));
-    return i === -1 ? catalog.allClasses.length : i;
+    const i = requiredClasses.findIndex((c) => !isDone(c));
+    if (i === -1) return catalog.allClasses.length;
+    const id = requiredClasses[i]!.id;
+    return catalog.allClasses.findIndex((c) => c.id === id);
   })();
   const pastIds = new Set(catalog.allClasses.slice(0, frontierIdx).map((c) => c.id));
 
   // Render only the current semester's classes; future semesters collapse to a
   // tappable teaser (far less DOM → faster paint, less overwhelming).
   const classIndex = new Map(catalog.allClasses.map((c, i) => [c.id, i]));
-  const isFutureSem = (sem: { classes: SchoolClass[] }) =>
-    Math.min(...sem.classes.map((c) => classIndex.get(c.id) ?? Infinity)) > frontierIdx;
+  const isFutureSem = (sem: { classes: SchoolClass[]; stage?: string }) => {
+    if (catalog.stages.find((st) => st.id === sem.stage)?.optional) return false;
+    return Math.min(...sem.classes.map((c) => classIndex.get(c.id) ?? Infinity)) > frontierIdx;
+  };
 
   // Sequential schools: a stage is "cleared" when all its classes are graduated;
   // the next stage unlocks only once the previous is cleared.
@@ -48,15 +52,15 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
     .map((stage) => {
       const semesters = semestersForStage(stage.id, catalog.semesters);
       const classes = semesters.flatMap((s) => s.classes);
-      // Cleared = all classes graduated, OR the school exam passed (the shortcut).
       const cleared = examsPassed.includes(stage.id) || (classes.length > 0 && classes.every(isDone));
       return { stage, semesters, classes, cleared };
     })
     .filter((i) => i.classes.length > 0);
   const stages = stageInfos.map((info, idx) => ({
     ...info,
-    // Unlocked once every earlier school is cleared.
-    unlocked: idx === 0 || stageInfos.slice(0, idx).every((s) => s.cleared),
+    unlocked:
+      idx === 0 ||
+      stageInfos.slice(0, idx).every((s) => s.cleared || Boolean(s.stage.optional)),
     prevName: idx > 0 ? stageInfos[idx - 1]!.stage.name : "",
   }));
 
@@ -116,7 +120,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
         const visibleSems = semesters
           .map((sem) => ({
             sem,
-            classes: showCompleted || cleared ? sem.classes : sem.classes.filter((c) => !pastIds.has(c.id)),
+            classes:
+              showCompleted || cleared
+                ? sem.classes
+                : sem.classes.filter((c) => !pastIds.has(c.id) || isOptionalClass(c.id, catalog.semesters)),
           }))
           .filter((x) => x.classes.length > 0);
         return (
@@ -125,10 +132,18 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xl">{stage.emoji}</span>
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-sm font-extrabold text-ink">{stage.name}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate text-sm font-extrabold text-ink">{stage.name}</h2>
+                  {stage.optional && (
+                    <span className="shrink-0 rounded-pill bg-surface-sunken px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-ink-500">
+                      Optional
+                    </span>
+                  )}
+                </div>
                 <p className="truncate text-[11px] font-semibold text-ink-500">
                   {classCount} {classCount === 1 ? "class" : "classes"}
                   {descriptor ? ` · ${descriptor}` : ""}
+                  {stage.optional ? " · skip if you know the rules" : ""}
                 </p>
               </div>
               {cleared && stageOpen && (
@@ -191,6 +206,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                           records={records}
                           graduated={graduated}
                           allClasses={catalog.allClasses}
+                          semesters={catalog.semesters}
                           delay={i * 0.05}
                         />
                       ))}
@@ -210,8 +226,8 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
               </div>
             }
 
-            {/* School exam — the gateway to the next school (sits just above it). */}
-            {!cleared && nextName && (
+            {/* School exam — optional stages have no gateway exam. */}
+            {!cleared && !stage.optional && nextName && (
               <button
                 onClick={() => { haptics.fire("tap"); audio.play("exam"); startNav(); router.push(`/exam/school/${stage.id}`); }}
                 className="btn-tactile mt-4 flex w-full items-center justify-between rounded-card border-2 border-gold/50 bg-gold/10 px-4 py-3 text-left"
@@ -244,6 +260,7 @@ function ClassCard({
   records,
   graduated,
   allClasses,
+  semesters,
   delay,
 }: {
   cls: SchoolClass;
@@ -251,10 +268,11 @@ function ClassCard({
   records: ReturnType<typeof useProgression.getState>["lessons"];
   graduated: string[];
   allClasses: SchoolClass[];
+  semesters: Catalog["semesters"];
   delay: number;
 }) {
   const router = useRouter();
-  const unlocked = isClassUnlocked(cls.id, records, graduated, allClasses);
+  const unlocked = isClassUnlocked(cls.id, records, graduated, allClasses, semesters);
   const grad = isClassGraduated(cls, records, graduated);
   const { done, total } = classProgress(cls, records);
   const idx = allClasses.findIndex((c) => c.id === cls.id);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine } from "@chess-school/core";
@@ -14,17 +14,19 @@ import { api } from "@/api";
 import { useAuth } from "@/auth";
 import { useSettings } from "@/settings";
 import { FetchErrorView } from "@/FetchErrorView";
-import { mutateProgress } from "@/progressStore";
+import { mutateProgress, fetchProgress } from "@/progressStore";
 import { invalidateLearnCache } from "@/useLearnData";
 import { cachePeek, cacheSet } from "@/dataCache";
 import { ScreenLoader } from "@/ScreenLoader";
+import { PreschoolQuiz } from "@/PreschoolQuiz";
 import { ReflectSheet } from "@/ReflectSheet";
 import { applyClassGraduation, applyLessonComplete, graduateClass, isoDay, type Mistake } from "@/progression";
+import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson } from "@chess-school/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Step = {
   id: string;
-  kind: "info" | "observe" | "move";
+  kind: "info" | "observe" | "move" | "quiz";
   coach: string;
   hint?: string;
   fen?: string;
@@ -33,9 +35,18 @@ type Step = {
   moves?: string[];
   arrows?: { startSquare: string; endSquare: string; color?: string }[];
   highlight?: string[];
+  highlightFiles?: string[];
+  highlightRanks?: number[];
   tag?: string;
   successText?: string;
   failText?: string;
+  question?: string;
+  options?: { label: string; emoji?: string }[];
+  correct?: number;
+  explain?: string;
+  visual?: import("@/PreschoolQuizVisual").PreschoolVisual;
+  visualSquare?: string;
+  visualSquares?: [string, string];
 };
 type Lesson = { id: string; title: string; xp: number; steps: Step[]; classId?: string | null; exam?: boolean };
 type LessonClass = { id: string; title: string; lessonIds: string[] };
@@ -68,6 +79,94 @@ function findReply(fenA: string, fenB: string): { from: string; to: string } | n
   return null;
 }
 
+function createLessonStyles() {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface },
+    center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
+    topBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 6 },
+    circle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.surfaceCard,
+      justifyContent: "center",
+      alignItems: "center",
+      ...shadowCard,
+    },
+    track: { flex: 1, height: 12, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
+    fill: { height: 12, borderRadius: radius.pill, backgroundColor: colors.success },
+    counter: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
+    coach: { flexDirection: "row", alignItems: "flex-start", gap: 6, paddingHorizontal: 16, marginTop: 14, flexShrink: 0 },
+    bubble: {
+      flex: 1,
+      flexShrink: 1,
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.card,
+      borderBottomLeftRadius: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      ...shadowCard,
+    },
+    bubbleText: { ...type.sm, fontFamily: font.semibold, color: colors.ink, flexShrink: 1 },
+    boardWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+    hintBar: {
+      marginHorizontal: 16,
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.pill,
+      paddingVertical: 14,
+      paddingHorizontal: 18,
+      alignItems: "center",
+      gap: space[2],
+      ...shadowCard,
+    },
+    hintText: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+    hintBtn: { borderRadius: radius.pill, backgroundColor: colors.brand50, paddingHorizontal: space[4], paddingVertical: space[2] },
+    hintBtnText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
+    turnRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2] },
+    turnDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: colors.ink300 },
+    turnText: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
+    bottom: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, minHeight: 64, justifyContent: "center" },
+    moveCue: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+    doneTitle: { ...type["2xl"], fontFamily: font.bold, color: colors.ink, marginTop: 16 },
+    doneSub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: 6, textAlign: "center" },
+    pills: { flexDirection: "row", gap: space[2], marginTop: space[4] },
+    enrollCard: {
+      width: 280,
+      marginTop: space[4],
+      backgroundColor: colors.brand50,
+      borderWidth: 1,
+      borderColor: colors.brand100,
+      borderRadius: radius.card,
+      padding: space[4],
+      gap: space[2],
+    },
+    enrollTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
+    enrollCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center" },
+    pill: {
+      backgroundColor: colors.surfaceSunken,
+      borderRadius: radius.card,
+      paddingVertical: space[3],
+      paddingHorizontal: space[4],
+      alignItems: "center",
+      minWidth: 92,
+    },
+    pillValue: { ...type["2xl"], fontFamily: font.bold },
+    pillLabel: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+    loadingBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: colors.success,
+      borderRadius: radius.pill,
+      paddingVertical: 15,
+    },
+    loadingBtnText: { ...type.sm, fontFamily: font.bold, color: "#fff" },
+  });
+}
+
+const styles = createLessonStyles();
+
 export default function LessonScreen() {
   const { id, hw, daily } = useLocalSearchParams<{ id: string; hw?: string; daily?: string }>();
   const router = useRouter();
@@ -90,10 +189,12 @@ export default function LessonScreen() {
   const [resolvingNext, setResolvingNext] = useState(false);
   const [observeReady, setObserveReady] = useState(true);
   const [hintLevel, setHintLevel] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
   const mistakesRef = useRef<Mistake[]>([]);
+  const progressSavedRef = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   async function loadLesson() {
@@ -131,6 +232,8 @@ export default function LessonScreen() {
   }
 
   useEffect(() => {
+    progressSavedRef.current = false;
+    void fetchProgress(false);
     void loadLesson();
     return () => timers.current.forEach(clearTimeout);
   }, [id]);
@@ -211,6 +314,7 @@ export default function LessonScreen() {
     setDisplayFen(lesson!.steps[0]?.fen);
     setGraduatedTitle(null);
     setNextId(null);
+    progressSavedRef.current = false;
   }
 
   async function finish() {
@@ -228,40 +332,44 @@ export default function LessonScreen() {
 
     setPhase("complete");
     setResolvingNext(true);
+    setSaveError(null);
     haptics.success();
     sfx.play("win");
     let completedClassTitle: string | null = null;
     try {
-      await mutateProgress((snap) => {
-        let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total: totalMoves, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
-        if (hw) {
-          const today = isoDay();
-          const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
-          hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
-          next = { ...next, homeworkDone: hd };
-        }
-        if (daily === "1") {
-          next = { ...next, dailyPuzzleDay: isoDay() };
-        }
-        if (lesson!.exam && ratio >= EXAM_PASS_RATIO && lessonClass) {
-          next = applyClassGraduation(next, { classId: lessonClass.id, lessonIds: lessonClass.lessonIds });
-          completedClassTitle = lessonClass.title;
-        } else if (lessonClass && !((next.graduatedClasses as string[] | undefined) ?? []).includes(lessonClass.id)) {
-          const records = (next.lessons as Record<string, { mastery: number }> | undefined) ?? {};
-          const allMastered = lessonClass.lessonIds.length > 0 && lessonClass.lessonIds.every((lessonId) => (records[lessonId]?.mastery ?? 0) >= 0.9);
-          if (allMastered) {
-            next = graduateClass(next, lessonClass.id);
-            completedClassTitle = lessonClass.title;
+      if (!progressSavedRef.current) {
+        await mutateProgress((snap) => {
+          let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total: totalMoves, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+          if (hw) {
+            const today = isoDay();
+            const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
+            hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
+            next = { ...next, homeworkDone: hd };
           }
-        }
-        return next;
-      });
-      invalidateLearnCache();
-      setGraduatedTitle(completedClassTitle);
+          if (daily === "1") {
+            next = { ...next, dailyPuzzleDay: isoDay() };
+          }
+          if (lesson!.exam && ratio >= EXAM_PASS_RATIO && lessonClass) {
+            next = applyClassGraduation(next, { classId: lessonClass.id, lessonIds: lessonClass.lessonIds });
+            completedClassTitle = lessonClass.title;
+          } else if (lessonClass && !((next.graduatedClasses as string[] | undefined) ?? []).includes(lessonClass.id)) {
+            const records = (next.lessons as Record<string, { mastery: number }> | undefined) ?? {};
+            const allMastered = lessonClass.lessonIds.length > 0 && lessonClass.lessonIds.every((lessonId) => (records[lessonId]?.mastery ?? 0) >= 0.9);
+            if (allMastered) {
+              next = graduateClass(next, lessonClass.id);
+              completedClassTitle = lessonClass.title;
+            }
+          }
+          return next;
+        });
+        progressSavedRef.current = true;
+        invalidateLearnCache();
+        setGraduatedTitle(completedClassTitle);
+      }
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save progress");
     } finally {
       setResolvingNext(false);
     }
@@ -327,9 +435,9 @@ export default function LessonScreen() {
             {correct}/{moveSteps} correct — you need {need} ({Math.round(EXAM_PASS_RATIO * 100)}%) to pass. Review the class and try again!
           </Text>
           <View style={styles.pills}>
-            <StatPill label="Correct" value={`${correct}`} tone={colors.success} />
-            <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={colors.danger} />
-            <StatPill label="To pass" value={`${need}+`} tone={colors.brand} />
+            <StatPill label="Correct" value={`${correct}`} tone={colors.success} styles={styles} />
+            <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={colors.danger} styles={styles} />
+            <StatPill label="To pass" value={`${need}+`} tone={colors.brand} styles={styles} />
           </View>
           <View style={{ marginTop: space[6], width: 280, gap: space[2] }}>
             <Button label="Try again →" variant="success" onPress={retryExam} />
@@ -349,9 +457,9 @@ export default function LessonScreen() {
           <Text style={styles.doneTitle}>{graduatedTitle ? "Class graduated! 🎓" : lesson.exam ? "Exam complete!" : hw ? "Homework done! 🎉" : "Lesson complete!"}</Text>
           {graduatedTitle ? <Text style={styles.doneSub}>{graduatedTitle} is now complete.</Text> : hw && <Text style={styles.doneSub}>One step done — keep going to finish today's set.</Text>}
           <View style={styles.pills}>
-            <StatPill label="XP earned" value={`+${lesson.xp}`} tone={colors.brand} />
-            <StatPill label="Correct" value={`${correctRef.current}`} tone={colors.success} />
-            <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} />
+            <StatPill label="XP earned" value={`+${lesson.xp}`} tone={colors.brand} styles={styles} />
+            <StatPill label="Correct" value={`${correctRef.current}`} tone={colors.success} styles={styles} />
+            <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} styles={styles} />
           </View>
           {guest && (
             <View style={styles.enrollCard}>
@@ -367,7 +475,15 @@ export default function LessonScreen() {
               />
             </View>
           )}
+          {saveError ? (
+            <Text style={[styles.doneSub, { color: colors.danger, marginTop: space[3], paddingHorizontal: space[2] }]}>
+              Could not save progress — {saveError}
+            </Text>
+          ) : null}
           <View style={{ marginTop: space[6], width: 280, gap: space[2] }}>
+            {saveError && !resolvingNext ? (
+              <Button label="Retry save" variant="accent" onPress={() => void finish()} />
+            ) : null}
             {resolvingNext ? (
               <View style={styles.loadingBtn}>
                 <ActivityIndicator color="#fff" />
@@ -404,18 +520,43 @@ export default function LessonScreen() {
     );
   }
 
-  const mood: CodyExpression = phase === "correct" ? "cheer" : phase === "wrong" ? "sad" : step.kind === "move" ? "think" : "happy";
-  const showContinue = step.kind === "info" || step.kind === "observe";
-  const feedback = phase === "wrong" ? step.failText ?? "Not quite — try again." : phase === "correct" ? step.successText ?? "Correct! 🎉" : step.coach;
+  const mood: CodyExpression =
+    phase === "correct" ? "cheer" : phase === "wrong" ? "sad" : step.kind === "move" || step.kind === "quiz" ? "think" : "happy";
+  const showContinue = step.kind === "info" || step.kind === "observe" || (step.kind === "quiz" && phase === "correct");
+  const feedback = formatCoachText(
+    phase === "wrong"
+      ? step.failText ?? "Not quite — try again."
+      : phase === "correct"
+        ? step.kind === "quiz"
+          ? step.successText ?? "Correct! 🎉"
+          : step.successText ?? "Correct! 🎉"
+        : step.kind === "quiz"
+          ? "Choose the best answer below."
+          : step.coach,
+  );
   const tagTip = step.tag ? LESSON_TIPS[step.tag] : undefined;
   const hint = step.hint ?? tagTip ?? "Take your time and calculate before you move.";
   const solvable = step.kind === "move" && phase === "playing" && !lesson.exam;
+  const isObserving = step.kind === "observe" && !observeReady;
+  const preschool = isPreschoolLesson(lesson.id);
+  const tutorial = deriveTutorialVisuals(step);
   const hintFrom = hintLevel >= 1 && solvable && step.solution?.[0] ? step.solution[0].split(":")[0] : null;
   const hintArrows =
     hintLevel >= 2 && solvable && step.solution?.[0]
       ? [{ startSquare: step.solution[0].split(":")[0]!, endSquare: step.solution[0].split(":")[1]!, color: colors.warning }]
-      : step.arrows;
-  const hintHighlights = hintFrom ? [...(step.highlight ?? []), hintFrom] : step.highlight;
+      : [];
+  const boardArrows = preschool
+    ? [...tutorial.arrows, ...(phase === "playing" && solvable && !isObserving ? hintArrows : [])]
+    : phase === "playing" && !isObserving
+      ? [...(step.arrows ?? []), ...hintArrows]
+      : undefined;
+  const boardHighlights = preschool
+    ? [...tutorial.highlight, ...(phase === "playing" && solvable && !isObserving && hintFrom ? [hintFrom] : [])]
+    : phase === "playing" && !isObserving
+      ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
+      : undefined;
+  const boardHighlightFiles = preschool ? tutorial.highlightFiles : step.highlightFiles;
+  const boardHighlightRanks = preschool ? tutorial.highlightRanks : step.highlightRanks;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -441,33 +582,56 @@ export default function LessonScreen() {
       <View style={styles.coach}>
         <Cody expression={mood} size={72} />
         <View style={styles.bubble}>
-          <Text style={styles.bubbleText}>{feedback}</Text>
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+            <Text style={styles.bubbleText}>{feedback}</Text>
+          </ScrollView>
         </View>
       </View>
 
-      {/* Board fills the remaining space, centered */}
+      {/* Board or quiz fills the remaining space, centered */}
       <View style={styles.boardWrap}>
-        {step.kind === "move" && phase === "playing" && (
-          <View style={styles.turnRow}>
-            <View style={[styles.turnDot, { backgroundColor: (displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? colors.ink : "#fff" }]} />
-            <Text style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
-          </View>
+        {step.kind === "quiz" ? (
+          <PreschoolQuiz
+            key={step.id}
+            step={step}
+            phase={phase}
+            onAnswer={(ok) => {
+              if (ok) setPhase("correct");
+              else {
+                setPhase("wrong");
+                timers.current.push(setTimeout(() => setPhase("playing"), 900));
+              }
+            }}
+          />
+        ) : (
+          <>
+            {step.kind === "move" && phase === "playing" && (
+              <View style={styles.turnRow}>
+                <View style={[styles.turnDot, { backgroundColor: (displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? colors.ink : "#fff" }]} />
+                <Text style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
+              </View>
+            )}
+            <ChessBoard
+              fen={displayFen ?? step.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"}
+              size={boardSize}
+              orientation={(step.orientation ?? "white") === "black" ? (flipped ? "white" : "black") : flipped ? "black" : "white"}
+              onMove={onMove}
+              interactive={step.kind === "move" && phase === "playing"}
+              showNotation={preschool}
+              lastMove={lastMove}
+              arrows={boardArrows}
+              highlights={boardHighlights}
+              highlightFiles={boardHighlightFiles}
+              highlightRanks={boardHighlightRanks}
+              successSquare={phase === "correct" ? lastMove?.to ?? null : null}
+              checkSquare={phase === "wrong" ? lastMove?.to ?? null : null}
+            />
+          </>
         )}
-        <ChessBoard
-          fen={displayFen ?? step.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"}
-          size={boardSize}
-          orientation={(step.orientation ?? "white") === "black" ? (flipped ? "white" : "black") : flipped ? "black" : "white"}
-          onMove={onMove}
-          interactive={step.kind === "move" && phase === "playing"}
-          lastMove={lastMove}
-          arrows={phase === "playing" ? hintArrows : undefined}
-          highlights={phase === "playing" ? hintHighlights : undefined}
-          successSquare={phase === "correct" ? lastMove?.to ?? null : null}
-          checkSquare={phase === "wrong" ? lastMove?.to ?? null : null}
-        />
       </View>
 
-      {/* Hint bar */}
+      {/* Hint bar — board steps only */}
+      {step.kind !== "quiz" && (
       <View style={styles.hintBar}>
         <Text style={styles.hintText}>🎓 {hint}</Text>
         {hintsEnabled && solvable && (
@@ -481,11 +645,14 @@ export default function LessonScreen() {
           </Pressable>
         )}
       </View>
+      )}
 
       {/* Bottom CTA */}
       <View style={styles.bottom}>
         {showContinue ? (
           <Button label={step.kind === "observe" && !observeReady ? "Watching…" : "Continue"} variant="success" onPress={() => { if (step.kind !== "observe" || observeReady) advance(); }} />
+        ) : step.kind === "quiz" ? (
+          <Text style={styles.moveCue}>Tap the answer you think is right</Text>
         ) : (
           <Text style={styles.moveCue}>Your move — tap a piece to begin</Text>
         )}
@@ -494,7 +661,7 @@ export default function LessonScreen() {
   );
 }
 
-function StatPill({ label, value, tone }: { label: string; value: string; tone: string }) {
+function StatPill({ label, value, tone, styles }: { label: string; value: string; tone: string; styles: ReturnType<typeof StyleSheet.create> }) {
   return (
     <View style={styles.pill}>
       <Text style={[styles.pillValue, { color: tone }]}>{value}</Text>
@@ -502,38 +669,3 @@ function StatPill({ label, value, tone }: { label: string; value: string; tone: 
     </View>
   );
 }
-
-const CIRCLE = 44;
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  topBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 6 },
-  circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, backgroundColor: colors.surfaceCard, justifyContent: "center", alignItems: "center", ...shadowCard },
-  track: { flex: 1, height: 12, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
-  fill: { height: 12, borderRadius: radius.pill, backgroundColor: colors.success },
-  counter: { fontFamily: font.bold, color: colors.ink500, fontSize: 15 },
-  coach: { flexDirection: "row", alignItems: "flex-start", gap: 6, paddingHorizontal: 16, marginTop: 14 },
-  bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: 18, paddingVertical: 16, ...shadowCard },
-  bubbleText: { fontSize: 17, fontFamily: font.bold, color: colors.ink, lineHeight: 24 },
-  boardWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
-  hintBar: { marginHorizontal: 16, backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 18, alignItems: "center", gap: space[2], ...shadowCard },
-  hintText: { fontSize: 15, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
-  hintBtn: { borderRadius: radius.pill, backgroundColor: colors.brand50, paddingHorizontal: space[4], paddingVertical: space[2] },
-  hintBtnText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
-  turnRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2] },
-  turnDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: colors.ink300 },
-  turnText: { fontSize: 13, fontFamily: font.bold, color: colors.ink500 },
-  bottom: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, minHeight: 64, justifyContent: "center" },
-  moveCue: { textAlign: "center", fontSize: 14, fontFamily: font.semibold, color: colors.ink500 },
-  doneTitle: { ...type["3xl"], fontFamily: font.bold, color: colors.ink, marginTop: 16 },
-  doneSub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: 6, textAlign: "center" },
-  pills: { flexDirection: "row", gap: space[2], marginTop: space[4] },
-  enrollCard: { width: 280, marginTop: space[4], backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.card, padding: space[4], gap: space[2] },
-  enrollTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
-  enrollCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: 20, textAlign: "center" },
-  pill: { backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3], paddingHorizontal: space[4], alignItems: "center", minWidth: 92 },
-  pillValue: { ...type["2xl"], fontFamily: font.bold },
-  pillLabel: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
-  loadingBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.success, borderRadius: radius.pill, paddingVertical: 15 },
-  loadingBtnText: { ...type.base, fontFamily: font.bold, color: "#fff" },
-});

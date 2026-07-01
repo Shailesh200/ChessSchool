@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { isClassUnlocked, type SchoolClass } from "./structure";
+import { isUnlocked } from "@/features/lessons/unlock";
 import { useProgression } from "@/core/store/progression.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
@@ -37,12 +38,18 @@ export function JourneyView({
 
   // The first unlocked, not-yet-mastered lesson is the "active" milestone.
   const activeIndex = unlockedClass
-    ? lessons.findIndex((l) => (records[l.id]?.mastery ?? 0) < 0.9)
+    ? lessons.findIndex((l) => isUnlocked(l.id, records) && (records[l.id]?.mastery ?? 0) < 0.9)
     : -1;
   const nodes = lessons.map((l, i) => {
     const mastery = records[l.id]?.mastery ?? 0;
     const status: NodeStatus =
-      mastery >= 0.9 ? "completed" : i === activeIndex ? "active" : "locked";
+      !unlockedClass || !isUnlocked(l.id, records)
+        ? "locked"
+        : mastery >= 0.9
+          ? "completed"
+          : i === activeIndex
+            ? "active"
+            : "locked";
     return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery, status };
   });
   // Collapsed by default — always show up to the active milestone; load more on demand.

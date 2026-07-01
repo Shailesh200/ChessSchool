@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
+import { PRIVACY_URL } from "@/constants";
 import { useSettings, settings } from "@/settings";
 import { Slider } from "@/Slider";
 import { TopBar } from "@/TopBar";
@@ -91,7 +92,7 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <Text style={styles.rowLabel}>Account</Text>
             <Text style={styles.rowHint}>Settings sync to your account when logged in.</Text>
-            <Pressable onPress={() => void Linking.openURL("https://chess-school-alpha.vercel.app/privacy")} style={{ marginTop: space[2] }}>
+            <Pressable onPress={() => void Linking.openURL(PRIVACY_URL)} style={{ marginTop: space[2] }}>
               <Text style={styles.privacyLink}>Privacy policy</Text>
             </Pressable>
           </View>

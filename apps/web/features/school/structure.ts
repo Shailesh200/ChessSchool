@@ -1,5 +1,6 @@
 import type { LessonRecord } from "@/core/store/progression.store";
 import { getLesson } from "@/features/lessons/curriculum";
+import { isUnlocked } from "@/features/lessons/unlock";
 import type { Lesson } from "@/features/lessons/types";
 import { SEMESTERS, STAGES } from "@/content/school";
 import type { SchoolClass, Semester, Stage, ContentUnit } from "@/content/school";
@@ -23,9 +24,37 @@ export interface Catalog {
 
 export const ALL_CLASSES: SchoolClass[] = SEMESTERS.flatMap((s) => s.classes);
 
+export function stageOfClass(classId: string, semesters: Semester[] = SEMESTERS): Stage | undefined {
+  const sem = semesters.find((s) => s.classes.some((c) => c.id === classId));
+  return STAGES.find((st) => st.id === sem?.stage);
+}
+
+export function isOptionalClass(classId: string, semesters: Semester[] = SEMESTERS): boolean {
+  return Boolean(stageOfClass(classId, semesters)?.optional);
+}
+
 /** Semesters belonging to a given stage. */
 export function semestersForStage(stageId: string, semesters: Semester[] = SEMESTERS): Semester[] {
   return semesters.filter((s) => s.stage === stageId);
+}
+
+export function classesForStage(stageId: string, allClasses: SchoolClass[], semesters: Semester[]): SchoolClass[] {
+  const ids = new Set(semesters.filter((s) => s.stage === stageId).flatMap((s) => s.classes.map((c) => c.id)));
+  return allClasses.filter((c) => ids.has(c.id));
+}
+
+export function classHasStarted(cls: SchoolClass, records: Record<string, LessonRecord>): boolean {
+  return cls.lessonIds.some((id) => (records[id]?.attempts ?? 0) > 0);
+}
+
+export function preschoolComplete(
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  semesters: Semester[] = SEMESTERS,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): boolean {
+  const classes = classesForStage("preschool", allClasses, semesters);
+  return classes.length > 0 && classes.every((c) => isClassGraduated(c, records, graduatedClasses));
 }
 
 export function getClass(id: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
@@ -62,17 +91,34 @@ export function isClassGraduated(
   return cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= MASTERED);
 }
 
-/** A class is unlocked if it's first, or the previous class is graduated. */
+/** A class is unlocked if it's first, or the previous required class is graduated. Optional stages unlock internally only. */
 export function isClassUnlocked(
   classId: string,
   records: Record<string, LessonRecord>,
   graduatedClasses: string[],
   allClasses: SchoolClass[] = ALL_CLASSES,
+  semesters: Semester[] = SEMESTERS,
 ): boolean {
   const idx = allClasses.findIndex((c) => c.id === classId);
-  if (idx <= 0) return true;
-  const prev = allClasses[idx - 1]!;
-  return isClassGraduated(prev, records, graduatedClasses);
+  if (idx < 0) return false;
+  const stage = stageOfClass(classId, semesters);
+
+  if (stage?.optional) {
+    const stageClasses = classesForStage(stage.id, allClasses, semesters);
+    const stageIdx = stageClasses.findIndex((c) => c.id === classId);
+    if (stageIdx <= 0) return true;
+    return isClassGraduated(stageClasses[stageIdx - 1]!, records, graduatedClasses);
+  }
+
+  let prevIdx = idx - 1;
+  while (prevIdx >= 0) {
+    const prev = allClasses[prevIdx]!;
+    if (!isOptionalClass(prev.id, semesters)) {
+      return isClassGraduated(prev, records, graduatedClasses);
+    }
+    prevIdx--;
+  }
+  return true;
 }
 
 /** First unlocked, not-yet-mastered lesson within a class (or its exam). */
@@ -83,12 +129,14 @@ export function nextLessonInClass(
   // Serialized forward progress: the first lesson never attempted, so "Continue"
   // never replays one you've already completed.
   for (const id of cls.lessonIds) {
+    if (!isUnlocked(id, records)) continue;
     if ((records[id]?.attempts ?? 0) === 0) return id;
   }
-  // All attempted but the class isn't mastered → the weakest, to push toward graduation.
+  // All attempted but the class isn't mastered → the weakest unlocked, to push toward graduation.
   let weakest: string | null = null;
   let low = Infinity;
   for (const id of cls.lessonIds) {
+    if (!isUnlocked(id, records)) continue;
     const m = records[id]?.mastery ?? 0;
     if (m < MASTERED && m < low) {
       low = m;
@@ -145,6 +193,8 @@ export function currentLocation(
   const allClasses = semesters.flatMap((s) => s.classes);
   const titleOf = (id: string) => titles[id] ?? getLesson(id)?.title ?? "Lesson";
   for (const semester of semesters) {
+    const stage = STAGES.find((st) => st.id === semester.stage);
+    if (stage?.optional && !semester.classes.some((c) => classHasStarted(c, records))) continue;
     for (const cls of semester.classes) {
       if (!isClassGraduated(cls, records, graduatedClasses)) {
         const lessonId = nextLessonInClass(cls, records) ?? cls.lessonIds[0] ?? "";

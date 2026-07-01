@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { mergeProgressSnapshots } from "@chess-school/progression";
 
 export interface MistakeEntry {
   fen: string;
@@ -47,6 +48,8 @@ export interface ProgressionState {
   mistakeLog: MistakeEntry[];
   /** ISO day when the daily puzzle was last completed */
   dailyPuzzleDay: string | null;
+  /** sign-up placement test completed (enrolled users only) */
+  placementDone: boolean;
 
   reset: () => void;
   logMistake: (m: MistakeEntry) => void;
@@ -61,6 +64,7 @@ export interface ProgressionState {
   registerActivity: (today: string) => void;
   graduateClass: (classId: string) => void;
   markDailyPuzzleDone: () => void;
+  markPlacementDone: () => void;
   /** merge a server snapshot into local state (taking the better of each) — guest→account carry-up */
   mergeSnapshot: (snap: ProgressSnapshot) => void;
   /** replace local state with the server snapshot — the account is the source of truth */
@@ -84,6 +88,7 @@ export interface ProgressSnapshot {
   activityDays: Record<string, number>;
   mistakeLog: MistakeEntry[];
   dailyPuzzleDay: string | null;
+  placementDone?: boolean;
 }
 
 export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
@@ -102,6 +107,7 @@ export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
     activityDays: s.activityDays,
     mistakeLog: s.mistakeLog,
     dailyPuzzleDay: s.dailyPuzzleDay,
+    placementDone: s.placementDone,
   };
 }
 
@@ -146,6 +152,7 @@ const defaults = {
   schoolExamsPassed: [] as string[],
   mistakeLog: [] as MistakeEntry[],
   dailyPuzzleDay: null as string | null,
+  placementDone: false,
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -236,43 +243,16 @@ export const useProgression = create<ProgressionState>()(
 
       markDailyPuzzleDone: () => set({ dailyPuzzleDay: isoDay() }),
 
+      markPlacementDone: () => set({ placementDone: true }),
+
       mergeSnapshot: (snap) =>
         set((s) => {
-          const lessons = { ...s.lessons };
-          for (const [id, r] of Object.entries(snap.lessons)) {
-            const cur = lessons[id];
-            lessons[id] =
-              !cur || r.mastery >= cur.mastery
-                ? { ...r, attempts: Math.max(cur?.attempts ?? 0, r.attempts) }
-                : { ...cur, attempts: Math.max(cur.attempts, r.attempts) };
-          }
-          const mergeMap = (a: Record<string, number>, b: Record<string, number> = {}) => {
-            const out = { ...a };
-            for (const [k, v] of Object.entries(b)) out[k] = Math.max(out[k] ?? 0, v);
-            return out;
-          };
-          const mistakes = [...(snap.mistakeLog ?? []), ...s.mistakeLog];
-          const seen = new Set<string>();
-          const mistakeLog = mistakes.filter((m) => {
-            const key = `${m.fen}|${m.at}`;
-            return seen.has(key) ? false : (seen.add(key), true);
-          }).slice(0, 30);
-          return {
-            xp: Math.max(s.xp, snap.xp),
-            streak: Math.max(s.streak, snap.streak),
-            lastActiveDay: s.lastActiveDay ?? snap.lastActiveDay,
-            graduatedClasses: Array.from(new Set([...s.graduatedClasses, ...snap.graduatedClasses])),
-            lessons,
-            rating: Math.max(s.rating, snap.rating ?? 800),
-            botWins: Math.max(s.botWins, snap.botWins ?? 0),
-            dailyGoalXp: Math.max(s.dailyGoalXp, snap.dailyGoalXp ?? 50),
-            unlockedAchievements: Array.from(new Set([...s.unlockedAchievements, ...(snap.unlockedAchievements ?? [])])),
-            schoolExamsPassed: Array.from(new Set([...s.schoolExamsPassed, ...(snap.schoolExamsPassed ?? [])])),
-            weaknesses: mergeMap(s.weaknesses, snap.weaknesses),
-            activityDays: mergeMap(s.activityDays, snap.activityDays),
-            mistakeLog,
-            dailyPuzzleDay: snap.dailyPuzzleDay ?? s.dailyPuzzleDay,
-          };
+          const merged = progressSnapshot(s);
+          const next = mergeProgressSnapshots(
+            { ...merged, placementDone: s.placementDone },
+            { ...snap, placementDone: snap.placementDone },
+          );
+          return { ...next, placementDone: Boolean(next.placementDone || s.placementDone || snap.placementDone) };
         }),
 
       // Account is the source of truth: overwrite local with the server snapshot.
@@ -292,6 +272,7 @@ export const useProgression = create<ProgressionState>()(
           activityDays: snap.activityDays ?? {},
           mistakeLog: snap.mistakeLog ?? [],
           dailyPuzzleDay: snap.dailyPuzzleDay ?? null,
+          placementDone: Boolean(snap.placementDone),
         })),
     }),
     {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
-import { colors, font, radius } from "./theme";
+import { colors, font, radius, type } from "./theme";
 import { haptics } from "./haptics";
 
 /**
@@ -28,6 +28,7 @@ export function Button({
   const edge = outline ? colors.hairline : variant === "accent" ? colors.accent600 : variant === "success" ? colors.success600 : colors.brand700;
   const fg = outline ? colors.ink : "#fff";
   const padV = size === "lg" ? 14 : 9;
+  const labelType = size === "lg" ? type.sm : type.xs;
 
   return (
     <Pressable
@@ -57,7 +58,7 @@ export function Button({
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.72}
-          style={[styles.label, { color: fg, fontSize: size === "lg" ? 16 : 12 }]}
+          style={[styles.label, { color: fg, fontSize: labelType.fontSize, lineHeight: labelType.lineHeight }]}
         >
           {label}
         </Text>

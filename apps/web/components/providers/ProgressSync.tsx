@@ -6,6 +6,8 @@ import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { pullProgress, fullSnapshotAsync } from "@/core/sync/pullProgress";
+import { progressSnapshot } from "@/core/store/progression.store";
+import { localProgressPresent } from "@chess-school/progression";
 import { onSyncTrigger } from "@/core/sync/syncTrigger";
 import { toast } from "@/core/store/toast.store";
 
@@ -21,11 +23,20 @@ export function ProgressSync() {
   useEffect(() => {
     let cancelled = false;
     const before = useProgression.getState();
-    const guestHadProgress = before.xp > 0 || Object.keys(before.lessons).length > 0;
+    const guestHadProgress = localProgressPresent({
+      ...progressSnapshot(before),
+      placementDone: before.placementDone,
+    });
     pullProgress().then(async (user) => {
       if (cancelled || !user) return;
-      lastPushed.current = JSON.stringify(await fullSnapshotAsync());
+      const body = JSON.stringify(await fullSnapshotAsync());
+      lastPushed.current = body;
       if (guestHadProgress) {
+        await fetch("/api/progress", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+        }).catch(() => void 0);
         toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
       }
     });

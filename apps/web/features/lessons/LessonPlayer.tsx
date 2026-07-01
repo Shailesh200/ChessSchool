@@ -19,6 +19,8 @@ import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
+import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson } from "@chess-school/progression";
+import { PreschoolQuiz } from "./PreschoolQuiz";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
@@ -138,7 +140,15 @@ export function LessonPlayer({
   if (!step) return null;
 
   const expression: Expression =
-    phase === "correct" ? "cheer" : phase === "wrong" ? "sad" : step.kind === "move" ? "think" : "happy";
+    phase === "correct"
+      ? "cheer"
+      : phase === "wrong"
+        ? "sad"
+        : step.kind === "move"
+          ? "think"
+          : step.kind === "quiz"
+            ? "think"
+            : "happy";
 
   function advance() {
     if (index + 1 >= total) finish();
@@ -298,15 +308,28 @@ export function LessonPlayer({
     return true; // keep the piece on the board; we control it via displayFen
   }
 
+  function handleQuizAnswer(ok: boolean) {
+    if (ok) setPhase("correct");
+    else {
+      setPhase("wrong");
+      timers.current.push(window.setTimeout(() => setPhase("playing"), 900));
+    }
+  }
+
   const PROMO_NAMES: Record<string, string> = { q: "queen", r: "rook", b: "bishop", n: "knight" };
-  const feedbackText =
+  const feedbackText = formatCoachText(
     phase === "correct"
       ? promoted
         ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
-        : (step.successText ?? "Nice work!")
+        : step.kind === "quiz"
+          ? (step.successText ?? "Correct! ✓")
+          : (step.successText ?? "Nice work!")
       : phase === "wrong"
         ? (step.failText ?? "Not quite — try again!")
-        : step.coach;
+        : step.kind === "quiz"
+          ? "Choose the best answer below."
+          : step.coach,
+  );
 
   if (phase === "complete") {
     return (
@@ -339,6 +362,21 @@ export function LessonPlayer({
           },
         ]
       : [];
+
+  const preschool = isPreschoolLesson(lesson.id);
+  const tutorial = deriveTutorialVisuals(step);
+  const boardArrows: BoardArrow[] = preschool
+    ? [...tutorial.arrows, ...(phase === "playing" && solvable && !isObserving ? hintArrows : [])]
+    : phase === "playing" && !isObserving
+      ? [...(step.arrows ?? []), ...hintArrows]
+      : [];
+  const boardHighlight: Square[] = preschool
+    ? [...tutorial.highlight, ...(phase === "playing" && solvable && !isObserving && hintFrom ? [hintFrom] : [])]
+    : phase === "playing" && !isObserving
+      ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
+      : [];
+  const boardHighlightFiles = preschool ? tutorial.highlightFiles : (step.highlightFiles ?? []);
+  const boardHighlightRanks = preschool ? tutorial.highlightRanks : (step.highlightRanks ?? []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
@@ -373,46 +411,51 @@ export function LessonPlayer({
       </div>
 
       <div className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-        <div className="flex h-[4.75rem] items-center gap-2">
-          <Mascot expression={expression} size={100} float={false} className="-my-3 shrink-0" />
+        <div className="flex min-h-[4.75rem] shrink-0 items-start gap-2">
+          <Mascot expression={expression} size={88} float={false} className="mt-1 shrink-0" />
           <motion.div
-            key={index}
+            key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative flex h-[4.25rem] flex-1 items-center overflow-hidden rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]"
+            className="relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 py-3 text-sm font-semibold leading-relaxed text-ink [box-shadow:var(--shadow-card)]"
           >
-            <span className="line-clamp-3">{feedbackText}</span>
+            <p className="whitespace-pre-wrap">{feedbackText}</p>
             {lesson.exam && (
-              <span className="ml-1 shrink-0 rounded-pill bg-warning/20 px-1.5 py-0.5 text-[10px] font-extrabold text-warning">
+              <span className="self-start rounded-pill bg-warning/20 px-1.5 py-0.5 text-[10px] font-extrabold text-warning">
                 EXAM
               </span>
             )}
           </motion.div>
         </div>
 
-        {step.fen && (
-          <div className="flex min-h-0 flex-1 items-center justify-center">
-            {/* Viewport-based size = never re-measured, so the board cannot
-                resize/flicker when the feedback footer or coach text changes. */}
-            <div className="relative" style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}>
-              <ChessBoard
-                key={index}
-                fen={displayFen ?? step.fen}
-                orientation={step.orientation ?? "white"}
-                onMove={handleMove}
-                arrows={phase === "playing" && !isObserving ? [...(step.arrows ?? []), ...hintArrows] : []}
-                highlight={
-                  phase === "playing" && !isObserving
-                    ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
-                    : []
-                }
-                lastMove={oppMove}
-                successSquare={phase === "correct" ? movedTo : null}
-                checkSquare={phase === "wrong" ? movedTo : null}
-                interactive={step.kind === "move" && phase === "playing"}
-              />
-            </div>
+        {step.kind === "quiz" ? (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
+            <PreschoolQuiz key={index} step={step} phase={phase} onAnswer={handleQuizAnswer} />
           </div>
+        ) : (
+          step.fen && (
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              {/* Viewport-based size = never re-measured, so the board cannot
+                  resize/flicker when the feedback footer or coach text changes. */}
+              <div className="relative" style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}>
+                <ChessBoard
+                  key={index}
+                  fen={displayFen ?? step.fen}
+                  orientation={step.orientation ?? "white"}
+                  onMove={handleMove}
+                  showNotation={preschool}
+                  arrows={boardArrows}
+                  highlight={boardHighlight}
+                  highlightFiles={boardHighlightFiles}
+                  highlightRanks={boardHighlightRanks}
+                  lastMove={oppMove}
+                  successSquare={phase === "correct" ? movedTo : null}
+                  checkSquare={phase === "wrong" ? movedTo : null}
+                  interactive={step.kind === "move" && phase === "playing"}
+                />
+              </div>
+            </div>
+          )
         )}
 
         {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
@@ -447,18 +490,21 @@ export function LessonPlayer({
         </div>
 
         {/* Fills the space below the board + reinforces the concept */}
-        <div className="mx-auto mt-1 flex w-full max-w-xs items-start gap-2 rounded-card border border-hairline bg-surface-card/70 px-3 py-2">
-          <span className="text-base leading-none">🎓</span>
-          <p className="text-[11px] font-semibold leading-snug text-ink-500">
-            {LESSON_TIPS[step.tag ?? ""] ?? LESSON_TIPS[lesson.tag] ?? "Take your time and calculate before you move."}
-          </p>
-        </div>
+        {step.kind !== "quiz" && (
+          <div className="mx-auto mt-1 flex w-full max-w-xs items-start gap-2 rounded-card border border-hairline bg-surface-card/70 px-3 py-2">
+            <span className="text-base leading-none">🎓</span>
+            <p className="text-[11px] font-semibold leading-snug text-ink-500">
+              {LESSON_TIPS[step.tag ?? ""] ?? LESSON_TIPS[lesson.tag] ?? "Take your time and calculate before you move."}
+            </p>
+          </div>
+        )}
       </div>
 
       <FeedbackBar
         stepKind={step.kind}
         observeReady={step.kind !== "observe" || observeDone}
         playing={phase === "playing"}
+        quizReady={step.kind === "quiz" && phase === "correct"}
         onContinue={advance}
       />
     </div>
@@ -469,16 +515,19 @@ function FeedbackBar({
   stepKind,
   observeReady,
   playing,
+  quizReady,
   onContinue,
 }: {
   stepKind: string;
   observeReady: boolean;
   playing: boolean;
+  quizReady?: boolean;
   onContinue: () => void;
 }) {
   // Move steps auto-advance (green flash) / auto-retry — the footer button is only
-  // for info/observe steps that need a manual "Continue".
-  const show = playing && (stepKind === "info" || (stepKind === "observe" && observeReady));
+  // for info/observe/quiz steps that need a manual "Continue".
+  const show =
+    (playing && (stepKind === "info" || (stepKind === "observe" && observeReady))) || Boolean(quizReady);
 
   // Always reserve the footer height so the board never resizes (no CLS / flicker).
   return (

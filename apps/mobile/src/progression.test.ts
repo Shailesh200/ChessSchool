@@ -111,6 +111,18 @@ describe("applyLessonComplete (integration)", () => {
   });
 });
 
+describe("normalizeProgressPush", () => {
+  it("fills required /api/progress fields from a bare lesson-complete snapshot", async () => {
+    const { normalizeProgressPush } = await import("@chess-school/progression");
+    const raw = applyLessonComplete({}, { lessonId: "pre-board-files", correct: 1, total: 1, mistakes: 0, xp: 10 });
+    const body = normalizeProgressPush(raw);
+    expect(body.graduatedClasses).toEqual([]);
+    expect(body.lessons!["pre-board-files"].mastery).toBe(1);
+    expect(body.xp).toBe(10);
+    expect(body.lastActiveDay).toBe(today);
+  });
+});
+
 describe("applyMatchEnd (integration)", () => {
   it("a win raises rating, grants +40 xp, and registers activity", () => {
     const s = applyMatchEnd({ rating: 800 }, { botElo: 800, result: "win" });

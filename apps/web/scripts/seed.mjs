@@ -13,6 +13,13 @@ import { Chess } from "chess.js";
 import { SEMESTERS as CURATED_SEMS } from "../content/data/school.mjs";
 import { LESSONS as CURATED_LESSONS } from "../content/data/lessons.mjs";
 
+const PRESCHOOL_LESSON_ORDER = CURATED_SEMS.find((s) => s.id === "sem-preschool")?.classes.flatMap((c) => c.lessonIds) ?? [];
+
+function preschoolPrerequisite(lessonId) {
+  const idx = PRESCHOOL_LESSON_ORDER.indexOf(lessonId);
+  return idx <= 0 ? [] : [PRESCHOOL_LESSON_ORDER[idx - 1]];
+}
+
 const DB_PATH = (process.env.DATABASE_URL ?? "local.db").replace(/^file:/, "");
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const sq = (f, r) => `${FILES[f]}${r}`;
@@ -540,13 +547,15 @@ async function main() {
   // Curated, hand-authored curriculum first (Elementary foundations, openings…)
   function addCurated() {
     const byId = new Map(CURATED_LESSONS.map((l) => [l.id, l]));
-    const pushLesson = (l, classId, sortOrder, isExam = 0) =>
+    const pushLesson = (l, classId, sortOrder, isExam = 0) => {
+      const prereqs = l.id.startsWith("pre-") ? preschoolPrerequisite(l.id) : (l.prerequisites ?? []);
       lessons.push({
         id: l.id, classId, title: l.title, subtitle: l.subtitle, emoji: l.emoji,
         tag: l.tag, xp: l.xp, isExam,
-        prerequisites: JSON.stringify(l.prerequisites ?? []),
+        prerequisites: JSON.stringify(prereqs),
         steps: JSON.stringify(l.steps), sortOrder,
       });
+    };
     for (const sem of CURATED_SEMS) {
       semesters.push({ id: sem.id, title: sem.title, blurb: sem.blurb, color: sem.color, stage: sem.stage, sortOrder: semesters.length });
       for (const cls of sem.classes) {

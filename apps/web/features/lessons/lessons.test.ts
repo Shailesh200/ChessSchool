@@ -36,10 +36,21 @@ describe("curriculum integrity", () => {
     }
   });
 
-  it("has no questionnaire steps (school flow only)", () => {
+  it("quiz steps have valid options and a correct index", () => {
+    for (const lesson of LESSONS) {
+      for (const step of lesson.steps) {
+        if (step.kind !== "quiz") continue;
+        expect(step.question, `${lesson.id}/${step.id} question`).toBeTruthy();
+        expect((step.options ?? []).length, `${lesson.id}/${step.id} options`).toBeGreaterThanOrEqual(2);
+        expect(step.correct, `${lesson.id}/${step.id} correct`).toBeGreaterThanOrEqual(0);
+        expect(step.correct!, `${lesson.id}/${step.id} correct`).toBeLessThan(step.options!.length);
+      }
+    }
+  });
+
+  it("allows quiz steps in pre-school flow", () => {
     const kinds = new Set(LESSONS.flatMap((l) => l.steps.map((s) => s.kind)));
-    expect(kinds.has("choice" as never)).toBe(false);
-    expect([...kinds].sort()).toEqual(["info", "move", "observe"]);
+    expect([...kinds].sort()).toEqual(["info", "move", "observe", "quiz"]);
   });
 });
 

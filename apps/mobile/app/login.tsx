@@ -16,7 +16,7 @@ import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
 
-const PRIVACY_URL = "https://chess-school-alpha.vercel.app/privacy";
+import { PRIVACY_URL } from "@/constants";
 
 export default function LoginScreen() {
   const { login, register, continueAsGuest } = useAuth();

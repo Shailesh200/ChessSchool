@@ -46,7 +46,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (s.colorblind) {
       c = { ...c, success: COLORBLIND.success, danger: COLORBLIND.danger, warning: COLORBLIND.warning };
     }
-    // Mutate module-level colors so existing imports stay live.
     Object.assign(baseColors, c as Record<string, string>);
     return c;
   }, [appThemeId, s.highContrast, s.colorblind, isDark]);

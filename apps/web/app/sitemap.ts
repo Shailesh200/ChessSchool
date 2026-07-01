@@ -3,7 +3,7 @@ import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { classes, lessons } from "@/db/schema";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school-alpha.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school.in";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const cls = await db.select({ id: classes.id }).from(classes).orderBy(asc(classes.sortOrder));

@@ -42,6 +42,8 @@ export interface Stage {
   emoji: string;
   blurb: string;
   status: "open" | "upcoming";
+  /** Optional schools (e.g. Pre-School) never gate later schools. */
+  optional?: boolean;
 }
 
 export const STAGES: Stage[] = RAW_STAGES as Stage[];

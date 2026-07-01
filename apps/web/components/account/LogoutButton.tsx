@@ -6,6 +6,7 @@ import { logoutAction } from "@/lib/auth-actions";
 import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
+import { usePlan } from "@/core/store/plan.store";
 
 /**
  * Logout that also wipes client-side personal state, so the next user/guest never
@@ -24,6 +25,7 @@ export function LogoutButton() {
       // server already best-effort; continue clearing the client either way
     }
     useProgression.getState().reset();
+    usePlan.setState({ routineDay: null, routineDone: [], homeworkStreak: 0, homeworkLastDay: null });
     useSession.getState().setSession(false, null);
     useSettings.getState().set("targetElo", 600); // back to the default opponent
     router.replace("/login");

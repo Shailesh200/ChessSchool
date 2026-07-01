@@ -13,12 +13,14 @@ import { placement } from "@/chess-utils";
 import { settings } from "@/settings";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
+import { useAuth } from "@/auth";
 import { colors, font, radius, space, type } from "@/theme";
 
 type Puzzle = { fen: string; solution: string[] };
 
 export default function PlacementScreen() {
   const router = useRouter();
+  const { guest, loading: authLoading } = useAuth();
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 24, 440);
   const [puzzles, setPuzzles] = useState<Puzzle[] | null>(null);
@@ -43,8 +45,13 @@ export default function PlacementScreen() {
   }
 
   useEffect(() => {
+    if (!authLoading && guest) router.replace("/login");
+  }, [authLoading, guest, router]);
+
+  useEffect(() => {
+    if (guest) return;
     void loadPuzzles();
-  }, []);
+  }, [guest]);
 
   if (!puzzles) {
     return (

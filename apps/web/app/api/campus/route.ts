@@ -3,17 +3,50 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { semesters, classes, lessons, lessonRecords, progress } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
+import { STAGES } from "@/content/school";
+import { isOptionalStage, orderClasses } from "@/lib/school-order";
 
 export const dynamic = "force-dynamic";
 
-const STAGE_META: Record<string, { name: string; emoji: string; blurb: string }> = {
-  elementary: { name: "Elementary School", emoji: "🎒", blurb: "Classes · the essentials" },
-  middle: { name: "Middle School", emoji: "📐", blurb: "Classes · tactics & endgames" },
-  high: { name: "High School", emoji: "🎓", blurb: "Classes · openings & checkmates" },
-  university: { name: "University", emoji: "🏛️", blurb: "Classes · advanced combinations" },
-  master: { name: "Master Program", emoji: "♛", blurb: "Classes · famous mates & immortals" },
-};
-const STAGE_ORDER = ["elementary", "middle", "high", "university", "master"];
+const STAGE_ORDER = STAGES.map((s) => s.id);
+const STAGE_META = Object.fromEntries(
+  STAGES.map((s) => [s.id, { name: s.name, emoji: s.emoji, blurb: s.blurb, optional: Boolean(s.optional) }]),
+);
+
+function stageOfSemester(semId: string, semById: Map<string, { stage: string }>): string {
+  return semById.get(semId)?.stage ?? "";
+}
+
+/** Class unlock: optional stages are internal-only; required track skips optional predecessors. */
+function computeUnlocked(
+  ordered: { id: string; semesterId: string }[],
+  semById: Map<string, { stage: string }>,
+  classDone: (id: string) => boolean,
+): Map<string, boolean> {
+  const byStage = new Map<string, string[]>();
+  for (const c of ordered) {
+    const stage = stageOfSemester(c.semesterId, semById);
+    const arr = byStage.get(stage) ?? [];
+    arr.push(c.id);
+    byStage.set(stage, arr);
+  }
+
+  const map = new Map<string, boolean>();
+  let lastRequiredDone = true;
+
+  for (const stageId of STAGE_ORDER) {
+    const ids = byStage.get(stageId) ?? [];
+    if (isOptionalStage(stageId)) {
+      ids.forEach((id, i) => map.set(id, i === 0 || classDone(ids[i - 1]!)));
+      continue;
+    }
+    for (let i = 0; i < ids.length; i++) {
+      map.set(ids[i]!, lastRequiredDone && (i === 0 || classDone(ids[i - 1]!)));
+    }
+    if (ids.length > 0) lastRequiredDone = classDone(ids[ids.length - 1]!);
+  }
+  return map;
+}
 
 /** Campus: stages → semesters → classes with per-class progress + unlock/graduation. */
 export async function GET(req: Request) {
@@ -46,16 +79,11 @@ export async function GET(req: Request) {
     return !!c && c.total > 0 && c.done >= c.total;
   };
 
-  // Global class order (stage → semester sortOrder → class sortOrder) for sequential unlock.
-  const stageRank = (semId: string) => STAGE_ORDER.indexOf(semById.get(semId)?.stage ?? "");
-  const ordered = [...cls].sort(
-    (a, b) =>
-      stageRank(a.semesterId) - stageRank(b.semesterId) ||
-      (semById.get(a.semesterId)?.sortOrder ?? 0) - (semById.get(b.semesterId)?.sortOrder ?? 0) ||
-      a.sortOrder - b.sortOrder,
+  const ordered = orderClasses(
+    sems.map((s) => ({ id: s.id, stage: s.stage, sortOrder: s.sortOrder, title: s.title })),
+    cls.map((c) => ({ id: c.id, semesterId: c.semesterId, sortOrder: c.sortOrder, title: c.title })),
   );
-  const unlockedOf = new Map<string, boolean>();
-  ordered.forEach((c, i) => unlockedOf.set(c.id, i === 0 || classDone(ordered[i - 1]!.id)));
+  const unlockedOf = computeUnlocked(ordered, semById, classDone);
 
   const stages = STAGE_ORDER.map((stageId) => {
     const meta = STAGE_META[stageId]!;
@@ -85,13 +113,16 @@ export async function GET(req: Request) {
     return { id: stageId, ...meta, semesters: stageSems, doneClasses, totalClasses: allClasses.length };
   }).filter((s) => s.totalClasses > 0);
 
-  let prevCleared = true;
-  for (const s of stages) {
-    const cleared = s.doneClasses >= s.totalClasses || examsPassed.includes(s.id);
-    (s as typeof s & { locked: boolean; cleared: boolean }).locked = !prevCleared;
-    (s as typeof s & { locked: boolean; cleared: boolean }).cleared = cleared;
-    prevCleared = cleared;
+  type StageRow = (typeof stages)[number] & { locked: boolean; cleared: boolean };
+  const out: StageRow[] = stages.map((s) => ({
+    ...s,
+    cleared: s.doneClasses >= s.totalClasses || examsPassed.includes(s.id),
+    locked: false,
+  }));
+  for (let idx = 0; idx < out.length; idx++) {
+    const priorOk = out.slice(0, idx).every((p) => p.cleared || p.optional);
+    out[idx]!.locked = !priorOk;
   }
 
-  return NextResponse.json({ stages });
+  return NextResponse.json({ stages: out });
 }
