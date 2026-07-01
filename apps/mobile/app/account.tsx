@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/auth";
@@ -14,12 +14,15 @@ import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
 
+const PRIVACY_URL = "https://chess-school-alpha.vercel.app/privacy";
+
 export default function AccountScreen() {
   const router = useRouter();
-  const { user, guest, exitGuest, logout } = useAuth();
+  const { user, guest, exitGuest, logout, deleteAccount } = useAuth();
   const { colors } = useAppTheme();
   const p = useProgress();
   const { avatar } = useSettings();
+  const [deleting, setDeleting] = useState(false);
   const graduated = ((p?.graduatedClasses as string[]) ?? []).length;
   const rank = rankForClasses(graduated);
   const studentNo = `CS-${(user?.id ?? "00000000").replace(/-/g, "").slice(0, 8).toUpperCase()}`;
@@ -43,9 +46,34 @@ export default function AccountScreen() {
         idNo: { ...type.sm, fontFamily: font.bold, color: "#fff", marginTop: space[1], letterSpacing: 2 },
         idMeta: { flexDirection: "row", justifyContent: "space-between", marginTop: space[4] },
         idMetaText: { ...type.xs, fontFamily: font.bold, color: "#fff", opacity: 0.9 },
+        legalLink: { ...type.sm, fontFamily: font.bold, color: colors.brand, textAlign: "center" as const },
+        dangerHint: { ...type.xs, fontFamily: font.medium, color: colors.ink500, textAlign: "center" as const, lineHeight: 18 },
       }),
     [colors],
   );
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete account?",
+      "This permanently removes your profile, progress, and settings from ChessSchool. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setDeleting(true);
+            void deleteAccount()
+              .then(() => router.replace("/login"))
+              .catch((e: unknown) => {
+                setDeleting(false);
+                Alert.alert("Could not delete", e instanceof Error ? e.message : "Please try again.");
+              });
+          },
+        },
+      ],
+    );
+  };
 
   useEffect(() => {
     if (!guest) return;
@@ -96,6 +124,11 @@ export default function AccountScreen() {
         <View style={{ gap: space[3], marginTop: space[2] }}>
           {user?.role === "admin" && <Button label="📚 Browse the lesson library" variant="outline" onPress={() => router.push("/library")} />}
           <Button label="Log out" variant="outline" onPress={logout} />
+          <Text style={styles.legalLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+            Privacy policy
+          </Text>
+          <Text style={styles.dangerHint}>Deleting your account removes all synced progress permanently.</Text>
+          <Button label={deleting ? "Deleting…" : "Delete account"} variant="outline" onPress={confirmDelete} />
         </View>
       </ScrollView>
     </ThemedSafeArea>

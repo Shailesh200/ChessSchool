@@ -16,6 +16,7 @@ type AuthState = {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
 const GUEST_USER: User = { id: "guest", name: "Guest", email: "", role: "guest" };
@@ -111,8 +112,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const deleteAccount = async () => {
+    await api("/api/account", { method: "DELETE" });
+    await clearToken();
+    progressStore.clear();
+    settings.reset();
+    setGuest(false);
+    setUser(null);
+  };
+
   return (
-    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, exitGuest, login, register, logout }}>
+    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, exitGuest, login, register, logout, deleteAccount }}>
       {children}
     </AuthCtx.Provider>
   );

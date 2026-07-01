@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: siteUrl, changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/library`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/play`, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${siteUrl}/dashboard`, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${siteUrl}/privacy`, changeFrequency: "monthly", priority: 0.3 },
   ];
 
   const classRoutes = cls.map((c) => ({

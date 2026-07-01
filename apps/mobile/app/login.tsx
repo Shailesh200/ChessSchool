@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,6 +15,8 @@ import { PasswordField } from "@/PasswordField";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
+
+const PRIVACY_URL = "https://chess-school-alpha.vercel.app/privacy";
 
 export default function LoginScreen() {
   const { login, register, continueAsGuest } = useAuth();
@@ -68,6 +71,7 @@ export default function LoginScreen() {
     },
     guestText: { color: colors.brand, fontSize: 16, fontFamily: font.bold },
     guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
+    legal: { color: colors.brand, fontSize: 12, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },
   });
 
   async function submit() {
@@ -142,6 +146,9 @@ export default function LoginScreen() {
           <Text style={styles.guestText}>Continue as a guest</Text>
         </Pressable>
         <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>
+        <Pressable onPress={() => void Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
+          <Text style={styles.legal}>Privacy policy</Text>
+        </Pressable>
       </KeyboardAvoidingView>
     </ThemedSafeArea>
   );

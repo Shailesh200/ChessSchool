@@ -11,7 +11,15 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "doctor": "npx expo-doctor"
+    "doctor": "npx expo-doctor",
+    "release:check": "pnpm typecheck && pnpm test && pnpm doctor",
+    "build:android:preview": "pnpm exec eas build --platform android --profile preview --non-interactive",
+    "build:android:prod": "pnpm exec eas build --platform android --profile production --non-interactive",
+    "submit:android:internal": "pnpm exec eas submit --platform android --profile production --non-interactive",
+    "submit:android:store": "pnpm exec eas submit --platform android --profile play-store --non-interactive",
+    "update:preview": "pnpm exec eas update --channel preview",
+    "update:production": "pnpm exec eas update --channel production",
+    "eas:init": "pnpm exec eas init && pnpm exec eas update:configure"
   },
   "dependencies": {
     "@chess-school/core": "workspace:*",
@@ -31,6 +39,7 @@
     "expo-secure-store": "~15.0.0",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.0",
+    "expo-updates": "~29.0.18",
     "lottie-react-native": "~7.3.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -43,6 +52,7 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "@vitest/coverage-v8": "^4.1.9",
+    "eas-cli": "^20.5.1",
     "typescript": "~5.9.2",
     "vitest": "^4.1.9"
   }

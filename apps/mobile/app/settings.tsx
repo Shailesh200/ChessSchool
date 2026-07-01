@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Linking } from "react-native";
+import Constants from "expo-constants";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
@@ -90,9 +91,13 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <Text style={styles.rowLabel}>Account</Text>
             <Text style={styles.rowHint}>Settings sync to your account when logged in.</Text>
+            <Pressable onPress={() => void Linking.openURL("https://chess-school-alpha.vercel.app/privacy")} style={{ marginTop: space[2] }}>
+              <Text style={styles.privacyLink}>Privacy policy</Text>
+            </Pressable>
           </View>
         )}
 
+        <Text style={styles.version}>ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -143,4 +148,6 @@ const styles = StyleSheet.create({
   guestCard: { backgroundColor: colors.brand50, borderRadius: radius.card, borderWidth: 1, borderColor: colors.brand100, padding: space[4], gap: space[2], marginTop: space[4] },
   guestTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
   guestCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: 20 },
+  privacyLink: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+  version: { ...type.xs, fontFamily: font.medium, color: colors.ink300, textAlign: "center", marginTop: space[6], marginBottom: space[2] },
 });

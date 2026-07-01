@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 import { LogoutButton } from "@/components/account/LogoutButton";
+import { DeleteAccountButton } from "@/components/account/DeleteAccountButton";
 import { db } from "@/db";
 import { profiles, progress } from "@/db/schema";
 import { Logo } from "@/components/ui/Logo";
@@ -65,6 +66,14 @@ export default async function AccountPage() {
         <Link href="/" className="text-center text-sm font-bold text-ink-500">
           Go to campus →
         </Link>
+        <div className="mt-4 flex flex-col gap-3 border-t border-hairline pt-6">
+          <p className="text-center text-xs font-semibold text-ink-500">
+            <Link href="/privacy" className="font-bold text-brand-500 hover:underline">
+              Privacy policy
+            </Link>
+          </p>
+          <DeleteAccountButton />
+        </div>
       </div>
     </div>
   );

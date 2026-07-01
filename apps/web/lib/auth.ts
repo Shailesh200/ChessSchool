@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users, sessions, profiles, progress } from "@/db/schema";
+import { users, sessions, profiles, progress, lessonRecords } from "@/db/schema";
 
 const COOKIE = "chessschool_session";
 const SESSION_DAYS = 30;
@@ -162,4 +162,17 @@ export async function loginWithToken(
   }
   const token = await createSessionToken(user.id);
   return { token, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+}
+
+/** Permanently delete a student account and all associated data. */
+export async function deleteUserAccount(userId: string): Promise<{ ok: true } | { error: string }> {
+  const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+  if (!user) return { error: "Account not found." };
+  if (user.role === "admin") return { error: "Admin accounts cannot be deleted here." };
+  await db.delete(lessonRecords).where(eq(lessonRecords.userId, userId));
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+  await db.delete(progress).where(eq(progress.userId, userId));
+  await db.delete(profiles).where(eq(profiles.userId, userId));
+  await db.delete(users).where(eq(users.id, userId));
+  return { ok: true };
 }

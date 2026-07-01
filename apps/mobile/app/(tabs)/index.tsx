@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
-import { API_URL } from "@/api";
 import { Cody } from "@/Cody";
 import { Icon } from "@/Icon";
 import { Button } from "@/Button";
@@ -164,7 +163,7 @@ export default function LearnScreen() {
         </View>
 
         {error && !data ? (
-          <FetchErrorView title="Couldn't load campus" message={`${error}\n\nAPI: ${API_URL}`} onRetry={refresh} />
+          <FetchErrorView title="Couldn't load campus" message={error} onRetry={refresh} />
         ) : showSkeleton ? (
           <LearnScreenSkeleton />
         ) : (

@@ -22,9 +22,12 @@ Auth: token-based. `/api/auth/{login,register,me,logout}` return a token; the we
 pnpm --filter mobile start         # expo start (press w=web, i=iOS, a=Android)
 pnpm --filter mobile typecheck     # tsc --noEmit
 pnpm --filter mobile test          # vitest run (unit, pure logic)
-pnpm --filter mobile test:coverage # vitest run --coverage
-npx expo export --platform web --output-dir dist   # static web build (used by the parity harness)
+pnpm --filter mobile release:check # typecheck + test + expo-doctor (pre-store)
+pnpm --filter mobile build:android:prod   # EAS production AAB
+pnpm --filter mobile update:production -- --message "changelog"  # OTA to store users
 ```
+
+See **`RELEASE.md`** for the full Play Store + OTA playbook (EAS init, channels, submit tracks).
 
 ## 4. Architecture & key modules (`src/`)
 - **`api.ts`** — fetch helper, token storage (SecureStore native / localStorage web), `ApiError`, `setUnauthorizedHandler`.

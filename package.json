@@ -12,7 +12,8 @@
     "e2e": "pnpm --filter web e2e",
     "format": "prettier --write .",
     "web": "pnpm --filter web",
-    "mobile": "pnpm --filter mobile"
+    "mobile": "pnpm --filter mobile",
+    "mobile:release:check": "pnpm --filter mobile release:check"
   },
   "devDependencies": {
     "turbo": "^2.5.5",

@@ -1,0 +1,7 @@
+# Shrink EAS upload — curriculum DB and web app aren't needed for mobile builds.
+apps/web/**
+data/**
+db/**
+scripts/**
+.github/**
+**/*.md

@@ -17,6 +17,7 @@ import { AnimatedSplash } from "@/AnimatedSplash";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
 import { NetworkBanner } from "@/NetworkBanner";
+import { UpdateBanner } from "@/UpdateBanner";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -79,6 +80,7 @@ export default function RootLayout() {
         <NetworkProvider>
           <ThemedStatusBar />
           <NetworkBanner />
+          <UpdateBanner />
           <AuthProvider>
             <ErrorBoundary>
               <Gate />
