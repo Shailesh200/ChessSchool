@@ -57,6 +57,7 @@ export function LessonPlayer({
   lessonClass,
   schoolExam,
   homeworkStep,
+  dailyPuzzle,
 }: {
   lesson: Lesson;
   nextLessonId?: string | null;
@@ -70,6 +71,8 @@ export function LessonPlayer({
   schoolExam?: { stage: string; nextName: string };
   /** when launched from homework, which routine step to check off on completion */
   homeworkStep?: string;
+  /** when launched from the daily puzzle card */
+  dailyPuzzle?: boolean;
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -166,6 +169,7 @@ export function LessonPlayer({
       progression.awardXp(lesson.xp);
       progression.registerActivity(isoDay());
       markHomeworkDone();
+      if (dailyPuzzle) progression.markDailyPuzzleDone();
       const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
       startNav();
       router.push(nextId ? `/lesson/${nextId}` : "/");
@@ -180,6 +184,7 @@ export function LessonPlayer({
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());
     markHomeworkDone();
+    if (dailyPuzzle) progression.markDailyPuzzleDone();
     const st = useProgression.getState();
     checkLessonAchievements(lesson.id, {
       mastered: Object.values(st.lessons).filter((l) => l.mastery >= 0.9).length,

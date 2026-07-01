@@ -45,6 +45,8 @@ export interface ProgressionState {
   schoolExamsPassed: string[];
   /** recent mistakes (position + played + best) for the Mistake DNA detail */
   mistakeLog: MistakeEntry[];
+  /** ISO day when the daily puzzle was last completed */
+  dailyPuzzleDay: string | null;
 
   reset: () => void;
   logMistake: (m: MistakeEntry) => void;
@@ -58,6 +60,7 @@ export interface ProgressionState {
   unlockAchievement: (id: string) => boolean;
   registerActivity: (today: string) => void;
   graduateClass: (classId: string) => void;
+  markDailyPuzzleDone: () => void;
   /** merge a server snapshot into local state (taking the better of each) — guest→account carry-up */
   mergeSnapshot: (snap: ProgressSnapshot) => void;
   /** replace local state with the server snapshot — the account is the source of truth */
@@ -80,6 +83,7 @@ export interface ProgressSnapshot {
   weaknesses: Record<string, number>;
   activityDays: Record<string, number>;
   mistakeLog: MistakeEntry[];
+  dailyPuzzleDay: string | null;
 }
 
 export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
@@ -97,6 +101,7 @@ export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
     weaknesses: s.weaknesses,
     activityDays: s.activityDays,
     mistakeLog: s.mistakeLog,
+    dailyPuzzleDay: s.dailyPuzzleDay,
   };
 }
 
@@ -140,6 +145,7 @@ const defaults = {
   botWins: 0,
   schoolExamsPassed: [] as string[],
   mistakeLog: [] as MistakeEntry[],
+  dailyPuzzleDay: null as string | null,
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -227,6 +233,9 @@ export const useProgression = create<ProgressionState>()(
             ? s
             : { graduatedClasses: [...s.graduatedClasses, classId] },
         ),
+
+      markDailyPuzzleDone: () => set({ dailyPuzzleDay: isoDay() }),
+
       mergeSnapshot: (snap) =>
         set((s) => {
           const lessons = { ...s.lessons };
@@ -262,6 +271,7 @@ export const useProgression = create<ProgressionState>()(
             weaknesses: mergeMap(s.weaknesses, snap.weaknesses),
             activityDays: mergeMap(s.activityDays, snap.activityDays),
             mistakeLog,
+            dailyPuzzleDay: snap.dailyPuzzleDay ?? s.dailyPuzzleDay,
           };
         }),
 
@@ -281,6 +291,7 @@ export const useProgression = create<ProgressionState>()(
           weaknesses: snap.weaknesses ?? {},
           activityDays: snap.activityDays ?? {},
           mistakeLog: snap.mistakeLog ?? [],
+          dailyPuzzleDay: snap.dailyPuzzleDay ?? null,
         })),
     }),
     {

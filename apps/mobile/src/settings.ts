@@ -31,11 +31,12 @@ export type Settings = {
   goal: string;
   boardTheme: BoardTheme;
   pieceTheme: PieceThemeId;
+  appTheme: string;
 };
 
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
-let state: Settings = {
+const DEFAULTS: Settings = {
   haptics: true,
   sound: true,
   volume: 0.8,
@@ -52,8 +53,18 @@ let state: Settings = {
   goal: "",
   boardTheme: "classic",
   pieceTheme: "classic",
+  appTheme: "default",
 };
+let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
+
+function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
+  const pieceTheme = (next as { pieceTheme?: string }).pieceTheme;
+  return {
+    ...next,
+    pieceTheme: pieceTheme === "blossom" ? "cute" : next.pieceTheme,
+  } as Partial<Settings>;
+}
 
 function emit() {
   for (const l of listeners) l();
@@ -76,7 +87,7 @@ function persist() {
   try {
     const raw = isWeb ? (typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null) : await SecureStore.getItemAsync(KEY);
     if (raw) {
-      state = { ...state, ...JSON.parse(raw) };
+      state = { ...state, ...normalizeSettings(JSON.parse(raw)) };
       emit();
     }
   } catch {
@@ -101,7 +112,7 @@ async function pushToAccount() {
 /** Apply settings stored on the account (called on login). Does not re-sync. */
 export function hydrateSettings(remote: Partial<Settings> | null | undefined) {
   if (!remote || typeof remote !== "object") return;
-  state = { ...state, ...remote };
+  state = { ...state, ...normalizeSettings(remote) };
   persist();
   emit();
 }
@@ -118,6 +129,11 @@ export async function loadSettingsFromAccount() {
 
 export const settings = {
   get: () => state,
+  reset: () => {
+    state = { ...DEFAULTS };
+    persist();
+    emit();
+  },
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => {
     state = { ...state, [key]: value };
     persist();

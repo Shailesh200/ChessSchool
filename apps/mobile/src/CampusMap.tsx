@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Button } from "./Button";
 import { colors, font, radius, space, type } from "./theme";
 
-export type CampusClass = { id: string; title: string; emoji: string; blurb: string; done: number; total: number; graduated: boolean; unlocked: boolean };
+export type CampusClass = { id: string; title: string; emoji: string; blurb: string; done: number; total: number; graduated: boolean; unlocked: boolean; examId?: string | null };
 export type CampusSemester = { id: string; title: string; color: string; blurb: string; classes: CampusClass[] };
 export type CampusStage = { id: string; name: string; emoji: string; blurb: string; semesters: CampusSemester[]; doneClasses: number; totalClasses: number; locked: boolean; cleared: boolean };
 
@@ -21,7 +21,7 @@ function ProgressBar({ value, max, tone }: { value: number; max: number; tone: s
   );
 }
 
-function ClassCard({ cls, color, onOpen }: { cls: CampusClass; color: string; onOpen: () => void }) {
+function ClassCard({ cls, color, onOpen, onTestToUnlock, onTestOut }: { cls: CampusClass; color: string; onOpen: () => void; onTestToUnlock?: () => void; onTestOut?: () => void }) {
   return (
     <View style={[styles.classCard, { borderColor: cls.graduated ? colors.gold : colors.hairline }, !cls.unlocked && { opacity: 0.6 }]}>
       <View style={styles.classRow}>
@@ -48,6 +48,16 @@ function ClassCard({ cls, color, onOpen }: { cls: CampusClass; color: string; on
           />
         </View>
       )}
+      {cls.unlocked && cls.examId && !cls.graduated && onTestOut && (
+        <View style={{ marginTop: space[2] }}>
+          <Button label="📝 Test out" variant="outline" size="sm" onPress={onTestOut} />
+        </View>
+      )}
+      {!cls.unlocked && onTestToUnlock && (
+        <View style={{ marginTop: space[3] }}>
+          <Button label="🎓 Test to unlock" variant="outline" size="sm" onPress={onTestToUnlock} />
+        </View>
+      )}
     </View>
   );
 }
@@ -68,6 +78,10 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
 
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [more, setMore] = useState<Record<string, number>>({});
+  const previousClassId = useMemo(() => {
+    const ids = stages.flatMap((stage) => stage.semesters.flatMap((sem) => sem.classes.map((cls) => cls.id)));
+    return new Map(ids.map((classId, index) => [classId, index > 0 ? ids[index - 1] : null]));
+  }, [stages]);
   const isOpen = (id: string) => open[id] ?? id === defaultOpen;
   const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !isOpen(id) }));
   const shownOf = (id: string) => more[id] ?? 6;
@@ -118,6 +132,15 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
                             cls={cls}
                             color={sem.color}
                             onOpen={() => router.push({ pathname: "/class/[id]", params: { id: cls.id } })}
+                            onTestToUnlock={
+                              cls.unlocked
+                                ? undefined
+                                : (() => {
+                                    const prevId = previousClassId.get(cls.id);
+                                    return prevId ? () => router.push({ pathname: "/class/[id]/exam", params: { id: prevId } }) : undefined;
+                                  })()
+                            }
+                            onTestOut={cls.examId ? () => router.push({ pathname: "/lesson/[id]", params: { id: cls.examId! } }) : undefined}
                           />
                         ))}
                         {shownOf(sem.id) < sem.classes.length && (

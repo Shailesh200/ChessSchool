@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from "react-native-svg";
 import { STAUNTON } from "./staunton-pieces";
 
@@ -18,7 +19,7 @@ const QUEEN_BALLS: [number, number][] = [[12.2, 18.6], [17, 14], [22.5, 12.4], [
 
 type Finish = "marble" | "glass" | "wood" | "gloss" | "flat";
 type Pal = { fill: string; stroke: string };
-export type PieceThemeId = "classic" | "marble" | "crystal" | "neon" | "forest" | "ocean" | "blossom";
+export type PieceThemeId = "classic" | "marble" | "crystal" | "neon" | "forest" | "ocean" | "cute";
 
 export const PIECE_THEMES: { id: PieceThemeId; name: string; neon?: boolean; finish: Finish; white: Pal; black: Pal }[] = [
   { id: "classic", name: "Classic", finish: "flat", white: { fill: "#f4ecd8", stroke: "#3a2f20" }, black: { fill: "#3a3a3c", stroke: "#101012" } },
@@ -27,7 +28,7 @@ export const PIECE_THEMES: { id: PieceThemeId; name: string; neon?: boolean; fin
   { id: "neon", name: "Neon", neon: true, finish: "flat", white: { fill: "#0c1622", stroke: "#39e6b0" }, black: { fill: "#0c1622", stroke: "#3ad6ff" } },
   { id: "forest", name: "Forest", finish: "wood", white: { fill: "#e3cda0", stroke: "#7c5a2e" }, black: { fill: "#3f5e32", stroke: "#1f2f18" } },
   { id: "ocean", name: "Ocean", finish: "glass", white: { fill: "#d6eef9", stroke: "#3a8fb5" }, black: { fill: "#1f6f8c", stroke: "#0b2f3e" } },
-  { id: "blossom", name: "Blossom", finish: "gloss", white: { fill: "#ffd9ec", stroke: "#d76aa3" }, black: { fill: "#b48ee8", stroke: "#6f43b0" } },
+  { id: "cute", name: "Blossom", finish: "gloss", white: { fill: "#ffd9ec", stroke: "#d76aa3" }, black: { fill: "#b48ee8", stroke: "#6f43b0" } },
 ];
 
 const FINISH: Record<Finish, { top: number; bottom: number; gloss: number; fillOpacity: number }> = {
@@ -39,7 +40,8 @@ const FINISH: Record<Finish, { top: number; bottom: number; gloss: number; fillO
 };
 
 export function getPieceTheme(id: string) {
-  return PIECE_THEMES.find((t) => t.id === id) ?? PIECE_THEMES[1]!;
+  const normalized = id === "blossom" ? "cute" : id;
+  return PIECE_THEMES.find((t) => t.id === normalized) ?? PIECE_THEMES[1]!;
 }
 
 function shade(hex: string, amt: number): string {
@@ -51,7 +53,7 @@ function shade(hex: string, amt: number): string {
   return `#${ch.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
-export function Piece({ type, color, size, gid, themeId = "marble" }: { type: PieceType; color: "w" | "b"; size: number; gid: string; themeId?: PieceThemeId }) {
+export const Piece = memo(function Piece({ type, color, size, gid, themeId = "marble" }: { type: PieceType; color: "w" | "b"; size: number; gid: string; themeId?: PieceThemeId }) {
   // "classic" → the exact Cburnett Staunton set the web uses (react-chessboard default).
   if (themeId === "classic") {
     const paths = STAUNTON[`${color}${type.toUpperCase()}`] ?? [];
@@ -103,4 +105,4 @@ export function Piece({ type, color, size, gid, themeId = "marble" }: { type: Pi
       {!neon && <Ellipse cx="19" cy="15" rx="3.4" ry="6.4" fill={`url(#${gid}g)`} opacity={0.7} rotation={-12} originX={19} originY={15} />}
     </Svg>
   );
-}
+});

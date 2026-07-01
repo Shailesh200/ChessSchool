@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, setToken, clearToken, getToken, setUnauthorizedHandler } from "./api";
-import { progressStore } from "./progressStore";
-import { loadSettingsFromAccount } from "./settings";
+import { progressStore, fetchProgress } from "./progressStore";
+import { loadSettingsFromAccount, settings } from "./settings";
 
 export type User = { id: string; name: string; email: string; role: string };
 
@@ -12,6 +12,7 @@ type AuthState = {
   needsOnboarding: boolean;
   finishOnboarding: () => void;
   continueAsGuest: () => void;
+  exitGuest: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -40,9 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const continueAsGuest = () => {
     void clearToken();
     progressStore.clear();
+    settings.reset();
     setNeedsOnboarding(false);
     setGuest(true);
     setUser(GUEST_USER);
+  };
+
+  const exitGuest = () => {
+    if (!guest) return;
+    progressStore.clear();
+    settings.reset();
+    setNeedsOnboarding(false);
+    setGuest(false);
+    setUser(null);
   };
 
   useEffect(() => {
@@ -53,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const { user } = await api<{ user: User }>("/api/auth/me");
           setUser(user);
           void loadSettingsFromAccount();
+          void fetchProgress(true).catch(() => void 0);
         } catch {
           await clearToken();
         }
@@ -71,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setGuest(false);
     setUser(user);
     void loadSettingsFromAccount();
+    void fetchProgress(true).catch(() => void 0);
   };
 
   const register = async (email: string, password: string, name: string) => {
@@ -82,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsOnboarding(true);
     setGuest(false);
     setUser(user);
+    void fetchProgress(true).catch(() => void 0);
   };
 
   const logout = async () => {
@@ -92,12 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     await clearToken();
     progressStore.clear();
+    settings.reset();
     setGuest(false);
     setUser(null);
   };
 
   return (
-    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, login, register, logout }}>
+    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, exitGuest, login, register, logout }}>
       {children}
     </AuthCtx.Provider>
   );

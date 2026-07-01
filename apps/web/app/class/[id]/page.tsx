@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { AppShell } from "@/components/layout/AppShell";
@@ -6,7 +7,14 @@ import { getCatalog } from "@/features/school/catalog.server";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const row = (await db.select({ title: classT.title }).from(classT).where(eq(classT.id, id)).limit(1))[0];
+  if (!row) return { title: "Class" };
+  return { title: row.title, description: `Journey through ${row.title} at ChessSchool.` };
+}
 
 export default async function ClassJourneyPage({
   params,

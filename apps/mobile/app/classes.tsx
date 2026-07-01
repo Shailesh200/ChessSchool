@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
+import { FetchErrorView } from "@/FetchErrorView";
 import { Icon } from "@/Icon";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
@@ -14,9 +15,20 @@ type Cls = { id: string; title: string; emoji: string; blurb: string; semesterId
 export default function ClassesScreen() {
   const router = useRouter();
   const [data, setData] = useState<{ semesters: Sem[]; classes: Cls[] } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  async function loadCatalog() {
+    setLoadError(false);
+    setData(null);
+    try {
+      setData(await api<{ semesters: Sem[]; classes: Cls[] }>("/api/catalog"));
+    } catch {
+      setLoadError(true);
+    }
+  }
 
   useEffect(() => {
-    api<{ semesters: Sem[]; classes: Cls[] }>("/api/catalog").then(setData).catch(() => void 0);
+    void loadCatalog();
   }, []);
 
   const grouped = useMemo(() => {
@@ -34,7 +46,9 @@ export default function ClassesScreen() {
         <Text style={styles.h1}>All classes</Text>
       </View>
 
-      {!data ? (
+      {loadError ? (
+        <FetchErrorView title="Catalog couldn't load" onRetry={loadCatalog} onBack={() => router.back()} />
+      ) : !data ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.brand} size="large" />
         </View>

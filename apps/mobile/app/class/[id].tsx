@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Circle, G } from "react-native-svg";
 import { api } from "@/api";
 import { Button } from "@/Button";
+import { FetchErrorView } from "@/FetchErrorView";
 import { TopBar } from "@/TopBar";
 import { haptics } from "@/haptics";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -51,12 +52,27 @@ export default function ClassJourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [data, setData] = useState<ClassData | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [records, setRecords] = useState<Record<string, { mastery: number }>>({});
   const [shown, setShown] = useState(6);
 
+  async function loadClass() {
+    setLoadError(false);
+    setData(null);
+    try {
+      const [classData, progress] = await Promise.all([
+        api<ClassData>(`/api/class/${id}`),
+        api<{ lessons: Record<string, { mastery: number }> }>("/api/progress").catch(() => ({ lessons: {} })),
+      ]);
+      setData(classData);
+      setRecords(progress.lessons ?? {});
+    } catch {
+      setLoadError(true);
+    }
+  }
+
   useEffect(() => {
-    api<ClassData>(`/api/class/${id}`).then(setData).catch(() => void 0);
-    api<{ lessons: Record<string, { mastery: number }> }>("/api/progress").then((p) => setRecords(p.lessons ?? {})).catch(() => void 0);
+    void loadClass();
   }, [id]);
 
   const { nodes, done, activeIndex, minutes } = useMemo(() => {
@@ -72,6 +88,14 @@ export default function ClassJourneyScreen() {
     return { nodes: ns, done: doneN, activeIndex: active, minutes: (lessons.length + (data?.exam ? 1 : 0)) * 3 };
   }, [data, records]);
 
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <FetchErrorView title="Class couldn't load" onRetry={loadClass} onBack={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
+
   if (!data) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -83,6 +107,7 @@ export default function ClassJourneyScreen() {
   const cls = data.class;
   const total = data.lessons.length;
   const firstActionable = nodes.find((n) => n.status === "active") ?? nodes.find((n) => n.status === "completed");
+  const canTestOut = total > 0 && done / total >= 0.5 && done < total;
   const visibleCount = Math.min(nodes.length, Math.max(shown, activeIndex + 1));
   const go = (lid: string, status: NodeStatus) => {
     if (status === "locked") { haptics.error(); return; }
@@ -115,6 +140,11 @@ export default function ClassJourneyScreen() {
           {firstActionable && (
             <View style={{ marginTop: space[3] }}>
               <Button label={done > 0 ? "Continue journey" : "Start journey"} onPress={() => go(firstActionable.id, firstActionable.status)} />
+            </View>
+          )}
+          {canTestOut && (
+            <View style={{ marginTop: space[2] }}>
+              <Button label="Test out of this class →" variant="outline" onPress={() => router.push({ pathname: "/class/[id]/exam", params: { id } })} />
             </View>
           )}
         </View>

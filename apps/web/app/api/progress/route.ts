@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { progress, lessonRecords } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
+import { progressPushSchema } from "@/lib/api-schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +22,11 @@ interface ExtraData {
   homeworkStreak?: number;
   homeworkLastDay?: string | null;
   recentGames?: unknown[];
+  dailyPuzzleDay?: string | null;
   settings?: Record<string, unknown>;
   homeworkDone?: Record<string, string[]>;
   placementDone?: boolean;
+  journalEntries?: unknown[];
 }
 
 /** Pull the account's saved progress (merged into / hydrated onto the client on login). */
@@ -62,32 +65,12 @@ export async function GET(req: Request) {
     homeworkStreak: extra.homeworkStreak ?? 0,
     homeworkLastDay: extra.homeworkLastDay ?? null,
     recentGames: extra.recentGames ?? [],
+    dailyPuzzleDay: extra.dailyPuzzleDay ?? null,
     settings: extra.settings ?? null,
     homeworkDone: extra.homeworkDone ?? {},
     placementDone: extra.placementDone ?? false,
+    journalEntries: extra.journalEntries ?? [],
   });
-}
-
-interface PushBody {
-  xp: number;
-  streak: number;
-  lastActiveDay: string | null;
-  graduatedClasses: string[];
-  lessons: Record<string, LessonRec>;
-  rating?: number;
-  botWins?: number;
-  dailyGoalXp?: number;
-  unlockedAchievements?: string[];
-  schoolExamsPassed?: string[];
-  weaknesses?: Record<string, number>;
-  activityDays?: Record<string, number>;
-  mistakeLog?: unknown[];
-  homeworkStreak?: number;
-  homeworkLastDay?: string | null;
-  recentGames?: unknown[];
-  settings?: Record<string, unknown>;
-  homeworkDone?: Record<string, string[]>;
-  placementDone?: boolean;
 }
 
 /** Push the client's merged snapshot to the account. */
@@ -95,7 +78,12 @@ export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as PushBody;
+  const raw = await req.json().catch(() => null);
+  const parsed = progressPushSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid body", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data;
   const now = Date.now();
   // Merge over existing data so a client that omits a field (e.g. web doesn't
   // send recentGames) doesn't wipe it.
@@ -118,9 +106,11 @@ export async function POST(req: Request) {
     homeworkStreak: body.homeworkStreak,
     homeworkLastDay: body.homeworkLastDay,
     recentGames: body.recentGames,
+    dailyPuzzleDay: body.dailyPuzzleDay,
     settings: body.settings,
     homeworkDone: body.homeworkDone,
     placementDone: body.placementDone,
+    journalEntries: body.journalEntries,
   };
   const data: ExtraData = { ...prev };
   for (const [k, v] of Object.entries(incoming)) if (v !== undefined) (data as Record<string, unknown>)[k] = v;
@@ -141,7 +131,8 @@ export async function POST(req: Request) {
 
   // The snapshot is the full client union, so replace the user's records.
   await db.delete(lessonRecords).where(eq(lessonRecords.userId, user.id));
-  const rows = Object.entries(body.lessons ?? {}).map(([lessonId, r]) => ({
+  const lessonEntries = Object.entries(body.lessons ?? {}) as [string, { mastery: number; attempts: number; lastSeen: number; dueAt: number }][];
+  const rows = lessonEntries.map(([lessonId, r]) => ({
     id: `${user.id}:${lessonId}`,
     userId: user.id,
     lessonId,

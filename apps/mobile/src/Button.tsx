@@ -53,7 +53,14 @@ export function Button({
           marginTop: pressed ? 3 : 0,
         }}
       >
-        <Text style={[styles.label, { color: fg, fontSize: size === "lg" ? 16 : 14 }]}>{label}</Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          style={[styles.label, { color: fg, fontSize: size === "lg" ? 16 : 12 }]}
+        >
+          {label}
+        </Text>
       </View>
     </Pressable>
   );

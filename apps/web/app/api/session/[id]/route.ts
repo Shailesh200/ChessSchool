@@ -1,14 +1,26 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { Chess } from "chess.js";
 import { db } from "@/db";
 import { gameSessions } from "@/db/schema";
 import { publishSession } from "@/lib/ably-server";
+import { signSeatToken } from "@/lib/session-secret";
 
 export const dynamic = "force-dynamic";
 
 async function load(id: string) {
   return (await db.select().from(gameSessions).where(eq(gameSessions.id, id)).limit(1))[0];
+}
+
+function verifySeatToken(id: string, color: "w" | "b" | undefined, token: string | undefined): boolean {
+  if (!color || !token) return false;
+  const [tokenColor, sig] = token.split(".");
+  if (tokenColor !== color || !sig) return false;
+  const expected = signSeatToken(id, color);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /** Load the latest state, push it to realtime subscribers, and return it. */
@@ -35,7 +47,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     s = (await load(id))!;
     if (claimed) await publishSession(id, s); // notify the creator their opponent joined
   }
-  return NextResponse.json({ ...s, claimed });
+  return NextResponse.json({ ...s, claimed, color: claimed ? "b" : undefined, seatToken: claimed ? `b.${signSeatToken(id, "b")}` : undefined });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -45,10 +57,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = (await req.json()) as {
     action: "move" | "resign" | "timeout";
     color?: "w" | "b";
+    seat?: "w" | "b";
+    seatToken?: string;
     from?: string;
     to?: string;
     promotion?: string;
   };
+  const actor = body.action === "timeout" ? body.seat : body.color;
+  if (!verifySeatToken(id, actor, body.seatToken)) {
+    return NextResponse.json({ error: "invalid seat" }, { status: 403 });
+  }
 
   if (body.action === "resign") {
     await db

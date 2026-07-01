@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -7,17 +8,24 @@ import { nextLessonAfter } from "@/features/school/structure";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const row = (await db.select({ title: lessons.title }).from(lessons).where(eq(lessons.id, id)).limit(1))[0];
+  if (!row) return { title: "Lesson" };
+  return { title: row.title, description: `Play the ${row.title} lesson at ChessSchool.` };
+}
 
 export default async function LessonPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ hw?: string }>;
+  searchParams: Promise<{ hw?: string; daily?: string }>;
 }) {
   const { id } = await params;
-  const { hw } = await searchParams;
+  const { hw, daily } = await searchParams;
   const row = (await db.select().from(lessons).where(eq(lessons.id, id)).limit(1))[0];
   if (!row) notFound();
 
@@ -47,6 +55,7 @@ export default async function LessonPage({
       nextLessonId={nextLessonId}
       lessonClass={lessonClass}
       homeworkStep={hw}
+      dailyPuzzle={daily === "1"}
     />
   );
 }

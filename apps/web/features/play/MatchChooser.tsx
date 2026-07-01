@@ -47,8 +47,9 @@ export function MatchChooser() {
     try {
       const r = await fetch("/api/session", { method: "POST" });
       if (!r.ok) throw new Error();
-      const { id } = (await r.json()) as { id: string };
+      const { id, seatToken } = (await r.json()) as { id: string; seatToken: string };
       localStorage.setItem(`chessschool.online.${id}`, "w");
+      localStorage.setItem(`chessschool.online.${id}.token`, seatToken);
       startNav();
       router.push(`/play/online/${id}`);
     } catch {

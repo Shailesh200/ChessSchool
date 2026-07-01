@@ -1,22 +1,26 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { settings, useSettings, BOARD_THEMES, SELECTABLE_BOARD_THEMES, BOARD_THEME_NAMES, type BoardTheme } from "@/settings";
-import { Piece, PIECE_THEMES } from "@/Piece";
+import { useRouter } from "expo-router";
+import { useAuth } from "@/auth";
+import { useSettings, settings } from "@/settings";
 import { Slider } from "@/Slider";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
+import { Button } from "@/Button";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
-const THEMES: { id: BoardTheme; label: string }[] = SELECTABLE_BOARD_THEMES.map((id) => ({ id, label: BOARD_THEME_NAMES[id] ?? id }));
 const COACHES = [
   { value: "friendly", label: "Friendly", emoji: "😊" },
   { value: "strict", label: "Strict", emoji: "🎩" },
   { value: "mentor", label: "Mentor", emoji: "🧑‍🏫" },
   { value: "tactical", label: "Tactical", emoji: "⚔️" },
+  { value: "minimal", label: "Minimal", emoji: "🎯" },
 ];
 const track = { true: colors.brand, false: colors.surfaceSunken };
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const { guest, exitGuest } = useAuth();
   const s = useSettings();
 
   return (
@@ -76,38 +80,19 @@ export default function SettingsScreen() {
           })}
         </View>
 
-        <Text style={styles.section}>Piece set</Text>
-        <View style={styles.pieces}>
-          {PIECE_THEMES.map((t) => {
-            const on = s.pieceTheme === t.id;
-            return (
-              <Pressable key={t.id} testID={`piece-${t.id}`} style={[styles.pieceCard, on && styles.selOn]} onPress={() => settings.set("pieceTheme", t.id)}>
-                <View style={styles.pieceRow}>
-                  <Piece type="k" color="w" size={30} gid={`pv-${t.id}-wk`} themeId={t.id} />
-                  <Piece type="q" color="b" size={30} gid={`pv-${t.id}-bq`} themeId={t.id} />
-                </View>
-                <Text style={styles.pieceLabel}>{t.name}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {guest ? (
+          <View style={styles.guestCard}>
+            <Text style={styles.guestTitle}>Guest mode</Text>
+            <Text style={styles.guestCopy}>Progress stays on this device until you enroll. Log in to sync across web and mobile.</Text>
+            <Button label="Log in or enroll →" size="sm" onPress={() => { exitGuest(); router.push("/login"); }} />
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.rowLabel}>Account</Text>
+            <Text style={styles.rowHint}>Settings sync to your account when logged in.</Text>
+          </View>
+        )}
 
-        <Text style={styles.section}>Board theme</Text>
-        <View style={styles.themes}>
-          {THEMES.map((t) => {
-            const c = BOARD_THEMES[t.id];
-            const on = s.boardTheme === t.id;
-            return (
-              <Pressable key={t.id} testID={`theme-${t.id}`} style={[styles.theme, on && styles.selOn]} onPress={() => settings.set("boardTheme", t.id)}>
-                <View style={styles.swatch}>
-                  <View style={{ flex: 1, backgroundColor: c.light }} />
-                  <View style={{ flex: 1, backgroundColor: c.dark }} />
-                </View>
-                <Text style={styles.themeLabel}>{t.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -155,13 +140,7 @@ const styles = StyleSheet.create({
   rowLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
   rowHint: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
   divider: { height: 1, backgroundColor: colors.hairline },
-  selOn: { borderColor: colors.brand, borderWidth: 2 },
-  themes: { flexDirection: "row", gap: space[3] },
-  theme: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[2], alignItems: "center", borderWidth: 1, borderColor: colors.hairline },
-  swatch: { width: 56, height: 56, borderRadius: 8, overflow: "hidden", flexDirection: "row" },
-  themeLabel: { ...type.xs, fontFamily: font.bold, color: colors.ink, marginTop: space[2] },
-  pieces: { flexDirection: "row", flexWrap: "wrap", gap: space[2.5] },
-  pieceCard: { width: "31%", backgroundColor: colors.surfaceCard, borderRadius: radius.md, paddingVertical: space[3], alignItems: "center", borderWidth: 1, borderColor: colors.hairline },
-  pieceRow: { flexDirection: "row" },
-  pieceLabel: { fontSize: 11.5, fontFamily: font.bold, color: colors.ink, marginTop: space[1.5] },
+  guestCard: { backgroundColor: colors.brand50, borderRadius: radius.card, borderWidth: 1, borderColor: colors.brand100, padding: space[4], gap: space[2], marginTop: space[4] },
+  guestTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
+  guestCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: 20 },
 });

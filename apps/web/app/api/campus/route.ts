@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const user = await getApiUser(req);
   const [sems, cls, les] = await Promise.all([
     db.select({ id: semesters.id, title: semesters.title, blurb: semesters.blurb, color: semesters.color, stage: semesters.stage, sortOrder: semesters.sortOrder }).from(semesters),
-    db.select({ id: classes.id, title: classes.title, emoji: classes.emoji, blurb: classes.blurb, semesterId: classes.semesterId, sortOrder: classes.sortOrder }).from(classes),
+    db.select({ id: classes.id, title: classes.title, emoji: classes.emoji, blurb: classes.blurb, semesterId: classes.semesterId, sortOrder: classes.sortOrder, examId: classes.examId }).from(classes),
     db.select({ id: lessons.id, classId: lessons.classId }).from(lessons),
   ]);
   const mastery: Record<string, number> = {};
@@ -75,6 +75,7 @@ export async function GET(req: Request) {
             total: counts[c.id]?.total ?? 0,
             graduated: classDone(c.id),
             unlocked: unlockedOf.get(c.id) ?? false,
+            examId: c.examId ?? null,
           }));
         return { id: s.id, title: s.title, color: s.color, blurb: s.blurb, classes: semClasses };
       })

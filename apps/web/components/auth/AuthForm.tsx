@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 
 type Action = (
   prev: { error?: string } | undefined,
@@ -40,12 +41,7 @@ export function AuthForm({
             <Field label="Full name" name="name" type="text" autoComplete="name" />
           )}
           <Field label="Email" name="email" type="email" autoComplete="email" />
-          <Field
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete={isRegister ? "new-password" : "current-password"}
-          />
+          <PasswordField label="Password" autoComplete={isRegister ? "new-password" : "current-password"} />
 
           {state?.error && (
             <p className="rounded-card bg-danger/10 px-3 py-2 text-sm font-bold text-danger">
@@ -96,6 +92,34 @@ function Field({
         autoComplete={autoComplete}
         className="h-12 rounded-card border border-hairline bg-surface-card px-3 text-base font-semibold text-ink outline-none focus:border-brand"
       />
+    </label>
+  );
+}
+
+function PasswordField({ label, autoComplete }: { label: string; autoComplete: string }) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-xs font-extrabold text-ink-700">{label}</span>
+      <div className="relative">
+        <input
+          name="password"
+          type={visible ? "text" : "password"}
+          required
+          autoComplete={autoComplete}
+          minLength={8}
+          className="h-12 w-full rounded-card border border-hairline bg-surface-card px-3 pr-11 text-base font-semibold text-ink outline-none focus:border-brand"
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="btn-tactile absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-ink-500 hover:text-ink"
+          aria-label={visible ? "Hide password" : "Show password"}
+        >
+          <Icon name={visible ? "eyeOff" : "eye"} size={20} />
+        </button>
+      </div>
     </label>
   );
 }

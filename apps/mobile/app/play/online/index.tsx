@@ -19,8 +19,8 @@ export default function OnlineLobbyScreen() {
     setBusy("create");
     setErr(null);
     try {
-      const { id } = await api<{ id: string }>("/api/session", { method: "POST" });
-      router.replace({ pathname: "/play/online/[id]", params: { id, color: "w" } });
+      const { id, seatToken } = await api<{ id: string; seatToken: string }>("/api/session", { method: "POST" });
+      router.replace({ pathname: "/play/online/[id]", params: { id, color: "w", seatToken } });
     } catch {
       setErr("Couldn't create a game. Check your connection.");
       setBusy(null);
@@ -33,11 +33,11 @@ export default function OnlineLobbyScreen() {
     setBusy("join");
     setErr(null);
     try {
-      const s = await api<{ error?: string }>(`/api/session/${c}`);
-      if (s.error) throw new Error(s.error);
-      router.replace({ pathname: "/play/online/[id]", params: { id: c, color: "b" } });
+      const s = await api<{ error?: string; claimed?: boolean; seatToken?: string }>(`/api/session/${c}?join=1`);
+      if (s.error || !s.claimed || !s.seatToken) throw new Error(s.error ?? "seat unavailable");
+      router.replace({ pathname: "/play/online/[id]", params: { id: c, color: "b", seatToken: s.seatToken } });
     } catch {
-      setErr("That game code wasn't found.");
+      setErr("That game code wasn't found, or the game already has two players.");
       setBusy(null);
     }
   }

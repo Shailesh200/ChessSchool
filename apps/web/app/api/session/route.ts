@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { Chess } from "chess.js";
 import { db } from "@/db";
 import { gameSessions } from "@/db/schema";
+import { formatSeatToken } from "@/lib/session-secret";
 
 export const dynamic = "force-dynamic";
 
 function shortId(): string {
-  return Math.random().toString(36).slice(2, 8);
+  return randomBytes(6).toString("base64url");
 }
 
 /** Create a shareable live session — creator plays White. */
@@ -24,5 +26,5 @@ export async function POST() {
     createdAt: now,
     updatedAt: now,
   });
-  return NextResponse.json({ id });
+  return NextResponse.json({ id, color: "w", seatToken: formatSeatToken(id, "w") });
 }

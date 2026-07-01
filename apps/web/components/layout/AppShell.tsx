@@ -20,10 +20,11 @@ export function AppShell({
   }
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-surface">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded-md focus:bg-surface-card focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-ink">
+        Skip to main content
+      </a>
       <TopBar />
-      {/* Only this area scrolls, and only when content overflows — no page-level
-          rubber-band bounce on short tabs (play/review/profile). */}
-      <main className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto overscroll-contain px-4 py-5">
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto overscroll-contain px-4 py-5 lg:max-w-4xl">
         <InstallPrompt />
         {children}
       </main>

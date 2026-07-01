@@ -14,11 +14,15 @@ const PRECACHE = [
   "/profile",
   "/review",
   "/settings",
+  "/dashboard",
+  "/library",
+  "/plan",
   "/offline",
   "/manifest.webmanifest",
   "/icons/icon.svg",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/mascots/cody-happy-v2.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -109,7 +113,7 @@ self.addEventListener("message", (event) => {
 // Background sync stub — local-first app has no backend; reserved for future
 // cross-device features. Present so registration succeeds where supported.
 self.addEventListener("sync", (event) => {
-  if (event.tag === "duochess-sync") {
+  if (event.tag === "chessschool-sync") {
     event.waitUntil(Promise.resolve());
   }
 });

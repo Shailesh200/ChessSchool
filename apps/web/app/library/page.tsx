@@ -9,7 +9,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { MyCompletedLibrary } from "@/components/library/MyCompletedLibrary";
 
 export const metadata = { title: "Lesson library" };
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function LibraryPage() {
   const user = await getCurrentUser();

@@ -74,7 +74,7 @@ export default function OnboardingScreen() {
     settings.set("targetElo", Number(elo) || 600);
     settings.set("planTier", (time || "standard") as never);
     settings.set("coachPersonality", coach || "friendly");
-    settings.set("boardTheme", THEME_MAP[theme] ?? "classic");
+    settings.set("appTheme", theme || "default");
     settings.set("avatar", avatar || "🎓");
     haptics.success();
     finishOnboarding();

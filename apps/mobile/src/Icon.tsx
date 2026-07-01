@@ -6,7 +6,7 @@ export type IconName =
   | "learn" | "play" | "review" | "profile" | "flame" | "cap" | "chart" | "calendar"
   | "journal" | "palette" | "flask" | "gear" | "check" | "lock" | "close" | "arrowRight"
   | "chevronRight" | "star" | "trophy" | "sparkle" | "bulb" | "share" | "undo" | "flip"
-  | "plus" | "target" | "dna" | "compass";
+  | "plus" | "target" | "dna" | "compass" | "eye" | "eyeOff";
 
 export function Icon({
   name,
@@ -165,6 +165,17 @@ export function Icon({
         {duotone && <Circle cx="12" cy="12" r="8.5" {...duo} />}
         <Circle cx="12" cy="12" r="8.5" {...s} />
         <Path d="M15.5 8.5l-2 5-5 2 2-5z" {...sf} />
+      </>
+    ),
+    eye: (
+      <>
+        <Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" {...s} />
+        <Circle cx="12" cy="12" r="3" {...s} />
+      </>
+    ),
+    eyeOff: (
+      <>
+        <Path d="M3 3l18 18M10.5 10.5a3 3 0 0 0 4.24 4.24M9.9 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18.2 18.2 0 0 1-4.12 5.12M6.12 6.12A18.5 18.5 0 0 0 2 12s3.5 7 10 7a10.7 10.7 0 0 0 4.9-1.2" {...s} />
       </>
     ),
   };

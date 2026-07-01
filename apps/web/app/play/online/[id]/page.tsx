@@ -31,6 +31,7 @@ interface SessionState {
   createdAt: number;
   updatedAt: number;
   claimed?: boolean;
+  seatToken?: string;
   error?: string;
 }
 
@@ -47,6 +48,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const [boardBox, boardSize] = useSquareSize();
   const [session, setSession] = useState<SessionState | null>(null);
   const [color, setColor] = useState<"w" | "b" | "spectator" | null>(null);
+  const [seatToken, setSeatToken] = useState<string | null>(null);
   const [resignOpen, setResignOpen] = useState(false);
   const [expired, setExpired] = useState(false);
   const [now, setNow] = useState(0);
@@ -82,9 +84,13 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   // Determine my seat (creator stored "w"; first opener claims "b").
   useEffect(() => {
     const key = `chessschool.online.${id}`;
+    const tokenKey = `${key}.token`;
     const stored = localStorage.getItem(key);
     if (stored === "w" || stored === "b") {
-      Promise.resolve().then(() => setColor(stored));
+      Promise.resolve().then(() => {
+        setSeatToken(localStorage.getItem(tokenKey));
+        setColor(stored);
+      });
       return;
     }
     fetch(`/api/session/${id}?join=1`)
@@ -93,7 +99,13 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
         if (!s || s.error) return;
         const seat = s.claimed ? "b" : "spectator";
         setColor(seat);
-        if (seat === "b") localStorage.setItem(key, "b");
+        if (seat === "b") {
+          localStorage.setItem(key, "b");
+          if (s.seatToken) {
+            localStorage.setItem(tokenKey, s.seatToken);
+            setSeatToken(s.seatToken);
+          }
+        }
         setSession(s);
       })
       .catch(() => void 0);
@@ -237,7 +249,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
   const onMove = useCallback(
     (move: MoveInput): boolean => {
-      if (!session || color === "spectator" || color === null) return false;
+      if (!session || color === "spectator" || color === null || !seatToken) return false;
       if (session.status !== "active" || session.turn !== color || optimistic) return false;
       // Validate + apply locally first so the piece moves instantly (no snap-back).
       const g = new Chess(session.fen);
@@ -254,7 +266,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       fetch(`/api/session/${id}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "move", color, from: move.from, to: move.to, promotion: move.promotion }),
+      body: JSON.stringify({ action: "move", color, seatToken, from: move.from, to: move.to, promotion: move.promotion }),
       })
         .then((r) => (r.ok ? r.json() : null))
         .then((s: SessionState | null) => {
@@ -264,7 +276,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
         .catch(() => setOptimistic(null));
       return true; // keep the piece where the player dropped it
     },
-    [session, color, optimistic, id, applyState],
+    [session, color, seatToken, optimistic, id, applyState],
   );
 
   function shareLink() {
@@ -278,7 +290,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     fetch(`/api/session/${id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "resign", color }),
+      body: JSON.stringify({ action: "resign", color, seatToken }),
     }).then(() => void 0);
   }
 
@@ -317,7 +329,7 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     fetch(`/api/session/${id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "timeout", color: flag }),
+      body: JSON.stringify({ action: "timeout", color: flag, seat: colorRef.current, seatToken }),
     }).catch(() => void 0);
   }, [active, hasClock, wMs, bMs, id]);
 

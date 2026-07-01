@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 import { colors } from "./theme";
 
+import { useSettings } from "./settings";
+
 const PALETTE = [colors.brand, colors.gold, colors.accent, colors.success, colors.danger, colors.brand300];
 
-/** A lightweight confetti burst for celebrations (lesson complete). No-op-safe. */
+/** A lightweight confetti burst for celebrations (lesson complete). Respects reducedMotion. */
 export function Confetti({ count = 28 }: { count?: number }) {
+  const { reducedMotion } = useSettings();
   const { width, height } = Dimensions.get("window");
   const [pieces] = useState(() =>
     Array.from({ length: count }, (_, i) => ({
@@ -20,11 +23,14 @@ export function Confetti({ count = 28 }: { count?: number }) {
   );
 
   useEffect(() => {
+    if (reducedMotion) return;
     const anims = pieces.map((p) =>
       Animated.timing(p.v, { toValue: 1, duration: 1800 + Math.random() * 900, delay: p.delay, easing: Easing.linear, useNativeDriver: true }),
     );
     Animated.parallel(anims).start();
-  }, [pieces]);
+  }, [pieces, reducedMotion]);
+
+  if (reducedMotion) return null;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>

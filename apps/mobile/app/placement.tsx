@@ -28,9 +28,22 @@ export default function PlacementScreen() {
   const [displayFen, setDisplayFen] = useState<string | undefined>();
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [done, setDone] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  async function loadPuzzles() {
+    setLoadError(false);
+    setPuzzles(null);
+    try {
+      const d = await api<{ puzzles: Puzzle[] }>("/api/placement");
+      setPuzzles(d.puzzles ?? []);
+    } catch {
+      setLoadError(true);
+      setPuzzles([]);
+    }
+  }
 
   useEffect(() => {
-    api<{ puzzles: Puzzle[] }>("/api/placement").then((d) => setPuzzles(d.puzzles ?? [])).catch(() => setPuzzles([]));
+    void loadPuzzles();
   }, []);
 
   if (!puzzles) {
@@ -48,7 +61,38 @@ export default function PlacementScreen() {
     router.replace("/(tabs)");
   }
 
-  if (done || puzzles.length === 0) {
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Cody expression="sad" size={120} />
+          <Text style={styles.doneTitle}>Placement couldn't load</Text>
+          <Text style={styles.doneSub}>Check your connection and try again. We won't place you until the puzzles are loaded.</Text>
+          <View style={{ marginTop: space[5], width: 260, gap: space[2] }}>
+            <Button label="Try again" variant="success" onPress={loadPuzzles} />
+            <Button label="Back to academy" variant="outline" onPress={() => router.back()} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (puzzles.length === 0) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Cody expression="sad" size={120} />
+          <Text style={styles.doneTitle}>No placement puzzles yet</Text>
+          <Text style={styles.doneSub}>Start from the academy while we prepare a placement set for you.</Text>
+          <View style={{ marginTop: space[5], width: 260 }}>
+            <Button label="Back to academy" variant="outline" onPress={() => router.back()} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (done) {
     const pct = puzzles.length ? correctRef.current / puzzles.length : 0;
     const { elo, label, skip } = placement(pct);
     return (
@@ -69,10 +113,10 @@ export default function PlacementScreen() {
   const turn = puzzle.fen.split(" ")[1] === "b" ? "Black" : "White";
   const mood: CodyExpression = feedback === "correct" ? "cheer" : feedback === "wrong" ? "sad" : "think";
 
-  function onMove(from: string, to: string): boolean {
+  function onMove(from: string, to: string, promotion: "q" | "r" | "b" | "n" = "q"): boolean {
     if (feedback) return false;
     const e = new ChessEngine(puzzle.fen);
-    const mv = e.move({ from, to, promotion: "q" });
+    const mv = e.move({ from, to, promotion });
     if (!mv) return false; // illegal — board snaps back, no penalty
     const ok = puzzle.solution.includes(`${from}:${to}`);
     setDisplayFen(e.fen()); // show + animate the played move

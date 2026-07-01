@@ -9,12 +9,15 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/auth";
-import { colors, font, radius } from "@/theme";
+import { PasswordField } from "@/PasswordField";
+import { ThemedSafeArea } from "@/ThemedSafeArea";
+import { useAppTheme } from "@/ThemeProvider";
+import { font, radius, space, type } from "@/theme";
 
 export default function LoginScreen() {
   const { login, register, continueAsGuest } = useAuth();
+  const { colors } = useAppTheme();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,6 +26,50 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const isRegister = mode === "register";
 
+  const styles = StyleSheet.create({
+    center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
+    logo: { fontSize: 22, fontFamily: font.bold, color: colors.brand, textAlign: "center", marginBottom: space[6] },
+    title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
+    subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
+    input: {
+      height: 52,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      backgroundColor: colors.surfaceCard,
+      paddingHorizontal: 14,
+      fontSize: 16,
+      fontFamily: font.medium,
+      color: colors.ink,
+      marginBottom: space[3],
+    },
+    error: { color: colors.danger, fontFamily: font.semibold, marginBottom: 10, textAlign: "center" },
+    button: {
+      height: 54,
+      borderRadius: radius.md,
+      backgroundColor: colors.brand,
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: 4,
+    },
+    buttonText: { color: "#fff", fontSize: 17, fontFamily: font.bold },
+    switch: { color: colors.brand, fontFamily: font.semibold, textAlign: "center", marginTop: space[4] },
+    divider: { flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[5], marginBottom: space[3] },
+    line: { flex: 1, height: 1, backgroundColor: colors.hairline },
+    or: { color: colors.ink300, fontFamily: font.bold, fontSize: 13 },
+    guestButton: {
+      height: 50,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: colors.brand,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.surfaceCard,
+    },
+    guestText: { color: colors.brand, fontSize: 16, fontFamily: font.bold },
+    guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
+  });
+
   async function submit() {
     setError(null);
     setBusy(true);
@@ -30,14 +77,19 @@ export default function LoginScreen() {
       if (isRegister) await register(email, password, name);
       else await login(email, password);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      const msg = e instanceof Error ? e.message : "Something went wrong";
+      if (msg === "invalid registration" || msg === "invalid credentials") {
+        setError("Check your email and password (minimum 8 characters).");
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <ThemedSafeArea>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.center}>
         <Text style={styles.logo}>♟️ ChessSchool</Text>
         <Text style={styles.title}>{isRegister ? "Enroll at ChessSchool" : "Welcome back"}</Text>
@@ -64,13 +116,11 @@ export default function LoginScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
         />
-        <TextInput
-          style={styles.input}
+        <PasswordField
           placeholder="Password"
           placeholderTextColor={colors.ink300}
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
         />
 
         {error && <Text style={styles.error}>{error}</Text>}
@@ -93,43 +143,6 @@ export default function LoginScreen() {
         </Pressable>
         <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ThemedSafeArea>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  center: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
-  logo: { fontSize: 22, fontFamily: font.bold, color: colors.brand, textAlign: "center", marginBottom: 24 },
-  title: { fontSize: 26, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
-  subtitle: { fontSize: 14, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: 20 },
-  input: {
-    height: 52,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surfaceCard,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    fontFamily: font.medium,
-    color: colors.ink,
-    marginBottom: 12,
-  },
-  error: { color: colors.danger, fontFamily: font.semibold, marginBottom: 10, textAlign: "center" },
-  button: {
-    height: 54,
-    borderRadius: radius.md,
-    backgroundColor: colors.brand,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  buttonText: { color: "#fff", fontSize: 17, fontFamily: font.bold },
-  switch: { color: colors.brand, fontFamily: font.semibold, textAlign: "center", marginTop: 18 },
-  divider: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 22, marginBottom: 14 },
-  line: { flex: 1, height: 1, backgroundColor: colors.hairline },
-  or: { color: colors.ink300, fontFamily: font.bold, fontSize: 13 },
-  guestButton: { height: 50, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.brand, justifyContent: "center", alignItems: "center", backgroundColor: colors.surfaceCard },
-  guestText: { color: colors.brand, fontSize: 16, fontFamily: font.bold },
-  guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
-});

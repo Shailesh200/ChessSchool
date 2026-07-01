@@ -4,7 +4,9 @@ import { useEffect, useRef } from "react";
 import { useProgression } from "@/core/store/progression.store";
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
-import { pullProgress, fullSnapshot } from "@/core/sync/pullProgress";
+import { useSettings } from "@/core/store/settings.store";
+import { pullProgress, fullSnapshotAsync } from "@/core/sync/pullProgress";
+import { onSyncTrigger } from "@/core/sync/syncTrigger";
 import { toast } from "@/core/store/toast.store";
 
 /**
@@ -20,9 +22,9 @@ export function ProgressSync() {
     let cancelled = false;
     const before = useProgression.getState();
     const guestHadProgress = before.xp > 0 || Object.keys(before.lessons).length > 0;
-    pullProgress().then((user) => {
+    pullProgress().then(async (user) => {
       if (cancelled || !user) return;
-      lastPushed.current = JSON.stringify(fullSnapshot());
+      lastPushed.current = JSON.stringify(await fullSnapshotAsync());
       if (guestHadProgress) {
         toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
       }
@@ -38,8 +40,8 @@ export function ProgressSync() {
     const schedule = () => {
       if (useSession.getState().authed !== true) return;
       clearTimeout(timer);
-      timer = setTimeout(() => {
-        const body = JSON.stringify(fullSnapshot());
+      timer = setTimeout(async () => {
+        const body = JSON.stringify(await fullSnapshotAsync());
         if (body === lastPushed.current) return;
         lastPushed.current = body;
         fetch("/api/progress", {
@@ -51,10 +53,14 @@ export function ProgressSync() {
     };
     const unsubP = useProgression.subscribe(schedule);
     const unsubPlan = usePlan.subscribe(schedule);
+    const unsubSettings = useSettings.subscribe(schedule);
+    const unsubJournal = onSyncTrigger(schedule);
     return () => {
       clearTimeout(timer);
       unsubP();
       unsubPlan();
+      unsubSettings();
+      unsubJournal();
     };
   }, []);
 

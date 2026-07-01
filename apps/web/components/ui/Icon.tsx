@@ -35,7 +35,9 @@ export type IconName =
   | "plus"
   | "target"
   | "dna"
-  | "compass";
+  | "compass"
+  | "eye"
+  | "eyeOff";
 
 const S = { strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" } as const;
 const duo = { fill: "currentColor", opacity: 0.16 };
@@ -179,6 +181,17 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
       {d && <circle cx="12" cy="12" r="8.5" {...duo} />}
       <circle cx="12" cy="12" r="8.5" {...S} />
       <path d="M15.5 8.5l-2 5-5 2 2-5z" {...S} fill="currentColor" />
+    </>
+  ),
+  eye: () => (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" {...S} />
+      <circle cx="12" cy="12" r="3" {...S} />
+    </>
+  ),
+  eyeOff: () => (
+    <>
+      <path d="M3 3l18 18M10.5 10.5a3 3 0 0 0 4.24 4.24M9.9 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18.2 18.2 0 0 1-4.12 5.12M6.12 6.12A18.5 18.5 0 0 0 2 12s3.5 7 10 7a10.7 10.7 0 0 0 4.9-1.2" {...S} />
     </>
   ),
 };

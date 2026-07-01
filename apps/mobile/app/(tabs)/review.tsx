@@ -1,26 +1,53 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useMemo } from "react";
 import { useProgress } from "@/progressStore";
 import { Cody } from "@/Cody";
 import { Icon } from "@/Icon";
 import { Button } from "@/Button";
 import { TopBar } from "@/TopBar";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
-
-type Game = { moves: string[]; result: "win" | "loss" | "draw"; elo: number; at: number };
-const RESULT = {
-  win: { label: "Win", color: colors.success },
-  loss: { label: "Loss", color: colors.danger },
-  draw: { label: "Draw", color: colors.ink500 },
-};
+import { ThemedSafeArea } from "@/ThemedSafeArea";
+import { useAppTheme } from "@/ThemeProvider";
+import { movesFromSyncGame, normalizeSyncGame, playerResultOf } from "@/progression";
+import { font, radius, shadowCard, space, type } from "@/theme";
 
 export default function ReviewScreen() {
   const router = useRouter();
-  const games = ((useProgress()?.recentGames as Game[]) ?? []);
+  const { colors } = useAppTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        content: { padding: space[5], gap: space[5] },
+        header: { flexDirection: "row", alignItems: "center", gap: space[3] },
+        h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+        subtitle: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
+        h2: { ...type.base, fontFamily: font.bold, color: colors.ink, marginBottom: -space[2] },
+        emptyCard: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[5], alignItems: "center", ...shadowCard },
+        emptyTitle: { ...type.base, fontFamily: font.bold, color: colors.ink, marginTop: space[2] },
+        emptyText: { textAlign: "center", marginTop: space[1], ...type.xs, fontFamily: font.semibold, color: colors.ink500, lineHeight: 18 },
+        card: { flexDirection: "row", alignItems: "center", gap: space[3], backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[3], ...shadowCard },
+        badge: { borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 5 },
+        badgeText: { fontFamily: font.bold, fontSize: 12 },
+        title: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+        sub: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
+      }),
+    [colors],
+  );
+
+  const progress = useProgress();
+  const games = useMemo(
+    () => ((progress?.recentGames as unknown[]) ?? []).map(normalizeSyncGame).filter((g): g is NonNullable<typeof g> => g !== null),
+    [progress],
+  );
+
+  const RESULT = {
+    win: { label: "Win", color: colors.success },
+    loss: { label: "Loss", color: colors.danger },
+    draw: { label: "Draw", color: colors.ink500 },
+  };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <ThemedSafeArea edges={["top"]}>
       <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
@@ -43,10 +70,13 @@ export default function ReviewScreen() {
           </View>
         ) : (
           games.map((g, i) => {
-            const r = RESULT[g.result];
+            const pr = playerResultOf(g, "w");
+            const r = RESULT[pr];
+            const title = g.mode === "pass" ? "vs Human" : g.mode === "online" ? "vs Friend (online)" : `vs Bot · ${g.elo ?? "?"}`;
+            const moveCount = g.moveCount || movesFromSyncGame(g).length;
             return (
               <Pressable
-                key={i}
+                key={g.id}
                 testID={`game-${i}`}
                 style={styles.card}
                 onPress={() => router.push({ pathname: "/replay/[index]", params: { index: String(i) } })}
@@ -55,8 +85,8 @@ export default function ReviewScreen() {
                   <Text style={[styles.badgeText, { color: r.color }]}>{r.label}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.title}>vs Bot · {g.elo}</Text>
-                  <Text style={styles.sub}>{g.moves.length} moves</Text>
+                  <Text style={styles.title}>{title}</Text>
+                  <Text style={styles.sub}>{moveCount} moves</Text>
                 </View>
                 <Icon name="chevronRight" size={18} color={colors.ink300} />
               </Pressable>
@@ -64,23 +94,6 @@ export default function ReviewScreen() {
           })
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ThemedSafeArea>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: space[5], gap: space[5] },
-  header: { flexDirection: "row", alignItems: "center", gap: space[3] },
-  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
-  subtitle: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
-  h2: { ...type.base, fontFamily: font.bold, color: colors.ink, marginBottom: -space[2] },
-  emptyCard: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[5], alignItems: "center", ...shadowCard },
-  emptyTitle: { ...type.base, fontFamily: font.bold, color: colors.ink, marginTop: space[2] },
-  emptyText: { textAlign: "center", marginTop: space[1], ...type.xs, fontFamily: font.semibold, color: colors.ink500, lineHeight: 18 },
-  card: { flexDirection: "row", alignItems: "center", gap: space[3], backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[3], ...shadowCard },
-  badge: { borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 5 },
-  badgeText: { fontFamily: font.bold, fontSize: 12 },
-  title: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  sub: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
-});

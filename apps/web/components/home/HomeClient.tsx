@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { CampusMap } from "@/features/school/CampusMap";
 import { ResumeCard } from "@/features/school/ResumeCard";
@@ -13,7 +14,10 @@ import { useProgression } from "@/core/store/progression.store";
 import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useMounted } from "@/core/hooks/useMounted";
+import { dueLessonIds, isDailyPuzzleDone } from "@chess-school/progression";
 import type { Catalog } from "@/features/school/structure";
+
+type DailyPuzzle = { day: string; lessonId: string | null; title: string | null; tag: string | null; emoji: string | null };
 
 export function HomeClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
@@ -23,9 +27,22 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const graduated = useProgression((s) => s.graduatedClasses);
   const authed = useSession((s) => s.authed);
   const rating = useProgression((s) => s.rating);
+  const dailyPuzzleDay = useProgression((s) => s.dailyPuzzleDay);
   const homeworkDone = usePlan((s) => s.routineDone.length);
   const mounted = useMounted();
   const isNew = mounted && Object.keys(lessons).length === 0 && graduated.length === 0;
+  const dueIds = dueLessonIds(lessons);
+  const [daily, setDaily] = useState<DailyPuzzle | null>(null);
+
+  useEffect(() => {
+    fetch("/api/daily-puzzle")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setDaily(d))
+      .catch(() => void 0);
+  }, []);
+
+  const dailyDone = daily ? isDailyPuzzleDone(daily.day, dailyPuzzleDay) : false;
+  const firstDueTitle = dueIds[0] ? catalog.titles[dueIds[0]] : null;
 
   return (
     <AppShell>
@@ -67,6 +84,43 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
         )}
 
         <ResumeCard catalog={catalog} />
+
+        {authed === true && dueIds.length > 0 && (
+          <Link
+            href={`/lesson/${dueIds[0]}`}
+            className="btn-tactile flex items-center justify-between rounded-card border border-brand/30 bg-brand/10 px-4 py-3"
+          >
+            <span>
+              <span className="block text-sm font-extrabold text-ink">🔁 Review due</span>
+              <span className="block text-xs font-semibold text-ink-500">
+                {dueIds.length} lesson{dueIds.length === 1 ? "" : "s"} ready
+                {firstDueTitle ? ` — start with “${firstDueTitle}”` : ""}
+              </span>
+            </span>
+            <span className="text-sm font-bold text-brand">Start →</span>
+          </Link>
+        )}
+
+        {authed === true && daily?.lessonId && (
+          <Link
+            href={dailyDone ? "#" : `/lesson/${daily.lessonId}?daily=1`}
+            className={`btn-tactile flex items-center justify-between rounded-card border px-4 py-3 ${
+              dailyDone ? "border-success/40 bg-success/10" : "border-brand/30 bg-brand/5"
+            }`}
+            aria-disabled={dailyDone}
+            onClick={dailyDone ? (e) => e.preventDefault() : undefined}
+          >
+            <span>
+              <span className="block text-sm font-extrabold text-ink">
+                {dailyDone ? "✅ Daily puzzle done" : `${daily.emoji ?? "🧩"} Daily puzzle`}
+              </span>
+              <span className="block text-xs font-semibold text-ink-500">
+                {dailyDone ? "Come back tomorrow for a fresh position." : daily.title ?? "One rated puzzle for everyone today"}
+              </span>
+            </span>
+            {!dailyDone && <span className="text-sm font-bold text-brand">Play →</span>}
+          </Link>
+        )}
 
         {/* Today's homework prompt (logged-in) */}
         {authed === true &&

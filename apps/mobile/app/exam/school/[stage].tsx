@@ -24,7 +24,7 @@ const STAGE_NAME: Record<string, string> = {
 };
 
 type Step = { id: string; fen: string; solution: string[]; coach?: string };
-const PASS_RATIO = 0.75;
+const PASS_RATIO = 0.7;
 
 export default function SchoolExamScreen() {
   const { stage } = useLocalSearchParams<{ stage: string }>();
@@ -103,10 +103,10 @@ export default function SchoolExamScreen() {
   const turn = step.fen.split(" ")[1] === "b" ? "Black" : "White";
   const mood: CodyExpression = feedback === "correct" ? "cheer" : feedback === "wrong" ? "sad" : "think";
 
-  function onMove(from: string, to: string): boolean {
+  function onMove(from: string, to: string, promotion: "q" | "r" | "b" | "n" = "q"): boolean {
     if (feedback) return false;
     const e = new ChessEngine(step.fen);
-    const mv = e.move({ from, to, promotion: "q" });
+    const mv = e.move({ from, to, promotion });
     if (!mv) return false; // illegal — board snaps back
     const ok = step.solution.includes(`${from}:${to}`);
     setDisplayFen(e.fen());
@@ -144,7 +144,23 @@ export default function SchoolExamScreen() {
       </View>
 
       <View style={styles.boardWrap}>
+        <View style={styles.turnRow}>
+          <View style={[styles.turnDot, { backgroundColor: turn === "Black" ? colors.ink : "#fff" }]} />
+          <Text style={styles.turnText}>{turn} to move</Text>
+        </View>
         <ChessBoard fen={displayFen ?? step.fen} size={boardSize} orientation={turn === "Black" ? "black" : "white"} onMove={onMove} interactive={!feedback} lastMove={lastMove} />
+      </View>
+
+      <View style={styles.hintBar}>
+        <Text style={styles.hintText}>🎓 Take your time and calculate before you move.</Text>
+      </View>
+
+      <View style={styles.bottom}>
+        {!feedback ? (
+          <Text style={styles.moveCue}>Your move — tap a piece to begin</Text>
+        ) : (
+          <Text style={styles.moveCue}>{feedback === "correct" ? "Nice — next puzzle…" : "Moving on…"}</Text>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -161,6 +177,13 @@ const styles = StyleSheet.create({
   bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: space[4], paddingVertical: space[3], borderWidth: 1, borderColor: colors.hairline },
   bubbleText: { ...type.base, fontFamily: font.bold, color: colors.ink },
   boardWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+  turnRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2] },
+  turnDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: colors.ink300 },
+  turnText: { fontSize: 13, fontFamily: font.bold, color: colors.ink500 },
+  hintBar: { marginHorizontal: space[4], backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingVertical: 12, paddingHorizontal: space[4], alignItems: "center", borderWidth: 1, borderColor: colors.hairline },
+  hintText: { fontSize: 13, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+  bottom: { paddingHorizontal: space[4], paddingTop: space[3], paddingBottom: space[2], minHeight: 52, justifyContent: "center" },
+  moveCue: { textAlign: "center", fontSize: 13, fontFamily: font.semibold, color: colors.ink500 },
   doneTitle: { ...type["2xl"], fontFamily: font.bold, color: colors.ink, marginTop: space[4], textAlign: "center" },
   doneSub: { ...type.base, fontFamily: font.semibold, color: colors.ink500, marginTop: space[2], textAlign: "center" },
 });
