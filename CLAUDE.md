@@ -85,7 +85,8 @@ publishes each move to `game:<id>` and clients subscribe (token-auth via
 silently fall back to polling — nothing breaks.
 
 ## Deployment
-- **Vercel** native Git integration auto-deploys `main` (no Action/secrets). Env vars (`DATABASE_URL`, `DATABASE_AUTH_TOKEN`) live in Vercel only. CI (`.github/workflows/ci.yml`) runs typecheck/lint/test/build.
+- **Vercel** auto-deploys `main` via Git integration. **Monorepo:** set Project → Settings → General → **Root Directory** to `apps/web` (required after merging the monorepo branch). `apps/web/vercel.json` installs from the workspace root.
+- Env vars (`DATABASE_URL`, `DATABASE_AUTH_TOKEN`) live in Vercel only. CI (`.github/workflows/ci.yml`) runs typecheck/lint/test/build + e2e.
 - **Make an admin**: register on the live site, then run `UPDATE users SET role='admin' WHERE email='…'` via the Turso web SQL console (app.turso.tech) or `turso db shell` off-network.
 
 ## Corporate-network caveat (this machine)
