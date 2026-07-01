@@ -12,7 +12,8 @@
     },
     "updates": {
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/af6d1946-9dd2-42ef-b2a3-ad71bfbb7854"
     },
     "newArchEnabled": true,
     "experiments": {
@@ -35,7 +36,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5b5bd6"
       },
-      "permissions": []
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -59,9 +63,11 @@
       ]
     ],
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "chess-school-mobile"
+        "projectId": "af6d1946-9dd2-42ef-b2a3-ad71bfbb7854"
       }
-    }
+    },
+    "owner": "shaileshjha200"
   }
 }
