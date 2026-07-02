@@ -11,7 +11,6 @@ import { localProgressPresent } from "@chess-school/progression";
 import { onSyncTrigger } from "@/core/sync/syncTrigger";
 import { toast } from "@/core/store/toast.store";
 import { rehydrateAllStores } from "@/core/bootstrap/storeBootstrap";
-import { markSyncReady } from "@/core/hooks/useSyncReady";
 
 /**
  * Two-way progress sync (#1). On mount: pull the account snapshot (the account is
@@ -21,6 +20,7 @@ import { markSyncReady } from "@/core/hooks/useSyncReady";
  */
 export function ProgressSync() {
   const lastPushed = useRef<string>("");
+  const initialSyncDone = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +49,7 @@ export function ProgressSync() {
         });
       })
       .finally(() => {
-        if (!cancelled) markSyncReady();
+        if (!cancelled) initialSyncDone.current = true;
       });
     return () => {
       cancelled = true;
@@ -60,6 +60,7 @@ export function ProgressSync() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
+      if (!initialSyncDone.current) return;
       if (useSession.getState().authed !== true) return;
       clearTimeout(timer);
       timer = setTimeout(async () => {

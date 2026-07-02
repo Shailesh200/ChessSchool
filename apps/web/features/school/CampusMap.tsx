@@ -293,7 +293,7 @@ function ClassCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 260, damping: 24 }}
       className={`rounded-card border bg-surface-card p-4 [box-shadow:var(--shadow-card)] ${

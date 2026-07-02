@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Mascot } from "@/components/ui/Mascot";
@@ -46,8 +45,7 @@ export default function ReviewPage() {
   const suggestion = topTag ? LESSONS.find((l) => l.tag === topTag) : undefined;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
           <Mascot expression="think" size={56} />
           <div>
@@ -116,7 +114,6 @@ export default function ReviewPage() {
             </div>
           )}
         </section>
-      </div>
-    </AppShell>
+    </div>
   );
 }

@@ -38,7 +38,7 @@ export function ProgressBar({
     >
       <motion.div
         className={cn("h-full rounded-pill", toneClass)}
-        initial={{ width: 0 }}
+        initial={false}
         animate={{ width: `${pct * 100}%` }}
         transition={{ type: "spring", stiffness: 200, damping: 26 }}
       />

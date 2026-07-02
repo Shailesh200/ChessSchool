@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useProgression, levelForXp, xpProgress } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
-import { useSyncReady } from "@/core/hooks/useSyncReady";
+import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
@@ -13,11 +13,11 @@ export function TopBar() {
   const streak = useProgression((s) => s.streak);
   const graduated = useProgression((s) => s.graduatedClasses.length);
   const authed = useSession((s) => s.authed);
-  const syncReady = useSyncReady();
+  const rehydrateReady = useRehydrateReady();
   const level = levelForXp(xp);
   const { into, need } = xpProgress(xp);
 
-  if (!syncReady || authed === null) {
+  if (!rehydrateReady) {
     return (
       <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
@@ -56,7 +56,7 @@ export function TopBar() {
           <div className="h-2.5 flex-1 overflow-hidden rounded-pill bg-surface-sunken">
             <motion.div
               className="h-full rounded-pill bg-gradient-to-r from-brand-300 to-brand"
-              initial={{ width: 0 }}
+              initial={false}
               animate={{ width: `${(into / need) * 100}%` }}
               transition={{ type: "spring", stiffness: 200, damping: 26 }}
             />

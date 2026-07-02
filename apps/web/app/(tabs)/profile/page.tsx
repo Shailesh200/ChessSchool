@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { AppShell } from "@/components/layout/AppShell";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -75,8 +74,7 @@ export default function ProfilePage() {
     : [];
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <div className="flex items-center gap-4">
           <Mascot expression="happy" size={72} />
           <div>
@@ -195,8 +193,7 @@ export default function ProfilePage() {
         </section>
         </>
         )}
-      </div>
-    </AppShell>
+    </div>
   );
 }
 

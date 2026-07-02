@@ -7,8 +7,31 @@ import { useMatch } from "@/core/store/match.store";
 import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { applyTheme, getAppTheme } from "@/core/themes/themes";
 import type { SettingsState } from "@/core/store/settings.store";
+import { markRehydrateReady } from "@/core/hooks/useRehydrateReady";
 
 let bootstrapPromise: Promise<void> | null = null;
+let lastAppliedKey = "";
+
+function settingsKey(s: Pick<
+  SettingsState,
+  | "colorblind"
+  | "reducedMotion"
+  | "textScale"
+  | "highContrast"
+  | "boardTheme"
+  | "schoolTheme"
+  | "appTheme"
+>): string {
+  return [
+    s.colorblind,
+    s.reducedMotion,
+    s.textScale,
+    s.highContrast,
+    s.boardTheme,
+    s.schoolTheme,
+    s.appTheme,
+  ].join("|");
+}
 
 /** Apply theme + accessibility attrs to <html> (shared by bootstrap + settings effect). */
 export function applyDocumentSettings(s: Pick<
@@ -22,6 +45,9 @@ export function applyDocumentSettings(s: Pick<
   | "appTheme"
 >): void {
   if (typeof document === "undefined") return;
+  const key = settingsKey(s);
+  if (key === lastAppliedKey) return;
+  lastAppliedKey = key;
   const root = document.documentElement;
   root.dataset.cb = s.colorblind === "none" ? "" : s.colorblind;
   root.dataset.rm = s.reducedMotion ? "1" : "";
@@ -56,6 +82,7 @@ export function rehydrateAllStores(): Promise<void> {
     const plan = usePlan.getState();
     plan.ensureDay(isoDay());
     useProgression.getState().setDailyGoalXp(planGoalXp(plan));
+    markRehydrateReady();
   });
   return bootstrapPromise;
 }

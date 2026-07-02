@@ -27,7 +27,7 @@ export function ResumeCard({ catalog }: { catalog: Catalog }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       className="overflow-hidden rounded-card border border-brand-100 bg-surface-card p-4 [box-shadow:var(--shadow-card)]"
     >

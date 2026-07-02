@@ -8,6 +8,7 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import dynamic from "next/dynamic";
 import { applyDocumentSettings, rehydrateAllStores } from "@/core/bootstrap/storeBootstrap";
+import { ProgressSync } from "@/components/providers/ProgressSync";
 
 // Not needed at first paint — keep them out of the initial bundle.
 const Toaster = dynamic(() => import("@/components/ui/Toaster").then((m) => m.Toaster), {
@@ -15,10 +16,6 @@ const Toaster = dynamic(() => import("@/components/ui/Toaster").then((m) => m.To
 });
 const Diagnostics = dynamic(
   () => import("@/components/dev/Diagnostics").then((m) => m.Diagnostics),
-  { ssr: false },
-);
-const ProgressSync = dynamic(
-  () => import("@/components/providers/ProgressSync").then((m) => m.ProgressSync),
   { ssr: false },
 );
 const NavProgress = dynamic(

@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui/cn";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -22,11 +22,11 @@ export function BottomNav() {
   const pathname = usePathname();
   // Track the tab being navigated to so we can show a loader + lock it.
   const [pending, setPending] = useState<string | null>(null);
-  const [lastPath, setLastPath] = useState(pathname);
-  if (pathname !== lastPath) {
-    setLastPath(pathname); // route arrived → clear the pending loader (render-phase reset)
+
+  useEffect(() => {
     setPending(null);
-  }
+  }, [pathname]);
+
   return (
     <nav className="pb-safe sticky bottom-0 z-30 border-t border-hairline bg-surface-card/85 backdrop-blur-xl">
       <ul className="mx-auto flex max-w-2xl items-stretch justify-around px-2">

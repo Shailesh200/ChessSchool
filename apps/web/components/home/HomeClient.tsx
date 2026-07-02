@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppShell } from "@/components/layout/AppShell";
 import { CampusMap } from "@/features/school/CampusMap";
 import { ResumeCard } from "@/features/school/ResumeCard";
 import { Mascot } from "@/components/ui/Mascot";
@@ -15,7 +14,7 @@ import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
-import { useSyncReady } from "@/core/hooks/useSyncReady";
+import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { dueLessonIds, isDailyPuzzleDone, needsPlacementTest, shouldRecommendPreschool } from "@chess-school/progression";
 import type { Catalog } from "@/features/school/structure";
 
@@ -35,8 +34,8 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const targetElo = useSettings((s) => s.targetElo);
   const graduatedClasses = useProgression((s) => s.graduatedClasses);
   const mounted = useMounted();
-  const syncReady = useSyncReady();
-  const authedResolved = syncReady ? authed : null;
+  const rehydrateReady = useRehydrateReady();
+  const authedResolved = rehydrateReady ? authed : null;
   const showPlacement = authedResolved === true && mounted && needsPlacementTest({ placementDone, xp });
   const recommendPreschool =
     authedResolved === true &&
@@ -56,8 +55,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const firstDueTitle = dueIds[0] ? catalog.titles[dueIds[0]] : null;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
           <Mascot expression="wave" size={64} float={false} />
           <div className="min-w-0 flex-1">
@@ -188,7 +186,6 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
         </Card>
 
         <CampusMap catalog={catalog} />
-      </div>
-    </AppShell>
+    </div>
   );
 }
