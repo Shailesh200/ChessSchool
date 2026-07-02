@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, sessions, profiles, progress, lessonRecords } from "@/db/schema";
+import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 
 const COOKIE = "chessschool_session";
 const SESSION_DAYS = 30;
@@ -62,6 +63,7 @@ export async function registerUser(
     .values({ userId: id, studentNo: makeStudentNo(), enrolledAt: now, rankTitle: "Novice" });
   await db.insert(progress).values({ userId: id, updatedAt: now });
   await startSession(id);
+  void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
   return { ok: true };
 }
 
@@ -75,6 +77,7 @@ export async function loginUser(
     return { error: "Wrong email or password." };
   }
   await startSession(user.id);
+  void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
   return { ok: true };
 }
 
@@ -148,6 +151,7 @@ export async function registerWithToken(
   await db.insert(profiles).values({ userId: id, studentNo: makeStudentNo(), enrolledAt: now, rankTitle: "Novice" });
   await db.insert(progress).values({ userId: id, updatedAt: now });
   const token = await createSessionToken(id);
+  void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
   return { token, user: { id, email, name: name.trim(), role: "student" } };
 }
 
@@ -161,6 +165,7 @@ export async function loginWithToken(
     return { error: "Wrong email or password." };
   }
   const token = await createSessionToken(user.id);
+  void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
   return { token, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
 }
 

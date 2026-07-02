@@ -138,6 +138,29 @@ export const gameSessions = sqliteTable("game_sessions", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+/** Anonymous RUM samples (Phase 2) — LCP/INP/CLS from real users. */
+export const webVitals = sqliteTable("web_vitals", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(), // LCP | INP | CLS | FCP | TTFB
+  value: real("value").notNull(),
+  rating: text("rating").notNull(), // good | needs-improvement | poor
+  pathname: text("pathname").notNull(),
+  connection: text("connection"),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** Product analytics events (Phase 4). Props stored as JSON. */
+export const analyticsEvents = sqliteTable("analytics_events", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  props: text("props").notNull().default("{}"),
+  pathname: text("pathname"),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  sessionId: text("session_id"),
+  createdAt: integer("created_at").notNull(),
+});
+
 export type DBUser = typeof users.$inferSelect;
 export type DBLesson = typeof lessons.$inferSelect;
 export type DBClass = typeof classes.$inferSelect;

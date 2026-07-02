@@ -19,6 +19,7 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useMatch, type ActiveMatch } from "@/core/store/match.store";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { trackEvent } from "@/core/analytics/track";
 import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
@@ -124,6 +125,14 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       await saveGame(game);
       markFinished();
       usePlan.getState().markActivity("match", isoDay());
+      trackEvent("game_end", {
+        mode: active.mode,
+        result,
+        reason,
+        bot: isBot,
+        targetElo: isBot ? active.targetElo : null,
+        moveCount: game.moveCount,
+      });
       const playerWon = isBot && winner === playerColor;
       // Update the player's ELO from this bot game + unlock rating/win achievements.
       const ratingBefore = useProgression.getState().rating;

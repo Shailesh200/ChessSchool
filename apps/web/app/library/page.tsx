@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
@@ -7,8 +8,21 @@ import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
 import { BackButton } from "@/components/ui/BackButton";
 import { MyCompletedLibrary } from "@/components/library/MyCompletedLibrary";
+import { socialMeta } from "@/lib/seo";
 
-export const metadata = { title: "Lesson library" };
+export const metadata: Metadata = {
+  title: "Chess Lesson Library — Browse All Classes",
+  description:
+    "Browse every chess lesson and class at ChessSchool — tactics, openings, endgames, and puzzles. Free online chess school library.",
+  ...socialMeta({
+    title: "Chess Lesson Library",
+    description: "Browse all chess classes, puzzles, and lessons — free online chess school.",
+    path: "/library",
+    kind: "home",
+    badge: "Chess Library",
+    emoji: "📖",
+  }),
+};
 export const revalidate = 3600;
 
 export default async function LibraryPage() {

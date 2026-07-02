@@ -12,6 +12,7 @@ import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { trackEvent } from "@/core/analytics/track";
 import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
@@ -99,6 +100,10 @@ export function LessonPlayer({
   const step = lesson.steps[index] as LessonStep | undefined;
   const total = lesson.steps.length;
 
+  useEffect(() => {
+    trackEvent("lesson_start", { lessonId: lesson.id, tag: lesson.tag, exam: lesson.exam });
+  }, [lesson.id, lesson.tag, lesson.exam]);
+
   // Reset per-step state during render when the step changes.
   if (index !== prevIndex) {
     setPrevIndex(index);
@@ -180,6 +185,7 @@ export function LessonPlayer({
       progression.registerActivity(isoDay());
       markHomeworkDone();
       if (dailyPuzzle) progression.markDailyPuzzleDone();
+      trackEvent("lesson_complete", { lessonId: lesson.id, tutorial: true, xp: lesson.xp });
       const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
       startNav();
       router.push(nextId ? `/lesson/${nextId}` : "/");
@@ -190,6 +196,15 @@ export function LessonPlayer({
     const correct = correctRef.current; // fresh count (state may lag the auto-advance)
     setFinalMistakes(wrongRef.current);
     const ratio = correct / interactive;
+    trackEvent("lesson_complete", {
+      lessonId: lesson.id,
+      correct,
+      interactive,
+      ratio,
+      mistakes: wrongRef.current,
+      xp: lesson.xp,
+      exam: lesson.exam,
+    });
     progression.recordLesson(lesson.id, correct, interactive, wrongRef.current);
     progression.awardXp(lesson.xp);
     progression.registerActivity(isoDay());

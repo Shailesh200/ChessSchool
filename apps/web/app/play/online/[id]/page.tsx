@@ -281,8 +281,16 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
   function shareLink() {
     const url = `${window.location.origin}/play/online/${id}`;
-    if (navigator.share) navigator.share({ title: "Join my chess game", url }).catch(() => void 0);
-    else navigator.clipboard?.writeText(url).then(() => toast("Invite link copied", { icon: "check", tone: "success" }));
+    const mins = session?.timeControlMin ?? 10;
+    const title = "Join my chess game on ChessSchool";
+    const text = `${mins}-minute live match — tap to play as Black.`;
+    if (navigator.share) {
+      navigator.share({ title, text, url }).catch(() => void 0);
+    } else {
+      navigator.clipboard
+        ?.writeText(url)
+        .then(() => toast("Invite link copied", { icon: "check", tone: "success" }));
+    }
   }
 
   function resign() {

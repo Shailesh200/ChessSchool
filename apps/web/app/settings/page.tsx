@@ -118,6 +118,16 @@ export default function SettingsPage() {
           </Card>
         )}
 
+        <Card className="divide-y divide-hairline py-0">
+          <Section title="Privacy" />
+          <Row label="Share performance data" hint="Anonymous page speed metrics (LCP, CLS)">
+            <Toggle checked={s.sharePerformance} onChange={(v) => s.set("sharePerformance", v)} label="Share performance data" />
+          </Row>
+          <Row label="Share usage analytics" hint="Lesson completes, sign-ups — no PII">
+            <Toggle checked={s.shareAnalytics} onChange={(v) => s.set("shareAnalytics", v)} label="Share usage analytics" />
+          </Row>
+        </Card>
+
         {authed === true && <DataSection />}
 
         <p className="pb-4 text-center text-xs font-semibold text-ink-300">

@@ -16,7 +16,8 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://chess-school.in"
+        "EXPO_PUBLIC_API_URL": "https://chess-school.in",
+        "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
       },
       "android": {
         "buildType": "apk",
@@ -28,7 +29,8 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://chess-school.in"
+        "EXPO_PUBLIC_API_URL": "https://chess-school.in",
+        "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
       },
       "android": {
         "buildType": "app-bundle",

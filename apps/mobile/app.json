@@ -15,10 +15,7 @@
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/af6d1946-9dd2-42ef-b2a3-ad71bfbb7854"
     },
-    "newArchEnabled": true,
-    "experiments": {
-      "autolinkingModuleResolution": true
-    },
+    "newArchEnabled": false,
     "icon": "./assets/icon.png",
     "splash": {
       "resizeMode": "contain",
@@ -61,7 +58,19 @@
           }
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false,
+            "kotlinVersion": "2.0.21"
+          },
+          "ios": {
+            "newArchEnabled": false
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},

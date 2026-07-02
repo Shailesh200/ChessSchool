@@ -21,7 +21,25 @@ function ready() {
   }
 }
 
-if (ready()) {
+/** True when analytics/RUM tables from Phase 2+4 exist. */
+function schemaCurrent() {
+  if (!existsSync(path)) return false;
+  try {
+    const db = new Database(path, { readonly: true });
+    db.prepare("SELECT 1 FROM web_vitals LIMIT 1").get();
+    db.prepare("SELECT 1 FROM analytics_events LIMIT 1").get();
+    db.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+if (ready() && schemaCurrent()) {
+  console.log("✓ Database ready.");
+} else if (ready()) {
+  console.log("⚙️  Applying schema updates (analytics tables)…");
+  execSync("pnpm db:push", { stdio: "inherit" });
   console.log("✓ Database ready.");
 } else {
   console.log("⚙️  First run — setting up the database (tables + lessons)…");

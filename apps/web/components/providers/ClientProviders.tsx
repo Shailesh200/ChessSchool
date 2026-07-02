@@ -8,7 +8,9 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import dynamic from "next/dynamic";
 import { applyDocumentSettings, rehydrateAllStores } from "@/core/bootstrap/storeBootstrap";
+import { trackEvent } from "@/core/analytics/track";
 import { ProgressSync } from "@/components/providers/ProgressSync";
+import { initVitalsReporting } from "@/core/vitals/reportVitals";
 
 // Not needed at first paint — keep them out of the initial bundle.
 const Toaster = dynamic(() => import("@/components/ui/Toaster").then((m) => m.Toaster), {
@@ -32,9 +34,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   const settings = useSettings();
   const pwa = usePwa();
 
-  // Rehydrate persisted stores once (shared with ProgressSync via storeBootstrap).
+  // Rehydrate persisted stores once; register Core Web Vitals reporters.
   useEffect(() => {
     void rehydrateAllStores();
+    initVitalsReporting();
   }, []);
 
   // Sync settings -> subsystems + document.
@@ -105,6 +108,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     const onInstalled = () => {
       pwa.setInstalled(true);
       audio.play("install");
+      trackEvent("pwa_install");
     };
     window.addEventListener("beforeinstallprompt", onBip);
     window.addEventListener("appinstalled", onInstalled);

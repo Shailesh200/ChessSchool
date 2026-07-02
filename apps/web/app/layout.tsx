@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/core/bootstrap/themeBootstrapScript";
+import { HOME_DESCRIPTION, HOME_TITLE, SEO_KEYWORDS, siteName, siteUrl, socialMeta } from "@/lib/seo";
 
 const fredoka = Fredoka({
   variable: "--font-display",
@@ -13,36 +14,29 @@ const fredoka = Fredoka({
   weight: ["400", "500", "600", "700"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school.in";
+const rootSocial = socialMeta({
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
+  path: "/",
+  kind: "home",
+  badge: "Learn Chess",
+  emoji: "🎓",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  applicationName: "ChessSchool",
+  applicationName: siteName,
   title: {
-    default: "ChessSchool — Become a stronger player",
-    template: "%s · ChessSchool",
+    default: HOME_TITLE,
+    template: `%s · ${siteName}`,
   },
-  description:
-    "A school-first chess academy: graduate through classes, master openings and endgames, play adaptive bots, and review every game. Offline-first PWA with accounts and progress sync.",
+  description: HOME_DESCRIPTION,
+  keywords: SEO_KEYWORDS,
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "ChessSchool" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: siteName },
   formatDetection: { telephone: false },
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: siteUrl,
-    siteName: "ChessSchool",
-    title: "ChessSchool — Become a stronger player",
-    description: "Graduate through chess classes, puzzles, and matches.",
-    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "ChessSchool" }],
-  },
-  twitter: {
-    card: "summary",
-    title: "ChessSchool",
-    description: "Graduate through chess classes, puzzles, and matches.",
-    images: ["/icons/icon-512.png"],
-  },
-  robots: { index: true, follow: true },
+  ...rootSocial,
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   icons: {
     icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/icons/apple-icon-180.png" }],

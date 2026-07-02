@@ -1,0 +1,35 @@
+import { NextResponse } from "next/server";
+import { getApiUser } from "@/lib/auth";
+import { vitalsBatchSchema } from "@/lib/api-schemas";
+import { insertWebVitals } from "@/lib/analytics/serverInsert";
+
+export const dynamic = "force-dynamic";
+
+/** Accept batched Core Web Vitals from the client (sendBeacon-friendly). */
+export async function POST(req: Request) {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+  const parsed = vitalsBatchSchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+
+  const user = await getApiUser(req);
+  try {
+    await insertWebVitals(
+      parsed.data.metrics.map((m) => ({
+        name: m.name,
+        value: m.value,
+        rating: m.rating,
+        pathname: m.pathname,
+        connection: m.connection ?? null,
+        userId: user?.id ?? null,
+      })),
+    );
+  } catch {
+    return NextResponse.json({ error: "storage failed" }, { status: 503 });
+  }
+  return NextResponse.json({ ok: true });
+}

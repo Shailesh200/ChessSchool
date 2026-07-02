@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Mascot } from "@/components/ui/Mascot";
 import { Confetti } from "@/components/ui/Confetti";
 import { useProgression } from "@/core/store/progression.store";
+import { trackEvent } from "@/core/analytics/track";
 import { startNav } from "@/core/store/nav.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
@@ -88,6 +89,7 @@ export function PlacementTest({
     const admit = (idx: number) => {
       stages.slice(0, idx).forEach((s) => s.classIds.forEach((id) => graduateClass(id)));
       markPlacementDone();
+      trackEvent("placement_complete", { score: correct, total: questions.length, stage: stages[idx]?.name });
       audio.play("graduation");
       startNav();
       router.push("/");

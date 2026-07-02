@@ -2,17 +2,20 @@ import type { MetadataRoute } from "next";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { classes, lessons } from "@/db/schema";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school.in";
+import { siteUrl } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const cls = await db.select({ id: classes.id }).from(classes).orderBy(asc(classes.sortOrder));
-  const lessonRows = await db.select({ id: lessons.id }).from(lessons).orderBy(asc(lessons.sortOrder)).limit(500);
+  const lessonRows = await db.select({ id: lessons.id }).from(lessons).orderBy(asc(lessons.sortOrder));
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/library`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/play`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${siteUrl}/review`, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${siteUrl}/login`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${siteUrl}/placement`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/privacy`, changeFrequency: "monthly", priority: 0.3 },
   ];
 

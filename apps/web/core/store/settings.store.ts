@@ -28,6 +28,10 @@ export interface SettingsState {
   pieceTheme: PieceTheme;
   coachPersonality: CoachPersonality;
   diagnostics: boolean;
+  /** Share Core Web Vitals with ChessSchool (anonymous RUM). */
+  sharePerformance: boolean;
+  /** Share product events (lesson complete, signup, etc.). */
+  shareAnalytics: boolean;
   targetElo: number; // 500..2500
   textScale: number; // 1 = 100%
 
@@ -56,6 +60,8 @@ const defaults = {
   pieceTheme: "classic" as PieceTheme,
   coachPersonality: "friendly" as CoachPersonality,
   diagnostics: false,
+  sharePerformance: true,
+  shareAnalytics: true,
   targetElo: 600,
   textScale: 1,
 };
@@ -81,13 +87,20 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       skipHydration: true,
       // v1 -> v2: introduce schoolTheme; older board themes still resolve.
-      migrate: (persisted) => {
+      // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
+      migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<SettingsState>;
-        if (!s.schoolTheme) s.schoolTheme = "university";
-        if (!s.boardTheme) s.boardTheme = "classic";
+        if (version < 2) {
+          if (!s.schoolTheme) s.schoolTheme = "university";
+          if (!s.boardTheme) s.boardTheme = "classic";
+        }
+        if (version < 3) {
+          if (s.sharePerformance === undefined) s.sharePerformance = true;
+          if (s.shareAnalytics === undefined) s.shareAnalytics = true;
+        }
         return { ...defaults, ...s } as SettingsState;
       },
     },

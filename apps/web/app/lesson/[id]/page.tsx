@@ -6,15 +6,38 @@ import { lessons } from "@/db/schema";
 import { getCatalog } from "@/features/school/catalog.server";
 import { nextLessonAfter } from "@/features/school/structure";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { canonical, lessonDescription, siteName, siteUrl, socialMeta } from "@/lib/seo";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const row = (await db.select({ title: lessons.title }).from(lessons).where(eq(lessons.id, id)).limit(1))[0];
+  const row = (
+    await db
+      .select({ title: lessons.title, subtitle: lessons.subtitle, emoji: lessons.emoji })
+      .from(lessons)
+      .where(eq(lessons.id, id))
+      .limit(1)
+  )[0];
   if (!row) return { title: "Lesson" };
-  return { title: row.title, description: `Play the ${row.title} lesson at ChessSchool.` };
+  const title = row.title;
+  const description = lessonDescription(title, row.subtitle);
+  return {
+    title,
+    description,
+    ...socialMeta({
+      title: `${row.emoji} ${title}`,
+      description,
+      path: `/lesson/${id}`,
+      kind: "lesson",
+      emoji: row.emoji,
+      badge: "Chess Lesson",
+      imageTitle: title,
+      imageSubtitle: description,
+    }),
+  };
 }
 
 export default async function LessonPage({
@@ -50,12 +73,26 @@ export default async function LessonPage({
     : undefined;
 
   return (
-    <LessonPlayer
-      lesson={lesson}
-      nextLessonId={nextLessonId}
-      lessonClass={lessonClass}
-      homeworkStep={hw}
-      dailyPuzzle={daily === "1"}
-    />
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "LearningResource",
+          name: lesson.title,
+          description: lessonDescription(lesson.title, lesson.subtitle),
+          url: canonical(`/lesson/${lesson.id}`),
+          isPartOf: { "@type": "WebSite", name: siteName, url: siteUrl },
+          learningResourceType: lesson.exam ? "Assessment" : "Interactive exercise",
+          educationalLevel: owner?.title ?? lesson.unit,
+        }}
+      />
+      <LessonPlayer
+        lesson={lesson}
+        nextLessonId={nextLessonId}
+        lessonClass={lessonClass}
+        homeworkStep={hw}
+        dailyPuzzle={daily === "1"}
+      />
+    </>
   );
 }

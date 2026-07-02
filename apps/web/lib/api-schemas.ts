@@ -52,3 +52,35 @@ export const progressPushSchema = z.object({
 });
 
 export type ProgressPushBody = z.infer<typeof progressPushSchema>;
+
+const vitalMetricSchema = z.object({
+  name: z.enum(["LCP", "INP", "CLS", "FCP", "TTFB"]),
+  value: z.number().finite(),
+  rating: z.enum(["good", "needs-improvement", "poor"]),
+  pathname: z.string().max(256),
+  connection: z.string().max(32).optional(),
+  navigationType: z.string().max(32).optional(),
+});
+
+export const vitalsBatchSchema = z.object({
+  metrics: z.array(vitalMetricSchema).min(1).max(12),
+});
+
+export const analyticsEventSchema = z.object({
+  name: z.enum([
+    "lesson_complete",
+    "placement_complete",
+    "game_end",
+    "signup",
+    "login",
+    "pwa_install",
+    "lesson_start",
+  ]),
+  props: z.record(z.string(), z.unknown()).optional(),
+  pathname: z.string().max(256).optional(),
+  sessionId: z.string().max(64).optional(),
+});
+
+export const analyticsBatchSchema = z.object({
+  events: z.array(analyticsEventSchema).min(1).max(20),
+});

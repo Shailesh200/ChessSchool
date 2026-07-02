@@ -6,14 +6,36 @@ import { JourneyView } from "@/features/school/JourneyView";
 import { getCatalog } from "@/features/school/catalog.server";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
+import { classDescription, socialMeta } from "@/lib/seo";
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const row = (await db.select({ title: classT.title }).from(classT).where(eq(classT.id, id)).limit(1))[0];
+  const row = (
+    await db
+      .select({ title: classT.title, blurb: classT.blurb, emoji: classT.emoji })
+      .from(classT)
+      .where(eq(classT.id, id))
+      .limit(1)
+  )[0];
   if (!row) return { title: "Class" };
-  return { title: row.title, description: `Journey through ${row.title} at ChessSchool.` };
+  const title = row.title;
+  const description = classDescription(title, row.blurb);
+  return {
+    title,
+    description,
+    ...socialMeta({
+      title: `${row.emoji} ${title}`,
+      description,
+      path: `/class/${id}`,
+      kind: "class",
+      emoji: row.emoji,
+      badge: "Chess Class",
+      imageTitle: title,
+      imageSubtitle: description,
+    }),
+  };
 }
 
 export default async function ClassJourneyPage({
