@@ -36,10 +36,8 @@ export default async function LibraryPage() {
     .orderBy(asc(lessons.sortOrder));
 
   const countByClass = new Map<string, number>();
-  const firstByClass = new Map<string, string>();
   for (const m of meta) {
     countByClass.set(m.classId, (countByClass.get(m.classId) ?? 0) + 1);
-    if (!firstByClass.has(m.classId)) firstByClass.set(m.classId, m.id);
   }
   const total = meta.length;
 
@@ -77,10 +75,11 @@ export default async function LibraryPage() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-extrabold text-ink">Lesson Library</h1>
-          <p className="text-sm font-semibold text-ink-500">
-            {total.toLocaleString()} lessons · {cls.length} classes · {sems.length} semesters
-            {user ? ` · welcome, ${user.name}!` : ""}
+          <h1 className="text-2xl font-extrabold text-ink">Chess Lesson Library</h1>
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-ink-600">
+            Browse every free chess lesson at ChessSchool — tactics puzzles, opening theory, endgames, and beginner
+            classes. {total.toLocaleString()} interactive lessons across {cls.length} classes.
+            {user ? ` Welcome back, ${user.name}!` : " Enroll free to track your progress."}
           </p>
         </div>
 
@@ -98,12 +97,10 @@ export default async function LibraryPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               {cls
                 .filter((c) => c.semesterId === sem.id)
-                .map((c) => {
-                  const first = firstByClass.get(c.id);
-                  return (
+                .map((c) => (
                     <Link
                       key={c.id}
-                      href={first ? `/library/lesson/${first}` : "#"}
+                      href={`/class/${c.id}`}
                       className="btn-tactile flex items-center gap-3 rounded-card border border-hairline bg-surface-card p-3 [box-shadow:var(--shadow-card)]"
                     >
                       <span className="text-2xl">{c.emoji}</span>
@@ -115,8 +112,7 @@ export default async function LibraryPage() {
                       </div>
                       <Icon name="arrowRight" size={18} className="text-brand" />
                     </Link>
-                  );
-                })}
+                  ))}
             </div>
           </section>
         ))}

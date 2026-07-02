@@ -15,11 +15,11 @@ export function SiteJsonLd() {
           description: HOME_DESCRIPTION,
           inLanguage: "en",
           keywords: SEO_KEYWORDS.join(", "),
-          potentialAction: {
-            "@type": "SearchAction",
-            target: `${siteUrl}/library?q={search_term_string}`,
-            "query-input": "required name=search_term_string",
-          },
+          hasPart: [
+            { "@type": "WebPage", name: "Learn Chess Online", url: `${siteUrl}/learn-chess` },
+            { "@type": "WebPage", name: "Chess for Beginners", url: `${siteUrl}/chess-for-beginners` },
+            { "@type": "WebPage", name: "Lesson Library", url: `${siteUrl}/library` },
+          ],
         }}
       />
       <JsonLd

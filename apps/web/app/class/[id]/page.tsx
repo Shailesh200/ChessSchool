@@ -67,6 +67,9 @@ export default async function ClassJourneyPage({
 
   return (
     <AppShell>
+      <p className="mb-4 text-sm font-semibold leading-relaxed text-ink-600">
+        {classDescription(clsRow.title, clsRow.blurb)} Browse {lessons.length} interactive chess lessons below.
+      </p>
       <JourneyView
         cls={{ id: clsRow.id, title: clsRow.title, emoji: clsRow.emoji, blurb: clsRow.blurb, examId: clsRow.examId ?? undefined }}
         lessons={lessons}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCatalog } from "@/features/school/catalog.server";
 import { HomeClient } from "@/components/home/HomeClient";
 import { SiteJsonLd } from "@/components/seo/SiteJsonLd";
+import { HomeSeoSection } from "@/components/home/HomeSeoSection";
 import { HOME_DESCRIPTION, HOME_TITLE, SEO_KEYWORDS, socialMeta } from "@/lib/seo";
 
 // Catalog is cached (tag "curriculum"); the page can be prefetched + revalidated
@@ -28,6 +29,7 @@ export default async function HomePage() {
     <>
       <SiteJsonLd />
       <HomeClient catalog={catalog} />
+      <HomeSeoSection />
     </>
   );
 }
