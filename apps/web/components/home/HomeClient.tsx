@@ -15,6 +15,7 @@ import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
+import { useSyncReady } from "@/core/hooks/useSyncReady";
 import { dueLessonIds, isDailyPuzzleDone, needsPlacementTest, shouldRecommendPreschool } from "@chess-school/progression";
 import type { Catalog } from "@/features/school/structure";
 
@@ -34,9 +35,11 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const targetElo = useSettings((s) => s.targetElo);
   const graduatedClasses = useProgression((s) => s.graduatedClasses);
   const mounted = useMounted();
-  const showPlacement = authed === true && mounted && needsPlacementTest({ placementDone, xp });
+  const syncReady = useSyncReady();
+  const authedResolved = syncReady ? authed : null;
+  const showPlacement = authedResolved === true && mounted && needsPlacementTest({ placementDone, xp });
   const recommendPreschool =
-    authed === true &&
+    authedResolved === true &&
     mounted &&
     shouldRecommendPreschool(targetElo, { lessons, graduatedClasses });
   const dueIds = dueLessonIds(lessons);
@@ -59,15 +62,15 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           <Mascot expression="wave" size={64} float={false} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-extrabold text-ink">
-              {authed === true && streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
+              {authedResolved === true && streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
             </h1>
             <p className="text-sm font-semibold text-ink-500">
-              {authed === true
-                ? "Graduate through classes. Become a stronger player."
-                : "Enroll to the academy to track your progress."}
+              {authedResolved === false
+                ? "Enroll to the academy to track your progress."
+                : "Graduate through classes. Become a stronger player."}
             </p>
           </div>
-          {authed === true && (
+          {authedResolved === true && (
             <Link
               href="/dashboard"
               aria-label="Your rating"
@@ -105,7 +108,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
 
         <ResumeCard catalog={catalog} />
 
-        {authed === true && dueIds.length > 0 && (
+        {authedResolved === true && dueIds.length > 0 && (
           <Link
             href={`/lesson/${dueIds[0]}`}
             className="btn-tactile flex items-center justify-between rounded-card border border-brand/30 bg-brand/10 px-4 py-3"
@@ -121,7 +124,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           </Link>
         )}
 
-        {authed === true && daily?.lessonId && (
+        {authedResolved === true && daily?.lessonId && (
           <Link
             href={dailyDone ? "#" : `/lesson/${daily.lessonId}?daily=1`}
             className={`btn-tactile flex items-center justify-between rounded-card border px-4 py-3 ${
@@ -143,7 +146,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
         )}
 
         {/* Today's homework prompt (logged-in) */}
-        {authed === true &&
+        {authedResolved === true &&
           (homeworkDone < ROUTINE_STEPS.length ? (
             <Link
               href="/plan"

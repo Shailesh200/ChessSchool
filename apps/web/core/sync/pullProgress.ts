@@ -5,13 +5,43 @@ import {
 } from "@/core/store/progression.store";
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
-import { useSettings } from "@/core/store/settings.store";
+import { useSettings, type SettingsState } from "@/core/store/settings.store";
 import { listJournal, replaceJournalEntries, replaceGamesFromSync, listGames, type JournalEntry } from "@/core/db/db";
 import {
   accountProgressEmpty,
   localProgressPresent,
   normalizeSyncGame,
 } from "@chess-school/progression";
+
+const SYNCED_SETTING_KEYS = [
+  "sound",
+  "volume",
+  "haptics",
+  "reducedMotion",
+  "hints",
+  "highContrast",
+  "boardTheme",
+  "schoolTheme",
+  "appTheme",
+  "pieceTheme",
+  "coachPersonality",
+  "targetElo",
+  "textScale",
+  "colorblind",
+] as const;
+
+function snapshotsEqual(a: ProgressSnapshot, b: ProgressSnapshot & { placementDone?: boolean }, placementDone: boolean): boolean {
+  return (
+    a.xp === b.xp &&
+    a.streak === b.streak &&
+    a.rating === (b.rating ?? 800) &&
+    a.lastActiveDay === b.lastActiveDay &&
+    a.dailyGoalXp === (b.dailyGoalXp ?? 50) &&
+    placementDone === Boolean(b.placementDone) &&
+    JSON.stringify(a.graduatedClasses) === JSON.stringify(b.graduatedClasses ?? []) &&
+    JSON.stringify(a.lessons) === JSON.stringify(b.lessons ?? {})
+  );
+}
 
 export type ServerSnapshot = ProgressSnapshot & {
   user: { name: string; role: string };
@@ -65,7 +95,8 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
     return null;
   }
   if (r.status === 401) {
-    useSession.getState().setSession(false, null);
+    const session = useSession.getState();
+    if (session.authed !== false) useSession.getState().setSession(false, null);
     return null;
   }
   if (!r.ok) return null;
@@ -78,19 +109,28 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
   if (accountEmpty && guestHadProgress) {
     useProgression.getState().mergeSnapshot({ ...data, placementDone: data.placementDone });
   } else {
-    useProgression.getState().hydrateSnapshot({ ...data, placementDone: data.placementDone });
+    const current = progressSnapshot(useProgression.getState());
+    const incoming = { ...data, placementDone: data.placementDone };
+    if (!snapshotsEqual(current, incoming, Boolean(data.placementDone))) {
+      useProgression.getState().hydrateSnapshot(incoming);
+    }
   }
-  if (data.dailyPuzzleDay !== undefined) {
+  if (data.dailyPuzzleDay !== undefined && data.dailyPuzzleDay !== useProgression.getState().dailyPuzzleDay) {
     useProgression.setState({ dailyPuzzleDay: data.dailyPuzzleDay ?? null });
   }
   usePlan.getState().setHomework(data.homeworkStreak ?? 0, data.homeworkLastDay ?? null);
   if (data.settings && typeof data.settings === "object") {
-    useSettings.getState().set("sound", Boolean(data.settings.sound ?? true));
-    for (const key of ["volume", "haptics", "reducedMotion", "hints", "highContrast", "boardTheme", "schoolTheme", "appTheme", "pieceTheme", "coachPersonality", "targetElo", "textScale", "colorblind"] as const) {
+    type SyncedSettings = Partial<Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch" | "diagnostics">>;
+    const patch: SyncedSettings = {
+      sound: Boolean(data.settings.sound ?? true),
+    };
+    for (const key of SYNCED_SETTING_KEYS) {
+      if (key === "sound") continue;
       if (key in data.settings && data.settings[key] !== undefined) {
-        useSettings.getState().set(key, data.settings[key] as never);
+        (patch as Record<string, unknown>)[key] = data.settings[key];
       }
     }
+    useSettings.getState().applyPatch(patch);
   }
   if (Array.isArray(data.journalEntries) && data.journalEntries.length > 0) {
     try {
@@ -106,6 +146,9 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
       /* ignore */
     }
   }
-  useSession.getState().setSession(true, data.user);
+  const session = useSession.getState();
+  if (session.authed !== true || session.user?.name !== data.user.name || session.user?.role !== data.user.role) {
+    useSession.getState().setSession(true, data.user);
+  }
   return data.user;
 }

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Fredoka } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
+import { THEME_BOOTSTRAP_SCRIPT } from "@/core/bootstrap/themeBootstrapScript";
 
 const fredoka = Fredoka({
   variable: "--font-display",
@@ -56,7 +58,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${fredoka.variable} h-full`}>
+    <html lang="en" className={`${fredoka.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {THEME_BOOTSTRAP_SCRIPT}
+        </Script>
+      </head>
       <body className="min-h-full">
         <ClientProviders>{children}</ClientProviders>
       </body>

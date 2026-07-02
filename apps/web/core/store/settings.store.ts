@@ -32,6 +32,8 @@ export interface SettingsState {
   textScale: number; // 1 = 100%
 
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
+  /** Apply many settings in one update (avoids re-render / theme flicker cascades). */
+  applyPatch: (patch: Partial<Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch">>) => void;
   toggle: (key: BooleanSettingKey) => void;
   reset: () => void;
 }
@@ -63,6 +65,15 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       ...defaults,
       set: (key, value) => set({ [key]: value } as Partial<SettingsState>),
+      applyPatch: (patch) =>
+        set((s) => {
+          const next: Partial<SettingsState> = {};
+          for (const [key, value] of Object.entries(patch) as [keyof SettingsState, SettingsState[keyof SettingsState]][]) {
+            if (value === undefined) continue;
+            if (s[key] !== value) next[key] = value as never;
+          }
+          return Object.keys(next).length > 0 ? next : s;
+        }),
       toggle: (key) =>
         set((s) => ({ [key]: !s[key] }) as Partial<SettingsState>),
       reset: () => set({ ...defaults }),

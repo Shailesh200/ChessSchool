@@ -10,6 +10,8 @@ import { progressSnapshot } from "@/core/store/progression.store";
 import { localProgressPresent } from "@chess-school/progression";
 import { onSyncTrigger } from "@/core/sync/syncTrigger";
 import { toast } from "@/core/store/toast.store";
+import { rehydrateAllStores } from "@/core/bootstrap/storeBootstrap";
+import { markSyncReady } from "@/core/hooks/useSyncReady";
 
 /**
  * Two-way progress sync (#1). On mount: pull the account snapshot (the account is
@@ -22,24 +24,33 @@ export function ProgressSync() {
 
   useEffect(() => {
     let cancelled = false;
-    const before = useProgression.getState();
-    const guestHadProgress = localProgressPresent({
-      ...progressSnapshot(before),
-      placementDone: before.placementDone,
-    });
-    pullProgress().then(async (user) => {
-      if (cancelled || !user) return;
-      const body = JSON.stringify(await fullSnapshotAsync());
-      lastPushed.current = body;
-      if (guestHadProgress) {
-        await fetch("/api/progress", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body,
-        }).catch(() => void 0);
-        toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
-      }
-    });
+    void rehydrateAllStores()
+      .then(() => {
+        if (cancelled) return;
+        const before = useProgression.getState();
+        const guestHadProgress = localProgressPresent({
+          ...progressSnapshot(before),
+          placementDone: before.placementDone,
+        });
+        return pullProgress().then(async (user) => {
+          if (cancelled) return;
+          if (user) {
+            const body = JSON.stringify(await fullSnapshotAsync());
+            lastPushed.current = body;
+            if (guestHadProgress) {
+              await fetch("/api/progress", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body,
+              }).catch(() => void 0);
+              toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
+            }
+          }
+        });
+      })
+      .finally(() => {
+        if (!cancelled) markSyncReady();
+      });
     return () => {
       cancelled = true;
     };

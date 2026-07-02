@@ -2,16 +2,12 @@
 
 import { useEffect } from "react";
 import { useSettings } from "@/core/store/settings.store";
-import { useProgression, isoDay } from "@/core/store/progression.store";
-import { useSession } from "@/core/store/session.store";
-import { useMatch } from "@/core/store/match.store";
-import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { usePwa, type BeforeInstallPromptEvent } from "@/core/pwa/usePwa";
 import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import dynamic from "next/dynamic";
-import { applyTheme, getAppTheme } from "@/core/themes/themes";
+import { applyDocumentSettings, rehydrateAllStores } from "@/core/bootstrap/storeBootstrap";
 
 // Not needed at first paint — keep them out of the initial bundle.
 const Toaster = dynamic(() => import("@/components/ui/Toaster").then((m) => m.Toaster), {
@@ -39,39 +35,16 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   const settings = useSettings();
   const pwa = usePwa();
 
-  // Rehydrate persisted stores after mount (stores use skipHydration so the
-  // first client render matches SSR output).
+  // Rehydrate persisted stores once (shared with ProgressSync via storeBootstrap).
   useEffect(() => {
-    void useSettings.persist.rehydrate();
-    void useProgression.persist.rehydrate();
-    void useSession.persist.rehydrate();
-    void useMatch.persist.rehydrate();
-    void Promise.resolve(usePlan.persist.rehydrate()).then(() => {
-      const plan = usePlan.getState();
-      plan.ensureDay(isoDay());
-      useProgression.getState().setDailyGoalXp(planGoalXp(plan));
-    });
+    void rehydrateAllStores();
   }, []);
 
   // Sync settings -> subsystems + document.
   useEffect(() => {
     audio.configure({ enabled: settings.sound, volume: settings.volume });
     haptics.setEnabled(settings.haptics);
-    const root = document.documentElement;
-    root.dataset.cb = settings.colorblind === "none" ? "" : settings.colorblind;
-    root.dataset.rm = settings.reducedMotion ? "1" : "";
-    root.style.fontSize = `${Math.round(settings.textScale * 100)}%`;
-    if (settings.highContrast) root.dataset.contrast = "high";
-    else delete root.dataset.contrast;
-    applyTheme(settings.boardTheme, settings.schoolTheme, settings.appTheme);
-    // Match the device status bar / PWA chrome to the active surface.
-    let meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "theme-color");
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute("content", getAppTheme(settings.appTheme).swatch[0]);
+    applyDocumentSettings(settings);
   }, [
     settings.sound,
     settings.volume,

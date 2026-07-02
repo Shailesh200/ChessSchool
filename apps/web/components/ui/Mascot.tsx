@@ -35,8 +35,8 @@ export function Mascot({
   return (
     <motion.div
       className={cn("inline-block", float && !cheering && "animate-bob", className)}
-      initial={{ scale: 0.92, opacity: 0 }}
-      animate={cheering ? { scale: [1, 1.1, 1], y: [0, -6, 0], opacity: 1 } : { scale: 1, y: 0, opacity: 1 }}
+      initial={false}
+      animate={cheering ? { scale: [1, 1.1, 1], y: [0, -6, 0] } : { scale: 1, y: 0 }}
       transition={cheering ? { duration: 0.55, ease: "easeOut" } : { type: "spring", stiffness: 300, damping: 20 }}
       style={{ width: size, height: size }}
       aria-hidden

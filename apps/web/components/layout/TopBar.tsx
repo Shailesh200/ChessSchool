@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useProgression, levelForXp, xpProgress } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
+import { useSyncReady } from "@/core/hooks/useSyncReady";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
@@ -12,11 +13,23 @@ export function TopBar() {
   const streak = useProgression((s) => s.streak);
   const graduated = useProgression((s) => s.graduatedClasses.length);
   const authed = useSession((s) => s.authed);
+  const syncReady = useSyncReady();
   const level = levelForXp(xp);
   const { into, need } = xpProgress(xp);
 
-  // Guests don't have a tracked streak/level — invite them to enroll instead.
-  if (authed !== true) {
+  if (!syncReady || authed === null) {
+    return (
+      <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
+          <div className="h-5 w-8 rounded bg-surface-sunken" aria-hidden />
+          <div className="h-2.5 flex-1 rounded-pill bg-surface-sunken" aria-hidden />
+          <div className="h-5 w-10 rounded bg-surface-sunken" aria-hidden />
+        </div>
+      </header>
+    );
+  }
+
+  if (authed === false) {
     return (
       <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-2.5">
