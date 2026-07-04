@@ -10,8 +10,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const mounted = useMounted();
   const active = useMatch((s) => s.active);
-  const focus =
-    mounted && pathname.startsWith("/play") && Boolean(active && !active.finished);
+  const focus = mounted && pathname.startsWith("/play") && Boolean(active);
 
   return <AppShell focus={focus}>{children}</AppShell>;
 }
