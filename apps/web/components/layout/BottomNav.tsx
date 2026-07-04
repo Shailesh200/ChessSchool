@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui/cn";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { haptics } from "@/core/haptics/haptics";
-import { startNav } from "@/core/store/nav.store";
+import { useNav } from "@/core/store/nav.store";
 
 type Tab = { href: string; label: string; icon: IconName };
 
@@ -20,29 +19,22 @@ const TABS: Tab[] = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  // Track the tab being navigated to so we can show a loader + lock it.
-  const [pending, setPending] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPending(null);
-  }, [pathname]);
+  const pendingTab = useNav((s) => s.pendingTab);
+  const beginNav = useNav((s) => s.begin);
 
   return (
     <nav className="pb-safe sticky bottom-0 z-30 border-t border-hairline bg-surface-card/85 backdrop-blur-xl">
       <ul className="mx-auto flex max-w-2xl items-stretch justify-around px-2">
         {TABS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-          const loading = pending === tab.href;
+          const loading = pendingTab === tab.href;
           return (
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
                 onClick={() => {
                   haptics.fire("select");
-                  if (!active) {
-                    setPending(tab.href);
-                    startNav();
-                  }
+                  if (!active) beginNav(tab.href);
                 }}
                 className={cn(
                   "relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold transition-colors",
