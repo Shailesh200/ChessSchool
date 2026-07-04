@@ -20,7 +20,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
-      - run: pnpm --filter web setup
+      - run: pnpm --filter web run setup
       - run: pnpm build
 
   e2e:
