@@ -14,6 +14,7 @@
     "doctor": "npx expo-doctor",
     "release:check": "pnpm typecheck && pnpm test && pnpm doctor",
     "build:android:preview": "pnpm exec eas build --platform android --profile preview --non-interactive",
+    "build:android:local": "expo prebuild --platform android --clean --no-install && cd android && ./gradlew :app:assembleRelease --no-configure-on-demand",
     "build:android:prod": "pnpm exec eas build --platform android --profile production --non-interactive",
     "submit:android:internal": "pnpm exec eas submit --platform android --profile production --non-interactive",
     "submit:android:store": "pnpm exec eas submit --platform android --profile play-store --non-interactive",
@@ -54,6 +55,7 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "@vitest/coverage-v8": "^4.1.9",
+    "babel-preset-expo": "~54.0.0",
     "eas-cli": "^20.5.1",
     "typescript": "~5.9.2",
     "vitest": "^4.1.9"
