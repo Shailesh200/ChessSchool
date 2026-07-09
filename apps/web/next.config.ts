@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ["framer-motion", "lottie-react"],
+  },
   // Compile the shared TS workspace package(s) from source.
   transpilePackages: ["@chess-school/core"],
   // Native module must stay external to the server bundle.

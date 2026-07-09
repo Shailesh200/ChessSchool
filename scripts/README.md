@@ -19,15 +19,16 @@ Runs, in order:
 7. `bash scripts/verify-web-seo.sh` — static SEO baseline (Next.js)
 8. `pnpm --filter web db:fresh`
 9. `pnpm e2e` — Playwright smoke + route tests
-10. `bash scripts/verify-web-lighthouse.sh` — Lighthouse + SEO scores on every route in `web-lighthouse-routes.json`
+10. `node scripts/verify-home-js-budget.mjs` — home route JS ≤280 KB gzip (app chunks)
+11. `bash scripts/verify-web-lighthouse.sh` — Lighthouse + CWV on every route *(every 5th milestone merge; owner may skip intervening slices)*
 
-**Milestone handoffs must paste the Lighthouse summary table + any CWV failures** into the verification report (see `plans/00_MASTER_DEVELOPMENT_PLAN.md` → Verification report template).
+**Milestone handoffs:** paste the verification report gate table. Include the **Lighthouse summary + CWV table** on every **5th milestone merge**; otherwise note `SKIP_LIGHTHOUSE=1` and owner approval.
 
-## Escape hatches (document in milestone PR if used)
+## Escape hatches (document in milestone handoff if used)
 
 | Env var | Effect |
 |---------|--------|
-| `SKIP_LIGHTHOUSE=1` | Skip Lighthouse (local quick check only — **not** for milestone sign-off) |
+| `SKIP_LIGHTHOUSE=1` | Skip Lighthouse — OK on non-audit milestones when owner approves; required on every 5th merge |
 
 ## Individual commands
 

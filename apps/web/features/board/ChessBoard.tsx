@@ -208,6 +208,7 @@ export function ChessBoard({
       }`}
     >
       <Chessboard
+        key={fen}
         options={{
           id: boardId,
           position: fen,

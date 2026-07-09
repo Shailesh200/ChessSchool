@@ -20,6 +20,7 @@ import { useProgression } from "@/core/store/progression.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+import { listContainer, listItem } from "@/core/motion/variants";
 
 export function CampusMap({ catalog }: { catalog: Catalog }) {
   const records = useProgression((s) => s.lessons);
@@ -246,8 +247,13 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                             preview
                           </button>
                         ) : (
-                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                            {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
+                          <motion.div
+                            className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+                            variants={listContainer}
+                            initial="initial"
+                            animate="enter"
+                          >
+                            {classes.slice(0, semShown[sem.id] ?? 8).map((cls) => (
                               <div key={cls.id} className="@container">
                                 <ClassCard
                                   cls={cls}
@@ -256,7 +262,6 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                                   graduated={graduated}
                                   allClasses={catalog.allClasses}
                                   semesters={catalog.semesters}
-                                  delay={i * 0.05}
                                 />
                               </div>
                             ))}
@@ -275,7 +280,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                                 more classes ▾
                               </button>
                             )}
-                          </div>
+                          </motion.div>
                         )}
                       </div>
                     );
@@ -332,7 +337,6 @@ function ClassCard({
   graduated,
   allClasses,
   semesters,
-  delay,
 }: {
   cls: SchoolClass;
   color: string;
@@ -340,7 +344,6 @@ function ClassCard({
   graduated: string[];
   allClasses: SchoolClass[];
   semesters: Catalog["semesters"];
-  delay: number;
 }) {
   const router = useRouter();
   const unlocked = isClassUnlocked(cls.id, records, graduated, allClasses, semesters);
@@ -364,9 +367,7 @@ function ClassCard({
 
   return (
     <motion.div
-      initial={false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", stiffness: 260, damping: 24 }}
+      variants={listItem}
       className={`rounded-card bg-surface-card border p-4 [box-shadow:var(--shadow-card)] ${
         grad ? "border-gold" : "border-hairline"
       } ${unlocked ? "" : "opacity-60"}`}

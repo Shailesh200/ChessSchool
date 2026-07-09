@@ -9,6 +9,7 @@ export type ToastTone = "default" | "success" | "danger";
 export interface ToastItem {
   id: number;
   message: string;
+  description?: string;
   icon?: IconName;
   tone: ToastTone;
   lottie?: LottieAsset;
@@ -44,6 +45,7 @@ export const useToasts = create<ToastState>((set) => ({
 export function toast(
   message: string,
   opts: {
+    description?: string;
     icon?: IconName;
     tone?: ToastTone;
     lottie?: LottieAsset;
@@ -53,6 +55,7 @@ export function toast(
 ): void {
   useToasts.getState().push({
     message,
+    description: opts.description,
     icon: opts.icon,
     tone: opts.tone ?? "default",
     lottie: opts.lottie,

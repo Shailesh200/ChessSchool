@@ -60,6 +60,7 @@ export default async function ClassExamPage({
 
   return (
     <LessonPlayer
+      key={`class-exam-${id}`}
       lesson={exam}
       nextLessonId={nextLessonId}
       lessonClass={{ id, title: clsRow.title, lessonIds }}

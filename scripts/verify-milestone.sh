@@ -24,6 +24,9 @@ bash scripts/verify-test-coverage.sh
 echo "→ pnpm build"
 pnpm build
 
+echo "→ Home JS budget (≤${HOME_JS_BUDGET_KB:-280} KB gzip)"
+node scripts/verify-home-js-budget.mjs
+
 echo "→ E2E route manifest coverage"
 node scripts/verify-e2e-route-coverage.mjs
 

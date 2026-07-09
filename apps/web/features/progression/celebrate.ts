@@ -8,8 +8,11 @@ export function unlockAndCelebrate(id: string): boolean {
   if (!unlocked) return false;
   const a = getAchievement(id);
   toast(a ? `${a.title} unlocked!` : "Achievement unlocked!", {
+    description: a?.description,
     icon: "trophy",
     tone: "success",
+    lottie: "achievement-unlock",
+    sticky: true,
   });
   return true;
 }

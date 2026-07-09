@@ -22,11 +22,17 @@ import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import {
   deriveTutorialVisuals,
   formatCoachText,
   isPreschoolLesson,
 } from "@chess-school/progression";
+
+type LessonCeremony =
+  | { variant: "graduation"; title: string; badge: string }
+  | { variant: "exam"; title: string; badge: string; subtitle: string }
+  | null;
 import { PreschoolQuiz } from "./PreschoolQuiz";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
@@ -89,13 +95,12 @@ export function LessonPlayer({
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("playing");
-  const [displayFen, setDisplayFen] = useState<string | undefined>(
-    lesson.steps[0]?.fen,
-  );
+  const step = lesson.steps[index] as LessonStep | undefined;
+  /** Overrides `step.fen` mid-step (moves, observe playback); undefined → use step FEN. */
+  const [displayFen, setDisplayFen] = useState<string | undefined>(undefined);
   const [correctCount, setCorrectCount] = useState(0);
-  const [prevIndex, setPrevIndex] = useState(0);
   const [observeDone, setObserveDone] = useState(false);
-  const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
+  const [ceremony, setCeremony] = useState<LessonCeremony>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(0);
   const [movedTo, setMovedTo] = useState<Square | null>(null);
@@ -108,7 +113,6 @@ export function LessonPlayer({
   const progression = useProgression();
   const sound = useSettings((s) => s.sound);
   const toggleSetting = useSettings((s) => s.toggle);
-  const step = lesson.steps[index] as LessonStep | undefined;
   const total = lesson.steps.length;
 
   useEffect(() => {
@@ -118,17 +122,6 @@ export function LessonPlayer({
       exam: lesson.exam,
     });
   }, [lesson.id, lesson.tag, lesson.exam]);
-
-  // Reset per-step state during render when the step changes.
-  if (index !== prevIndex) {
-    setPrevIndex(index);
-    setDisplayFen(step?.fen);
-    setObserveDone(false);
-    setPromoted(null);
-    setHintLevel(0);
-    setMovedTo(null);
-    setOppMove(null);
-  }
 
   // Auto-play "observe" steps move-by-move.
   useEffect(() => {
@@ -173,6 +166,12 @@ export function LessonPlayer({
   function advance() {
     if (index + 1 >= total) finish();
     else {
+      setDisplayFen(undefined);
+      setObserveDone(false);
+      setPromoted(null);
+      setHintLevel(0);
+      setMovedTo(null);
+      setOppMove(null);
       setIndex((i) => i + 1);
       setPhase("playing");
     }
@@ -242,7 +241,12 @@ export function LessonPlayer({
     if (schoolExam) {
       if (ratio >= 0.67) {
         progression.passSchoolExam(schoolExam.stage);
-        setGraduatedTitle(`${schoolExam.nextName} unlocked!`);
+        setCeremony({
+          variant: "exam",
+          title: `${schoolExam.nextName} unlocked!`,
+          subtitle: "You passed the school exam!",
+          badge: "School exam passed",
+        });
         audio.play("graduation");
       } else {
         audio.play("fail");
@@ -266,7 +270,11 @@ export function LessonPlayer({
     if (lesson.exam && ratio >= 0.67 && cls) {
       cls.lessonIds.forEach((id) => progression.recordLesson(id, 1, 1));
       progression.graduateClass(cls.id);
-      setGraduatedTitle(cls.title);
+      setCeremony({
+        variant: "graduation",
+        title: cls.title,
+        badge: "Class graduated",
+      });
       audio.play("graduation");
       return;
     }
@@ -279,7 +287,11 @@ export function LessonPlayer({
         cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= 0.9);
       if (allMastered) {
         progression.graduateClass(cls.id);
-        setGraduatedTitle(cls.title);
+        setCeremony({
+          variant: "graduation",
+          title: cls.title,
+          badge: "Class graduated",
+        });
         audio.play("graduation");
         return;
       }
@@ -386,7 +398,7 @@ export function LessonPlayer({
         lesson={lesson}
         correct={correctCount}
         mistakes={finalMistakes}
-        graduatedTitle={graduatedTitle}
+        ceremony={ceremony}
         nextLessonId={nextLessonId}
         homeworkStep={homeworkStep}
         onDone={() => router.push("/")}
@@ -551,7 +563,7 @@ export function LessonPlayer({
                   }}
                 >
                   <ChessBoard
-                    key={index}
+                    key={`${index}-${displayFen ?? step.fen}`}
                     fen={displayFen ?? step.fen}
                     orientation={step.orientation ?? "white"}
                     onMove={handleMove}
@@ -680,7 +692,7 @@ function LessonComplete({
   lesson,
   correct,
   mistakes,
-  graduatedTitle,
+  ceremony,
   nextLessonId,
   homeworkStep,
   onDone,
@@ -688,7 +700,7 @@ function LessonComplete({
   lesson: Lesson;
   correct: number;
   mistakes: number;
-  graduatedTitle: string | null;
+  ceremony: LessonCeremony;
   nextLessonId?: string | null;
   homeworkStep?: string;
   onDone: () => void;
@@ -716,9 +728,9 @@ function LessonComplete({
     else router.push(href);
   };
 
-  const variant = graduatedTitle ? "graduation" : lesson.exam ? "exam" : "lesson";
+  const variant = ceremony?.variant ?? (lesson.exam ? "exam" : "lesson");
   const headline =
-    graduatedTitle ??
+    ceremony?.title ??
     (isHomework
       ? allHomeworkDone
         ? "All homework done for today!"
@@ -726,13 +738,16 @@ function LessonComplete({
       : lesson.exam
         ? "Exam complete!"
         : "Lesson complete!");
-  const subtitle = graduatedTitle
-    ? "You've mastered this class. The next one is unlocked!"
-    : isHomework
-      ? allHomeworkDone
-        ? "You've completed every routine today — see you tomorrow!"
-        : "Nice work. Head back to finish the rest of today's homework."
-      : undefined;
+  const subtitle =
+    ceremony?.variant === "exam"
+      ? ceremony.subtitle
+      : ceremony?.variant === "graduation"
+        ? "You've mastered this class. The next one is unlocked!"
+        : isHomework
+          ? allHomeworkDone
+            ? "You've completed every routine today — see you tomorrow!"
+            : "Nice work. Head back to finish the rest of today's homework."
+          : undefined;
 
   return (
     <div className="bg-surface min-h-dvh">
@@ -741,11 +756,11 @@ function LessonComplete({
         variant={variant}
         title={headline}
         subtitle={subtitle}
-        badge={graduatedTitle ? "Class graduated" : undefined}
+        badge={ceremony?.badge}
       >
         <div className="flex flex-col items-center gap-4">
           <div className="flex flex-wrap justify-center gap-3">
-            <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
+            <StatPill label="XP earned" value={lesson.xp} tone="text-brand" animate />
             <StatPill label="Correct" value={`${correct}`} tone="text-success" />
             <StatPill
               label="Mistakes"
@@ -837,8 +852,8 @@ function LessonComplete({
         kind={lesson.exam ? "exam" : "lesson"}
         title={lesson.title}
         summary={
-          graduatedTitle
-            ? `Graduated ${graduatedTitle}. Scored ${correct} correct.`
+          ceremony
+            ? `${ceremony.variant === "exam" ? "Passed exam" : "Graduated"} ${ceremony.title}. Scored ${correct} correct.`
             : `Completed “${lesson.title}” with ${correct} correct.`
         }
         refId={lesson.id}
@@ -851,14 +866,22 @@ function StatPill({
   label,
   value,
   tone,
+  animate,
 }: {
   label: string;
-  value: string;
+  value: string | number;
   tone: string;
+  animate?: boolean;
 }) {
   return (
     <div className="rounded-card border-hairline bg-surface-card border px-5 py-3">
-      <div className={`text-2xl font-extrabold ${tone}`}>{value}</div>
+      <div className={`text-2xl font-extrabold ${tone}`}>
+        {animate && typeof value === "number" ? (
+          <AnimatedNumber value={value} prefix="+" />
+        ) : (
+          value
+        )}
+      </div>
       <div className="text-ink-500 text-xs font-semibold">{label}</div>
     </div>
   );

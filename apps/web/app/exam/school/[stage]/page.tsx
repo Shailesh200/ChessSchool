@@ -59,6 +59,7 @@ export default function SchoolExamPage({
 
   return (
     <LessonPlayer
+      key={`school-exam-${stage}`}
       lesson={lesson}
       nextLessonId={null}
       schoolExam={{ stage, nextName }}

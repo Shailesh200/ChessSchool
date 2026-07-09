@@ -1,14 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useEffect, useState } from "react";
-import { CampusMap } from "@/features/school/CampusMap";
-import { ResumeCard } from "@/features/school/ResumeCard";
-import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { NavButton } from "@/components/ui/NavButton";
+import { CampusSkeleton } from "@/components/home/CampusSkeleton";
 import Link from "next/link";
 import { useProgression } from "@/core/store/progression.store";
 import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
@@ -23,6 +23,24 @@ import {
   shouldRecommendPreschool,
 } from "@chess-school/progression";
 import type { Catalog } from "@/features/school/structure";
+
+const CampusMap = dynamic(
+  () => import("@/features/school/CampusMap").then((m) => ({ default: m.CampusMap })),
+  { loading: () => <CampusSkeleton /> },
+);
+
+const ResumeCard = dynamic(
+  () => import("@/features/school/ResumeCard").then((m) => ({ default: m.ResumeCard })),
+  { loading: () => <div className="skeleton rounded-card h-24" /> },
+);
+
+const StreakMilestoneBanner = dynamic(
+  () =>
+    import("@/components/ceremony/StreakMilestoneBanner").then((m) => ({
+      default: m.StreakMilestoneBanner,
+    })),
+  { ssr: false },
+);
 
 type DailyPuzzle = {
   day: string;
@@ -71,7 +89,14 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
     <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-8">
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
-          <Mascot expression="wave" size={64} float={false} />
+          <Image
+            src="/mascots/cody-wave-v2.png"
+            alt=""
+            width={64}
+            height={64}
+            className="shrink-0"
+            priority
+          />
           <div className="min-w-0 flex-1">
             <h1 className="text-ink truncate text-xl font-extrabold">
               {authedResolved === true && streak > 0
@@ -97,6 +122,10 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
             </Link>
           )}
         </div>
+
+        {authedResolved === true && rehydrateReady && (
+          <StreakMilestoneBanner streak={streak} />
+        )}
 
         {recommendPreschool && (
           <div className="rounded-card border-hairline bg-surface-sunken/80 border p-4">
@@ -247,7 +276,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           </div>
         </Card>
 
-        <CampusMap catalog={catalog} />
+        {rehydrateReady ? <CampusMap catalog={catalog} /> : <CampusSkeleton />}
       </div>
 
       <aside className="hidden xl:sticky xl:top-6 xl:block">

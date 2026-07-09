@@ -6,13 +6,13 @@ import { Confetti } from "@/components/ui/Confetti";
 import { Mascot } from "@/components/ui/Mascot";
 import { IconBadge } from "@/components/ui/IconBadge";
 import { LazyLottie } from "@/components/motion/LazyLottie";
-import { popIn, softSpring } from "@/core/motion/variants";
+import { sheetSlide, softSpring } from "@/core/motion/variants";
 
 type CeremonyVariant = "lesson" | "graduation" | "exam";
 
 /**
  * Full-screen ceremony moment — graduation sheet, lesson complete, exam pass.
- * Lottie loads in a later batch; SVG + Framer Motion per MOTION.md fallbacks.
+ * Lottie loads lazily; SVG + Framer Motion fallbacks per MOTION.md.
  */
 export function CeremonyOverlay({
   open,
@@ -65,7 +65,7 @@ export function CeremonyOverlay({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            variants={popIn}
+            variants={sheetSlide}
             initial="initial"
             animate="enter"
             exit="exit"
@@ -79,18 +79,15 @@ export function CeremonyOverlay({
                   transition={softSpring}
                   className="relative flex h-28 w-28 items-center justify-center"
                 >
-                  <LazyLottie
-                    asset="class-graduate"
-                    className="absolute inset-0 h-full w-full"
-                  >
-                    <span className="bg-brand/10 flex h-28 w-28 items-center justify-center rounded-full">
-                      <IconBadge
-                        name="cap"
-                        size="xl"
-                        tone="gold"
-                        className="h-20 w-20 rounded-full"
-                      />
-                    </span>
+                  <LazyLottie asset="class-graduate" className="h-28 w-28">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/svg/ceremony/class-diploma.svg"
+                      alt=""
+                      width={112}
+                      height={78}
+                      className="h-auto w-28"
+                    />
                   </LazyLottie>
                   <motion.span
                     className="absolute -top-1 -right-1"
@@ -101,6 +98,27 @@ export function CeremonyOverlay({
                     <IconBadge name="celebrate" size="md" tone="accent" />
                   </motion.span>
                 </motion.div>
+              ) : variant === "exam" ? (
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={softSpring}
+                  className="relative flex h-28 w-28 items-center justify-center"
+                >
+                  <LazyLottie asset="exam-pass" className="h-28 w-28">
+                    <span className="bg-gold/15 ring-gold/25 flex h-28 w-28 items-center justify-center rounded-full ring-4">
+                      <IconBadge name="exam" size="xl" tone="gold" />
+                    </span>
+                  </LazyLottie>
+                  <motion.span
+                    className="absolute -top-1 -right-1"
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ ...softSpring, delay: 0.12 }}
+                  >
+                    <IconBadge name="cap" size="md" tone="gold" />
+                  </motion.span>
+                </motion.div>
               ) : (
                 <motion.div
                   initial={{ scale: 0.6, opacity: 0 }}
@@ -108,10 +126,7 @@ export function CeremonyOverlay({
                   transition={softSpring}
                   className="relative flex h-28 w-28 items-center justify-center"
                 >
-                  <LazyLottie
-                    asset="lesson-complete"
-                    className="absolute inset-0 h-full w-full"
-                  >
+                  <LazyLottie asset="lesson-complete" className="h-28 w-28">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/svg/ceremony/lesson-complete-badge.svg"
