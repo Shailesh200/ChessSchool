@@ -44,7 +44,7 @@ const PERSONAS: Record<CoachPersonality, Persona> = {
     ],
     capture: (p) => `Captured a ${p}! Lovely.`,
     check: "Check! Keep the king on the run.",
-    mate: "Checkmate — brilliant finish! 👑",
+    mate: "Checkmate — brilliant finish!",
   },
   strict: {
     praise: [
@@ -73,7 +73,7 @@ const PERSONAS: Record<CoachPersonality, Persona> = {
     ],
     capture: (p) => `You won a ${p}. Now convert it.`,
     check: "Check. Do not lose the initiative.",
-    mate: "Checkmate. Textbook. 👑",
+    mate: "Checkmate. Textbook.",
   },
   mentor: {
     praise: [
@@ -102,7 +102,7 @@ const PERSONAS: Record<CoachPersonality, Persona> = {
     ],
     capture: (p) => `A ${p} for you — material adds up over a game.`,
     check: "Check — use the tempo wisely.",
-    mate: "Checkmate. You saw it through — well done. 👑",
+    mate: "Checkmate. You saw it through — well done.",
   },
   tactical: {
     praise: [
@@ -131,7 +131,7 @@ const PERSONAS: Record<CoachPersonality, Persona> = {
     ],
     capture: (p) => `Snagged a ${p}! Keep attacking.`,
     check: "Check! Hunt the king.",
-    mate: "CHECKMATE! Devastating. 👑",
+    mate: "CHECKMATE! Devastating.",
   },
   minimal: {
     praise: ["Good.", "OK.", "Fine.", "Yes.", "Mm.", "Right.", "Sure.", "Noted."],

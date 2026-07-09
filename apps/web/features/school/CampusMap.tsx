@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import {
   semestersForStage,
   classProgress,
@@ -117,7 +118,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                   onClick={() => setExpanded((s) => new Set(s).add(stage.id))}
                   className="btn-tactile rounded-card border-gold/50 bg-gold/10 flex w-full items-center gap-2 border p-3 text-left"
                 >
-                  <span className="text-xl">{stage.emoji}</span>
+                  <ContentIcon emoji={stage.emoji} size={20} tone="gold" />
                   <span className="min-w-0 flex-1">
                     <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
                       <Icon name="cap" size={16} className="text-gold shrink-0" />
@@ -149,7 +150,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
             <section key={stage.id}>
               {/* Stage header — the full Elementary → Master ladder */}
               <div className="mb-3 flex items-center gap-2">
-                <span className="text-xl">{stage.emoji}</span>
+                <ContentIcon emoji={stage.emoji} size={22} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-ink truncate text-sm font-extrabold">
@@ -294,8 +295,9 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                   className="btn-tactile rounded-card border-gold/50 bg-gold/10 mt-4 flex w-full items-center justify-between border-2 px-4 py-3 text-left"
                 >
                   <span>
-                    <span className="text-ink block text-sm font-extrabold">
-                      📝 {stage.name} Exam
+                    <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                      <Icon name="exam" size={16} className="text-gold shrink-0" />
+                      {stage.name} Exam
                     </span>
                     <span className="text-ink-500 block text-xs font-semibold">
                       Pass to unlock {nextName} →
@@ -371,11 +373,11 @@ function ClassCard({
     >
       <div className="flex items-center gap-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
           style={{ backgroundColor: unlocked ? `${color}1a` : "var(--surface-sunken)" }}
         >
           {unlocked ? (
-            cls.emoji
+            <ContentIcon emoji={cls.emoji} size={24} variant="plain" accentColor={color} />
           ) : (
             <Icon name="lock" size={24} className="text-ink-400" />
           )}
@@ -427,7 +429,10 @@ function ClassCard({
                 router.push(`/lesson/${cls.examId}`);
               }}
             >
-              📝 Test out
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="exam" size={14} />
+                Test out
+              </span>
             </Button>
           )}
         </div>

@@ -21,6 +21,8 @@ import { currentLocation, type Catalog } from "@/features/school/structure";
 import { useMatch } from "@/core/store/match.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+import { ContentIcon } from "@/components/ui/ContentIcon";
+import { Icon } from "@/components/ui/Icon";
 
 export function PlanClient({ catalog }: { catalog: Catalog }) {
   const router = useRouter();
@@ -116,8 +118,9 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
         {/* Today's progress toward the goal */}
         <Card>
           <div className="flex items-center justify-between">
-            <span className="text-ink text-sm font-extrabold">
-              🎯 Today&apos;s goal
+            <span className="text-ink inline-flex items-center gap-1.5 text-sm font-extrabold">
+              <Icon name="target" size={16} className="text-brand shrink-0" />
+              Today&apos;s goal
             </span>
             <span className="text-ink-500 text-xs font-bold">
               {Math.min(todayXp, dailyGoalXp)}/{dailyGoalXp} XP
@@ -131,20 +134,29 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
             label="Daily goal progress"
           />
           <div className="text-ink-700 mt-3 flex items-center gap-2 text-xs font-bold">
-            <span className="rounded-pill bg-accent/10 text-accent-600 px-2 py-1">
-              🔥 {streak}-day streak
+            <span className="rounded-pill bg-accent/10 text-accent-600 inline-flex items-center gap-1 px-2 py-1">
+              <Icon name="flame" size={14} className="shrink-0" />
+              {streak}-day streak
             </span>
-            <span className="rounded-pill bg-surface-sunken px-2 py-1">
-              {todayXp >= dailyGoalXp
-                ? "Goal reached — well done! 🎉"
-                : `${dailyGoalXp - todayXp} XP to go`}
+            <span className="rounded-pill bg-surface-sunken inline-flex items-center gap-1 px-2 py-1">
+              {todayXp >= dailyGoalXp ? (
+                <>
+                  <Icon name="sparkle" size={14} className="text-success shrink-0" />
+                  Goal reached — well done!
+                </>
+              ) : (
+                `${dailyGoalXp - todayXp} XP to go`
+              )}
             </span>
           </div>
         </Card>
 
         {daysAway >= 2 && (
           <Card className="border-accent-400 bg-accent/5">
-            <p className="text-accent-600 text-sm font-extrabold">👋 Welcome back!</p>
+            <p className="text-accent-600 inline-flex items-center gap-1.5 text-sm font-extrabold">
+              <Icon name="sparkle" size={16} className="shrink-0" />
+              Welcome back!
+            </p>
             <p className="text-ink-700 mt-1 text-xs font-semibold">
               You were away {daysAway} days — no problem, no penalties. We&apos;ve kept
               your progress. Ease back in with one short lesson today.
@@ -179,7 +191,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                       : "border-hairline bg-surface-card"
                   }`}
                 >
-                  <div className="text-xl">{spec.emoji}</div>
+                  <ContentIcon emoji={spec.emoji} size={20} selected={active} />
                   <div className="text-ink mt-1 text-sm font-extrabold">
                     {spec.label}
                   </div>
@@ -243,8 +255,10 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-ink text-sm font-extrabold">Today&apos;s homework</h2>
-            <span className="text-ink-500 text-xs font-bold">
-              {routineDone}/{ROUTINE_STEPS.length} · 🔥 {plan.homeworkStreak}d
+            <span className="text-ink-500 inline-flex items-center gap-1 text-xs font-bold">
+              {routineDone}/{ROUTINE_STEPS.length} ·{" "}
+              <Icon name="flame" size={12} className="shrink-0" />
+              {plan.homeworkStreak}d
             </span>
           </div>
           <div className="flex flex-col gap-2">
@@ -271,7 +285,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                   >
                     ✓
                   </span>
-                  <span className="text-lg">{step.emoji}</span>
+                  <ContentIcon emoji={step.emoji} size={18} variant="inline" />
                   <span
                     className={`min-w-0 flex-1 truncate text-sm font-bold ${done ? "text-ink-300 line-through" : "text-ink"}`}
                   >
@@ -294,8 +308,9 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
             })}
           </div>
           {routineDone === ROUTINE_STEPS.length && (
-            <p className="text-success mt-2 text-center text-xs font-extrabold">
-              🎉 Homework complete — {plan.homeworkStreak}-day streak!
+            <p className="text-success mt-2 inline-flex items-center justify-center gap-1.5 text-center text-xs font-extrabold">
+              <Icon name="sparkle" size={14} className="shrink-0" />
+              Homework complete — {plan.homeworkStreak}-day streak!
             </p>
           )}
         </section>

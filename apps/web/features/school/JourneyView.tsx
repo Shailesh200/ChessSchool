@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { BackButton } from "@/components/ui/BackButton";
 import { isClassUnlocked, type SchoolClass } from "./structure";
 import { isUnlocked } from "@/features/lessons/unlock";
@@ -117,8 +118,8 @@ export function JourneyView({
       {/* Subject header */}
       <div className="rounded-card border-hairline bg-surface-card border p-4 [box-shadow:var(--shadow-card)] lg:p-5">
         <div className="flex items-center gap-3">
-          <div className="bg-brand-50 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl lg:h-16 lg:w-16">
-            {cls.emoji}
+          <div className="bg-brand-50 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl lg:h-16 lg:w-16">
+            <ContentIcon emoji={cls.emoji} size={28} variant="badge" />
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-ink truncate text-lg font-extrabold lg:text-2xl">
@@ -328,11 +329,13 @@ function JourneyNode({
               opacity: node.status === "locked" ? 0.6 : 1,
             }}
           >
-            {node.status === "locked"
-              ? "🔒"
-              : node.status === "completed"
-                ? "✓"
-                : node.emoji}
+            {node.status === "locked" ? (
+              <Icon name="lock" size={20} className="text-ink-400" />
+            ) : node.status === "completed" ? (
+              <Icon name="check" size={20} className="text-gold" />
+            ) : (
+              <ContentIcon emoji={node.emoji} size={22} variant="plain" />
+            )}
           </span>
         </span>
         <span className="text-ink max-w-[9rem] truncate text-sm font-extrabold">

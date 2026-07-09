@@ -11,7 +11,7 @@ const webStockfish: EngineAdapter = async (fen, elo) => {
   return stockfishMove(fen, elo);
 };
 
-/** Best move for the web bot (real Stockfish ≥800, JS fallback otherwise). */
+/** Best move for the web bot (Stockfish ≥1400, weakened JS engine below). */
 export function getBotMove(
   fen: string,
   config: BotConfig,

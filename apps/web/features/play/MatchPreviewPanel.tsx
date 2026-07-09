@@ -2,8 +2,13 @@
 
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import { ChessBoard } from "@/features/board/ChessBoard";
+import { useMounted } from "@/core/hooks/useMounted";
 import { botProfile } from "@/features/play/bots";
+import { BotAvatar } from "@/features/play/BotAvatar";
 import type { MatchMode } from "@/core/store/match.store";
+
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /** Static preview panel for Play desktop layout (lg+). */
 export function MatchPreviewPanel({
@@ -19,6 +24,7 @@ export function MatchPreviewPanel({
   rating: number;
   timeMin: number;
 }) {
+  const mounted = useMounted();
   const elo = adaptive ? rating : targetElo;
   const bot = mode === "bot" ? botProfile(elo) : null;
   const timeLabel = timeMin === 0 ? "No clock" : `${timeMin} min per side`;
@@ -27,15 +33,22 @@ export function MatchPreviewPanel({
     <aside className="hidden lg:block">
       <Card className="sticky top-6 flex flex-col gap-4 p-5">
         <p className="text-ink text-sm font-extrabold">Match preview</p>
-        <div
-          className="border-hairline aspect-square w-full max-w-[420px] rounded-xl border"
-          style={{
-            background:
-              "linear-gradient(135deg, var(--board-light) 25%, var(--surface-sunken) 25%, var(--surface-sunken) 50%, var(--board-light) 50%, var(--board-light) 75%, var(--surface-sunken) 75%)",
-            backgroundSize: "56px 56px",
-          }}
-          aria-hidden
-        />
+        {bot && (
+          <div className="flex items-center gap-3">
+            <BotAvatar elo={elo} size={64} />
+            <div>
+              <p className="text-ink text-sm font-extrabold">{bot.name}</p>
+              <p className="text-ink-500 text-xs font-semibold">Rated ~{elo}</p>
+            </div>
+          </div>
+        )}
+        <div className="mx-auto w-full max-w-[420px]">
+          {mounted ? (
+            <ChessBoard fen={START_FEN} interactive={false} showNotation />
+          ) : (
+            <div className="skeleton aspect-square w-full rounded-lg" />
+          )}
+        </div>
         <div className="flex flex-col gap-2 text-sm">
           <PreviewRow
             icon="play"

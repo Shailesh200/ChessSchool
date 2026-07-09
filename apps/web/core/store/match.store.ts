@@ -2,10 +2,22 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import type { EndReason } from "@/core/db/db";
 
 export type MatchMode = "bot" | "pass";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+/** Persisted game-over UI — survives tab switches and refresh. */
+export interface MatchEndSnapshot {
+  text: string;
+  win: boolean;
+  ratingDelta: number;
+  newRating: number;
+  reason: EndReason;
+  /** Auto-open mate review until the player dismisses it. */
+  mateReviewPending: boolean;
+}
 
 export interface ActiveMatch {
   id: string;
@@ -25,6 +37,8 @@ export interface ActiveMatch {
   blackMs: number;
   /** launched from the homework screen — game-over returns there */
   fromHomework?: boolean;
+  /** Result overlay + mate review restore after navigation / refresh */
+  endSnapshot: MatchEndSnapshot | null;
 }
 
 interface MatchStore {
@@ -38,6 +52,8 @@ interface MatchStore {
   sync: (patch: { fen: string; pgn: string; from?: string; to?: string }) => void;
   setClocks: (whiteMs: number, blackMs: number) => void;
   markFinished: () => void;
+  setEndSnapshot: (snapshot: MatchEndSnapshot) => void;
+  dismissMateReview: () => void;
   clear: () => void;
 }
 
@@ -61,6 +77,7 @@ export const useMatch = create<MatchStore>()(
             whiteMs: timeControlMin * 60_000,
             blackMs: timeControlMin * 60_000,
             fromHomework: fromHomework ?? false,
+            endSnapshot: null,
           },
         }),
       sync: (patch) =>
@@ -81,12 +98,32 @@ export const useMatch = create<MatchStore>()(
         set((s) => (s.active ? { active: { ...s.active, whiteMs, blackMs } } : s)),
       markFinished: () =>
         set((s) => (s.active ? { active: { ...s.active, finished: true } } : s)),
+      setEndSnapshot: (snapshot) =>
+        set((s) =>
+          s.active
+            ? { active: { ...s.active, finished: true, endSnapshot: snapshot } }
+            : s,
+        ),
+      dismissMateReview: () =>
+        set((s) =>
+          s.active?.endSnapshot
+            ? {
+                active: {
+                  ...s.active,
+                  endSnapshot: {
+                    ...s.active.endSnapshot,
+                    mateReviewPending: false,
+                  },
+                },
+              }
+            : s,
+        ),
       clear: () => set({ active: null }),
     }),
     {
       name: "chessschool.activematch",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       skipHydration: true,
       // v1 matches had no clock fields — default them to "no clock".
       migrate: (persisted) => {
@@ -95,6 +132,9 @@ export const useMatch = create<MatchStore>()(
           s.active.timeControlMin = 0;
           s.active.whiteMs = 0;
           s.active.blackMs = 0;
+        }
+        if (s?.active && s.active.endSnapshot === undefined) {
+          s.active.endSnapshot = null;
         }
         return s as { active: ActiveMatch | null };
       },

@@ -44,6 +44,12 @@ export interface ChessBoardProps {
   showNotation?: boolean;
   /** fill the parent container (allow non-square) instead of forcing a square */
   fill?: boolean;
+  /** piece slide duration when FEN changes (replay / review) */
+  animationDurationInMs?: number;
+  /** slide pieces on FEN change — off for step replay avoids react-chessboard glitches */
+  showAnimations?: boolean;
+  /** stable id keeps react-chessboard animation state across position updates */
+  boardId?: string;
 }
 
 export function ChessBoard({
@@ -60,6 +66,9 @@ export function ChessBoard({
   interactive = true,
   showNotation = false,
   fill = false,
+  animationDurationInMs = 220,
+  showAnimations = true,
+  boardId,
 }: ChessBoardProps) {
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
@@ -200,13 +209,15 @@ export function ChessBoard({
     >
       <Chessboard
         options={{
+          id: boardId,
           position: fen,
           boardOrientation: orientation,
           allowDragging: interactive,
           // Default is 1px — on touch a tap jitters >1px and becomes a drag, eating
           // the click-to-move. Require real movement before a drag starts.
           dragActivationDistance: 10,
-          animationDurationInMs: 220,
+          animationDurationInMs,
+          showAnimations,
           showNotation,
           lightSquareStyle: { backgroundColor: colors.light },
           darkSquareStyle: { backgroundColor: colors.dark },

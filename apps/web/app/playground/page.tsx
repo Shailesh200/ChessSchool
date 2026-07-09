@@ -87,7 +87,7 @@ export default function PlaygroundPage() {
       setMsg("Position loaded.");
       audio.play("success");
     } else {
-      setMsg("⚠️ Invalid FEN — check the string.");
+      setMsg("Invalid FEN — check the string.");
       audio.play("fail");
     }
   }

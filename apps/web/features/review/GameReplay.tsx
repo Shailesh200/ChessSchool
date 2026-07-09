@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { getGame, type SavedGame } from "@/core/db/db";
 import { replayFrames, analyzeMate, matePreventionTip, type Frame } from "./replay";
 import type { BoardArrow, Square } from "@/core/types/chess";
@@ -109,22 +110,22 @@ export function GameReplay({ id }: { id: string }) {
       {/* scrubber */}
       <div className="flex items-center gap-2">
         <Ctrl label="Start" onClick={() => setIdx(0)}>
-          ⏮
+          <Icon name="skipBack" size={16} />
         </Ctrl>
         <Ctrl label="Previous" onClick={() => setIdx((i) => Math.max(0, i - 1))}>
-          ◀
+          <Icon name="chevronLeft" size={16} />
         </Ctrl>
         <Ctrl label={playing ? "Pause" : "Play"} onClick={() => setPlaying((p) => !p)}>
-          {playing ? "⏸" : "▶"}
+          <Icon name={playing ? "pause" : "playFill"} size={16} />
         </Ctrl>
         <Ctrl
           label="Next"
           onClick={() => setIdx((i) => Math.min(frames.length - 1, i + 1))}
         >
-          ▶
+          <Icon name="chevronRight" size={16} />
         </Ctrl>
         <Ctrl label="End" onClick={() => setIdx(frames.length - 1)}>
-          ⏭
+          <Icon name="skipForward" size={16} />
         </Ctrl>
         <input
           type="range"
@@ -153,18 +154,28 @@ export function GameReplay({ id }: { id: string }) {
               How the checkmate happened
             </p>
             <ul className="text-ink-700 mt-2 space-y-1 text-xs font-semibold">
-              <li>
-                👑 The king on <b>{mate.kingSquare}</b> is in check and cannot move.
+              <li className="flex items-start gap-1.5">
+                <Icon name="crown" size={14} className="text-brand mt-0.5 shrink-0" />
+                <span>
+                  The king on <b>{mate.kingSquare}</b> is in check and cannot move.
+                </span>
               </li>
-              <li>
-                🎯 Delivered by{" "}
-                {mate.attackers.length > 1 ? "pieces on" : "the piece on"}{" "}
-                <b>{mate.attackers.join(", ")}</b> (red arrows).
+              <li className="flex items-start gap-1.5">
+                <Icon name="target" size={14} className="text-brand mt-0.5 shrink-0" />
+                <span>
+                  Delivered by{" "}
+                  {mate.attackers.length > 1 ? "pieces on" : "the piece on"}{" "}
+                  <b>{mate.attackers.join(", ")}</b> (red arrows).
+                </span>
               </li>
-              <li>🚫 Every escape square is covered or blocked (outlined).</li>
+              <li className="flex items-start gap-1.5">
+                <Icon name="close" size={14} className="text-brand mt-0.5 shrink-0" />
+                <span>Every escape square is covered or blocked (outlined).</span>
+              </li>
             </ul>
-            <p className="bg-surface-sunken text-ink mt-2 rounded-lg px-3 py-2 text-xs font-bold">
-              💡 What could have prevented this? {preventionTip}
+            <p className="bg-surface-sunken text-ink mt-2 flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs font-bold">
+              <Icon name="bulb" size={14} className="text-brand mt-0.5 shrink-0" />
+              <span>What could have prevented this? {preventionTip}</span>
             </p>
           </Card>
         </motion.div>

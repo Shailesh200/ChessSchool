@@ -47,8 +47,8 @@ function strengthCmds(elo: number): string[] {
       `setoption name UCI_Elo value ${Math.min(2850, elo)}`,
     ];
   }
-  // Below that floor, use Skill Level (0–20); 800→~1, 1300→~6.
-  const skill = Math.max(0, Math.min(8, Math.round((elo - 700) / 100)));
+  // Below UCI_Elo floor, Skill Level (0–20) — keep sub-1300 presets beatable.
+  const skill = Math.max(0, Math.min(6, Math.round((elo - 850) / 120)));
   return [
     "setoption name UCI_LimitStrength value false",
     `setoption name Skill Level value ${skill}`,

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Confetti } from "@/components/ui/Confetti";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BackButton } from "@/components/ui/BackButton";
+import { Icon } from "@/components/ui/Icon";
 import { useSquareSize } from "@/core/hooks/useSquareSize";
 import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
@@ -437,7 +438,7 @@ export default function OnlineSessionPage({
       reason = "by resignation";
     } else if (res.startsWith("time:")) {
       winner = res.endsWith("w") ? "w" : "b";
-      reason = "on time ⏱️";
+      reason = "on time";
     } else if (res === "1-0") {
       winner = "w";
       reason = "checkmate";
@@ -452,7 +453,7 @@ export default function OnlineSessionPage({
       ? "Draw"
       : reason === "checkmate"
         ? win
-          ? "Checkmate — you win! 🏆"
+          ? "Checkmate — you win!"
           : "Checkmate — you lose"
         : !me
           ? `${winner === "w" ? "White" : "Black"} wins ${reason}`
@@ -496,8 +497,9 @@ export default function OnlineSessionPage({
             <p className="text-ink-500 text-xs font-semibold">
               Share the link — they have 3 minutes to join.
             </p>
-            <Button size="sm" className="mt-2" onClick={shareLink}>
-              🔗 Share invite link
+            <Button size="sm" className="mt-2 inline-flex items-center gap-2" onClick={shareLink}>
+              <Icon name="link" size={16} className="shrink-0" />
+              Share invite link
             </Button>
           </div>
         ) : session?.status === "over" ? (
@@ -506,18 +508,23 @@ export default function OnlineSessionPage({
             {session.result?.startsWith("resign")
               ? "by resignation"
               : session.result?.startsWith("time")
-                ? "on time ⏱️"
+                ? "on time"
                 : session.result}
           </p>
         ) : (
           <p className="text-ink text-sm font-bold">
-            {!online
-              ? "🔌 Reconnecting…"
-              : canMove
-                ? "Your move"
-                : optimistic
-                  ? "Move sent…"
-                  : "Opponent's move…"}
+            {!online ? (
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <Icon name="plug" size={16} className="shrink-0" />
+                Reconnecting…
+              </span>
+            ) : canMove ? (
+              "Your move"
+            ) : optimistic ? (
+              "Move sent…"
+            ) : (
+              "Opponent's move…"
+            )}
           </p>
         )}
       </div>

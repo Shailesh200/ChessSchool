@@ -484,7 +484,11 @@ export function LessonPlayer({
             aria-pressed={sound}
             className="btn-tactile border-hairline bg-surface-card text-ink-700 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
           >
-            {sound ? "🔊" : "🔇"}
+            {sound ? (
+              <Icon name="volume" size={18} />
+            ) : (
+              <Icon name="volumeOff" size={18} />
+            )}
           </button>
         </div>
       </div>
@@ -581,8 +585,9 @@ export function LessonPlayer({
               <span />
             )}
             {isObserving ? (
-              <p className="text-brand text-center text-sm font-bold">
-                ▶ Watching the example…
+              <p className="text-brand flex items-center justify-center gap-1.5 text-center text-sm font-bold">
+                <Icon name="playFill" size={14} />
+                Watching the example…
               </p>
             ) : solvable && !lesson.exam ? (
               <button
@@ -592,13 +597,14 @@ export function LessonPlayer({
                   haptics.fire("tap");
                 }}
                 disabled={hintLevel >= 2}
-                className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
+                className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
               >
+                <Icon name="bulb" size={14} className="text-brand shrink-0" />
                 {hintLevel === 0
-                  ? "💡 Show a hint"
+                  ? "Show a hint"
                   : hintLevel === 1
-                    ? "💡 Show the move"
-                    : "💡 Follow the arrow"}
+                    ? "Show the move"
+                    : "Follow the arrow"}
               </button>
             ) : null}
           </div>

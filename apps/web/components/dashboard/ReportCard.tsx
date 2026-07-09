@@ -1,6 +1,9 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import {
   classReport,
   overallGpa,
@@ -26,8 +29,9 @@ export function ReportCard({
   if (!reports.length) {
     return (
       <Card>
-        <p className="text-ink-500 py-3 text-center text-sm font-semibold">
-          📋 Complete a lesson to start your report card.
+        <p className="text-ink-500 flex items-center justify-center gap-1.5 py-3 text-center text-sm font-semibold">
+          <Icon name="journal" size={16} className="text-brand shrink-0" />
+          Complete a lesson to start your report card.
         </p>
       </Card>
     );
@@ -46,7 +50,7 @@ export function ReportCard({
             <span className="text-ink-500 text-sm font-bold"> / 4.0</span>
           </p>
         </div>
-        <span className="text-3xl">🎓</span>
+        <IconBadge name="cap" size="lg" tone="gold" />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -55,7 +59,7 @@ export function ReportCard({
             key={r.id}
             className="rounded-card border-hairline bg-surface-card/60 flex items-center gap-3 border p-2.5"
           >
-            <span className="text-xl">{r.emoji}</span>
+            <ContentIcon emoji={r.emoji} size={20} variant="badge" />
             <div className="min-w-0 flex-1">
               <p className="text-ink truncate text-sm font-extrabold">{r.title}</p>
               <p className="text-ink-500 truncate text-[11px] font-semibold">
@@ -64,9 +68,12 @@ export function ReportCard({
               </p>
               <div className="mt-0.5 text-[11px] leading-none">
                 {[1, 2, 3].map((s) => (
-                  <span key={s} className={r.avgStars >= s - 0.4 ? "" : "opacity-20"}>
-                    ⭐
-                  </span>
+                  <Icon
+                    key={s}
+                    name="star"
+                    size={11}
+                    className={r.avgStars >= s - 0.4 ? "text-gold" : "opacity-20"}
+                  />
                 ))}
               </div>
             </div>

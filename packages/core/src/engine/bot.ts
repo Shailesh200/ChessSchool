@@ -4,9 +4,9 @@ import type { MoveInput, PieceSymbol } from "../types/chess";
 /**
  * Adaptive bot — negamax + alpha-beta with piece-square tables.
  *
- * Fully offline, dependency-light. ELO (500–2500) maps to search depth and a
- * "blunder" probability so lower-rated bots feel genuinely beatable rather than
- * just slow. A {@link StockfishAdapter}-shaped seam lets a real engine drop in.
+ * Fully offline, dependency-light. ELO (300–2500) maps to search depth, blunder
+ * rate, and beginner chaos (no book / no quiescence below ~500) so low-rated bots
+ * feel genuinely beatable rather than just slow.
  */
 
 const PIECE_VALUE: Record<PieceSymbol, number> = {
@@ -64,6 +64,20 @@ export interface BotConfig {
   depth: number;
   /** probability of deliberately not picking the best move */
   blunderChance: number;
+  /** opening book (e4/d4 …) — off for sub-600 bots */
+  useBook?: boolean;
+  /** capture extensions at search leaf; 0 = no tactical capture scan */
+  qMax?: number;
+  /** chance to pick any legal move uniformly (true beginner chaos) */
+  randomMoveChance?: number;
+  /** when blundering, how far down the ranked list we may pick (1 = 2nd best) */
+  blunderSpread?: number;
+  /** centipawn noise added to move scores — hides obvious tactics at low ELO */
+  evalNoiseCp?: number;
+  /** when blundering, chance to pick from the worst moves instead of "2nd best" */
+  pickWorstChance?: number;
+  /** use material-only eval (no piece-square tables) — weaker positional play */
+  materialOnly?: boolean;
 }
 
 /** Map an ELO target to a search profile. Depth is the *full-width* depth; a
@@ -71,12 +85,110 @@ export interface BotConfig {
  * tactically sound chess (no horizon-effect hangs). */
 export function eloToConfig(elo: number): BotConfig {
   const clamped = Math.max(300, Math.min(2500, elo));
-  if (clamped < 500) return { elo: clamped, depth: 1, blunderChance: 0.6, jitter: 1 }; // beginner — frequent mistakes, but legal/sane moves
-  if (clamped < 800) return { elo: clamped, depth: 2, blunderChance: 0.4, jitter: 0.6 };
-  if (clamped < 1100) return { elo: clamped, depth: 2, blunderChance: 0.22, jitter: 0.4 };
-  if (clamped < 1500) return { elo: clamped, depth: 2, blunderChance: 0.1, jitter: 0.25 };
-  if (clamped < 1900) return { elo: clamped, depth: 3, blunderChance: 0.03, jitter: 0.12 };
-  return { elo: clamped, depth: 3, blunderChance: 0.0, jitter: 0.04 };
+  if (clamped < 400) {
+    return {
+      elo: clamped,
+      depth: 0,
+      blunderChance: 0.98,
+      jitter: 1,
+      useBook: false,
+      qMax: 0,
+      randomMoveChance: 0.78,
+      blunderSpread: 30,
+      evalNoiseCp: 650,
+      pickWorstChance: 0.72,
+      materialOnly: true,
+    };
+  }
+  if (clamped < 550) {
+    return {
+      elo: clamped,
+      depth: 0,
+      blunderChance: 0.94,
+      jitter: 0.95,
+      useBook: false,
+      qMax: 0,
+      randomMoveChance: 0.58,
+      blunderSpread: 22,
+      evalNoiseCp: 420,
+      pickWorstChance: 0.55,
+      materialOnly: true,
+    };
+  }
+  if (clamped < 750) {
+    return {
+      elo: clamped,
+      depth: 1,
+      blunderChance: 0.82,
+      jitter: 0.75,
+      useBook: false,
+      qMax: 0,
+      randomMoveChance: 0.28,
+      blunderSpread: 12,
+      evalNoiseCp: 180,
+      pickWorstChance: 0.4,
+      materialOnly: true,
+    };
+  }
+  if (clamped < 950) {
+    return {
+      elo: clamped,
+      depth: 1,
+      blunderChance: 0.68,
+      jitter: 0.55,
+      useBook: true,
+      qMax: 1,
+      randomMoveChance: 0.12,
+      blunderSpread: 8,
+      evalNoiseCp: 80,
+      pickWorstChance: 0.28,
+    };
+  }
+  if (clamped < 1200) {
+    return {
+      elo: clamped,
+      depth: 2,
+      blunderChance: 0.42,
+      jitter: 0.45,
+      qMax: 1,
+      randomMoveChance: 0.05,
+      blunderSpread: 5,
+      evalNoiseCp: 45,
+      pickWorstChance: 0.18,
+    };
+  }
+  if (clamped < 1500) {
+    return {
+      elo: clamped,
+      depth: 2,
+      blunderChance: 0.22,
+      jitter: 0.3,
+      qMax: 2,
+      blunderSpread: 3,
+      evalNoiseCp: 25,
+      pickWorstChance: 0.08,
+    };
+  }
+  if (clamped < 1900) {
+    return {
+      elo: clamped,
+      depth: 2,
+      blunderChance: 0.08,
+      jitter: 0.14,
+      qMax: 2,
+      blunderSpread: 2,
+      evalNoiseCp: 12,
+    };
+  }
+  return {
+    elo: clamped,
+    depth: 3,
+    blunderChance: 0.015,
+    jitter: 0.05,
+    qMax: 2,
+    blunderSpread: 1,
+    evalNoiseCp: 6,
+  };
 }
 
 // Tiny opening book so the bot opens like a human instead of a depth-2 search.
@@ -109,6 +221,31 @@ function evaluate(game: Chess): number {
     }
   }
   return game.turn() === "w" ? score : -score;
+}
+
+/** Material-only — beginners don't "see" squares. */
+function evaluateMaterial(game: Chess): number {
+  const board = game.board();
+  let score = 0;
+  for (const row of board) {
+    if (!row) continue;
+    for (const cell of row) {
+      if (!cell) continue;
+      const base = PIECE_VALUE[cell.type as PieceSymbol];
+      score += cell.color === "w" ? base : -base;
+    }
+  }
+  return game.turn() === "w" ? score : -score;
+}
+
+function scorePosition(game: Chess, materialOnly?: boolean): number {
+  return materialOnly ? evaluateMaterial(game) : evaluate(game);
+}
+
+/** Independent 0..1 roll from the caller's seed — avoids correlated random/blunder branches. */
+function deriveSeed(base: number, salt: number): number {
+  const x = Math.sin(base * 12.9898 + salt * 78.233) * 43758.5453;
+  return x - Math.floor(x);
 }
 
 const ORDER_VAL: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
@@ -155,19 +292,20 @@ function negamax(
   alpha: number,
   beta: number,
   nodes: { n: number },
+  qMax: number,
 ): number {
   if (game.isGameOver()) {
     if (game.isCheckmate()) return -100000 - depth; // prefer faster mates
     return 0; // stalemate / draw
   }
   if (nodes.n > NODE_CAP) return evaluate(game); // hard budget guard — bail with static eval
-  if (depth === 0) return quiesce(game, alpha, beta, nodes, QMAX);
+  if (depth === 0) return quiesce(game, alpha, beta, nodes, qMax);
   let best = -Infinity;
   const moves = orderMoves(game.moves({ verbose: true }));
   for (const m of moves) {
     nodes.n++;
     game.move(m as never);
-    const score = -negamax(game, depth - 1, -beta, -alpha, nodes);
+    const score = -negamax(game, depth - 1, -beta, -alpha, nodes, qMax);
     game.undo();
     if (score > best) best = score;
     if (best > alpha) alpha = best;
@@ -187,53 +325,121 @@ export function chooseMove(
   const legal = game.moves({ verbose: true });
   if (legal.length === 0) return null;
 
-  // Opening book — open like a human rather than a shallow search.
-  const book = OPENING_BOOK[fen];
-  if (book) {
-    const candidates = book.filter((uci) => legal.some((m) => `${m.from}${m.to}` === uci));
-    if (candidates.length) {
-      const m = legal.find((x) => `${x.from}${x.to}` === candidates[Math.floor(seed * candidates.length) % candidates.length])!;
-      return { from: m.from, to: m.to, promotion: (m.promotion as PieceSymbol | undefined) ?? undefined };
+  if (config.randomMoveChance && seed < config.randomMoveChance) {
+    let pool = legal;
+    // Beginners often miss free pieces — don't randomly grab queens/rooks.
+    if (config.materialOnly && config.elo < 450) {
+      const quiet = legal.filter(
+        (m) => !m.captured || (ORDER_VAL[m.captured] ?? 0) < 5,
+      );
+      if (quiet.length) pool = quiet;
+    }
+    const idx = Math.floor(deriveSeed(seed, 0) * pool.length) % pool.length;
+    const m = pool[idx]!;
+    return {
+      from: m.from,
+      to: m.to,
+      promotion: (m.promotion as PieceSymbol | undefined) ?? undefined,
+    };
+  }
+
+  // Opening book — only for bots that know openings.
+  if (config.useBook !== false) {
+    const book = OPENING_BOOK[fen];
+    if (book) {
+      const candidates = book.filter((uci) => legal.some((m) => `${m.from}${m.to}` === uci));
+      if (candidates.length) {
+        const m = legal.find(
+          (x) =>
+            `${x.from}${x.to}` ===
+            candidates[Math.floor(seed * candidates.length) % candidates.length],
+        )!;
+        return {
+          from: m.from,
+          to: m.to,
+          promotion: (m.promotion as PieceSymbol | undefined) ?? undefined,
+        };
+      }
     }
   }
 
   let moves = orderMoves(legal);
   const nodes = { n: 0 };
-  let scored: { move: (typeof legal)[number]; score: number }[] = moves.map((m) => ({ move: m, score: 0 }));
+  const qMax = config.qMax ?? QMAX;
+  let scored: { move: (typeof legal)[number]; score: number }[] = [];
 
-  // Iterative deepening: each *completed* depth refines the scores and re-orders
-  // moves best-first for sharper pruning next time. If the node budget runs out
-  // mid-iteration we keep the last fully-searched depth's result — so the move is
-  // always sound and the "think" is bounded (responsive on a phone).
-  for (let d = 1; d <= config.depth; d++) {
-    const partial: { move: (typeof legal)[number]; score: number }[] = [];
-    let aborted = false;
+  if (config.depth <= 0) {
     for (const m of moves) {
       game.move(m as never);
-      const s = -negamax(game, d - 1, -Infinity, Infinity, nodes);
+      const s = -scorePosition(game, config.materialOnly);
       game.undo();
-      partial.push({ move: m, score: s });
-      if (nodes.n > NODE_CAP) { aborted = true; break; }
+      scored.push({ move: m, score: s });
     }
-    if (!aborted) {
-      partial.sort((a, b) => b.score - a.score);
-      scored = partial;
-      moves = scored.map((x) => x.move);
+    scored.sort((a, b) => b.score - a.score);
+  } else {
+    scored = moves.map((m) => ({ move: m, score: 0 }));
+    // Iterative deepening: each *completed* depth refines the scores and re-orders
+    // moves best-first for sharper pruning next time. If the node budget runs out
+    // mid-iteration we keep the last fully-searched depth's result — so the move is
+    // always sound and the "think" is bounded (responsive on a phone).
+    for (let d = 1; d <= config.depth; d++) {
+      const partial: { move: (typeof legal)[number]; score: number }[] = [];
+      let aborted = false;
+      for (const m of moves) {
+        game.move(m as never);
+        const s = -negamax(game, d - 1, -Infinity, Infinity, nodes, qMax);
+        game.undo();
+        partial.push({ move: m, score: s });
+        if (nodes.n > NODE_CAP) {
+          aborted = true;
+          break;
+        }
+      }
+      if (!aborted) {
+        partial.sort((a, b) => b.score - a.score);
+        scored = partial;
+        moves = scored.map((x) => x.move);
+      }
+      if (aborted) break;
     }
-    if (aborted) break;
   }
 
-  // tiny deterministic tie-break (≤4cp) so near-equal positions vary a little
+  // Score jitter so near-equal positions vary; large noise at low ELO hides tactics.
+  const noiseCp = config.evalNoiseCp ?? 4;
   scored = scored
-    .map((x, i) => ({ move: x.move, score: x.score + ((Math.sin((i + 1) * (seed + 0.13)) + 1) / 2) * 4 * config.jitter }))
+    .map((x, i) => ({
+      move: x.move,
+      score:
+        x.score +
+        ((Math.sin((i + 1) * (seed + 0.13)) + 1) / 2) * noiseCp * config.jitter,
+    }))
     .sort((a, b) => b.score - a.score);
 
-  // Weakness model: with blunderChance pick a sub-optimal — but still searched,
-  // sane — move from the top few, instead of injecting random noise everywhere.
-  const pickIndex =
-    seed < config.blunderChance && scored.length > 2
-      ? 1 + Math.floor(seed * Math.min(3, scored.length - 1))
-      : 0;
+  // Weakness model: low ELO skips the best move and often picks from the bottom half.
+  const spread = config.blunderSpread ?? 3;
+  let pickIndex = 0;
+  const topCapture = scored[0]?.move.captured;
+  const topIsMajor =
+    topCapture && (ORDER_VAL[topCapture] ?? 0) >= 5 && config.elo < 550;
+  const blunderRoll = deriveSeed(seed, 1);
+  const forceBlunder =
+    topIsMajor || blunderRoll < config.blunderChance;
+  if (forceBlunder && scored.length > 1) {
+    const worstRoll = deriveSeed(seed, 2);
+    if (config.pickWorstChance && worstRoll < config.pickWorstChance) {
+      const tail = Math.max(3, Math.ceil(scored.length * 0.45));
+      const minRank = Math.max(0, scored.length - tail);
+      pickIndex =
+        minRank +
+        Math.floor(deriveSeed(seed, 3) * Math.max(1, scored.length - minRank));
+      pickIndex = Math.min(pickIndex, scored.length - 1);
+    } else {
+      const minRank = Math.max(1, Math.floor(scored.length * 0.25));
+      const maxRank = Math.min(spread, scored.length - 1);
+      const span = Math.max(1, maxRank - minRank + 1);
+      pickIndex = minRank + Math.floor(deriveSeed(seed, 4) * span);
+    }
+  }
   const chosen = scored[pickIndex] ?? scored[0];
   if (!chosen) return null;
   return {
@@ -248,7 +454,7 @@ export type EngineAdapter = (fen: string, elo: number) => Promise<MoveInput | nu
 
 /**
  * Best move for the bot. If a platform engine adapter is supplied (web Worker,
- * mobile WebView/native), it's used for ELO ≥ 800; otherwise — and on any
+ * mobile WebView/native), it's used for ELO ≥ 1400; otherwise — and on any
  * failure — falls back to the in-house JS search so play never breaks.
  */
 export async function getBotMove(
@@ -257,7 +463,7 @@ export async function getBotMove(
   seed = 0.5,
   engine?: EngineAdapter,
 ): Promise<MoveInput | null> {
-  if (engine && config.elo >= 800) {
+  if (engine && config.elo >= 1400) {
     try {
       const m = await engine(fen, config.elo);
       if (m) return m;

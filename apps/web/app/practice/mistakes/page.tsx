@@ -5,6 +5,7 @@ import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { Mascot } from "@/components/ui/Mascot";
+import { Icon } from "@/components/ui/Icon";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
 /**
@@ -33,8 +34,9 @@ export default function PracticeMistakesPage() {
     return (
       <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
         <Mascot expression="happy" size={96} />
-        <p className="text-ink text-lg font-extrabold">
-          No mistakes to practise yet 🎉
+        <p className="text-ink inline-flex items-center justify-center gap-2 text-lg font-extrabold">
+          <Icon name="sparkle" size={22} className="text-brand shrink-0" />
+          No mistakes to practise yet
         </p>
         <p className="text-ink-500 max-w-xs text-sm font-semibold">
           As you play lessons, the spots you get wrong are saved here so you can
@@ -54,7 +56,7 @@ export default function PracticeMistakesPage() {
     fen: m.fen,
     solution: [m.best],
     tag: m.tag || "review",
-    successText: "That's the one! 🎯",
+    successText: "That's the one!",
     failText: "Not quite — look again for the strongest move.",
   }));
 

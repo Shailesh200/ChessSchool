@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { IconBadge, type IconTone } from "@/components/ui/IconBadge";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { useProgression, levelForXp } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
@@ -125,7 +127,7 @@ export default function ProfilePage() {
                 href={l.href}
                 className="btn-tactile rounded-card border-hairline bg-surface-card flex flex-col items-center gap-1.5 border py-4 [box-shadow:var(--shadow-card)]"
               >
-                <Icon name={l.icon} size={26} duotone className="text-brand" />
+                <IconBadge name={l.icon} size="md" tone="brand" />
                 <span className="text-ink text-xs font-extrabold">{l.label}</span>
               </Link>
             ))}
@@ -202,14 +204,16 @@ export default function ProfilePage() {
                               href={`/lesson/${lessonsByTag[openTag][0]}`}
                               className="btn-tactile rounded-pill bg-brand mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs font-extrabold text-white"
                             >
-                              🎯 Practice {openTag} now →
+                              <Icon name="target" size={14} className="shrink-0" />
+                              Practice {openTag} now →
                             </Link>
                           ) : (
                             <Link
                               href="/review"
                               className="btn-tactile rounded-pill bg-brand mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs font-extrabold text-white"
                             >
-                              🔍 Review your games →
+                              <Icon name="search" size={14} className="shrink-0" />
+                              Review your games →
                             </Link>
                           )}
                         </div>
@@ -233,9 +237,11 @@ export default function ProfilePage() {
                             : "border-hairline bg-surface-sunken opacity-60"
                         }`}
                       >
-                        <span className={`text-2xl ${has ? "" : "grayscale"}`}>
-                          {a.emoji}
-                        </span>
+                        <ContentIcon
+                          achievementId={a.id}
+                          size={20}
+                          className={has ? "" : "grayscale"}
+                        />
                         <span className="text-ink text-[11px] font-extrabold">
                           {a.title}
                         </span>
@@ -293,9 +299,11 @@ export default function ProfilePage() {
                           : "border-hairline bg-surface-sunken opacity-60"
                       }`}
                     >
-                      <span className={`text-xl ${has ? "" : "grayscale"}`}>
-                        {a.emoji}
-                      </span>
+                      <ContentIcon
+                        achievementId={a.id}
+                        size={18}
+                        className={has ? "" : "grayscale"}
+                      />
                       <span className="text-ink text-[10px] font-extrabold">
                         {a.title}
                       </span>
@@ -311,6 +319,13 @@ export default function ProfilePage() {
   );
 }
 
+function statTone(tone: string): IconTone {
+  if (tone.includes("accent")) return "accent";
+  if (tone.includes("success")) return "success";
+  if (tone.includes("gold")) return "gold";
+  return "brand";
+}
+
 function Stat({
   label,
   value,
@@ -324,7 +339,7 @@ function Stat({
 }) {
   return (
     <Card className="flex items-center gap-3 p-4">
-      <Icon name={icon} size={24} duotone className={tone} />
+      <IconBadge name={icon} size="md" tone={statTone(tone)} />
       <div className="min-w-0">
         <AnimatedNumber
           value={value}

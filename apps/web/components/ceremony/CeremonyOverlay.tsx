@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import { Confetti } from "@/components/ui/Confetti";
 import { Mascot } from "@/components/ui/Mascot";
-import { Icon } from "@/components/ui/Icon";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { LazyLottie } from "@/components/motion/LazyLottie";
 import { popIn, softSpring } from "@/core/motion/variants";
 
@@ -84,7 +84,7 @@ export function CeremonyOverlay({
                     className="absolute inset-0 h-full w-full"
                   >
                     <span className="bg-brand/10 flex h-28 w-28 items-center justify-center rounded-full">
-                      <Icon name="cap" size={56} className="text-gold" />
+                      <IconBadge name="cap" size="xl" tone="gold" className="h-20 w-20 rounded-full" />
                     </span>
                   </LazyLottie>
                   <motion.span
@@ -93,7 +93,7 @@ export function CeremonyOverlay({
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ ...softSpring, delay: 0.12 }}
                   >
-                    <Icon name="sparkle" size={28} className="text-brand" />
+                    <IconBadge name="celebrate" size="md" tone="accent" />
                   </motion.span>
                 </motion.div>
               ) : (

@@ -6,18 +6,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { journalKindIcon } from "@/components/ui/iconMaps";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { listJournal, deleteJournalEntry, type JournalEntry } from "@/core/db/db";
 
 const CONF = ["😣", "😕", "😐", "🙂", "😄"];
-const KIND_EMOJI: Record<string, string> = {
-  lesson: "📖",
-  match: "♟️",
-  review: "🔍",
-  exam: "📝",
-  reflection: "🧠",
-};
 
 export default function JournalPage() {
   const mounted = useMounted();
@@ -86,7 +81,7 @@ export default function JournalPage() {
           <div className="skeleton rounded-card h-24" />
         ) : entries.length === 0 ? (
           <Card className="text-center">
-            <p className="text-3xl">🧠</p>
+            <Icon name="brain" size={40} className="text-brand mx-auto" duotone />
             <p className="text-ink mt-1 text-sm font-bold">No entries yet</p>
             <p className="text-ink-500 text-xs font-semibold">
               Finish a lesson or match and tap “Reflect” to start journaling.
@@ -109,7 +104,7 @@ export default function JournalPage() {
                 {list.map((e) => (
                   <Card key={e.id} className="p-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{KIND_EMOJI[e.kind] ?? "📔"}</span>
+                      <Icon name={journalKindIcon(e.kind)} size={18} className="text-brand shrink-0" />
                       <span className="text-ink flex-1 text-sm font-extrabold">
                         {e.title}
                       </span>

@@ -7,6 +7,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { SkillRadar } from "@/components/dashboard/SkillRadar";
 import { StreakHeatmap } from "@/components/dashboard/StreakHeatmap";
@@ -213,7 +214,10 @@ export default function DashboardPage() {
                   href="/practice/mistakes"
                   className="text-brand shrink-0 text-xs font-extrabold"
                 >
-                  🎯 Practice these →
+                  <span className="inline-flex items-center gap-1">
+                    <Icon name="target" size={14} className="shrink-0" />
+                    Practice these →
+                  </span>
                 </Link>
               )}
             </div>
@@ -233,9 +237,9 @@ export default function DashboardPage() {
               </div>
               {bestGame && (
                 <Link href={`/review/${bestGame.id}`}>
-                  <div className="rounded-card bg-surface-sunken text-ink px-3 py-2 text-sm font-bold">
-                    ⭐ Best game: win vs Bot {bestGame.elo} in {bestGame.moveCount}{" "}
-                    moves →
+                  <div className="rounded-card bg-surface-sunken text-ink flex items-center gap-1.5 px-3 py-2 text-sm font-bold">
+                    <Icon name="star" size={16} className="text-gold shrink-0" />
+                    Best game: win vs Bot {bestGame.elo} in {bestGame.moveCount} moves →
                   </div>
                 </Link>
               )}
@@ -243,9 +247,10 @@ export default function DashboardPage() {
                 {ACHIEVEMENTS.filter((a) => unlocked.includes(a.id)).map((a) => (
                   <span
                     key={a.id}
-                    className="rounded-pill bg-gold/15 text-ink px-2 py-1 text-xs font-bold"
+                    className="rounded-pill bg-gold/15 text-ink inline-flex items-center gap-1 px-2 py-1 text-xs font-bold"
                   >
-                    {a.emoji} {a.title}
+                    <ContentIcon achievementId={a.id} size={14} variant="inline" />
+                    {a.title}
                   </span>
                 ))}
                 {unlocked.length === 0 && (

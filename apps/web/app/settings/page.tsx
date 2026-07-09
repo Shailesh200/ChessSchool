@@ -10,6 +10,8 @@ import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
 import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
+import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
+import { COACH_AVATAR } from "@/components/ui/iconMaps";
 import {
   SettingsNav,
   SettingsPanel,
@@ -160,18 +162,24 @@ export default function SettingsPage() {
                 />
               </Row>
               <Row label="Coach personality" hint="Tone of feedback">
-                <Select
-                  className="w-40 shrink-0"
-                  options={[
-                    { id: "friendly", title: "😊 Friendly" },
-                    { id: "strict", title: "🎩 Strict" },
-                    { id: "mentor", title: "🧑‍🏫 Mentor" },
-                    { id: "tactical", title: "⚔️ Tactical" },
-                    { id: "minimal", title: "🔇 Minimal" },
-                  ]}
-                  value={s.coachPersonality}
-                  onChange={(v) => s.set("coachPersonality", v as CoachPersonality)}
-                />
+                <div className="flex items-center gap-2">
+                  <FlatAvatar
+                    id={COACH_AVATAR[s.coachPersonality] ?? "coach-friendly"}
+                    size={48}
+                  />
+                  <Select
+                    className="w-40 shrink-0"
+                    options={[
+                      { id: "friendly", title: "Friendly" },
+                      { id: "strict", title: "Strict" },
+                      { id: "mentor", title: "Mentor" },
+                      { id: "tactical", title: "Tactical" },
+                      { id: "minimal", title: "Minimal" },
+                    ]}
+                    value={s.coachPersonality}
+                    onChange={(v) => s.set("coachPersonality", v as CoachPersonality)}
+                  />
+                </div>
               </Row>
             </SettingsPanel>
 

@@ -16,8 +16,11 @@ import {
 } from "@/core/themes/themes";
 import { PIECE_THEMES, PiecePreview } from "@/features/board/pieceThemes";
 import { BackButton } from "@/components/ui/BackButton";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 function MiniBoard({ themeId, size = 8 }: { themeId: string; size?: number }) {
   const t = getBoardTheme(themeId);
@@ -67,20 +70,31 @@ export default function ThemesPage() {
         <div className="lg:grid lg:grid-cols-[minmax(0,560px)_minmax(320px,1fr)] lg:items-start lg:gap-8">
           {/* Live preview — sticky left column on desktop */}
           <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-            <Card className="flex items-center gap-4 lg:flex-col lg:items-stretch lg:p-5">
-              <div className="w-28 shrink-0 lg:w-full lg:max-w-md lg:self-center">
+            <Card className="flex items-center gap-4 p-4 lg:flex-col lg:items-stretch lg:p-5">
+              {/* Mobile: mini checkerboard swatch */}
+              <div className="w-28 shrink-0 lg:hidden">
                 <MiniBoard themeId={boardTheme} size={8} />
+              </div>
+              {/* Desktop: full board with pieces — live theme preview */}
+              <div className="hidden w-full lg:block lg:max-w-md lg:self-center">
+                <ChessBoard
+                  fen={START_FEN}
+                  interactive={false}
+                  showNotation
+                />
               </div>
               <div className="min-w-0 flex-1 lg:text-center">
                 <span className="rounded-pill bg-brand inline-block px-2 py-0.5 text-xs font-extrabold text-white">
                   Live preview
                 </span>
                 <p className="text-ink mt-1 truncate text-sm font-extrabold lg:text-base">
-                  {getBoardTheme(boardTheme).name} board
+                  {getBoardTheme(boardTheme).name} board ·{" "}
+                  {PIECE_THEMES.find((p) => p.id === pieceTheme)?.name ?? pieceTheme}{" "}
+                  pieces
                 </p>
                 <Button
                   size="sm"
-                  className="mt-2 lg:mx-auto"
+                  className="mt-2 lg:hidden"
                   onClick={() => setPreviewOpen(true)}
                 >
                   Preview
@@ -90,10 +104,10 @@ export default function ThemesPage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            {/* Full read-only board preview */}
+            {/* Full read-only board preview — mobile only (desktop uses sticky column) */}
             {previewOpen && (
               <div
-                className="bg-ink/55 fixed inset-0 z-[80] flex items-center justify-center p-6 backdrop-blur-sm"
+                className="bg-ink/55 fixed inset-0 z-[80] flex items-center justify-center p-6 backdrop-blur-sm lg:hidden"
                 onClick={() => setPreviewOpen(false)}
               >
                 <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
@@ -140,8 +154,9 @@ export default function ThemesPage() {
                         <span className="w-1/3" style={{ background: t.swatch[2] }} />
                       </span>
                       <span className="min-w-0 flex-1 text-left">
-                        <span className="text-ink block truncate text-xs font-extrabold">
-                          {t.emoji} {t.name}
+                        <span className="text-ink flex items-center gap-1.5 truncate text-xs font-extrabold">
+                          <ContentIcon emoji={t.emoji} size={16} variant="inline" />
+                          {t.name}
                         </span>
                       </span>
                     </button>
@@ -204,7 +219,7 @@ export default function ThemesPage() {
                         <PiecePreview themeId={p.id} />
                       </div>
                       <p className="text-ink truncate text-[11px] font-extrabold">
-                        {p.emoji} {p.name}
+                        {p.name}
                       </p>
                     </button>
                   );
@@ -232,7 +247,7 @@ export default function ThemesPage() {
                           : "border-hairline bg-surface-card"
                       }`}
                     >
-                      <span className="text-2xl">{t.emoji}</span>
+                      <ContentIcon emoji={t.emoji} size={24} selected={active} />
                       <span className="text-ink truncate text-xs font-extrabold">
                         {t.name}
                       </span>

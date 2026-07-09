@@ -26,7 +26,7 @@ test("theme studio shows app + board themes with live preview", async ({ page })
   await expect(page.getByText("App theme")).toBeVisible();
   await expect(page.getByText("Board themes")).toBeVisible();
   // switching to Midnight applies a dark surface
-  await page.getByText("🌙 Midnight").click();
+  await page.getByRole("button", { name: /Midnight/i }).click();
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", "midnight");
 });
 

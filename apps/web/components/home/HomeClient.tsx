@@ -6,6 +6,7 @@ import { ResumeCard } from "@/features/school/ResumeCard";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { NavButton } from "@/components/ui/NavButton";
 import Link from "next/link";
@@ -99,8 +100,9 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
 
         {recommendPreschool && (
           <div className="rounded-card border-hairline bg-surface-sunken/80 border p-4">
-            <p className="text-ink text-sm font-extrabold">
-              🧸 Optional: Pre-School for complete beginners
+            <p className="text-ink inline-flex items-center gap-1.5 text-sm font-extrabold">
+              <Icon name="seedling" size={16} className="text-brand shrink-0" />
+              Optional: Pre-School for complete beginners
             </p>
             <p className="text-ink-500 mt-1 text-xs font-semibold">
               Learn the board, pieces, and notation (d6, Nf3, Qd5) at your own pace —
@@ -114,8 +116,9 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
 
         {showPlacement && (
           <div className="rounded-card border-brand-100 bg-brand-50 border p-4">
-            <p className="text-ink text-sm font-extrabold">
-              🎯 New here? Take a quick placement test
+            <p className="text-ink inline-flex items-center gap-1.5 text-sm font-extrabold">
+              <Icon name="target" size={16} className="text-brand shrink-0" />
+              New here? Take a quick placement test
             </p>
             <p className="text-ink-500 mt-1 text-xs font-semibold">
               8 puzzles (~2 min) — we&apos;ll place you in Elementary, Middle, or High
@@ -135,8 +138,9 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
             className="btn-tactile rounded-card border-brand/30 bg-brand/10 flex items-center justify-between border px-4 py-3"
           >
             <span>
-              <span className="text-ink block text-sm font-extrabold">
-                🔁 Review due
+              <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                <Icon name="review" size={16} className="text-brand shrink-0" />
+                Review due
               </span>
               <span className="text-ink-500 block text-xs font-semibold">
                 {dueIds.length} lesson{dueIds.length === 1 ? "" : "s"} ready
@@ -159,10 +163,18 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
             onClick={dailyDone ? (e) => e.preventDefault() : undefined}
           >
             <span>
-              <span className="text-ink block text-sm font-extrabold">
-                {dailyDone
-                  ? "✅ Daily puzzle done"
-                  : `${daily.emoji ?? "🧩"} Daily puzzle`}
+              <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                {dailyDone ? (
+                  <>
+                    <Icon name="check" size={16} className="text-success shrink-0" />
+                    Daily puzzle done
+                  </>
+                ) : (
+                  <>
+                    <ContentIcon emoji={daily.emoji ?? undefined} name="puzzle" size={16} variant="inline" tone="brand" />
+                    Daily puzzle
+                  </>
+                )}
               </span>
               <span className="text-ink-500 block text-xs font-semibold">
                 {dailyDone
@@ -182,8 +194,9 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
               className="btn-tactile rounded-card border-gold/40 bg-gold/10 flex items-center justify-between border px-4 py-3"
             >
               <span>
-                <span className="text-ink block text-sm font-extrabold">
-                  📋 Today&apos;s homework
+                <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                  <Icon name="journal" size={16} className="text-brand shrink-0" />
+                  Today&apos;s homework
                 </span>
                 <span className="text-ink-500 block text-xs font-semibold">
                   {homeworkDone}/{ROUTINE_STEPS.length} done — finish it to keep your
@@ -198,8 +211,9 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
               className="btn-tactile rounded-card border-success/40 bg-success/10 flex items-center justify-between border px-4 py-3"
             >
               <span>
-                <span className="text-ink block text-sm font-extrabold">
-                  ✅ Homework done for today!
+                <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                  <Icon name="check" size={16} className="text-success shrink-0" />
+                  Homework done for today!
                 </span>
                 <span className="text-ink-500 block text-xs font-semibold">
                   Nice work — come back tomorrow for a fresh set.

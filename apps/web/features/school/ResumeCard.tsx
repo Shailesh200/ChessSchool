@@ -101,7 +101,10 @@ export function ResumeCard({
         {activeMatch && !activeMatch.finished && (
           <Link href="/play" className="shrink-0">
             <Button variant="outline" aria-label="Resume your match">
-              ♟️ Resume
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="pawn" size={16} />
+                Resume
+              </span>
             </Button>
           </Link>
         )}

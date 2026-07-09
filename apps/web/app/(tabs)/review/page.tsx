@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Mascot } from "@/components/ui/Mascot";
 import { useProgression } from "@/core/store/progression.store";
@@ -67,8 +68,9 @@ export default function ReviewPage() {
             <span className="text-accent-600">{topTag}</span>.
           </p>
           <Link href={`/lesson/${suggestion.id}`}>
-            <Button className="mt-3" variant="accent">
-              {suggestion.emoji} Review {suggestion.title}
+            <Button className="mt-3 inline-flex items-center gap-2" variant="accent">
+              <ContentIcon emoji={suggestion.emoji} size={18} variant="inline" tone="accent" />
+              Review {suggestion.title}
             </Button>
           </Link>
         </Card>

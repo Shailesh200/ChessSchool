@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -56,7 +57,7 @@ export function MyCompletedLibrary({ lessons }: { lessons: LibLesson[] }) {
                     href={`/library/lesson/${l.id}`}
                     className="btn-tactile rounded-card border-hairline bg-surface-card flex items-center gap-3 border p-3 [box-shadow:var(--shadow-card)]"
                   >
-                    <span className="text-2xl">{l.emoji}</span>
+                    <ContentIcon emoji={l.emoji} size={22} tone="gold" />
                     <p className="text-ink min-w-0 flex-1 truncate text-sm font-extrabold">
                       {l.title}
                     </p>

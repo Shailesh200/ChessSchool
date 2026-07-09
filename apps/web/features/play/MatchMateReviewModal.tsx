@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Button } from "@/components/ui/Button";
@@ -9,44 +10,119 @@ import { Icon } from "@/components/ui/Icon";
 import {
   analyzeMate,
   lastMoveFrames,
+  lastMoveFramesFromHistory,
   matePreventionTip,
   type Frame,
 } from "@/features/review/replay";
 import type { BoardArrow, Square } from "@/core/types/chess";
 import { audio } from "@/core/audio/audioEngine";
 
-/** Step-through review of the last moves leading to checkmate. */
+/** Piece slide duration — keep in sync with ChessBoard animationDurationInMs. */
+const ANIM_MS = 300;
+/** Pause after each animated move before the next one starts. */
+const PAUSE_MS = 700;
+const STEP_MS = ANIM_MS + PAUSE_MS;
+/** Hold the opening frame before the first move slides. */
+const INITIAL_MS = PAUSE_MS;
+
+/** Auto-playing review of the last moves leading to checkmate. */
 export function MatchMateReviewModal({
   open,
   pgn,
+  history,
   orientation,
   onClose,
 }: {
   open: boolean;
   pgn: string;
+  /** Prefer live verbose history over PGN parsing when available. */
+  history?: Array<{
+    from: Square;
+    to: Square;
+    san: string;
+    promotion?: string;
+    captured?: string;
+  }>;
   orientation: "white" | "black";
   onClose: () => void;
 }) {
-  const steps = useMemo(() => (open ? lastMoveFrames(pgn, 5) : []), [open, pgn]);
+  const [steps, setSteps] = useState<Frame[]>([]);
   const [idx, setIdx] = useState(0);
+  const [showMateOverlay, setShowMateOverlay] = useState(false);
+  const [skipAnim, setSkipAnim] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
+  const safeIdx = steps.length ? Math.min(idx, steps.length - 1) : 0;
+  const frame = steps[safeIdx];
+  const atEnd = safeIdx >= steps.length - 1;
+
+  // Snapshot steps once when the modal opens — avoids autoplay restarts on parent re-renders.
+  useEffect(() => {
+    if (!open) {
+      setSteps([]);
+      setIdx(0);
+      setShowMateOverlay(false);
+      setSkipAnim(false);
+      return;
+    }
+    const next = history?.length
+      ? lastMoveFramesFromHistory(history, 5)
+      : lastMoveFrames(pgn, 5);
+    setSteps(next);
+    setIdx(0);
+    setShowMateOverlay(false);
+    setSkipAnim(false);
+  }, [open, pgn, history]);
 
   useEffect(() => {
-    if (open) setIdx(0);
-  }, [open, pgn]);
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (!open || steps.length <= 1) return;
+
+    let current = 0;
+    let cancelled = false;
+
+    const advance = () => {
+      if (cancelled || current >= steps.length - 1) return;
+      current += 1;
+      if (steps[current]?.san) audio.play("move");
+      setIdx(current);
+      timerRef.current = window.setTimeout(advance, STEP_MS);
+    };
+
+    timerRef.current = window.setTimeout(advance, INITIAL_MS);
+
+    return () => {
+      cancelled = true;
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    };
+  }, [open, steps]);
+
+  useEffect(() => {
+    if (!atEnd || !frame?.mate) {
+      setShowMateOverlay(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowMateOverlay(true), ANIM_MS + 180);
+    return () => window.clearTimeout(t);
+  }, [atEnd, frame?.mate, safeIdx]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
-      if (e.key === "ArrowRight") setIdx((i) => Math.min(steps.length - 1, i + 1));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, steps.length]);
+  }, [open, onClose]);
 
-  const frame: Frame | undefined = steps[idx];
-  const mate = useMemo(() => (frame?.mate ? analyzeMate(frame.fen) : null), [frame]);
+  const mate = useMemo(
+    () => (showMateOverlay && frame?.mate ? analyzeMate(frame.fen) : null),
+    [showMateOverlay, frame],
+  );
 
   const arrows: BoardArrow[] = useMemo(() => {
     if (!mate) return [];
@@ -58,21 +134,25 @@ export function MatchMateReviewModal({
   }, [mate]);
 
   const highlight: Square[] = mate ? mate.covered.map((c) => c.square) : [];
-  const atEnd = idx >= steps.length - 1;
 
-  function go(delta: number) {
-    setIdx((i) => {
-      const n = i + delta;
-      if (n >= 0 && n < steps.length) audio.play("move");
-      return Math.max(0, Math.min(steps.length - 1, n));
-    });
+  function skipToEnd() {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = null;
+    setSkipAnim(true);
+    const end = Math.max(0, steps.length - 1);
+    setIdx(end);
+    window.setTimeout(() => setSkipAnim(false), 0);
+    setShowMateOverlay(Boolean(steps[end]?.mate));
   }
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && frame && (
         <motion.div
-          className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-6"
+          key="mate-review"
+          className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -98,8 +178,9 @@ export function MatchMateReviewModal({
                   How the checkmate happened
                 </h2>
                 <p className="text-ink-500 text-xs font-semibold">
-                  Step {idx + 1} of {steps.length} — last {steps.length}{" "}
-                  {steps.length === 1 ? "move" : "moves"}
+                  {atEnd
+                    ? `Final move — step ${safeIdx + 1} of ${steps.length}`
+                    : `Replaying — step ${safeIdx + 1} of ${steps.length}`}
                 </p>
               </div>
               <button
@@ -114,12 +195,17 @@ export function MatchMateReviewModal({
 
             <div className="mx-auto w-full max-w-[320px]">
               <ChessBoard
+                boardId="mate-review-board"
                 fen={frame.fen}
                 orientation={orientation}
                 interactive={false}
                 showNotation
+                showAnimations={!skipAnim}
+                animationDurationInMs={ANIM_MS}
                 lastMove={
-                  frame.from && frame.to ? { from: frame.from, to: frame.to } : null
+                  safeIdx > 0 && frame.from && frame.to
+                    ? { from: frame.from, to: frame.to }
+                    : null
                 }
                 arrows={arrows}
                 highlight={highlight}
@@ -128,58 +214,35 @@ export function MatchMateReviewModal({
             </div>
 
             <p className="text-ink mt-3 text-center text-sm font-extrabold">
-              {moveLabel(frame, idx, steps.length)}
+              {moveLabel(frame, safeIdx, steps.length)}
             </p>
 
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <StepBtn
-                label="Previous move"
-                disabled={idx === 0}
-                onClick={() => go(-1)}
-              >
-                <Icon name="undo" size={18} />
-              </StepBtn>
-              <div className="flex gap-1">
-                {steps.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    aria-label={`Go to step ${i + 1}`}
-                    onClick={() => {
-                      audio.play("move");
-                      setIdx(i);
-                    }}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      i === idx ? "bg-brand scale-125" : "bg-surface-sunken"
-                    }`}
-                  />
-                ))}
-              </div>
-              <StepBtn label="Next move" disabled={atEnd} onClick={() => go(1)}>
-                <Icon name="chevronRight" size={18} />
-              </StepBtn>
+            <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden>
+              {steps.map((_, i) => (
+                <span
+                  key={i}
+                  className={`h-2 w-2 rounded-full transition-colors ${
+                    i === safeIdx ? "bg-brand scale-125" : i < safeIdx ? "bg-brand/40" : "bg-surface-sunken"
+                  }`}
+                />
+              ))}
             </div>
 
             <div className="mt-2 flex flex-wrap justify-center gap-1.5">
               {steps.map((f, i) => (
-                <button
+                <span
                   key={f.ply}
-                  type="button"
-                  onClick={() => {
-                    audio.play("move");
-                    setIdx(i);
-                  }}
                   className={`rounded-md px-2 py-1 text-xs font-bold ${
-                    idx === i ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"
+                    safeIdx === i ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"
                   }`}
                 >
-                  {f.san}
+                  {f.san ?? "…"}
                   {f.mate ? "#" : f.check ? "+" : ""}
-                </button>
+                </span>
               ))}
             </div>
 
-            {mate && atEnd && (
+            {mate && showMateOverlay && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -204,47 +267,23 @@ export function MatchMateReviewModal({
               </motion.div>
             )}
 
-            <Button block className="mt-4" onClick={onClose}>
+            <Button block className="mt-4" onClick={atEnd ? onClose : skipToEnd}>
               {atEnd ? "Continue" : "Skip to result"}
             </Button>
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
 function moveLabel(frame: Frame, idx: number, total: number): string {
-  if (!frame.san) return "Starting position";
+  if (!frame.san) {
+    return idx === 0 && total > 1 ? "Before the final attack" : "Starting position";
+  }
   const num = Math.ceil(frame.ply / 2);
   const suffix = frame.mate ? " #" : frame.check ? " +" : "";
-  if (idx === 0 && total > 1) {
-    return `The attack begins: ${num}. ${frame.san}${suffix}`;
-  }
   if (frame.mate) return `Checkmate — ${num}. ${frame.san}#`;
   return `${num}. ${frame.san}${suffix}`;
-}
-
-function StepBtn({
-  children,
-  label,
-  disabled,
-  onClick,
-}: {
-  children: React.ReactNode;
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="btn-tactile border-hairline bg-surface-card flex h-10 w-10 items-center justify-center rounded-full border disabled:opacity-40"
-    >
-      {children}
-    </button>
-  );
 }

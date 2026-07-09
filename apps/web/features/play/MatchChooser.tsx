@@ -9,6 +9,9 @@ import { useMatch, type MatchMode } from "@/core/store/match.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useProgression } from "@/core/store/progression.store";
 import { botProfile } from "@/features/play/bots";
+import { BotAvatar } from "@/features/play/BotAvatar";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
@@ -82,7 +85,7 @@ export function MatchChooser() {
         <motion.div variants={listItem} className="grid grid-cols-2 gap-3">
           <ModeCard
             active={mode === "bot"}
-            emoji="🤖"
+            iconName="robot"
             title="vs Bot"
             subtitle="Adaptive AI 300–2000"
             onClick={() => {
@@ -92,7 +95,7 @@ export function MatchChooser() {
           />
           <ModeCard
             active={mode === "pass"}
-            emoji="👥"
+            iconName="users"
             title="vs Human"
             subtitle="Two players, one device · or play online"
             onClick={() => {
@@ -118,8 +121,9 @@ export function MatchChooser() {
                 }`}
               >
                 <span>
-                  <span className="text-ink text-sm font-extrabold">
-                    🎯 Adaptive bot
+                  <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                    <Icon name="target" size={16} className="text-brand shrink-0" />
+                    Adaptive bot
                   </span>
                   <span className="text-ink-500 block text-xs font-semibold">
                     Matches your level (~{rating}) &amp; adjusts as you play
@@ -139,24 +143,29 @@ export function MatchChooser() {
                       setSetting("targetElo", elo);
                       haptics.fire("select");
                     }}
-                    className={`rounded-pill px-3 py-1 text-sm font-bold transition-colors ${
+                    className={`rounded-pill flex items-center gap-1.5 px-2.5 py-1 text-sm font-bold transition-colors ${
                       targetElo === elo
                         ? "bg-brand text-white"
                         : "bg-surface-sunken text-ink-500"
                     }`}
                   >
+                    <BotAvatar elo={elo} size={32} />
                     {elo}
                   </button>
                 ))}
               </div>
               {!adaptive && (
-                <p className="text-ink mt-3 flex items-center gap-2 text-sm font-bold">
-                  <span className="text-lg">{botProfile(targetElo).emoji}</span>
-                  {botProfile(targetElo).name}
-                  <span className="text-ink-500 font-semibold">
-                    · {botProfile(targetElo).blurb}
-                  </span>
-                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <BotAvatar elo={targetElo} size={56} />
+                  <div className="min-w-0">
+                    <p className="text-ink text-sm font-extrabold">
+                      {botProfile(targetElo).name}
+                    </p>
+                    <p className="text-ink-500 text-xs font-semibold">
+                      {botProfile(targetElo).blurb}
+                    </p>
+                  </div>
+                </div>
               )}
             </Card>
           </motion.div>
@@ -199,7 +208,10 @@ export function MatchChooser() {
               loading={creating}
               onClick={playOnline}
             >
-              🔗 Play a friend online (share link)
+              <span className="inline-flex items-center justify-center gap-2">
+                <Icon name="link" size={18} className="shrink-0" />
+                Play a friend online (share link)
+              </span>
             </Button>
           )}
         </motion.div>
@@ -218,13 +230,13 @@ export function MatchChooser() {
 
 function ModeCard({
   active,
-  emoji,
+  iconName,
   title,
   subtitle,
   onClick,
 }: {
   active: boolean;
-  emoji: string;
+  iconName: IconName;
   title: string;
   subtitle: string;
   onClick: () => void;
@@ -236,7 +248,7 @@ function ModeCard({
         active ? "border-brand bg-brand-50" : "border-hairline bg-surface-card"
       }`}
     >
-      <div className="text-3xl">{emoji}</div>
+      <IconBadge name={iconName} size="lg" tone="brand" selected={active} />
       <div className="text-ink mt-2 text-sm font-extrabold">{title}</div>
       <div className="text-ink-500 text-xs font-semibold">{subtitle}</div>
     </button>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { exportToFile, importAll, storageEstimateKB } from "@/core/backup/backup";
 import { audio } from "@/core/audio/audioEngine";
 import { toast } from "@/core/store/toast.store";
@@ -28,7 +29,7 @@ export function DataSection({ embedded = false }: { embedded?: boolean }) {
       const parsed = JSON.parse(await file.text());
       const preview = await importAll(parsed);
       if (!preview.ok) {
-        setMsg(`⚠️ ${preview.reason}`);
+        setMsg(preview.reason ?? "Import failed");
         audio.play("fail");
         return;
       }
@@ -41,7 +42,7 @@ export function DataSection({ embedded = false }: { embedded?: boolean }) {
         location.reload();
       }
     } catch {
-      setMsg("⚠️ Could not read that file.");
+      setMsg("Could not read that file.");
       audio.play("fail");
     }
   }
@@ -69,13 +70,15 @@ export function DataSection({ embedded = false }: { embedded?: boolean }) {
           ✓ All changes saved
         </span>
         <span
-          className={`rounded-pill px-2 py-1 ${offlineReady ? "bg-brand-50 text-brand" : "bg-surface-sunken text-ink-500"}`}
+          className={`rounded-pill inline-flex items-center gap-1 px-2 py-1 ${offlineReady ? "bg-brand-50 text-brand" : "bg-surface-sunken text-ink-500"}`}
         >
-          {offlineReady ? "📡 Offline ready" : "📡 Preparing offline…"}
+          <Icon name="wifi" size={12} />
+          {offlineReady ? "Offline ready" : "Preparing offline…"}
         </span>
         {storage != null && (
-          <span className="rounded-pill bg-surface-sunken text-ink-500 px-2 py-1">
-            💾 {storage < 1024 ? `${storage} KB` : `${(storage / 1024).toFixed(1)} MB`}{" "}
+          <span className="rounded-pill bg-surface-sunken text-ink-500 inline-flex items-center gap-1 px-2 py-1">
+            <Icon name="save" size={12} />
+            {storage < 1024 ? `${storage} KB` : `${(storage / 1024).toFixed(1)} MB`}{" "}
             stored
           </span>
         )}
@@ -85,7 +88,12 @@ export function DataSection({ embedded = false }: { embedded?: boolean }) {
         anytime.
       </p>
 
-      {msg && <p className="text-danger text-xs font-bold">{msg}</p>}
+      {msg && (
+        <p className="text-danger flex items-center gap-1.5 text-xs font-bold">
+          <Icon name="warning" size={14} className="shrink-0" />
+          {msg}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <Button

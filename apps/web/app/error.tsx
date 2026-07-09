@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Icon } from "@/components/ui/Icon";
 
 /** Route-level error boundary (#75) — friendly recovery, never a white screen. */
 export default function Error({
@@ -23,7 +24,7 @@ export default function Error({
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
-      <div className="text-5xl">🛟</div>
+      <Icon name="warning" size={48} className="text-warning" duotone />
       <h1 className="text-ink text-2xl font-extrabold">Something hiccuped</h1>
       <p className="text-ink-500 max-w-xs text-sm font-semibold">
         Your progress is safe — it&apos;s saved on this device. Let&apos;s get you back

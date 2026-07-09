@@ -2,6 +2,7 @@
 
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 
 type NodeStatus = "completed" | "active" | "locked" | "exam";
@@ -102,21 +103,21 @@ function LessonListIcon({ node }: { node: JourneyNodeData }) {
   }
   if (node.status === "exam") {
     return (
-      <span className="bg-warning/15 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
-        📝
+      <span className="bg-warning/15 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+        <ContentIcon name="journal" size={18} variant="plain" />
       </span>
     );
   }
   if (node.status === "active") {
     return (
-      <span className="bg-brand-50 ring-brand/40 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ring-2">
-        {node.emoji}
+      <span className="bg-brand-50 ring-brand/40 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-2">
+        <ContentIcon emoji={node.emoji} size={20} variant="plain" />
       </span>
     );
   }
   return (
-    <span className="bg-surface-sunken flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
-      {node.emoji}
+    <span className="bg-surface-sunken flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+      <ContentIcon emoji={node.emoji} size={20} variant="plain" />
     </span>
   );
 }

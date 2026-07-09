@@ -19,7 +19,21 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           padding: "1.5rem",
         }}
       >
-        <div style={{ fontSize: "3rem" }}>🛟</div>
+        <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden style={{ color: "#d97706" }}>
+          <path
+            fill="currentColor"
+            fillOpacity="0.16"
+            d="M12 4 3.5 19h17z"
+          />
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 4 3.5 19h17zM12 10v4M12 17h.01"
+          />
+        </svg>
         <h1 style={{ fontWeight: 800, fontSize: "1.5rem" }}>
           ChessSchool needs a restart
         </h1>

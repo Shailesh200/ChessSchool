@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LessonStep } from "./types";
 import { formatCoachText } from "@chess-school/progression";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { PreschoolQuizVisual } from "./PreschoolQuizVisual";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
@@ -109,7 +110,7 @@ export function PreschoolQuiz({
                       {LETTERS[i]}
                     </span>
                     {opt.emoji ? (
-                      <span className="text-lg leading-none">{opt.emoji}</span>
+                      <ContentIcon emoji={opt.emoji} size={20} variant="plain" />
                     ) : null}
                     {reveal && isCorrect && (
                       <span className="text-success ml-auto text-base">✓</span>

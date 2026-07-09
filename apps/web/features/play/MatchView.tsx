@@ -8,6 +8,7 @@ import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
 import { commentOnMove } from "@/features/coaching/coach";
 import { botProfile } from "@/features/play/bots";
+import { BotAvatar } from "@/features/play/BotAvatar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Confetti } from "@/components/ui/Confetti";
@@ -26,7 +27,7 @@ import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { MatchMateReviewModal } from "@/features/play/MatchMateReviewModal";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
-import type { MoveInput, Square } from "@/core/types/chess";
+import type { MoveInput, Square, VerboseMove } from "@/core/types/chess";
 
 function engineFromPgn(pgn: string): ChessEngine {
   if (!pgn.trim()) return new ChessEngine();
@@ -60,10 +61,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const router = useRouter();
   const sync = useMatch((s) => s.sync);
   const persistClocks = useMatch((s) => s.setClocks);
-  const markFinished = useMatch((s) => s.markFinished);
+  const setEndSnapshot = useMatch((s) => s.setEndSnapshot);
+  const dismissMateReview = useMatch((s) => s.dismissMateReview);
   const clear = useMatch((s) => s.clear);
   const progression = useProgression();
 
+  const snap = active.endSnapshot;
   const engineRef = useRef<ChessEngine>(engineFromPgn(active.pgn));
   const [fen, setFen] = useState(active.fen);
   const [pgn, setPgn] = useState(active.pgn);
@@ -78,7 +81,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     active.pgn
       ? "Welcome back — your game is right where you left it."
       : active.mode === "bot"
-        ? `${botProfile(active.targetElo).emoji} ${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
+        ? `${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
         : "Your move. Good luck!",
   );
   const [over, setOver] = useState<null | {
@@ -88,12 +91,28 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     ratingDelta: number;
     newRating: number;
     reason: EndReason;
-  }>(null);
+  }>(() =>
+    snap
+      ? {
+          text: snap.text,
+          win: snap.win,
+          gameId: active.id,
+          ratingDelta: snap.ratingDelta,
+          newRating: snap.newRating,
+          reason: snap.reason,
+        }
+      : null,
+  );
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
-  const [mateReviewOpen, setMateReviewOpen] = useState(false);
-  const [finalPgn, setFinalPgn] = useState("");
+  const [mateReviewOpen, setMateReviewOpen] = useState(snap?.mateReviewPending ?? false);
+  const [mateReviewHistory, setMateReviewHistory] = useState<VerboseMove[]>(() =>
+    snap?.mateReviewPending ? engineRef.current.history() : [],
+  );
+  const [finalPgn, setFinalPgn] = useState(() =>
+    snap?.mateReviewPending ? active.pgn : "",
+  );
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const [boardBox, boardSize] = useSquareSize();
@@ -103,7 +122,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
 
   const isBot = active.mode === "bot";
   const bot = botProfile(active.targetElo);
-  const botName = `${bot.emoji} ${bot.name}`;
+  const botName = bot.name;
   const playerColor: "w" | "b" = "w";
 
   const persist = useCallback(
@@ -112,17 +131,23 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       persistClocks(clockRef.current.w, clockRef.current.b);
       sync({ fen: e.fen(), pgn: e.pgn(), from, to });
     },
-    [sync],
+    [sync, persistClocks],
   );
+
+  const leaveMatch = useCallback(() => {
+    clear();
+  }, [clear]);
 
   const finalize = useCallback(
     async (reason: EndReason, winner: "w" | "b" | null) => {
       const e = engineRef.current;
+      const history = e.history();
+      const pgnText = e.pgn();
       const result = winner === "w" ? "1-0" : winner === "b" ? "0-1" : "1/2-1/2";
       const game: SavedGame = {
         id: active.id,
         mode: active.mode,
-        pgn: e.pgn(),
+        pgn: pgnText,
         fen: e.fen(),
         whiteName: isBot ? "You" : "White",
         blackName: isBot ? `${bot.name} (${active.targetElo})` : "Black",
@@ -132,23 +157,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         result,
         endReason: reason,
         winner,
-        moveCount: e.history().length,
+        moveCount: history.length,
         elo: isBot ? active.targetElo : null,
         durationMs: Date.now() - active.createdAt,
       };
-      await saveGame(game);
-      markFinished();
-      usePlan.getState().markActivity("match", isoDay());
-      trackEvent("game_end", {
-        mode: active.mode,
-        result,
-        reason,
-        bot: isBot,
-        targetElo: isBot ? active.targetElo : null,
-        moveCount: game.moveCount,
-      });
       const playerWon = isBot && winner === playerColor;
-      // Update the player's ELO from this bot game + unlock rating/win achievements.
       const ratingBefore = useProgression.getState().rating;
       if (isBot) {
         const score = winner === null ? 0.5 : playerWon ? 1 : 0;
@@ -178,11 +191,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             : "You resigned"
           : reason === "timeout"
             ? winner === playerColor || !isBot
-              ? `${sideName} wins on time ⏱️`
+              ? `${sideName} wins on time`
               : "You lost on time"
             : reason === "checkmate"
               ? playerWon
-                ? "Checkmate — you win! 🏆"
+                ? "Checkmate — you win!"
                 : isBot
                   ? "Checkmate — bot wins"
                   : `Checkmate — ${sideName} wins`
@@ -195,13 +208,83 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         newRating: ratingAfter,
         reason,
       });
+      setEndSnapshot({
+        text,
+        win: playerWon,
+        ratingDelta: ratingAfter - ratingBefore,
+        newRating: ratingAfter,
+        reason,
+        mateReviewPending: reason === "checkmate",
+      });
       if (reason === "checkmate") {
-        setFinalPgn(e.pgn());
+        setFinalPgn(pgnText);
+        setMateReviewHistory(history);
         setMateReviewOpen(true);
       }
+      await saveGame(game);
+      usePlan.getState().markActivity("match", isoDay());
+      trackEvent("game_end", {
+        mode: active.mode,
+        result,
+        reason,
+        bot: isBot,
+        targetElo: isBot ? active.targetElo : null,
+        moveCount: game.moveCount,
+      });
     },
-    [active, isBot, markFinished, progression],
+    [active, isBot, progression, bot.name, setEndSnapshot],
   );
+
+  /** Restore game-over UI when PGN already ended but snapshot missing (older sessions). */
+  useEffect(() => {
+    if (over || active.endSnapshot) return;
+    const e = engineRef.current;
+    if (!e.isGameOver()) return;
+    const status = e.status();
+    const winner =
+      status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    const playerWon = isBot && winner === playerColor;
+    const reason: EndReason =
+      status === "checkmate"
+        ? "checkmate"
+        : status === "stalemate"
+          ? "stalemate"
+          : status === "insufficient"
+            ? "insufficient"
+            : "draw";
+    const sideName = winner === "w" ? "White" : "Black";
+    const text =
+      reason === "checkmate"
+        ? playerWon
+          ? "Checkmate — you win!"
+          : isBot
+            ? "Checkmate — bot wins"
+            : `Checkmate — ${sideName} wins`
+        : "Draw";
+    const rating = useProgression.getState().rating;
+    const payload = {
+      text,
+      win: playerWon,
+      gameId: active.id,
+      ratingDelta: 0,
+      newRating: rating,
+      reason,
+    };
+    setOver(payload);
+    setEndSnapshot({
+      text,
+      win: playerWon,
+      ratingDelta: 0,
+      newRating: rating,
+      reason,
+      mateReviewPending: reason === "checkmate",
+    });
+    if (reason === "checkmate") {
+      setFinalPgn(e.pgn());
+      setMateReviewHistory(e.history());
+      setMateReviewOpen(true);
+    }
+  }, [active.endSnapshot, active.id, isBot, over, playerColor, setEndSnapshot]);
 
   const checkOver = useCallback((): boolean => {
     const e = engineRef.current;
@@ -392,7 +475,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
               <Button
                 size="sm"
                 onClick={() => {
-                  clear();
+                  leaveMatch();
                   audio.play("transition");
                 }}
               >
@@ -420,8 +503,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* Conversation bubble (top) — the bot / coach speaking. Uses the space above the board. */}
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <div className="flex items-start gap-2">
-          <div className="bg-brand-50 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg">
-            {isBot ? bot.emoji : "💬"}
+          <div className="bg-brand-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+            {isBot ? (
+              <BotAvatar elo={active.targetElo} size={44} />
+            ) : (
+              <Icon name="message" size={22} duotone />
+            )}
           </div>
           <div className="border-hairline bg-surface-card text-ink min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
             <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
@@ -468,8 +555,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   animate={{ scale: 1, y: 0 }}
                   className="rounded-card bg-surface-card px-8 py-6 text-center [box-shadow:var(--shadow-pop)]"
                 >
-                  <div className="text-3xl">
-                    {over.win ? "🏆" : over.text.startsWith("Draw") ? "🤝" : "♟️"}
+                  <div className="flex justify-center">
+                    <Icon
+                      name={
+                        over.win ? "trophy" : over.text.startsWith("Draw") ? "handshake" : "pawn"
+                      }
+                      size={32}
+                      duotone
+                      className="text-brand"
+                    />
                   </div>
                   <div className="text-ink mt-1 text-2xl font-extrabold">
                     {over.text}
@@ -493,7 +587,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setMateReviewOpen(true)}
+                        onClick={() => {
+                          const e = engineRef.current;
+                          setMateReviewHistory(e.history());
+                          setFinalPgn(e.pgn());
+                          setMateReviewOpen(true);
+                        }}
                       >
                         How it happened
                       </Button>
@@ -503,14 +602,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       size="sm"
                       onClick={() => setReflectOpen(true)}
                     >
-                      📝 Reflect
+                      <span className="inline-flex items-center gap-1.5">
+                        <Icon name="journal" size={16} />
+                        Reflect
+                      </span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
                         const g = over.gameId;
-                        clear();
+                        leaveMatch();
                         router.push(`/review/${g}`);
                       }}
                     >
@@ -520,7 +622,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       <Button
                         size="sm"
                         onClick={() => {
-                          clear();
+                          leaveMatch();
                           router.push("/plan");
                         }}
                       >
@@ -530,7 +632,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       <Button
                         size="sm"
                         onClick={() => {
-                          clear();
+                          leaveMatch();
                           audio.play("transition");
                         }}
                       >
@@ -540,7 +642,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   </div>
                   <button
                     onClick={() => {
-                      clear();
+                      leaveMatch();
                       router.push(active.fromHomework ? "/plan" : "/");
                     }}
                     className="text-ink-500 mt-3 text-xs font-bold underline-offset-2 hover:underline"
@@ -570,7 +672,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           label="Previous move"
           onClick={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
         >
-          <span className="text-base font-extrabold">⏪</span>
+          <Icon name="skipBack" size={18} />
         </IconBtn>
         <span className="text-ink-500 min-w-24 text-center text-xs font-bold">
           {viewing ? `move ${viewPly}/${frames.length - 1}` : "● live"}
@@ -585,15 +687,19 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             })
           }
         >
-          <span className="text-base font-extrabold">⏩</span>
+          <Icon name="skipForward" size={18} />
         </IconBtn>
       </div>
 
       <MatchMateReviewModal
         open={mateReviewOpen}
-        pgn={finalPgn}
+        pgn={finalPgn || pgn}
+        history={mateReviewHistory}
         orientation={orientation}
-        onClose={() => setMateReviewOpen(false)}
+        onClose={() => {
+          setMateReviewOpen(false);
+          dismissMateReview();
+        }}
       />
 
       <ReflectSheet

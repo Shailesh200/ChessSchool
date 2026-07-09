@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { cn } from "@/components/ui/cn";
 
 export type LibrarySemester = {
@@ -106,7 +107,7 @@ export function LibraryBrowse({
                         href={`/class/${c.id}`}
                         className="btn-tactile rounded-card border-hairline bg-surface-card flex items-center gap-3 border p-3 [box-shadow:var(--shadow-card)]"
                       >
-                        <span className="text-2xl">{c.emoji}</span>
+                        <ContentIcon emoji={c.emoji} size={22} tone="brand" />
                         <div className="min-w-0 flex-1">
                           <p className="text-ink truncate text-sm font-extrabold">
                             {c.title}
