@@ -53,7 +53,7 @@ export function MyCompletedLibrary({ lessons }: { lessons: LibLesson[] }) {
           {[...byClass.entries()].map(([className, items]) => (
             <section key={className}>
               <h2 className="text-ink mb-2 text-sm font-extrabold">{className}</h2>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((l) => (
                   <Link
                     key={l.id}

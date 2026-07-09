@@ -937,7 +937,7 @@ Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
 
 ### Status
 
-**In Progress (slice 2 merged — slice 3: Account, Themes, Library, container queries)**
+**In Progress (slice 3 merged — owner sign-off + 390px viewport tests remain)**
 
 ### Inputs
 

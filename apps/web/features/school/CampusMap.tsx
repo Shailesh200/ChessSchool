@@ -241,16 +241,17 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                         ) : (
                           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                             {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
-                              <ClassCard
-                                key={cls.id}
-                                cls={cls}
-                                color={sem.color}
-                                records={records}
-                                graduated={graduated}
-                                allClasses={catalog.allClasses}
-                                semesters={catalog.semesters}
-                                delay={i * 0.05}
-                              />
+                              <div key={cls.id} className="@container">
+                                <ClassCard
+                                  cls={cls}
+                                  color={sem.color}
+                                  records={records}
+                                  graduated={graduated}
+                                  allClasses={catalog.allClasses}
+                                  semesters={catalog.semesters}
+                                  delay={i * 0.05}
+                                />
+                              </div>
                             ))}
                             {(semShown[sem.id] ?? 8) < classes.length && (
                               <button
@@ -377,8 +378,11 @@ function ClassCard({
           </div>
           <p className="text-ink-500 truncate text-xs font-semibold">{cls.blurb}</p>
         </div>
-        <span className="text-ink-500 shrink-0 text-xs font-bold">
+        <span className="text-ink-500 shrink-0 text-xs font-bold @min-[280px]:hidden">
           {done}/{total}
+        </span>
+        <span className="rounded-pill bg-surface-sunken text-ink-600 hidden shrink-0 px-2 py-0.5 text-xs font-extrabold @min-[280px]:inline">
+          {done}/{total} lessons
         </span>
       </div>
 

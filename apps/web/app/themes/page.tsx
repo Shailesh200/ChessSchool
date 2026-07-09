@@ -55,184 +55,194 @@ export default function ThemesPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 lg:gap-6">
         <BackButton />
         <div>
-          <h1 className="text-ink text-xl font-extrabold">Theme Studio</h1>
+          <h1 className="text-ink text-xl font-extrabold lg:text-2xl">Theme Studio</h1>
           <p className="text-ink-500 text-sm font-semibold">
             Preview and switch instantly.
           </p>
         </div>
 
-        {/* Live preview */}
-        <Card className="flex items-center gap-4">
-          <div className="w-28 shrink-0">
-            <MiniBoard themeId={boardTheme} />
+        <div className="lg:grid lg:grid-cols-[minmax(0,560px)_minmax(320px,1fr)] lg:items-start lg:gap-8">
+          {/* Live preview — sticky left column on desktop */}
+          <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+            <Card className="flex items-center gap-4 lg:flex-col lg:items-stretch lg:p-5">
+              <div className="w-28 shrink-0 lg:w-full lg:max-w-md lg:self-center">
+                <MiniBoard themeId={boardTheme} size={8} />
+              </div>
+              <div className="min-w-0 flex-1 lg:text-center">
+                <span className="rounded-pill bg-brand inline-block px-2 py-0.5 text-xs font-extrabold text-white">
+                  Live preview
+                </span>
+                <p className="text-ink mt-1 truncate text-sm font-extrabold lg:text-base">
+                  {getBoardTheme(boardTheme).name} board
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-2 lg:mx-auto"
+                  onClick={() => setPreviewOpen(true)}
+                >
+                  Preview
+                </Button>
+              </div>
+            </Card>
           </div>
-          <div className="min-w-0 flex-1">
-            <span className="rounded-pill bg-brand inline-block px-2 py-0.5 text-xs font-extrabold text-white">
-              Live preview
-            </span>
-            <p className="text-ink mt-1 truncate text-sm font-extrabold">
-              {getBoardTheme(boardTheme).name} board
-            </p>
-            <Button size="sm" className="mt-2" onClick={() => setPreviewOpen(true)}>
-              Preview
-            </Button>
-          </div>
-        </Card>
 
-        {/* Full read-only board preview */}
-        {previewOpen && (
-          <div
-            className="bg-ink/55 fixed inset-0 z-[80] flex items-center justify-center p-6 backdrop-blur-sm"
-            onClick={() => setPreviewOpen(false)}
-          >
-            <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-              <ChessBoard
-                fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-                interactive={false}
-                showNotation
-              />
-              <Button
-                block
-                className="mt-3"
-                variant="outline"
+          <div className="flex flex-col gap-5">
+            {/* Full read-only board preview */}
+            {previewOpen && (
+              <div
+                className="bg-ink/55 fixed inset-0 z-[80] flex items-center justify-center p-6 backdrop-blur-sm"
                 onClick={() => setPreviewOpen(false)}
               >
-                Close preview
-              </Button>
-            </div>
-          </div>
-        )}
+                <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                  <ChessBoard
+                    fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                    interactive={false}
+                    showNotation
+                  />
+                  <Button
+                    block
+                    className="mt-3"
+                    variant="outline"
+                    onClick={() => setPreviewOpen(false)}
+                  >
+                    Close preview
+                  </Button>
+                </div>
+              </div>
+            )}
 
-        {/* App color themes */}
-        <section>
-          <h2 className="text-ink mb-2 text-sm font-extrabold">App theme</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {APP_THEMES.map((t) => {
-              const active = appTheme === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    set("appTheme", t.id);
-                    haptics.fire("select");
-                    audio.play("transition");
-                  }}
-                  className={`btn-tactile rounded-card flex items-center gap-2 border-2 p-2.5 ${
-                    active
-                      ? "border-brand bg-brand-50"
-                      : "border-hairline bg-surface-card"
-                  }`}
-                >
-                  <span className="border-hairline flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border">
-                    <span className="w-1/3" style={{ background: t.swatch[0] }} />
-                    <span className="w-1/3" style={{ background: t.swatch[1] }} />
-                    <span className="w-1/3" style={{ background: t.swatch[2] }} />
-                  </span>
-                  <span className="min-w-0 flex-1 text-left">
-                    <span className="text-ink block truncate text-xs font-extrabold">
-                      {t.emoji} {t.name}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+            {/* App color themes */}
+            <section>
+              <h2 className="text-ink mb-2 text-sm font-extrabold">App theme</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {APP_THEMES.map((t) => {
+                  const active = appTheme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        set("appTheme", t.id);
+                        haptics.fire("select");
+                        audio.play("transition");
+                      }}
+                      className={`btn-tactile rounded-card flex items-center gap-2 border-2 p-2.5 ${
+                        active
+                          ? "border-brand bg-brand-50"
+                          : "border-hairline bg-surface-card"
+                      }`}
+                    >
+                      <span className="border-hairline flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border">
+                        <span className="w-1/3" style={{ background: t.swatch[0] }} />
+                        <span className="w-1/3" style={{ background: t.swatch[1] }} />
+                        <span className="w-1/3" style={{ background: t.swatch[2] }} />
+                      </span>
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="text-ink block truncate text-xs font-extrabold">
+                          {t.emoji} {t.name}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-        {/* Board themes */}
-        <section>
-          <h2 className="text-ink mb-2 text-sm font-extrabold">Board themes</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {SELECTABLE_BOARD_THEMES.map((id) => {
-              const active = boardTheme === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => {
-                    set("boardTheme", id);
-                    haptics.fire("select");
-                    audio.play("transition");
-                  }}
-                  className={`btn-tactile rounded-card border-2 p-2 ${
-                    active
-                      ? "border-brand bg-brand-50"
-                      : "border-hairline bg-surface-card"
-                  }`}
-                >
-                  <MiniBoard themeId={id} size={6} />
-                  <p className="text-ink mt-1.5 truncate text-xs font-extrabold">
-                    {BOARD_THEMES[id]!.name}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+            {/* Board themes */}
+            <section>
+              <h2 className="text-ink mb-2 text-sm font-extrabold">Board themes</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {SELECTABLE_BOARD_THEMES.map((id) => {
+                  const active = boardTheme === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        set("boardTheme", id);
+                        haptics.fire("select");
+                        audio.play("transition");
+                      }}
+                      className={`btn-tactile rounded-card border-2 p-2 ${
+                        active
+                          ? "border-brand bg-brand-50"
+                          : "border-hairline bg-surface-card"
+                      }`}
+                    >
+                      <MiniBoard themeId={id} size={6} />
+                      <p className="text-ink mt-1.5 truncate text-xs font-extrabold">
+                        {BOARD_THEMES[id]!.name}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-        {/* Piece sets */}
-        <section>
-          <h2 className="text-ink mb-2 text-sm font-extrabold">Piece sets</h2>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {PIECE_THEMES.map((p) => {
-              const active = pieceTheme === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    set("pieceTheme", p.id as PieceTheme);
-                    haptics.fire("select");
-                    audio.play("transition");
-                  }}
-                  className={`btn-tactile rounded-card flex flex-col items-center gap-1 border-2 p-2 ${
-                    active
-                      ? "border-brand bg-brand-50"
-                      : "border-hairline bg-surface-card"
-                  }`}
-                >
-                  <div className="bg-surface-sunken rounded-lg px-1 py-1.5">
-                    <PiecePreview themeId={p.id} />
-                  </div>
-                  <p className="text-ink truncate text-[11px] font-extrabold">
-                    {p.emoji} {p.name}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+            {/* Piece sets */}
+            <section>
+              <h2 className="text-ink mb-2 text-sm font-extrabold">Piece sets</h2>
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                {PIECE_THEMES.map((p) => {
+                  const active = pieceTheme === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        set("pieceTheme", p.id as PieceTheme);
+                        haptics.fire("select");
+                        audio.play("transition");
+                      }}
+                      className={`btn-tactile rounded-card flex flex-col items-center gap-1 border-2 p-2 ${
+                        active
+                          ? "border-brand bg-brand-50"
+                          : "border-hairline bg-surface-card"
+                      }`}
+                    >
+                      <div className="bg-surface-sunken rounded-lg px-1 py-1.5">
+                        <PiecePreview themeId={p.id} />
+                      </div>
+                      <p className="text-ink truncate text-[11px] font-extrabold">
+                        {p.emoji} {p.name}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-        {/* School themes */}
-        <section>
-          <h2 className="text-ink mb-2 text-sm font-extrabold">School themes</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {SCHOOL_THEMES.map((t) => {
-              const active = schoolTheme === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    set("schoolTheme", t.id);
-                    haptics.fire("select");
-                    audio.play("transition");
-                  }}
-                  className={`btn-tactile rounded-card flex flex-col items-center gap-1 border-2 p-3 ${
-                    active
-                      ? "border-brand bg-brand-50"
-                      : "border-hairline bg-surface-card"
-                  }`}
-                >
-                  <span className="text-2xl">{t.emoji}</span>
-                  <span className="text-ink truncate text-xs font-extrabold">
-                    {t.name}
-                  </span>
-                </button>
-              );
-            })}
+            {/* School themes */}
+            <section>
+              <h2 className="text-ink mb-2 text-sm font-extrabold">School themes</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {SCHOOL_THEMES.map((t) => {
+                  const active = schoolTheme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        set("schoolTheme", t.id);
+                        haptics.fire("select");
+                        audio.play("transition");
+                      }}
+                      className={`btn-tactile rounded-card flex flex-col items-center gap-1 border-2 p-3 ${
+                        active
+                          ? "border-brand bg-brand-50"
+                          : "border-hairline bg-surface-card"
+                      }`}
+                    >
+                      <span className="text-2xl">{t.emoji}</span>
+                      <span className="text-ink truncate text-xs font-extrabold">
+                        {t.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </div>
     </AppShell>
   );

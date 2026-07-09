@@ -42,4 +42,21 @@ test.describe("desktop layout @1280", () => {
     await expect(page.getByText("Skill tree")).toBeVisible();
     await expect(page.getByText("Activity")).toBeVisible();
   });
+
+  test("library uses app shell on desktop", async ({ page }) => {
+    await page.goto("/library");
+    await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Your Library", level: 1 }),
+    ).toBeVisible();
+  });
+
+  test("themes uses two-column studio layout", async ({ page }) => {
+    await page.goto("/themes");
+    await expect(
+      page.getByRole("heading", { name: "Theme Studio", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText("Live preview")).toBeVisible();
+    await expect(page.getByText("App theme")).toBeVisible();
+  });
 });
