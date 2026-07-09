@@ -20,4 +20,10 @@ describe("session seat tokens", () => {
     const { getSessionTokenSecret } = await import("./session-secret");
     expect(() => getSessionTokenSecret()).toThrow(/SESSION_TOKEN_SECRET/);
   });
+
+  it("rejects missing or malformed seat tokens", () => {
+    expect(verifySeatToken("game-1", "w", "user-1", undefined)).toBe(false);
+    expect(verifySeatToken("game-1", "w", "user-1", "not-a-token")).toBe(false);
+    expect(verifySeatToken("game-1", "w", "user-1", "b.fakesig")).toBe(false);
+  });
 });

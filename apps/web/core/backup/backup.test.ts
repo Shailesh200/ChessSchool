@@ -73,6 +73,17 @@ describe("backup validation", () => {
   it("refuses a newer schema than this build understands", () => {
     expect(validateBackup({ ...valid, schema: BACKUP_SCHEMA + 1 }).ok).toBe(false);
   });
+
+  it("rejects backups missing a schema version", () => {
+    expect(
+      validateBackup({
+        app: "chessschool",
+        games: [],
+        journal: [],
+        localStorage: {},
+      }).ok,
+    ).toBe(false);
+  });
 });
 
 describe("backup export/import", () => {
@@ -85,6 +96,8 @@ describe("backup export/import", () => {
     mocks.gamesBulkPut.mockResolvedValue(undefined);
     mocks.journalBulkPut.mockResolvedValue(undefined);
     mocks.transaction.mockClear();
+    mocks.gamesBulkPut.mockClear();
+    mocks.journalBulkPut.mockClear();
   });
 
   it("exports localStorage keys and indexed records", async () => {
@@ -141,5 +154,34 @@ describe("backup export/import", () => {
       storage: { estimate: vi.fn().mockResolvedValue({ usage: 2048 }) },
     });
     await expect(storageEstimateKB()).resolves.toBe(2);
+  });
+
+  it("returns null when storage estimate is unavailable", async () => {
+    vi.stubGlobal("navigator", {});
+    await expect(storageEstimateKB()).resolves.toBeNull();
+  });
+
+  it("returns an error preview for invalid imports", async () => {
+    const result = await importAll({ app: "other-app" });
+    expect(result.ok).toBe(false);
+  });
+
+  it("skips bulk puts and unknown localStorage keys on import", async () => {
+    await importAll({
+      ...valid,
+      games: [],
+      journal: [],
+      localStorage: { "not-a-chessschool-key": { hidden: true } },
+    });
+    expect(mocks.gamesBulkPut).not.toHaveBeenCalled();
+    expect(mocks.journalBulkPut).not.toHaveBeenCalled();
+    expect(localStorage.getItem("not-a-chessschool-key")).toBeNull();
+  });
+
+  it("returns null when storage estimate omits usage", async () => {
+    vi.stubGlobal("navigator", {
+      storage: { estimate: vi.fn().mockResolvedValue({}) },
+    });
+    await expect(storageEstimateKB()).resolves.toBeNull();
   });
 });

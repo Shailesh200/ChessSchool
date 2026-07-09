@@ -65,11 +65,11 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
 | **Current Phase** | Production Hardening |
-| **Current Milestone** | M-044 |
-| **Completed Milestones** | M-001–M-043 (Verified) |
-| **In Progress** | M-044 (Progress API Hardening) · M-071 (Documentation Refresh — started) |
+| **Current Milestone** | M-045 |
+| **Completed Milestones** | M-001–M-044 (Verified) |
+| **In Progress** | M-045 (Rate Limiting & Input Validation) · M-071 (Documentation Refresh — started) |
 | **Blocked** | M-063 (until M-048) · M-075-B / M-059 (until M-075 Phase A approved) · M-073 (until G-WebGA) · M-053 (after Web GA) |
-| **Next Milestone** | M-044 — Progress API Hardening |
+| **Next Milestone** | M-045 — Rate Limiting & Input Validation |
 | **Launch Priority** | **Web GA first** — mobile store after M-073 |
 | **Last Updated** | 2026-07-09 (v1.3 — branch-per-milestone, full verify:milestone, 90% coverage) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
@@ -383,7 +383,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-041** | Mobile Progression Integration | `progressStore`, `mutateProgress`, shared reducers | **Verified** |
 | **M-042** | Mobile Themes & Settings | App themes, board themes, coach personality (partial sync) | **Verified** |
 | **M-043** | Online PvP Security | Seat ownership, auth-required moves, CSPRNG game IDs | **Verified** |
-| **M-044** | Progress API Hardening | Transactional upsert, max-merge columns, no delete-all | Not Started |
+| **M-044** | Progress API Hardening | Transactional upsert, max-merge columns, no delete-all | **Verified** |
 | **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | Not Started |
 | **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | Not Started |
 | **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | Not Started |
@@ -503,7 +503,7 @@ flowchart TD
 | Theme Studio & Audio | M-011 | Covered |
 | PWA & Offline | M-010 | Covered |
 | Auth & Accounts | M-019, M-020 | Covered |
-| Progress Sync | M-032, M-044, M-054 | Partial (hardening pending) |
+| Progress Sync | M-032, M-044, M-054 | Covered (M-044 hardening ✓) |
 | Admin CMS | M-023, M-062 | Covered (UX polish pending) |
 | Curriculum (DB + Lichess) | M-021, M-022, **M-063** | Partial (M-063 gated before Web GA) |
 | Responsive Browser (Web GA) | **M-059**, M-010 | PWA Verified; browser layouts pending |
@@ -694,7 +694,7 @@ C1 and C2 from `CODE_REVIEW.md` resolved; e2e passes; deployed to production and
 
 ### Status
 
-**Not Started**
+**Verified**
 
 ### Inputs
 
@@ -718,17 +718,17 @@ Prevent silent progress loss from partial snapshots, concurrent writes, or stale
 
 ### Deliverables
 
-- [ ] Rewrite `POST /api/progress` with transaction + upsert
-- [ ] Max-merge logic for numeric and JSON columns
-- [ ] Vitest integration tests for merge scenarios
-- [ ] Mobile `mutateProgress` verified against new semantics
+- [x] Rewrite `POST /api/progress` with transaction + upsert
+- [x] Max-merge logic for numeric and JSON columns
+- [x] Vitest integration tests for merge scenarios
+- [x] Mobile `mutateProgress` verified against new semantics
 
 ### Verification Checklist
 
-- [ ] Partial POST cannot wipe lesson records
-- [ ] Stale lower XP cannot overwrite higher server XP
-- [ ] Concurrent POSTs from two tabs merge safely
-- [ ] Integration tests cover ≥5 edge cases
+- [x] Partial POST cannot wipe lesson records
+- [x] Stale lower XP cannot overwrite higher server XP
+- [x] Concurrent POSTs from two tabs merge safely
+- [x] Integration tests cover ≥5 edge cases
 
 ### Definition of Done
 
@@ -1317,7 +1317,7 @@ The roadmap (`plans/00_MASTER_DEVELOPMENT_PLAN.md`) is the **permanent source of
 
 ```text
 M-001 → M-042   Foundation through Mobile Parity       (Verified)
-M-043 → M-048   Production Hardening                     (~3–5 weeks)  ← M-044 next
+M-043 → M-048   Production Hardening                     (~3–5 weeks)  ← M-045 next
 M-063           Curriculum Content Expansion             (~2–4 weeks)  G-WebGA
 M-075 Phase A   Wireframes / mockups → owner approval    (~1–2 weeks)  G-WebGA — blocks UI code
 M-059           Responsive browser layouts               (~2 weeks)    G-WebGA
@@ -1339,9 +1339,9 @@ M-074           Continuous Evolution                     (ongoing)
 Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 
 **Phase A — Hardening (now)**
-1. **M-044** — Progress transaction + max-merge
-2. **M-045** — Rate limiting + input validation
-3. **M-045, M-046, M-047** — Rate limit, indexes, token hashing
+1. **M-045** — Rate limiting + input validation
+2. **M-046** — DB indexes + curriculum cache
+3. **M-047** — Session token hashing
 4. **M-048** — API integration tests
 
 **Phase B — Web GA gates**

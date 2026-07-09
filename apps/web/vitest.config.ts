@@ -15,6 +15,7 @@ export default defineConfig({
       include: [
         "lib/api-schemas.ts",
         "lib/game-session-seat.ts",
+        "lib/progress-merge.ts",
         "lib/session-secret.ts",
         "features/lessons/unlock.ts",
         "core/backup/backup.ts",

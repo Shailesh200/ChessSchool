@@ -4,6 +4,10 @@ import { db } from "@/db";
 import { progress, lessonRecords } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { progressPushSchema } from "@/lib/api-schemas";
+import { parseExtraData, parseGraduatedClasses } from "@/lib/progress-merge";
+import { applyProgressPush } from "@/lib/progress-server";
+import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import type * as schema from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -14,26 +18,6 @@ type LessonRec = {
   dueAt: number;
   incorrect?: number;
 };
-
-/** Everything beyond the typed columns lives in progress.data (JSON). */
-interface ExtraData {
-  rating?: number;
-  botWins?: number;
-  dailyGoalXp?: number;
-  unlockedAchievements?: string[];
-  schoolExamsPassed?: string[];
-  weaknesses?: Record<string, number>;
-  activityDays?: Record<string, number>;
-  mistakeLog?: unknown[];
-  homeworkStreak?: number;
-  homeworkLastDay?: string | null;
-  recentGames?: unknown[];
-  dailyPuzzleDay?: string | null;
-  settings?: Record<string, unknown>;
-  homeworkDone?: Record<string, string[]>;
-  placementDone?: boolean;
-  journalEntries?: unknown[];
-}
 
 /** Pull the account's saved progress (merged into / hydrated onto the client on login). */
 export async function GET(req: Request) {
@@ -56,21 +40,8 @@ export async function GET(req: Request) {
       dueAt: r.dueAt,
     };
   }
-  let extra: ExtraData = {};
-  try {
-    extra = p?.data ? (JSON.parse(p.data) as ExtraData) : {};
-  } catch {
-    extra = {};
-  }
-
-  let graduatedClasses: string[] = [];
-  if (p?.graduatedClasses) {
-    try {
-      graduatedClasses = JSON.parse(p.graduatedClasses) as string[];
-    } catch {
-      graduatedClasses = [];
-    }
-  }
+  const extra = parseExtraData(p?.data);
+  const graduatedClasses = parseGraduatedClasses(p?.graduatedClasses);
 
   return NextResponse.json({
     user: { name: user.name, role: user.role },
@@ -98,7 +69,7 @@ export async function GET(req: Request) {
   });
 }
 
-/** Push the client's merged snapshot to the account. */
+/** Push the client's snapshot — max-merged with server state in a transaction. */
 export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -111,73 +82,11 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const body = parsed.data;
-  const now = Date.now();
-  // Merge over existing data so a client that omits a field (e.g. web doesn't
-  // send recentGames) doesn't wipe it.
-  const existing = (
-    await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1)
-  )[0];
-  let prev: ExtraData = {};
-  try {
-    prev = existing?.data ? (JSON.parse(existing.data) as ExtraData) : {};
-  } catch {
-    prev = {};
-  }
-  const incoming: ExtraData = {
-    rating: body.rating,
-    botWins: body.botWins,
-    dailyGoalXp: body.dailyGoalXp,
-    unlockedAchievements: body.unlockedAchievements,
-    schoolExamsPassed: body.schoolExamsPassed,
-    weaknesses: body.weaknesses,
-    activityDays: body.activityDays,
-    mistakeLog: body.mistakeLog,
-    homeworkStreak: body.homeworkStreak,
-    homeworkLastDay: body.homeworkLastDay,
-    recentGames: body.recentGames,
-    dailyPuzzleDay: body.dailyPuzzleDay,
-    settings: body.settings,
-    homeworkDone: body.homeworkDone,
-    placementDone: body.placementDone,
-    journalEntries: body.journalEntries,
-  };
-  const data: ExtraData = { ...prev };
-  for (const [k, v] of Object.entries(incoming))
-    if (v !== undefined) (data as Record<string, unknown>)[k] = v;
-  const row = {
-    xp: body.xp,
-    streak: body.streak,
-    lastActiveDay: body.lastActiveDay,
-    graduatedClasses: JSON.stringify(body.graduatedClasses ?? []),
-    dailyGoalXp: body.dailyGoalXp ?? 50,
-    data: JSON.stringify(data),
-    updatedAt: now,
-  };
 
-  await db
-    .insert(progress)
-    .values({ userId: user.id, ...row })
-    .onConflictDoUpdate({ target: progress.userId, set: row });
-
-  // The snapshot is the full client union, so replace the user's records.
-  await db.delete(lessonRecords).where(eq(lessonRecords.userId, user.id));
-  const lessonEntries = Object.entries(body.lessons ?? {}) as [
-    string,
-    { mastery: number; attempts: number; lastSeen: number; dueAt: number },
-  ][];
-  const rows = lessonEntries.map(([lessonId, r]) => ({
-    id: `${user.id}:${lessonId}`,
-    userId: user.id,
-    lessonId,
-    mastery: r.mastery,
-    attempts: r.attempts,
-    lastSeen: r.lastSeen,
-    dueAt: r.dueAt,
-  }));
-  for (let i = 0; i < rows.length; i += 200) {
-    await db.insert(lessonRecords).values(rows.slice(i, i + 200));
-  }
-
-  return NextResponse.json({ ok: true, count: rows.length });
+  const { lessonCount } = await applyProgressPush(
+    user.id,
+    parsed.data,
+    db as LibSQLDatabase<typeof schema>,
+  );
+  return NextResponse.json({ ok: true, count: lessonCount });
 }
