@@ -1,0 +1,32 @@
+<!-- High-fi mockup: Journey / class path · 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <rect x="0" y="0" width="390" height="52" fill="#fff"/>
+  <rect x="20" y="16" width="32" height="20" rx="6" fill="#f1f0f9"/>
+  <rect x="64" y="18" width="140" height="16" rx="3" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="64" y="38" width="100" height="10" rx="2" fill="#6b6982" opacity="0.45"/>
+  <!-- Path line -->
+  <rect x="48" y="80" width="4" height="520" rx="2" fill="#e7e6f2"/>
+  <!-- Node 1 complete -->
+  <circle cx="50" cy="100" r="16" fill="#10b981"/>
+  <path d="M44 100l4 4 8-8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <rect x="80" y="84" width="290" height="56" rx="14" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="96" y="98" width="160" height="12" rx="2" fill="#1c1b2e" opacity="0.7"/>
+  <rect x="96" y="118" width="80" height="8" rx="2" fill="#10b981" opacity="0.4"/>
+  <!-- Node 2 current -->
+  <circle cx="50" cy="200" r="16" fill="#5b5bd6"/>
+  <circle cx="50" cy="200" r="6" fill="#fff"/>
+  <rect x="80" y="176" width="290" height="72" rx="14" fill="#fff" stroke="#5b5bd6" stroke-width="2"/>
+  <rect x="96" y="192" width="180" height="14" rx="3" fill="#5b5bd6" opacity="0.35"/>
+  <rect x="96" y="214" width="120" height="24" rx="12" fill="#5b5bd6"/>
+  <!-- Node 3 locked -->
+  <circle cx="50" cy="320" r="16" fill="#f1f0f9" stroke="#e7e6f2"/>
+  <rect x="44" y="314" width="12" height="12" rx="2" fill="#a9a7bd"/>
+  <rect x="80" y="296" width="290" height="56" rx="14" fill="#fff" stroke="#e7e6f2" opacity="0.7"/>
+  <rect x="96" y="312" width="140" height="12" rx="2" fill="#a9a7bd"/>
+  <!-- Exam node -->
+  <circle cx="50" cy="420" r="16" fill="#f6c343" opacity="0.3"/>
+  <rect x="80" y="396" width="290" height="64" rx="14" fill="#fff" stroke="#f6c343"/>
+  <rect x="96" y="416" width="120" height="12" rx="2" fill="#1c1b2e" opacity="0.6"/>
+  <text x="195" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Journey · 390px</text>
+</svg>

@@ -1,0 +1,14 @@
+<!-- High-fi mockup: Graduation sheet 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#1c1b2e" opacity="0.4"/>
+  <rect x="24" y="180" width="342" height="480" rx="24" fill="#fff"/>
+  <!-- Lottie placeholder area -->
+  <circle cx="195" cy="280" r="64" fill="#eef0ff"/>
+  <path d="M195 240l12 22h24l-19 15 7 23-24-16-24 16 7-23-19-15h24z" fill="#f6c343"/>
+  <rect x="80" y="360" width="230" height="20" rx="4" fill="#1c1b2e" opacity="0.8"/>
+  <rect x="100" y="392" width="190" height="12" rx="3" fill="#6b6982" opacity="0.5"/>
+  <rect x="60" y="430" width="270" height="56" rx="12" fill="#f1f0f9"/>
+  <rect x="80" y="510" width="230" height="48" rx="24" fill="#5b5bd6"/>
+  <rect x="80" y="574" width="230" height="40" rx="20" fill="#fff" stroke="#e7e6f2"/>
+  <text x="195" y="200" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#fff">Graduation sheet mockup</text>
+</svg>

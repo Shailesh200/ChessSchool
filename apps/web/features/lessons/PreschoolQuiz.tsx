@@ -45,7 +45,7 @@ export function PreschoolQuiz({
   }
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-4">
+    <div className="flex w-full max-w-lg flex-col gap-4">
       <PreschoolQuizVisual
         visual={step.visual}
         visualSquare={step.visualSquare}
@@ -75,7 +75,7 @@ export function PreschoolQuiz({
         <motion.div
           key={shake}
           animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : {}}
-          className="flex flex-col gap-2"
+          className="grid grid-cols-2 gap-2"
         >
           {options.map((opt, i) => {
             const selected = picked === i;
@@ -101,21 +101,21 @@ export function PreschoolQuiz({
                 transition={{ delay: i * 0.06 }}
                 disabled={phase === "correct" || (picked !== null && picked !== i)}
                 onClick={() => pick(i)}
-                className={`btn-tactile w-full rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${tone}`}
+                className={`btn-tactile h-full min-h-[4.5rem] w-full rounded-2xl border-2 px-3 py-3 text-left transition-colors ${tone}`}
               >
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
+                <div className="flex h-full flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <span className="bg-brand-50 text-brand flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold">
                       {LETTERS[i]}
                     </span>
                     {opt.emoji ? (
-                      <span className="text-xl leading-none">{opt.emoji}</span>
+                      <span className="text-lg leading-none">{opt.emoji}</span>
                     ) : null}
                     {reveal && isCorrect && (
-                      <span className="text-success ml-auto text-lg">✓</span>
+                      <span className="text-success ml-auto text-base">✓</span>
                     )}
                   </div>
-                  <p className="text-ink pl-8 text-sm leading-snug font-extrabold">
+                  <p className="text-ink text-xs leading-snug font-extrabold sm:text-sm">
                     {opt.label}
                   </p>
                 </div>

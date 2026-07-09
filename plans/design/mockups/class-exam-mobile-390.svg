@@ -1,0 +1,23 @@
+<!-- High-fi mockup: Class exam - 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <rect x="0" y="0" width="390" height="52" fill="#fff"/>
+  <rect x="20" y="16" width="56" height="20" rx="4" fill="#f1f0f9"/>
+  <rect x="260" y="18" width="110" height="16" rx="8" fill="#fff5f2" stroke="#ff7a59"/>
+  <!-- Timer -->
+  <rect x="20" y="64" width="350" height="56" rx="14" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="80" width="80" height="24" rx="12" fill="#fff5f2"/>
+  <rect x="128" y="84" width="160" height="12" rx="2" fill="#1c1b2e" opacity="0.7"/>
+  <rect x="300" y="80" width="54" height="24" rx="12" fill="#f1f0f9"/>
+  <!-- Board -->
+  <rect x="20" y="136" width="350" height="350" rx="12" fill="#ede7f6" stroke="#e7e6f2"/>
+  <rect x="20" y="136" width="43.75" height="43.75" fill="#b9a8e6" opacity="0.55"/>
+  <!-- Question list -->
+  <rect x="20" y="502" width="350" height="180" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="522" width="100" height="10" rx="2" fill="#6b6982"/>
+  <rect x="36" y="544" width="318" height="44" rx="10" fill="#eef0ff" stroke="#5b5bd6"/>
+  <rect x="36" y="600" width="318" height="44" rx="10" fill="#fbfaff" stroke="#e7e6f2"/>
+  <rect x="36" y="656" width="318" height="44" rx="10" fill="#fbfaff" stroke="#e7e6f2"/>
+  <rect x="20" y="700" width="350" height="48" rx="24" fill="#5b5bd6"/>
+  <text x="195" y="40" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Class exam - 390px</text>
+</svg>

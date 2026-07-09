@@ -47,8 +47,8 @@ This Master Development Plan converts existing product documentation (`README.md
 | Surface | Milestone | Status | Requirement |
 |---------|-----------|--------|-------------|
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
-| **Browser** | M-059 | Not Started | Full **desktop + tablet browser** experience — not mobile-only; usable without installing |
-| **Polish** | M-075 | Not Started | Premium UI per **owner-approved wireframes/mockups** |
+| **Browser** | M-059 | **In Progress** | Full **desktop + tablet browser** experience — sidebar shell + responsive layouts (slice 1) |
+| **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slice 1–2 ✅ (owner approved 2026-07-09) |
 | **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
 | **Trust** | M-043–M-048, M-070 | Partial | Security, data integrity, privacy audit |
 | **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
@@ -64,14 +64,14 @@ This Master Development Plan converts existing product documentation (`README.md
 | Metric | Value |
 |--------|-------|
 | **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
-| **Current Phase** | Production Hardening |
-| **Current Milestone** | M-045 |
-| **Completed Milestones** | M-001–M-044 (Verified) |
-| **In Progress** | M-045 (Rate Limiting & Input Validation) · M-071 (Documentation Refresh — started) |
-| **Blocked** | M-063 (until M-048) · M-075-B / M-059 (until M-075 Phase A approved) · M-073 (until G-WebGA) · M-053 (after Web GA) |
-| **Next Milestone** | M-045 — Rate Limiting & Input Validation |
-| **Launch Priority** | **Web GA first** — mobile store after M-073 |
-| **Last Updated** | 2026-07-09 (v1.3 — branch-per-milestone, full verify:milestone, 90% coverage) |
+| **Current Phase** | Web GA Polish (design-first) |
+| **Current Milestone** | M-075 (Phase A + B slice — merged) |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) |
+| **In Progress** | M-059 (desktop layouts) · M-075 Phase B (remaining screens/Lottie) · M-071 |
+| **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
+| **Next Milestone** | M-075 Phase B continuation · M-045–M-048 (pre-GA hardening) |
+| **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
+| **Last Updated** | 2026-07-09 (v1.5 — M-075 Phase A + B slice 1–2 owner-approved) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -414,7 +414,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | Not Started |
 | **M-073** | Web GA Launch Readiness | Launch checklist, marketing pages, support runbook — **G-WebGA gate** | Not Started |
 | **M-074** | Continuous Evolution | Ongoing content, engine updates, community features | Ongoing |
-| **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | Not Started |
+| **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | **In Progress (Phase A)** |
 | **M-076** | Toolchain Modernization | Bun (from pnpm), Oxlint, Oxfmt, Lefthook — post Web GA | Not Started |
 | **M-077** | Scaling Architecture & ADR | When/how to split BE from Next.js; caching, CDN, job queues | Not Started |
 | **M-078** | Backend Service Extraction | Standalone API service if ADR approves; mobile/web clients unchanged | Not Started |
@@ -984,12 +984,12 @@ Owner confirms browser screenshots match approved mocks; `pnpm verify:milestone`
 
 ### Status
 
-**Not Started**
+**In Progress (Phase A — design package)**
 
 ### Inputs
 
-- M-063 Curriculum Content Expansion (Verified)
 - M-003 Design System Phase 1 (Verified)
+- M-063 Curriculum Content Expansion — *soft dependency; design may proceed in parallel*
 
 ### Two-phase execution (mandatory)
 
@@ -1317,13 +1317,13 @@ The roadmap (`plans/00_MASTER_DEVELOPMENT_PLAN.md`) is the **permanent source of
 
 ```text
 M-001 → M-042   Foundation through Mobile Parity       (Verified)
-M-043 → M-048   Production Hardening                     (~3–5 weeks)  ← M-045 next
-M-063           Curriculum Content Expansion             (~2–4 weeks)  G-WebGA
-M-075 Phase A   Wireframes / mockups → owner approval    (~1–2 weeks)  G-WebGA — blocks UI code
-M-059           Responsive browser layouts               (~2 weeks)    G-WebGA
-M-075 Phase B   UI implementation (per approved mocks) (~2–3 weeks)  G-WebGA
-M-070 → M-072   Security Audit, Docs, Visual QA          (~2 weeks)    G-WebGA
-M-073           Web GA Launch (PWA + browser)              (~1 week)     PUBLIC LAUNCH
+M-044 ✓        Progress API Hardening (Verified)
+M-075 Phase A  UI design package → owner approval    ← CURRENT
+M-059 + M-075-B Browser layouts + UI implementation (after approval)
+M-045 → M-048  Production Hardening (deferred — required before M-073)
+M-063          Curriculum Content Expansion             G-WebGA
+M-070 → M-072  Security Audit, Docs, Visual QA          G-WebGA
+M-073          Web GA Launch                            PUBLIC LAUNCH
         ↓
 M-049 → M-053   Mobile Ship Track                        (~4–6 weeks)  post Web GA
 M-054 → M-062   Cross-Surface & Product                  (~6–10 weeks)
@@ -1338,17 +1338,18 @@ M-074           Continuous Evolution                     (ongoing)
 
 Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 
-**Phase A — Hardening (now)**
-1. **M-045** — Rate limiting + input validation
-2. **M-046** — DB indexes + curriculum cache
-3. **M-047** — Session token hashing
-4. **M-048** — API integration tests
+**Phase A — Design + polish path (prioritized)**
+1. **M-075 Phase A** — Wireframes, mockups, SVG/Lottie/motion specs → **your approval** ← **CURRENT**
+2. **M-059** — Responsive browser layouts (per approved mocks)
+3. **M-075 Phase B** — SVG assets, Lottie, animations, UI implementation
+
+**Phase A′ — Hardening (before Web GA, not blocking design)**
+4. **M-045–M-048** — Rate limit, indexes, token hash, API integration tests
 
 **Phase B — Web GA gates**
 5. **M-063** — Curriculum content expansion
-6. **M-075 Phase A** — Wireframes/mockups → **your approval** (no UI code before this)
-7. **M-059** — Responsive browser layouts (desktop/tablet)
-8. **M-075 Phase B** — UI implementation per approved mocks
+6. **M-070 → M-072** — Security audit, docs, visual QA
+7. **M-073** — Web GA launch
 9. **M-070** — Security audit & privacy
 10. **M-071** — Documentation refresh
 11. **M-072** — Visual regression / Storybook

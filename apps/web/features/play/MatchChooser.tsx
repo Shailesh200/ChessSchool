@@ -14,6 +14,7 @@ import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 import { toast } from "@/core/store/toast.store";
 import { listItem, listContainer } from "@/core/motion/variants";
+import { MatchPreviewPanel } from "./MatchPreviewPanel";
 
 const ELO_PRESETS = [300, 600, 900, 1200, 1600, 2000];
 const TIME_PRESETS = [
@@ -67,139 +68,151 @@ export function MatchChooser() {
   }
 
   return (
-    <motion.div
-      variants={listContainer}
-      initial="initial"
-      animate="enter"
-      className="flex flex-col gap-4"
-    >
-      <motion.h1 variants={listItem} className="text-ink text-xl font-extrabold">
-        New match
-      </motion.h1>
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_440px] lg:items-start lg:gap-8">
+      <motion.div
+        variants={listContainer}
+        initial="initial"
+        animate="enter"
+        className="flex flex-col gap-4"
+      >
+        <motion.h1 variants={listItem} className="text-ink text-xl font-extrabold">
+          New match
+        </motion.h1>
 
-      <motion.div variants={listItem} className="grid grid-cols-2 gap-3">
-        <ModeCard
-          active={mode === "bot"}
-          emoji="🤖"
-          title="vs Bot"
-          subtitle="Adaptive AI 300–2000"
-          onClick={() => {
-            setMode("bot");
-            haptics.fire("select");
-          }}
-        />
-        <ModeCard
-          active={mode === "pass"}
-          emoji="👥"
-          title="vs Human"
-          subtitle="Two players, one device · or play online"
-          onClick={() => {
-            setMode("pass");
-            haptics.fire("select");
-          }}
-        />
-      </motion.div>
+        <motion.div variants={listItem} className="grid grid-cols-2 gap-3">
+          <ModeCard
+            active={mode === "bot"}
+            emoji="🤖"
+            title="vs Bot"
+            subtitle="Adaptive AI 300–2000"
+            onClick={() => {
+              setMode("bot");
+              haptics.fire("select");
+            }}
+          />
+          <ModeCard
+            active={mode === "pass"}
+            emoji="👥"
+            title="vs Human"
+            subtitle="Two players, one device · or play online"
+            onClick={() => {
+              setMode("pass");
+              haptics.fire("select");
+            }}
+          />
+        </motion.div>
 
-      {mode === "bot" && (
+        {mode === "bot" && (
+          <motion.div variants={listItem}>
+            <Card>
+              <p className="text-ink mb-2 text-sm font-extrabold">Opponent strength</p>
+              <button
+                onClick={() => {
+                  setAdaptive((a) => !a);
+                  haptics.fire("select");
+                }}
+                className={`rounded-card mb-2 flex w-full items-center justify-between border-2 px-3 py-2 text-left transition-colors ${
+                  adaptive
+                    ? "border-brand bg-brand-50"
+                    : "border-hairline bg-surface-card"
+                }`}
+              >
+                <span>
+                  <span className="text-ink text-sm font-extrabold">
+                    🎯 Adaptive bot
+                  </span>
+                  <span className="text-ink-500 block text-xs font-semibold">
+                    Matches your level (~{rating}) &amp; adjusts as you play
+                  </span>
+                </span>
+                <span
+                  className={`h-5 w-5 shrink-0 rounded-full border-2 ${adaptive ? "border-brand bg-brand" : "border-ink-300"}`}
+                />
+              </button>
+              <div
+                className={`flex flex-wrap gap-2 ${adaptive ? "pointer-events-none opacity-40" : ""}`}
+              >
+                {ELO_PRESETS.map((elo) => (
+                  <button
+                    key={elo}
+                    onClick={() => {
+                      setSetting("targetElo", elo);
+                      haptics.fire("select");
+                    }}
+                    className={`rounded-pill px-3 py-1 text-sm font-bold transition-colors ${
+                      targetElo === elo
+                        ? "bg-brand text-white"
+                        : "bg-surface-sunken text-ink-500"
+                    }`}
+                  >
+                    {elo}
+                  </button>
+                ))}
+              </div>
+              {!adaptive && (
+                <p className="text-ink mt-3 flex items-center gap-2 text-sm font-bold">
+                  <span className="text-lg">{botProfile(targetElo).emoji}</span>
+                  {botProfile(targetElo).name}
+                  <span className="text-ink-500 font-semibold">
+                    · {botProfile(targetElo).blurb}
+                  </span>
+                </p>
+              )}
+            </Card>
+          </motion.div>
+        )}
+
         <motion.div variants={listItem}>
           <Card>
-            <p className="text-ink mb-2 text-sm font-extrabold">Opponent strength</p>
-            <button
-              onClick={() => {
-                setAdaptive((a) => !a);
-                haptics.fire("select");
-              }}
-              className={`rounded-card mb-2 flex w-full items-center justify-between border-2 px-3 py-2 text-left transition-colors ${
-                adaptive
-                  ? "border-brand bg-brand-50"
-                  : "border-hairline bg-surface-card"
-              }`}
-            >
-              <span>
-                <span className="text-ink text-sm font-extrabold">🎯 Adaptive bot</span>
-                <span className="text-ink-500 block text-xs font-semibold">
-                  Matches your level (~{rating}) &amp; adjusts as you play
-                </span>
-              </span>
-              <span
-                className={`h-5 w-5 shrink-0 rounded-full border-2 ${adaptive ? "border-brand bg-brand" : "border-ink-300"}`}
-              />
-            </button>
-            <div
-              className={`flex flex-wrap gap-2 ${adaptive ? "pointer-events-none opacity-40" : ""}`}
-            >
-              {ELO_PRESETS.map((elo) => (
+            <p className="text-ink mb-2 text-sm font-extrabold">Time control</p>
+            <div className="flex flex-wrap gap-2">
+              {TIME_PRESETS.map((t) => (
                 <button
-                  key={elo}
+                  key={t.min}
                   onClick={() => {
-                    setSetting("targetElo", elo);
+                    setTimeMin(t.min);
                     haptics.fire("select");
                   }}
                   className={`rounded-pill px-3 py-1 text-sm font-bold transition-colors ${
-                    targetElo === elo
+                    timeMin === t.min
                       ? "bg-brand text-white"
                       : "bg-surface-sunken text-ink-500"
                   }`}
                 >
-                  {elo}
+                  {t.label}
                 </button>
               ))}
             </div>
-            {!adaptive && (
-              <p className="text-ink mt-3 flex items-center gap-2 text-sm font-bold">
-                <span className="text-lg">{botProfile(targetElo).emoji}</span>
-                {botProfile(targetElo).name}
-                <span className="text-ink-500 font-semibold">
-                  · {botProfile(targetElo).blurb}
-                </span>
-              </p>
-            )}
           </Card>
         </motion.div>
-      )}
 
-      <motion.div variants={listItem}>
-        <Card>
-          <p className="text-ink mb-2 text-sm font-extrabold">Time control</p>
-          <div className="flex flex-wrap gap-2">
-            {TIME_PRESETS.map((t) => (
-              <button
-                key={t.min}
-                onClick={() => {
-                  setTimeMin(t.min);
-                  haptics.fire("select");
-                }}
-                className={`rounded-pill px-3 py-1 text-sm font-bold transition-colors ${
-                  timeMin === t.min
-                    ? "bg-brand text-white"
-                    : "bg-surface-sunken text-ink-500"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </Card>
-      </motion.div>
-
-      <motion.div variants={listItem} className="flex flex-col gap-2">
-        <Button size="lg" block onClick={begin}>
-          {mode === "pass" ? "Start (one device)" : "Start match"}
-        </Button>
-        {/* Online play is a Human-mode option only — hidden for vs Bot. */}
-        {mode === "pass" && (
-          <Button
-            size="lg"
-            variant="outline"
-            block
-            loading={creating}
-            onClick={playOnline}
-          >
-            🔗 Play a friend online (share link)
+        <motion.div variants={listItem} className="flex flex-col gap-2">
+          <Button size="lg" block onClick={begin}>
+            {mode === "pass" ? "Start (one device)" : "Start match"}
           </Button>
-        )}
+          {/* Online play is a Human-mode option only — hidden for vs Bot. */}
+          {mode === "pass" && (
+            <Button
+              size="lg"
+              variant="outline"
+              block
+              loading={creating}
+              onClick={playOnline}
+            >
+              🔗 Play a friend online (share link)
+            </Button>
+          )}
+        </motion.div>
       </motion.div>
-    </motion.div>
+
+      <MatchPreviewPanel
+        mode={mode}
+        targetElo={targetElo}
+        adaptive={adaptive}
+        rating={rating}
+        timeMin={timeMin}
+      />
+    </div>
   );
 }
 

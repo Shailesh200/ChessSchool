@@ -1,0 +1,27 @@
+<!-- High-fi mockup: Bot game in progress - 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <!-- Clock row -->
+  <rect x="20" y="48" width="160" height="44" rx="12" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="32" y="58" width="60" height="24" rx="6" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="210" y="48" width="160" height="44" rx="12" fill="#fff" stroke="#5b5bd6"/>
+  <rect x="278" y="58" width="80" height="24" rx="6" fill="#5b5bd6" opacity="0.85"/>
+  <!-- Board -->
+  <rect x="20" y="108" width="350" height="350" rx="12" fill="#ede7f6" stroke="#e7e6f2"/>
+  <rect x="20" y="108" width="43.75" height="43.75" fill="#b9a8e6" opacity="0.55"/>
+  <rect x="151.25" y="239.25" width="43.75" height="43.75" fill="#7be0b3" opacity="0.35"/>
+  <!-- Material + eval -->
+  <rect x="20" y="474" width="168" height="48" rx="12" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="490" width="80" height="12" rx="2" fill="#6b6982"/>
+  <rect x="202" y="474" width="168" height="48" rx="12" fill="#eef0ff"/>
+  <rect x="218" y="490" width="60" height="12" rx="2" fill="#5b5bd6" opacity="0.7"/>
+  <!-- Controls -->
+  <rect x="20" y="540" width="108" height="44" rx="12" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="141" y="540" width="108" height="44" rx="12" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="262" y="540" width="108" height="44" rx="12" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="20" y="600" width="350" height="48" rx="24" fill="#f43f5e" opacity="0.12"/>
+  <rect x="36" y="614" width="120" height="20" rx="4" fill="#f43f5e" opacity="0.6"/>
+  <rect x="0" y="780" width="390" height="64" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="120" y="796" width="40" height="32" rx="8" fill="#eef0ff"/>
+  <text x="195" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Bot game - 390px</text>
+</svg>

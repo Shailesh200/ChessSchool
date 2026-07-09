@@ -45,7 +45,13 @@ test("journal renders", async ({ page }) => {
 
 test("playground renders", async ({ page }) => {
   await page.goto("/playground");
-  await expect(page.getByText(/playground|position|sandbox/i).first()).toBeVisible();
+  const heading = page.getByRole("heading", { name: "Playground", level: 1 });
+  if (await heading.isVisible()) {
+    await expect(page.getByText(/Free play/i)).toBeVisible();
+    return;
+  }
+  // Admin-only route — guests redirect to campus
+  await expect(page).toHaveURL("/");
 });
 
 test("placement test entry renders", async ({ page }) => {

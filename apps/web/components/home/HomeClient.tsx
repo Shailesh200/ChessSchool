@@ -67,162 +67,172 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const firstDueTitle = dueIds[0] ? catalog.titles[dueIds[0]] : null;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-3">
-        <Mascot expression="wave" size={64} float={false} />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-ink truncate text-xl font-extrabold">
-            {authedResolved === true && streak > 0
-              ? `Day ${streak} at the academy`
-              : "Welcome to ChessSchool!"}
-          </h1>
-          <p className="text-ink-500 text-sm font-semibold">
-            {authedResolved === false
-              ? "Enroll to the academy to track your progress."
-              : "Graduate through classes. Become a stronger player."}
-          </p>
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-8">
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center gap-3">
+          <Mascot expression="wave" size={64} float={false} />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-ink truncate text-xl font-extrabold">
+              {authedResolved === true && streak > 0
+                ? `Day ${streak} at the academy`
+                : "Welcome to ChessSchool!"}
+            </h1>
+            <p className="text-ink-500 text-sm font-semibold">
+              {authedResolved === false
+                ? "Enroll to the academy to track your progress."
+                : "Graduate through classes. Become a stronger player."}
+            </p>
+          </div>
+          {authedResolved === true && (
+            <Link
+              href="/dashboard"
+              aria-label="Your rating"
+              className="btn-tactile rounded-pill border-hairline bg-surface-card flex shrink-0 items-center gap-1.5 self-start border px-3 py-1.5 [box-shadow:var(--shadow-card)]"
+            >
+              <Icon name="target" size={16} className="text-brand" />
+              <span className="text-ink text-sm font-extrabold">
+                {mounted ? rating : 800}
+              </span>
+            </Link>
+          )}
         </div>
-        {authedResolved === true && (
+
+        {recommendPreschool && (
+          <div className="rounded-card border-hairline bg-surface-sunken/80 border p-4">
+            <p className="text-ink text-sm font-extrabold">
+              🧸 Optional: Pre-School for complete beginners
+            </p>
+            <p className="text-ink-500 mt-1 text-xs font-semibold">
+              Learn the board, pieces, and notation (d6, Nf3, Qd5) at your own pace —
+              skip anytime if you already know the rules.
+            </p>
+            <NavButton href="/class/class-pre-board" size="sm" className="mt-3">
+              Start Pre-School →
+            </NavButton>
+          </div>
+        )}
+
+        {showPlacement && (
+          <div className="rounded-card border-brand-100 bg-brand-50 border p-4">
+            <p className="text-ink text-sm font-extrabold">
+              🎯 New here? Take a quick placement test
+            </p>
+            <p className="text-ink-500 mt-1 text-xs font-semibold">
+              8 puzzles (~2 min) — we&apos;ll place you in Elementary, Middle, or High
+              School.
+            </p>
+            <NavButton href="/placement" size="sm" className="mt-3">
+              Start placement test →
+            </NavButton>
+          </div>
+        )}
+
+        <ResumeCard catalog={catalog} className="xl:hidden" />
+
+        {authedResolved === true && dueIds.length > 0 && (
           <Link
-            href="/dashboard"
-            aria-label="Your rating"
-            className="btn-tactile rounded-pill border-hairline bg-surface-card flex shrink-0 items-center gap-1.5 self-start border px-3 py-1.5 [box-shadow:var(--shadow-card)]"
+            href={`/lesson/${dueIds[0]}`}
+            className="btn-tactile rounded-card border-brand/30 bg-brand/10 flex items-center justify-between border px-4 py-3"
           >
-            <Icon name="target" size={16} className="text-brand" />
-            <span className="text-ink text-sm font-extrabold">
-              {mounted ? rating : 800}
+            <span>
+              <span className="text-ink block text-sm font-extrabold">
+                🔁 Review due
+              </span>
+              <span className="text-ink-500 block text-xs font-semibold">
+                {dueIds.length} lesson{dueIds.length === 1 ? "" : "s"} ready
+                {firstDueTitle ? ` — start with “${firstDueTitle}”` : ""}
+              </span>
             </span>
+            <span className="text-brand text-sm font-bold">Start →</span>
           </Link>
         )}
+
+        {authedResolved === true && daily?.lessonId && (
+          <Link
+            href={dailyDone ? "#" : `/lesson/${daily.lessonId}?daily=1`}
+            className={`btn-tactile rounded-card flex items-center justify-between border px-4 py-3 ${
+              dailyDone
+                ? "border-success/40 bg-success/10"
+                : "border-brand/30 bg-brand/5"
+            }`}
+            aria-disabled={dailyDone}
+            onClick={dailyDone ? (e) => e.preventDefault() : undefined}
+          >
+            <span>
+              <span className="text-ink block text-sm font-extrabold">
+                {dailyDone
+                  ? "✅ Daily puzzle done"
+                  : `${daily.emoji ?? "🧩"} Daily puzzle`}
+              </span>
+              <span className="text-ink-500 block text-xs font-semibold">
+                {dailyDone
+                  ? "Come back tomorrow for a fresh position."
+                  : (daily.title ?? "One rated puzzle for everyone today")}
+              </span>
+            </span>
+            {!dailyDone && <span className="text-brand text-sm font-bold">Play →</span>}
+          </Link>
+        )}
+
+        {/* Today's homework prompt (logged-in) */}
+        {authedResolved === true &&
+          (homeworkDone < ROUTINE_STEPS.length ? (
+            <Link
+              href="/plan"
+              className="btn-tactile rounded-card border-gold/40 bg-gold/10 flex items-center justify-between border px-4 py-3"
+            >
+              <span>
+                <span className="text-ink block text-sm font-extrabold">
+                  📋 Today&apos;s homework
+                </span>
+                <span className="text-ink-500 block text-xs font-semibold">
+                  {homeworkDone}/{ROUTINE_STEPS.length} done — finish it to keep your
+                  streak
+                </span>
+              </span>
+              <span className="text-brand text-sm font-bold">Open →</span>
+            </Link>
+          ) : (
+            <Link
+              href="/plan"
+              className="btn-tactile rounded-card border-success/40 bg-success/10 flex items-center justify-between border px-4 py-3"
+            >
+              <span>
+                <span className="text-ink block text-sm font-extrabold">
+                  ✅ Homework done for today!
+                </span>
+                <span className="text-ink-500 block text-xs font-semibold">
+                  Nice work — come back tomorrow for a fresh set.
+                </span>
+              </span>
+              <span className="text-brand text-sm font-bold">Review →</span>
+            </Link>
+          ))}
+
+        <Card className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="text-ink text-sm font-extrabold">Daily goal</span>
+              <span className="text-ink-500 text-xs font-bold">
+                {Math.min(todayXp, dailyGoal)}/{dailyGoal} XP
+              </span>
+            </div>
+            <ProgressBar
+              className="mt-2"
+              tone="gold"
+              value={todayXp}
+              max={dailyGoal}
+              label="Daily goal progress"
+            />
+          </div>
+        </Card>
+
+        <CampusMap catalog={catalog} />
       </div>
 
-      {recommendPreschool && (
-        <div className="rounded-card border-hairline bg-surface-sunken/80 border p-4">
-          <p className="text-ink text-sm font-extrabold">
-            🧸 Optional: Pre-School for complete beginners
-          </p>
-          <p className="text-ink-500 mt-1 text-xs font-semibold">
-            Learn the board, pieces, and notation (d6, Nf3, Qd5) at your own pace — skip
-            anytime if you already know the rules.
-          </p>
-          <NavButton href="/class/class-pre-board" size="sm" className="mt-3">
-            Start Pre-School →
-          </NavButton>
-        </div>
-      )}
-
-      {showPlacement && (
-        <div className="rounded-card border-brand-100 bg-brand-50 border p-4">
-          <p className="text-ink text-sm font-extrabold">
-            🎯 New here? Take a quick placement test
-          </p>
-          <p className="text-ink-500 mt-1 text-xs font-semibold">
-            8 puzzles (~2 min) — we&apos;ll place you in Elementary, Middle, or High
-            School.
-          </p>
-          <NavButton href="/placement" size="sm" className="mt-3">
-            Start placement test →
-          </NavButton>
-        </div>
-      )}
-
-      <ResumeCard catalog={catalog} />
-
-      {authedResolved === true && dueIds.length > 0 && (
-        <Link
-          href={`/lesson/${dueIds[0]}`}
-          className="btn-tactile rounded-card border-brand/30 bg-brand/10 flex items-center justify-between border px-4 py-3"
-        >
-          <span>
-            <span className="text-ink block text-sm font-extrabold">🔁 Review due</span>
-            <span className="text-ink-500 block text-xs font-semibold">
-              {dueIds.length} lesson{dueIds.length === 1 ? "" : "s"} ready
-              {firstDueTitle ? ` — start with “${firstDueTitle}”` : ""}
-            </span>
-          </span>
-          <span className="text-brand text-sm font-bold">Start →</span>
-        </Link>
-      )}
-
-      {authedResolved === true && daily?.lessonId && (
-        <Link
-          href={dailyDone ? "#" : `/lesson/${daily.lessonId}?daily=1`}
-          className={`btn-tactile rounded-card flex items-center justify-between border px-4 py-3 ${
-            dailyDone ? "border-success/40 bg-success/10" : "border-brand/30 bg-brand/5"
-          }`}
-          aria-disabled={dailyDone}
-          onClick={dailyDone ? (e) => e.preventDefault() : undefined}
-        >
-          <span>
-            <span className="text-ink block text-sm font-extrabold">
-              {dailyDone
-                ? "✅ Daily puzzle done"
-                : `${daily.emoji ?? "🧩"} Daily puzzle`}
-            </span>
-            <span className="text-ink-500 block text-xs font-semibold">
-              {dailyDone
-                ? "Come back tomorrow for a fresh position."
-                : (daily.title ?? "One rated puzzle for everyone today")}
-            </span>
-          </span>
-          {!dailyDone && <span className="text-brand text-sm font-bold">Play →</span>}
-        </Link>
-      )}
-
-      {/* Today's homework prompt (logged-in) */}
-      {authedResolved === true &&
-        (homeworkDone < ROUTINE_STEPS.length ? (
-          <Link
-            href="/plan"
-            className="btn-tactile rounded-card border-gold/40 bg-gold/10 flex items-center justify-between border px-4 py-3"
-          >
-            <span>
-              <span className="text-ink block text-sm font-extrabold">
-                📋 Today&apos;s homework
-              </span>
-              <span className="text-ink-500 block text-xs font-semibold">
-                {homeworkDone}/{ROUTINE_STEPS.length} done — finish it to keep your
-                streak
-              </span>
-            </span>
-            <span className="text-brand text-sm font-bold">Open →</span>
-          </Link>
-        ) : (
-          <Link
-            href="/plan"
-            className="btn-tactile rounded-card border-success/40 bg-success/10 flex items-center justify-between border px-4 py-3"
-          >
-            <span>
-              <span className="text-ink block text-sm font-extrabold">
-                ✅ Homework done for today!
-              </span>
-              <span className="text-ink-500 block text-xs font-semibold">
-                Nice work — come back tomorrow for a fresh set.
-              </span>
-            </span>
-            <span className="text-brand text-sm font-bold">Review →</span>
-          </Link>
-        ))}
-
-      <Card className="flex items-center gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between">
-            <span className="text-ink text-sm font-extrabold">Daily goal</span>
-            <span className="text-ink-500 text-xs font-bold">
-              {Math.min(todayXp, dailyGoal)}/{dailyGoal} XP
-            </span>
-          </div>
-          <ProgressBar
-            className="mt-2"
-            tone="gold"
-            value={todayXp}
-            max={dailyGoal}
-            label="Daily goal progress"
-          />
-        </div>
-      </Card>
-
-      <CampusMap catalog={catalog} />
+      <aside className="hidden xl:sticky xl:top-6 xl:block">
+        <ResumeCard catalog={catalog} />
+      </aside>
     </div>
   );
 }

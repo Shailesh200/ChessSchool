@@ -1,0 +1,7 @@
+<!-- Reference icon: graduation cap  Phase B adds to Icon.tsx as `graduation` -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path fill="currentColor" opacity="0.16" d="M4 10l8-4 8 4-8 4-8-4z"/>
+  <path d="M4 10v5c0 1.5 3.5 3 8 3s8-1.5 8-3v-5"/>
+  <path d="M20 10v6"/>
+  <path d="M22 16l-2 1v3"/>
+</svg>

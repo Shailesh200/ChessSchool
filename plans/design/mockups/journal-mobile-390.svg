@@ -1,0 +1,14 @@
+<!-- High-fi mockup: Journal · 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <rect x="20" y="56" width="100" height="18" rx="3" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="20" y="92" width="350" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="108" width="80" height="10" rx="2" fill="#a9a7bd"/>
+  <rect x="36" y="128" width="280" height="12" rx="2" fill="#1c1b2e" opacity="0.7"/>
+  <rect x="36" y="148" width="240" height="10" rx="2" fill="#6b6982" opacity="0.4"/>
+  <rect x="36" y="168" width="60" height="8" rx="2" fill="#ff7a59" opacity="0.4"/>
+  <rect x="20" y="208" width="350" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="20" y="324" width="350" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="300" y="720" width="70" height="70" rx="35" fill="#5b5bd6"/>
+  <text x="195" y="36" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Journal · 390px</text>
+</svg>

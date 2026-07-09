@@ -58,8 +58,8 @@ export default async function LibraryPage() {
       className: classNameById.get(m.classId) ?? "Lessons",
     }));
     return (
-      <div className="bg-surface min-h-dvh px-5 py-8">
-        <div className="mx-auto flex max-w-2xl flex-col gap-5">
+      <div className="bg-surface min-h-dvh px-5 py-8 lg:px-8">
+        <div className="mx-auto flex max-w-2xl flex-col gap-5 lg:max-w-6xl">
           <BackButton />
           <MyCompletedLibrary lessons={libLessons} />
         </div>
@@ -68,8 +68,8 @@ export default async function LibraryPage() {
   }
 
   return (
-    <div className="bg-surface min-h-dvh px-5 py-8">
-      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className="bg-surface min-h-dvh px-5 py-8 lg:px-8">
+      <div className="mx-auto flex max-w-2xl flex-col gap-6 lg:max-w-6xl">
         <BackButton />
         <div className="flex items-center justify-between">
           <Logo />
@@ -106,7 +106,7 @@ export default async function LibraryPage() {
                 {sem.blurb}
               </span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {cls
                 .filter((c) => c.semesterId === sem.id)
                 .map((c) => (

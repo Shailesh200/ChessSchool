@@ -10,12 +10,19 @@ import { useMatch } from "@/core/store/match.store";
 import { currentLocation, classProgress, type Catalog } from "./structure";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+import { cn } from "@/components/ui/cn";
 
 /**
  * "Where am I + Continue" card (#61/#64). Always-visible breadcrumb of the
  * student's place in school plus the single most useful next action.
  */
-export function ResumeCard({ catalog }: { catalog: Catalog }) {
+export function ResumeCard({
+  catalog,
+  className,
+}: {
+  catalog: Catalog;
+  className?: string;
+}) {
   const router = useRouter();
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
@@ -29,7 +36,10 @@ export function ResumeCard({ catalog }: { catalog: Catalog }) {
     <motion.div
       initial={false}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-card border-brand-100 bg-surface-card overflow-hidden border p-4 [box-shadow:var(--shadow-card)]"
+      className={cn(
+        "rounded-card border-brand-100 bg-surface-card overflow-hidden border p-4 [box-shadow:var(--shadow-card)]",
+        className,
+      )}
     >
       {/* breadcrumb */}
       <nav

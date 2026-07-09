@@ -239,7 +239,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                             preview
                           </button>
                         ) : (
-                          <div className="flex flex-col gap-3">
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                             {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
                               <ClassCard
                                 key={cls.id}

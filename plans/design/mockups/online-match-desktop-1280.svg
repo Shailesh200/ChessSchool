@@ -1,0 +1,23 @@
+<!-- High-fi mockup: Online match in progress - 1280px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" fill="none">
+  <rect width="1280" height="800" fill="#1c1b2e"/>
+  <rect x="0" y="0" width="220" height="800" fill="#fff" opacity="0.04"/>
+  <!-- Player bars -->
+  <rect x="252" y="32" width="200" height="48" rx="24" fill="#fff" opacity="0.1"/>
+  <rect x="268" y="44" width="100" height="24" rx="4" fill="#fff" opacity="0.85"/>
+  <rect x="828" y="32" width="200" height="48" rx="24" fill="#fff" opacity="0.1"/>
+  <rect x="912" y="44" width="100" height="24" rx="4" fill="#fff" opacity="0.85"/>
+  <!-- Board -->
+  <rect x="340" y="100" width="600" height="600" rx="16" fill="#ede7f6"/>
+  <rect x="340" y="100" width="75" height="75" fill="#b9a8e6" opacity="0.55"/>
+  <rect x="490" y="250" width="75" height="75" fill="#7be0b3" opacity="0.35"/>
+  <!-- Side panel -->
+  <rect x="964" y="100" width="272" height="600" rx="16" fill="#fff" opacity="0.08"/>
+  <rect x="988" y="124" width="120" height="12" rx="2" fill="#fff" opacity="0.4"/>
+  <rect x="988" y="152" width="224" height="40" rx="12" fill="#fff" opacity="0.12"/>
+  <rect x="988" y="208" width="224" height="120" rx="12" fill="#fff" opacity="0.06"/>
+  <rect x="988" y="348" width="224" height="48" rx="24" fill="#5b5bd6"/>
+  <rect x="988" y="412" width="224" height="48" rx="24" fill="#f43f5e" opacity="0.85"/>
+  <rect x="988" y="480" width="224" height="36" rx="18" fill="#fff" opacity="0.1"/>
+  <text x="640" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#a9a7bd">Online match - 1280px</text>
+</svg>

@@ -7,8 +7,8 @@ import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { Mascot, type Expression } from "@/components/ui/Mascot";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
@@ -20,6 +20,7 @@ import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
+import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
 import {
   deriveTutorialVisuals,
   formatCoachText,
@@ -443,8 +444,8 @@ export function LessonPlayer({
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col">
-      <div className="pt-safe bg-surface/90 sticky top-0 z-20 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center gap-3">
+      <div className="pt-safe bg-surface/90 sticky top-0 z-20 px-4 py-3 backdrop-blur lg:px-8">
+        <div className="mx-auto flex max-w-xl items-center gap-3 lg:max-w-6xl">
           <button
             onClick={() => {
               startNav();
@@ -487,19 +488,20 @@ export function LessonPlayer({
         </div>
       </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4">
-        <div className="flex min-h-[4.75rem] shrink-0 items-start gap-2">
+      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,560px)_minmax(280px,1fr)] lg:items-start lg:gap-8 lg:px-8 lg:py-6">
+        {/* Coach panel — above board on mobile, right column on desktop */}
+        <div className="order-1 flex min-h-[4.75rem] shrink-0 items-start gap-2 lg:sticky lg:top-24 lg:order-2 lg:min-h-0 lg:flex-col">
           <Mascot
             expression={expression}
             size={88}
             float={false}
-            className="mt-1 shrink-0"
+            className="mt-1 shrink-0 lg:mx-auto"
           />
           <motion.div
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border-hairline bg-surface-card text-ink relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)]"
+            className="border-hairline bg-surface-card text-ink relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)] lg:w-full lg:rounded-2xl"
           >
             <p className="whitespace-pre-wrap">{feedbackText}</p>
             {lesson.exam && (
@@ -508,94 +510,110 @@ export function LessonPlayer({
               </span>
             )}
           </motion.div>
-        </div>
-
-        {step.kind === "quiz" ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
-            <PreschoolQuiz
-              key={index}
-              step={step}
-              phase={phase}
-              onAnswer={handleQuizAnswer}
-            />
-          </div>
-        ) : (
-          step.fen && (
-            <div className="flex min-h-0 flex-1 items-center justify-center">
-              {/* Viewport-based size = never re-measured, so the board cannot
-                  resize/flicker when the feedback footer or coach text changes. */}
-              <div
-                className="relative"
-                style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}
-              >
-                <ChessBoard
-                  key={index}
-                  fen={displayFen ?? step.fen}
-                  orientation={step.orientation ?? "white"}
-                  onMove={handleMove}
-                  showNotation={preschool}
-                  arrows={boardArrows}
-                  highlight={boardHighlight}
-                  highlightFiles={boardHighlightFiles}
-                  highlightRanks={boardHighlightRanks}
-                  lastMove={oppMove}
-                  successSquare={phase === "correct" ? movedTo : null}
-                  checkSquare={phase === "wrong" ? movedTo : null}
-                  interactive={step.kind === "move" && phase === "playing"}
-                />
-              </div>
+          {step.kind !== "quiz" && (
+            <div className="rounded-card border-hairline bg-surface-card/70 hidden w-full items-start gap-2 border px-3 py-2 lg:flex">
+              <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
+              <p className="text-ink-500 text-[11px] leading-snug font-semibold">
+                {LESSON_TIPS[step.tag ?? ""] ??
+                  LESSON_TIPS[lesson.tag] ??
+                  "Take your time and calculate before you move."}
+              </p>
             </div>
-          )
-        )}
-
-        {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
-        <div className="flex h-10 items-center justify-between gap-2">
-          {toMove ? (
-            <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
-              <span
-                className={`border-ink-300 inline-block h-4 w-4 rounded-full border ${
-                  toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
-                }`}
-              />
-              {toMove === "w" ? "White" : "Black"} to move
-            </span>
-          ) : (
-            <span />
           )}
-          {isObserving ? (
-            <p className="text-brand text-center text-sm font-bold">
-              ▶ Watching the example…
-            </p>
-          ) : solvable && !lesson.exam ? (
-            <button
-              onClick={() => {
-                setHintLevel((h) => Math.min(h + 1, 2));
-                audio.play("notify");
-                haptics.fire("tap");
-              }}
-              disabled={hintLevel >= 2}
-              className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
-            >
-              {hintLevel === 0
-                ? "💡 Show a hint"
-                : hintLevel === 1
-                  ? "💡 Show the move"
-                  : "💡 Follow the arrow"}
-            </button>
-          ) : null}
         </div>
 
-        {/* Fills the space below the board + reinforces the concept */}
-        {step.kind !== "quiz" && (
-          <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2">
-            <span className="text-base leading-none">🎓</span>
-            <p className="text-ink-500 text-[11px] leading-snug font-semibold">
-              {LESSON_TIPS[step.tag ?? ""] ??
-                LESSON_TIPS[lesson.tag] ??
-                "Take your time and calculate before you move."}
-            </p>
+        {/* Board + controls */}
+        <div className="order-2 flex min-h-0 flex-1 flex-col gap-4 lg:order-1 lg:min-h-[520px]">
+          {step.kind === "quiz" ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
+              <PreschoolQuiz
+                key={index}
+                step={step}
+                phase={phase}
+                onAnswer={handleQuizAnswer}
+              />
+            </div>
+          ) : (
+            step.fen && (
+              <div className="flex min-h-0 flex-1 items-center justify-center">
+                {/* Viewport-based size = never re-measured, so the board cannot
+                  resize/flicker when the feedback footer or coach text changes. */}
+                <div
+                  className="relative lg:mx-auto"
+                  style={{
+                    width: "min(92vw, calc(100dvh - 15rem))",
+                    maxWidth: 520,
+                  }}
+                >
+                  <ChessBoard
+                    key={index}
+                    fen={displayFen ?? step.fen}
+                    orientation={step.orientation ?? "white"}
+                    onMove={handleMove}
+                    showNotation={preschool}
+                    arrows={boardArrows}
+                    highlight={boardHighlight}
+                    highlightFiles={boardHighlightFiles}
+                    highlightRanks={boardHighlightRanks}
+                    lastMove={oppMove}
+                    successSquare={phase === "correct" ? movedTo : null}
+                    checkSquare={phase === "wrong" ? movedTo : null}
+                    interactive={step.kind === "move" && phase === "playing"}
+                  />
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
+          <div className="flex h-10 items-center justify-between gap-2">
+            {toMove ? (
+              <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
+                <span
+                  className={`border-ink-300 inline-block h-4 w-4 rounded-full border ${
+                    toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
+                  }`}
+                />
+                {toMove === "w" ? "White" : "Black"} to move
+              </span>
+            ) : (
+              <span />
+            )}
+            {isObserving ? (
+              <p className="text-brand text-center text-sm font-bold">
+                ▶ Watching the example…
+              </p>
+            ) : solvable && !lesson.exam ? (
+              <button
+                onClick={() => {
+                  setHintLevel((h) => Math.min(h + 1, 2));
+                  audio.play("notify");
+                  haptics.fire("tap");
+                }}
+                disabled={hintLevel >= 2}
+                className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
+              >
+                {hintLevel === 0
+                  ? "💡 Show a hint"
+                  : hintLevel === 1
+                    ? "💡 Show the move"
+                    : "💡 Follow the arrow"}
+              </button>
+            ) : null}
           </div>
-        )}
+
+          {/* Fills the space below the board + reinforces the concept */}
+          {step.kind !== "quiz" && (
+            <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2 lg:hidden">
+              <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
+              <p className="text-ink-500 text-[11px] leading-snug font-semibold">
+                {LESSON_TIPS[step.tag ?? ""] ??
+                  LESSON_TIPS[lesson.tag] ??
+                  "Take your time and calculate before you move."}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <FeedbackBar
@@ -690,144 +708,122 @@ function LessonComplete({
     if (action) action();
     else router.push(href);
   };
+
+  const variant = graduatedTitle ? "graduation" : lesson.exam ? "exam" : "lesson";
+  const headline =
+    graduatedTitle ??
+    (isHomework
+      ? allHomeworkDone
+        ? "All homework done for today!"
+        : "Homework done!"
+      : lesson.exam
+        ? "Exam complete!"
+        : "Lesson complete!");
+  const subtitle = graduatedTitle
+    ? "You've mastered this class. The next one is unlocked!"
+    : isHomework
+      ? allHomeworkDone
+        ? "You've completed every routine today — see you tomorrow!"
+        : "Nice work. Head back to finish the rest of today's homework."
+      : undefined;
+
   return (
-    <div className="bg-surface relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden px-6 text-center">
-      <Confetti count={graduatedTitle ? 40 : 28} />
-      <motion.div
-        initial={{ scale: 0, rotate: -10 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 18 }}
+    <div className="bg-surface min-h-dvh">
+      <CeremonyOverlay
+        open
+        variant={variant}
+        title={headline}
+        subtitle={subtitle}
+        badge={graduatedTitle ? "Class graduated" : undefined}
       >
-        <Mascot expression="cheer" size={140} />
-      </motion.div>
-      {graduatedTitle ? (
-        <>
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-pill bg-gold/20 text-warning px-4 py-1 text-xs font-extrabold tracking-wide uppercase"
-          >
-            🎓 Class graduated
-          </motion.div>
-          <h1 className="text-ink text-3xl font-extrabold">{graduatedTitle}</h1>
-          <p className="text-ink-500 text-sm font-semibold">
-            You&apos;ve mastered this class. The next one is unlocked!
-          </p>
-        </>
-      ) : isHomework ? (
-        <>
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-ink text-3xl font-extrabold"
-          >
-            {allHomeworkDone ? "All homework done for today! 🎉" : "Homework done! ✅"}
-          </motion.h1>
-          <p className="text-ink-500 text-sm font-semibold">
-            {allHomeworkDone
-              ? "You've completed every routine today — see you tomorrow!"
-              : "Nice work. Head back to finish the rest of today's homework."}
-          </p>
-        </>
-      ) : (
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-ink text-3xl font-extrabold"
-        >
-          {lesson.exam ? "Exam complete!" : "Lesson complete!"}
-        </motion.h1>
-      )}
-      <div className="flex gap-3">
-        <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
-        <StatPill label="Correct" value={`${correct}`} tone="text-success" />
-        <StatPill
-          label="Mistakes"
-          value={`${mistakes}`}
-          tone={mistakes === 0 ? "text-success" : "text-danger"}
-        />
-      </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
+            <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
+            <StatPill label="Correct" value={`${correct}`} tone="text-success" />
+            <StatPill
+              label="Mistakes"
+              value={`${mistakes}`}
+              tone={mistakes === 0 ? "text-success" : "text-danger"}
+            />
+          </div>
 
-      {/* Guest → enroll prompt (#2): progress is saved locally and follows you up. */}
-      {authed === false && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-card border-brand-100 bg-brand-50 w-full max-w-xs border p-4 text-center"
-        >
-          <p className="text-ink text-sm font-extrabold">📌 Save your progress</p>
-          <p className="text-ink-500 mt-1 text-xs font-semibold">
-            Enroll free to keep your XP and continue on any device — everything
-            you&apos;ve done so far comes with you.
-          </p>
-          <Button
-            size="sm"
-            block
-            className="mt-3"
-            loading={busy === "enroll"}
-            onClick={() => go("enroll", "/register")}
-          >
-            Enroll free
-          </Button>
-        </motion.div>
-      )}
-
-      <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
-        {isHomework ? (
-          allHomeworkDone ? (
-            <Button
-              size="lg"
-              block
-              loading={busy === "home"}
-              onClick={() => go("home", "/", onDone)}
-            >
-              Back to academy →
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              block
-              loading={busy === "hw"}
-              onClick={() => go("hw", "/plan")}
-            >
-              Continue your homework →
-            </Button>
-          )
-        ) : nextId ? (
-          <Button
-            size="lg"
-            block
-            loading={busy === "next"}
-            onClick={() => go("next", `/lesson/${nextId}`)}
-          >
-            Continue learning →
-          </Button>
-        ) : (
-          <Button
-            size="lg"
-            block
-            loading={busy === "home"}
-            onClick={() => go("home", "/", onDone)}
-          >
-            Back to campus
-          </Button>
-        )}
-        <div className="flex w-full gap-2">
-          <Button variant="ghost" block onClick={() => setReflectOpen(true)}>
-            📝 Reflect
-          </Button>
-          {!isHomework && nextId && (
-            <Button
-              variant="ghost"
-              block
-              loading={busy === "home"}
-              onClick={() => go("home", "/", onDone)}
-            >
-              Back to campus
-            </Button>
+          {authed === false && (
+            <div className="rounded-card border-brand-100 bg-brand-50 w-full border p-4 text-center">
+              <p className="text-ink text-sm font-extrabold">Save your progress</p>
+              <p className="text-ink-500 mt-1 text-xs font-semibold">
+                Enroll free to keep your XP and continue on any device — everything
+                you&apos;ve done so far comes with you.
+              </p>
+              <Button
+                size="sm"
+                block
+                className="mt-3"
+                loading={busy === "enroll"}
+                onClick={() => go("enroll", "/register")}
+              >
+                Enroll free
+              </Button>
+            </div>
           )}
+
+          <div className="flex w-full flex-col items-center gap-2">
+            {isHomework ? (
+              allHomeworkDone ? (
+                <Button
+                  size="lg"
+                  block
+                  loading={busy === "home"}
+                  onClick={() => go("home", "/", onDone)}
+                >
+                  Back to academy →
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  block
+                  loading={busy === "hw"}
+                  onClick={() => go("hw", "/plan")}
+                >
+                  Continue your homework →
+                </Button>
+              )
+            ) : nextId ? (
+              <Button
+                size="lg"
+                block
+                loading={busy === "next"}
+                onClick={() => go("next", `/lesson/${nextId}`)}
+              >
+                Continue learning →
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                block
+                loading={busy === "home"}
+                onClick={() => go("home", "/", onDone)}
+              >
+                Back to campus
+              </Button>
+            )}
+            <div className="flex w-full gap-2">
+              <Button variant="ghost" block onClick={() => setReflectOpen(true)}>
+                Reflect
+              </Button>
+              {!isHomework && nextId && (
+                <Button
+                  variant="ghost"
+                  block
+                  loading={busy === "home"}
+                  onClick={() => go("home", "/", onDone)}
+                >
+                  Back to campus
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </CeremonyOverlay>
       <ReflectSheet
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}

@@ -13,8 +13,8 @@ test("campus map renders resume card, semesters and classes", async ({ page }) =
 test("class journey shows the milestone path", async ({ page }) => {
   await page.goto("/class/class-pieces");
   await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
-  await expect(page.getByText(/lessons/).first()).toBeVisible();
-  await expect(page.getByText("The Battlefield")).toBeVisible();
+  await expect(page.getByText(/\d+ lessons/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "The Battlefield" }).first()).toBeVisible();
 });
 
 test("theme studio shows app + board themes with live preview", async ({ page }) => {
