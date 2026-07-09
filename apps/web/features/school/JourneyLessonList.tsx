@@ -33,6 +33,7 @@ export function JourneyLessonList({
 
   return (
     <aside
+      role="navigation"
       className={cn(
         "rounded-card border-hairline bg-surface-card hidden flex-col border [box-shadow:var(--shadow-card)] lg:flex",
         className,

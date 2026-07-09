@@ -47,7 +47,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | Surface | Milestone | Status | Requirement |
 |---------|-----------|--------|-------------|
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
-| **Browser** | M-059 | **In Progress** | Full **desktop + tablet browser** experience — sidebar shell + responsive layouts (slice 1) |
+| **Browser** | M-059 | **In Progress** | Desktop sidebar + responsive layouts (slice 1 merged; slice 2 active) |
 | **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slice 1–2 ✅ (owner approved 2026-07-09) |
 | **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
 | **Trust** | M-043–M-048, M-070 | Partial | Security, data integrity, privacy audit |
@@ -65,13 +65,13 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
 | **Current Phase** | Web GA Polish (design-first) |
-| **Current Milestone** | M-075 (Phase A + B slice — merged) |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) |
-| **In Progress** | M-059 (desktop layouts) · M-075 Phase B (remaining screens/Lottie) · M-071 |
+| **Current Milestone** | M-059 — Responsive browser layouts |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slice 1–2 (merged) |
+| **In Progress** | M-059 · M-075 Phase B (Lottie, empty states) · M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-075 Phase B continuation · M-045–M-048 (pre-GA hardening) |
+| **Next Milestone** | M-075 Phase B completion · M-045–M-048 (pre-GA hardening) |
 | **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-09 (v1.5 — M-075 Phase A + B slice 1–2 owner-approved) |
+| **Last Updated** | 2026-07-09 (v1.6 — M-059 active on main) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -937,7 +937,7 @@ Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**In Progress (slice 2 merged — slice 3: Account, Themes, Library, container queries)**
 
 ### Inputs
 

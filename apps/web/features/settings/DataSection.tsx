@@ -8,7 +8,7 @@ import { audio } from "@/core/audio/audioEngine";
 import { toast } from "@/core/store/toast.store";
 
 /** Data ownership + trust panel (#72/#84/#86). */
-export function DataSection() {
+export function DataSection({ embedded = false }: { embedded?: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [storage, setStorage] = useState<number | null>(null);
   const [offlineReady, setOfflineReady] = useState(false);
@@ -59,9 +59,9 @@ export function DataSection() {
     location.reload();
   }
 
-  return (
-    <Card className="flex flex-col gap-3">
-      <p className="text-ink text-sm font-extrabold">Your data</p>
+  const body = (
+    <>
+      {!embedded && <p className="text-ink text-sm font-extrabold">Your data</p>}
 
       {/* Trust strip */}
       <div className="flex flex-wrap gap-2 text-[11px] font-bold">
@@ -124,6 +124,12 @@ export function DataSection() {
       <Button variant="danger" size="sm" onClick={resetAll}>
         Reset all data
       </Button>
-    </Card>
+    </>
   );
+
+  if (embedded) {
+    return <div className="flex flex-col gap-3 py-3">{body}</div>;
+  }
+
+  return <Card className="flex flex-col gap-3">{body}</Card>;
 }

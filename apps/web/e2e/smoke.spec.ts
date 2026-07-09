@@ -14,7 +14,9 @@ test("class journey shows the milestone path", async ({ page }) => {
   await page.goto("/class/class-pieces");
   await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
   await expect(page.getByText(/\d+ lessons/).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "The Battlefield" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "The Battlefield" }).first(),
+  ).toBeVisible();
 });
 
 test("theme studio shows app + board themes with live preview", async ({ page }) => {
@@ -37,7 +39,8 @@ test("dashboard shows skill tree and mistake DNA", async ({ page }) => {
 test("settings renders (data tools are logged-in only)", async ({ page }) => {
   await page.goto("/settings");
   // Guests see the settings page but NOT the personal data export/import section.
-  await expect(page.getByText("Sound & Feel")).toBeVisible();
+  await expect(page.locator("#settings-sound")).toBeVisible();
+  await expect(page.getByText("Sound effects")).toBeVisible();
   await expect(page.getByRole("button", { name: /Export backup/ })).toHaveCount(0);
 });
 
