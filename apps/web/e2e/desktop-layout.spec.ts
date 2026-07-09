@@ -11,10 +11,52 @@ test.describe("desktop layout @1280", () => {
     await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
   });
 
-  test("journey shows lesson list panel", async ({ page }) => {
+  test("journey shows lesson list and preview panel", async ({ page }) => {
     await page.goto("/class/class-pieces");
     await expect(page.getByRole("navigation", { name: "Lesson list" })).toBeVisible();
+    await expect(page.getByLabel("Lesson preview")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
+  });
+
+  test("plan uses two-column homework layout", async ({ page }) => {
+    await page.goto("/plan");
+    await expect(
+      page.getByRole("heading", { name: "Homework", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText("Today's homework")).toBeVisible();
+    await expect(page.getByText("Choose your pace")).toBeVisible();
+  });
+
+  test("journal shows entry detail panel", async ({ page }) => {
+    await page.goto("/journal");
+    await expect(
+      page.getByRole("heading", { name: "Learning Journal", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Journal entry detail")).toBeVisible();
+  });
+
+  test("no horizontal overflow on primary routes", async ({ page }) => {
+    const routes = [
+      "/",
+      "/class/class-pieces",
+      "/play",
+      "/dashboard",
+      "/plan",
+      "/journal",
+      "/library",
+      "/settings",
+      "/themes",
+    ];
+    for (const route of routes) {
+      await page.goto(route);
+      const overflow = await page.evaluate(() => {
+        const el = document.documentElement;
+        return el.scrollWidth - el.clientWidth;
+      });
+      expect(overflow, `${route} should not scroll horizontally`).toBeLessThanOrEqual(
+        1,
+      );
+    }
   });
 
   test("settings shows section nav", async ({ page }) => {

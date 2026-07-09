@@ -47,7 +47,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | Surface | Milestone | Status | Requirement |
 |---------|-----------|--------|-------------|
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
-| **Browser** | M-059 | **In Progress** | Desktop sidebar + responsive layouts (slice 1 merged; slice 2 active) |
+| **Browser** | M-059 | **Verified** | Desktop sidebar + responsive layouts @390–1280 (owner approved 2026-07-10) |
 | **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
 | **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
 | **Trust** | M-043–M-048, M-070 | Partial | Security, data integrity, privacy audit |
@@ -63,16 +63,16 @@ This Master Development Plan converts existing product documentation (`README.md
 
 | Metric | Value |
 |--------|-------|
-| **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
-| **Current Phase** | Web GA Polish (design-first) |
-| **Current Milestone** | M-059 — Responsive Browser Layouts (sign-off) |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slices 1–4 (merged, owner approved 2026-07-10) · M-059 slices 1–3 (merged, pending Verified) |
-| **In Progress** | M-059 Verified sign-off · M-071 |
+| **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
+| **Current Phase** | Web GA Polish + pre-GA hardening |
+| **Current Milestone** | M-045–M-048 — pre-GA hardening (next) |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slices 1–4 (merged 2026-07-10) · **M-059 (Verified 2026-07-10)** |
+| **In Progress** | M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-059 Verified → M-045–M-048 (pre-GA hardening) |
+| **Next Milestone** | M-045–M-048 (pre-GA hardening) |
 | **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-10 (v2.0 — M-075-B slice 4 merged to main) |
-| **Overall Completion %** | ~72% product · ~50% Web GA ready |
+| **Last Updated** | 2026-07-10 (v2.1 — M-059 Verified sign-off merged to main) |
+| **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
 
@@ -460,7 +460,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-056** | Google OAuth | Social sign-in alongside email/password | Not Started |
 | **M-057** | Guest → Account Enroll Prompt | Post-first-lesson enrollment CTA (web + mobile alignment) | Not Started |
 | **M-058** | Personalized Puzzles (Mistake DNA) | Generate drills from user mistakes + Stockfish verify | Not Started |
-| **M-059** | Responsive Browser Layouts | Desktop/tablet breakpoints, container queries — **G-WebGA gate** | Not Started |
+| **M-059** | Responsive Browser Layouts | Desktop/tablet breakpoints, container queries — **G-WebGA gate** | **Verified** |
 | **M-060** | Global Search (⌘K) | Universal lesson/class search + keyboard shortcuts | Not Started |
 | **M-061** | Onboarding V2 | Goal/experience/time/coach → first-week plan | Not Started |
 | **M-062** | Admin CMS UX Polish | Custom dropdowns, bulk operations, import UX | Not Started |
@@ -568,7 +568,7 @@ flowchart TD
 | Progress Sync | M-032, M-044, M-054 | Covered (M-044 hardening ✓) |
 | Admin CMS | M-023, M-062 | Covered (UX polish pending) |
 | Curriculum (DB + Lichess) | M-021, M-022, **M-063** | Partial (M-063 gated before Web GA) |
-| Responsive Browser (Web GA) | **M-059**, M-010 | PWA Verified; browser layouts pending |
+| Responsive Browser (Web GA) | **M-059** ✓, M-010 | Both Verified |
 | Premium UI & Motion | M-003, **M-075** (design approval gate) | Phase 1 done; wireframes pending |
 | Backend Scaling | **M-077, M-078** | Not started (monolithic Next.js + Turso today) |
 | Toolchain (Bun/Oxlint) | **M-076** | Planned post Web GA |
@@ -999,11 +999,9 @@ Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
 
 ### Status
 
-**Verified (slices 1–3 merged 2026-07-10 — owner approved; full Verified sign-off pending)**
+**Verified (owner approved 2026-07-10)**
 
-Deliverables: flat character avatars, desktop sidebar + responsive layouts, play previews at 1280px, react-compiler lint fixes.
-
-**In Progress (Verified sign-off — owner review vs approved mocks)**
+Deliverables: desktop sidebar + responsive layouts (Campus, Journey preview panel, Plan/Journal splits), Playwright @390 + @1280 viewport tests, horizontal-scroll gates, `BREAKPOINTS.md` accuracy.
 
 ### Inputs
 
@@ -1029,10 +1027,10 @@ Deliverables: flat character avatars, desktop sidebar + responsive layouts, play
 
 ### Deliverables
 
-- [ ] Breakpoint tokens documented in `plans/design/BREAKPOINTS.md`
-- [ ] Layout matches approved M-075 wireframes at each breakpoint
-- [ ] Playwright viewport tests at 390px + 1280px for core flows
-- [ ] No horizontal scroll on 1280×800; readable line lengths on ultrawide
+- [x] Breakpoint tokens documented in `plans/design/BREAKPOINTS.md`
+- [x] Layout matches approved M-075 wireframes at each breakpoint (owner approved 2026-07-10)
+- [x] Playwright viewport tests at 390px + 1280px for core flows
+- [x] No horizontal scroll on 1280×800; readable line lengths on ultrawide
 
 ### Definition of Done
 

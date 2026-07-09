@@ -16,6 +16,91 @@ export type JourneyNodeData = {
   status: NodeStatus;
 };
 
+/** Desktop lesson preview — coach blurb + Start CTA per journey wireframe. */
+export function JourneyLessonPreview({
+  node,
+  onStart,
+  busy,
+}: {
+  node: JourneyNodeData | null;
+  onStart: () => void;
+  busy?: boolean;
+}) {
+  if (!node) {
+    return (
+      <div
+        className="rounded-card border-hairline bg-surface-card flex min-h-[280px] flex-col items-center justify-center border p-6 text-center [box-shadow:var(--shadow-card)]"
+        aria-label="Lesson preview"
+      >
+        <Icon name="learn" size={40} className="text-brand mb-2" duotone />
+        <p className="text-ink text-sm font-extrabold">Select a milestone</p>
+        <p className="text-ink-500 mt-1 max-w-xs text-xs font-semibold">
+          Tap a node on the path to preview the lesson before you start.
+        </p>
+      </div>
+    );
+  }
+
+  const locked = node.status === "locked";
+  const coach =
+    node.status === "exam"
+      ? "Pass the class exam to graduate. Take your time — you need about two-thirds correct to pass."
+      : node.status === "completed"
+        ? "You mastered this one. Replay anytime to keep the pattern sharp."
+        : node.subtitle ||
+          "Work through the positions with Cody. Each step builds on the last.";
+
+  return (
+    <div
+      className="rounded-card border-hairline bg-surface-card flex flex-col border [box-shadow:var(--shadow-card)]"
+      aria-label="Lesson preview"
+    >
+      <div className="border-hairline flex items-center gap-3 border-b px-5 py-4">
+        <LessonListIcon node={node} />
+        <div className="min-w-0 flex-1">
+          <p className="text-ink truncate text-lg font-extrabold">{node.title}</p>
+          <p className="text-ink-500 truncate text-xs font-semibold">{node.subtitle}</p>
+        </div>
+        {node.status === "active" && (
+          <span className="rounded-pill bg-brand/15 text-brand shrink-0 px-2 py-0.5 text-[10px] font-extrabold uppercase">
+            Up next
+          </span>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-4 px-5 py-4">
+        <div className="rounded-card bg-surface-sunken/80 flex aspect-[4/3] max-h-40 items-center justify-center">
+          <ContentIcon emoji={node.emoji} size={48} variant="badge" />
+        </div>
+        <p className="text-ink-700 text-sm leading-relaxed font-semibold">{coach}</p>
+        {node.status !== "locked" &&
+          node.mastery > 0 &&
+          node.status !== "completed" && (
+            <ProgressBar
+              value={Math.round(node.mastery * 100)}
+              max={100}
+              tone="brand"
+              label="Mastery"
+            />
+          )}
+        <button
+          type="button"
+          disabled={locked}
+          onClick={onStart}
+          className="btn-tactile rounded-pill bg-brand mt-auto w-full py-3 text-sm font-extrabold text-white disabled:opacity-50"
+        >
+          {busy
+            ? "Opening…"
+            : node.status === "exam"
+              ? "Start exam"
+              : node.status === "completed"
+                ? "Review lesson"
+                : "Start lesson"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Compact lesson list for Journey desktop sidebar (lg+). */
 export function JourneyLessonList({
   nodes,
@@ -36,7 +121,7 @@ export function JourneyLessonList({
     <aside
       role="navigation"
       className={cn(
-        "rounded-card border-hairline bg-surface-card hidden flex-col border [box-shadow:var(--shadow-card)] lg:flex",
+        "rounded-card border-hairline bg-surface-card flex flex-col border [box-shadow:var(--shadow-card)]",
         className,
       )}
       aria-label="Lesson list"

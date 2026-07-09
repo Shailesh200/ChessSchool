@@ -248,7 +248,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                           </button>
                         ) : (
                           <motion.div
-                            className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+                            className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
                             variants={listContainer}
                             initial="initial"
                             animate="enter"

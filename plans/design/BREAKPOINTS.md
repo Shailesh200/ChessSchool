@@ -10,7 +10,7 @@ PWA standalone uses mobile layout; installed tablet uses `md`/`lg` rules below.
 | Token | Min width | Primary use |
 |-------|-----------|-------------|
 | `xs` | 0 | Phone portrait (320–389) |
-| `sm` | 390px | **Design mockup width** — phone baseline |
+| `sm` | 640px (Tailwind default) | Wide phone — design mockups use **390px** (`min-width: 390px` in tests) |
 | `md` | 768px | Tablet portrait, wide phone landscape |
 | `lg` | 1024px | Tablet landscape, small laptop |
 | `xl` | 1280px | **Design mockup width** — desktop browser |
@@ -39,7 +39,7 @@ PWA standalone uses mobile layout; installed tablet uses `md`/`lg` rules below.
 | Width | Chrome |
 |-------|--------|
 | <1024 | Bottom tab bar (`BottomNav`) |
-| ≥1024 | Left sidebar or top bar + content (see mockup `desktop-shell-1280.svg`) |
+| ≥1024 | Left sidebar (`SidebarNav`, `aria-label="Main"`) — see mockup `campus-desktop-1280.svg` |
 
 Bottom nav hidden on focus routes (lesson, play match) — unchanged.
 
@@ -81,6 +81,6 @@ Bottom nav hidden on focus routes (lesson, play match) — unchanged.
 
 ## Mockup files
 
-See **`mockups/INDEX.md`** for all 24 SVG mockups (390px mobile + 1280px desktop pairs).
+See **`mockups/INDEX.md`** for all **40** SVG mockups (390px mobile + 1280px desktop pairs).
 
 Wireframes (low-fi): `wireframes/*.md`

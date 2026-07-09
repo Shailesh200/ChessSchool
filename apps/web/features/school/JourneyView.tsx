@@ -16,6 +16,7 @@ import { audio } from "@/core/audio/audioEngine";
 import {
   JourneyHeaderStats,
   JourneyLessonList,
+  JourneyLessonPreview,
   JourneyProgressSummary,
   type JourneyNodeData,
 } from "./JourneyLessonList";
@@ -40,6 +41,7 @@ export function JourneyView({
   const graduated = useProgression((s) => s.graduatedClasses);
   const [shown, setShown] = useState(6);
   const [busy, setBusy] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const unlockedClass = isClassUnlocked(cls.id, records, graduated, allClasses);
   const done = lessons.filter((l) => (records[l.id]?.mastery ?? 0) >= 0.9).length;
@@ -73,6 +75,22 @@ export function JourneyView({
   // Collapsed by default — always show up to the active milestone; load more on demand.
   const visibleCount = Math.min(nodes.length, Math.max(shown, activeIndex + 1));
 
+  function isDesktopJourney() {
+    return (
+      typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+    );
+  }
+
+  function selectNode(id: string, status: NodeStatus) {
+    if (status === "locked") {
+      haptics.fire("error");
+      audio.play("fail");
+      return;
+    }
+    setSelectedId(id);
+    if (!isDesktopJourney()) go(id, status);
+  }
+
   function go(id: string, status: NodeStatus) {
     if (status === "locked") {
       haptics.fire("error");
@@ -103,6 +121,9 @@ export function JourneyView({
     : null;
 
   const activeId = nodes.find((n) => n.status === "active")?.id;
+  const allNodes = examNode ? [...nodes, examNode] : nodes;
+  const previewId = selectedId ?? activeId ?? firstActionable?.id ?? null;
+  const previewNode = allNodes.find((n) => n.id === previewId) ?? null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -152,7 +173,7 @@ export function JourneyView({
         )}
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(300px,3fr)] lg:items-start lg:gap-8">
         {/* Milestone path */}
         <ol className="relative mx-auto flex w-full max-w-xs flex-col items-center lg:max-w-md lg:justify-self-center">
           {nodes.slice(0, visibleCount).map((n, i) => (
@@ -160,7 +181,7 @@ export function JourneyView({
               key={n.id}
               node={n}
               index={i}
-              onClick={() => go(n.id, n.status)}
+              onClick={() => selectNode(n.id, n.status)}
             />
           ))}
           {visibleCount < nodes.length && (
@@ -181,18 +202,28 @@ export function JourneyView({
             <JourneyNode
               node={examNode}
               index={nodes.length}
-              onClick={() => go(examNode.id, examNode.status)}
+              onClick={() => selectNode(examNode.id, examNode.status)}
               isExam
             />
           )}
         </ol>
 
-        <JourneyLessonList
-          nodes={nodes}
-          examNode={visibleCount >= nodes.length ? examNode : null}
-          activeId={activeId}
-          onSelect={go}
-        />
+        <div className="hidden flex-col gap-4 lg:flex">
+          <JourneyLessonPreview
+            node={previewNode}
+            busy={busy === previewNode?.id}
+            onStart={() => {
+              if (previewNode) go(previewNode.id, previewNode.status);
+            }}
+          />
+          <JourneyLessonList
+            nodes={nodes}
+            examNode={visibleCount >= nodes.length ? examNode : null}
+            activeId={previewId ?? undefined}
+            onSelect={selectNode}
+            className="max-h-[280px]"
+          />
+        </div>
       </div>
 
       {/* Test out (#12/#2) — appears once you're ≥50% through the class. */}

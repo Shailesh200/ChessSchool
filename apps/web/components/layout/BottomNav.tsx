@@ -19,7 +19,10 @@ export function BottomNav() {
       : null;
 
   return (
-    <nav className="pb-safe border-hairline bg-surface-card/85 sticky bottom-0 z-30 border-t backdrop-blur-xl lg:hidden">
+    <nav
+      className="pb-safe border-hairline bg-surface-card/85 sticky bottom-0 z-30 border-t backdrop-blur-xl lg:hidden"
+      aria-label="Primary"
+    >
       <ul className="mx-auto flex max-w-2xl items-stretch justify-around px-2">
         {NAV_TABS.map((tab) => {
           const active = isNavTabActive(pathname, tab.href);
