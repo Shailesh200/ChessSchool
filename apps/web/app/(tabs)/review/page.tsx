@@ -69,7 +69,12 @@ export default function ReviewPage() {
           </p>
           <Link href={`/lesson/${suggestion.id}`}>
             <Button className="mt-3 inline-flex items-center gap-2" variant="accent">
-              <ContentIcon emoji={suggestion.emoji} size={18} variant="inline" tone="accent" />
+              <ContentIcon
+                emoji={suggestion.emoji}
+                size={18}
+                variant="inline"
+                tone="accent"
+              />
               Review {suggestion.title}
             </Button>
           </Link>

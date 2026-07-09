@@ -347,7 +347,10 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
   message: (d) => (
     <>
       {d && <path d="M5 6.5h14v9H9l-4 3.5V6.5z" {...duo} />}
-      <path d="M5 6.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9.5L5 18V6.5z" {...S} />
+      <path
+        d="M5 6.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9.5L5 18V6.5z"
+        {...S}
+      />
       <path d="M8.5 10h7M8.5 12.5h4.5" {...S} />
     </>
   ),
@@ -401,8 +404,16 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
   ),
   seedling: (d) => (
     <>
-      {d && <path d="M12 20V10M12 10C12 6 16 4 18 4c0 4-2 6-6 6zM12 10C12 6 8 4 6 4c0 4 2 6 6 6z" {...duo} />}
-      <path d="M12 20V10M12 10C12 6 16 4 18 4c0 4-2 6-6 6zM12 10C12 6 8 4 6 4c0 4 2 6 6 6z" {...S} />
+      {d && (
+        <path
+          d="M12 20V10M12 10C12 6 16 4 18 4c0 4-2 6-6 6zM12 10C12 6 8 4 6 4c0 4 2 6 6 6z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M12 20V10M12 10C12 6 16 4 18 4c0 4-2 6-6 6zM12 10C12 6 8 4 6 4c0 4 2 6 6 6z"
+        {...S}
+      />
     </>
   ),
   volume: (d) => (
@@ -428,7 +439,10 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
   wifi: (d) => (
     <>
       {d && <circle cx="12" cy="18" r="1.2" fill="currentColor" />}
-      <path d="M8.5 14.5a6 6 0 0 1 7 0M5.5 11.5a10 10 0 0 1 13 0M2.5 8.5a14 14 0 0 1 19 0" {...S} />
+      <path
+        d="M8.5 14.5a6 6 0 0 1 7 0M5.5 11.5a10 10 0 0 1 13 0M2.5 8.5a14 14 0 0 1 19 0"
+        {...S}
+      />
       <circle cx="12" cy="18" r="1.2" fill="currentColor" />
     </>
   ),
@@ -491,14 +505,24 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
   ),
   pin: (d) => (
     <>
-      {d && <path d="M12 3c-2.2 0-4 1.8-4 4 0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z" {...duo} />}
+      {d && (
+        <path
+          d="M12 3c-2.2 0-4 1.8-4 4 0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z"
+          {...duo}
+        />
+      )}
       <path d="M12 3c-2.2 0-4 1.8-4 4 0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z" {...S} />
       <circle cx="12" cy="7" r="1.5" {...S} />
     </>
   ),
   puzzle: (d) => (
     <>
-      {d && <path d="M8 4h3a2 2 0 0 0 4 0h3v3a2 2 0 0 0 0 4v3h-3a2 2 0 0 0-4 0H8v-3a2 2 0 0 0 0-4z" {...duo} />}
+      {d && (
+        <path
+          d="M8 4h3a2 2 0 0 0 4 0h3v3a2 2 0 0 0 0 4v3h-3a2 2 0 0 0-4 0H8v-3a2 2 0 0 0 0-4z"
+          {...duo}
+        />
+      )}
       <path
         d="M8 4h3a2 2 0 0 0 4 0h3v3a2 2 0 0 0 0 4v3h-3a2 2 0 0 0-4 0H8v-3a2 2 0 0 0 0-4z"
         {...S}
@@ -610,7 +634,9 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
   ),
   scroll: (d) => (
     <>
-      {d && <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 0-2 2V5z" {...duo} />}
+      {d && (
+        <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 0-2 2V5z" {...duo} />
+      )}
       <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 0-2 2V5z" {...S} />
       <path d="M9 9h6M9 12.5h6" {...S} />
     </>

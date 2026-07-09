@@ -84,7 +84,12 @@ export function CeremonyOverlay({
                     className="absolute inset-0 h-full w-full"
                   >
                     <span className="bg-brand/10 flex h-28 w-28 items-center justify-center rounded-full">
-                      <IconBadge name="cap" size="xl" tone="gold" className="h-20 w-20 rounded-full" />
+                      <IconBadge
+                        name="cap"
+                        size="xl"
+                        tone="gold"
+                        className="h-20 w-20 rounded-full"
+                      />
                     </span>
                   </LazyLottie>
                   <motion.span

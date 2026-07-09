@@ -77,11 +77,7 @@ export default function ThemesPage() {
               </div>
               {/* Desktop: full board with pieces — live theme preview */}
               <div className="hidden w-full lg:block lg:max-w-md lg:self-center">
-                <ChessBoard
-                  fen={START_FEN}
-                  interactive={false}
-                  showNotation
-                />
+                <ChessBoard fen={START_FEN} interactive={false} showNotation />
               </div>
               <div className="min-w-0 flex-1 lg:text-center">
                 <span className="rounded-pill bg-brand inline-block px-2 py-0.5 text-xs font-extrabold text-white">

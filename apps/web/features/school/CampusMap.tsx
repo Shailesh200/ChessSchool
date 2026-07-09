@@ -377,7 +377,12 @@ function ClassCard({
           style={{ backgroundColor: unlocked ? `${color}1a` : "var(--surface-sunken)" }}
         >
           {unlocked ? (
-            <ContentIcon emoji={cls.emoji} size={24} variant="plain" accentColor={color} />
+            <ContentIcon
+              emoji={cls.emoji}
+              size={24}
+              variant="plain"
+              accentColor={color}
+            />
           ) : (
             <Icon name="lock" size={24} className="text-ink-400" />
           )}

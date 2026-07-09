@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { Icon } from "@/components/ui/Icon";
 import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
-import {
-  AVATAR_OPTIONS,
-  resolveAvatar,
-} from "@/components/ui/iconMaps";
+import { AVATAR_OPTIONS, resolveAvatar } from "@/components/ui/iconMaps";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Confetti } from "@/components/ui/Confetti";
 import { useSettings } from "@/core/store/settings.store";
@@ -43,7 +40,12 @@ const TIME: Opt[] = [
   { value: "competitive", label: "90+ min/day", emoji: "🏆" },
 ];
 const COACH: Opt[] = [
-  { value: "friendly", label: "Friendly teacher", emoji: "😊", avatar: "coach-friendly" },
+  {
+    value: "friendly",
+    label: "Friendly teacher",
+    emoji: "😊",
+    avatar: "coach-friendly",
+  },
   { value: "strict", label: "Strict grandmaster", emoji: "🎩", avatar: "coach-strict" },
   { value: "mentor", label: "Mentor", emoji: "🧑‍🏫", avatar: "coach-mentor" },
   { value: "tactical", label: "Tactical", emoji: "⚔️", avatar: "coach-tactical" },
@@ -180,7 +182,11 @@ export function OnboardingWizard({ name }: { name: string }) {
             </p>
             {!isAvatarStep && step === 1 && elo === "600" && (
               <p className="rounded-card border-hairline bg-surface-sunken/80 text-ink-500 -mt-3 mb-4 flex items-start gap-2 border px-3 py-2 text-xs font-semibold">
-                <Icon name="seedling" size={16} className="text-brand mt-0.5 shrink-0" />
+                <Icon
+                  name="seedling"
+                  size={16}
+                  className="text-brand mt-0.5 shrink-0"
+                />
                 <span>
                   We&apos;ll recommend our optional{" "}
                   <span className="text-ink font-extrabold">Pre-School</span> first —

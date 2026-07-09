@@ -11,7 +11,13 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="50" r="22" fill="#FEF08A" />
           <circle cx="38" cy="46" r="4" fill="#422006" />
           <circle cx="58" cy="46" r="4" fill="#422006" />
-          <path d="M40 56 Q48 62 56 56" stroke="#422006" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M40 56 Q48 62 56 56"
+            stroke="#422006"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <path d="M34 28 Q48 8 62 28 L58 36 Q48 22 38 36 Z" fill="#F97316" />
           <ellipse cx="48" cy="72" rx="16" ry="10" fill="#FDE047" />
         </>
@@ -23,7 +29,13 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="48" r="22" fill="#FFEDD5" />
           <circle cx="38" cy="46" r="3.5" fill="#1E293B" />
           <circle cx="58" cy="46" r="3.5" fill="#1E293B" />
-          <path d="M42 56 Q48 61 54 56" stroke="#1E293B" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M42 56 Q48 61 54 56"
+            stroke="#1E293B"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <path d="M28 38 Q48 18 68 38 L64 44 Q48 28 32 44 Z" fill="#0EA5E9" />
           <rect x="40" y="68" width="16" height="14" rx="6" fill="#38BDF8" />
         </>
@@ -35,9 +47,20 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="48" r="22" fill="#DCFCE7" />
           <circle cx="38" cy="46" r="3.5" fill="#14532D" />
           <circle cx="58" cy="46" r="3.5" fill="#14532D" />
-          <path d="M42 56 Q48 60 54 56" stroke="#14532D" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M42 56 Q48 60 54 56"
+            stroke="#14532D"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <path d="M30 34 L48 20 L66 34 L62 40 L48 30 L34 40 Z" fill="#22C55E" />
-          <path d="M48 30 L48 18" stroke="#15803D" strokeWidth="3" strokeLinecap="round" />
+          <path
+            d="M48 30 L48 18"
+            stroke="#15803D"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
           <circle cx="48" cy="16" r="4" fill="#15803D" />
         </>
       );
@@ -48,7 +71,13 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="48" r="22" fill="#FECACA" />
           <circle cx="38" cy="46" r="3.5" fill="#450A0A" />
           <circle cx="58" cy="46" r="3.5" fill="#450A0A" />
-          <path d="M42 55 Q48 58 54 55" stroke="#450A0A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M42 55 Q48 58 54 55"
+            stroke="#450A0A"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <path d="M26 52 L48 28 L70 52 L64 58 L48 40 L32 58 Z" fill="#EF4444" />
           <rect x="44" y="62" width="8" height="18" rx="2" fill="#94A3B8" />
         </>
@@ -60,8 +89,17 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="48" r="22" fill="#EDE9FE" />
           <circle cx="38" cy="46" r="3.5" fill="#3B0764" />
           <circle cx="58" cy="46" r="3.5" fill="#3B0764" />
-          <path d="M42 56 Q48 60 54 56" stroke="#3B0764" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <path d="M24 36 L36 24 L48 32 L60 24 L72 36 L68 42 L48 28 L28 42 Z" fill="#A855F7" />
+          <path
+            d="M42 56 Q48 60 54 56"
+            stroke="#3B0764"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M24 36 L36 24 L48 32 L60 24 L72 36 L68 42 L48 28 L28 42 Z"
+            fill="#A855F7"
+          />
           <circle cx="36" cy="26" r="3" fill="#FDE047" />
           <circle cx="48" cy="22" r="3" fill="#FDE047" />
           <circle cx="60" cy="26" r="3" fill="#FDE047" />
@@ -74,7 +112,13 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="48" r="22" fill="#FEF3C7" />
           <circle cx="38" cy="46" r="3.5" fill="#422006" />
           <circle cx="58" cy="46" r="3.5" fill="#422006" />
-          <path d="M42 56 Q48 60 54 56" stroke="#422006" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M42 56 Q48 60 54 56"
+            stroke="#422006"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <path d="M22 38 L48 14 L74 38 L70 44 L48 26 L26 44 Z" fill="#D97706" />
           <circle cx="48" cy="16" r="5" fill="#FBBF24" />
           <rect x="34" y="66" width="28" height="12" rx="4" fill="#92400E" />
@@ -98,8 +142,20 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="46" r="24" fill="#FFEDD5" />
           <circle cx="38" cy="44" r="3" fill="#431407" />
           <circle cx="58" cy="44" r="3" fill="#431407" />
-          <path d="M40 54 Q48 60 56 54" stroke="#431407" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <path d="M18 58 Q28 42 38 52" stroke="#FB923C" strokeWidth="5" fill="none" strokeLinecap="round" />
+          <path
+            d="M40 54 Q48 60 56 54"
+            stroke="#431407"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M18 58 Q28 42 38 52"
+            stroke="#FB923C"
+            strokeWidth="5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <path d="M30 28 Q48 14 66 28 L62 34 Q48 22 34 34 Z" fill="#EA580C" />
         </>
       );
@@ -107,9 +163,26 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
       return (
         <>
           <circle cx="48" cy="46" r="24" fill="#E5E7EB" />
-          <path d="M34 42 L42 44 L34 46" stroke="#111827" strokeWidth="2" fill="none" strokeLinecap="round" />
-          <path d="M62 42 L54 44 L62 46" stroke="#111827" strokeWidth="2" fill="none" strokeLinecap="round" />
-          <path d="M44 56 L52 56" stroke="#111827" strokeWidth="2.5" strokeLinecap="round" />
+          <path
+            d="M34 42 L42 44 L34 46"
+            stroke="#111827"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M62 42 L54 44 L62 46"
+            stroke="#111827"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M44 56 L52 56"
+            stroke="#111827"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
           <path d="M24 30 L48 18 L72 30 L68 36 L48 24 L28 36 Z" fill="#374151" />
           <rect x="40" y="66" width="16" height="10" rx="3" fill="#1F2937" />
         </>
@@ -120,7 +193,13 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="46" r="24" fill="#DBEAFE" />
           <circle cx="38" cy="44" r="3" fill="#1E3A8A" />
           <circle cx="58" cy="44" r="3" fill="#1E3A8A" />
-          <path d="M40 54 Q48 58 56 54" stroke="#1E3A8A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M40 54 Q48 58 56 54"
+            stroke="#1E3A8A"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
           <rect x="28" y="62" width="40" height="16" rx="4" fill="#2563EB" />
           <path d="M32 62 L48 48 L64 62" fill="#1D4ED8" />
           <circle cx="48" cy="24" r="8" fill="#BFDBFE" />
@@ -132,7 +211,12 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="48" cy="46" r="24" fill="#FFE4E6" />
           <circle cx="38" cy="44" r="3" fill="#881337" />
           <circle cx="58" cy="44" r="3" fill="#881337" />
-          <path d="M42 55 L54 55" stroke="#881337" strokeWidth="2.5" strokeLinecap="round" />
+          <path
+            d="M42 55 L54 55"
+            stroke="#881337"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
           <path d="M58 28 L72 68 L58 64 L44 68 Z" fill="#E11D48" />
           <rect x="54" y="62" width="6" height="14" rx="1" fill="#64748B" />
         </>
@@ -167,7 +251,13 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <circle cx="38" cy="46" r="4" fill="#312E81" />
           <circle cx="58" cy="46" r="4" fill="#312E81" />
           <path d="M48 52 L44 58 L52 58 Z" fill="#F59E0B" />
-          <path d="M30 28 Q48 18 66 28" stroke="#6366F1" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path
+            d="M30 28 Q48 18 66 28"
+            stroke="#6366F1"
+            strokeWidth="4"
+            fill="none"
+            strokeLinecap="round"
+          />
         </>
       );
     case "ava-bear":
@@ -202,7 +292,12 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
     case "ava-rose":
       return (
         <>
-          <path d="M48 72 Q48 52 48 40" stroke="#15803D" strokeWidth="4" strokeLinecap="round" />
+          <path
+            d="M48 72 Q48 52 48 40"
+            stroke="#15803D"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
           <ellipse cx="48" cy="36" rx="18" ry="16" fill="#FB7185" />
           <ellipse cx="40" cy="32" rx="10" ry="12" fill="#FDA4AF" />
           <ellipse cx="56" cy="32" rx="10" ry="12" fill="#FDA4AF" />
@@ -232,7 +327,10 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
       return (
         <>
           <circle cx="48" cy="48" r="26" fill="#F3E8FF" />
-          <path d="M24 36 L32 24 L40 34 L48 20 L56 34 L64 24 L72 36 L68 42 L48 30 L28 42 Z" fill="#A855F7" />
+          <path
+            d="M24 36 L32 24 L40 34 L48 20 L56 34 L64 24 L72 36 L68 42 L48 30 L28 42 Z"
+            fill="#A855F7"
+          />
           <circle cx="32" cy="26" r="3" fill="#FDE047" />
           <circle cx="48" cy="20" r="3" fill="#FDE047" />
           <circle cx="64" cy="26" r="3" fill="#FDE047" />
@@ -257,7 +355,12 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
           <ellipse cx="48" cy="58" rx="14" ry="18" fill="#DDD6FE" />
           <path d="M48 22 Q36 40 36 56 Q48 50 60 56 Q60 40 48 22" fill="#8B5CF6" />
           <circle cx="48" cy="24" r="5" fill="#C4B5FD" />
-          <path d="M44 66 L52 66" stroke="#5B21B6" strokeWidth="3" strokeLinecap="round" />
+          <path
+            d="M44 66 L52 66"
+            stroke="#5B21B6"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
         </>
       );
     case "ava-rocket":
@@ -283,8 +386,18 @@ export function FlatAvatarArt({ id }: { id: FlatAvatarId }) {
       return (
         <>
           <path d="M32 28 H64 V44 Q64 56 48 56 Q32 56 32 44 Z" fill="#FBBF24" />
-          <path d="M24 32 Q24 44 32 44 V36 H24" stroke="#D97706" strokeWidth="3" fill="none" />
-          <path d="M72 32 Q72 44 64 44 V36 H72" stroke="#D97706" strokeWidth="3" fill="none" />
+          <path
+            d="M24 32 Q24 44 32 44 V36 H24"
+            stroke="#D97706"
+            strokeWidth="3"
+            fill="none"
+          />
+          <path
+            d="M72 32 Q72 44 64 44 V36 H72"
+            stroke="#D97706"
+            strokeWidth="3"
+            fill="none"
+          />
           <rect x="40" y="56" width="16" height="8" fill="#D97706" />
           <rect x="34" y="64" width="28" height="8" rx="2" fill="#92400E" />
         </>

@@ -110,12 +110,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
-  const [mateReviewOpen, setMateReviewOpen] = useState(snap?.mateReviewPending ?? false);
+  const [mateReviewOpen, setMateReviewOpen] = useState(
+    snap?.mateReviewPending ?? false,
+  );
   const [mateReviewHistory, setMateReviewHistory] =
     useState<VerboseMove[]>(restoredMateHistory);
-  const [finalPgn, setFinalPgn] = useState(
-    snap?.mateReviewPending ? active.pgn : "",
-  );
+  const [finalPgn, setFinalPgn] = useState(snap?.mateReviewPending ? active.pgn : "");
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const [boardBox, boardSize] = useSquareSize();
@@ -244,8 +244,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const e = engineRef.current;
     if (!e.isGameOver()) return;
     const status = e.status();
-    const winner =
-      status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    const winner = status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
     const playerWon = isBot && winner === playerColor;
     const reason: EndReason =
       status === "checkmate"
@@ -561,7 +560,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   <div className="flex justify-center">
                     <Icon
                       name={
-                        over.win ? "trophy" : over.text.startsWith("Draw") ? "handshake" : "pawn"
+                        over.win
+                          ? "trophy"
+                          : over.text.startsWith("Draw")
+                            ? "handshake"
+                            : "pawn"
                       }
                       size={32}
                       duotone

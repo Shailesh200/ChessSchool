@@ -171,7 +171,13 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
                   </>
                 ) : (
                   <>
-                    <ContentIcon emoji={daily.emoji ?? undefined} name="puzzle" size={16} variant="inline" tone="brand" />
+                    <ContentIcon
+                      emoji={daily.emoji ?? undefined}
+                      name="puzzle"
+                      size={16}
+                      variant="inline"
+                      tone="brand"
+                    />
                     Daily puzzle
                   </>
                 )}

@@ -57,7 +57,12 @@ export function ContentIcon({
         name={icon}
         size={size}
         duotone={duotone}
-        className={cn(iconToneClass(resolvedTone), "shrink-0", className, iconClassName)}
+        className={cn(
+          iconToneClass(resolvedTone),
+          "shrink-0",
+          className,
+          iconClassName,
+        )}
         style={accentColor ? { color: accentColor } : undefined}
       />
     );
@@ -69,7 +74,12 @@ export function ContentIcon({
         name={icon}
         size={size}
         duotone={duotone}
-        className={cn(iconToneClass(resolvedTone), "shrink-0", className, iconClassName)}
+        className={cn(
+          iconToneClass(resolvedTone),
+          "shrink-0",
+          className,
+          iconClassName,
+        )}
         style={accentColor ? { color: accentColor } : undefined}
       />
     );

@@ -33,7 +33,5 @@ export function BotAvatarByName({
   size?: number;
   className?: string;
 }) {
-  return (
-    <FlatAvatar id={botAvatarForName(name)} size={size} className={className} />
-  );
+  return <FlatAvatar id={botAvatarForName(name)} size={size} className={className} />;
 }

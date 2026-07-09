@@ -78,7 +78,9 @@ export function DataSection({ embedded = false }: { embedded?: boolean }) {
         {storage != null && (
           <span className="rounded-pill bg-surface-sunken text-ink-500 inline-flex items-center gap-1 px-2 py-1">
             <Icon name="save" size={12} />
-            {storage < 1024 ? `${storage} KB` : `${(storage / 1024).toFixed(1)} MB`}{" "}
+            {storage < 1024
+              ? `${storage} KB`
+              : `${(storage / 1024).toFixed(1)} MB`}{" "}
             stored
           </span>
         )}

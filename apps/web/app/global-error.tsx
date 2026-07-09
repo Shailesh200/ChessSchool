@@ -19,12 +19,14 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           padding: "1.5rem",
         }}
       >
-        <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden style={{ color: "#d97706" }}>
-          <path
-            fill="currentColor"
-            fillOpacity="0.16"
-            d="M12 4 3.5 19h17z"
-          />
+        <svg
+          viewBox="0 0 24 24"
+          width="48"
+          height="48"
+          aria-hidden
+          style={{ color: "#d97706" }}
+        >
+          <path fill="currentColor" fillOpacity="0.16" d="M12 4 3.5 19h17z" />
           <path
             fill="none"
             stroke="currentColor"

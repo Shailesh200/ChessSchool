@@ -104,7 +104,11 @@ export default function JournalPage() {
                 {list.map((e) => (
                   <Card key={e.id} className="p-3">
                     <div className="flex items-center gap-2">
-                      <Icon name={journalKindIcon(e.kind)} size={18} className="text-brand shrink-0" />
+                      <Icon
+                        name={journalKindIcon(e.kind)}
+                        size={18}
+                        className="text-brand shrink-0"
+                      />
                       <span className="text-ink flex-1 text-sm font-extrabold">
                         {e.title}
                       </span>

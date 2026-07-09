@@ -3,10 +3,7 @@ import { cn } from "./cn";
 
 export type IconTone = "brand" | "gold" | "accent" | "success" | "violet" | "neutral";
 
-const TONE: Record<
-  IconTone,
-  { shell: string; icon: string; ring?: string }
-> = {
+const TONE: Record<IconTone, { shell: string; icon: string; ring?: string }> = {
   brand: {
     shell:
       "border-brand-100/90 bg-gradient-to-br from-brand-50 via-white to-brand-50/40 text-brand [box-shadow:var(--elev-1)]",

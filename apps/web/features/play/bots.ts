@@ -1,4 +1,8 @@
-import { botAvatarId, botAvatarIdForElo, type FlatAvatarId } from "@/components/ui/flatAvatars/catalog";
+import {
+  botAvatarId,
+  botAvatarIdForElo,
+  type FlatAvatarId,
+} from "@/components/ui/flatAvatars/catalog";
 
 /** Named opponents per ELO band — gives the vs-Bot mode personality. */
 export interface BotProfile {

@@ -13,7 +13,12 @@ export function CurriculumLinkGrid({ links }: { links: CurriculumLink[] }) {
             href={link.href}
             className="btn-tactile rounded-card border-hairline bg-surface-card flex h-full items-start gap-3 border p-4 [box-shadow:var(--shadow-card)]"
           >
-            <ContentIcon emoji={link.emoji} size={22} className="shrink-0" tone="brand" />
+            <ContentIcon
+              emoji={link.emoji}
+              size={22}
+              className="shrink-0"
+              tone="brand"
+            />
             <span className="min-w-0 flex-1">
               <span className="text-ink block text-sm font-extrabold">
                 {link.title}

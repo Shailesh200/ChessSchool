@@ -497,7 +497,11 @@ export default function OnlineSessionPage({
             <p className="text-ink-500 text-xs font-semibold">
               Share the link — they have 3 minutes to join.
             </p>
-            <Button size="sm" className="mt-2 inline-flex items-center gap-2" onClick={shareLink}>
+            <Button
+              size="sm"
+              className="mt-2 inline-flex items-center gap-2"
+              onClick={shareLink}
+            >
               <Icon name="link" size={16} className="shrink-0" />
               Share invite link
             </Button>

@@ -78,9 +78,7 @@ function MateReviewSession({
 }) {
   const steps = useMemo(
     () =>
-      history?.length
-        ? lastMoveFramesFromHistory(history, 5)
-        : lastMoveFrames(pgn, 5),
+      history?.length ? lastMoveFramesFromHistory(history, 5) : lastMoveFrames(pgn, 5),
     [history, pgn],
   );
   const [idx, setIdx] = useState(0);
@@ -236,7 +234,11 @@ function MateReviewSession({
             <span
               key={i}
               className={`h-2 w-2 rounded-full transition-colors ${
-                i === safeIdx ? "bg-brand scale-125" : i < safeIdx ? "bg-brand/40" : "bg-surface-sunken"
+                i === safeIdx
+                  ? "bg-brand scale-125"
+                  : i < safeIdx
+                    ? "bg-brand/40"
+                    : "bg-surface-sunken"
               }`}
             />
           ))}

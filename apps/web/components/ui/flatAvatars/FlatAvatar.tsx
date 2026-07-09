@@ -1,10 +1,6 @@
 import { cn } from "../cn";
 import { FlatAvatarArt } from "./art";
-import {
-  FLAT_AVATAR_TONES,
-  type FlatAvatarId,
-  resolveFlatAvatar,
-} from "./catalog";
+import { FLAT_AVATAR_TONES, type FlatAvatarId, resolveFlatAvatar } from "./catalog";
 
 const SIZE = { sm: 44, md: 56, lg: 68, xl: 84 } as const;
 export type FlatAvatarSize = keyof typeof SIZE;
