@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { framesFromHistory, lastMoveFrames, lastMoveFramesFromHistory, replayFrames } from "./replay";
+import { framesFromHistory, lastMoveFrames, lastMoveFramesFromHistory } from "./replay";
 
 describe("lastMoveFrames", () => {
   it("returns trailing frames plus the position before the first replayed move", () => {

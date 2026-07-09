@@ -67,6 +67,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const progression = useProgression();
 
   const snap = active.endSnapshot;
+  const restoredMateHistory = useMemo(
+    () => (snap?.mateReviewPending ? engineFromPgn(active.pgn).history() : []),
+    [snap?.mateReviewPending, active.pgn],
+  );
   const engineRef = useRef<ChessEngine>(engineFromPgn(active.pgn));
   const [fen, setFen] = useState(active.fen);
   const [pgn, setPgn] = useState(active.pgn);
@@ -107,10 +111,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
   const [mateReviewOpen, setMateReviewOpen] = useState(snap?.mateReviewPending ?? false);
-  const [mateReviewHistory, setMateReviewHistory] = useState<VerboseMove[]>(() =>
-    snap?.mateReviewPending ? engineRef.current.history() : [],
-  );
-  const [finalPgn, setFinalPgn] = useState(() =>
+  const [mateReviewHistory, setMateReviewHistory] =
+    useState<VerboseMove[]>(restoredMateHistory);
+  const [finalPgn, setFinalPgn] = useState(
     snap?.mateReviewPending ? active.pgn : "",
   );
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
@@ -331,7 +334,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       setThinking(false);
       checkOver();
     });
-  }, [active.targetElo, persist, checkOver, botName]);
+  }, [active.targetElo, persist, checkOver]);
 
   // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
   useEffect(() => {
