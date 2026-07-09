@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useToasts } from "@/core/store/toast.store";
 import { Icon } from "./Icon";
-import { LazyLottie } from "@/components/motion/LazyLottie";
 
 const TONE: Record<string, string> = {
   default: "text-brand",
@@ -32,13 +31,7 @@ export function Toaster() {
             }}
             className="rounded-pill border-hairline bg-surface-card pointer-events-auto flex max-w-sm items-center gap-2.5 border px-4 py-2.5 [box-shadow:var(--shadow-pop)]"
           >
-            {t.lottie ? (
-              <LazyLottie asset={t.lottie} className="h-9 w-9 shrink-0">
-                {t.icon && <Icon name={t.icon} size={18} className={TONE[t.tone]} />}
-              </LazyLottie>
-            ) : (
-              t.icon && <Icon name={t.icon} size={18} className={TONE[t.tone]} />
-            )}
+            {t.icon && <Icon name={t.icon} size={18} className={TONE[t.tone]} />}
             <span className="text-ink text-sm font-bold">{t.message}</span>
             {t.action && (
               <button

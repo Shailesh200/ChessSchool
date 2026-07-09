@@ -52,6 +52,9 @@ function framesFromPgn(pgn: string): string[] {
   return frames;
 }
 
+/** Largest square board side (px) — keeps play usable on wide desktop viewports. */
+const BOARD_MAX_PX = 520;
+
 export function MatchView({ active }: { active: ActiveMatch }) {
   const router = useRouter();
   const sync = useMatch((s) => s.sync);
@@ -357,6 +360,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   }
   const viewing = viewPly !== null;
   const displayFen = viewing && frames[viewPly] ? frames[viewPly] : fen;
+  const boardPx = boardSize ? Math.min(boardSize, BOARD_MAX_PX) : 0;
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col">
@@ -419,14 +423,19 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         </div>
       </div>
 
-      {/* board spans the largest square that fits the remaining height/width */}
+      {/* board — capped square; container max-w-xl matches coach/clocks row */}
       <div
         ref={boardBox}
-        className="flex min-h-0 flex-1 items-center justify-center px-3 py-2"
+        className="mx-auto flex min-h-0 w-full max-w-xl flex-1 items-center justify-center px-3 py-2"
       >
         <div
-          className="relative"
-          style={{ width: boardSize || undefined, height: boardSize || undefined }}
+          className="relative max-w-full"
+          style={{
+            width: boardPx || undefined,
+            height: boardPx || undefined,
+            maxWidth: BOARD_MAX_PX,
+            maxHeight: BOARD_MAX_PX,
+          }}
         >
           <ChessBoard
             fen={displayFen}

@@ -193,6 +193,7 @@ export function ChessBoard({
 
   return (
     <div
+      data-testid="chess-board"
       className={`relative overflow-hidden rounded-lg [box-shadow:var(--shadow-card)] ${
         fill ? "h-full w-full" : "aspect-square w-full"
       }`}

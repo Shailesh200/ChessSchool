@@ -59,4 +59,19 @@ test.describe("desktop layout @1280", () => {
     await expect(page.getByText("Live preview")).toBeVisible();
     await expect(page.getByText("App theme")).toBeVisible();
   });
+
+  test("play match board is capped and moves work at desktop width", async ({ page }) => {
+    await page.goto("/play");
+    await page.getByRole("button", { name: "Start match" }).click();
+    await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();
+
+    const board = page.getByTestId("chess-board");
+    await expect(board).toBeVisible();
+    const box = await board.boundingBox();
+    expect(box?.width ?? 0).toBeLessThanOrEqual(520);
+
+    await page.locator('[data-square="e2"]').click();
+    await page.locator('[data-square="e4"]').click();
+    await expect(page.getByText("Thinking…")).toBeHidden({ timeout: 8000 });
+  });
 });

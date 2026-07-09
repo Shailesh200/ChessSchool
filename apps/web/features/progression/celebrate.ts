@@ -10,8 +10,6 @@ export function unlockAndCelebrate(id: string): boolean {
   toast(a ? `${a.title} unlocked!` : "Achievement unlocked!", {
     icon: "trophy",
     tone: "success",
-    lottie: "achievement-unlock",
-    sticky: true,
   });
   return true;
 }
