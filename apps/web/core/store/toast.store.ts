@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { IconName } from "@/components/ui/Icon";
+import type { LottieAsset } from "@/components/motion/LazyLottie";
 
 export type ToastTone = "default" | "success" | "danger";
 
@@ -10,6 +11,7 @@ export interface ToastItem {
   message: string;
   icon?: IconName;
   tone: ToastTone;
+  lottie?: LottieAsset;
   /** optional inline action button (e.g. "Reload") */
   action?: { label: string; onClick: () => void };
   /** sticky toasts stay until dismissed/actioned (no auto-timeout) */
@@ -44,6 +46,7 @@ export function toast(
   opts: {
     icon?: IconName;
     tone?: ToastTone;
+    lottie?: LottieAsset;
     action?: ToastItem["action"];
     sticky?: boolean;
   } = {},
@@ -52,6 +55,7 @@ export function toast(
     message,
     icon: opts.icon,
     tone: opts.tone ?? "default",
+    lottie: opts.lottie,
     action: opts.action,
     sticky: opts.sticky,
   });

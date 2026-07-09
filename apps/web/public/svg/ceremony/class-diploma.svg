@@ -1,0 +1,11 @@
+<!-- Class graduation diploma  SVG fallback for lottie-class-graduate -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" fill="none" aria-hidden="true">
+  <rect x="20" y="20" width="160" height="100" rx="12" fill="#fff" stroke="#e7e6f2" stroke-width="2"/>
+  <rect x="20" y="20" width="160" height="28" rx="12" fill="#5b5bd6"/>
+  <rect x="20" y="36" width="160" height="12" fill="#5b5bd6"/>
+  <circle cx="100" cy="72" r="22" fill="#eef0ff" stroke="#5b5bd6" stroke-width="2"/>
+  <path d="M88 72l6 6 12-14" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M56 98h88" stroke="#a9a7bd" stroke-width="2" stroke-linecap="round"/>
+  <path d="M72 108h56" stroke="#e7e6f2" stroke-width="2" stroke-linecap="round"/>
+  <path d="M100 20v-8M92 12h16" stroke="#f6c343" stroke-width="3" stroke-linecap="round"/>
+</svg>

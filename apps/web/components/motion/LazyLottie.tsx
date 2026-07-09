@@ -1,0 +1,64 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import { cn } from "@/components/ui/cn";
+import { useReducedMotion } from "@/core/hooks/useReducedMotion";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+
+export type LottieAsset =
+  "lesson-complete" | "class-graduate" | "achievement-unlock" | "streak-milestone";
+
+const SRC: Record<LottieAsset, string> = {
+  "lesson-complete": "/lottie/lesson-complete.json",
+  "class-graduate": "/lottie/class-graduate.json",
+  "achievement-unlock": "/lottie/achievement-unlock.json",
+  "streak-milestone": "/lottie/streak-milestone.json",
+};
+
+/**
+ * Lazy-loaded Lottie player — skipped when `prefers-reduced-motion: reduce`.
+ * Falls back to `children` (static SVG) per MOTION.md.
+ */
+export function LazyLottie({
+  asset,
+  className,
+  loop = false,
+  children,
+}: {
+  asset: LottieAsset;
+  className?: string;
+  loop?: boolean;
+  children?: React.ReactNode;
+}) {
+  const reduced = useReducedMotion();
+  const [data, setData] = useState<object | null>(null);
+
+  useEffect(() => {
+    if (reduced) return;
+    let cancelled = false;
+    fetch(SRC[asset])
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled && json) setData(json);
+      })
+      .catch(() => void 0);
+    return () => {
+      cancelled = true;
+    };
+  }, [asset, reduced]);
+
+  if (reduced || !data) {
+    return <>{children}</>;
+  }
+
+  return (
+    <Lottie
+      animationData={data}
+      loop={loop}
+      className={cn("pointer-events-none", className)}
+      aria-hidden
+    />
+  );
+}

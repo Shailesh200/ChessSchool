@@ -11,6 +11,7 @@ import { currentLocation, classProgress, type Catalog } from "./structure";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
 import { cn } from "@/components/ui/cn";
+import { Icon } from "@/components/ui/Icon";
 
 /**
  * "Where am I + Continue" card (#61/#64). Always-visible breadcrumb of the
@@ -46,7 +47,10 @@ export function ResumeCard({
         aria-label="Your place in school"
         className="text-ink-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-bold"
       >
-        <span>🎓 {semesterShort}</span>
+        <span className="inline-flex items-center gap-1">
+          <Icon name="cap" size={12} className="text-brand shrink-0" />
+          {semesterShort}
+        </span>
         <span aria-hidden>›</span>
         <span className="text-brand">{loc.cls.title}</span>
         <span aria-hidden>›</span>
@@ -55,8 +59,15 @@ export function ResumeCard({
         </span>
       </nav>
 
-      <h2 className="text-ink mt-1 truncate text-lg font-extrabold">
-        {loc.complete ? "🏆 You've graduated!" : loc.lessonTitle}
+      <h2 className="text-ink mt-1 flex items-center gap-2 truncate text-lg font-extrabold">
+        {loc.complete ? (
+          <>
+            <Icon name="trophy" size={20} className="text-gold shrink-0" />
+            You&apos;ve graduated!
+          </>
+        ) : (
+          loc.lessonTitle
+        )}
       </h2>
       <p className="text-ink-500 text-xs font-semibold">
         {loc.complete

@@ -65,13 +65,13 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
 | **Current Phase** | Web GA Polish (design-first) |
-| **Current Milestone** | M-059 — Responsive browser layouts |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slice 1–2 (merged) |
-| **In Progress** | M-059 · M-075 Phase B (Lottie, empty states) · M-071 |
+| **Current Milestone** | M-075 Phase B — Premium UI (slice 3) |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slice 1–2 (merged) · M-059 slices 1–3 (merged, pending Verified) |
+| **In Progress** | M-075 Phase B slice 3 (branch) · M-059 sign-off · M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-075 Phase B completion · M-045–M-048 (pre-GA hardening) |
+| **Next Milestone** | M-059 Verified · M-045–M-048 (pre-GA hardening) |
 | **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-09 (v1.8 — commit-only to main; push on owner request) |
+| **Last Updated** | 2026-07-09 (v1.8 — M-075-B slice 3 on milestone branch) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -995,7 +995,7 @@ Owner confirms browser screenshots match approved mocks; `pnpm verify:milestone`
 
 ### Status
 
-**In Progress (Phase A — design package)**
+**In Progress (Phase B slice 3 — Lottie, empty states, chrome icons)**
 
 ### Inputs
 

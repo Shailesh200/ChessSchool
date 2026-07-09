@@ -1,0 +1,10 @@
+<!-- Empty review / no games yet -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none" aria-hidden="true">
+  <rect width="240" height="180" rx="16" fill="#f1f0f9"/>
+  <rect x="60" y="56" width="120" height="80" rx="10" fill="#fff" stroke="#e7e6f2" stroke-width="2"/>
+  <rect x="72" y="68" width="36" height="36" rx="4" fill="#ede7f6"/>
+  <rect x="132" y="68" width="36" height="36" rx="4" fill="#b9a8e6" opacity="0.5"/>
+  <path d="M90 120h60" stroke="#a9a7bd" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="120" cy="44" r="10" stroke="#5b5bd6" stroke-width="2"/>
+  <path d="M120 54v8" stroke="#5b5bd6" stroke-width="2" stroke-linecap="round"/>
+</svg>

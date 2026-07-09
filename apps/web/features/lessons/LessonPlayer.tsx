@@ -18,6 +18,7 @@ import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
+import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
@@ -235,7 +236,7 @@ export function LessonPlayer({
       perfect: wrongRef.current === 0 && correct === interactive,
       xp: st.xp,
       streak: st.streak,
-    }).forEach((id) => progression.unlockAchievement(id));
+    }).forEach((id) => unlockAndCelebrate(id));
 
     // School exam: passing unlocks the next school (no class to graduate).
     if (schoolExam) {

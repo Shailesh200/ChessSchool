@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import {
   semestersForStage,
   classProgress,
@@ -96,7 +97,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
             return (
               <section key={stage.id} className="opacity-70">
                 <div className="rounded-card border-hairline bg-surface-sunken/40 border border-dashed p-4 text-center">
-                  <p className="text-2xl">🔒</p>
+                  <Icon name="lock" size={28} className="text-ink-400 mx-auto" />
                   <p className="text-ink mt-1 text-sm font-extrabold">{stage.name}</p>
                   <p className="text-ink-500 text-xs font-semibold">
                     Graduate {prevName} to unlock · {classCount}{" "}
@@ -118,8 +119,9 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                 >
                   <span className="text-xl">{stage.emoji}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="text-ink block text-sm font-extrabold">
-                      🎓 {stage.name} — graduated
+                    <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                      <Icon name="cap" size={16} className="text-gold shrink-0" />
+                      {stage.name} — graduated
                     </span>
                     <span className="text-ink-500 block text-[11px] font-semibold">
                       {classCount} {classCount === 1 ? "class" : "classes"} · tap to
@@ -233,7 +235,11 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                             onClick={toggle}
                             className="btn-tactile rounded-card border-hairline bg-surface-card/60 text-ink-500 w-full border border-dashed p-3 text-center text-xs font-bold"
                           >
-                            {future ? "🔒 " : ""}
+                            {future ? (
+                              <>
+                                <Icon name="lock" size={14} className="mr-1 inline" />
+                              </>
+                            ) : null}
                             {classes.length}{" "}
                             {classes.length === 1 ? "class" : "classes"} — tap to
                             preview
@@ -295,7 +301,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                       Pass to unlock {nextName} →
                     </span>
                   </span>
-                  <span className="text-xl">🎓</span>
+                  <Icon name="cap" size={18} className="text-gold shrink-0" />
                 </button>
               )}
             </section>
@@ -305,7 +311,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
 
       {/* End of the ladder */}
       <div className="rounded-card border-hairline bg-surface-sunken/40 border border-dashed p-4 text-center">
-        <p className="text-ink text-sm font-extrabold">🚧 More schools coming soon</p>
+        <p className="text-ink flex items-center justify-center gap-2 text-sm font-extrabold">
+          <Icon name="compass" size={18} className="text-brand shrink-0" />
+          More schools coming soon
+        </p>
         <p className="text-ink-500 mt-1 text-xs font-semibold">
           New programs are being added — keep climbing the ladder!
         </p>
@@ -365,14 +374,18 @@ function ClassCard({
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl"
           style={{ backgroundColor: unlocked ? `${color}1a` : "var(--surface-sunken)" }}
         >
-          {unlocked ? cls.emoji : "🔒"}
+          {unlocked ? (
+            cls.emoji
+          ) : (
+            <Icon name="lock" size={24} className="text-ink-400" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2 className="text-ink truncate text-base font-extrabold">{cls.title}</h2>
             {grad && (
-              <span className="shrink-0 text-sm" title="Graduated">
-                🎓
+              <span className="shrink-0" title="Graduated">
+                <Icon name="cap" size={16} className="text-gold" />
               </span>
             )}
           </div>
@@ -433,7 +446,10 @@ function ClassCard({
             router.push(`/class/${prevId}/exam`);
           }}
         >
-          🎓 Test to unlock
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="cap" size={16} />
+            Test to unlock
+          </span>
         </Button>
       )}
     </motion.div>

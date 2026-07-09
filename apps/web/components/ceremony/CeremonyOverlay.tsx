@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { Confetti } from "@/components/ui/Confetti";
 import { Mascot } from "@/components/ui/Mascot";
 import { Icon } from "@/components/ui/Icon";
+import { LazyLottie } from "@/components/motion/LazyLottie";
 import { popIn, softSpring } from "@/core/motion/variants";
 
 type CeremonyVariant = "lesson" | "graduation" | "exam";
@@ -76,11 +77,16 @@ export function CeremonyOverlay({
                   initial={{ scale: 0.6, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={softSpring}
-                  className="relative"
+                  className="relative flex h-28 w-28 items-center justify-center"
                 >
-                  <span className="bg-brand/10 flex h-28 w-28 items-center justify-center rounded-full">
-                    <Icon name="cap" size={56} className="text-gold" />
-                  </span>
+                  <LazyLottie
+                    asset="class-graduate"
+                    className="absolute inset-0 h-full w-full"
+                  >
+                    <span className="bg-brand/10 flex h-28 w-28 items-center justify-center rounded-full">
+                      <Icon name="cap" size={56} className="text-gold" />
+                    </span>
+                  </LazyLottie>
                   <motion.span
                     className="absolute -top-1 -right-1"
                     initial={{ scale: 0, rotate: -20 }}
@@ -95,15 +101,21 @@ export function CeremonyOverlay({
                   initial={{ scale: 0.6, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={softSpring}
+                  className="relative flex h-28 w-28 items-center justify-center"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/svg/ceremony/lesson-complete-badge.svg"
-                    alt=""
-                    width={112}
-                    height={112}
-                    className="h-28 w-28"
-                  />
+                  <LazyLottie
+                    asset="lesson-complete"
+                    className="absolute inset-0 h-full w-full"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/svg/ceremony/lesson-complete-badge.svg"
+                      alt=""
+                      width={112}
+                      height={112}
+                      className="h-28 w-28"
+                    />
+                  </LazyLottie>
                 </motion.div>
               )}
 

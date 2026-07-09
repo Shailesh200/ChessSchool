@@ -22,6 +22,7 @@ import { useProgression, isoDay } from "@/core/store/progression.store";
 import { trackEvent } from "@/core/analytics/track";
 import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
+import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
 import type { MoveInput, Square } from "@/core/types/chess";
@@ -151,7 +152,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           wins: st.botWins,
           botElo: active.targetElo,
           rating: st.rating,
-        }).forEach((id) => progression.unlockAchievement(id));
+        }).forEach((id) => unlockAndCelebrate(id));
       }
       const ratingAfter = useProgression.getState().rating;
       if (playerWon) {

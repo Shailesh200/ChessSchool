@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
 
@@ -36,18 +37,13 @@ export function MyCompletedLibrary({ lessons }: { lessons: LibLesson[] }) {
       </p>
 
       {done.length === 0 ? (
-        <div className="rounded-card border-hairline bg-surface-sunken/50 mt-6 border border-dashed p-6 text-center">
-          <p className="text-ink-500 text-sm font-bold">
-            📚 No completed lessons yet — finish lessons in the campus and they&apos;ll
-            collect here.
-          </p>
-          <Link
-            href="/"
-            className="rounded-pill bg-brand mt-3 inline-block px-4 py-2 text-sm font-bold text-white"
-          >
-            Go to campus →
-          </Link>
-        </div>
+        <EmptyState
+          illustration="library"
+          title="No completed lessons yet"
+          description="Finish lessons on campus and they'll collect here for easy review."
+          action={{ label: "Go to campus", href: "/" }}
+          className="mt-6"
+        />
       ) : (
         <div className="mt-5 flex flex-col gap-5">
           {[...byClass.entries()].map(([className, items]) => (
