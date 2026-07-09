@@ -48,7 +48,7 @@ This Master Development Plan converts existing product documentation (`README.md
 |---------|-----------|--------|-------------|
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
 | **Browser** | M-059 | **In Progress** | Desktop sidebar + responsive layouts (slice 1 merged; slice 2 active) |
-| **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slice 1–2 ✅ (owner approved 2026-07-09) |
+| **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slices 1–3 ✅ (owner approved 2026-07-10) |
 | **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
 | **Trust** | M-043–M-048, M-070 | Partial | Security, data integrity, privacy audit |
 | **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
@@ -65,13 +65,13 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
 | **Current Phase** | Web GA Polish (design-first) |
-| **Current Milestone** | M-075 Phase B — Premium UI (slice 3) |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slice 1–2 (merged) · M-059 slices 1–3 (merged, pending Verified) |
-| **In Progress** | M-075 Phase B slice 3 (branch) · M-059 sign-off · M-071 |
+| **Current Milestone** | M-075 Phase B — Premium UI (slice 4) |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slices 1–3 (merged, owner approved 2026-07-10) · M-059 slices 1–3 (merged, pending Verified) |
+| **In Progress** | M-075 Phase B slice 4 (branch) · M-059 sign-off · M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-059 Verified · M-045–M-048 (pre-GA hardening) |
+| **Next Milestone** | M-075 Phase B slice 4 → M-059 Verified · M-045–M-048 (pre-GA hardening) |
 | **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-09 (v1.8 — M-075-B slice 3 on milestone branch) |
+| **Last Updated** | 2026-07-10 (v1.9 — M-075-B slice 3 merged to main) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -960,7 +960,11 @@ Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
 
 ### Status
 
-**In Progress (slice 3 merged — owner sign-off + 390px viewport tests remain)**
+**Verified (slice 3 merged 2026-07-10 — owner approved)**
+
+Deliverables: flat character avatars (bots/coaches/students), persisted game-end + checkmate review modal, IconBadge/ContentIcon emoji replacement, weaker low-ELO bots, desktop play previews, react-compiler lint fixes.
+
+**In Progress (slice 4 — remaining Phase B: mockup parity, motion polish, perf budget)**
 
 ### Inputs
 
