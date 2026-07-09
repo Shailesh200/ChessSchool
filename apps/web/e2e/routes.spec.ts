@@ -45,12 +45,15 @@ test("journal renders", async ({ page }) => {
 
 test("playground renders", async ({ page }) => {
   await page.goto("/playground");
-  const heading = page.getByRole("heading", { name: "Playground", level: 1 });
-  if (await heading.isVisible()) {
+  // Admin-only — guests redirect to campus after session resolves.
+  await page.waitForURL(/\/(playground)?$/, { timeout: 8000 });
+  if (page.url().includes("/playground")) {
+    await expect(
+      page.getByRole("heading", { name: "Playground", level: 1 }),
+    ).toBeVisible();
     await expect(page.getByText(/Free play/i)).toBeVisible();
     return;
   }
-  // Admin-only route — guests redirect to campus
   await expect(page).toHaveURL("/");
 });
 

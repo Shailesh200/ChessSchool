@@ -25,8 +25,12 @@ test("theme studio shows app + board themes with live preview", async ({ page })
   await expect(page.getByText("Live preview")).toBeVisible();
   await expect(page.getByText("App theme")).toBeVisible();
   await expect(page.getByText("Board themes")).toBeVisible();
-  // switching to Midnight applies a dark surface
-  await page.getByRole("button", { name: /Midnight/i }).click();
+  // App theme and school theme both include "Midnight" — target App theme row only.
+  await page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "App theme" }) })
+    .getByRole("button", { name: /Midnight/i })
+    .click();
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", "midnight");
 });
 
