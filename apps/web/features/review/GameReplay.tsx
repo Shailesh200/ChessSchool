@@ -7,7 +7,7 @@ import { ChessBoard } from "@/features/board/ChessBoard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { getGame, type SavedGame } from "@/core/db/db";
-import { replayFrames, analyzeMate, type Frame } from "./replay";
+import { replayFrames, analyzeMate, matePreventionTip, type Frame } from "./replay";
 import type { BoardArrow, Square } from "@/core/types/chess";
 import { audio } from "@/core/audio/audioEngine";
 
@@ -83,12 +83,7 @@ export function GameReplay({ id }: { id: string }) {
     );
   }
 
-  const preventionTip =
-    mate?.pattern === "back-rank"
-      ? "It's a back-rank mate — your own pawns trapped the king. Play a quiet pawn move (luft) earlier to give it air."
-      : mate?.pattern === "diagonal"
-        ? "A diagonal mate — pushing the f- or g-pawns early opened lines to your king. Keep the squares around your king defended."
-        : "Spot the attacker's path a move earlier: make an escape square, block the check, or trade off the attacking piece.";
+  const preventionTip = mate ? matePreventionTip(mate.pattern) : "";
 
   return (
     <div className="flex flex-col gap-4">

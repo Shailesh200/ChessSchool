@@ -60,7 +60,9 @@ test.describe("desktop layout @1280", () => {
     await expect(page.getByText("App theme")).toBeVisible();
   });
 
-  test("play match board is capped and moves work at desktop width", async ({ page }) => {
+  test("play match board is capped and moves work at desktop width", async ({
+    page,
+  }) => {
     await page.goto("/play");
     await page.getByRole("button", { name: "Start match" }).click();
     await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();

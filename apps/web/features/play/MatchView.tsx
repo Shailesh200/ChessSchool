@@ -24,6 +24,7 @@ import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
 import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
+import { MatchMateReviewModal } from "@/features/play/MatchMateReviewModal";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
 import type { MoveInput, Square } from "@/core/types/chess";
 
@@ -86,10 +87,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     gameId: string;
     ratingDelta: number;
     newRating: number;
+    reason: EndReason;
   }>(null);
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
+  const [mateReviewOpen, setMateReviewOpen] = useState(false);
+  const [finalPgn, setFinalPgn] = useState("");
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const [boardBox, boardSize] = useSquareSize();
@@ -189,7 +193,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         gameId: active.id,
         ratingDelta: ratingAfter - ratingBefore,
         newRating: ratingAfter,
+        reason,
       });
+      if (reason === "checkmate") {
+        setFinalPgn(e.pgn());
+        setMateReviewOpen(true);
+      }
     },
     [active, isBot, markFinished, progression],
   );
@@ -480,6 +489,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                     </div>
                   )}
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {over.reason === "checkmate" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMateReviewOpen(true)}
+                      >
+                        How it happened
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -570,6 +588,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           <span className="text-base font-extrabold">⏩</span>
         </IconBtn>
       </div>
+
+      <MatchMateReviewModal
+        open={mateReviewOpen}
+        pgn={finalPgn}
+        orientation={orientation}
+        onClose={() => setMateReviewOpen(false)}
+      />
 
       <ReflectSheet
         open={reflectOpen}
