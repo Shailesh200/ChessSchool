@@ -16,9 +16,12 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "PORT=3210 pnpm start",
+    command: "PORT=3210 SESSION_TOKEN_SECRET=e2e-test-session-token-secret pnpm start",
     url: "http://localhost:3210",
     reuseExistingServer: true,
     timeout: 120_000,
+    env: {
+      SESSION_TOKEN_SECRET: "e2e-test-session-token-secret",
+    },
   },
 });

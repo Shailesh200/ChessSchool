@@ -76,7 +76,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         ? `${botProfile(active.targetElo).emoji} ${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
         : "Your move. Good luck!",
   );
-  const [over, setOver] = useState<null | { text: string; win: boolean; gameId: string; ratingDelta: number; newRating: number }>(null);
+  const [over, setOver] = useState<null | {
+    text: string;
+    win: boolean;
+    gameId: string;
+    ratingDelta: number;
+    newRating: number;
+  }>(null);
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
@@ -140,9 +146,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         const score = winner === null ? 0.5 : playerWon ? 1 : 0;
         progression.updateRating(active.targetElo, score);
         const st = useProgression.getState();
-        checkMatchAchievements({ won: playerWon, wins: st.botWins, botElo: active.targetElo, rating: st.rating }).forEach(
-          (id) => progression.unlockAchievement(id),
-        );
+        checkMatchAchievements({
+          won: playerWon,
+          wins: st.botWins,
+          botElo: active.targetElo,
+          rating: st.rating,
+        }).forEach((id) => progression.unlockAchievement(id));
       }
       const ratingAfter = useProgression.getState().rating;
       if (playerWon) {
@@ -170,7 +179,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   ? "Checkmate — bot wins"
                   : `Checkmate — ${sideName} wins`
               : "Draw";
-      setOver({ text, win: playerWon, gameId: active.id, ratingDelta: ratingAfter - ratingBefore, newRating: ratingAfter });
+      setOver({
+        text,
+        win: playerWon,
+        gameId: active.id,
+        ratingDelta: ratingAfter - ratingBefore,
+        newRating: ratingAfter,
+      });
     },
     [active, isBot, markFinished, progression],
   );
@@ -306,7 +321,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       }
       setCopied(true);
       audio.play("notify");
-      toast(canShare ? "Game shared" : "PGN copied", { icon: "check", tone: "success" });
+      toast(canShare ? "Game shared" : "PGN copied", {
+        icon: "check",
+        tone: "success",
+      });
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       /* user cancelled share */
@@ -314,8 +332,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   }
 
   const view = useMemo(() => new ChessEngine(fen), [fen]);
-  const orientation: "white" | "black" =
-    isBot ? "white" : flip && view.turn() === "b" ? "black" : "white";
+  const orientation: "white" | "black" = isBot
+    ? "white"
+    : flip && view.turn() === "b"
+      ? "black"
+      : "white";
   const checkSquare = view.inCheck() ? view.kingSquare(view.turn()) : null;
   const mat = useMemo(() => materialAdvantage(fen), [fen]);
   const turn = view.turn();
@@ -337,11 +358,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const displayFen = viewing && frames[viewPly] ? frames[viewPly] : fen;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="bg-surface flex min-h-dvh flex-col">
       {/* top action bar */}
-      <div className="pt-safe sticky top-0 z-20 border-b border-hairline bg-surface/90 px-3 py-2 backdrop-blur">
+      <div className="pt-safe border-hairline bg-surface/90 sticky top-0 z-20 border-b px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
-          <span className="text-sm font-extrabold text-ink">
+          <span className="text-ink text-sm font-extrabold">
             {isBot ? `vs ${botName} · ${active.targetElo}` : "vs Human"}
           </span>
           <div className="flex items-center gap-1.5">
@@ -354,7 +375,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
               </IconBtn>
             )}
             {over ? (
-              <Button size="sm" onClick={() => { clear(); audio.play("transition"); }}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  clear();
+                  audio.play("transition");
+                }}
+              >
                 New game
               </Button>
             ) : (
@@ -379,11 +406,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* Conversation bubble (top) — the bot / coach speaking. Uses the space above the board. */}
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <div className="flex items-start gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">
+          <div className="bg-brand-50 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg">
             {isBot ? bot.emoji : "💬"}
           </div>
-          <div className="min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border border-hairline bg-surface-card px-3 py-2 text-sm font-semibold text-ink [box-shadow:var(--shadow-card)]">
-            <span className="block text-[10px] font-extrabold uppercase tracking-wide text-ink-500">
+          <div className="border-hairline bg-surface-card text-ink min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
+            <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
               {isBot ? bot.name : "Coach"}
             </span>
             <span className="line-clamp-2">{thinking ? "Thinking…" : coach}</span>
@@ -392,8 +419,14 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       </div>
 
       {/* board spans the largest square that fits the remaining height/width */}
-      <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3 py-2">
-        <div className="relative" style={{ width: boardSize || undefined, height: boardSize || undefined }}>
+      <div
+        ref={boardBox}
+        className="flex min-h-0 flex-1 items-center justify-center px-3 py-2"
+      >
+        <div
+          className="relative"
+          style={{ width: boardSize || undefined, height: boardSize || undefined }}
+        >
           <ChessBoard
             fen={displayFen}
             orientation={orientation}
@@ -408,7 +441,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-card bg-ink/45 backdrop-blur-sm"
+                className="rounded-card bg-ink/45 absolute inset-0 flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
               >
                 {over.win && <Confetti />}
                 <motion.div
@@ -416,37 +449,73 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   animate={{ scale: 1, y: 0 }}
                   className="rounded-card bg-surface-card px-8 py-6 text-center [box-shadow:var(--shadow-pop)]"
                 >
-                  <div className="text-3xl">{over.win ? "🏆" : over.text.startsWith("Draw") ? "🤝" : "♟️"}</div>
-                  <div className="mt-1 text-2xl font-extrabold text-ink">{over.text}</div>
+                  <div className="text-3xl">
+                    {over.win ? "🏆" : over.text.startsWith("Draw") ? "🤝" : "♟️"}
+                  </div>
+                  <div className="text-ink mt-1 text-2xl font-extrabold">
+                    {over.text}
+                  </div>
                   {isBot && over.ratingDelta !== 0 && (
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-pill bg-surface-sunken px-4 py-1.5">
-                      <span className="text-xs font-bold text-ink-500">Rating</span>
-                      <span className={`text-sm font-extrabold ${over.ratingDelta > 0 ? "text-success" : "text-danger"}`}>
-                        {over.ratingDelta > 0 ? "+" : ""}{over.ratingDelta}
+                    <div className="rounded-pill bg-surface-sunken mt-3 inline-flex items-center gap-2 px-4 py-1.5">
+                      <span className="text-ink-500 text-xs font-bold">Rating</span>
+                      <span
+                        className={`text-sm font-extrabold ${over.ratingDelta > 0 ? "text-success" : "text-danger"}`}
+                      >
+                        {over.ratingDelta > 0 ? "+" : ""}
+                        {over.ratingDelta}
                       </span>
-                      <span className="text-sm font-extrabold text-ink">→ {over.newRating}</span>
+                      <span className="text-ink text-sm font-extrabold">
+                        → {over.newRating}
+                      </span>
                     </div>
                   )}
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setReflectOpen(true)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReflectOpen(true)}
+                    >
                       📝 Reflect
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { const g = over.gameId; clear(); router.push(`/review/${g}`); }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const g = over.gameId;
+                        clear();
+                        router.push(`/review/${g}`);
+                      }}
+                    >
                       Review
                     </Button>
                     {active.fromHomework ? (
-                      <Button size="sm" onClick={() => { clear(); router.push("/plan"); }}>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          clear();
+                          router.push("/plan");
+                        }}
+                      >
                         Back to homework
                       </Button>
                     ) : (
-                      <Button size="sm" onClick={() => { clear(); audio.play("transition"); }}>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          clear();
+                          audio.play("transition");
+                        }}
+                      >
                         New game
                       </Button>
                     )}
                   </div>
                   <button
-                    onClick={() => { clear(); router.push(active.fromHomework ? "/plan" : "/"); }}
-                    className="mt-3 text-xs font-bold text-ink-500 underline-offset-2 hover:underline"
+                    onClick={() => {
+                      clear();
+                      router.push(active.fromHomework ? "/plan" : "/");
+                    }}
+                    className="text-ink-500 mt-3 text-xs font-bold underline-offset-2 hover:underline"
                   >
                     {active.fromHomework ? "← Back to homework" : "← Back to campus"}
                   </button>
@@ -468,14 +537,14 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       </div>
 
       {/* Rewind / forward — view earlier positions without changing the game. */}
-      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-3 px-4 pb-3 pt-2">
+      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-3 px-4 pt-2 pb-3">
         <IconBtn
           label="Previous move"
           onClick={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
         >
           <span className="text-base font-extrabold">⏪</span>
         </IconBtn>
-        <span className="min-w-24 text-center text-xs font-bold text-ink-500">
+        <span className="text-ink-500 min-w-24 text-center text-xs font-bold">
           {viewing ? `move ${viewPly}/${frames.length - 1}` : "● live"}
         </span>
         <IconBtn
@@ -535,9 +604,9 @@ function PlayerBar({
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-extrabold text-ink">{name}</span>
+        <span className="text-ink text-sm font-extrabold">{name}</span>
         {advantage > 0 && (
-          <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-xs font-bold text-ink-700">
+          <span className="rounded-pill bg-surface-sunken text-ink-700 px-2 py-0.5 text-xs font-bold">
             +{advantage}
           </span>
         )}
@@ -568,7 +637,7 @@ function IconBtn({
     <button
       aria-label={label}
       onClick={onClick}
-      className="btn-tactile flex h-9 w-9 items-center justify-center rounded-pill border-2 border-hairline bg-surface-card text-base"
+      className="btn-tactile rounded-pill border-hairline bg-surface-card flex h-9 w-9 items-center justify-center border-2 text-base"
     >
       {children}
     </button>

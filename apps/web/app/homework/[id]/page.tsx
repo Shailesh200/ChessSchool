@@ -17,7 +17,9 @@ export default async function HomeworkLessonPage({
 }) {
   const { id } = await params;
   const { hw } = await searchParams;
-  const row = (await db.select().from(homeworkLessons).where(eq(homeworkLessons.id, id)).limit(1))[0];
+  const row = (
+    await db.select().from(homeworkLessons).where(eq(homeworkLessons.id, id)).limit(1)
+  )[0];
   if (!row) notFound();
 
   const lesson: Lesson = {
@@ -34,5 +36,7 @@ export default async function HomeworkLessonPage({
   };
 
   // Completing it checks off the routine step it was launched from (defaults to its type).
-  return <LessonPlayer lesson={lesson} nextLessonId={null} homeworkStep={hw ?? row.type} />;
+  return (
+    <LessonPlayer lesson={lesson} nextLessonId={null} homeworkStep={hw ?? row.type} />
+  );
 }

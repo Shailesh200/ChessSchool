@@ -1,0 +1,22 @@
+{
+  "minCoveragePercent": 90,
+  "routes": [
+    { "path": "/", "label": "Campus" },
+    { "path": "/login", "label": "Login" },
+    { "path": "/register", "label": "Register" },
+    { "path": "/privacy", "label": "Privacy" },
+    { "path": "/learn-chess", "label": "Learn chess landing" },
+    { "path": "/library", "label": "Library" },
+    { "path": "/play", "label": "Play chooser" },
+    { "path": "/review", "label": "Review" },
+    { "path": "/dashboard", "label": "Dashboard" },
+    { "path": "/journal", "label": "Journal" },
+    { "path": "/plan", "label": "Study plan" },
+    { "path": "/playground", "label": "Playground" },
+    { "path": "/settings", "label": "Settings" },
+    { "path": "/themes", "label": "Theme studio" },
+    { "path": "/placement", "label": "Placement" },
+    { "path": "/class/class-pieces", "label": "Class journey" },
+    { "path": "/lesson/pawn-power", "label": "Lesson player" }
+  ]
+}

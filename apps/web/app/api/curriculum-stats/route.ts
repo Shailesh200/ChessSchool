@@ -13,5 +13,9 @@ export async function GET() {
   ]);
   const lessonsByTag: Record<string, string[]> = {};
   for (const l of les) (lessonsByTag[l.tag] ??= []).push(l.id);
-  return NextResponse.json({ totalClasses: cls.length, totalLessons: les.length, lessonsByTag });
+  return NextResponse.json({
+    totalClasses: cls.length,
+    totalLessons: les.length,
+    lessonsByTag,
+  });
 }

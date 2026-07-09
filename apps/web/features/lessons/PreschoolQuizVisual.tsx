@@ -148,7 +148,9 @@ function FileColumns() {
             f === "e" ? "bg-brand text-white" : "bg-surface-sunken text-ink-600"
           }`}
         >
-          <span className="mb-auto pt-2 text-[10px] font-bold uppercase tracking-wide opacity-70">file</span>
+          <span className="mb-auto pt-2 text-[10px] font-bold tracking-wide uppercase opacity-70">
+            file
+          </span>
           {f}
         </motion.div>
       ))}
@@ -197,12 +199,21 @@ export function PreschoolQuizVisual({
   visualSquare?: string;
   visualSquares?: [string, string];
 }) {
-  const grid = deriveGridHighlights({ visualSquare, visualSquares: visualSquares ? [...visualSquares] : undefined });
+  const grid = deriveGridHighlights({
+    visualSquare,
+    visualSquares: visualSquares ? [...visualSquares] : undefined,
+  });
 
   return (
-    <div className="flex min-h-[11rem] items-center justify-center rounded-3xl border border-hairline bg-gradient-to-b from-brand-50/80 to-surface-card p-4 [box-shadow:var(--shadow-card)]">
+    <div className="border-hairline from-brand-50/80 to-surface-card flex min-h-[11rem] items-center justify-center rounded-3xl border bg-gradient-to-b p-4 [box-shadow:var(--shadow-card)]">
       {visual === "board-grid" && (
-        <MiniBoard size={200} highlight={["h1", "a8"]} highlightFiles={["h"]} highlightRanks={[1, 8]} showCoords />
+        <MiniBoard
+          size={200}
+          highlight={["h1", "a8"]}
+          highlightFiles={["h"]}
+          highlightRanks={[1, 8]}
+          showCoords
+        />
       )}
       {visual === "square" && visualSquare && (
         <MiniBoard
@@ -227,7 +238,7 @@ export function PreschoolQuizVisual({
       {visual === "e-file" && (
         <div className="flex flex-col items-center gap-2">
           <FileColumns />
-          <p className="text-xs font-bold text-brand">Kings start on the e-file</p>
+          <p className="text-brand text-xs font-bold">Kings start on the e-file</p>
         </div>
       )}
       {visual === "ranks" && <RankRows />}
@@ -240,23 +251,31 @@ export function PreschoolQuizVisual({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: i * 0.07, type: "spring" }}
-              className="flex flex-col items-center gap-1 rounded-2xl bg-surface-card px-3 py-2"
+              className="bg-surface-card flex flex-col items-center gap-1 rounded-2xl px-3 py-2"
             >
               <span className="text-3xl">{p.emoji}</span>
-              <span className="text-[10px] font-extrabold text-ink-600">{p.name}</span>
+              <span className="text-ink-600 text-[10px] font-extrabold">{p.name}</span>
             </motion.div>
           ))}
         </div>
       )}
       {visual === "royalty" && (
         <div className="flex items-end gap-6">
-          <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.2 }} className="text-center">
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 2.2 }}
+            className="text-center"
+          >
             <span className="text-5xl">♛</span>
-            <p className="mt-1 text-xs font-extrabold text-ink-600">Most powerful</p>
+            <p className="text-ink-600 mt-1 text-xs font-extrabold">Most powerful</p>
           </motion.div>
-          <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 2.2 }} className="text-center">
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ repeat: Infinity, duration: 2.2 }}
+            className="text-center"
+          >
             <span className="text-5xl">♚</span>
-            <p className="mt-1 text-xs font-extrabold text-brand">Most important</p>
+            <p className="text-brand mt-1 text-xs font-extrabold">Most important</p>
           </motion.div>
         </div>
       )}
@@ -274,7 +293,7 @@ export function PreschoolQuizVisual({
               initial={{ rotate: -8, opacity: 0 }}
               animate={{ rotate: 0, opacity: 1 }}
               transition={{ delay: i * 0.08 }}
-              className="flex h-14 w-14 flex-col items-center justify-center rounded-2xl bg-brand text-white"
+              className="bg-brand flex h-14 w-14 flex-col items-center justify-center rounded-2xl text-white"
             >
               <span className="text-xl font-extrabold">{letter}</span>
               <span className="text-[8px] font-bold opacity-80">{name}</span>
@@ -285,7 +304,7 @@ export function PreschoolQuizVisual({
       {visual === "notation-capture" && (
         <div className="flex flex-col items-center gap-3">
           <motion.span
-            className="rounded-2xl bg-surface-sunken px-4 py-2 text-2xl font-extrabold text-ink"
+            className="bg-surface-sunken text-ink rounded-2xl px-4 py-2 text-2xl font-extrabold"
             animate={{ scale: [1, 1.04, 1] }}
             transition={{ repeat: Infinity, duration: 1.8 }}
           >
@@ -299,7 +318,7 @@ export function PreschoolQuizVisual({
             path={["e4", "d5"]}
             showCoords
           />
-          <p className="text-xs font-bold text-ink-500">e-file pawn captures on d5</p>
+          <p className="text-ink-500 text-xs font-bold">e-file pawn captures on d5</p>
         </div>
       )}
     </div>

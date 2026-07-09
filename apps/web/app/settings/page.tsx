@@ -11,12 +11,20 @@ import { BackButton } from "@/components/ui/BackButton";
 import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div>
-        <p className="text-sm font-extrabold text-ink">{label}</p>
-        {hint && <p className="text-xs font-semibold text-ink-500">{hint}</p>}
+        <p className="text-ink text-sm font-extrabold">{label}</p>
+        {hint && <p className="text-ink-500 text-xs font-semibold">{hint}</p>}
       </div>
       {children}
     </div>
@@ -33,7 +41,7 @@ export default function SettingsPage() {
   if (!mounted) {
     return (
       <AppShell>
-        <div className="skeleton h-96 rounded-card" />
+        <div className="skeleton rounded-card h-96" />
       </AppShell>
     );
   }
@@ -42,16 +50,27 @@ export default function SettingsPage() {
     <AppShell>
       <div className="flex flex-col gap-5">
         <BackButton />
-        <h1 className="text-xl font-extrabold text-ink">Settings</h1>
+        <h1 className="text-ink text-xl font-extrabold">Settings</h1>
 
-        <Card className="divide-y divide-hairline py-0">
+        <Card className="divide-hairline divide-y py-0">
           <Section title="Sound & Feel" />
           <Row label="Sound effects">
-            <Toggle checked={s.sound} onChange={(v) => { s.set("sound", v); if (v) audio.play("select"); }} label="Sound effects" />
+            <Toggle
+              checked={s.sound}
+              onChange={(v) => {
+                s.set("sound", v);
+                if (v) audio.play("select");
+              }}
+              label="Sound effects"
+            />
           </Row>
           <Row label="Volume" hint={`${Math.round(s.volume * 100)}%`}>
             <input
-              type="range" min={0} max={1} step={0.05} value={s.volume}
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={s.volume}
               onChange={(e) => s.set("volume", Number(e.target.value))}
               onPointerUp={() => audio.play("notify")}
               className="w-32 accent-[var(--brand-500)]"
@@ -59,17 +78,29 @@ export default function SettingsPage() {
             />
           </Row>
           <Row label="Haptics" hint="Vibration on supported devices">
-            <Toggle checked={s.haptics} onChange={(v) => s.set("haptics", v)} label="Haptics" />
+            <Toggle
+              checked={s.haptics}
+              onChange={(v) => s.set("haptics", v)}
+              label="Haptics"
+            />
           </Row>
         </Card>
 
-        <Card className="divide-y divide-hairline py-0">
+        <Card className="divide-hairline divide-y py-0">
           <Section title="Accessibility" />
           <Row label="Reduce motion" hint="Minimize animations">
-            <Toggle checked={s.reducedMotion} onChange={(v) => s.set("reducedMotion", v)} label="Reduce motion" />
+            <Toggle
+              checked={s.reducedMotion}
+              onChange={(v) => s.set("reducedMotion", v)}
+              label="Reduce motion"
+            />
           </Row>
           <Row label="High contrast">
-            <Toggle checked={s.highContrast} onChange={(v) => s.set("highContrast", v)} label="High contrast" />
+            <Toggle
+              checked={s.highContrast}
+              onChange={(v) => s.set("highContrast", v)}
+              label="High contrast"
+            />
           </Row>
           <Row label="Colorblind board" hint="Deuteranopia-friendly palette">
             <Toggle
@@ -80,14 +111,22 @@ export default function SettingsPage() {
           </Row>
         </Card>
 
-        <Card className="divide-y divide-hairline py-0">
+        <Card className="divide-hairline divide-y py-0">
           <Section title="Learning & Board" />
           <Row label="Coach hints" hint="Show arrows and tips">
-            <Toggle checked={s.hints} onChange={(v) => s.set("hints", v)} label="Coach hints" />
+            <Toggle
+              checked={s.hints}
+              onChange={(v) => s.set("hints", v)}
+              label="Coach hints"
+            />
           </Row>
           <Row label="Bot difficulty" hint={`Target ELO ${s.targetElo}`}>
             <input
-              type="range" min={300} max={2500} step={100} value={s.targetElo}
+              type="range"
+              min={300}
+              max={2500}
+              step={100}
+              value={s.targetElo}
               onChange={(e) => s.set("targetElo", Number(e.target.value))}
               className="w-32 accent-[var(--brand-500)]"
               aria-label="Bot difficulty"
@@ -110,27 +149,42 @@ export default function SettingsPage() {
         </Card>
 
         {isAdmin && (
-          <Card className="divide-y divide-hairline py-0">
+          <Card className="divide-hairline divide-y py-0">
             <Section title="Advanced" />
             <Row label="Performance diagnostics" hint="Show FPS & route timing">
-              <Toggle checked={s.diagnostics} onChange={(v) => s.set("diagnostics", v)} label="Performance diagnostics" />
+              <Toggle
+                checked={s.diagnostics}
+                onChange={(v) => s.set("diagnostics", v)}
+                label="Performance diagnostics"
+              />
             </Row>
           </Card>
         )}
 
-        <Card className="divide-y divide-hairline py-0">
+        <Card className="divide-hairline divide-y py-0">
           <Section title="Privacy" />
-          <Row label="Share performance data" hint="Anonymous page speed metrics (LCP, CLS)">
-            <Toggle checked={s.sharePerformance} onChange={(v) => s.set("sharePerformance", v)} label="Share performance data" />
+          <Row
+            label="Share performance data"
+            hint="Anonymous page speed metrics (LCP, CLS)"
+          >
+            <Toggle
+              checked={s.sharePerformance}
+              onChange={(v) => s.set("sharePerformance", v)}
+              label="Share performance data"
+            />
           </Row>
           <Row label="Share usage analytics" hint="Lesson completes, sign-ups — no PII">
-            <Toggle checked={s.shareAnalytics} onChange={(v) => s.set("shareAnalytics", v)} label="Share usage analytics" />
+            <Toggle
+              checked={s.shareAnalytics}
+              onChange={(v) => s.set("shareAnalytics", v)}
+              label="Share usage analytics"
+            />
           </Row>
         </Card>
 
         {authed === true && <DataSection />}
 
-        <p className="pb-4 text-center text-xs font-semibold text-ink-300">
+        <p className="text-ink-300 pb-4 text-center text-xs font-semibold">
           ChessSchool v3.0 · {user ? user.name : "Guest mode"}
         </p>
       </div>
@@ -139,5 +193,9 @@ export default function SettingsPage() {
 }
 
 function Section({ title }: { title: string }) {
-  return <p className="pt-4 text-xs font-extrabold uppercase tracking-wide text-ink-300">{title}</p>;
+  return (
+    <p className="text-ink-300 pt-4 text-xs font-extrabold tracking-wide uppercase">
+      {title}
+    </p>
+  );
 }

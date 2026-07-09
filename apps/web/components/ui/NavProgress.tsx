@@ -23,7 +23,9 @@ export function NavProgress() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-      const a = (e.target as HTMLElement)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      const a = (e.target as HTMLElement)?.closest?.(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
       if (!a || a.target === "_blank") return;
       const href = a.getAttribute("href") || "";
       if (!href.startsWith("/")) return;
@@ -39,7 +41,7 @@ export function NavProgress() {
       {loading && (
         <motion.div
           key="navbar"
-          className="fixed inset-x-0 top-0 z-[100] h-[3px] origin-left bg-brand [box-shadow:0_0_8px_var(--brand-400)]"
+          className="bg-brand fixed inset-x-0 top-0 z-[100] h-[3px] origin-left [box-shadow:0_0_8px_var(--brand-400)]"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 0.9 }}
           exit={{ scaleX: 1, opacity: 0 }}

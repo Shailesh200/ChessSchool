@@ -10,12 +10,7 @@ import { syncTrigger } from "@/core/sync/syncTrigger";
  */
 
 export type EndReason =
-  | "checkmate"
-  | "resign"
-  | "stalemate"
-  | "draw"
-  | "insufficient"
-  | "timeout";
+  "checkmate" | "resign" | "stalemate" | "draw" | "insufficient" | "timeout";
 
 export interface SavedGame {
   id: string;
@@ -145,7 +140,9 @@ function syncToSavedGame(g: ReturnType<typeof normalizeSyncGame>): SavedGame {
 
 /** Replace local game history with account snapshot (pull sync). */
 export async function replaceGamesFromSync(recentGames: unknown[]): Promise<void> {
-  const games = recentGames.map(normalizeSyncGame).filter((g): g is NonNullable<typeof g> => g !== null);
+  const games = recentGames
+    .map(normalizeSyncGame)
+    .filter((g): g is NonNullable<typeof g> => g !== null);
   await db.transaction("rw", db.games, async () => {
     await db.games.clear();
     for (const g of games) await db.games.put(syncToSavedGame(g));

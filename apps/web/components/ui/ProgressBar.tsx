@@ -27,7 +27,7 @@ export function ProgressBar({
   return (
     <div
       className={cn(
-        "h-3 w-full overflow-hidden rounded-pill bg-surface-sunken",
+        "rounded-pill bg-surface-sunken h-3 w-full overflow-hidden",
         className,
       )}
       role="progressbar"
@@ -37,7 +37,7 @@ export function ProgressBar({
       aria-label={label}
     >
       <motion.div
-        className={cn("h-full rounded-pill", toneClass)}
+        className={cn("rounded-pill h-full", toneClass)}
         initial={false}
         animate={{ width: `${pct * 100}%` }}
         transition={{ type: "spring", stiffness: 200, damping: 26 }}

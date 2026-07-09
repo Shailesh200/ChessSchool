@@ -48,18 +48,23 @@ export function AdminPanel({
   recent: { id: string; classId: string; title: string }[];
 }) {
   return (
-    <div className="min-h-dvh bg-surface px-5 py-8">
+    <div className="bg-surface min-h-dvh px-5 py-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-5">
         <div className="flex items-center justify-between">
           <Logo />
-          <Link href="/library" className="rounded-pill border-2 border-hairline px-4 py-1.5 text-sm font-bold text-ink-700">
+          <Link
+            href="/library"
+            className="rounded-pill border-hairline text-ink-700 border-2 px-4 py-1.5 text-sm font-bold"
+          >
             View library
           </Link>
         </div>
 
         <div>
-          <h1 className="text-2xl font-extrabold text-ink">Curriculum Admin</h1>
-          <p className="text-sm font-semibold text-ink-500">Signed in as {adminName} · add content; it appears in the library instantly.</p>
+          <h1 className="text-ink text-2xl font-extrabold">Curriculum Admin</h1>
+          <p className="text-ink-500 text-sm font-semibold">
+            Signed in as {adminName} · add content; it appears in the library instantly.
+          </p>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -74,10 +79,26 @@ export function AdminPanel({
           <FormBlock action={createLesson} submit="Add lesson">
             <Select name="classId" label="Class" options={classes} />
             <Input name="title" label="Title" placeholder="Win the rook" />
-            <Input name="coach" label="Coach prompt" placeholder="Capture the undefended rook!" />
-            <Input name="fen" label="FEN" placeholder="k7/8/8/8/3r4/8/8/3R3K w - - 0 1" mono />
-            <Input name="solution" label="Solution (from:to)" placeholder="d1:d4" mono />
-            <p className="text-xs font-semibold text-ink-500">The FEN + move are validated with chess.js before saving.</p>
+            <Input
+              name="coach"
+              label="Coach prompt"
+              placeholder="Capture the undefended rook!"
+            />
+            <Input
+              name="fen"
+              label="FEN"
+              placeholder="k7/8/8/8/3r4/8/8/3R3K w - - 0 1"
+              mono
+            />
+            <Input
+              name="solution"
+              label="Solution (from:to)"
+              placeholder="d1:d4"
+              mono
+            />
+            <p className="text-ink-500 text-xs font-semibold">
+              The FEN + move are validated with chess.js before saving.
+            </p>
           </FormBlock>
         </Section>
 
@@ -109,14 +130,19 @@ export function AdminPanel({
             <div className="flex flex-col gap-2">
               {recent.map((l) => (
                 <Card key={l.id} className="flex items-center gap-2 p-3">
-                  <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{l.title}</span>
-                  <Link href={`/library/lesson/${l.id}`} className="text-xs font-bold text-brand">
+                  <span className="text-ink min-w-0 flex-1 truncate text-sm font-bold">
+                    {l.title}
+                  </span>
+                  <Link
+                    href={`/library/lesson/${l.id}`}
+                    className="text-brand text-xs font-bold"
+                  >
                     preview
                   </Link>
                   <button
                     onClick={() => deleteLesson(l.id)}
                     aria-label="Delete lesson"
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-ink-300 hover:bg-danger/10 hover:text-danger"
+                    className="text-ink-300 hover:bg-danger/10 hover:text-danger flex h-8 w-8 items-center justify-center rounded-full"
                   >
                     <Icon name="close" size={16} />
                   </button>
@@ -132,9 +158,11 @@ export function AdminPanel({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-card border border-hairline bg-surface-card p-3 text-center">
-      <div className="text-xl font-extrabold tabular-nums text-ink">{value.toLocaleString()}</div>
-      <div className="text-[10px] font-semibold text-ink-500">{label}</div>
+    <div className="rounded-card border-hairline bg-surface-card border p-3 text-center">
+      <div className="text-ink text-xl font-extrabold tabular-nums">
+        {value.toLocaleString()}
+      </div>
+      <div className="text-ink-500 text-[10px] font-semibold">{label}</div>
     </div>
   );
 }
@@ -152,14 +180,15 @@ function ImportSection() {
     <Section title="Import a class / semester (JSON)">
       <Card>
         <form action={formAction} className="flex flex-col gap-3">
-          <p className="text-xs font-semibold text-ink-500">
-            Upload or paste a JSON file. Every FEN + move is validated with chess.js before anything is saved.
+          <p className="text-ink-500 text-xs font-semibold">
+            Upload or paste a JSON file. Every FEN + move is validated with chess.js
+            before anything is saved.
           </p>
           <input
             type="file"
             accept="application/json,.json,.txt"
             onChange={onFile}
-            className="text-xs font-semibold text-ink-700 file:mr-3 file:rounded-pill file:border-0 file:bg-surface-sunken file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-ink-700"
+            className="text-ink-700 file:rounded-pill file:bg-surface-sunken file:text-ink-700 text-xs font-semibold file:mr-3 file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold"
           />
           <textarea
             name="json"
@@ -167,16 +196,22 @@ function ImportSection() {
             onChange={(e) => setJson(e.target.value)}
             rows={8}
             placeholder={IMPORT_EXAMPLE}
-            className="rounded-card border border-hairline bg-surface px-3 py-2 font-mono text-[11px] leading-relaxed text-ink outline-none focus:border-brand"
+            className="rounded-card border-hairline bg-surface text-ink focus:border-brand border px-3 py-2 font-mono text-[11px] leading-relaxed outline-none"
           />
-          {state?.error && <p className="text-xs font-bold text-danger">{state.error}</p>}
-          {state?.ok && <p className="text-xs font-bold text-success">✓ {state.message}</p>}
+          {state?.error && (
+            <p className="text-danger text-xs font-bold">{state.error}</p>
+          )}
+          {state?.ok && (
+            <p className="text-success text-xs font-bold">✓ {state.message}</p>
+          )}
           <Button type="submit" size="sm" disabled={pending}>
             {pending ? "Importing…" : "Import content"}
           </Button>
-          <details className="text-xs text-ink-500">
+          <details className="text-ink-500 text-xs">
             <summary className="cursor-pointer font-bold">Expected format</summary>
-            <pre className="mt-2 overflow-auto rounded-card bg-surface-sunken p-2 text-[10px] leading-relaxed">{IMPORT_EXAMPLE}</pre>
+            <pre className="rounded-card bg-surface-sunken mt-2 overflow-auto p-2 text-[10px] leading-relaxed">
+              {IMPORT_EXAMPLE}
+            </pre>
           </details>
         </form>
       </Card>
@@ -187,7 +222,7 @@ function ImportSection() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 text-sm font-extrabold text-ink">{title}</h2>
+      <h2 className="text-ink mb-2 text-sm font-extrabold">{title}</h2>
       {children}
     </section>
   );
@@ -198,7 +233,10 @@ function FormBlock({
   submit,
   children,
 }: {
-  action: (prev: { error?: string; ok?: boolean } | undefined, fd: FormData) => Promise<{ error?: string; ok?: boolean }>;
+  action: (
+    prev: { error?: string; ok?: boolean } | undefined,
+    fd: FormData,
+  ) => Promise<{ error?: string; ok?: boolean }>;
   submit: string;
   children: React.ReactNode;
 }) {
@@ -207,8 +245,12 @@ function FormBlock({
     <Card>
       <form action={formAction} className="flex flex-col gap-3">
         {children}
-        {state?.error && <p className="text-xs font-bold text-danger">{state.error}</p>}
-        {state?.ok && <p className="text-xs font-bold text-success">✓ Saved — live in the library.</p>}
+        {state?.error && <p className="text-danger text-xs font-bold">{state.error}</p>}
+        {state?.ok && (
+          <p className="text-success text-xs font-bold">
+            ✓ Saved — live in the library.
+          </p>
+        )}
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Saving…" : submit}
         </Button>
@@ -217,19 +259,37 @@ function FormBlock({
   );
 }
 
-function Input({ name, label, placeholder, mono }: { name: string; label: string; placeholder?: string; mono?: boolean }) {
+function Input({
+  name,
+  label,
+  placeholder,
+  mono,
+}: {
+  name: string;
+  label: string;
+  placeholder?: string;
+  mono?: boolean;
+}) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-extrabold text-ink-700">{label}</span>
+      <span className="text-ink-700 text-xs font-extrabold">{label}</span>
       <input
         name={name}
         placeholder={placeholder}
-        className={`h-11 rounded-card border border-hairline bg-surface px-3 text-sm font-semibold text-ink outline-none focus:border-brand ${mono ? "font-mono text-xs" : ""}`}
+        className={`rounded-card border-hairline bg-surface text-ink focus:border-brand h-11 border px-3 text-sm font-semibold outline-none ${mono ? "font-mono text-xs" : ""}`}
       />
     </label>
   );
 }
 
-function Select({ name, label, options }: { name: string; label: string; options: Opt[] }) {
+function Select({
+  name,
+  label,
+  options,
+}: {
+  name: string;
+  label: string;
+  options: Opt[];
+}) {
   return <UiSelect name={name} label={label} options={options} />;
 }

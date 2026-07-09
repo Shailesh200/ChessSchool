@@ -47,10 +47,10 @@ export function StudentIdCard({
     <div className="flex flex-col gap-3">
       <div
         ref={cardRef}
-        className="overflow-hidden rounded-card bg-gradient-to-br from-brand to-brand-700 p-5 text-white [box-shadow:var(--shadow-pop)]"
+        className="rounded-card from-brand to-brand-700 overflow-hidden bg-gradient-to-br p-5 text-white [box-shadow:var(--shadow-pop)]"
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs font-extrabold uppercase tracking-widest opacity-80">
+          <span className="text-xs font-extrabold tracking-widest uppercase opacity-80">
             ChessSchool · Student ID
           </span>
           <Icon name="cap" size={22} className="text-white" />
@@ -62,7 +62,9 @@ export function StudentIdCard({
           <div className="min-w-0">
             <p className="truncate text-xl font-extrabold">{name}</p>
             <p className="truncate text-sm font-semibold opacity-80">{email}</p>
-            <p className="mt-1 font-mono text-sm font-bold tracking-wider">{studentNo}</p>
+            <p className="mt-1 font-mono text-sm font-bold tracking-wider">
+              {studentNo}
+            </p>
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between text-xs font-bold opacity-90">

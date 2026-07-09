@@ -22,14 +22,14 @@ export function AuthForm({
   const isRegister = mode === "register";
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-surface px-6">
+    <div className="bg-surface flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <Logo />
-          <h1 className="mt-2 text-2xl font-extrabold text-ink">
+          <h1 className="text-ink mt-2 text-2xl font-extrabold">
             {isRegister ? "Enroll at ChessSchool" : "Welcome back"}
           </h1>
-          <p className="text-sm font-semibold text-ink-500">
+          <p className="text-ink-500 text-sm font-semibold">
             {isRegister
               ? "Create your student account to save progress and earn your ID."
               : "Log in to continue your studies."}
@@ -41,10 +41,13 @@ export function AuthForm({
             <Field label="Full name" name="name" type="text" autoComplete="name" />
           )}
           <Field label="Email" name="email" type="email" autoComplete="email" />
-          <PasswordField label="Password" autoComplete={isRegister ? "new-password" : "current-password"} />
+          <PasswordField
+            label="Password"
+            autoComplete={isRegister ? "new-password" : "current-password"}
+          />
 
           {state?.error && (
-            <p className="rounded-card bg-danger/10 px-3 py-2 text-sm font-bold text-danger">
+            <p className="rounded-card bg-danger/10 text-danger px-3 py-2 text-sm font-bold">
               {state.error}
             </p>
           )}
@@ -54,16 +57,16 @@ export function AuthForm({
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm font-semibold text-ink-500">
+        <p className="text-ink-500 mt-4 text-center text-sm font-semibold">
           {isRegister ? "Already enrolled? " : "New here? "}
           <Link
             href={isRegister ? "/login" : "/register"}
-            className="font-extrabold text-brand"
+            className="text-brand font-extrabold"
           >
             {isRegister ? "Log in" : "Enroll now"}
           </Link>
         </p>
-        <p className="mt-2 text-center text-xs font-semibold text-ink-300">
+        <p className="text-ink-300 mt-2 text-center text-xs font-semibold">
           <Link href="/">Continue as guest →</Link>
         </p>
       </div>
@@ -84,24 +87,30 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-extrabold text-ink-700">{label}</span>
+      <span className="text-ink-700 text-xs font-extrabold">{label}</span>
       <input
         name={name}
         type={type}
         required
         autoComplete={autoComplete}
-        className="h-12 rounded-card border border-hairline bg-surface-card px-3 text-base font-semibold text-ink outline-none focus:border-brand"
+        className="rounded-card border-hairline bg-surface-card text-ink focus:border-brand h-12 border px-3 text-base font-semibold outline-none"
       />
     </label>
   );
 }
 
-function PasswordField({ label, autoComplete }: { label: string; autoComplete: string }) {
+function PasswordField({
+  label,
+  autoComplete,
+}: {
+  label: string;
+  autoComplete: string;
+}) {
   const [visible, setVisible] = useState(false);
 
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-extrabold text-ink-700">{label}</span>
+      <span className="text-ink-700 text-xs font-extrabold">{label}</span>
       <div className="relative">
         <input
           name="password"
@@ -109,12 +118,12 @@ function PasswordField({ label, autoComplete }: { label: string; autoComplete: s
           required
           autoComplete={autoComplete}
           minLength={8}
-          className="h-12 w-full rounded-card border border-hairline bg-surface-card px-3 pr-11 text-base font-semibold text-ink outline-none focus:border-brand"
+          className="rounded-card border-hairline bg-surface-card text-ink focus:border-brand h-12 w-full border px-3 pr-11 text-base font-semibold outline-none"
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className="btn-tactile absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-ink-500 hover:text-ink"
+          className="btn-tactile text-ink-500 hover:text-ink absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5"
           aria-label={visible ? "Hide password" : "Show password"}
         >
           <Icon name={visible ? "eyeOff" : "eye"} size={20} />

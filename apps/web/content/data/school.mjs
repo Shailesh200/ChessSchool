@@ -1,11 +1,48 @@
 // Curated school structure (data only). Imported by content/school.ts and the seeder.
 export const STAGES = [
-  { id: "preschool", name: "Pre-School", emoji: "🧸", blurb: "Optional · board → pieces → rules → moves → notation", status: "open", optional: true },
-  { id: "elementary", name: "Elementary School", emoji: "🎒", blurb: "Classes 1–5 · the essentials", status: "open" },
-  { id: "middle", name: "Middle School", emoji: "📐", blurb: "Classes 6–8 · tactics & endgames", status: "open" },
-  { id: "high", name: "High School", emoji: "🎓", blurb: "Classes 9–12 · openings & checkmates", status: "open" },
-  { id: "university", name: "University", emoji: "🏛️", blurb: "Advanced tactics & combinations", status: "open" },
-  { id: "master", name: "Master Program", emoji: "♛", blurb: "Famous checkmates & immortal games", status: "open" },
+  {
+    id: "preschool",
+    name: "Pre-School",
+    emoji: "🧸",
+    blurb: "Optional · board → pieces → rules → moves → notation",
+    status: "open",
+    optional: true,
+  },
+  {
+    id: "elementary",
+    name: "Elementary School",
+    emoji: "🎒",
+    blurb: "Classes 1–5 · the essentials",
+    status: "open",
+  },
+  {
+    id: "middle",
+    name: "Middle School",
+    emoji: "📐",
+    blurb: "Classes 6–8 · tactics & endgames",
+    status: "open",
+  },
+  {
+    id: "high",
+    name: "High School",
+    emoji: "🎓",
+    blurb: "Classes 9–12 · openings & checkmates",
+    status: "open",
+  },
+  {
+    id: "university",
+    name: "University",
+    emoji: "🏛️",
+    blurb: "Advanced tactics & combinations",
+    status: "open",
+  },
+  {
+    id: "master",
+    name: "Master Program",
+    emoji: "♛",
+    blurb: "Famous checkmates & immortal games",
+    status: "open",
+  },
 ];
 
 export const SEMESTERS = [
@@ -22,7 +59,12 @@ export const SEMESTERS = [
         emoji: "🗺️",
         blurb: "Squares, setup & coordinates",
         difficulty: 1,
-        lessonIds: ["pre-board-intro", "pre-board-setup", "pre-square-d5", "pre-square-e4"],
+        lessonIds: [
+          "pre-board-intro",
+          "pre-board-setup",
+          "pre-square-d5",
+          "pre-square-e4",
+        ],
       },
       {
         id: "class-pre-pieces",

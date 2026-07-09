@@ -27,7 +27,8 @@ export const useSession = create<SessionState>()(
       authed: null,
       user: null,
       isAdmin: false,
-      setSession: (authed, user) => set({ authed, user, isAdmin: user?.role === "admin" }),
+      setSession: (authed, user) =>
+        set({ authed, user, isAdmin: user?.role === "admin" }),
     }),
     {
       name: "chessschool.session",

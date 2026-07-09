@@ -42,20 +42,24 @@ export const SEO_FAQ: FaqItem[] = [
   },
 ];
 
-export const BEGINNER_FAQ: FaqItem[] = SEO_FAQ.filter((_, i) => [0, 1, 2, 5].includes(i));
+export const BEGINNER_FAQ: FaqItem[] = SEO_FAQ.filter((_, i) =>
+  [0, 1, 2, 5].includes(i),
+);
 
 /** High-value internal links for crawlers and new visitors. */
 export const CURRICULUM_HIGHLIGHTS: CurriculumLink[] = [
   {
     href: "/class/class-pre-board",
     title: "Pre-School: The Chess Board",
-    description: "Squares, setup, files, ranks, and coordinates — perfect if you've never played.",
+    description:
+      "Squares, setup, files, ranks, and coordinates — perfect if you've never played.",
     emoji: "🗺️",
   },
   {
     href: "/class/class-pieces",
     title: "Foundations: Piece Movement",
-    description: "Pawns, knights, rooks, bishops, queen, king — and your first checkmates.",
+    description:
+      "Pawns, knights, rooks, bishops, queen, king — and your first checkmates.",
     emoji: "♟️",
   },
   {
@@ -79,7 +83,8 @@ export const CURRICULUM_HIGHLIGHTS: CurriculumLink[] = [
   {
     href: "/play",
     title: "Play Chess Online",
-    description: "Adaptive bots by rating, pass & play, and live share-link multiplayer.",
+    description:
+      "Adaptive bots by rating, pass & play, and live share-link multiplayer.",
     emoji: "🏆",
   },
 ];
@@ -88,20 +93,17 @@ export const LEARN_CHESS_SECTIONS = [
   {
     id: "structured",
     title: "A real chess school — not just puzzles",
-    body:
-      "ChessSchool organizes thousands of lessons into semesters and classes. You graduate by mastering milestones, pass class exams, and unlock the next stage — from Pre-School through Master level. Whether you search for a chess academy, chess classes, or free chess lessons online, the curriculum is built for steady improvement.",
+    body: "ChessSchool organizes thousands of lessons into semesters and classes. You graduate by mastering milestones, pass class exams, and unlock the next stage — from Pre-School through Master level. Whether you search for a chess academy, chess classes, or free chess lessons online, the curriculum is built for steady improvement.",
   },
   {
     id: "practice",
     title: "Learn, then play — every day",
-    body:
-      "Each lesson mixes coach tips, board demonstrations, and interactive puzzles verified with chess.js. After studying, play adaptive bots matched to your ELO, review saved games, and challenge friends with a share link. Daily homework and spaced review keep tactics fresh.",
+    body: "Each lesson mixes coach tips, board demonstrations, and interactive puzzles verified with chess.js. After studying, play adaptive bots matched to your ELO, review saved games, and challenge friends with a share link. Daily homework and spaced review keep tactics fresh.",
   },
   {
     id: "free",
     title: "Free chess lessons for every level",
-    body:
-      "From chess for beginners to opening theory and immortal games, everything is free in the browser. Take the placement test to skip ahead if you already know the rules, or start from Pre-School if you're brand new.",
+    body: "From chess for beginners to opening theory and immortal games, everything is free in the browser. Take the placement test to skip ahead if you already know the rules, or start from Pre-School if you're brand new.",
   },
 ] as const;
 

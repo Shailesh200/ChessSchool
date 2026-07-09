@@ -11,7 +11,12 @@ import * as schema from "./schema";
  */
 function resolveUrl(raw: string | undefined): string {
   const v = raw ?? "file:local.db";
-  if (v.startsWith("libsql:") || v.startsWith("http:") || v.startsWith("https:") || v.startsWith("file:"))
+  if (
+    v.startsWith("libsql:") ||
+    v.startsWith("http:") ||
+    v.startsWith("https:") ||
+    v.startsWith("file:")
+  )
     return v;
   return `file:${v}`; // bare path → local file
 }

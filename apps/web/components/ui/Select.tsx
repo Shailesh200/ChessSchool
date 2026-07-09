@@ -53,14 +53,14 @@ export function Select({
 
   return (
     <div ref={ref} className={cn("relative flex flex-col gap-1", className)}>
-      {label && <span className="text-xs font-extrabold text-ink-700">{label}</span>}
+      {label && <span className="text-ink-700 text-xs font-extrabold">{label}</span>}
       {name && <input type="hidden" name={name} value={value} />}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-11 items-center justify-between gap-2 rounded-card border border-hairline bg-surface px-3 text-sm font-semibold text-ink outline-none focus:border-brand"
+        className="rounded-card border-hairline bg-surface text-ink focus:border-brand flex h-11 items-center justify-between gap-2 border px-3 text-sm font-semibold outline-none"
       >
         <span className="truncate">{selected?.title ?? "Select…"}</span>
         <svg
@@ -69,15 +69,24 @@ export function Select({
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden
-          className={cn("shrink-0 text-ink-500 transition-transform", open && "rotate-180")}
+          className={cn(
+            "text-ink-500 shrink-0 transition-transform",
+            open && "rotate-180",
+          )}
         >
-          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="m6 9 6 6 6-6"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
       {open && (
         <div
           role="listbox"
-          className="absolute top-full z-30 mt-1 max-h-60 w-full overflow-auto rounded-card border border-hairline bg-surface-card p-1 [box-shadow:var(--shadow-pop)]"
+          className="rounded-card border-hairline bg-surface-card absolute top-full z-30 mt-1 max-h-60 w-full overflow-auto border p-1 [box-shadow:var(--shadow-pop)]"
         >
           {options.map((o) => (
             <button
@@ -91,7 +100,9 @@ export function Select({
               }}
               className={cn(
                 "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold",
-                o.id === value ? "bg-brand text-white" : "text-ink hover:bg-surface-sunken",
+                o.id === value
+                  ? "bg-brand text-white"
+                  : "text-ink hover:bg-surface-sunken",
               )}
             >
               {o.title}

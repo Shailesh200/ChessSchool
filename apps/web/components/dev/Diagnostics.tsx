@@ -41,7 +41,7 @@ export function Diagnostics() {
   if (!enabled) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-20 right-2 z-[60] rounded-lg bg-ink/85 px-2 py-1 font-mono text-[10px] font-bold text-white">
+    <div className="bg-ink/85 pointer-events-none fixed right-2 bottom-20 z-[60] rounded-lg px-2 py-1 font-mono text-[10px] font-bold text-white">
       {fps} fps{mem ? ` · ${mem} MB` : ""} · {pathname}
     </div>
   );

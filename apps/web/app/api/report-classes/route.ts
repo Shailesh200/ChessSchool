@@ -9,9 +9,16 @@ export const revalidate = 3600;
 /** Class → non-exam lesson ids (+ titles), so the client builds the report card. */
 export async function GET() {
   const [sems, cls, les] = await Promise.all([
-    db.select({ id: semesters.id, title: semesters.title, stage: semesters.stage }).from(semesters),
     db
-      .select({ id: classes.id, title: classes.title, emoji: classes.emoji, semesterId: classes.semesterId })
+      .select({ id: semesters.id, title: semesters.title, stage: semesters.stage })
+      .from(semesters),
+    db
+      .select({
+        id: classes.id,
+        title: classes.title,
+        emoji: classes.emoji,
+        semesterId: classes.semesterId,
+      })
       .from(classes)
       .orderBy(asc(classes.sortOrder)),
     db

@@ -40,9 +40,7 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys
-            .filter((k) => !k.startsWith(VERSION))
-            .map((k) => caches.delete(k)),
+          keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -100,9 +98,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Everything else: try cache, then network.
-  event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request)),
-  );
+  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
 
 // Allow the page to trigger an immediate update.

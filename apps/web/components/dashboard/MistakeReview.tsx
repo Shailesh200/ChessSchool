@@ -13,8 +13,9 @@ export function MistakeReview({ mistakes }: { mistakes: MistakeEntry[] }) {
 
   if (!mistakes.length) {
     return (
-      <p className="text-sm font-semibold text-ink-500">
-        No mistakes logged yet — when you slip, it&apos;ll show here with the better move.
+      <p className="text-ink-500 text-sm font-semibold">
+        No mistakes logged yet — when you slip, it&apos;ll show here with the better
+        move.
       </p>
     );
   }
@@ -29,20 +30,31 @@ export function MistakeReview({ mistakes }: { mistakes: MistakeEntry[] }) {
           { startSquare: bf as Square, endSquare: bt as Square, color: "#22c55e" },
         ];
         return (
-          <div key={i} className="overflow-hidden rounded-card border border-hairline bg-surface-card">
+          <div
+            key={i}
+            className="rounded-card border-hairline bg-surface-card overflow-hidden border"
+          >
             <button
               onClick={() => setOpen(open === i ? null : i)}
               className="btn-tactile flex w-full items-center justify-between gap-2 p-3 text-left"
             >
-              <span className="min-w-0 truncate text-sm font-bold text-ink">
-                <span className="capitalize">{m.tag || "mistake"}</span> · you played {fmt(m.played)}
+              <span className="text-ink min-w-0 truncate text-sm font-bold">
+                <span className="capitalize">{m.tag || "mistake"}</span> · you played{" "}
+                {fmt(m.played)}
               </span>
-              <span className="shrink-0 text-xs text-ink-500">{open === i ? "▲" : "▼"}</span>
+              <span className="text-ink-500 shrink-0 text-xs">
+                {open === i ? "▲" : "▼"}
+              </span>
             </button>
             {open === i && (
               <div className="px-3 pb-3">
                 <div className="mx-auto max-w-[260px]">
-                  <ChessBoard fen={m.fen} interactive={false} arrows={arrows} showNotation />
+                  <ChessBoard
+                    fen={m.fen}
+                    interactive={false}
+                    arrows={arrows}
+                    showNotation
+                  />
                 </div>
                 <p className="mt-2 text-center text-xs font-bold">
                   <span className="text-danger">You played {fmt(m.played)}</span>

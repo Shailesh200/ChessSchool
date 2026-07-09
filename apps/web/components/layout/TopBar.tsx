@@ -19,11 +19,11 @@ export function TopBar() {
 
   if (!rehydrateReady) {
     return (
-      <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
+      <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <div className="h-5 w-8 rounded bg-surface-sunken" aria-hidden />
-          <div className="h-2.5 flex-1 rounded-pill bg-surface-sunken" aria-hidden />
-          <div className="h-5 w-10 rounded bg-surface-sunken" aria-hidden />
+          <div className="bg-surface-sunken h-5 w-8 rounded" aria-hidden />
+          <div className="rounded-pill bg-surface-sunken h-2.5 flex-1" aria-hidden />
+          <div className="bg-surface-sunken h-5 w-10 rounded" aria-hidden />
         </div>
       </header>
     );
@@ -31,9 +31,9 @@ export function TopBar() {
 
   if (authed === false) {
     return (
-      <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
+      <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-2.5">
-          <Link href="/login" className="text-sm font-extrabold text-brand">
+          <Link href="/login" className="text-brand text-sm font-extrabold">
             Enroll to the academy to track your progress →
           </Link>
         </div>
@@ -42,20 +42,20 @@ export function TopBar() {
   }
 
   return (
-    <header className="pt-safe sticky top-0 z-30 border-b border-hairline bg-surface/80 backdrop-blur-xl">
+    <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl">
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
         <div className="flex items-center gap-1.5" title="Day streak">
           <Icon name="flame" size={20} className="text-accent" />
-          <AnimatedNumber value={streak} className="text-sm font-extrabold text-ink" />
+          <AnimatedNumber value={streak} className="text-ink text-sm font-extrabold" />
         </div>
 
         <div className="flex flex-1 items-center gap-2">
-          <span className="rounded-pill bg-brand px-2 py-0.5 text-xs font-extrabold tabular-nums text-white">
+          <span className="rounded-pill bg-brand px-2 py-0.5 text-xs font-extrabold text-white tabular-nums">
             L{level}
           </span>
-          <div className="h-2.5 flex-1 overflow-hidden rounded-pill bg-surface-sunken">
+          <div className="rounded-pill bg-surface-sunken h-2.5 flex-1 overflow-hidden">
             <motion.div
-              className="h-full rounded-pill bg-gradient-to-r from-brand-300 to-brand"
+              className="rounded-pill from-brand-300 to-brand h-full bg-gradient-to-r"
               initial={false}
               animate={{ width: `${(into / need) * 100}%` }}
               transition={{ type: "spring", stiffness: 200, damping: 26 }}
@@ -63,9 +63,15 @@ export function TopBar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 rounded-pill bg-gold/15 px-2 py-0.5" title="Classes graduated">
+        <div
+          className="rounded-pill bg-gold/15 flex items-center gap-1 px-2 py-0.5"
+          title="Classes graduated"
+        >
           <Icon name="cap" size={16} className="text-gold" />
-          <AnimatedNumber value={graduated} className="text-sm font-extrabold text-ink" />
+          <AnimatedNumber
+            value={graduated}
+            className="text-ink text-sm font-extrabold"
+          />
         </div>
       </div>
     </header>

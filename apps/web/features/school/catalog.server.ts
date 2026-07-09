@@ -19,7 +19,12 @@ export async function getCatalog(): Promise<Catalog> {
     db.select().from(semT).orderBy(asc(semT.sortOrder)),
     db.select().from(classT).orderBy(asc(classT.sortOrder)),
     db
-      .select({ id: lessonT.id, classId: lessonT.classId, isExam: lessonT.isExam, title: lessonT.title })
+      .select({
+        id: lessonT.id,
+        classId: lessonT.classId,
+        isExam: lessonT.isExam,
+        title: lessonT.title,
+      })
       .from(lessonT)
       .orderBy(asc(lessonT.sortOrder)),
   ]);
@@ -52,7 +57,16 @@ export async function getCatalog(): Promise<Catalog> {
   // Order curriculum so a beginner builds up properly: per stage, the hand-authored
   // basics come first, then the imported puzzle concepts easiest-first (win material →
   // forks → pins → mates → advanced). Drives both the campus AND the unlock frontier.
-  const CONCEPT_ORDER = ["trapped", "fork", "pin", "mate", "discovered", "endgame", "sacrifice", "advantage"];
+  const CONCEPT_ORDER = [
+    "trapped",
+    "fork",
+    "pin",
+    "mate",
+    "discovered",
+    "endgame",
+    "sacrifice",
+    "advantage",
+  ];
   const semKey = (s: (typeof sems)[number]) => {
     const stageIdx = STAGES.findIndex((st) => st.id === s.stage);
     let priority = s.sortOrder; // curated keep their relative order (all small)

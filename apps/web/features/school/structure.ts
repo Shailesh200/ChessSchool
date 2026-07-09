@@ -24,26 +24,46 @@ export interface Catalog {
 
 export const ALL_CLASSES: SchoolClass[] = SEMESTERS.flatMap((s) => s.classes);
 
-export function stageOfClass(classId: string, semesters: Semester[] = SEMESTERS): Stage | undefined {
+export function stageOfClass(
+  classId: string,
+  semesters: Semester[] = SEMESTERS,
+): Stage | undefined {
   const sem = semesters.find((s) => s.classes.some((c) => c.id === classId));
   return STAGES.find((st) => st.id === sem?.stage);
 }
 
-export function isOptionalClass(classId: string, semesters: Semester[] = SEMESTERS): boolean {
+export function isOptionalClass(
+  classId: string,
+  semesters: Semester[] = SEMESTERS,
+): boolean {
   return Boolean(stageOfClass(classId, semesters)?.optional);
 }
 
 /** Semesters belonging to a given stage. */
-export function semestersForStage(stageId: string, semesters: Semester[] = SEMESTERS): Semester[] {
+export function semestersForStage(
+  stageId: string,
+  semesters: Semester[] = SEMESTERS,
+): Semester[] {
   return semesters.filter((s) => s.stage === stageId);
 }
 
-export function classesForStage(stageId: string, allClasses: SchoolClass[], semesters: Semester[]): SchoolClass[] {
-  const ids = new Set(semesters.filter((s) => s.stage === stageId).flatMap((s) => s.classes.map((c) => c.id)));
+export function classesForStage(
+  stageId: string,
+  allClasses: SchoolClass[],
+  semesters: Semester[],
+): SchoolClass[] {
+  const ids = new Set(
+    semesters
+      .filter((s) => s.stage === stageId)
+      .flatMap((s) => s.classes.map((c) => c.id)),
+  );
   return allClasses.filter((c) => ids.has(c.id));
 }
 
-export function classHasStarted(cls: SchoolClass, records: Record<string, LessonRecord>): boolean {
+export function classHasStarted(
+  cls: SchoolClass,
+  records: Record<string, LessonRecord>,
+): boolean {
   return cls.lessonIds.some((id) => (records[id]?.attempts ?? 0) > 0);
 }
 
@@ -54,14 +74,23 @@ export function preschoolComplete(
   allClasses: SchoolClass[] = ALL_CLASSES,
 ): boolean {
   const classes = classesForStage("preschool", allClasses, semesters);
-  return classes.length > 0 && classes.every((c) => isClassGraduated(c, records, graduatedClasses));
+  return (
+    classes.length > 0 &&
+    classes.every((c) => isClassGraduated(c, records, graduatedClasses))
+  );
 }
 
-export function getClass(id: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
+export function getClass(
+  id: string,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): SchoolClass | undefined {
   return allClasses.find((c) => c.id === id);
 }
 
-export function classByExamId(examId: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
+export function classByExamId(
+  examId: string,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): SchoolClass | undefined {
   return allClasses.find((c) => c.examId === examId);
 }
 
@@ -78,7 +107,9 @@ export function classProgress(
   records: Record<string, LessonRecord>,
 ): { done: number; total: number; pct: number } {
   const total = cls.lessonIds.length;
-  const done = cls.lessonIds.filter((id) => (records[id]?.mastery ?? 0) >= MASTERED).length;
+  const done = cls.lessonIds.filter(
+    (id) => (records[id]?.mastery ?? 0) >= MASTERED,
+  ).length;
   return { done, total, pct: total === 0 ? 0 : done / total };
 }
 
@@ -147,14 +178,20 @@ export function nextLessonInClass(
 }
 
 /** The class that owns a lesson (or whose exam it is). */
-export function classOfLesson(lessonId: string, allClasses: SchoolClass[] = ALL_CLASSES): SchoolClass | undefined {
+export function classOfLesson(
+  lessonId: string,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): SchoolClass | undefined {
   return allClasses.find(
     (c) => c.lessonIds.includes(lessonId) || c.examId === lessonId,
   );
 }
 
 /** The next lesson to study after finishing `lessonId` — powers "Continue". */
-export function nextLessonAfter(lessonId: string, allClasses: SchoolClass[] = ALL_CLASSES): string | null {
+export function nextLessonAfter(
+  lessonId: string,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): string | null {
   const cls = classOfLesson(lessonId, allClasses);
   if (!cls) return null;
   const classIdx = allClasses.findIndex((c) => c.id === cls.id);
@@ -194,7 +231,8 @@ export function currentLocation(
   const titleOf = (id: string) => titles[id] ?? getLesson(id)?.title ?? "Lesson";
   for (const semester of semesters) {
     const stage = STAGES.find((st) => st.id === semester.stage);
-    if (stage?.optional && !semester.classes.some((c) => classHasStarted(c, records))) continue;
+    if (stage?.optional && !semester.classes.some((c) => classHasStarted(c, records)))
+      continue;
     for (const cls of semester.classes) {
       if (!isClassGraduated(cls, records, graduatedClasses)) {
         const lessonId = nextLessonInClass(cls, records) ?? cls.lessonIds[0] ?? "";

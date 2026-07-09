@@ -131,6 +131,12 @@ export const gameSessions = sqliteTable("game_sessions", {
   status: text("status").notNull().default("waiting"), // waiting | active | over
   result: text("result"),
   blackJoined: integer("black_joined").notNull().default(0),
+  whiteUserId: text("white_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  blackUserId: text("black_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
   timeControlMin: integer("time_control_min").notNull().default(10),
   whiteMs: integer("white_ms").notNull().default(600000),
   blackMs: integer("black_ms").notNull().default(600000),

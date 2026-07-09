@@ -84,5 +84,5 @@ export function classReport(
 export function overallGpa(reports: ClassReport[]): number {
   const graded = reports.filter((r) => r.attempted > 0);
   if (!graded.length) return 0;
-  return graded.reduce((a, r) => a + r.avgStars / 3 * 4, 0) / graded.length;
+  return graded.reduce((a, r) => a + (r.avgStars / 3) * 4, 0) / graded.length;
 }

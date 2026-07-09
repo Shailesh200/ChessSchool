@@ -42,17 +42,26 @@ function ensure(): Promise<boolean> {
 function strengthCmds(elo: number): string[] {
   if (elo >= 1320) {
     // Stockfish calibrates human-like strength directly from ~1320 upward.
-    return ["setoption name UCI_LimitStrength value true", `setoption name UCI_Elo value ${Math.min(2850, elo)}`];
+    return [
+      "setoption name UCI_LimitStrength value true",
+      `setoption name UCI_Elo value ${Math.min(2850, elo)}`,
+    ];
   }
   // Below that floor, use Skill Level (0–20); 800→~1, 1300→~6.
   const skill = Math.max(0, Math.min(8, Math.round((elo - 700) / 100)));
-  return ["setoption name UCI_LimitStrength value false", `setoption name Skill Level value ${skill}`];
+  return [
+    "setoption name UCI_LimitStrength value false",
+    `setoption name Skill Level value ${skill}`,
+  ];
 }
 
 const movetimeFor = (elo: number) => Math.round(Math.min(800, 140 + elo * 0.3));
 
 /** Ask Stockfish for a move; resolves null if the engine is unavailable. */
-export async function stockfishMove(fen: string, elo: number): Promise<MoveInput | null> {
+export async function stockfishMove(
+  fen: string,
+  elo: number,
+): Promise<MoveInput | null> {
   if (!(await ensure()) || !worker) return null;
   const w = worker;
   const movetime = movetimeFor(elo);

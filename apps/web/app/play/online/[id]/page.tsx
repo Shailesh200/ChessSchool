@@ -42,7 +42,11 @@ function fmtClock(ms: number): string {
 
 const JOIN_WINDOW_MS = 3 * 60 * 1000;
 
-export default function OnlineSessionPage({ params }: { params: Promise<{ id: string }> }) {
+export default function OnlineSessionPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const router = useRouter();
   const [boardBox, boardSize] = useSquareSize();
@@ -54,7 +58,12 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const [now, setNow] = useState(0);
   const flagged = useRef(false);
   // Optimistic move (shown instantly while the server confirms) + connection state.
-  const [optimistic, setOptimistic] = useState<{ fen: string; from: string; to: string; prevFen: string } | null>(null);
+  const [optimistic, setOptimistic] = useState<{
+    fen: string;
+    from: string;
+    to: string;
+    prevFen: string;
+  } | null>(null);
   const [online, setOnline] = useState(true);
   const sigRef = useRef(""); // skip re-renders when the polled state is unchanged
   const savedRef = useRef(false); // save the finished game to history once
@@ -72,7 +81,11 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   // so we don't re-render the board 4x/second (and disturb clicks) otherwise.
   const tickRef = useRef(false);
   useEffect(() => {
-    tickRef.current = !!(session && session.timeControlMin > 0 && session.status === "active");
+    tickRef.current = !!(
+      session &&
+      session.timeControlMin > 0 &&
+      session.status === "active"
+    );
   }, [session]);
   useEffect(() => {
     const iv = setInterval(() => {
@@ -93,8 +106,14 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       });
       return;
     }
-    fetch(`/api/session/${id}?join=1`)
-      .then((r) => (r.ok ? r.json() : null))
+    fetch(`/api/session/${id}?join=1`, { credentials: "include" })
+      .then((r) => {
+        if (r.status === 401) {
+          router.push(`/login?next=/play/online/${id}`);
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then((s: SessionState | null) => {
         if (!s || s.error) return;
         const seat = s.claimed ? "b" : "spectator";
@@ -117,7 +136,8 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     setOnline(true);
     // Drop stale updates older than what we've already applied (out-of-order
     // poll/push races) — but always allow terminal states through.
-    if (s.status !== "over" && s.updatedAt && s.updatedAt < lastUpdatedRef.current) return;
+    if (s.status !== "over" && s.updatedAt && s.updatedAt < lastUpdatedRef.current)
+      return;
     const opt = optimisticRef.current;
     // While our move is pending, ignore any state still showing the pre-move
     // position (a poll/push that left before the server saw our move) — this is
@@ -130,7 +150,11 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
       sigRef.current = sig;
       setSession(s);
     }
-    if (s.status === "waiting" && s.blackJoined === 0 && Date.now() - s.createdAt > JOIN_WINDOW_MS) {
+    if (
+      s.status === "waiting" &&
+      s.blackJoined === 0 &&
+      Date.now() - s.createdAt > JOIN_WINDOW_MS
+    ) {
       setExpired(true);
     }
   }, []);
@@ -148,9 +172,15 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
         if (!mod || cancelled) return;
         const { Realtime } = mod;
         client = new Realtime({ authUrl: "/api/ably-token", autoConnect: true });
-        client.connection.on("connected", () => { ablyRef.current = true; });
-        client.connection.on("failed", () => { ablyRef.current = false; });
-        client.connection.on("disconnected", () => { ablyRef.current = false; });
+        client.connection.on("connected", () => {
+          ablyRef.current = true;
+        });
+        client.connection.on("failed", () => {
+          ablyRef.current = false;
+        });
+        client.connection.on("disconnected", () => {
+          ablyRef.current = false;
+        });
         client.channels.get(`game:${id}`).subscribe("state", (msg) => {
           if (msg?.data) applyState(msg.data as SessionState);
         });
@@ -182,7 +212,8 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
             return;
           }
           applyState(s);
-          const waitingOnOpponent = s.status === "active" && s.turn !== colorRef.current;
+          const waitingOnOpponent =
+            s.status === "active" && s.turn !== colorRef.current;
           const delay = ablyRef.current ? 5000 : waitingOnOpponent ? 650 : 1600;
           t = setTimeout(tick, delay);
         })
@@ -200,7 +231,14 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
   // Save a finished online game into the local match history (#3).
   useEffect(() => {
-    if (!session || session.status !== "over" || savedRef.current || color === null || color === "spectator") return;
+    if (
+      !session ||
+      session.status !== "over" ||
+      savedRef.current ||
+      color === null ||
+      color === "spectator"
+    )
+      return;
     savedRef.current = true;
     const res = session.result ?? "1/2-1/2";
     let winner: "w" | "b" | null = null;
@@ -249,28 +287,48 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
   const onMove = useCallback(
     (move: MoveInput): boolean => {
-      if (!session || color === "spectator" || color === null || !seatToken) return false;
-      if (session.status !== "active" || session.turn !== color || optimistic) return false;
+      if (!session || color === "spectator" || color === null || !seatToken)
+        return false;
+      if (session.status !== "active" || session.turn !== color || optimistic)
+        return false;
       // Validate + apply locally first so the piece moves instantly (no snap-back).
       const g = new Chess(session.fen);
       let applied;
       try {
-        applied = g.move({ from: move.from, to: move.to, promotion: (move.promotion as "q") ?? "q" });
+        applied = g.move({
+          from: move.from,
+          to: move.to,
+          promotion: (move.promotion as "q") ?? "q",
+        });
       } catch {
         applied = null;
       }
       if (!applied) return false;
-      setOptimistic({ fen: g.fen(), from: move.from, to: move.to, prevFen: session.fen });
+      setOptimistic({
+        fen: g.fen(),
+        from: move.from,
+        to: move.to,
+        prevFen: session.fen,
+      });
       audio.play(applied.captured ? "capture" : "move");
       if (g.inCheck()) audio.play("check");
       fetch(`/api/session/${id}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "move", color, seatToken, from: move.from, to: move.to, promotion: move.promotion }),
+        credentials: "include",
+        body: JSON.stringify({
+          action: "move",
+          color,
+          seatToken,
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+        }),
       })
         .then((r) => (r.ok ? r.json() : null))
         .then((s: SessionState | null) => {
-          if (s && !s.error) applyState(s); // authoritative post-move state clears the optimistic overlay
+          if (s && !s.error)
+            applyState(s); // authoritative post-move state clears the optimistic overlay
           else setOptimistic(null); // server rejected → revert to the live state
         })
         .catch(() => setOptimistic(null));
@@ -298,26 +356,36 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     fetch(`/api/session/${id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ action: "resign", color, seatToken }),
     }).then(() => void 0);
   }
 
   const waiting = session?.status === "waiting";
   const myTurn =
-    session?.status === "active" && (color === "w" || color === "b") && session?.turn === color;
+    session?.status === "active" &&
+    (color === "w" || color === "b") &&
+    session?.turn === color;
   const canMove = !!myTurn && !optimistic; // lock the board once a move is in flight
   const orientation = color === "b" ? "black" : "white";
   const boardFen = optimistic?.fen ?? session?.fen ?? "";
-  const lastFrom = optimistic ? optimistic.from : session?.lastFrom ?? null;
-  const lastTo = optimistic ? optimistic.to : session?.lastTo ?? null;
+  const lastFrom = optimistic ? optimistic.from : (session?.lastFrom ?? null);
+  const lastTo = optimistic ? optimistic.to : (session?.lastTo ?? null);
 
   // Memoize the board so background re-renders (clock tick, deduped polls) don't
   // re-render it mid-interaction — that was occasionally dropping a click/tap.
   const boardEl = useMemo(() => {
     if (!boardFen) return null;
-    const last = lastFrom && lastTo ? { from: lastFrom as never, to: lastTo as never } : null;
+    const last =
+      lastFrom && lastTo ? { from: lastFrom as never, to: lastTo as never } : null;
     return (
-      <ChessBoard fen={boardFen} orientation={orientation} onMove={onMove} lastMove={last} interactive={canMove} />
+      <ChessBoard
+        fen={boardFen}
+        orientation={orientation}
+        onMove={onMove}
+        lastMove={last}
+        interactive={canMove}
+      />
     );
   }, [boardFen, orientation, onMove, lastFrom, lastTo, canMove]);
 
@@ -325,8 +393,16 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   const active = session?.status === "active";
   const hasClock = !!session && session.timeControlMin > 0;
   const elapsed = active && now && session ? Math.max(0, now - session.updatedAt) : 0;
-  const wMs = session ? (active && session.turn === "w" ? session.whiteMs - elapsed : session.whiteMs) : 0;
-  const bMs = session ? (active && session.turn === "b" ? session.blackMs - elapsed : session.blackMs) : 0;
+  const wMs = session
+    ? active && session.turn === "w"
+      ? session.whiteMs - elapsed
+      : session.whiteMs
+    : 0;
+  const bMs = session
+    ? active && session.turn === "b"
+      ? session.blackMs - elapsed
+      : session.blackMs
+    : 0;
 
   // Flag (claim a win on time) when a clock hits zero.
   useEffect(() => {
@@ -337,7 +413,13 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     fetch(`/api/session/${id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "timeout", color: flag, seat: colorRef.current, seatToken }),
+      credentials: "include",
+      body: JSON.stringify({
+        action: "timeout",
+        color: flag,
+        seat: colorRef.current,
+        seatToken,
+      }),
     }).catch(() => void 0);
   }, [active, hasClock, wMs, bMs, id]);
 
@@ -350,17 +432,28 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
     const res = session.result ?? "1/2-1/2";
     let winner: "w" | "b" | null = null;
     let reason = "";
-    if (res.startsWith("resign:")) { winner = res.endsWith("w") ? "b" : "w"; reason = "by resignation"; }
-    else if (res.startsWith("time:")) { winner = res.endsWith("w") ? "w" : "b"; reason = "on time ⏱️"; }
-    else if (res === "1-0") { winner = "w"; reason = "checkmate"; }
-    else if (res === "0-1") { winner = "b"; reason = "checkmate"; }
+    if (res.startsWith("resign:")) {
+      winner = res.endsWith("w") ? "b" : "w";
+      reason = "by resignation";
+    } else if (res.startsWith("time:")) {
+      winner = res.endsWith("w") ? "w" : "b";
+      reason = "on time ⏱️";
+    } else if (res === "1-0") {
+      winner = "w";
+      reason = "checkmate";
+    } else if (res === "0-1") {
+      winner = "b";
+      reason = "checkmate";
+    }
     const me = color === "w" || color === "b" ? color : null;
     const draw = winner === null;
     const win = !!me && winner === me;
     const text = draw
       ? "Draw"
       : reason === "checkmate"
-        ? win ? "Checkmate — you win! 🏆" : "Checkmate — you lose"
+        ? win
+          ? "Checkmate — you win! 🏆"
+          : "Checkmate — you lose"
         : !me
           ? `${winner === "w" ? "White" : "Black"} wins ${reason}`
           : win
@@ -370,19 +463,23 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
   })();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
-      <div className="pt-safe sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hairline bg-surface/90 px-3 py-2 backdrop-blur">
+    <div className="bg-surface flex min-h-dvh flex-col">
+      <div className="pt-safe border-hairline bg-surface/90 sticky top-0 z-20 flex items-center justify-between gap-2 border-b px-3 py-2 backdrop-blur">
         {/* No 'Leave' mid-game — you must resign to exit a live match. */}
         {session?.status === "active" && color !== "spectator" ? (
           <span className="w-16" />
         ) : (
           <BackButton fallback="/play" label="Leave" />
         )}
-        <span className="text-sm font-extrabold text-ink">
-          {color === "spectator" ? "Spectating" : `You are ${color === "b" ? "Black" : "White"}`}
+        <span className="text-ink text-sm font-extrabold">
+          {color === "spectator"
+            ? "Spectating"
+            : `You are ${color === "b" ? "Black" : "White"}`}
         </span>
         {session && session.status !== "over" && color !== "spectator" ? (
-          <Button size="sm" variant="danger" onClick={() => setResignOpen(true)}>Resign</Button>
+          <Button size="sm" variant="danger" onClick={() => setResignOpen(true)}>
+            Resign
+          </Button>
         ) : (
           <span className="w-16" />
         )}
@@ -390,15 +487,21 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
       <div className="mx-auto w-full max-w-xl px-4 pt-3 text-center">
         {expired ? (
-          <p className="text-sm font-bold text-danger">No opponent joined in 3 minutes — start a new game.</p>
+          <p className="text-danger text-sm font-bold">
+            No opponent joined in 3 minutes — start a new game.
+          </p>
         ) : waiting ? (
           <div>
-            <p className="text-sm font-extrabold text-ink">Waiting for an opponent…</p>
-            <p className="text-xs font-semibold text-ink-500">Share the link — they have 3 minutes to join.</p>
-            <Button size="sm" className="mt-2" onClick={shareLink}>🔗 Share invite link</Button>
+            <p className="text-ink text-sm font-extrabold">Waiting for an opponent…</p>
+            <p className="text-ink-500 text-xs font-semibold">
+              Share the link — they have 3 minutes to join.
+            </p>
+            <Button size="sm" className="mt-2" onClick={shareLink}>
+              🔗 Share invite link
+            </Button>
           </div>
         ) : session?.status === "over" ? (
-          <p className="text-sm font-extrabold text-ink">
+          <p className="text-ink text-sm font-extrabold">
             Game over —{" "}
             {session.result?.startsWith("resign")
               ? "by resignation"
@@ -407,31 +510,49 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
                 : session.result}
           </p>
         ) : (
-          <p className="text-sm font-bold text-ink">
-            {!online ? "🔌 Reconnecting…" : canMove ? "Your move" : optimistic ? "Move sent…" : "Opponent's move…"}
+          <p className="text-ink text-sm font-bold">
+            {!online
+              ? "🔌 Reconnecting…"
+              : canMove
+                ? "Your move"
+                : optimistic
+                  ? "Move sent…"
+                  : "Opponent's move…"}
           </p>
         )}
       </div>
 
       {hasClock && session && session.status !== "waiting" && (
         <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pt-1">
-          <span className="text-xs font-bold text-ink-500">Opponent</span>
-          <span className={`rounded-lg px-2.5 py-1 font-mono text-base font-extrabold tabular-nums ${active && session.turn !== color ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"}`}>
+          <span className="text-ink-500 text-xs font-bold">Opponent</span>
+          <span
+            className={`rounded-lg px-2.5 py-1 font-mono text-base font-extrabold tabular-nums ${active && session.turn !== color ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"}`}
+          >
             {fmtClock(oppClock)}
           </span>
         </div>
       )}
 
-      <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3 py-2">
-        <div className="relative" style={{ width: boardSize || undefined, height: boardSize || undefined }}>
+      <div
+        ref={boardBox}
+        className="flex min-h-0 flex-1 items-center justify-center px-3 py-2"
+      >
+        <div
+          className="relative"
+          style={{ width: boardSize || undefined, height: boardSize || undefined }}
+        >
           {boardEl}
           {gameOver && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-ink/45 backdrop-blur-sm">
+            <div className="bg-ink/45 absolute inset-0 z-20 flex items-center justify-center rounded-lg backdrop-blur-sm">
               {gameOver.win && <Confetti />}
               <div className="rounded-card bg-surface-card px-7 py-6 text-center [box-shadow:var(--shadow-pop)]">
-                <div className="text-xl font-extrabold text-ink">{gameOver.text}</div>
+                <div className="text-ink text-xl font-extrabold">{gameOver.text}</div>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/review/${id}`)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/review/${id}`)}
+                  >
                     Review
                   </Button>
                   <Button size="sm" onClick={() => router.push("/play")}>
@@ -446,8 +567,12 @@ export default function OnlineSessionPage({ params }: { params: Promise<{ id: st
 
       {hasClock && session && session.status !== "waiting" && (
         <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pb-2">
-          <span className="text-xs font-bold text-ink-500">You {color === "spectator" ? "(spectating)" : ""}</span>
-          <span className={`rounded-lg px-2.5 py-1 font-mono text-base font-extrabold tabular-nums ${myTurn ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"}`}>
+          <span className="text-ink-500 text-xs font-bold">
+            You {color === "spectator" ? "(spectating)" : ""}
+          </span>
+          <span
+            className={`rounded-lg px-2.5 py-1 font-mono text-base font-extrabold tabular-nums ${myTurn ? "bg-brand text-white" : "bg-surface-sunken text-ink-700"}`}
+          >
             {fmtClock(myClock)}
           </span>
         </div>

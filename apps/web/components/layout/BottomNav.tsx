@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -22,17 +22,18 @@ export function BottomNav() {
   const pathname = usePathname();
   // Track the tab being navigated to so we can show a loader + lock it.
   const [pending, setPending] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPending(null);
-  }, [pathname]);
+  const loadingHref =
+    pending && (pending === "/" ? pathname !== "/" : !pathname.startsWith(pending))
+      ? pending
+      : null;
 
   return (
-    <nav className="pb-safe sticky bottom-0 z-30 border-t border-hairline bg-surface-card/85 backdrop-blur-xl">
+    <nav className="pb-safe border-hairline bg-surface-card/85 sticky bottom-0 z-30 border-t backdrop-blur-xl">
       <ul className="mx-auto flex max-w-2xl items-stretch justify-around px-2">
         {TABS.map((tab) => {
-          const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-          const loading = pending === tab.href;
+          const active =
+            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const loading = loadingHref === tab.href;
           return (
             <li key={tab.href} className="flex-1">
               <Link
@@ -55,7 +56,7 @@ export function BottomNav() {
                 {active && (
                   <motion.span
                     layoutId="nav-pill"
-                    className="absolute inset-x-2 inset-y-1 rounded-2xl bg-brand-50"
+                    className="bg-brand-50 absolute inset-x-2 inset-y-1 rounded-2xl"
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
@@ -65,7 +66,7 @@ export function BottomNav() {
                   transition={{ type: "spring", stiffness: 500, damping: 24 }}
                 >
                   {loading ? (
-                    <span className="block h-6 w-6 animate-spin rounded-full border-2 border-brand/30 border-t-brand" />
+                    <span className="border-brand/30 border-t-brand block h-6 w-6 animate-spin rounded-full border-2" />
                   ) : (
                     <Icon name={tab.icon} size={24} duotone={active} />
                   )}

@@ -16,22 +16,95 @@ export interface BoardTheme {
 }
 
 export const BOARD_THEMES: Record<string, BoardTheme> = {
-  classic: { id: "classic", name: "Classic", light: "#eef0f4", dark: "#7c8aa5", move: "#7be0b3" },
-  chalkboard: { id: "chalkboard", name: "Chalkboard", light: "#5b6b63", dark: "#2f3b38", move: "#9fe3c5" },
-  marble: { id: "marble", name: "Marble", light: "#f3efe9", dark: "#b9b2a7", move: "#9ad0c2" },
-  tournament: { id: "tournament", name: "Tournament", light: "#e9eef0", dark: "#6a9b78", move: "#f2c14e" },
-  wooden: { id: "wooden", name: "Wooden", light: "#e8cfa6", dark: "#a9743f", move: "#7fd1a8" },
-  neon: { id: "neon", name: "Neon", light: "#1f2238", dark: "#3a2f6b", move: "#41e0c8" },
-  paper: { id: "paper", name: "Paper", light: "#faf7f0", dark: "#cdbf9c", move: "#8fd0b0" },
-  midnight: { id: "midnight", name: "Midnight", light: "#3a3f5c", dark: "#1c2036", move: "#5aa9e6" },
+  classic: {
+    id: "classic",
+    name: "Classic",
+    light: "#eef0f4",
+    dark: "#7c8aa5",
+    move: "#7be0b3",
+  },
+  chalkboard: {
+    id: "chalkboard",
+    name: "Chalkboard",
+    light: "#5b6b63",
+    dark: "#2f3b38",
+    move: "#9fe3c5",
+  },
+  marble: {
+    id: "marble",
+    name: "Marble",
+    light: "#f3efe9",
+    dark: "#b9b2a7",
+    move: "#9ad0c2",
+  },
+  tournament: {
+    id: "tournament",
+    name: "Tournament",
+    light: "#e9eef0",
+    dark: "#6a9b78",
+    move: "#f2c14e",
+  },
+  wooden: {
+    id: "wooden",
+    name: "Wooden",
+    light: "#e8cfa6",
+    dark: "#a9743f",
+    move: "#7fd1a8",
+  },
+  neon: {
+    id: "neon",
+    name: "Neon",
+    light: "#1f2238",
+    dark: "#3a2f6b",
+    move: "#41e0c8",
+  },
+  paper: {
+    id: "paper",
+    name: "Paper",
+    light: "#faf7f0",
+    dark: "#cdbf9c",
+    move: "#8fd0b0",
+  },
+  midnight: {
+    id: "midnight",
+    name: "Midnight",
+    light: "#3a3f5c",
+    dark: "#1c2036",
+    move: "#5aa9e6",
+  },
   // legacy names kept so migrated settings still resolve
-  violet: { id: "violet", name: "Violet", light: "#ede7f6", dark: "#b9a8e6", move: "#7be0b3" },
-  slate: { id: "slate", name: "Slate", light: "#e8eef7", dark: "#9bb8d3", move: "#5aa9e6" },
-  forest: { id: "forest", name: "Forest", light: "#e9efe1", dark: "#a3c293", move: "#7fd1a8" },
+  violet: {
+    id: "violet",
+    name: "Violet",
+    light: "#ede7f6",
+    dark: "#b9a8e6",
+    move: "#7be0b3",
+  },
+  slate: {
+    id: "slate",
+    name: "Slate",
+    light: "#e8eef7",
+    dark: "#9bb8d3",
+    move: "#5aa9e6",
+  },
+  forest: {
+    id: "forest",
+    name: "Forest",
+    light: "#e9efe1",
+    dark: "#a3c293",
+    move: "#7fd1a8",
+  },
 };
 
 export const SELECTABLE_BOARD_THEMES = [
-  "classic", "chalkboard", "marble", "tournament", "wooden", "neon", "paper", "midnight",
+  "classic",
+  "chalkboard",
+  "marble",
+  "tournament",
+  "wooden",
+  "neon",
+  "paper",
+  "midnight",
 ] as const;
 
 export interface AppTheme {
@@ -45,12 +118,43 @@ export interface AppTheme {
 
 /** Global surface palettes (#106). Surfaces/ink only — brand stays the school theme. */
 export const APP_THEMES: AppTheme[] = [
-  { id: "default", name: "Classic", emoji: "🎓", swatch: ["#fbfaff", "#ffffff", "#5b5bd6"] },
-  { id: "blue", name: "School Blue", emoji: "💙", swatch: ["#eef4fb", "#ffffff", "#2563eb"] },
-  { id: "forest", name: "Forest", emoji: "🌲", swatch: ["#eef5ee", "#ffffff", "#0f7a55"] },
-  { id: "ivory", name: "Ivory", emoji: "🤍", swatch: ["#faf8f2", "#fffdf8", "#9a8f70"] },
-  { id: "royal", name: "Royal", emoji: "👑", swatch: ["#f4eefb", "#ffffff", "#6d28d9"] },
-  { id: "midnight", name: "Midnight", emoji: "🌙", swatch: ["#14152b", "#1d1f3a", "#7b6ff0"], dark: true },
+  {
+    id: "default",
+    name: "Classic",
+    emoji: "🎓",
+    swatch: ["#fbfaff", "#ffffff", "#5b5bd6"],
+  },
+  {
+    id: "blue",
+    name: "School Blue",
+    emoji: "💙",
+    swatch: ["#eef4fb", "#ffffff", "#2563eb"],
+  },
+  {
+    id: "forest",
+    name: "Forest",
+    emoji: "🌲",
+    swatch: ["#eef5ee", "#ffffff", "#0f7a55"],
+  },
+  {
+    id: "ivory",
+    name: "Ivory",
+    emoji: "🤍",
+    swatch: ["#faf8f2", "#fffdf8", "#9a8f70"],
+  },
+  {
+    id: "royal",
+    name: "Royal",
+    emoji: "👑",
+    swatch: ["#f4eefb", "#ffffff", "#6d28d9"],
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    emoji: "🌙",
+    swatch: ["#14152b", "#1d1f3a", "#7b6ff0"],
+    dark: true,
+  },
 ];
 
 export function getAppTheme(id: string): AppTheme {

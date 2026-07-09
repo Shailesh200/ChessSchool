@@ -6,7 +6,14 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/core/bootstrap/themeBootstrapScript";
-import { HOME_DESCRIPTION, HOME_TITLE, SEO_KEYWORDS, siteName, siteUrl, socialMeta } from "@/lib/seo";
+import {
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  SEO_KEYWORDS,
+  siteName,
+  siteUrl,
+  socialMeta,
+} from "@/lib/seo";
 
 const fredoka = Fredoka({
   variable: "--font-display",

@@ -5,14 +5,11 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
-export type PieceTheme = "classic" | "marble" | "crystal" | "neon" | "forest" | "ocean" | "cute";
+export type PieceTheme =
+  "classic" | "marble" | "crystal" | "neon" | "forest" | "ocean" | "cute";
 export type ColorblindMode = "none" | "deuteranopia";
 export type CoachPersonality =
-  | "friendly"
-  | "strict"
-  | "mentor"
-  | "tactical"
-  | "minimal";
+  "friendly" | "strict" | "mentor" | "tactical" | "minimal";
 
 export interface SettingsState {
   sound: boolean;
@@ -37,7 +34,9 @@ export interface SettingsState {
 
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
   /** Apply many settings in one update (avoids re-render / theme flicker cascades). */
-  applyPatch: (patch: Partial<Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch">>) => void;
+  applyPatch: (
+    patch: Partial<Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch">>,
+  ) => void;
   toggle: (key: BooleanSettingKey) => void;
   reset: () => void;
 }
@@ -74,14 +73,16 @@ export const useSettings = create<SettingsState>()(
       applyPatch: (patch) =>
         set((s) => {
           const next: Partial<SettingsState> = {};
-          for (const [key, value] of Object.entries(patch) as [keyof SettingsState, SettingsState[keyof SettingsState]][]) {
+          for (const [key, value] of Object.entries(patch) as [
+            keyof SettingsState,
+            SettingsState[keyof SettingsState],
+          ][]) {
             if (value === undefined) continue;
             if (s[key] !== value) next[key] = value as never;
           }
           return Object.keys(next).length > 0 ? next : s;
         }),
-      toggle: (key) =>
-        set((s) => ({ [key]: !s[key] }) as Partial<SettingsState>),
+      toggle: (key) => set((s) => ({ [key]: !s[key] }) as Partial<SettingsState>),
       reset: () => set({ ...defaults }),
     }),
     {

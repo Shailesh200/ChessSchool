@@ -18,12 +18,25 @@ if (!existsSync("local.db")) {
 // Routine type → curriculum tags it draws from.
 const TYPE_TAGS = {
   warmup: ["capture", "piece", "check", "basics", "material"],
-  practice: ["fork", "pin", "skewer", "discovered", "tactics", "doubleAttack", "deflection"],
+  practice: [
+    "fork",
+    "pin",
+    "skewer",
+    "discovered",
+    "tactics",
+    "doubleAttack",
+    "deflection",
+  ],
   review: ["checkmate", "mate", "mateIn1", "mateIn2", "endgame"],
   reflection: ["opening", "promotion", "advantage", "defense", "strategy"],
 };
 const EMOJI = { warmup: "🤸", practice: "🎯", review: "🔍", reflection: "📝" };
-const LABEL = { warmup: "Warmup", practice: "Tactics", review: "Checkmate review", reflection: "Reflection" };
+const LABEL = {
+  warmup: "Warmup",
+  practice: "Tactics",
+  review: "Checkmate review",
+  reflection: "Reflection",
+};
 const PUZZLES_PER = 4; // puzzles in one homework session
 const MAX_PER_TYPE = 18; // ~2.5 weeks of daily rotation
 
@@ -79,7 +92,9 @@ for (const [type, tags] of Object.entries(TYPE_TAGS)) {
     insert.run(
       `hw-${type}-${made + 1}`,
       type,
-      concept === "tactics" ? `${LABEL[type]} #${made + 1}` : `${LABEL[type]}: ${concept}`,
+      concept === "tactics"
+        ? `${LABEL[type]} #${made + 1}`
+        : `${LABEL[type]}: ${concept}`,
       `${steps.length}-puzzle ${concept} session`,
       EMOJI[type],
       concept, // tag = topic, for "already learned" filtering
@@ -109,5 +124,7 @@ for (const [type, tags] of Object.entries(TYPE_TAGS)) {
   console.log(`  ${EMOJI[type]} ${type}: ${made} sessions`);
 }
 
-console.log(`✓ Seeded ${total} homework lessons across ${Object.keys(TYPE_TAGS).length} types.`);
+console.log(
+  `✓ Seeded ${total} homework lessons across ${Object.keys(TYPE_TAGS).length} types.`,
+);
 db.close();

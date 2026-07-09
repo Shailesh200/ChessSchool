@@ -17,11 +17,51 @@ export interface PlanSpec {
 }
 
 export const PLAN_SPECS: Record<PlanTier, PlanSpec> = {
-  casual: { tier: "casual", label: "Casual", minutes: "10–15 min", lessonsPerDay: 1, goalXp: 30, blurb: "A relaxed pace — keep the habit alive.", emoji: "🌱" },
-  standard: { tier: "standard", label: "Standard", minutes: "20–30 min", lessonsPerDay: 2, goalXp: 50, blurb: "Steady, balanced improvement.", emoji: "📘" },
-  serious: { tier: "serious", label: "Serious", minutes: "45–60 min", lessonsPerDay: 3, goalXp: 80, blurb: "Real, measurable progress.", emoji: "🔥" },
-  competitive: { tier: "competitive", label: "Competitive", minutes: "90+ min", lessonsPerDay: 5, goalXp: 130, blurb: "Tournament-ready training load.", emoji: "🏆" },
-  custom: { tier: "custom", label: "Custom", minutes: "your call", lessonsPerDay: 2, goalXp: 60, blurb: "Set your own daily target.", emoji: "⚙️" },
+  casual: {
+    tier: "casual",
+    label: "Casual",
+    minutes: "10–15 min",
+    lessonsPerDay: 1,
+    goalXp: 30,
+    blurb: "A relaxed pace — keep the habit alive.",
+    emoji: "🌱",
+  },
+  standard: {
+    tier: "standard",
+    label: "Standard",
+    minutes: "20–30 min",
+    lessonsPerDay: 2,
+    goalXp: 50,
+    blurb: "Steady, balanced improvement.",
+    emoji: "📘",
+  },
+  serious: {
+    tier: "serious",
+    label: "Serious",
+    minutes: "45–60 min",
+    lessonsPerDay: 3,
+    goalXp: 80,
+    blurb: "Real, measurable progress.",
+    emoji: "🔥",
+  },
+  competitive: {
+    tier: "competitive",
+    label: "Competitive",
+    minutes: "90+ min",
+    lessonsPerDay: 5,
+    goalXp: 130,
+    blurb: "Tournament-ready training load.",
+    emoji: "🏆",
+  },
+  custom: {
+    tier: "custom",
+    label: "Custom",
+    minutes: "your call",
+    lessonsPerDay: 2,
+    goalXp: 60,
+    blurb: "Set your own daily target.",
+    emoji: "⚙️",
+  },
 };
 
 /** The shared daily routine (Warmup → Lesson → … → Reflection). */
@@ -80,11 +120,14 @@ export const usePlan = create<PlanState>()(
         if (get().routineDay !== today) set({ routineDay: today, routineDone: [] });
       },
       completeStep: (id) =>
-        set((s) => (s.routineDone.includes(id) ? s : { routineDone: [...s.routineDone, id] })),
+        set((s) =>
+          s.routineDone.includes(id) ? s : { routineDone: [...s.routineDone, id] },
+        ),
       markActivity: (id, today) => {
         const s = get();
         if (s.routineDay !== today) set({ routineDay: today, routineDone: [id] });
-        else if (!s.routineDone.includes(id)) set({ routineDone: [...s.routineDone, id] });
+        else if (!s.routineDone.includes(id))
+          set({ routineDone: [...s.routineDone, id] });
         // All steps done today → bump the homework streak (once per day).
         const done = get().routineDone;
         const all = ROUTINE_STEPS.every((step) => done.includes(step.id));

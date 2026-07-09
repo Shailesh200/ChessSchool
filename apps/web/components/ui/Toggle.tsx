@@ -21,7 +21,7 @@ export function Toggle({
         haptics.fire("select");
         onChange(!checked);
       }}
-      className={`flex h-7 w-12 items-center rounded-pill p-0.5 transition-colors ${
+      className={`rounded-pill flex h-7 w-12 items-center p-0.5 transition-colors ${
         checked ? "bg-success" : "bg-ink-300"
       }`}
     >

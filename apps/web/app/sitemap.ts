@@ -5,13 +5,23 @@ import { classes, lessons } from "@/db/schema";
 import { siteUrl } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const cls = await db.select({ id: classes.id }).from(classes).orderBy(asc(classes.sortOrder));
-  const lessonRows = await db.select({ id: lessons.id }).from(lessons).orderBy(asc(lessons.sortOrder));
+  const cls = await db
+    .select({ id: classes.id })
+    .from(classes)
+    .orderBy(asc(classes.sortOrder));
+  const lessonRows = await db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .orderBy(asc(lessons.sortOrder));
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/learn-chess`, changeFrequency: "weekly", priority: 0.95 },
-    { url: `${siteUrl}/chess-for-beginners`, changeFrequency: "weekly", priority: 0.95 },
+    {
+      url: `${siteUrl}/chess-for-beginners`,
+      changeFrequency: "weekly",
+      priority: 0.95,
+    },
     { url: `${siteUrl}/library`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/play`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/review`, changeFrequency: "weekly", priority: 0.6 },

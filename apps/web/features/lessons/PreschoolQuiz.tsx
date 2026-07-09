@@ -57,16 +57,26 @@ export function PreschoolQuiz({
         key={step.question}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-hairline bg-surface-card px-4 py-3.5 [box-shadow:var(--shadow-card)]"
+        className="border-hairline bg-surface-card rounded-2xl border px-4 py-3.5 [box-shadow:var(--shadow-card)]"
       >
-        <p className="mb-2 text-[10px] font-extrabold uppercase tracking-widest text-brand">Question</p>
-        <p className="text-base font-extrabold leading-snug text-ink">{step.question}</p>
+        <p className="text-brand mb-2 text-[10px] font-extrabold tracking-widest uppercase">
+          Question
+        </p>
+        <p className="text-ink text-base leading-snug font-extrabold">
+          {step.question}
+        </p>
       </motion.div>
 
       {/* Answers — start on the next line / section */}
       <div className="flex flex-col gap-2">
-        <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-500">Choose your answer</p>
-        <motion.div key={shake} animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : {}} className="flex flex-col gap-2">
+        <p className="text-ink-500 text-[10px] font-extrabold tracking-widest uppercase">
+          Choose your answer
+        </p>
+        <motion.div
+          key={shake}
+          animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : {}}
+          className="flex flex-col gap-2"
+        >
           {options.map((opt, i) => {
             const selected = picked === i;
             const isCorrect = i === correctIdx;
@@ -95,13 +105,19 @@ export function PreschoolQuiz({
               >
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-xs font-extrabold text-brand">
+                    <span className="bg-brand-50 text-brand flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold">
                       {LETTERS[i]}
                     </span>
-                    {opt.emoji ? <span className="text-xl leading-none">{opt.emoji}</span> : null}
-                    {reveal && isCorrect && <span className="ml-auto text-lg text-success">✓</span>}
+                    {opt.emoji ? (
+                      <span className="text-xl leading-none">{opt.emoji}</span>
+                    ) : null}
+                    {reveal && isCorrect && (
+                      <span className="text-success ml-auto text-lg">✓</span>
+                    )}
                   </div>
-                  <p className="pl-8 text-sm font-extrabold leading-snug text-ink">{opt.label}</p>
+                  <p className="text-ink pl-8 text-sm leading-snug font-extrabold">
+                    {opt.label}
+                  </p>
                 </div>
               </motion.button>
             );
@@ -114,10 +130,12 @@ export function PreschoolQuiz({
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-success/30 bg-success/10 px-4 py-3.5"
+            className="border-success/30 bg-success/10 rounded-2xl border px-4 py-3.5"
           >
-            <p className="mb-1.5 text-[10px] font-extrabold uppercase tracking-widest text-success-600">Answer</p>
-            <p className="whitespace-pre-wrap text-sm font-semibold leading-relaxed text-ink">
+            <p className="text-success-600 mb-1.5 text-[10px] font-extrabold tracking-widest uppercase">
+              Answer
+            </p>
+            <p className="text-ink text-sm leading-relaxed font-semibold whitespace-pre-wrap">
               {formatCoachText(step.explain)}
             </p>
           </motion.div>

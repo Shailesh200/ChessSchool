@@ -33,7 +33,8 @@ export const usePwa = create<PwaState>((set, get) => ({
   installed: false,
   updateReady: false,
   dismissed: false,
-  setDeferred: (e) => set({ deferred: e, canInstall: Boolean(e), dismissed: readDismissed() }),
+  setDeferred: (e) =>
+    set({ deferred: e, canInstall: Boolean(e), dismissed: readDismissed() }),
   setInstalled: (v) => set({ installed: v, canInstall: false, deferred: null }),
   setUpdateReady: (v) => set({ updateReady: v }),
   dismiss: () => {

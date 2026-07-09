@@ -7,7 +7,13 @@ import { progressPushSchema } from "@/lib/api-schemas";
 
 export const dynamic = "force-dynamic";
 
-type LessonRec = { mastery: number; attempts: number; lastSeen: number; dueAt: number; incorrect?: number };
+type LessonRec = {
+  mastery: number;
+  attempts: number;
+  lastSeen: number;
+  dueAt: number;
+  incorrect?: number;
+};
 
 /** Everything beyond the typed columns lives in progress.data (JSON). */
 interface ExtraData {
@@ -34,11 +40,21 @@ export async function GET(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const p = (await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
-  const recs = await db.select().from(lessonRecords).where(eq(lessonRecords.userId, user.id));
+  const p = (
+    await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1)
+  )[0];
+  const recs = await db
+    .select()
+    .from(lessonRecords)
+    .where(eq(lessonRecords.userId, user.id));
   const lessons: Record<string, LessonRec> = {};
   for (const r of recs) {
-    lessons[r.lessonId] = { mastery: r.mastery, attempts: r.attempts, lastSeen: r.lastSeen, dueAt: r.dueAt };
+    lessons[r.lessonId] = {
+      mastery: r.mastery,
+      attempts: r.attempts,
+      lastSeen: r.lastSeen,
+      dueAt: r.dueAt,
+    };
   }
   let extra: ExtraData = {};
   try {
@@ -90,13 +106,18 @@ export async function POST(req: Request) {
   const raw = await req.json().catch(() => null);
   const parsed = progressPushSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid body", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid body", details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
   const body = parsed.data;
   const now = Date.now();
   // Merge over existing data so a client that omits a field (e.g. web doesn't
   // send recentGames) doesn't wipe it.
-  const existing = (await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
+  const existing = (
+    await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1)
+  )[0];
   let prev: ExtraData = {};
   try {
     prev = existing?.data ? (JSON.parse(existing.data) as ExtraData) : {};
@@ -122,7 +143,8 @@ export async function POST(req: Request) {
     journalEntries: body.journalEntries,
   };
   const data: ExtraData = { ...prev };
-  for (const [k, v] of Object.entries(incoming)) if (v !== undefined) (data as Record<string, unknown>)[k] = v;
+  for (const [k, v] of Object.entries(incoming))
+    if (v !== undefined) (data as Record<string, unknown>)[k] = v;
   const row = {
     xp: body.xp,
     streak: body.streak,
@@ -140,7 +162,10 @@ export async function POST(req: Request) {
 
   // The snapshot is the full client union, so replace the user's records.
   await db.delete(lessonRecords).where(eq(lessonRecords.userId, user.id));
-  const lessonEntries = Object.entries(body.lessons ?? {}) as [string, { mastery: number; attempts: number; lastSeen: number; dueAt: number }][];
+  const lessonEntries = Object.entries(body.lessons ?? {}) as [
+    string,
+    { mastery: number; attempts: number; lastSeen: number; dueAt: number },
+  ][];
   const rows = lessonEntries.map(([lessonId, r]) => ({
     id: `${user.id}:${lessonId}`,
     userId: user.id,

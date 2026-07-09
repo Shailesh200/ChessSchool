@@ -39,7 +39,17 @@ const sizes: Record<Size, string> = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", block, className, onClick, children, loading, disabled, ...rest },
+  {
+    variant = "primary",
+    size = "md",
+    block,
+    className,
+    onClick,
+    children,
+    loading,
+    disabled,
+    ...rest
+  },
   ref,
 ) {
   return (
@@ -57,13 +67,35 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     >
       {loading && (
         <span className="absolute inset-0 flex items-center justify-center">
-          <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          <svg
+            className="h-5 w-5 animate-spin"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="opacity-25"
+            />
+            <path
+              d="M21 12a9 9 0 0 0-9-9"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
           </svg>
         </span>
       )}
-      <span className={cn("inline-flex max-w-full items-center justify-center gap-2", loading && "opacity-0")}>
+      <span
+        className={cn(
+          "inline-flex max-w-full items-center justify-center gap-2",
+          loading && "opacity-0",
+        )}
+      >
         {children}
       </span>
     </button>

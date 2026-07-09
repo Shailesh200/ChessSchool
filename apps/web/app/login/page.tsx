@@ -6,7 +6,8 @@ import { socialMeta } from "@/lib/seo";
 
 export const metadata = {
   title: "Log in to ChessSchool",
-  description: "Sign in to sync your chess progress, classes, and game history at ChessSchool.",
+  description:
+    "Sign in to sync your chess progress, classes, and game history at ChessSchool.",
   ...socialMeta({
     title: "Log in to ChessSchool",
     description: "Continue your chess journey — sync progress across devices.",

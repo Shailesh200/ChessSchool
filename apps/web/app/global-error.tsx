@@ -20,7 +20,9 @@ export default function GlobalError({ reset }: { reset: () => void }) {
         }}
       >
         <div style={{ fontSize: "3rem" }}>🛟</div>
-        <h1 style={{ fontWeight: 800, fontSize: "1.5rem" }}>ChessSchool needs a restart</h1>
+        <h1 style={{ fontWeight: 800, fontSize: "1.5rem" }}>
+          ChessSchool needs a restart
+        </h1>
         <p style={{ maxWidth: 320, color: "#6b6982", fontWeight: 600 }}>
           Your saved progress is safe on this device.
         </p>

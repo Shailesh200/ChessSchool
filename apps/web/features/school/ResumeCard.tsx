@@ -29,25 +29,38 @@ export function ResumeCard({ catalog }: { catalog: Catalog }) {
     <motion.div
       initial={false}
       animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-card border border-brand-100 bg-surface-card p-4 [box-shadow:var(--shadow-card)]"
+      className="rounded-card border-brand-100 bg-surface-card overflow-hidden border p-4 [box-shadow:var(--shadow-card)]"
     >
       {/* breadcrumb */}
-      <nav aria-label="Your place in school" className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-bold text-ink-500">
+      <nav
+        aria-label="Your place in school"
+        className="text-ink-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-bold"
+      >
         <span>🎓 {semesterShort}</span>
         <span aria-hidden>›</span>
         <span className="text-brand">{loc.cls.title}</span>
         <span aria-hidden>›</span>
-        <span className="truncate">Class {loc.classIndex}/{loc.totalClasses}</span>
+        <span className="truncate">
+          Class {loc.classIndex}/{loc.totalClasses}
+        </span>
       </nav>
 
-      <h2 className="mt-1 truncate text-lg font-extrabold text-ink">
+      <h2 className="text-ink mt-1 truncate text-lg font-extrabold">
         {loc.complete ? "🏆 You've graduated!" : loc.lessonTitle}
       </h2>
-      <p className="text-xs font-semibold text-ink-500">
-        {loc.complete ? "Replay classes or sharpen up with a match." : `Next in ${loc.cls.title}`}
+      <p className="text-ink-500 text-xs font-semibold">
+        {loc.complete
+          ? "Replay classes or sharpen up with a match."
+          : `Next in ${loc.cls.title}`}
       </p>
 
-      <ProgressBar className="mt-2" value={prog.done} max={prog.total} tone="brand" label="Class progress" />
+      <ProgressBar
+        className="mt-2"
+        value={prog.done}
+        max={prog.total}
+        tone="brand"
+        label="Class progress"
+      />
 
       <div className="mt-3 flex gap-2">
         <Button
@@ -58,11 +71,17 @@ export function ResumeCard({ catalog }: { catalog: Catalog }) {
             router.push(`/lesson/${loc.lessonId}`);
           }}
         >
-          {loc.complete ? "Review a class" : prog.done > 0 ? "Continue learning" : "Start learning"}
+          {loc.complete
+            ? "Review a class"
+            : prog.done > 0
+              ? "Continue learning"
+              : "Start learning"}
         </Button>
         {activeMatch && !activeMatch.finished && (
           <Link href="/play" className="shrink-0">
-            <Button variant="outline" aria-label="Resume your match">♟️ Resume</Button>
+            <Button variant="outline" aria-label="Resume your match">
+              ♟️ Resume
+            </Button>
           </Link>
         )}
       </div>

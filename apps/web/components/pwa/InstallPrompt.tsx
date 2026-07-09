@@ -26,12 +26,12 @@ export function InstallPrompt() {
           initial={{ opacity: 0, y: -12, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12 }}
-          className="mb-4 flex items-center gap-2 rounded-card border border-brand-100 bg-brand-50 p-3"
+          className="rounded-card border-brand-100 bg-brand-50 mb-4 flex items-center gap-2 border p-3"
         >
           <Logo withText={false} />
           <div className="flex-1">
-            <p className="text-sm font-extrabold text-ink">Install ChessSchool</p>
-            <p className="text-xs font-semibold text-ink-500">
+            <p className="text-ink text-sm font-extrabold">Install ChessSchool</p>
+            <p className="text-ink-500 text-xs font-semibold">
               Add to your home screen — works fully offline.
             </p>
           </div>
@@ -44,7 +44,7 @@ export function InstallPrompt() {
               haptics.fire("select");
               dismiss();
             }}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-500 hover:bg-surface-sunken hover:text-ink"
+            className="text-ink-500 hover:bg-surface-sunken hover:text-ink flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
           >
             ✕
           </button>

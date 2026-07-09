@@ -17,7 +17,9 @@ export function DataSection() {
   useEffect(() => {
     storageEstimateKB().then(setStorage);
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistration().then((r) => setOfflineReady(Boolean(r?.active)));
+      navigator.serviceWorker
+        .getRegistration()
+        .then((r) => setOfflineReady(Boolean(r?.active)));
     }
   }, []);
 
@@ -59,36 +61,51 @@ export function DataSection() {
 
   return (
     <Card className="flex flex-col gap-3">
-      <p className="text-sm font-extrabold text-ink">Your data</p>
+      <p className="text-ink text-sm font-extrabold">Your data</p>
 
       {/* Trust strip */}
       <div className="flex flex-wrap gap-2 text-[11px] font-bold">
-        <span className="rounded-pill bg-success/15 px-2 py-1 text-success-600">✓ All changes saved</span>
-        <span className={`rounded-pill px-2 py-1 ${offlineReady ? "bg-brand-50 text-brand" : "bg-surface-sunken text-ink-500"}`}>
+        <span className="rounded-pill bg-success/15 text-success-600 px-2 py-1">
+          ✓ All changes saved
+        </span>
+        <span
+          className={`rounded-pill px-2 py-1 ${offlineReady ? "bg-brand-50 text-brand" : "bg-surface-sunken text-ink-500"}`}
+        >
           {offlineReady ? "📡 Offline ready" : "📡 Preparing offline…"}
         </span>
         {storage != null && (
-          <span className="rounded-pill bg-surface-sunken px-2 py-1 text-ink-500">
-            💾 {storage < 1024 ? `${storage} KB` : `${(storage / 1024).toFixed(1)} MB`} stored
+          <span className="rounded-pill bg-surface-sunken text-ink-500 px-2 py-1">
+            💾 {storage < 1024 ? `${storage} KB` : `${(storage / 1024).toFixed(1)} MB`}{" "}
+            stored
           </span>
         )}
       </div>
-      <p className="text-xs font-semibold text-ink-500">
-        Everything lives on this device — no account, no servers. Export a backup anytime.
+      <p className="text-ink-500 text-xs font-semibold">
+        Everything lives on this device — no account, no servers. Export a backup
+        anytime.
       </p>
 
-      {msg && <p className="text-xs font-bold text-danger">{msg}</p>}
+      {msg && <p className="text-danger text-xs font-bold">{msg}</p>}
 
       <div className="flex gap-2">
         <Button
           block
           variant="outline"
           size="sm"
-          onClick={() => exportToFile().then(() => toast("Backup exported", { icon: "check", tone: "success" }))}
+          onClick={() =>
+            exportToFile().then(() =>
+              toast("Backup exported", { icon: "check", tone: "success" }),
+            )
+          }
         >
           Export backup
         </Button>
-        <Button block variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+        <Button
+          block
+          variant="outline"
+          size="sm"
+          onClick={() => fileRef.current?.click()}
+        >
           ⬆︎ Import
         </Button>
       </div>

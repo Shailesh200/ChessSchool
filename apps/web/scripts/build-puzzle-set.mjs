@@ -22,7 +22,9 @@ import { Readable } from "node:stream";
 
 const INPUT = process.argv[2];
 if (!INPUT) {
-  console.error("usage: node scripts/build-puzzle-set.mjs <lichess_db_puzzle.csv[.zst]>");
+  console.error(
+    "usage: node scripts/build-puzzle-set.mjs <lichess_db_puzzle.csv[.zst]>",
+  );
   process.exit(1);
 }
 
@@ -32,19 +34,71 @@ const MIN_PLAYS = 40;
 const PER_BUCKET = 420; // per (stage × concept); ~14k total leaves room for homework's disjoint slice
 
 const STAGE = (r) =>
-  r < 1000 ? "elementary" : r < 1350 ? "middle" : r < 1700 ? "high" : r < 2100 ? "university" : "master";
+  r < 1000
+    ? "elementary"
+    : r < 1350
+      ? "middle"
+      : r < 1700
+        ? "high"
+        : r < 2100
+          ? "university"
+          : "master";
 
 const CONCEPTS = [
-  { id: "mate", themes: ["mateIn1", "mateIn2", "mateIn3", "backRankMate", "smotheredMate", "mate", "hookMate", "anastasiaMate", "arabianMate"] },
+  {
+    id: "mate",
+    themes: [
+      "mateIn1",
+      "mateIn2",
+      "mateIn3",
+      "backRankMate",
+      "smotheredMate",
+      "mate",
+      "hookMate",
+      "anastasiaMate",
+      "arabianMate",
+    ],
+  },
   { id: "fork", themes: ["fork"] },
   { id: "pin", themes: ["pin", "skewer"] },
   { id: "discovered", themes: ["discoveredAttack", "doubleCheck"] },
-  { id: "sacrifice", themes: ["sacrifice", "attraction", "deflection", "clearance", "interference", "decoy", "attackingF2F7"] },
-  { id: "trapped", themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"] },
-  { id: "endgame", themes: ["endgame", "rookEndgame", "pawnEndgame", "queenEndgame", "bishopEndgame", "knightEndgame", "zugzwang", "promotion", "advancedPawn"] },
-  { id: "advantage", themes: ["advantage", "crushing", "defensiveMove", "quietMove", "intermezzo"] },
+  {
+    id: "sacrifice",
+    themes: [
+      "sacrifice",
+      "attraction",
+      "deflection",
+      "clearance",
+      "interference",
+      "decoy",
+      "attackingF2F7",
+    ],
+  },
+  {
+    id: "trapped",
+    themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"],
+  },
+  {
+    id: "endgame",
+    themes: [
+      "endgame",
+      "rookEndgame",
+      "pawnEndgame",
+      "queenEndgame",
+      "bishopEndgame",
+      "knightEndgame",
+      "zugzwang",
+      "promotion",
+      "advancedPawn",
+    ],
+  },
+  {
+    id: "advantage",
+    themes: ["advantage", "crushing", "defensiveMove", "quietMove", "intermezzo"],
+  },
 ];
-const conceptOf = (themes) => CONCEPTS.find((c) => c.themes.some((t) => themes.includes(t)))?.id ?? null;
+const conceptOf = (themes) =>
+  CONCEPTS.find((c) => c.themes.some((t) => themes.includes(t)))?.id ?? null;
 
 function lineStream(path) {
   if (!existsSync(path)) {
@@ -54,7 +108,9 @@ function lineStream(path) {
   if (path.endsWith(".zst")) {
     const zstd = spawn("zstd", ["-dc", path]);
     zstd.on("error", (e) => {
-      console.error(`✗ Could not run zstd (${e.code || e.message}). brew install zstd / apt-get install zstd, or decompress manually.`);
+      console.error(
+        `✗ Could not run zstd (${e.code || e.message}). brew install zstd / apt-get install zstd, or decompress manually.`,
+      );
       process.exit(1);
     });
     return createInterface({ input: zstd.stdout, crlfDelay: Infinity });
@@ -62,7 +118,8 @@ function lineStream(path) {
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
 }
 
-const HEADER = "PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags";
+const HEADER =
+  "PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags";
 const buckets = new Map(); // `${stage}:${concept}` -> verbatim lines[]
 let scanned = 0;
 let kept = 0;
@@ -72,9 +129,13 @@ console.log(`Curating from ${INPUT} … target ~${target} puzzles`);
 const rl = lineStream(INPUT);
 let header = true;
 for await (const line of rl) {
-  if (header) { header = false; continue; }
+  if (header) {
+    header = false;
+    continue;
+  }
   scanned++;
-  if (scanned % 500000 === 0) process.stdout.write(`\r  scanned ${scanned.toLocaleString()} · kept ${kept}…`);
+  if (scanned % 500000 === 0)
+    process.stdout.write(`\r  scanned ${scanned.toLocaleString()} · kept ${kept}…`);
   if (kept >= target) break;
   const c = line.split(",");
   if (c.length < 8) continue;
@@ -87,14 +148,25 @@ for await (const line of rl) {
   if (!concept) continue;
   const key = `${STAGE(rating)}:${concept}`;
   let arr = buckets.get(key);
-  if (!arr) { arr = []; buckets.set(key, arr); }
+  if (!arr) {
+    arr = [];
+    buckets.set(key, arr);
+  }
   if (arr.length >= PER_BUCKET) continue;
   arr.push(line);
   kept++;
 }
-console.log(`\nScanned ${scanned.toLocaleString()} rows, curated ${kept} across ${buckets.size} buckets.`);
+console.log(
+  `\nScanned ${scanned.toLocaleString()} rows, curated ${kept} across ${buckets.size} buckets.`,
+);
 
 mkdirSync("data", { recursive: true });
 const rows = [HEADER, ...[...buckets.values()].flat()];
-await pipeline(Readable.from(rows.map((r) => r + "\n")), createGzip({ level: 9 }), createWriteStream(OUT));
-console.log(`✅ Wrote ${OUT} (${kept} puzzles). Commit it, then:  pnpm db:import-puzzles  &&  pnpm db:import-homework`);
+await pipeline(
+  Readable.from(rows.map((r) => r + "\n")),
+  createGzip({ level: 9 }),
+  createWriteStream(OUT),
+);
+console.log(
+  `✅ Wrote ${OUT} (${kept} puzzles). Commit it, then:  pnpm db:import-puzzles  &&  pnpm db:import-homework`,
+);

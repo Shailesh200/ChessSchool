@@ -12,16 +12,18 @@ import { markRehydrateReady } from "@/core/hooks/useRehydrateReady";
 let bootstrapPromise: Promise<void> | null = null;
 let lastAppliedKey = "";
 
-function settingsKey(s: Pick<
-  SettingsState,
-  | "colorblind"
-  | "reducedMotion"
-  | "textScale"
-  | "highContrast"
-  | "boardTheme"
-  | "schoolTheme"
-  | "appTheme"
->): string {
+function settingsKey(
+  s: Pick<
+    SettingsState,
+    | "colorblind"
+    | "reducedMotion"
+    | "textScale"
+    | "highContrast"
+    | "boardTheme"
+    | "schoolTheme"
+    | "appTheme"
+  >,
+): string {
   return [
     s.colorblind,
     s.reducedMotion,
@@ -34,16 +36,18 @@ function settingsKey(s: Pick<
 }
 
 /** Apply theme + accessibility attrs to <html> (shared by bootstrap + settings effect). */
-export function applyDocumentSettings(s: Pick<
-  SettingsState,
-  | "colorblind"
-  | "reducedMotion"
-  | "textScale"
-  | "highContrast"
-  | "boardTheme"
-  | "schoolTheme"
-  | "appTheme"
->): void {
+export function applyDocumentSettings(
+  s: Pick<
+    SettingsState,
+    | "colorblind"
+    | "reducedMotion"
+    | "textScale"
+    | "highContrast"
+    | "boardTheme"
+    | "schoolTheme"
+    | "appTheme"
+  >,
+): void {
   if (typeof document === "undefined") return;
   const key = settingsKey(s);
   if (key === lastAppliedKey) return;

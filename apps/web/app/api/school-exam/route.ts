@@ -11,10 +11,16 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: Request) {
   const stage = new URL(req.url).searchParams.get("stage") ?? "elementary";
-  const sems = await db.select({ id: semesters.id }).from(semesters).where(eq(semesters.stage, stage));
+  const sems = await db
+    .select({ id: semesters.id })
+    .from(semesters)
+    .where(eq(semesters.stage, stage));
   const semIds = sems.map((s) => s.id);
   if (!semIds.length) return NextResponse.json({ steps: [] });
-  const cls = await db.select({ id: classes.id }).from(classes).where(inArray(classes.semesterId, semIds));
+  const cls = await db
+    .select({ id: classes.id })
+    .from(classes)
+    .where(inArray(classes.semesterId, semIds));
   const clsIds = cls.map((c) => c.id);
   if (!clsIds.length) return NextResponse.json({ steps: [] });
   // Sample random lessons (not all — a stage can have thousands).
@@ -29,7 +35,8 @@ export async function GET(req: Request) {
   for (const l of les) {
     try {
       for (const s of JSON.parse(l.steps)) {
-        if (s.kind === "move" && Array.isArray(s.solution) && s.solution.length) moveSteps.push(s);
+        if (s.kind === "move" && Array.isArray(s.solution) && s.solution.length)
+          moveSteps.push(s);
       }
     } catch {
       /* skip */
@@ -40,6 +47,8 @@ export async function GET(req: Request) {
     const j = Math.floor(Math.random() * (i + 1));
     [moveSteps[i], moveSteps[j]] = [moveSteps[j], moveSteps[i]];
   }
-  const steps = moveSteps.slice(0, 8).map((s, i) => ({ ...(s as object), id: `ex${i}`, tag: "exam" }));
+  const steps = moveSteps
+    .slice(0, 8)
+    .map((s, i) => ({ ...(s as object), id: `ex${i}`, tag: "exam" }));
   return NextResponse.json({ steps });
 }

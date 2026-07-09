@@ -13,7 +13,10 @@ import { Chess } from "chess.js";
 import { SEMESTERS as CURATED_SEMS } from "../content/data/school.mjs";
 import { LESSONS as CURATED_LESSONS } from "../content/data/lessons.mjs";
 
-const PRESCHOOL_LESSON_ORDER = CURATED_SEMS.find((s) => s.id === "sem-preschool")?.classes.flatMap((c) => c.lessonIds) ?? [];
+const PRESCHOOL_LESSON_ORDER =
+  CURATED_SEMS.find((s) => s.id === "sem-preschool")?.classes.flatMap(
+    (c) => c.lessonIds,
+  ) ?? [];
 
 function preschoolPrerequisite(lessonId) {
   const idx = PRESCHOOL_LESSON_ORDER.indexOf(lessonId);
@@ -128,7 +131,11 @@ function genCapture() {
     return null;
   }
   if (g.isAttacked(bkSq, "w")) return null;
-  if (!g.moves({ square: from, verbose: true }).some((m) => m.to === to && m.flags.includes("c")))
+  if (
+    !g
+      .moves({ square: from, verbose: true })
+      .some((m) => m.to === to && m.flags.includes("c"))
+  )
     return null;
   return {
     tag: "capture",
@@ -189,9 +196,20 @@ function genCheck() {
   };
 }
 
-const KNIGHT_OFFS = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+const KNIGHT_OFFS = [
+  [1, 2],
+  [2, 1],
+  [2, -1],
+  [1, -2],
+  [-1, -2],
+  [-2, -1],
+  [-2, 1],
+  [-1, 2],
+];
 function knightTargets(f, r) {
-  return KNIGHT_OFFS.map(([df, dr]) => ({ f: f + df, r: r + dr })).filter((s) => s.f >= 0 && s.f < 8 && s.r >= 1 && s.r <= 8);
+  return KNIGHT_OFFS.map(([df, dr]) => ({ f: f + df, r: r + dr })).filter(
+    (s) => s.f >= 0 && s.f < 8 && s.r >= 1 && s.r <= 8,
+  );
 }
 
 // Knight fork: a knight move that checks the king AND attacks a queen/rook.
@@ -203,18 +221,39 @@ function genFork() {
     if (tg.length < 3) continue;
     const sh = [...tg].sort(() => Math.random() - 0.5);
     const [bk, bp, wn] = sh;
-    const occ = new Set([sq(fs.f, fs.r), sq(bk.f, bk.r), sq(bp.f, bp.r), sq(wn.f, wn.r)]);
+    const occ = new Set([
+      sq(fs.f, fs.r),
+      sq(bk.f, bk.r),
+      sq(bp.f, bp.r),
+      sq(wn.f, wn.r),
+    ]);
     let wk = null;
     for (let i = 0; i < 60; i++) {
       const c = { f: rint(8), r: 1 + rint(8) };
-      if (!occ.has(sq(c.f, c.r)) && cheb(c, bk) >= 2 && cheb(c, fs) >= 1) { wk = c; break; }
+      if (!occ.has(sq(c.f, c.r)) && cheb(c, bk) >= 2 && cheb(c, fs) >= 1) {
+        wk = c;
+        break;
+      }
     }
     if (!wk) continue;
-    const fen = buildFen([{ ...wk, p: "K" }, { f: bk.f, r: bk.r, p: "k" }, { f: bp.f, r: bp.r, p: pieceType }, { f: wn.f, r: wn.r, p: "N" }], "w");
+    const fen = buildFen(
+      [
+        { ...wk, p: "K" },
+        { f: bk.f, r: bk.r, p: "k" },
+        { f: bp.f, r: bp.r, p: pieceType },
+        { f: wn.f, r: wn.r, p: "N" },
+      ],
+      "w",
+    );
     let g;
-    try { g = new Chess(fen); } catch { continue; }
+    try {
+      g = new Chess(fen);
+    } catch {
+      continue;
+    }
     if (g.isAttacked(sq(bk.f, bk.r), "w")) continue;
-    const from = sq(wn.f, wn.r), to = sq(fs.f, fs.r);
+    const from = sq(wn.f, wn.r),
+      to = sq(fs.f, fs.r);
     if (!g.moves({ square: from, verbose: true }).some((m) => m.to === to)) continue;
     const c = new Chess(fen);
     c.move({ from, to });
@@ -226,7 +265,17 @@ function genFork() {
       emoji: "🍴",
       xp: 12,
       steps: [
-        moveStep("fork", `Your knight can check the king AND attack the ${PIECE_NAME[pieceType]} in one move. Find the fork!`, fen, [`${from}:${to}`], { highlight: [sq(bp.f, bp.r), sq(bk.f, bk.r)], tag: "fork", successText: "Beautiful fork — you win the piece!" }),
+        moveStep(
+          "fork",
+          `Your knight can check the king AND attack the ${PIECE_NAME[pieceType]} in one move. Find the fork!`,
+          fen,
+          [`${from}:${to}`],
+          {
+            highlight: [sq(bp.f, bp.r), sq(bk.f, bk.r)],
+            tag: "fork",
+            successText: "Beautiful fork — you win the piece!",
+          },
+        ),
       ],
     };
   }
@@ -259,11 +308,17 @@ function genPromotion() {
       emoji: "👑",
       xp: 12,
       steps: [
-        moveStep("promote", "Push the pawn to the last rank and promote to a queen!", fen, [`${from}:${to}`], {
-          highlight: [to],
-          tag: "promotion",
-          successText: "A brand-new queen!",
-        }),
+        moveStep(
+          "promote",
+          "Push the pawn to the last rank and promote to a queen!",
+          fen,
+          [`${from}:${to}`],
+          {
+            highlight: [to],
+            tag: "promotion",
+            successText: "A brand-new queen!",
+          },
+        ),
       ],
     };
   }
@@ -312,11 +367,17 @@ function genBackRankMate() {
       emoji: "♛",
       xp: 15,
       steps: [
-        moveStep("mate", "The king is trapped on the back rank by its own pawns. Deliver mate!", fen, [`${from}:${to}`], {
-          highlight: [sq(kf, 8)],
-          tag: "checkmate",
-          successText: "Checkmate!",
-        }),
+        moveStep(
+          "mate",
+          "The king is trapped on the back rank by its own pawns. Deliver mate!",
+          fen,
+          [`${from}:${to}`],
+          {
+            highlight: [sq(kf, 8)],
+            tag: "checkmate",
+            successText: "Checkmate!",
+          },
+        ),
       ],
     };
   }
@@ -324,15 +385,40 @@ function genBackRankMate() {
 }
 
 const OPENINGS = [
-  ["Italian Game", "1.e4 e5 2.Nf3 Nc6 3.Bc4", "🇮🇹", ["e2:e4", "e7:e5", "g1:f3", "b8:c6", "f1:c4"]],
-  ["Ruy Lopez", "1.e4 e5 2.Nf3 Nc6 3.Bb5", "🇪🇸", ["e2:e4", "e7:e5", "g1:f3", "b8:c6", "f1:b5"]],
-  ["Sicilian Defense", "The Open Sicilian", "⚔️", ["e2:e4", "c7:c5", "g1:f3", "d7:d6", "d2:d4", "c5:d4", "f3:d4", "g8:f6", "b1:c3"]],
+  [
+    "Italian Game",
+    "1.e4 e5 2.Nf3 Nc6 3.Bc4",
+    "🇮🇹",
+    ["e2:e4", "e7:e5", "g1:f3", "b8:c6", "f1:c4"],
+  ],
+  [
+    "Ruy Lopez",
+    "1.e4 e5 2.Nf3 Nc6 3.Bb5",
+    "🇪🇸",
+    ["e2:e4", "e7:e5", "g1:f3", "b8:c6", "f1:b5"],
+  ],
+  [
+    "Sicilian Defense",
+    "The Open Sicilian",
+    "⚔️",
+    ["e2:e4", "c7:c5", "g1:f3", "d7:d6", "d2:d4", "c5:d4", "f3:d4", "g8:f6", "b1:c3"],
+  ],
   ["French Defense", "1.e4 e6 2.d4 d5", "🇫🇷", ["e2:e4", "e7:e6", "d2:d4", "d7:d5"]],
   ["Caro-Kann", "1.e4 c6 2.d4 d5", "🛡️", ["e2:e4", "c7:c6", "d2:d4", "d7:d5"]],
   ["Scandinavian", "1.e4 d5", "🇩🇰", ["e2:e4", "d7:d5", "e4:d5", "d8:d5", "b1:c3"]],
   ["Queen's Gambit", "1.d4 d5 2.c4", "♕", ["d2:d4", "d7:d5", "c2:c4"]],
-  ["King's Indian", "1.d4 Nf6 2.c4 g6", "🏰", ["d2:d4", "g8:f6", "c2:c4", "g7:g6", "b1:c3", "f8:g7"]],
-  ["London System", "1.d4 d5 2.Nf3 Nf6 3.Bf4", "🌉", ["d2:d4", "d7:d5", "g1:f3", "g8:f6", "c1:f4"]],
+  [
+    "King's Indian",
+    "1.d4 Nf6 2.c4 g6",
+    "🏰",
+    ["d2:d4", "g8:f6", "c2:c4", "g7:g6", "b1:c3", "f8:g7"],
+  ],
+  [
+    "London System",
+    "1.d4 d5 2.Nf3 Nf6 3.Bf4",
+    "🌉",
+    ["d2:d4", "d7:d5", "g1:f3", "g8:f6", "c1:f4"],
+  ],
   ["English Opening", "1.c4 e5 2.Nc3", "🏴", ["c2:c4", "e7:e5", "b1:c3"]],
 ];
 
@@ -350,12 +436,28 @@ function genOpening([name, sub, emoji, moves]) {
     emoji,
     xp: 25,
     steps: [
-      infoStep("intro", `The ${name} — one of chess's great openings. Watch the main line, then play the key move.`, START_FEN),
-      { id: "watch", kind: "observe", coach: `Watch the ${name} unfold move by move.`, fen: START_FEN, moves },
-      moveStep("first", "Now you start it — play the opening's first move.", START_FEN, [moves[0]], {
-        tag: "openings",
-        successText: "Great start!",
-      }),
+      infoStep(
+        "intro",
+        `The ${name} — one of chess's great openings. Watch the main line, then play the key move.`,
+        START_FEN,
+      ),
+      {
+        id: "watch",
+        kind: "observe",
+        coach: `Watch the ${name} unfold move by move.`,
+        fen: START_FEN,
+        moves,
+      },
+      moveStep(
+        "first",
+        "Now you start it — play the opening's first move.",
+        START_FEN,
+        [moves[0]],
+        {
+          tag: "openings",
+          successText: "Great start!",
+        },
+      ),
     ],
   };
 }
@@ -385,7 +487,8 @@ function chunk(arr, size) {
 }
 
 function findKing(g, color) {
-  for (const row of g.board()) for (const c of row) if (c && c.type === "k" && c.color === color) return c.square;
+  for (const row of g.board())
+    for (const c of row) if (c && c.type === "k" && c.color === color) return c.square;
   return null;
 }
 
@@ -398,7 +501,8 @@ function augmentFen(fen, fillers, validate) {
   if (fillers <= 0) return fen;
   let curFen = fen;
   const occ = new Set();
-  for (const row of new Chess(fen).board()) for (const c of row) if (c) occ.add(c.square);
+  for (const row of new Chess(fen).board())
+    for (const c of row) if (c) occ.add(c.square);
   let added = 0;
   let tries = 0;
   while (added < fillers && tries < fillers * 22 + 14) {
@@ -467,25 +571,150 @@ function augmentDrill(drill, fillers) {
 // Famous named mate-in-one patterns (Master). Each is verified (isCheckmate) at
 // seed time; invalid ones are skipped + logged.
 const FAMOUS_MATES = [
-  { name: "Smothered Mate", emoji: "🐴", fen: "6rk/6pp/3N4/8/8/8/8/7K w - - 0 1", solution: "d6:f7", coach: "The king is hemmed in by its own pieces. Nf7 is the famous smothered mate." },
-  { name: "Arabian Mate", emoji: "🏜️", fen: "7k/8/5N2/8/8/8/8/K6R w - - 0 1", solution: "h1:h7", coach: "Rook + knight in the corner: Rh7 — the knight guards the rook and covers g8." },
-  { name: "Back-Rank Mate", emoji: "🎯", fen: "6k1/5ppp/8/8/8/8/8/R6K w - - 0 1", solution: "a1:a8", coach: "The king is trapped behind its own pawns. Ra8 delivers back-rank mate." },
-  { name: "Ladder Mate", emoji: "🪜", fen: "7k/R7/1R6/8/8/8/8/7K w - - 0 1", solution: "b6:b8", coach: "Two rooks climb the board: one seals the 7th rank, the other mates on the 8th." },
-  { name: "Queen Mate", emoji: "👑", fen: "6k1/8/5QK1/8/8/8/8/8 w - - 0 1", solution: "f6:g7", coach: "Bring the queen beside the king, defended by your own king: Qg7 is mate." },
-  { name: "Scholar's Mate", emoji: "🎓", fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w - - 0 1", solution: "h5:f7", coach: "The four-move attack: Qxf7 — the bishop guards the queen. Beware this trap!" },
+  {
+    name: "Smothered Mate",
+    emoji: "🐴",
+    fen: "6rk/6pp/3N4/8/8/8/8/7K w - - 0 1",
+    solution: "d6:f7",
+    coach: "The king is hemmed in by its own pieces. Nf7 is the famous smothered mate.",
+  },
+  {
+    name: "Arabian Mate",
+    emoji: "🏜️",
+    fen: "7k/8/5N2/8/8/8/8/K6R w - - 0 1",
+    solution: "h1:h7",
+    coach:
+      "Rook + knight in the corner: Rh7 — the knight guards the rook and covers g8.",
+  },
+  {
+    name: "Back-Rank Mate",
+    emoji: "🎯",
+    fen: "6k1/5ppp/8/8/8/8/8/R6K w - - 0 1",
+    solution: "a1:a8",
+    coach: "The king is trapped behind its own pawns. Ra8 delivers back-rank mate.",
+  },
+  {
+    name: "Ladder Mate",
+    emoji: "🪜",
+    fen: "7k/R7/1R6/8/8/8/8/7K w - - 0 1",
+    solution: "b6:b8",
+    coach:
+      "Two rooks climb the board: one seals the 7th rank, the other mates on the 8th.",
+  },
+  {
+    name: "Queen Mate",
+    emoji: "👑",
+    fen: "6k1/8/5QK1/8/8/8/8/8 w - - 0 1",
+    solution: "f6:g7",
+    coach: "Bring the queen beside the king, defended by your own king: Qg7 is mate.",
+  },
+  {
+    name: "Scholar's Mate",
+    emoji: "🎓",
+    fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w - - 0 1",
+    solution: "h5:f7",
+    coach:
+      "The four-move attack: Qxf7 — the bishop guards the queen. Beware this trap!",
+  },
 ];
 
 // Famous games (Master) — shown as an "observe" of the brilliant finish.
 const FAMOUS_GAMES = [
   {
-    name: "The Opera Game", sub: "Morphy, 1858",
-    coach: "Morphy's masterpiece: a queen sacrifice (Qb8+!!) sets up a rook mate. Watch the finish.",
-    sans: ["e4", "e5", "Nf3", "d6", "d4", "Bg4", "dxe5", "Bxf3", "Qxf3", "dxe5", "Bc4", "Nf6", "Qb3", "Qe7", "Nc3", "c6", "Bg5", "b5", "Nxb5", "cxb5", "Bxb5+", "Nbd7", "O-O-O", "Rd8", "Rxd7", "Rxd7", "Rd1", "Qe6", "Bxd7+", "Nxd7", "Qb8+", "Nxb8", "Rd8#"],
+    name: "The Opera Game",
+    sub: "Morphy, 1858",
+    coach:
+      "Morphy's masterpiece: a queen sacrifice (Qb8+!!) sets up a rook mate. Watch the finish.",
+    sans: [
+      "e4",
+      "e5",
+      "Nf3",
+      "d6",
+      "d4",
+      "Bg4",
+      "dxe5",
+      "Bxf3",
+      "Qxf3",
+      "dxe5",
+      "Bc4",
+      "Nf6",
+      "Qb3",
+      "Qe7",
+      "Nc3",
+      "c6",
+      "Bg5",
+      "b5",
+      "Nxb5",
+      "cxb5",
+      "Bxb5+",
+      "Nbd7",
+      "O-O-O",
+      "Rd8",
+      "Rxd7",
+      "Rxd7",
+      "Rd1",
+      "Qe6",
+      "Bxd7+",
+      "Nxd7",
+      "Qb8+",
+      "Nxb8",
+      "Rd8#",
+    ],
   },
   {
-    name: "The Evergreen Game", sub: "Anderssen, 1852",
-    coach: "Anderssen's brilliancy ends with Qxd7+!! and a bishop net. Watch the combination.",
-    sans: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4", "Bxb4", "c3", "Ba5", "d4", "exd4", "O-O", "d3", "Qb3", "Qf6", "e5", "Qg6", "Re1", "Nge7", "Ba3", "b5", "Qxb5", "Rb8", "Qa4", "Bb6", "Nbd2", "Bb7", "Ne4", "Qf5", "Bxd3", "Qh5", "Nf6+", "gxf6", "exf6", "Rg8", "Rad1", "Qxf3", "Rxe7+", "Nxe7", "Qxd7+", "Kxd7", "Bf5+", "Ke8", "Bd7+", "Kf8", "Bxe7#"],
+    name: "The Evergreen Game",
+    sub: "Anderssen, 1852",
+    coach:
+      "Anderssen's brilliancy ends with Qxd7+!! and a bishop net. Watch the combination.",
+    sans: [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5",
+      "b4",
+      "Bxb4",
+      "c3",
+      "Ba5",
+      "d4",
+      "exd4",
+      "O-O",
+      "d3",
+      "Qb3",
+      "Qf6",
+      "e5",
+      "Qg6",
+      "Re1",
+      "Nge7",
+      "Ba3",
+      "b5",
+      "Qxb5",
+      "Rb8",
+      "Qa4",
+      "Bb6",
+      "Nbd2",
+      "Bb7",
+      "Ne4",
+      "Qf5",
+      "Bxd3",
+      "Qh5",
+      "Nf6+",
+      "gxf6",
+      "exf6",
+      "Rg8",
+      "Rad1",
+      "Qxf3",
+      "Rxe7+",
+      "Nxe7",
+      "Qxd7+",
+      "Kxd7",
+      "Bf5+",
+      "Ke8",
+      "Bd7+",
+      "Kf8",
+      "Bxe7#",
+    ],
   },
 ];
 
@@ -503,10 +732,27 @@ async function main() {
   // Bundle several drills into one multi-exercise lesson, and scale the lesson
   // count + exercises-per-lesson by difficulty (easy classes are short; harder
   // / higher classes are longer and give more XP).
-  function addThemeSemester(semId, title, blurb, color, stage, pool, classNames, emoji, difficulty) {
+  function addThemeSemester(
+    semId,
+    title,
+    blurb,
+    color,
+    stage,
+    pool,
+    classNames,
+    emoji,
+    difficulty,
+  ) {
     const perLesson = Math.min(difficulty + 1, 6); // exercises (FENs) per lesson
     const perClass = (4 + difficulty * 2) * perLesson; // → 6/8/10/12 lessons per class
-    semesters.push({ id: semId, title, blurb, color, stage, sortOrder: semesters.length });
+    semesters.push({
+      id: semId,
+      title,
+      blurb,
+      color,
+      stage,
+      sortOrder: semesters.length,
+    });
     chunk(pool, perClass).forEach((group, ci) => {
       const classId = `${semId}-c${ci + 1}`;
       const lessonGroups = chunk(group, perLesson);
@@ -526,7 +772,9 @@ async function main() {
       lessonGroups.forEach((drills, li) => {
         // Add pieces (unique per drill) + merge as sequential exercises.
         const rich = drills.map((d) => augmentDrill(d, fillers));
-        const steps = rich.flatMap((d, di) => d.steps.map((s, si) => ({ ...s, id: `e${di}s${si}` })));
+        const steps = rich.flatMap((d, di) =>
+          d.steps.map((s, si) => ({ ...s, id: `e${di}s${si}` })),
+        );
         lessons.push({
           id: `${classId}-l${li + 1}`,
           classId,
@@ -548,20 +796,51 @@ async function main() {
   function addCurated() {
     const byId = new Map(CURATED_LESSONS.map((l) => [l.id, l]));
     const pushLesson = (l, classId, sortOrder, isExam = 0) => {
-      const prereqs = l.id.startsWith("pre-") ? preschoolPrerequisite(l.id) : (l.prerequisites ?? []);
+      const prereqs = l.id.startsWith("pre-")
+        ? preschoolPrerequisite(l.id)
+        : (l.prerequisites ?? []);
       lessons.push({
-        id: l.id, classId, title: l.title, subtitle: l.subtitle, emoji: l.emoji,
-        tag: l.tag, xp: l.xp, isExam,
+        id: l.id,
+        classId,
+        title: l.title,
+        subtitle: l.subtitle,
+        emoji: l.emoji,
+        tag: l.tag,
+        xp: l.xp,
+        isExam,
         prerequisites: JSON.stringify(prereqs),
-        steps: JSON.stringify(l.steps), sortOrder,
+        steps: JSON.stringify(l.steps),
+        sortOrder,
       });
     };
     for (const sem of CURATED_SEMS) {
-      semesters.push({ id: sem.id, title: sem.title, blurb: sem.blurb, color: sem.color, stage: sem.stage, sortOrder: semesters.length });
+      semesters.push({
+        id: sem.id,
+        title: sem.title,
+        blurb: sem.blurb,
+        color: sem.color,
+        stage: sem.stage,
+        sortOrder: semesters.length,
+      });
       for (const cls of sem.classes) {
-        classes.push({ id: cls.id, semesterId: sem.id, title: cls.title, emoji: cls.emoji, blurb: cls.blurb, difficulty: cls.difficulty ?? 1, examId: cls.examId ?? null, sortOrder: cOrder++ });
-        cls.lessonIds.forEach((lid, li) => { const l = byId.get(lid); if (l) pushLesson(l, cls.id, li); });
-        if (cls.examId) { const ex = byId.get(cls.examId); if (ex) pushLesson(ex, cls.id, 99, 1); }
+        classes.push({
+          id: cls.id,
+          semesterId: sem.id,
+          title: cls.title,
+          emoji: cls.emoji,
+          blurb: cls.blurb,
+          difficulty: cls.difficulty ?? 1,
+          examId: cls.examId ?? null,
+          sortOrder: cOrder++,
+        });
+        cls.lessonIds.forEach((lid, li) => {
+          const l = byId.get(lid);
+          if (l) pushLesson(l, cls.id, li);
+        });
+        if (cls.examId) {
+          const ex = byId.get(cls.examId);
+          if (ex) pushLesson(ex, cls.id, 99, 1);
+        }
       }
     }
   }
@@ -569,20 +848,60 @@ async function main() {
 
   // Openings — one class per opening, now with several lessons each (watch the
   // line + play its key moves as puzzles).
-  semesters.push({ id: "sem-gen-openings", title: "Opening Theory", blurb: "The famous openings", color: "#f59e0b", stage: "high", sortOrder: semesters.length });
+  semesters.push({
+    id: "sem-gen-openings",
+    title: "Opening Theory",
+    blurb: "The famous openings",
+    color: "#f59e0b",
+    stage: "high",
+    sortOrder: semesters.length,
+  });
   OPENINGS.forEach(([name, sub, emoji, moves], oi) => {
     const verify = new Chess();
     let ok = true;
-    for (const mv of moves) { const [f, t] = mv.split(":"); if (!verify.move({ from: f, to: t, promotion: "q" })) { ok = false; break; } }
+    for (const mv of moves) {
+      const [f, t] = mv.split(":");
+      if (!verify.move({ from: f, to: t, promotion: "q" })) {
+        ok = false;
+        break;
+      }
+    }
     if (!ok) return;
     const classId = `sem-gen-openings-c${oi + 1}`;
-    classes.push({ id: classId, semesterId: "sem-gen-openings", title: name, emoji, blurb: sub, difficulty: 2, sortOrder: cOrder++ });
+    classes.push({
+      id: classId,
+      semesterId: "sem-gen-openings",
+      title: name,
+      emoji,
+      blurb: sub,
+      difficulty: 2,
+      sortOrder: cOrder++,
+    });
     // Lesson 1 — watch the main line.
     lessons.push({
-      id: `${classId}-l1`, classId, title: `${name}: Main Line`, subtitle: sub, emoji, tag: "opening", xp: 20, isExam: 0, prerequisites: "[]",
+      id: `${classId}-l1`,
+      classId,
+      title: `${name}: Main Line`,
+      subtitle: sub,
+      emoji,
+      tag: "opening",
+      xp: 20,
+      isExam: 0,
+      prerequisites: "[]",
       steps: JSON.stringify([
-        { id: "intro", kind: "info", coach: `The ${name} — one of chess's great openings. Watch the main line, then play it yourself.`, fen: START_FEN },
-        { id: "watch", kind: "observe", coach: `Watch the ${name} unfold move by move.`, fen: START_FEN, moves },
+        {
+          id: "intro",
+          kind: "info",
+          coach: `The ${name} — one of chess's great openings. Watch the main line, then play it yourself.`,
+          fen: START_FEN,
+        },
+        {
+          id: "watch",
+          kind: "observe",
+          coach: `Watch the ${name} unfold move by move.`,
+          fen: START_FEN,
+          moves,
+        },
       ]),
       sortOrder: 0,
     });
@@ -596,8 +915,30 @@ async function main() {
       replay.move({ from: f, to: t, promotion: "q" });
     }
     chunk(whitePuzzles, 2).forEach((grp, li) => {
-      const steps = grp.map((p, si) => ({ id: `s${si}`, kind: "move", coach: `Play the ${name}'s next book move.`, fen: p.fen, solution: [p.sol], highlight: [p.to], successText: "Right move!", failText: "That's not the main line — try again.", tag: "opening" }));
-      lessons.push({ id: `${classId}-l${li + 2}`, classId, title: `${name}: Key Moves ${li + 1}`, subtitle: `${grp.length} moves`, emoji, tag: "opening", xp: 15, isExam: 0, prerequisites: "[]", steps: JSON.stringify(steps), sortOrder: li + 1 });
+      const steps = grp.map((p, si) => ({
+        id: `s${si}`,
+        kind: "move",
+        coach: `Play the ${name}'s next book move.`,
+        fen: p.fen,
+        solution: [p.sol],
+        highlight: [p.to],
+        successText: "Right move!",
+        failText: "That's not the main line — try again.",
+        tag: "opening",
+      }));
+      lessons.push({
+        id: `${classId}-l${li + 2}`,
+        classId,
+        title: `${name}: Key Moves ${li + 1}`,
+        subtitle: `${grp.length} moves`,
+        emoji,
+        tag: "opening",
+        xp: 15,
+        isExam: 0,
+        prerequisites: "[]",
+        steps: JSON.stringify(steps),
+        sortOrder: li + 1,
+      });
     });
   });
 
@@ -614,17 +955,50 @@ async function main() {
     });
     if (valid.length) {
       console.log(`  famous mates verified: ${valid.length}/${FAMOUS_MATES.length}`);
-      semesters.push({ id: "sem-master-mates", title: "Famous Checkmates", blurb: "The classic mating patterns every master knows", color: "#7c3aed", stage: "master", sortOrder: semesters.length });
+      semesters.push({
+        id: "sem-master-mates",
+        title: "Famous Checkmates",
+        blurb: "The classic mating patterns every master knows",
+        color: "#7c3aed",
+        stage: "master",
+        sortOrder: semesters.length,
+      });
       chunk(valid, 3).forEach((group, ci) => {
         const classId = `sem-master-mates-c${ci + 1}`;
-        classes.push({ id: classId, semesterId: "sem-master-mates", title: `Mating Patterns ${ci + 1}`, emoji: "♚", blurb: `${group.length} patterns`, difficulty: 5, sortOrder: cOrder++ });
+        classes.push({
+          id: classId,
+          semesterId: "sem-master-mates",
+          title: `Mating Patterns ${ci + 1}`,
+          emoji: "♚",
+          blurb: `${group.length} patterns`,
+          difficulty: 5,
+          sortOrder: cOrder++,
+        });
         group.forEach((m, li) => {
           const [f, t] = m.solution.split(":");
           lessons.push({
-            id: `${classId}-l${li + 1}`, classId, title: m.name, subtitle: "Deliver mate in one", emoji: m.emoji, tag: "mate", xp: 20, isExam: 0, prerequisites: "[]",
+            id: `${classId}-l${li + 1}`,
+            classId,
+            title: m.name,
+            subtitle: "Deliver mate in one",
+            emoji: m.emoji,
+            tag: "mate",
+            xp: 20,
+            isExam: 0,
+            prerequisites: "[]",
             steps: JSON.stringify([
               { id: "info", kind: "info", coach: m.coach, fen: m.fen },
-              { id: "mate", kind: "move", coach: `Deliver ${m.name}!`, fen: m.fen, solution: [`${f}:${t}`], highlight: [t], successText: "Checkmate! 🏆", failText: "Not mate — find the finishing move.", tag: "mate" },
+              {
+                id: "mate",
+                kind: "move",
+                coach: `Deliver ${m.name}!`,
+                fen: m.fen,
+                solution: [`${f}:${t}`],
+                highlight: [t],
+                successText: "Checkmate! 🏆",
+                failText: "Not mate — find the finishing move.",
+                tag: "mate",
+              },
             ]),
             sortOrder: li,
           });
@@ -640,27 +1014,67 @@ async function main() {
       const g = new Chess();
       let ok = true;
       for (const san of game.sans) {
-        try { if (!g.move(san)) { ok = false; break; } } catch { ok = false; break; }
+        try {
+          if (!g.move(san)) {
+            ok = false;
+            break;
+          }
+        } catch {
+          ok = false;
+          break;
+        }
       }
       if (ok) valid.push(game);
     }
     if (valid.length) {
       console.log(`  famous games verified: ${valid.length}/${FAMOUS_GAMES.length}`);
-      semesters.push({ id: "sem-master-games", title: "Immortal Games", blurb: "Learn from the masters' brilliancies", color: "#b8860b", stage: "master", sortOrder: semesters.length });
+      semesters.push({
+        id: "sem-master-games",
+        title: "Immortal Games",
+        blurb: "Learn from the masters' brilliancies",
+        color: "#b8860b",
+        stage: "master",
+        sortOrder: semesters.length,
+      });
       const classId = "sem-master-games-c1";
-      classes.push({ id: classId, semesterId: "sem-master-games", title: "Brilliant Finishes", emoji: "🎭", blurb: `${valid.length} games`, difficulty: 5, sortOrder: cOrder++ });
+      classes.push({
+        id: classId,
+        semesterId: "sem-master-games",
+        title: "Brilliant Finishes",
+        emoji: "🎭",
+        blurb: `${valid.length} games`,
+        difficulty: 5,
+        sortOrder: cOrder++,
+      });
       valid.forEach((game, gi) => {
         const r = new Chess();
         const start = Math.max(0, game.sans.length - 7);
         for (let i = 0; i < start; i++) r.move(game.sans[i]);
         const fen = r.fen();
         const moves = [];
-        for (let i = start; i < game.sans.length; i++) { const mv = r.move(game.sans[i]); moves.push(`${mv.from}:${mv.to}`); }
+        for (let i = start; i < game.sans.length; i++) {
+          const mv = r.move(game.sans[i]);
+          moves.push(`${mv.from}:${mv.to}`);
+        }
         lessons.push({
-          id: `${classId}-l${gi + 1}`, classId, title: game.name, subtitle: game.sub, emoji: "🎭", tag: "famous", xp: 25, isExam: 0, prerequisites: "[]",
+          id: `${classId}-l${gi + 1}`,
+          classId,
+          title: game.name,
+          subtitle: game.sub,
+          emoji: "🎭",
+          tag: "famous",
+          xp: 25,
+          isExam: 0,
+          prerequisites: "[]",
           steps: JSON.stringify([
             { id: "intro", kind: "info", coach: game.coach, fen },
-            { id: "watch", kind: "observe", coach: "Watch the combination unfold…", fen, moves },
+            {
+              id: "watch",
+              kind: "observe",
+              coach: "Watch the combination unfold…",
+              fen,
+              moves,
+            },
           ]),
           sortOrder: gi,
         });
@@ -668,14 +1082,40 @@ async function main() {
     }
   }
 
-  console.log(`\nTotals: ${semesters.length} semesters · ${classes.length} classes · ${lessons.length} lessons`);
+  console.log(
+    `\nTotals: ${semesters.length} semesters · ${classes.length} classes · ${lessons.length} lessons`,
+  );
 
-  const SEM_SQL = "INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES (?,?,?,?,?,?)";
-  const CLASS_SQL = "INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,exam_id,sort_order) VALUES (?,?,?,?,?,?,?,?)";
-  const LESSON_SQL = "INSERT INTO lessons (id,class_id,title,subtitle,emoji,tag,xp,is_exam,prerequisites,steps,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+  const SEM_SQL =
+    "INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES (?,?,?,?,?,?)";
+  const CLASS_SQL =
+    "INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,exam_id,sort_order) VALUES (?,?,?,?,?,?,?,?)";
+  const LESSON_SQL =
+    "INSERT INTO lessons (id,class_id,title,subtitle,emoji,tag,xp,is_exam,prerequisites,steps,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
   const semArgs = (s) => [s.id, s.title, s.blurb, s.color, s.stage, s.sortOrder];
-  const classArgs = (c) => [c.id, c.semesterId, c.title, c.emoji, c.blurb, c.difficulty, c.examId ?? null, c.sortOrder];
-  const lessonArgs = (l) => [l.id, l.classId, l.title, l.subtitle, l.emoji, l.tag, l.xp, l.isExam, l.prerequisites, l.steps, l.sortOrder];
+  const classArgs = (c) => [
+    c.id,
+    c.semesterId,
+    c.title,
+    c.emoji,
+    c.blurb,
+    c.difficulty,
+    c.examId ?? null,
+    c.sortOrder,
+  ];
+  const lessonArgs = (l) => [
+    l.id,
+    l.classId,
+    l.title,
+    l.subtitle,
+    l.emoji,
+    l.tag,
+    l.xp,
+    l.isExam,
+    l.prerequisites,
+    l.steps,
+    l.sortOrder,
+  ];
 
   const rawUrl = process.env.DATABASE_URL ?? "file:local.db";
   const isRemote = rawUrl.startsWith("libsql:") || rawUrl.startsWith("http");
@@ -683,8 +1123,14 @@ async function main() {
   if (isRemote) {
     // ── Turso / libSQL (async, batched) ──────────────────────────────────────
     const { createClient } = await import("@libsql/client");
-    const client = createClient({ url: rawUrl, authToken: process.env.DATABASE_AUTH_TOKEN });
-    await client.batch(["DELETE FROM lessons", "DELETE FROM classes", "DELETE FROM semesters"], "write");
+    const client = createClient({
+      url: rawUrl,
+      authToken: process.env.DATABASE_AUTH_TOKEN,
+    });
+    await client.batch(
+      ["DELETE FROM lessons", "DELETE FROM classes", "DELETE FROM semesters"],
+      "write",
+    );
     const stmts = [
       ...semesters.map((s) => ({ sql: SEM_SQL, args: semArgs(s) })),
       ...classes.map((c) => ({ sql: CLASS_SQL, args: classArgs(c) })),
@@ -692,7 +1138,9 @@ async function main() {
     ];
     for (let i = 0; i < stmts.length; i += 400) {
       await client.batch(stmts.slice(i, i + 400), "write");
-      process.stdout.write(`\r  inserting… ${Math.min(i + 400, stmts.length)}/${stmts.length}`);
+      process.stdout.write(
+        `\r  inserting… ${Math.min(i + 400, stmts.length)}/${stmts.length}`,
+      );
     }
     console.log(`\n✅ Seeded ${lessons.length} lessons into ${rawUrl}`);
     return;

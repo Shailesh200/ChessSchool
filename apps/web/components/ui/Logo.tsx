@@ -1,7 +1,13 @@
 import { cn } from "./cn";
 
 /** ChessSchool wordmark + academic crest (graduation cap over a rook). */
-export function Logo({ className, withText = true }: { className?: string; withText?: boolean }) {
+export function Logo({
+  className,
+  withText = true,
+}: {
+  className?: string;
+  withText?: boolean;
+}) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <svg viewBox="0 0 40 40" width={32} height={32} aria-hidden>
@@ -18,7 +24,7 @@ export function Logo({ className, withText = true }: { className?: string; withT
         <path d="M31 12 v4" stroke="#f6c343" strokeWidth="1" />
       </svg>
       {withText && (
-        <span className="text-xl font-extrabold tracking-tight text-ink">
+        <span className="text-ink text-xl font-extrabold tracking-tight">
           Chess<span className="text-brand">School</span>
         </span>
       )}

@@ -1,5 +1,11 @@
 import { JsonLd } from "@/components/seo/JsonLd";
-import { HOME_DESCRIPTION, HOME_TITLE, SEO_KEYWORDS, siteName, siteUrl } from "@/lib/seo";
+import {
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  SEO_KEYWORDS,
+  siteName,
+  siteUrl,
+} from "@/lib/seo";
 
 /** Homepage structured data for Google (WebSite + educational org). */
 export function SiteJsonLd() {
@@ -16,8 +22,16 @@ export function SiteJsonLd() {
           inLanguage: "en",
           keywords: SEO_KEYWORDS.join(", "),
           hasPart: [
-            { "@type": "WebPage", name: "Learn Chess Online", url: `${siteUrl}/learn-chess` },
-            { "@type": "WebPage", name: "Chess for Beginners", url: `${siteUrl}/chess-for-beginners` },
+            {
+              "@type": "WebPage",
+              name: "Learn Chess Online",
+              url: `${siteUrl}/learn-chess`,
+            },
+            {
+              "@type": "WebPage",
+              name: "Chess for Beginners",
+              url: `${siteUrl}/chess-for-beginners`,
+            },
             { "@type": "WebPage", name: "Lesson Library", url: `${siteUrl}/library` },
           ],
         }}

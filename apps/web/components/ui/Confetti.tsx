@@ -6,7 +6,13 @@ import { useSettings } from "@/core/store/settings.store";
 const COLORS = ["#5b5bd6", "#ff7a59", "#34d399", "#f6c343", "#fb7185", "#7b6ff0"];
 
 /** Pure-motion confetti burst — no external library, respects reduced motion. */
-export function Confetti({ count = 28, active = true }: { count?: number; active?: boolean }) {
+export function Confetti({
+  count = 28,
+  active = true,
+}: {
+  count?: number;
+  active?: boolean;
+}) {
   const reduced = useSettings((s) => s.reducedMotion);
   if (!active || reduced) return null;
 
@@ -22,7 +28,7 @@ export function Confetti({ count = 28, active = true }: { count?: number; active
         return (
           <motion.span
             key={i}
-            className="absolute left-1/2 top-1/2 rounded-[2px]"
+            className="absolute top-1/2 left-1/2 rounded-[2px]"
             style={{ width: size, height: size * 1.6, backgroundColor: color }}
             initial={{ x: 0, y: 0, opacity: 1, rotate: 0, scale: 1 }}
             animate={{

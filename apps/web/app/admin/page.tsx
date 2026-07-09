@@ -16,15 +16,15 @@ export default async function AdminPage() {
 
   if (user.role !== "admin") {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface px-6 text-center">
+      <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
         <Logo />
-        <h1 className="text-2xl font-extrabold text-ink">Admin access required</h1>
-        <p className="max-w-sm text-sm font-semibold text-ink-500">
-          You&apos;re signed in as <b>{user.name}</b> (role: {user.role}). To become an admin, set
-          your user&apos;s <code>role</code> to <code>admin</code> — run <code>pnpm db:studio</code>,
-          open the <code>users</code> table, and change it.
+        <h1 className="text-ink text-2xl font-extrabold">Admin access required</h1>
+        <p className="text-ink-500 max-w-sm text-sm font-semibold">
+          You&apos;re signed in as <b>{user.name}</b> (role: {user.role}). To become an
+          admin, set your user&apos;s <code>role</code> to <code>admin</code> — run{" "}
+          <code>pnpm db:studio</code>, open the <code>users</code> table, and change it.
         </p>
-        <Link href="/" className="font-bold text-brand">
+        <Link href="/" className="text-brand font-bold">
           ← Back to campus
         </Link>
       </div>
@@ -33,7 +33,14 @@ export default async function AdminPage() {
 
   const sems = await db.select().from(semesters).orderBy(asc(semesters.sortOrder));
   const cls = await db.select().from(classes).orderBy(asc(classes.sortOrder));
-  const allLessons = await db.select({ id: lessons.id, classId: lessons.classId, title: lessons.title, tag: lessons.tag }).from(lessons);
+  const allLessons = await db
+    .select({
+      id: lessons.id,
+      classId: lessons.classId,
+      title: lessons.title,
+      tag: lessons.tag,
+    })
+    .from(lessons);
   const userCount = (await db.select({ id: users.id }).from(users)).length;
   const adminLessons = allLessons.filter((l) => l.tag === "admin");
 

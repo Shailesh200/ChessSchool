@@ -1,7 +1,13 @@
 import { isoDay } from "@/core/store/progression.store";
 
 const WEEKS = 13;
-const LEVEL_COLORS = ["var(--surface-sunken)", "#c7d2fe", "#a5b4fc", "#818cf8", "#5b5bd6"];
+const LEVEL_COLORS = [
+  "var(--surface-sunken)",
+  "#c7d2fe",
+  "#a5b4fc",
+  "#818cf8",
+  "#5b5bd6",
+];
 
 function level(xp: number): number {
   if (xp === 0) return 0;
@@ -12,7 +18,13 @@ function level(xp: number): number {
 }
 
 /** GitHub-style activity heatmap of the last ~13 weeks (XP earned per day). */
-export function StreakHeatmap({ activityDays, today }: { activityDays: Record<string, number>; today: Date }) {
+export function StreakHeatmap({
+  activityDays,
+  today,
+}: {
+  activityDays: Record<string, number>;
+  today: Date;
+}) {
   const start = new Date(today);
   start.setDate(today.getDate() - (WEEKS * 7 - 1));
   const cells: { day: string; xp: number }[] = [];
@@ -42,10 +54,14 @@ export function StreakHeatmap({ activityDays, today }: { activityDays: Record<st
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-end gap-1 text-[10px] font-semibold text-ink-500">
+      <div className="text-ink-500 flex items-center justify-end gap-1 text-[10px] font-semibold">
         <span>Less</span>
         {LEVEL_COLORS.map((c, i) => (
-          <span key={i} className="h-2.5 w-2.5 rounded-[2px]" style={{ background: c }} />
+          <span
+            key={i}
+            className="h-2.5 w-2.5 rounded-[2px]"
+            style={{ background: c }}
+          />
         ))}
         <span>More</span>
       </div>

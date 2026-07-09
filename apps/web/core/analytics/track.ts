@@ -56,7 +56,9 @@ function flush() {
     events: batch.map((e) => ({
       name: e.name,
       props: e.props,
-      pathname: e.pathname ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+      pathname:
+        e.pathname ??
+        (typeof window !== "undefined" ? window.location.pathname : undefined),
       sessionId: analyticsSessionId(),
     })),
   });
@@ -74,7 +76,10 @@ function flush() {
 }
 
 /** Queue a product analytics event (debounced batch POST). */
-export function trackEvent(name: AnalyticsEventName, props?: Record<string, unknown>): void {
+export function trackEvent(
+  name: AnalyticsEventName,
+  props?: Record<string, unknown>,
+): void {
   if (typeof window === "undefined") return;
   queue.push({ name, props });
   clearTimeout(timer);

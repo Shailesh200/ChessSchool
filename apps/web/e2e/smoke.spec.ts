@@ -3,7 +3,9 @@ import { test, expect } from "@playwright/test";
 test("campus map renders resume card, semesters and classes", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Daily goal")).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Your place in school" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Your place in school" }),
+  ).toBeVisible();
   await expect(page.getByText("Foundations").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
 });
@@ -11,7 +13,7 @@ test("campus map renders resume card, semesters and classes", async ({ page }) =
 test("class journey shows the milestone path", async ({ page }) => {
   await page.goto("/class/class-pieces");
   await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
-  await expect(page.getByText(/lessons/)).toBeVisible();
+  await expect(page.getByText(/lessons/).first()).toBeVisible();
   await expect(page.getByText("The Battlefield")).toBeVisible();
 });
 

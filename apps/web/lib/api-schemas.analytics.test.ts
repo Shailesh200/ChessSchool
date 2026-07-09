@@ -17,7 +17,9 @@ describe("vitalsBatchSchema", () => {
 describe("analyticsBatchSchema", () => {
   it("accepts lesson_complete with props", () => {
     const parsed = analyticsBatchSchema.safeParse({
-      events: [{ name: "lesson_complete", props: { lessonId: "pre-board-intro", ratio: 1 } }],
+      events: [
+        { name: "lesson_complete", props: { lessonId: "pre-board-intro", ratio: 1 } },
+      ],
     });
     expect(parsed.success).toBe(true);
   });

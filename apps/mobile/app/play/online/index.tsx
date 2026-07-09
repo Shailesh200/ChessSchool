@@ -22,7 +22,7 @@ export default function OnlineLobbyScreen() {
       const { id, seatToken } = await api<{ id: string; seatToken: string }>("/api/session", { method: "POST" });
       router.replace({ pathname: "/play/online/[id]", params: { id, color: "w", seatToken } });
     } catch {
-      setErr("Couldn't create a game. Check your connection.");
+      setErr("Couldn't create a game. Log in to play online.");
       setBusy(null);
     }
   }

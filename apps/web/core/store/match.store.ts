@@ -29,7 +29,12 @@ export interface ActiveMatch {
 
 interface MatchStore {
   active: ActiveMatch | null;
-  start: (mode: MatchMode, targetElo: number, timeControlMin: number, fromHomework?: boolean) => void;
+  start: (
+    mode: MatchMode,
+    targetElo: number,
+    timeControlMin: number,
+    fromHomework?: boolean,
+  ) => void;
   sync: (patch: { fen: string; pgn: string; from?: string; to?: string }) => void;
   setClocks: (whiteMs: number, blackMs: number) => void;
   markFinished: () => void;

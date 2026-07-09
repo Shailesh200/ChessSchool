@@ -35,7 +35,9 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
   const dailyGoalXp = useProgression((s) => s.dailyGoalXp);
   const streak = useProgression((s) => s.streak);
-  const [homeworkByType, setHomeworkByType] = useState<Record<string, { id: string; title: string; tag: string }[]>>({});
+  const [homeworkByType, setHomeworkByType] = useState<
+    Record<string, { id: string; title: string; tag: string }[]>
+  >({});
   const [lessonTag, setLessonTag] = useState<Record<string, string>>({}); // lessonId -> concept tag
 
   useEffect(() => {
@@ -47,7 +49,9 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         const map: Record<string, string> = {};
-        for (const [tag, ids] of Object.entries((d?.lessonsByTag ?? {}) as Record<string, string[]>))
+        for (const [tag, ids] of Object.entries(
+          (d?.lessonsByTag ?? {}) as Record<string, string[]>,
+        ))
           for (const id of ids) map[id] = tag;
         setLessonTag(map);
       })
@@ -64,7 +68,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   if (!mounted) {
     return (
       <AppShell>
-        <div className="skeleton h-96 rounded-card" />
+        <div className="skeleton rounded-card h-96" />
       </AppShell>
     );
   }
@@ -84,8 +88,13 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   // A different homework lesson each day per routine type (rotates by day number).
   // Drawn from topics already learned; "lesson" reviews across all types.
   const dayIndex = Math.floor(Date.parse(isoDay() + "T00:00:00Z") / 86400000);
-  const pickHomework = (type: string): { id: string; title: string; tag: string } | null => {
-    const pool = type === "lesson" ? Object.values(homeworkByType).flat() : homeworkByType[type] ?? [];
+  const pickHomework = (
+    type: string,
+  ): { id: string; title: string; tag: string } | null => {
+    const pool =
+      type === "lesson"
+        ? Object.values(homeworkByType).flat()
+        : (homeworkByType[type] ?? []);
     const learned = pool.filter((h) => learnedConcepts.has(h.tag));
     const usable = learned.length ? learned : pool; // fall back to all while nothing's learned yet
     return usable.length ? usable[dayIndex % usable.length]! : null;
@@ -102,35 +111,47 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
     <AppShell>
       <div className="flex flex-col gap-5">
         <BackButton />
-        <h1 className="text-xl font-extrabold text-ink">Homework</h1>
+        <h1 className="text-ink text-xl font-extrabold">Homework</h1>
 
         {/* Today's progress toward the goal */}
         <Card>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-extrabold text-ink">🎯 Today&apos;s goal</span>
-            <span className="text-xs font-bold text-ink-500">
+            <span className="text-ink text-sm font-extrabold">
+              🎯 Today&apos;s goal
+            </span>
+            <span className="text-ink-500 text-xs font-bold">
               {Math.min(todayXp, dailyGoalXp)}/{dailyGoalXp} XP
             </span>
           </div>
-          <ProgressBar className="mt-2" tone="gold" value={todayXp} max={dailyGoalXp} label="Daily goal progress" />
-          <div className="mt-3 flex items-center gap-2 text-xs font-bold text-ink-700">
-            <span className="rounded-pill bg-accent/10 px-2 py-1 text-accent-600">🔥 {streak}-day streak</span>
+          <ProgressBar
+            className="mt-2"
+            tone="gold"
+            value={todayXp}
+            max={dailyGoalXp}
+            label="Daily goal progress"
+          />
+          <div className="text-ink-700 mt-3 flex items-center gap-2 text-xs font-bold">
+            <span className="rounded-pill bg-accent/10 text-accent-600 px-2 py-1">
+              🔥 {streak}-day streak
+            </span>
             <span className="rounded-pill bg-surface-sunken px-2 py-1">
-              {todayXp >= dailyGoalXp ? "Goal reached — well done! 🎉" : `${dailyGoalXp - todayXp} XP to go`}
+              {todayXp >= dailyGoalXp
+                ? "Goal reached — well done! 🎉"
+                : `${dailyGoalXp - todayXp} XP to go`}
             </span>
           </div>
         </Card>
 
         {daysAway >= 2 && (
           <Card className="border-accent-400 bg-accent/5">
-            <p className="text-sm font-extrabold text-accent-600">👋 Welcome back!</p>
-            <p className="mt-1 text-xs font-semibold text-ink-700">
-              You were away {daysAway} days — no problem, no penalties. We&apos;ve kept your
-              progress. Ease back in with one short lesson today.
+            <p className="text-accent-600 text-sm font-extrabold">👋 Welcome back!</p>
+            <p className="text-ink-700 mt-1 text-xs font-semibold">
+              You were away {daysAway} days — no problem, no penalties. We&apos;ve kept
+              your progress. Ease back in with one short lesson today.
             </p>
             <Link
               href={nextLessonId ? `/lesson/${nextLessonId}` : "/"}
-              className="mt-2 inline-block text-sm font-bold text-accent-600"
+              className="text-accent-600 mt-2 inline-block text-sm font-bold"
             >
               Resume learning →
             </Link>
@@ -139,7 +160,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
 
         {/* Plan tiers */}
         <section>
-          <h2 className="mb-2 text-sm font-extrabold text-ink">Choose your pace</h2>
+          <h2 className="text-ink mb-2 text-sm font-extrabold">Choose your pace</h2>
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(PLAN_SPECS) as PlanTier[]).map((tier) => {
               const spec = PLAN_SPECS[tier];
@@ -153,12 +174,18 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                     audio.play("select");
                   }}
                   className={`btn-tactile rounded-card border-2 p-3 text-left ${
-                    active ? "border-brand bg-brand-50" : "border-hairline bg-surface-card"
+                    active
+                      ? "border-brand bg-brand-50"
+                      : "border-hairline bg-surface-card"
                   }`}
                 >
                   <div className="text-xl">{spec.emoji}</div>
-                  <div className="mt-1 text-sm font-extrabold text-ink">{spec.label}</div>
-                  <div className="text-[11px] font-semibold text-ink-500">{spec.minutes}/day</div>
+                  <div className="text-ink mt-1 text-sm font-extrabold">
+                    {spec.label}
+                  </div>
+                  <div className="text-ink-500 text-[11px] font-semibold">
+                    {spec.minutes}/day
+                  </div>
                 </button>
               );
             })}
@@ -166,18 +193,24 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
           {plan.tier === "custom" && (
             <Card className="mt-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-ink">Daily XP goal</span>
-                <span className="text-sm font-extrabold text-brand">{plan.customGoalXp} XP</span>
+                <span className="text-ink text-sm font-bold">Daily XP goal</span>
+                <span className="text-brand text-sm font-extrabold">
+                  {plan.customGoalXp} XP
+                </span>
               </div>
               <input
-                type="range" min={10} max={200} step={10} value={plan.customGoalXp}
+                type="range"
+                min={10}
+                max={200}
+                step={10}
+                value={plan.customGoalXp}
                 onChange={(e) => plan.setCustomGoal(Number(e.target.value))}
                 className="mt-2 w-full accent-[var(--brand-500)]"
                 aria-label="Custom daily XP goal"
               />
             </Card>
           )}
-          <p className="mt-2 text-xs font-semibold text-ink-500">
+          <p className="text-ink-500 mt-2 text-xs font-semibold">
             {PLAN_SPECS[plan.tier].blurb} · Goal: {planGoalXp(plan)} XP/day ·{" "}
             {PLAN_SPECS[plan.tier].lessonsPerDay} lessons
           </p>
@@ -185,14 +218,19 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
 
         {/* Schedule */}
         <section>
-          <h2 className="mb-2 text-sm font-extrabold text-ink">When do you study?</h2>
+          <h2 className="text-ink mb-2 text-sm font-extrabold">When do you study?</h2>
           <div className="flex gap-2">
             {(["daily", "weekdays", "weekends"] as Schedule[]).map((s) => (
               <button
                 key={s}
-                onClick={() => { plan.setSchedule(s); haptics.fire("select"); }}
-                className={`flex-1 rounded-pill py-2 text-sm font-bold capitalize ${
-                  plan.schedule === s ? "bg-brand text-white" : "bg-surface-sunken text-ink-500"
+                onClick={() => {
+                  plan.setSchedule(s);
+                  haptics.fire("select");
+                }}
+                className={`rounded-pill flex-1 py-2 text-sm font-bold capitalize ${
+                  plan.schedule === s
+                    ? "bg-brand text-white"
+                    : "bg-surface-sunken text-ink-500"
                 }`}
               >
                 {s}
@@ -204,8 +242,8 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
         {/* Today's homework */}
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-ink">Today&apos;s homework</h2>
-            <span className="text-xs font-bold text-ink-500">
+            <h2 className="text-ink text-sm font-extrabold">Today&apos;s homework</h2>
+            <span className="text-ink-500 text-xs font-bold">
               {routineDone}/{ROUTINE_STEPS.length} · 🔥 {plan.homeworkStreak}d
             </span>
           </div>
@@ -217,28 +255,37 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
               // puzzles, no tutorials, only topics the student has already learned.
               const hw = isMatch ? null : pickHomework(step.id);
               const href = hw ? `/homework/${hw.id}?hw=${step.id}` : step.href;
-              const label = hw ? `${step.label}: ${hw.title.replace(/^.*?: /, "")}` : step.label;
+              const label = hw
+                ? `${step.label}: ${hw.title.replace(/^.*?: /, "")}`
+                : step.label;
               return (
                 <Card key={step.id} className="flex items-center gap-3 p-3">
                   {/* Display-only — checks itself when you complete the activity. */}
                   <span
                     aria-label={done ? `${step.label} done` : `${step.label} not done`}
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs ${
-                      done ? "border-success bg-success text-white" : "border-hairline text-transparent"
+                      done
+                        ? "border-success bg-success text-white"
+                        : "border-hairline text-transparent"
                     }`}
                   >
                     ✓
                   </span>
                   <span className="text-lg">{step.emoji}</span>
-                  <span className={`min-w-0 flex-1 truncate text-sm font-bold ${done ? "text-ink-300 line-through" : "text-ink"}`}>
+                  <span
+                    className={`min-w-0 flex-1 truncate text-sm font-bold ${done ? "text-ink-300 line-through" : "text-ink"}`}
+                  >
                     {label}
                   </span>
                   {isMatch ? (
-                    <button onClick={startAdaptiveMatch} className="shrink-0 text-sm font-bold text-brand">
+                    <button
+                      onClick={startAdaptiveMatch}
+                      className="text-brand shrink-0 text-sm font-bold"
+                    >
                       {done ? "Again" : `Play (${rating}) →`}
                     </button>
                   ) : (
-                    <Link href={href} className="shrink-0 text-sm font-bold text-brand">
+                    <Link href={href} className="text-brand shrink-0 text-sm font-bold">
                       {done ? "Again" : "Go →"}
                     </Link>
                   )}
@@ -247,7 +294,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
             })}
           </div>
           {routineDone === ROUTINE_STEPS.length && (
-            <p className="mt-2 text-center text-xs font-extrabold text-success">
+            <p className="text-success mt-2 text-center text-xs font-extrabold">
               🎉 Homework complete — {plan.homeworkStreak}-day streak!
             </p>
           )}

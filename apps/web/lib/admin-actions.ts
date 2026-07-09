@@ -134,9 +134,26 @@ function parseMove(sol: unknown): { from: string; to: string } | null {
   return { from: m[0], to: m[1] };
 }
 
-interface ImportLesson { title?: string; subtitle?: string; emoji?: string; tag?: string; xp?: number; steps?: { fen?: string; solution?: string; coach?: string }[] }
-interface ImportClass { title?: string; emoji?: string; blurb?: string; difficulty?: number; lessons?: ImportLesson[] }
-interface ImportDoc { semester?: { title?: string; blurb?: string; color?: string; stage?: string }; semesterId?: string; classes?: ImportClass[] }
+interface ImportLesson {
+  title?: string;
+  subtitle?: string;
+  emoji?: string;
+  tag?: string;
+  xp?: number;
+  steps?: { fen?: string; solution?: string; coach?: string }[];
+}
+interface ImportClass {
+  title?: string;
+  emoji?: string;
+  blurb?: string;
+  difficulty?: number;
+  lessons?: ImportLesson[];
+}
+interface ImportDoc {
+  semester?: { title?: string; blurb?: string; color?: string; stage?: string };
+  semesterId?: string;
+  classes?: ImportClass[];
+}
 
 /**
  * Bulk-import a semester / classes / lessons from a JSON document (#14).
@@ -158,13 +175,15 @@ export async function importContent(
     return { error: "That isn't valid JSON." };
   }
   if (!Array.isArray(doc.classes) || doc.classes.length === 0)
-    return { error: "JSON needs a non-empty \"classes\" array." };
+    return { error: 'JSON needs a non-empty "classes" array.' };
   if (!doc.semester && !doc.semesterId)
-    return { error: "Provide a \"semester\" object or an existing \"semesterId\"." };
+    return { error: 'Provide a "semester" object or an existing "semesterId".' };
 
   const semId = doc.semester ? `sem-imp-${randomUUID().slice(0, 8)}` : doc.semesterId!;
   if (!doc.semester) {
-    const exists = (await db.select().from(semesters).where(eq(semesters.id, semId)).limit(1))[0];
+    const exists = (
+      await db.select().from(semesters).where(eq(semesters.id, semId)).limit(1)
+    )[0];
     if (!exists) return { error: `Semester "${semId}" not found.` };
   }
 
@@ -194,12 +213,15 @@ export async function importContent(
       const steps: unknown[] = [];
       for (const s of l.steps ?? []) {
         const mv = parseMove(s.solution);
-        if (!mv) return { error: `Lesson "${l.title}": solution must look like e2:e4.` };
+        if (!mv)
+          return { error: `Lesson "${l.title}": solution must look like e2:e4.` };
         try {
           const g = new Chess(String(s.fen));
           if (!g.move({ from: mv.from, to: mv.to, promotion: "q" })) throw new Error();
         } catch {
-          return { error: `Lesson "${l.title}": "${s.solution}" is not legal in that position.` };
+          return {
+            error: `Lesson "${l.title}": "${s.solution}" is not legal in that position.`,
+          };
         }
         steps.push({
           id: `s${steps.length}`,
@@ -213,7 +235,8 @@ export async function importContent(
           tag: l.tag ?? "import",
         });
       }
-      if (steps.length === 0) return { error: `Lesson "${l.title}" has no valid steps.` };
+      if (steps.length === 0)
+        return { error: `Lesson "${l.title}" has no valid steps.` };
       lessonRows.push({
         id: `lesson-imp-${randomUUID().slice(0, 8)}`,
         classId: cid,
@@ -243,7 +266,10 @@ export async function importContent(
   for (const c of classRows) await db.insert(classes).values(c);
   for (const l of lessonRows) await db.insert(lessons).values(l);
   refresh();
-  return { ok: true, message: `Imported ${classRows.length} classes and ${lessonRows.length} lessons.` };
+  return {
+    ok: true,
+    message: `Imported ${classRows.length} classes and ${lessonRows.length} lessons.`,
+  };
 }
 
 export async function deleteLesson(id: string): Promise<void> {

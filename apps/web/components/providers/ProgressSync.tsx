@@ -43,7 +43,10 @@ export function ProgressSync() {
                 headers: { "content-type": "application/json" },
                 body,
               }).catch(() => void 0);
-              toast("Your progress is now saved to your account ✓", { tone: "success", icon: "check" });
+              toast("Your progress is now saved to your account ✓", {
+                tone: "success",
+                icon: "check",
+              });
             }
           }
         });

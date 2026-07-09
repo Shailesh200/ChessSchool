@@ -29,7 +29,9 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const [semShown, setSemShown] = useState<Record<string, number>>({});
 
   const isDone = (cls: SchoolClass) => isClassGraduated(cls, records, graduated);
-  const requiredClasses = catalog.allClasses.filter((c) => !isOptionalClass(c.id, catalog.semesters));
+  const requiredClasses = catalog.allClasses.filter(
+    (c) => !isOptionalClass(c.id, catalog.semesters),
+  );
   const frontierIdx = (() => {
     const i = requiredClasses.findIndex((c) => !isDone(c));
     if (i === -1) return catalog.allClasses.length;
@@ -43,7 +45,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
   const classIndex = new Map(catalog.allClasses.map((c, i) => [c.id, i]));
   const isFutureSem = (sem: { classes: SchoolClass[]; stage?: string }) => {
     if (catalog.stages.find((st) => st.id === sem.stage)?.optional) return false;
-    return Math.min(...sem.classes.map((c) => classIndex.get(c.id) ?? Infinity)) > frontierIdx;
+    return (
+      Math.min(...sem.classes.map((c) => classIndex.get(c.id) ?? Infinity)) >
+      frontierIdx
+    );
   };
 
   // Sequential schools: a stage is "cleared" when all its classes are graduated;
@@ -52,7 +57,8 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
     .map((stage) => {
       const semesters = semestersForStage(stage.id, catalog.semesters);
       const classes = semesters.flatMap((s) => s.classes);
-      const cleared = examsPassed.includes(stage.id) || (classes.length > 0 && classes.every(isDone));
+      const cleared =
+        examsPassed.includes(stage.id) || (classes.length > 0 && classes.every(isDone));
       return { stage, semesters, classes, cleared };
     })
     .filter((i) => i.classes.length > 0);
@@ -70,183 +76,236 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
         <div className="-mb-3 flex justify-end">
           <button
             onClick={() => setShowCompleted((v) => !v)}
-            className="rounded-pill bg-surface-sunken px-3 py-1 text-xs font-bold text-ink-700"
+            className="rounded-pill bg-surface-sunken text-ink-700 px-3 py-1 text-xs font-bold"
           >
             {showCompleted ? "Hide" : "Show"} past classes ({pastIds.size})
           </button>
         </div>
       )}
-      {stages.map(({ stage, semesters, classes: stageClasses, cleared, unlocked, prevName }, sIdx) => {
-        const classCount = stageClasses.length;
-        const descriptor = stage.blurb.split("·")[1]?.trim();
-        const nextName = stages[sIdx + 1]?.stage.name;
+      {stages.map(
+        (
+          { stage, semesters, classes: stageClasses, cleared, unlocked, prevName },
+          sIdx,
+        ) => {
+          const classCount = stageClasses.length;
+          const descriptor = stage.blurb.split("·")[1]?.trim();
+          const nextName = stages[sIdx + 1]?.stage.name;
 
-        // Locked school — must clear the previous one first.
-        if (!unlocked) {
-          return (
-            <section key={stage.id} className="opacity-70">
-              <div className="rounded-card border border-dashed border-hairline bg-surface-sunken/40 p-4 text-center">
-                <p className="text-2xl">🔒</p>
-                <p className="mt-1 text-sm font-extrabold text-ink">{stage.name}</p>
-                <p className="text-xs font-semibold text-ink-500">
-                  Graduate {prevName} to unlock · {classCount} {classCount === 1 ? "class" : "classes"}
-                </p>
-              </div>
-            </section>
-          );
-        }
+          // Locked school — must clear the previous one first.
+          if (!unlocked) {
+            return (
+              <section key={stage.id} className="opacity-70">
+                <div className="rounded-card border-hairline bg-surface-sunken/40 border border-dashed p-4 text-center">
+                  <p className="text-2xl">🔒</p>
+                  <p className="text-ink mt-1 text-sm font-extrabold">{stage.name}</p>
+                  <p className="text-ink-500 text-xs font-semibold">
+                    Graduate {prevName} to unlock · {classCount}{" "}
+                    {classCount === 1 ? "class" : "classes"}
+                  </p>
+                </div>
+              </section>
+            );
+          }
 
-        // Cleared school — collapse to a graduated banner (tap to review).
-        const stageOpen = expanded.has(stage.id);
-        if (cleared && !stageOpen) {
+          // Cleared school — collapse to a graduated banner (tap to review).
+          const stageOpen = expanded.has(stage.id);
+          if (cleared && !stageOpen) {
+            return (
+              <section key={stage.id}>
+                <button
+                  onClick={() => setExpanded((s) => new Set(s).add(stage.id))}
+                  className="btn-tactile rounded-card border-gold/50 bg-gold/10 flex w-full items-center gap-2 border p-3 text-left"
+                >
+                  <span className="text-xl">{stage.emoji}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-ink block text-sm font-extrabold">
+                      🎓 {stage.name} — graduated
+                    </span>
+                    <span className="text-ink-500 block text-[11px] font-semibold">
+                      {classCount} {classCount === 1 ? "class" : "classes"} · tap to
+                      review
+                    </span>
+                  </span>
+                </button>
+              </section>
+            );
+          }
+
+          const visibleSems = semesters
+            .map((sem) => ({
+              sem,
+              classes:
+                showCompleted || cleared
+                  ? sem.classes
+                  : sem.classes.filter(
+                      (c) =>
+                        !pastIds.has(c.id) || isOptionalClass(c.id, catalog.semesters),
+                    ),
+            }))
+            .filter((x) => x.classes.length > 0);
           return (
             <section key={stage.id}>
-              <button
-                onClick={() => setExpanded((s) => new Set(s).add(stage.id))}
-                className="btn-tactile flex w-full items-center gap-2 rounded-card border border-gold/50 bg-gold/10 p-3 text-left"
-              >
+              {/* Stage header — the full Elementary → Master ladder */}
+              <div className="mb-3 flex items-center gap-2">
                 <span className="text-xl">{stage.emoji}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-extrabold text-ink">🎓 {stage.name} — graduated</span>
-                  <span className="block text-[11px] font-semibold text-ink-500">
-                    {classCount} {classCount === 1 ? "class" : "classes"} · tap to review
-                  </span>
-                </span>
-              </button>
-            </section>
-          );
-        }
-
-        const visibleSems = semesters
-          .map((sem) => ({
-            sem,
-            classes:
-              showCompleted || cleared
-                ? sem.classes
-                : sem.classes.filter((c) => !pastIds.has(c.id) || isOptionalClass(c.id, catalog.semesters)),
-          }))
-          .filter((x) => x.classes.length > 0);
-        return (
-          <section key={stage.id}>
-            {/* Stage header — the full Elementary → Master ladder */}
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-xl">{stage.emoji}</span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-sm font-extrabold text-ink">{stage.name}</h2>
-                  {stage.optional && (
-                    <span className="shrink-0 rounded-pill bg-surface-sunken px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-ink-500">
-                      Optional
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-[11px] font-semibold text-ink-500">
-                  {classCount} {classCount === 1 ? "class" : "classes"}
-                  {descriptor ? ` · ${descriptor}` : ""}
-                  {stage.optional ? " · skip if you know the rules" : ""}
-                </p>
-              </div>
-              {cleared && stageOpen && (
-                <button
-                  onClick={() => setExpanded((s) => { const n = new Set(s); n.delete(stage.id); return n; })}
-                  className="shrink-0 rounded-pill bg-surface-sunken px-2.5 py-1 text-[11px] font-bold text-ink-500"
-                >
-                  Hide
-                </button>
-              )}
-            </div>
-
-            {
-              <div className="flex flex-col gap-5">
-                {visibleSems.map(({ sem, classes }) => {
-                  // Default: future class-groups collapsed, current one expanded.
-                  // `expanded` holds the ids the user toggled away from that default,
-                  // so ANY group can be collapsed/expanded with a tap.
-                  const future = !showCompleted && isFutureSem(sem);
-                  const toggled = expanded.has(sem.id);
-                  const collapsed = future ? !toggled : toggled;
-                  const toggle = () =>
-                    setExpanded((s) => {
-                      const n = new Set(s);
-                      if (n.has(sem.id)) n.delete(sem.id);
-                      else n.add(sem.id);
-                      return n;
-                    });
-                  return (
-                  <div key={sem.id}>
-                    <button onClick={toggle} className="btn-tactile mb-2 flex w-full items-center gap-2 text-left">
-                      <span
-                        className="shrink-0 rounded-pill px-3 py-1 text-xs font-extrabold text-white"
-                        style={{ backgroundColor: sem.color }}
-                      >
-                        {sem.title}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-ink truncate text-sm font-extrabold">
+                      {stage.name}
+                    </h2>
+                    {stage.optional && (
+                      <span className="rounded-pill bg-surface-sunken text-ink-500 shrink-0 px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
+                        Optional
                       </span>
-                      <span className="truncate text-xs font-semibold text-ink-500">{sem.blurb}</span>
-                      <svg
-                        width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        className={`ml-auto shrink-0 text-ink-500 transition-transform ${collapsed ? "" : "rotate-180"}`}
-                      >
-                        <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {collapsed ? (
-                      <button
-                        onClick={toggle}
-                        className="btn-tactile w-full rounded-card border border-dashed border-hairline bg-surface-card/60 p-3 text-center text-xs font-bold text-ink-500"
-                      >
-                        {future ? "🔒 " : ""}{classes.length} {classes.length === 1 ? "class" : "classes"} — tap to preview
-                      </button>
-                    ) : (
-                    <div className="flex flex-col gap-3">
-                      {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
-                        <ClassCard
-                          key={cls.id}
-                          cls={cls}
-                          color={sem.color}
-                          records={records}
-                          graduated={graduated}
-                          allClasses={catalog.allClasses}
-                          semesters={catalog.semesters}
-                          delay={i * 0.05}
-                        />
-                      ))}
-                      {(semShown[sem.id] ?? 8) < classes.length && (
-                        <button
-                          onClick={() => setSemShown((s) => ({ ...s, [sem.id]: (s[sem.id] ?? 8) + 8 }))}
-                          className="btn-tactile py-2 text-sm font-bold text-brand"
-                        >
-                          Show {Math.min(8, classes.length - (semShown[sem.id] ?? 8))} more classes ▾
-                        </button>
-                      )}
-                    </div>
                     )}
                   </div>
-                  );
-                })}
+                  <p className="text-ink-500 truncate text-[11px] font-semibold">
+                    {classCount} {classCount === 1 ? "class" : "classes"}
+                    {descriptor ? ` · ${descriptor}` : ""}
+                    {stage.optional ? " · skip if you know the rules" : ""}
+                  </p>
+                </div>
+                {cleared && stageOpen && (
+                  <button
+                    onClick={() =>
+                      setExpanded((s) => {
+                        const n = new Set(s);
+                        n.delete(stage.id);
+                        return n;
+                      })
+                    }
+                    className="rounded-pill bg-surface-sunken text-ink-500 shrink-0 px-2.5 py-1 text-[11px] font-bold"
+                  >
+                    Hide
+                  </button>
+                )}
               </div>
-            }
 
-            {/* School exam — optional stages have no gateway exam. */}
-            {!cleared && !stage.optional && nextName && (
-              <button
-                onClick={() => { haptics.fire("tap"); audio.play("exam"); startNav(); router.push(`/exam/school/${stage.id}`); }}
-                className="btn-tactile mt-4 flex w-full items-center justify-between rounded-card border-2 border-gold/50 bg-gold/10 px-4 py-3 text-left"
-              >
-                <span>
-                  <span className="block text-sm font-extrabold text-ink">📝 {stage.name} Exam</span>
-                  <span className="block text-xs font-semibold text-ink-500">Pass to unlock {nextName} →</span>
-                </span>
-                <span className="text-xl">🎓</span>
-              </button>
-            )}
-          </section>
-        );
-      })}
+              {
+                <div className="flex flex-col gap-5">
+                  {visibleSems.map(({ sem, classes }) => {
+                    // Default: future class-groups collapsed, current one expanded.
+                    // `expanded` holds the ids the user toggled away from that default,
+                    // so ANY group can be collapsed/expanded with a tap.
+                    const future = !showCompleted && isFutureSem(sem);
+                    const toggled = expanded.has(sem.id);
+                    const collapsed = future ? !toggled : toggled;
+                    const toggle = () =>
+                      setExpanded((s) => {
+                        const n = new Set(s);
+                        if (n.has(sem.id)) n.delete(sem.id);
+                        else n.add(sem.id);
+                        return n;
+                      });
+                    return (
+                      <div key={sem.id}>
+                        <button
+                          onClick={toggle}
+                          className="btn-tactile mb-2 flex w-full items-center gap-2 text-left"
+                        >
+                          <span
+                            className="rounded-pill shrink-0 px-3 py-1 text-xs font-extrabold text-white"
+                            style={{ backgroundColor: sem.color }}
+                          >
+                            {sem.title}
+                          </span>
+                          <span className="text-ink-500 truncate text-xs font-semibold">
+                            {sem.blurb}
+                          </span>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            className={`text-ink-500 ml-auto shrink-0 transition-transform ${collapsed ? "" : "rotate-180"}`}
+                          >
+                            <path
+                              d="m6 9 6 6 6-6"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                        {collapsed ? (
+                          <button
+                            onClick={toggle}
+                            className="btn-tactile rounded-card border-hairline bg-surface-card/60 text-ink-500 w-full border border-dashed p-3 text-center text-xs font-bold"
+                          >
+                            {future ? "🔒 " : ""}
+                            {classes.length}{" "}
+                            {classes.length === 1 ? "class" : "classes"} — tap to
+                            preview
+                          </button>
+                        ) : (
+                          <div className="flex flex-col gap-3">
+                            {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
+                              <ClassCard
+                                key={cls.id}
+                                cls={cls}
+                                color={sem.color}
+                                records={records}
+                                graduated={graduated}
+                                allClasses={catalog.allClasses}
+                                semesters={catalog.semesters}
+                                delay={i * 0.05}
+                              />
+                            ))}
+                            {(semShown[sem.id] ?? 8) < classes.length && (
+                              <button
+                                onClick={() =>
+                                  setSemShown((s) => ({
+                                    ...s,
+                                    [sem.id]: (s[sem.id] ?? 8) + 8,
+                                  }))
+                                }
+                                className="btn-tactile text-brand py-2 text-sm font-bold"
+                              >
+                                Show{" "}
+                                {Math.min(8, classes.length - (semShown[sem.id] ?? 8))}{" "}
+                                more classes ▾
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              }
+
+              {/* School exam — optional stages have no gateway exam. */}
+              {!cleared && !stage.optional && nextName && (
+                <button
+                  onClick={() => {
+                    haptics.fire("tap");
+                    audio.play("exam");
+                    startNav();
+                    router.push(`/exam/school/${stage.id}`);
+                  }}
+                  className="btn-tactile rounded-card border-gold/50 bg-gold/10 mt-4 flex w-full items-center justify-between border-2 px-4 py-3 text-left"
+                >
+                  <span>
+                    <span className="text-ink block text-sm font-extrabold">
+                      📝 {stage.name} Exam
+                    </span>
+                    <span className="text-ink-500 block text-xs font-semibold">
+                      Pass to unlock {nextName} →
+                    </span>
+                  </span>
+                  <span className="text-xl">🎓</span>
+                </button>
+              )}
+            </section>
+          );
+        },
+      )}
 
       {/* End of the ladder */}
-      <div className="rounded-card border border-dashed border-hairline bg-surface-sunken/40 p-4 text-center">
-        <p className="text-sm font-extrabold text-ink">🚧 More schools coming soon</p>
-        <p className="mt-1 text-xs font-semibold text-ink-500">
+      <div className="rounded-card border-hairline bg-surface-sunken/40 border border-dashed p-4 text-center">
+        <p className="text-ink text-sm font-extrabold">🚧 More schools coming soon</p>
+        <p className="text-ink-500 mt-1 text-xs font-semibold">
           New programs are being added — keep climbing the ladder!
         </p>
       </div>
@@ -296,7 +355,7 @@ function ClassCard({
       initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 260, damping: 24 }}
-      className={`rounded-card border bg-surface-card p-4 [box-shadow:var(--shadow-card)] ${
+      className={`rounded-card bg-surface-card border p-4 [box-shadow:var(--shadow-card)] ${
         grad ? "border-gold" : "border-hairline"
       } ${unlocked ? "" : "opacity-60"}`}
     >
@@ -309,12 +368,16 @@ function ClassCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-base font-extrabold text-ink">{cls.title}</h2>
-            {grad && <span className="shrink-0 text-sm" title="Graduated">🎓</span>}
+            <h2 className="text-ink truncate text-base font-extrabold">{cls.title}</h2>
+            {grad && (
+              <span className="shrink-0 text-sm" title="Graduated">
+                🎓
+              </span>
+            )}
           </div>
-          <p className="truncate text-xs font-semibold text-ink-500">{cls.blurb}</p>
+          <p className="text-ink-500 truncate text-xs font-semibold">{cls.blurb}</p>
         </div>
-        <span className="shrink-0 text-xs font-bold text-ink-500">
+        <span className="text-ink-500 shrink-0 text-xs font-bold">
           {done}/{total}
         </span>
       </div>
@@ -329,7 +392,12 @@ function ClassCard({
 
       {unlocked && (
         <div className="mt-3 flex gap-2">
-          <Button size="sm" onClick={openClass} variant={grad ? "outline" : "primary"} block>
+          <Button
+            size="sm"
+            onClick={openClass}
+            variant={grad ? "outline" : "primary"}
+            block
+          >
             {grad ? "Review class" : done > 0 ? "Continue" : "Start class"}
           </Button>
           {cls.examId && !grad && (

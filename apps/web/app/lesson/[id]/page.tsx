@@ -12,11 +12,19 @@ import type { Lesson, LessonStep } from "@/features/lessons/types";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const row = (
     await db
-      .select({ title: lessons.title, subtitle: lessons.subtitle, emoji: lessons.emoji })
+      .select({
+        title: lessons.title,
+        subtitle: lessons.subtitle,
+        emoji: lessons.emoji,
+      })
       .from(lessons)
       .where(eq(lessons.id, id))
       .limit(1)

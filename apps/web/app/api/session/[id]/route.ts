@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { Chess } from "chess.js";
 import { db } from "@/db";
 import { gameSessions } from "@/db/schema";
+import { getApiUser } from "@/lib/auth";
 import { publishSession } from "@/lib/ably-server";
-import { signSeatToken } from "@/lib/session-secret";
+import { seatColorForUser } from "@/lib/game-session";
+import { formatSeatToken, verifySeatToken } from "@/lib/session-secret";
 
 export const dynamic = "force-dynamic";
 
 async function load(id: string) {
-  return (await db.select().from(gameSessions).where(eq(gameSessions.id, id)).limit(1))[0];
-}
-
-function verifySeatToken(id: string, color: "w" | "b" | undefined, token: string | undefined): boolean {
-  if (!color || !token) return false;
-  const [tokenColor, sig] = token.split(".");
-  if (tokenColor !== color || !sig) return false;
-  const expected = signSeatToken(id, color);
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return (
+    await db.select().from(gameSessions).where(eq(gameSessions.id, id)).limit(1)
+  )[0];
 }
 
 /** Load the latest state, push it to realtime subscribers, and return it. */
@@ -30,31 +23,67 @@ async function respond(id: string) {
   return NextResponse.json(state);
 }
 
-/** Get session state. `?join=1` claims the Black seat if it's open. */
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+/** Get session state. `?join=1` claims Black for the authenticated user. */
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
   let s = await load(id);
   if (!s) return NextResponse.json({ error: "not found" }, { status: 404 });
 
+  const user = await getApiUser(req);
   const join = new URL(req.url).searchParams.get("join") === "1";
   let claimed = false;
+  let myColor: "w" | "b" | undefined;
+
   if (join) {
-    const res = await db
-      .update(gameSessions)
-      .set({ blackJoined: 1, status: "active", updatedAt: Date.now() })
-      .where(and(eq(gameSessions.id, id), eq(gameSessions.blackJoined, 0)));
-    claimed = (res as { rowsAffected?: number }).rowsAffected === 1;
-    s = (await load(id))!;
-    if (claimed) await publishSession(id, s); // notify the creator their opponent joined
+    if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
+    myColor = seatColorForUser(s, user.id) ?? undefined;
+    if (!myColor && !s.blackJoined && s.whiteUserId !== user.id) {
+      const res = await db
+        .update(gameSessions)
+        .set({
+          blackJoined: 1,
+          blackUserId: user.id,
+          status: "active",
+          updatedAt: Date.now(),
+        })
+        .where(and(eq(gameSessions.id, id), eq(gameSessions.blackJoined, 0)));
+      claimed = (res as { rowsAffected?: number }).rowsAffected === 1;
+      if (claimed) {
+        s = (await load(id))!;
+        await publishSession(id, s);
+        myColor = "b";
+      }
+    }
+  } else if (user) {
+    myColor = seatColorForUser(s, user.id) ?? undefined;
   }
-  return NextResponse.json({ ...s, claimed, color: claimed ? "b" : undefined, seatToken: claimed ? `b.${signSeatToken(id, "b")}` : undefined });
+
+  return NextResponse.json({
+    ...s,
+    claimed,
+    color: myColor,
+    seatToken: myColor && user ? formatSeatToken(id, myColor, user.id) : undefined,
+  });
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await getApiUser(req);
+  if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
+
   const { id } = await params;
   const s = await load(id);
   if (!s) return NextResponse.json({ error: "not found" }, { status: 404 });
-  const body = (await req.json()) as {
+
+  const seat = seatColorForUser(s, user.id);
+  if (!seat) return NextResponse.json({ error: "not a participant" }, { status: 403 });
+
+  let body: {
     action: "move" | "resign" | "timeout";
     color?: "w" | "b";
     seat?: "w" | "b";
@@ -63,21 +92,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     to?: string;
     promotion?: string;
   };
-  const actor = body.action === "timeout" ? body.seat : body.color;
-  if (!verifySeatToken(id, actor, body.seatToken)) {
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+
+  if (!verifySeatToken(id, seat, user.id, body.seatToken)) {
     return NextResponse.json({ error: "invalid seat" }, { status: 403 });
   }
 
   if (body.action === "resign") {
     await db
       .update(gameSessions)
-      .set({ status: "over", result: `resign:${body.color}`, updatedAt: Date.now() })
+      .set({ status: "over", result: `resign:${seat}`, updatedAt: Date.now() })
       .where(eq(gameSessions.id, id));
     return respond(id);
   }
 
   if (body.action === "timeout") {
-    const winner = body.color === "w" ? "b" : "w";
+    const flagged = body.color ?? body.seat;
+    if (flagged !== "w" && flagged !== "b") {
+      return NextResponse.json({ error: "invalid timeout" }, { status: 400 });
+    }
+    const winner = flagged === "w" ? "b" : "w";
     await db
       .update(gameSessions)
       .set({ status: "over", result: `time:${winner}`, updatedAt: Date.now() })
@@ -85,7 +123,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return respond(id);
   }
 
-  // move
+  // move — mover color comes from the authenticated seat, not the client body
   const g = new Chess();
   if (s.pgn) {
     try {
@@ -94,23 +132,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       g.load(s.fen);
     }
   }
-  if (body.color && g.turn() !== body.color) {
+  if (g.turn() !== seat) {
     return NextResponse.json({ error: "not your turn" }, { status: 409 });
   }
 
-  // Deduct the mover's elapsed time; flag (lose on time) if it runs out.
   const now = Date.now();
-  const mover = g.turn();
   let whiteMs = s.whiteMs;
   let blackMs = s.blackMs;
   if (s.status === "active" && s.timeControlMin > 0) {
     const elapsed = Math.max(0, now - s.updatedAt);
-    if (mover === "w") whiteMs = Math.max(0, whiteMs - elapsed);
+    if (seat === "w") whiteMs = Math.max(0, whiteMs - elapsed);
     else blackMs = Math.max(0, blackMs - elapsed);
-    if ((mover === "w" && whiteMs <= 0) || (mover === "b" && blackMs <= 0)) {
+    if ((seat === "w" && whiteMs <= 0) || (seat === "b" && blackMs <= 0)) {
       await db
         .update(gameSessions)
-        .set({ status: "over", result: `time:${mover === "w" ? "b" : "w"}`, whiteMs, blackMs, updatedAt: now })
+        .set({
+          status: "over",
+          result: `time:${seat === "w" ? "b" : "w"}`,
+          whiteMs,
+          blackMs,
+          updatedAt: now,
+        })
         .where(eq(gameSessions.id, id));
       return respond(id);
     }
@@ -118,7 +160,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   let applied;
   try {
-    applied = g.move({ from: body.from!, to: body.to!, promotion: (body.promotion as "q") ?? "q" });
+    applied = g.move({
+      from: body.from!,
+      to: body.to!,
+      promotion: (body.promotion as "q") ?? "q",
+    });
   } catch {
     applied = null;
   }

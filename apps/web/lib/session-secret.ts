@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const DEV_FALLBACK = "chessschool-dev-session-secret";
 
@@ -12,10 +12,27 @@ export function getSessionTokenSecret(): string {
   return DEV_FALLBACK;
 }
 
-export function signSeatToken(id: string, color: "w" | "b"): string {
-  return createHmac("sha256", getSessionTokenSecret()).update(`${id}:${color}`).digest("base64url");
+export function signSeatToken(id: string, color: "w" | "b", userId: string): string {
+  return createHmac("sha256", getSessionTokenSecret())
+    .update(`${id}:${color}:${userId}`)
+    .digest("base64url");
 }
 
-export function formatSeatToken(id: string, color: "w" | "b"): string {
-  return `${color}.${signSeatToken(id, color)}`;
+export function formatSeatToken(id: string, color: "w" | "b", userId: string): string {
+  return `${color}.${signSeatToken(id, color, userId)}`;
+}
+
+export function verifySeatToken(
+  id: string,
+  color: "w" | "b",
+  userId: string,
+  token: string | undefined,
+): boolean {
+  if (!token) return false;
+  const [tokenColor, sig] = token.split(".");
+  if (tokenColor !== color || !sig) return false;
+  const expected = signSeatToken(id, color, userId);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

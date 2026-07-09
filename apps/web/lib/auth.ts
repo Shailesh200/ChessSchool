@@ -50,17 +50,27 @@ export async function registerUser(
   if (!email.includes("@")) return { error: "Enter a valid email." };
   if (password.length < 6) return { error: "Password must be at least 6 characters." };
   if (!name.trim()) return { error: "Enter your name." };
-  const existing = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+  const existing = (
+    await db.select().from(users).where(eq(users.email, email)).limit(1)
+  )[0];
   if (existing) return { error: "That email is already enrolled." };
 
   const id = randomUUID();
   const now = Date.now();
-  await db
-    .insert(users)
-    .values({ id, email, passwordHash: await hashPassword(password), name: name.trim(), role: "student", createdAt: now });
-  await db
-    .insert(profiles)
-    .values({ userId: id, studentNo: makeStudentNo(), enrolledAt: now, rankTitle: "Novice" });
+  await db.insert(users).values({
+    id,
+    email,
+    passwordHash: await hashPassword(password),
+    name: name.trim(),
+    role: "student",
+    createdAt: now,
+  });
+  await db.insert(profiles).values({
+    userId: id,
+    studentNo: makeStudentNo(),
+    enrolledAt: now,
+    rankTitle: "Novice",
+  });
   await db.insert(progress).values({ userId: id, updatedAt: now });
   await startSession(id);
   void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
@@ -72,7 +82,9 @@ export async function loginUser(
   password: string,
 ): Promise<{ ok: true } | { error: string }> {
   email = email.trim().toLowerCase();
-  const user = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+  const user = (
+    await db.select().from(users).where(eq(users.email, email)).limit(1)
+  )[0];
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     return { error: "Wrong email or password." };
   }
@@ -92,9 +104,13 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
-  const session = (await db.select().from(sessions).where(eq(sessions.id, token)).limit(1))[0];
+  const session = (
+    await db.select().from(sessions).where(eq(sessions.id, token)).limit(1)
+  )[0];
   if (!session || session.expiresAt < Date.now()) return null;
-  const user = (await db.select().from(users).where(eq(users.id, session.userId)).limit(1))[0];
+  const user = (
+    await db.select().from(users).where(eq(users.id, session.userId)).limit(1)
+  )[0];
   if (!user) return null;
   return { id: user.id, email: user.email, name: user.name, role: user.role };
 }
@@ -104,17 +120,27 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 /** Create a session and return its bearer token (no cookie). */
 export async function createSessionToken(userId: string): Promise<string> {
   const token = randomUUID();
-  await db.insert(sessions).values({ id: token, userId, expiresAt: Date.now() + SESSION_DAYS * 86400_000 });
+  await db
+    .insert(sessions)
+    .values({ id: token, userId, expiresAt: Date.now() + SESSION_DAYS * 86400_000 });
   return token;
 }
 
 /** Resolve a user from a bearer token. */
-export async function getUserByToken(token: string | null | undefined): Promise<SessionUser | null> {
+export async function getUserByToken(
+  token: string | null | undefined,
+): Promise<SessionUser | null> {
   if (!token) return null;
-  const session = (await db.select().from(sessions).where(eq(sessions.id, token)).limit(1))[0];
+  const session = (
+    await db.select().from(sessions).where(eq(sessions.id, token)).limit(1)
+  )[0];
   if (!session || session.expiresAt < Date.now()) return null;
-  const user = (await db.select().from(users).where(eq(users.id, session.userId)).limit(1))[0];
-  return user ? { id: user.id, email: user.email, name: user.name, role: user.role } : null;
+  const user = (
+    await db.select().from(users).where(eq(users.id, session.userId)).limit(1)
+  )[0];
+  return user
+    ? { id: user.id, email: user.email, name: user.name, role: user.role }
+    : null;
 }
 
 /** Resolve the request's user from a Bearer token (mobile) or the cookie (web). */
@@ -145,10 +171,20 @@ export async function registerWithToken(
   }
   const id = randomUUID();
   const now = Date.now();
-  await db
-    .insert(users)
-    .values({ id, email, passwordHash: await hashPassword(password), name: name.trim(), role: "student", createdAt: now });
-  await db.insert(profiles).values({ userId: id, studentNo: makeStudentNo(), enrolledAt: now, rankTitle: "Novice" });
+  await db.insert(users).values({
+    id,
+    email,
+    passwordHash: await hashPassword(password),
+    name: name.trim(),
+    role: "student",
+    createdAt: now,
+  });
+  await db.insert(profiles).values({
+    userId: id,
+    studentNo: makeStudentNo(),
+    enrolledAt: now,
+    rankTitle: "Novice",
+  });
   await db.insert(progress).values({ userId: id, updatedAt: now });
   const token = await createSessionToken(id);
   void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
@@ -160,17 +196,24 @@ export async function loginWithToken(
   password: string,
 ): Promise<{ token: string; user: SessionUser } | { error: string }> {
   email = email.trim().toLowerCase();
-  const user = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+  const user = (
+    await db.select().from(users).where(eq(users.email, email)).limit(1)
+  )[0];
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     return { error: "Wrong email or password." };
   }
   const token = await createSessionToken(user.id);
   void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
-  return { token, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+  return {
+    token,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+  };
 }
 
 /** Permanently delete a student account and all associated data. */
-export async function deleteUserAccount(userId: string): Promise<{ ok: true } | { error: string }> {
+export async function deleteUserAccount(
+  userId: string,
+): Promise<{ ok: true } | { error: string }> {
   const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
   if (!user) return { error: "Account not found." };
   if (user.role === "admin") return { error: "Admin accounts cannot be deleted here." };

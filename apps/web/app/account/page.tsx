@@ -21,12 +21,16 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const profile = (await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1))[0];
-  const prog = (await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1))[0];
+  const profile = (
+    await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1)
+  )[0];
+  const prog = (
+    await db.select().from(progress).where(eq(progress.userId, user.id)).limit(1)
+  )[0];
   const enrolled = profile ? new Date(profile.enrolledAt).toLocaleDateString() : "—";
 
   return (
-    <div className="min-h-dvh bg-surface px-5 py-8">
+    <div className="bg-surface min-h-dvh px-5 py-8">
       <div className="mx-auto flex max-w-md flex-col gap-5">
         <BackButton />
         <div className="flex items-center justify-between">
@@ -50,25 +54,29 @@ export default async function AccountPage() {
         <div className="grid grid-cols-3 gap-3">
           <Stat label="XP" value={prog?.xp ?? 0} />
           <Stat label="Streak" value={prog?.streak ?? 0} />
-          <Stat label="Classes" value={JSON.parse(prog?.graduatedClasses ?? "[]").length} />
+          <Stat
+            label="Classes"
+            value={JSON.parse(prog?.graduatedClasses ?? "[]").length}
+          />
         </div>
 
         {user.role === "admin" && (
           <>
             <NavButton href="/library" block>
-              <Icon name="learn" size={20} className="text-white" /> Browse the lesson library
+              <Icon name="learn" size={20} className="text-white" /> Browse the lesson
+              library
             </NavButton>
             <NavButton href="/admin" variant="outline" block>
               <Icon name="gear" size={20} className="text-ink-700" /> Curriculum admin
             </NavButton>
           </>
         )}
-        <Link href="/" className="text-center text-sm font-bold text-ink-500">
+        <Link href="/" className="text-ink-500 text-center text-sm font-bold">
           Go to campus →
         </Link>
-        <div className="mt-4 flex flex-col gap-3 border-t border-hairline pt-6">
-          <p className="text-center text-xs font-semibold text-ink-500">
-            <Link href="/privacy" className="font-bold text-brand-500 hover:underline">
+        <div className="border-hairline mt-4 flex flex-col gap-3 border-t pt-6">
+          <p className="text-ink-500 text-center text-xs font-semibold">
+            <Link href="/privacy" className="text-brand-500 font-bold hover:underline">
               Privacy policy
             </Link>
           </p>
@@ -81,9 +89,9 @@ export default async function AccountPage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-card border border-hairline bg-surface-card p-4 text-center">
-      <div className="text-2xl font-extrabold tabular-nums text-ink">{value}</div>
-      <div className="text-xs font-semibold text-ink-500">{label}</div>
+    <div className="rounded-card border-hairline bg-surface-card border p-4 text-center">
+      <div className="text-ink text-2xl font-extrabold tabular-nums">{value}</div>
+      <div className="text-ink-500 text-xs font-semibold">{label}</div>
     </div>
   );
 }

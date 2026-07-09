@@ -7,7 +7,9 @@ import { createClient } from "@libsql/client";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-const days = Number(process.argv.find((a) => a.startsWith("--days="))?.split("=")[1] ?? 7);
+const days = Number(
+  process.argv.find((a) => a.startsWith("--days="))?.split("=")[1] ?? 7,
+);
 const dbPath = resolve(process.cwd(), "local.db");
 if (!existsSync(dbPath)) {
   console.error("No local.db — run from apps/web after pnpm db:fresh");
@@ -45,7 +47,9 @@ for (const [name, entries] of byMetric) {
   const goodPct = good ? ((Number(good.n) / total) * 100).toFixed(0) : "0";
   const avgAll = entries.reduce((s, e) => s + Number(e.avg) * Number(e.n), 0) / total;
   const unit = name === "CLS" ? "" : "ms";
-  console.log(`${name.padEnd(5)} n=${String(total).padStart(4)}  good=${goodPct.padStart(3)}%  avg=${avgAll.toFixed(name === "CLS" ? 3 : 0)}${unit}`);
+  console.log(
+    `${name.padEnd(5)} n=${String(total).padStart(4)}  good=${goodPct.padStart(3)}%  avg=${avgAll.toFixed(name === "CLS" ? 3 : 0)}${unit}`,
+  );
 }
 
 console.log("");

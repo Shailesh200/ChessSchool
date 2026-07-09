@@ -1,0 +1,11 @@
+.next
+node_modules
+coverage
+test-results
+playwright-report
+dist
+build
+*.db
+*.db-shm
+*.db-wal
+public/engine

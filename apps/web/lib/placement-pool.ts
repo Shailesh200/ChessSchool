@@ -15,7 +15,11 @@ export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
   const all: PlacementPuzzle[] = [];
   for (const r of rows) {
     try {
-      for (const s of JSON.parse(r.steps) as { kind?: string; fen?: string; solution?: string[] }[]) {
+      for (const s of JSON.parse(r.steps) as {
+        kind?: string;
+        fen?: string;
+        solution?: string[];
+      }[]) {
         if (s.kind === "move" && s.fen && s.solution?.length) {
           all.push({ fen: s.fen, solution: s.solution });
           break;
@@ -28,7 +32,8 @@ export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
   }
   const stride = Math.max(1, Math.floor(all.length / 8));
   const puzzles: PlacementPuzzle[] = [];
-  for (let i = 0; i < all.length && puzzles.length < 8; i += stride) puzzles.push(all[i]!);
+  for (let i = 0; i < all.length && puzzles.length < 8; i += stride)
+    puzzles.push(all[i]!);
 
   cached = puzzles;
   cachedAt = Date.now();

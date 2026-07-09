@@ -21,7 +21,10 @@ export function DeleteAccountButton() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/account", { method: "DELETE", credentials: "include" });
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        credentials: "include",
+      });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
@@ -42,11 +45,13 @@ export function DeleteAccountButton() {
         type="button"
         onClick={deleteAccount}
         disabled={busy}
-        className="rounded-pill border-2 border-danger-500 px-4 py-2 text-sm font-bold text-danger-500 disabled:opacity-50"
+        className="rounded-pill border-danger-500 text-danger-500 border-2 px-4 py-2 text-sm font-bold disabled:opacity-50"
       >
         {busy ? "Deleting…" : "Delete account"}
       </button>
-      {error ? <p className="text-center text-xs font-semibold text-danger-500">{error}</p> : null}
+      {error ? (
+        <p className="text-danger-500 text-center text-xs font-semibold">{error}</p>
+      ) : null}
     </div>
   );
 }

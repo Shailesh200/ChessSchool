@@ -105,7 +105,11 @@ export function analyzeMate(fen: string): MateInfo | null {
     const ar = Number(sq[1]);
     const sameRank = ar === rank;
     const onDiagonal = Math.abs(af - file) === Math.abs(ar - rank);
-    if ((piece.type === "r" || piece.type === "q") && sameRank && rank === ownBackRank) {
+    if (
+      (piece.type === "r" || piece.type === "q") &&
+      sameRank &&
+      rank === ownBackRank
+    ) {
       pattern = "back-rank";
       break;
     }

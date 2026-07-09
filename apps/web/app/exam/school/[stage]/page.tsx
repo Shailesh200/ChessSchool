@@ -6,7 +6,11 @@ import { STAGES } from "@/content/school";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
 /** School exam — random puzzles from across the school; passing unlocks the next. */
-export default function SchoolExamPage({ params }: { params: Promise<{ stage: string }> }) {
+export default function SchoolExamPage({
+  params,
+}: {
+  params: Promise<{ stage: string }>;
+}) {
   const { stage } = use(params);
   const [steps, setSteps] = useState<LessonStep[] | null>(null);
 
@@ -23,16 +27,18 @@ export default function SchoolExamPage({ params }: { params: Promise<{ stage: st
 
   if (steps === null) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-surface text-sm font-bold text-ink-500">
+      <div className="bg-surface text-ink-500 flex min-h-dvh items-center justify-center text-sm font-bold">
         Building your exam…
       </div>
     );
   }
   if (!steps.length) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-2 bg-surface px-6 text-center">
+      <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
         <p className="text-2xl">📝</p>
-        <p className="text-sm font-bold text-ink-500">No exam is available for this school yet.</p>
+        <p className="text-ink-500 text-sm font-bold">
+          No exam is available for this school yet.
+        </p>
       </div>
     );
   }
@@ -50,5 +56,11 @@ export default function SchoolExamPage({ params }: { params: Promise<{ stage: st
     steps,
   };
 
-  return <LessonPlayer lesson={lesson} nextLessonId={null} schoolExam={{ stage, nextName }} />;
+  return (
+    <LessonPlayer
+      lesson={lesson}
+      nextLessonId={null}
+      schoolExam={{ stage, nextName }}
+    />
+  );
 }

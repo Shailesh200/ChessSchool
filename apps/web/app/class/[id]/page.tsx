@@ -10,7 +10,11 @@ import { classDescription, socialMeta } from "@/lib/seo";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const row = (
     await db
@@ -49,7 +53,13 @@ export default async function ClassJourneyPage({
   if (!clsRow) notFound();
 
   const lessonRows = await db
-    .select({ id: lessonT.id, title: lessonT.title, subtitle: lessonT.subtitle, emoji: lessonT.emoji, isExam: lessonT.isExam })
+    .select({
+      id: lessonT.id,
+      title: lessonT.title,
+      subtitle: lessonT.subtitle,
+      emoji: lessonT.emoji,
+      isExam: lessonT.isExam,
+    })
     .from(lessonT)
     .where(eq(lessonT.classId, id))
     .orderBy(asc(lessonT.sortOrder));
@@ -60,18 +70,29 @@ export default async function ClassJourneyPage({
   let examLesson: { id: string; title: string } | null = null;
   if (clsRow.examId) {
     const ex = (
-      await db.select({ id: lessonT.id, title: lessonT.title }).from(lessonT).where(eq(lessonT.id, clsRow.examId)).limit(1)
+      await db
+        .select({ id: lessonT.id, title: lessonT.title })
+        .from(lessonT)
+        .where(eq(lessonT.id, clsRow.examId))
+        .limit(1)
     )[0];
     if (ex) examLesson = ex;
   }
 
   return (
     <AppShell>
-      <p className="mb-4 text-sm font-semibold leading-relaxed text-ink-600">
-        {classDescription(clsRow.title, clsRow.blurb)} Browse {lessons.length} interactive chess lessons below.
+      <p className="text-ink-600 mb-4 text-sm leading-relaxed font-semibold">
+        {classDescription(clsRow.title, clsRow.blurb)} Browse {lessons.length}{" "}
+        interactive chess lessons below.
       </p>
       <JourneyView
-        cls={{ id: clsRow.id, title: clsRow.title, emoji: clsRow.emoji, blurb: clsRow.blurb, examId: clsRow.examId ?? undefined }}
+        cls={{
+          id: clsRow.id,
+          title: clsRow.title,
+          emoji: clsRow.emoji,
+          blurb: clsRow.blurb,
+          examId: clsRow.examId ?? undefined,
+        }}
         lessons={lessons}
         examLesson={examLesson}
         allClasses={catalog.allClasses}

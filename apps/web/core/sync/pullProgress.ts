@@ -6,7 +6,13 @@ import {
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings, type SettingsState } from "@/core/store/settings.store";
-import { listJournal, replaceJournalEntries, replaceGamesFromSync, listGames, type JournalEntry } from "@/core/db/db";
+import {
+  listJournal,
+  replaceJournalEntries,
+  replaceGamesFromSync,
+  listGames,
+  type JournalEntry,
+} from "@/core/db/db";
 import {
   accountProgressEmpty,
   localProgressPresent,
@@ -30,7 +36,11 @@ const SYNCED_SETTING_KEYS = [
   "colorblind",
 ] as const;
 
-function snapshotsEqual(a: ProgressSnapshot, b: ProgressSnapshot & { placementDone?: boolean }, placementDone: boolean): boolean {
+function snapshotsEqual(
+  a: ProgressSnapshot,
+  b: ProgressSnapshot & { placementDone?: boolean },
+  placementDone: boolean,
+): boolean {
   return (
     a.xp === b.xp &&
     a.streak === b.streak &&
@@ -74,7 +84,9 @@ export async function fullSnapshotAsync() {
   const base = fullSnapshot();
   try {
     const [journalEntries, games] = await Promise.all([listJournal(), listGames()]);
-    const recentGames = games.map((g) => normalizeSyncGame(g)).filter((g): g is NonNullable<typeof g> => g !== null);
+    const recentGames = games
+      .map((g) => normalizeSyncGame(g))
+      .filter((g): g is NonNullable<typeof g> => g !== null);
     return { ...base, journalEntries, recentGames };
   } catch {
     return base;
@@ -103,11 +115,19 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
   const data = (await r.json()) as ServerSnapshot;
 
   const localSnap = progressSnapshot(useProgression.getState());
-  const guestHadProgress = localProgressPresent({ ...localSnap, placementDone: useProgression.getState().placementDone });
-  const accountEmpty = accountProgressEmpty({ ...data, placementDone: data.placementDone });
+  const guestHadProgress = localProgressPresent({
+    ...localSnap,
+    placementDone: useProgression.getState().placementDone,
+  });
+  const accountEmpty = accountProgressEmpty({
+    ...data,
+    placementDone: data.placementDone,
+  });
 
   if (accountEmpty && guestHadProgress) {
-    useProgression.getState().mergeSnapshot({ ...data, placementDone: data.placementDone });
+    useProgression
+      .getState()
+      .mergeSnapshot({ ...data, placementDone: data.placementDone });
   } else {
     const current = progressSnapshot(useProgression.getState());
     const incoming = { ...data, placementDone: data.placementDone };
@@ -115,12 +135,19 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
       useProgression.getState().hydrateSnapshot(incoming);
     }
   }
-  if (data.dailyPuzzleDay !== undefined && data.dailyPuzzleDay !== useProgression.getState().dailyPuzzleDay) {
+  if (
+    data.dailyPuzzleDay !== undefined &&
+    data.dailyPuzzleDay !== useProgression.getState().dailyPuzzleDay
+  ) {
     useProgression.setState({ dailyPuzzleDay: data.dailyPuzzleDay ?? null });
   }
-  usePlan.getState().setHomework(data.homeworkStreak ?? 0, data.homeworkLastDay ?? null);
+  usePlan
+    .getState()
+    .setHomework(data.homeworkStreak ?? 0, data.homeworkLastDay ?? null);
   if (data.settings && typeof data.settings === "object") {
-    type SyncedSettings = Partial<Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch" | "diagnostics">>;
+    type SyncedSettings = Partial<
+      Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch" | "diagnostics">
+    >;
     const patch: SyncedSettings = {
       sound: Boolean(data.settings.sound ?? true),
     };
@@ -147,7 +174,11 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
     }
   }
   const session = useSession.getState();
-  if (session.authed !== true || session.user?.name !== data.user.name || session.user?.role !== data.user.role) {
+  if (
+    session.authed !== true ||
+    session.user?.name !== data.user.name ||
+    session.user?.role !== data.user.role
+  ) {
     useSession.getState().setSession(true, data.user);
   }
   return data.user;

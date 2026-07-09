@@ -25,7 +25,13 @@ const TAG_AREA: Record<string, string> = {
   drill: "Strategy",
 };
 
-export const SKILL_AREAS = ["Openings", "Tactics", "Strategy", "Endgames", "Calculation"];
+export const SKILL_AREAS = [
+  "Openings",
+  "Tactics",
+  "Strategy",
+  "Endgames",
+  "Calculation",
+];
 
 export interface SkillNode {
   area: string;
@@ -93,7 +99,9 @@ export function skillEstimate(
   const mastered = Object.values(records).filter((r) => r.mastery >= 0.9).length;
   const winAdj = (stats.winRate - 0.5) * 300;
   const learnAdj = mastered * 12;
-  return Math.round(Math.max(400, Math.min(2400, targetElo * 0.6 + 350 + winAdj + learnAdj)));
+  return Math.round(
+    Math.max(400, Math.min(2400, targetElo * 0.6 + 350 + winAdj + learnAdj)),
+  );
 }
 
 export interface MistakeFinding {
@@ -140,7 +148,8 @@ export function mistakeDNA(
   return findings;
 }
 
-export type Identity = "Attacker" | "Strategist" | "Tactician" | "Positional" | "Balanced";
+export type Identity =
+  "Attacker" | "Strategist" | "Tactician" | "Positional" | "Balanced";
 
 /** Chess identity (#45) — a light heuristic over results and weaknesses. */
 export function chessIdentity(
@@ -175,5 +184,10 @@ export function graduationForecast(
   const remaining = Math.max(0, total - grad);
   // assume ~1 class every 3 active days; nudge faster for active streaks
   const pace = streak >= 5 ? 2 : 3;
-  return { totalClasses: total, graduatedClasses: grad, remaining, estDays: remaining * pace };
+  return {
+    totalClasses: total,
+    graduatedClasses: grad,
+    remaining,
+    estDays: remaining * pace,
+  };
 }

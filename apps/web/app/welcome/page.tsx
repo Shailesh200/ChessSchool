@@ -27,12 +27,16 @@ export default function WelcomePage() {
   }, [router, next]);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-surface px-6 text-center">
+    <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
       <Mascot expression="happy" size={96} />
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-surface-sunken border-t-brand" />
+      <div className="border-surface-sunken border-t-brand h-10 w-10 animate-spin rounded-full border-4" />
       <div>
-        <p className="text-base font-extrabold text-ink">Enrolling you into the academy…</p>
-        <p className="mt-1 text-xs font-semibold text-ink-500">Loading your profile and progress</p>
+        <p className="text-ink text-base font-extrabold">
+          Enrolling you into the academy…
+        </p>
+        <p className="text-ink-500 mt-1 text-xs font-semibold">
+          Loading your profile and progress
+        </p>
       </div>
     </div>
   );

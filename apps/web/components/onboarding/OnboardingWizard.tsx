@@ -63,11 +63,41 @@ export function OnboardingWizard({ name }: { name: string }) {
   const [finishing, setFinishing] = useState(false);
 
   const steps = [
-    { title: `Welcome, ${name.split(" ")[0]}!`, sub: "Let's tailor your studies. What's your main goal?", opts: GOALS, value: goal, set: setGoal },
-    { title: "How experienced are you?", sub: "We'll set your starting bot strength.", opts: EXPERIENCE, value: elo, set: setElo },
-    { title: "How much time per day?", sub: "This sets your study plan.", opts: TIME, value: time, set: setTime },
-    { title: "Pick your coach", sub: "Choose the tone you like.", opts: COACH, value: coach, set: setCoach },
-    { title: "Choose a theme", sub: "You can change it anytime.", opts: THEME, value: theme, set: setTheme },
+    {
+      title: `Welcome, ${name.split(" ")[0]}!`,
+      sub: "Let's tailor your studies. What's your main goal?",
+      opts: GOALS,
+      value: goal,
+      set: setGoal,
+    },
+    {
+      title: "How experienced are you?",
+      sub: "We'll set your starting bot strength.",
+      opts: EXPERIENCE,
+      value: elo,
+      set: setElo,
+    },
+    {
+      title: "How much time per day?",
+      sub: "This sets your study plan.",
+      opts: TIME,
+      value: time,
+      set: setTime,
+    },
+    {
+      title: "Pick your coach",
+      sub: "Choose the tone you like.",
+      opts: COACH,
+      value: coach,
+      set: setCoach,
+    },
+    {
+      title: "Choose a theme",
+      sub: "You can change it anytime.",
+      opts: THEME,
+      value: theme,
+      set: setTheme,
+    },
   ];
   const isAvatarStep = step === steps.length;
   const total = steps.length + 1;
@@ -89,26 +119,35 @@ export function OnboardingWizard({ name }: { name: string }) {
 
   if (finishing) {
     return (
-      <div className="relative flex min-h-dvh flex-col items-center justify-center gap-4 overflow-hidden bg-surface px-6 text-center">
+      <div className="bg-surface relative flex min-h-dvh flex-col items-center justify-center gap-4 overflow-hidden px-6 text-center">
         <Confetti count={44} />
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 280, damping: 16 }} className="text-7xl">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 280, damping: 16 }}
+          className="text-7xl"
+        >
           {avatar || "🎓"}
         </motion.div>
-        <div className="rounded-pill bg-gold/20 px-4 py-1 text-xs font-extrabold uppercase tracking-wide text-warning">
+        <div className="rounded-pill bg-gold/20 text-warning px-4 py-1 text-xs font-extrabold tracking-wide uppercase">
           🎓 Enrolled
         </div>
-        <h1 className="text-3xl font-extrabold text-ink">Welcome to ChessSchool, {name.split(" ")[0]}!</h1>
-        <p className="text-sm font-semibold text-ink-500">Issuing your Student ID…</p>
+        <h1 className="text-ink text-3xl font-extrabold">
+          Welcome to ChessSchool, {name.split(" ")[0]}!
+        </h1>
+        <p className="text-ink-500 text-sm font-semibold">Issuing your Student ID…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface px-6 py-8">
+    <div className="bg-surface flex min-h-dvh flex-col px-6 py-8">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <div className="mb-6 flex items-center justify-between">
           <Logo />
-          <span className="text-xs font-bold text-ink-500">{step + 1}/{total}</span>
+          <span className="text-ink-500 text-xs font-bold">
+            {step + 1}/{total}
+          </span>
         </div>
         <ProgressBar value={step + 1} max={total} tone="brand" className="mb-6" />
 
@@ -121,15 +160,17 @@ export function OnboardingWizard({ name }: { name: string }) {
             transition={{ duration: 0.2 }}
             className="flex flex-1 flex-col"
           >
-            <h1 className="text-2xl font-extrabold text-ink">
+            <h1 className="text-ink text-2xl font-extrabold">
               {isAvatarStep ? "Pick your avatar" : current!.title}
             </h1>
-            <p className="mb-5 text-sm font-semibold text-ink-500">
+            <p className="text-ink-500 mb-5 text-sm font-semibold">
               {isAvatarStep ? "It appears on your Student ID." : current!.sub}
             </p>
             {!isAvatarStep && step === 1 && elo === "600" && (
-              <p className="-mt-3 mb-4 rounded-card border border-hairline bg-surface-sunken/80 px-3 py-2 text-xs font-semibold text-ink-500">
-                🧸 We&apos;ll recommend our optional <span className="font-extrabold text-ink">Pre-School</span> first — board, pieces &amp; notation. Skip anytime if you prefer.
+              <p className="rounded-card border-hairline bg-surface-sunken/80 text-ink-500 -mt-3 mb-4 border px-3 py-2 text-xs font-semibold">
+                🧸 We&apos;ll recommend our optional{" "}
+                <span className="text-ink font-extrabold">Pre-School</span> first —
+                board, pieces &amp; notation. Skip anytime if you prefer.
               </p>
             )}
 
@@ -138,9 +179,14 @@ export function OnboardingWizard({ name }: { name: string }) {
                 {AVATARS.map((a) => (
                   <button
                     key={a}
-                    onClick={() => { setAvatar(a); haptics.fire("select"); }}
-                    className={`btn-tactile flex aspect-square items-center justify-center rounded-card border-2 text-3xl ${
-                      avatar === a ? "border-brand bg-brand-50" : "border-hairline bg-surface-card"
+                    onClick={() => {
+                      setAvatar(a);
+                      haptics.fire("select");
+                    }}
+                    className={`btn-tactile rounded-card flex aspect-square items-center justify-center border-2 text-3xl ${
+                      avatar === a
+                        ? "border-brand bg-brand-50"
+                        : "border-hairline bg-surface-card"
                     }`}
                   >
                     {a}
@@ -152,13 +198,19 @@ export function OnboardingWizard({ name }: { name: string }) {
                 {current!.opts.map((o) => (
                   <button
                     key={o.value}
-                    onClick={() => { current!.set(o.value); haptics.fire("select"); audio.play("select"); }}
-                    className={`btn-tactile flex items-center gap-3 rounded-card border-2 p-3 text-left ${
-                      current!.value === o.value ? "border-brand bg-brand-50" : "border-hairline bg-surface-card"
+                    onClick={() => {
+                      current!.set(o.value);
+                      haptics.fire("select");
+                      audio.play("select");
+                    }}
+                    className={`btn-tactile rounded-card flex items-center gap-3 border-2 p-3 text-left ${
+                      current!.value === o.value
+                        ? "border-brand bg-brand-50"
+                        : "border-hairline bg-surface-card"
                     }`}
                   >
                     <span className="text-2xl">{o.emoji}</span>
-                    <span className="text-sm font-extrabold text-ink">{o.label}</span>
+                    <span className="text-ink text-sm font-extrabold">{o.label}</span>
                   </button>
                 ))}
               </div>
@@ -168,7 +220,9 @@ export function OnboardingWizard({ name }: { name: string }) {
 
         <div className="mt-6 flex gap-2">
           {step > 0 && (
-            <Button variant="ghost" onClick={() => setStep((s) => s - 1)}>Back</Button>
+            <Button variant="ghost" onClick={() => setStep((s) => s - 1)}>
+              Back
+            </Button>
           )}
           <Button
             block

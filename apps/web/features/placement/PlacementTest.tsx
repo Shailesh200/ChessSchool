@@ -87,9 +87,15 @@ export function PlacementTest({
     const target = stages[targetIdx]!;
 
     const admit = (idx: number) => {
-      stages.slice(0, idx).forEach((s) => s.classIds.forEach((id) => graduateClass(id)));
+      stages
+        .slice(0, idx)
+        .forEach((s) => s.classIds.forEach((id) => graduateClass(id)));
       markPlacementDone();
-      trackEvent("placement_complete", { score: correct, total: questions.length, stage: stages[idx]?.name });
+      trackEvent("placement_complete", {
+        score: correct,
+        total: questions.length,
+        stage: stages[idx]?.name,
+      });
       audio.play("graduation");
       startNav();
       router.push("/");
@@ -99,11 +105,12 @@ export function PlacementTest({
       <div className="relative flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
         <Confetti count={30} />
         <Mascot expression="cheer" size={120} />
-        <h1 className="text-2xl font-extrabold text-ink">
+        <h1 className="text-ink text-2xl font-extrabold">
           You scored {correct}/{questions.length}
         </h1>
-        <p className="max-w-xs text-sm font-semibold text-ink-500">
-          Based on your test, we recommend starting at <span className="font-extrabold text-brand">{target.name}</span>.
+        <p className="text-ink-500 max-w-xs text-sm font-semibold">
+          Based on your test, we recommend starting at{" "}
+          <span className="text-brand font-extrabold">{target.name}</span>.
         </p>
         <div className="flex w-full max-w-xs flex-col gap-2">
           <Button size="lg" block onClick={() => admit(targetIdx)}>
@@ -120,14 +127,19 @@ export function PlacementTest({
   if (!q) return null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="bg-surface flex min-h-dvh flex-col">
       <div className="pt-safe px-4 py-3 text-center">
-        <p className="text-xs font-extrabold uppercase tracking-wide text-brand">Placement test</p>
-        <p className="text-sm font-bold text-ink">
+        <p className="text-brand text-xs font-extrabold tracking-wide uppercase">
+          Placement test
+        </p>
+        <p className="text-ink text-sm font-bold">
           Question {i + 1} of {questions.length} · find the best move
         </p>
       </div>
-      <div ref={boardBox} className="flex min-h-0 flex-1 items-center justify-center px-3">
+      <div
+        ref={boardBox}
+        className="flex min-h-0 flex-1 items-center justify-center px-3"
+      >
         <motion.div
           key={i}
           initial={{ opacity: 0, scale: 0.97 }}
@@ -143,9 +155,13 @@ export function PlacementTest({
           />
         </motion.div>
       </div>
-      <div className="px-4 pb-6 pt-2 text-center">
-        <p className="text-sm font-bold text-ink">
-          {feedback === "correct" ? "✅ Correct!" : feedback === "wrong" ? "❌ Not the best move" : "Your move."}
+      <div className="px-4 pt-2 pb-6 text-center">
+        <p className="text-ink text-sm font-bold">
+          {feedback === "correct"
+            ? "✅ Correct!"
+            : feedback === "wrong"
+              ? "❌ Not the best move"
+              : "Your move."}
         </p>
       </div>
     </div>

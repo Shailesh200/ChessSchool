@@ -27,7 +27,13 @@ export async function GET(req: Request) {
   const picked = rows.find((r) => r.id === lessonId) ?? rows[0];
 
   if (!picked) {
-    return NextResponse.json({ day, lessonId: null, title: null, tag: null, emoji: null });
+    return NextResponse.json({
+      day,
+      lessonId: null,
+      title: null,
+      tag: null,
+      emoji: null,
+    });
   }
 
   return NextResponse.json({

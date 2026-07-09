@@ -11,14 +11,39 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const user = await getApiUser(req);
   const [sems, cls, les] = await Promise.all([
-    db.select({ id: semesters.id, title: semesters.title, stage: semesters.stage, sortOrder: semesters.sortOrder }).from(semesters),
-    db.select({ id: classes.id, title: classes.title, semesterId: classes.semesterId, sortOrder: classes.sortOrder }).from(classes),
-    db.select({ id: lessons.id, title: lessons.title, classId: lessons.classId, sortOrder: lessons.sortOrder, isExam: lessons.isExam }).from(lessons),
+    db
+      .select({
+        id: semesters.id,
+        title: semesters.title,
+        stage: semesters.stage,
+        sortOrder: semesters.sortOrder,
+      })
+      .from(semesters),
+    db
+      .select({
+        id: classes.id,
+        title: classes.title,
+        semesterId: classes.semesterId,
+        sortOrder: classes.sortOrder,
+      })
+      .from(classes),
+    db
+      .select({
+        id: lessons.id,
+        title: lessons.title,
+        classId: lessons.classId,
+        sortOrder: lessons.sortOrder,
+        isExam: lessons.isExam,
+      })
+      .from(lessons),
   ]);
 
   const mastery: Record<string, number> = {};
   if (user) {
-    for (const r of await db.select().from(lessonRecords).where(eq(lessonRecords.userId, user.id))) {
+    for (const r of await db
+      .select()
+      .from(lessonRecords)
+      .where(eq(lessonRecords.userId, user.id))) {
       mastery[r.lessonId] = r.mastery;
     }
   }
@@ -44,11 +69,16 @@ export async function GET(req: Request) {
   for (const c of orderedClasses) {
     classIndex++;
     const sem = sems.find((s) => s.id === c.semesterId);
-    if (sem && shouldSkipSemester(sem, semClassIds.get(sem.id) ?? [], mastery, lessonClassById)) {
+    if (
+      sem &&
+      shouldSkipSemester(sem, semClassIds.get(sem.id) ?? [], mastery, lessonClassById)
+    ) {
       continue;
     }
 
-    const classLessons = (byClass.get(c.id) ?? []).sort((a, b) => a.sortOrder - b.sortOrder);
+    const classLessons = (byClass.get(c.id) ?? []).sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
     if (!classLessons.length) continue;
 
     const done = classLessons.filter((l) => (mastery[l.id] ?? 0) >= 0.9).length;

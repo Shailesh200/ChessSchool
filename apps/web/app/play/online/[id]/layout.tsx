@@ -4,7 +4,11 @@ import { db } from "@/db";
 import { gameSessions } from "@/db/schema";
 import { siteName, socialMeta } from "@/lib/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const row = (
     await db

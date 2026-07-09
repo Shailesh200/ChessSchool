@@ -1,5 +1,9 @@
 # Web → App parity audit
 
+> **⚠️ STALE — superseded by [`PARITY_GAPS.md`](PARITY_GAPS.md)** (2026-07-09).  
+> For roadmap status see [`../../plans/00_MASTER_DEVELOPMENT_PLAN.md`](../../plans/00_MASTER_DEVELOPMENT_PLAN.md).  
+> This file is kept for historical overlay-diff context only.
+
 Source of truth: the web app (`apps/web`). Status of each surface in the native app (`apps/mobile`).
 Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ N/A (web-only / not applicable to native)
 

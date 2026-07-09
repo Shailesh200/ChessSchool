@@ -51,7 +51,10 @@ export default function DashboardPage() {
   const unlocked = useProgression((s) => s.unlockedAchievements);
   const [today] = useState(() => new Date());
   const [games, setGames] = useState<SavedGame[]>([]);
-  const [curr, setCurr] = useState<{ totalClasses: number; lessonsByTag: Record<string, string[]> } | null>(null);
+  const [curr, setCurr] = useState<{
+    totalClasses: number;
+    lessonsByTag: Record<string, string[]>;
+  } | null>(null);
   const [reportClasses, setReportClasses] = useState<ReportClass[]>([]);
 
   useEffect(() => {
@@ -69,13 +72,15 @@ export default function DashboardPage() {
   if (!mounted) {
     return (
       <AppShell>
-        <div className="skeleton h-96 rounded-card" />
+        <div className="skeleton rounded-card h-96" />
       </AppShell>
     );
   }
 
   const lessonList = curr
-    ? Object.entries(curr.lessonsByTag).flatMap(([tag, ids]) => ids.map((id) => ({ id, tag })))
+    ? Object.entries(curr.lessonsByTag).flatMap(([tag, ids]) =>
+        ids.map((id) => ({ id, tag })),
+      )
     : undefined;
   const stats = gameStats(games);
   const tree = skillTree(records, lessonList);
@@ -89,20 +94,25 @@ export default function DashboardPage() {
     <AppShell>
       <div className="flex flex-col gap-5">
         <BackButton />
-        <h1 className="text-xl font-extrabold text-ink">Report Card</h1>
+        <h1 className="text-ink text-xl font-extrabold">Report Card</h1>
 
         {/* Chess identity + live ELO rating (recomputed from every bot game) */}
         <Card className="flex items-center gap-4">
           <div className="text-center">
-            <AnimatedNumber value={rating} className="block text-4xl font-extrabold text-brand" />
-            <div className="text-[11px] font-semibold text-ink-500">your rating (ELO)</div>
+            <AnimatedNumber
+              value={rating}
+              className="text-brand block text-4xl font-extrabold"
+            />
+            <div className="text-ink-500 text-[11px] font-semibold">
+              your rating (ELO)
+            </div>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-extrabold text-ink">Your chess identity</p>
-            <span className="mt-1 inline-block rounded-pill bg-brand-50 px-3 py-1 text-sm font-extrabold text-brand">
+            <p className="text-ink text-sm font-extrabold">Your chess identity</p>
+            <span className="rounded-pill bg-brand-50 text-brand mt-1 inline-block px-3 py-1 text-sm font-extrabold">
               {ratingTitle(rating)}
             </span>
-            <p className="mt-1 text-xs font-semibold text-ink-500">
+            <p className="text-ink-500 mt-1 text-xs font-semibold">
               {stats.total} games · {Math.round(stats.winRate * 100)}% win rate
             </p>
           </div>
@@ -113,14 +123,18 @@ export default function DashboardPage() {
 
         {/* Skill tree */}
         <section>
-          <h2 className="mb-2 text-sm font-extrabold text-ink">Skill tree</h2>
+          <h2 className="text-ink mb-2 text-sm font-extrabold">Skill tree</h2>
           <Card className="flex flex-col gap-3">
-            <SkillRadar data={tree.map((n) => ({ area: n.area, mastery: n.mastery }))} />
+            <SkillRadar
+              data={tree.map((n) => ({ area: n.area, mastery: n.mastery }))}
+            />
             {tree.map((node) => (
               <div key={node.area}>
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-ink">{node.area}</span>
-                  <span className="text-ink-500">{Math.round(node.mastery * 100)}%</span>
+                  <span className="text-ink-500">
+                    {Math.round(node.mastery * 100)}%
+                  </span>
                 </div>
                 <ProgressBar
                   className="mt-1"
@@ -136,7 +150,7 @@ export default function DashboardPage() {
 
         {/* Graduation forecast */}
         <Card>
-          <p className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+          <p className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
             <Icon name="cap" size={18} className="text-gold" /> Graduation forecast
           </p>
           <ProgressBar
@@ -146,7 +160,7 @@ export default function DashboardPage() {
             tone="gold"
             label="Graduation progress"
           />
-          <p className="mt-2 text-xs font-semibold text-ink-500">
+          <p className="text-ink-500 mt-2 text-xs font-semibold">
             {forecast.graduatedClasses}/{forecast.totalClasses} classes graduated ·{" "}
             {forecast.remaining === 0
               ? "All classes complete! 🏆"
@@ -156,7 +170,7 @@ export default function DashboardPage() {
 
         {/* Activity heatmap */}
         <section>
-          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-extrabold text-ink">
+          <h2 className="text-ink mb-2 flex items-center gap-1.5 text-sm font-extrabold">
             <Icon name="flame" size={18} className="text-accent" /> Activity ·{" "}
             <span className="text-ink-500">{streak}-day streak</span>
           </h2>
@@ -167,28 +181,37 @@ export default function DashboardPage() {
 
         {/* Mistake DNA */}
         <section>
-          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-extrabold text-ink">
+          <h2 className="text-ink mb-2 flex items-center gap-1.5 text-sm font-extrabold">
             <Icon name="dna" size={18} className="text-danger" /> Mistake DNA
           </h2>
           <div className="flex flex-col gap-2">
             {findings.map((f, i) => (
               <Card key={i} className="p-3">
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-pill px-2 py-0.5 text-[10px] font-extrabold uppercase ${SEV[f.severity]}`}>
+                  <span
+                    className={`rounded-pill px-2 py-0.5 text-[10px] font-extrabold uppercase ${SEV[f.severity]}`}
+                  >
                     {f.severity}
                   </span>
-                  <span className="flex-1 text-sm font-extrabold text-ink">{f.label}</span>
+                  <span className="text-ink flex-1 text-sm font-extrabold">
+                    {f.label}
+                  </span>
                 </div>
-                <p className="mt-1 text-xs font-semibold text-ink-500">{f.recommendation}</p>
+                <p className="text-ink-500 mt-1 text-xs font-semibold">
+                  {f.recommendation}
+                </p>
               </Card>
             ))}
           </div>
-          <div className="mb-2 mt-3 flex items-center justify-between gap-2">
-            <h3 className="text-xs font-extrabold uppercase tracking-wide text-ink-500">
+          <div className="mt-3 mb-2 flex items-center justify-between gap-2">
+            <h3 className="text-ink-500 text-xs font-extrabold tracking-wide uppercase">
               Recent mistakes — tap to see the better move
             </h3>
             {mistakeLog.length > 0 && (
-              <Link href="/practice/mistakes" className="shrink-0 text-xs font-extrabold text-brand">
+              <Link
+                href="/practice/mistakes"
+                className="text-brand shrink-0 text-xs font-extrabold"
+              >
                 🎯 Practice these →
               </Link>
             )}
@@ -198,7 +221,7 @@ export default function DashboardPage() {
 
         {/* Trophy room */}
         <section>
-          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-extrabold text-ink">
+          <h2 className="text-ink mb-2 flex items-center gap-1.5 text-sm font-extrabold">
             <Icon name="trophy" size={18} className="text-gold" /> Trophy room
           </h2>
           <Card className="flex flex-col gap-3">
@@ -209,19 +232,25 @@ export default function DashboardPage() {
             </div>
             {bestGame && (
               <Link href={`/review/${bestGame.id}`}>
-                <div className="rounded-card bg-surface-sunken px-3 py-2 text-sm font-bold text-ink">
-                  ⭐ Best game: win vs Bot {bestGame.elo} in {bestGame.moveCount} moves →
+                <div className="rounded-card bg-surface-sunken text-ink px-3 py-2 text-sm font-bold">
+                  ⭐ Best game: win vs Bot {bestGame.elo} in {bestGame.moveCount} moves
+                  →
                 </div>
               </Link>
             )}
             <div className="flex flex-wrap gap-2">
               {ACHIEVEMENTS.filter((a) => unlocked.includes(a.id)).map((a) => (
-                <span key={a.id} className="rounded-pill bg-gold/15 px-2 py-1 text-xs font-bold text-ink">
+                <span
+                  key={a.id}
+                  className="rounded-pill bg-gold/15 text-ink px-2 py-1 text-xs font-bold"
+                >
                   {a.emoji} {a.title}
                 </span>
               ))}
               {unlocked.length === 0 && (
-                <span className="text-xs font-semibold text-ink-500">Earn badges by learning and winning.</span>
+                <span className="text-ink-500 text-xs font-semibold">
+                  Earn badges by learning and winning.
+                </span>
               )}
             </div>
           </Card>
@@ -234,8 +263,8 @@ export default function DashboardPage() {
 function Trophy({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-card bg-surface-sunken px-2 py-2">
-      <AnimatedNumber value={value} className="block text-xl font-extrabold text-ink" />
-      <div className="text-[10px] font-semibold text-ink-500">{label}</div>
+      <AnimatedNumber value={value} className="text-ink block text-xl font-extrabold" />
+      <div className="text-ink-500 text-[10px] font-semibold">{label}</div>
     </div>
   );
 }

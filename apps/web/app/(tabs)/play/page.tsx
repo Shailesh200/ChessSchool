@@ -13,5 +13,5 @@ export default function PlayPage() {
     return <MatchView active={active} />;
   }
 
-  return mounted ? <MatchChooser /> : <div className="skeleton h-64 rounded-card" />;
+  return mounted ? <MatchChooser /> : <div className="skeleton rounded-card h-64" />;
 }

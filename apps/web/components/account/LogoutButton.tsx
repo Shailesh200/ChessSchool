@@ -25,7 +25,12 @@ export function LogoutButton() {
       // server already best-effort; continue clearing the client either way
     }
     useProgression.getState().reset();
-    usePlan.setState({ routineDay: null, routineDone: [], homeworkStreak: 0, homeworkLastDay: null });
+    usePlan.setState({
+      routineDay: null,
+      routineDone: [],
+      homeworkStreak: 0,
+      homeworkLastDay: null,
+    });
     useSession.getState().setSession(false, null);
     useSettings.getState().set("targetElo", 600); // back to the default opponent
     router.replace("/login");
@@ -35,7 +40,7 @@ export function LogoutButton() {
     <button
       onClick={logout}
       disabled={busy}
-      className="rounded-pill border-2 border-hairline px-4 py-1.5 text-sm font-bold text-ink-700 disabled:opacity-50"
+      className="rounded-pill border-hairline text-ink-700 border-2 px-4 py-1.5 text-sm font-bold disabled:opacity-50"
     >
       {busy ? "Logging out…" : "Log out"}
     </button>

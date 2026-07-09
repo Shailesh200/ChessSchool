@@ -15,7 +15,9 @@ export default async function PlacementPage() {
   const catalog = await getCatalog();
   const stages: PlacementStage[] = STAGE_ORDER.map((id) => {
     const stage = catalog.stages.find((s) => s.id === id);
-    const classIds = catalog.semesters.filter((s) => s.stage === id).flatMap((s) => s.classes.map((c) => c.id));
+    const classIds = catalog.semesters
+      .filter((s) => s.stage === id)
+      .flatMap((s) => s.classes.map((c) => c.id));
     return { id, name: stage?.name ?? id, classIds };
   }).filter((s) => s.classIds.length > 0);
 

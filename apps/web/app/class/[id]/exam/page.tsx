@@ -35,8 +35,9 @@ export default async function ClassExamPage({
   // Test the most-recent lessons (the material just before this point), not the
   // whole class from the start — a short, quick check.
   const recent = teaching.slice(-2);
-  const moveSteps = (recent.length ? recent : teaching)
-    .flatMap((r) => (JSON.parse(r.steps) as LessonStep[]).filter((s) => s.kind === "move"));
+  const moveSteps = (recent.length ? recent : teaching).flatMap((r) =>
+    (JSON.parse(r.steps) as LessonStep[]).filter((s) => s.kind === "move"),
+  );
   if (moveSteps.length === 0) notFound();
 
   const exam: Lesson = {

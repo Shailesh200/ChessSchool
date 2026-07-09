@@ -76,7 +76,8 @@ export const LESSONS = [
       {
         id: "watch-setup",
         kind: "observe",
-        coach: "Watch a legal opening move — White pushes the e-pawn two squares forward along the e-file to e4.",
+        coach:
+          "Watch a legal opening move — White pushes the e-pawn two squares forward along the e-file to e4.",
         fen: START,
         moves: ["e2:e4"],
         highlight: ["e2", "e4"],
@@ -117,7 +118,8 @@ export const LESSONS = [
           { label: "File c, rank 5", emoji: "⬅️" },
         ],
         correct: 0,
-        explain: "d5 is file d (4th from the left) and rank 5 (5th row from White). Many battles happen in the centre!",
+        explain:
+          "d5 is file d (4th from the left) and rank 5 (5th row from White). Many battles happen in the centre!",
         failText: "Count files a→d, then ranks 1→5 from White's bottom edge.",
         visual: "square",
         visualSquare: "d5",
@@ -138,7 +140,8 @@ export const LESSONS = [
         id: "quiz-e4",
         kind: "quiz",
         coach: "",
-        question: "A pawn on e2 moves two squares forward. What square does it land on?",
+        question:
+          "A pawn on e2 moves two squares forward. What square does it land on?",
         options: [
           { label: "e4", emoji: "♟️" },
           { label: "e3", emoji: "1️⃣" },
@@ -169,7 +172,24 @@ export const LESSONS = [
         coach:
           "There are six kinds of pieces. Pawns (♟) are the foot soldiers — you have eight. Rooks (♜) look like castle towers. Knights (♞) look like horses and jump in an L. Bishops (♝) move diagonally. The Queen (♛) is the most powerful. The King (♚) is the most important — protect him at all costs!",
         fen: START,
-        highlight: ["a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1", "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"],
+        highlight: [
+          "a1",
+          "b1",
+          "c1",
+          "d1",
+          "e1",
+          "f1",
+          "g1",
+          "h1",
+          "a2",
+          "b2",
+          "c2",
+          "d2",
+          "e2",
+          "f2",
+          "g2",
+          "h2",
+        ],
         highlightRanks: [1, 2],
       },
     ],
@@ -196,7 +216,8 @@ export const LESSONS = [
           { label: "Knight ♞", emoji: "🐴" },
         ],
         correct: 0,
-        explain: "The queen combines rook and bishop powers — she is the strongest piece.",
+        explain:
+          "The queen combines rook and bishop powers — she is the strongest piece.",
         failText: "Think about which piece can move the farthest in one turn.",
         visual: "royalty",
       },
@@ -224,7 +245,8 @@ export const LESSONS = [
           { label: "Bishop ♝", emoji: "⛪" },
         ],
         correct: 0,
-        explain: "If your king cannot escape check, you lose (checkmate). Protect the king at all costs!",
+        explain:
+          "If your king cannot escape check, you lose (checkmate). Protect the king at all costs!",
         failText: "When the king is trapped with no escape, the game is over.",
         visual: "royalty",
       },
@@ -275,7 +297,10 @@ export const LESSONS = [
         highlight: ["e2"],
         highlightFiles: ["e"],
         highlightRanks: [2],
-        arrows: [{ startSquare: "e2", endSquare: "e3", color: "#5b5bd6" }, { startSquare: "e2", endSquare: "e4", color: "#34d399" }],
+        arrows: [
+          { startSquare: "e2", endSquare: "e3", color: "#5b5bd6" },
+          { startSquare: "e2", endSquare: "e4", color: "#34d399" },
+        ],
       },
       {
         id: "capture-rule",
@@ -323,7 +348,8 @@ export const LESSONS = [
           { label: "Any direction one square", emoji: "🎯" },
         ],
         correct: 0,
-        explain: "Pawns march straight forward. They capture one square diagonally forward — never backward.",
+        explain:
+          "Pawns march straight forward. They capture one square diagonally forward — never backward.",
         failText: "Pawns are foot soldiers — they only advance toward the enemy.",
         visual: "square-path",
         visualSquares: ["e2", "e4"],
@@ -390,7 +416,8 @@ export const LESSONS = [
           { label: "It captures like a pawn", emoji: "♟️" },
         ],
         correct: 0,
-        explain: "Knights are the only pieces that leap over blockers — two squares one way, one square sideways.",
+        explain:
+          "Knights are the only pieces that leap over blockers — two squares one way, one square sideways.",
         failText: "Remember the L-shape jump — nothing can block a knight's path.",
         visual: "piece-roster",
       },
@@ -461,7 +488,8 @@ export const LESSONS = [
           { label: "One square in any direction", emoji: "🎯" },
         ],
         correct: 0,
-        explain: "Rooks ride straight lines — like a castle tower sliding along rows and columns.",
+        explain:
+          "Rooks ride straight lines — like a castle tower sliding along rows and columns.",
         failText: "Rooks go straight, not diagonally.",
         visual: "piece-roster",
       },
@@ -523,7 +551,8 @@ export const LESSONS = [
           { label: "Only ranks, never files", emoji: "➡️" },
         ],
         correct: 0,
-        explain: "A bishop on a light square always stays on light squares — same for dark bishops.",
+        explain:
+          "A bishop on a light square always stays on light squares — same for dark bishops.",
         failText: "Bishops slide diagonally, so they never change square colour.",
         visual: "piece-roster",
       },
@@ -599,7 +628,8 @@ export const LESSONS = [
           { label: "In an L-shape like a knight", emoji: "🐴" },
         ],
         correct: 0,
-        explain: "The queen = rook + bishop. She slides in eight directions but cannot jump over pieces.",
+        explain:
+          "The queen = rook + bishop. She slides in eight directions but cannot jump over pieces.",
         failText: "Think rook lines plus bishop diagonals.",
         visual: "royalty",
       },
@@ -664,7 +694,8 @@ export const LESSONS = [
           { label: "Only along the back rank", emoji: "➡️" },
         ],
         correct: 0,
-        explain: "The king is the slowest piece — one square per move — but losing him means losing the game.",
+        explain:
+          "The king is the slowest piece — one square per move — but losing him means losing the game.",
         failText: "The king never slides across the whole board.",
         visual: "royalty",
       },
@@ -693,7 +724,8 @@ export const LESSONS = [
           { label: "Only on the first move", emoji: "1️⃣" },
         ],
         correct: 0,
-        explain: "Sliding pieces (rook, bishop, queen) must stop when they hit any piece. Knights are the exception — they jump.",
+        explain:
+          "Sliding pieces (rook, bishop, queen) must stop when they hit any piece. Knights are the exception — they jump.",
         failText: "Only knights can hop over blockers.",
         visual: "piece-roster",
       },
@@ -743,7 +775,8 @@ export const LESSONS = [
           { label: "You may skip your turn", emoji: "⏭️" },
         ],
         correct: 0,
-        explain: "Check is a warning — your king is threatened and you must respond on your very next move.",
+        explain:
+          "Check is a warning — your king is threatened and you must respond on your very next move.",
         failText: "When the king is attacked, that is check.",
         visual: "royalty",
       },
@@ -814,7 +847,8 @@ export const LESSONS = [
           { label: "They swap colours", emoji: "🔄" },
         ],
         correct: 0,
-        explain: "Checkmate = check with no escape. The game ends immediately and the mated player loses.",
+        explain:
+          "Checkmate = check with no escape. The game ends immediately and the mated player loses.",
         failText: "No legal move to escape check means checkmate — and a loss.",
         visual: "royalty",
       },
@@ -836,13 +870,17 @@ export const LESSONS = [
         coach: "",
         question: "What is stalemate?",
         options: [
-          { label: "No legal move, but the king is NOT in check — a draw", emoji: "🤝" },
+          {
+            label: "No legal move, but the king is NOT in check — a draw",
+            emoji: "🤝",
+          },
           { label: "The king is in check with no escape", emoji: "♚" },
           { label: "Both players agree to stop", emoji: "✋" },
           { label: "You lose a piece by accident", emoji: "😅" },
         ],
         correct: 0,
-        explain: "Stalemate: it is your turn, you have no legal move, but your king is not in check. The game is a draw.",
+        explain:
+          "Stalemate: it is your turn, you have no legal move, but your king is not in check. The game is a draw.",
         failText: "Stalemate is not checkmate — the king is safe but cannot move.",
         visual: "royalty",
       },
@@ -893,7 +931,8 @@ export const LESSONS = [
           { label: "You cannot choose — it stays a pawn", emoji: "🚫" },
         ],
         correct: 0,
-        explain: "Queen is the default choice — she is the strongest piece. Sometimes under-promotion to a knight tricks your opponent!",
+        explain:
+          "Queen is the default choice — she is the strongest piece. Sometimes under-promotion to a knight tricks your opponent!",
         failText: "Most promotions become queens for maximum power.",
         visual: "square-path",
         visualSquares: ["e7", "e8"],
@@ -948,7 +987,8 @@ export const LESSONS = [
           { label: "To skip a turn", emoji: "⏭️" },
         ],
         correct: 0,
-        explain: "Castling gets the king off the centre and connects the rooks — a key opening goal.",
+        explain:
+          "Castling gets the king off the centre and connects the rooks — a key opening goal.",
         failText: "Castling is about king safety, not capturing.",
         visual: "piece-roster",
       },
@@ -1014,7 +1054,8 @@ export const LESSONS = [
       {
         id: "castle-watch",
         kind: "observe",
-        coach: "Watch kingside castling: the king slides to g1 and the h1-rook hops to f1.",
+        coach:
+          "Watch kingside castling: the king slides to g1 and the h1-rook hops to f1.",
         fen: "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
         moves: ["e1:g1"],
         highlight: ["e1", "g1", "f1", "h1"],
@@ -1044,7 +1085,8 @@ export const LESSONS = [
           { label: "The four corners only", emoji: "🔲" },
         ],
         correct: 0,
-        explain: "Files are the eight vertical columns, labelled a through h from left to right (White's view).",
+        explain:
+          "Files are the eight vertical columns, labelled a through h from left to right (White's view).",
         failText: "Files go up and down — like columns in a spreadsheet.",
         visual: "files",
       },
@@ -1072,7 +1114,8 @@ export const LESSONS = [
           { label: "A diagonal from a1 to h8", emoji: "↗️" },
         ],
         correct: 0,
-        explain: "The e-file is the 5th column from the left — White's king starts on e1, Black's on e8.",
+        explain:
+          "The e-file is the 5th column from the left — White's king starts on e1, Black's on e8.",
         failText: "Count files from the left: a, b, c, d, e…",
         visual: "e-file",
       },
@@ -1100,7 +1143,8 @@ export const LESSONS = [
           { label: "Square colours (light/dark)", emoji: "🎨" },
         ],
         correct: 0,
-        explain: "Ranks are numbered 1–8 from White's side upward. Back-row pieces sit on rank 1; pawns on rank 2.",
+        explain:
+          "Ranks are numbered 1–8 from White's side upward. Back-row pieces sit on rank 1; pawns on rank 2.",
         failText: "Ranks run left-to-right — like floors in a building.",
         visual: "ranks",
       },
@@ -1128,7 +1172,8 @@ export const LESSONS = [
           { label: "Diagonal square near the edge", emoji: "↗️" },
         ],
         correct: 0,
-        explain: "d6 = file d (4th from the left) + rank 6 (6 rows up from White). A central square.",
+        explain:
+          "d6 = file d (4th from the left) + rank 6 (6 rows up from White). A central square.",
         failText: "Letter first (file), number second (rank).",
         visual: "square",
         visualSquare: "d6",
@@ -1157,7 +1202,8 @@ export const LESSONS = [
           { label: "B", emoji: "♝" },
         ],
         correct: 0,
-        explain: "N = Knight (K is reserved for the King). So Nf3 means the knight moves to f3.",
+        explain:
+          "N = Knight (K is reserved for the King). So Nf3 means the knight moves to f3.",
         failText: "K is the King — knights use N because K was taken.",
         visual: "notation-letters",
       },
@@ -1185,7 +1231,8 @@ export const LESSONS = [
           { label: "E4", emoji: "🔤" },
         ],
         correct: 0,
-        explain: "Pawn moves are just the destination square — e4 means a pawn lands on e4.",
+        explain:
+          "Pawn moves are just the destination square — e4 means a pawn lands on e4.",
         failText: "No piece letter for pawns — only the square name.",
         visual: "square-path",
         visualSquares: ["e2", "e4"],
@@ -1214,7 +1261,8 @@ export const LESSONS = [
           { label: "Bishop slides to d5", emoji: "♝" },
         ],
         correct: 0,
-        explain: "exd5 = a pawn on the e-file captures on d5. The x marks a capture; the file letter shows which pawn.",
+        explain:
+          "exd5 = a pawn on the e-file captures on d5. The x marks a capture; the file letter shows which pawn.",
         failText: "Look for the file letter before the x — that's the pawn that moved.",
         visual: "notation-capture",
       },
@@ -1340,7 +1388,8 @@ export const LESSONS = [
       {
         id: "intro",
         kind: "info",
-        coach: "Welcome to the academy! Chess is played on 64 squares. White always moves first.",
+        coach:
+          "Welcome to the academy! Chess is played on 64 squares. White always moves first.",
         fen: START,
       },
       {
@@ -1430,7 +1479,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "Knights move in an L: two squares one way, then one across. They leap over pieces!",
+        coach:
+          "Knights move in an L: two squares one way, then one across. They leap over pieces!",
         fen: "k7/8/4p3/8/3N4/8/8/7K w - - 0 1",
         arrows: [{ startSquare: "d4", endSquare: "e6", color: "#5b5bd6" }],
       },
@@ -1460,7 +1510,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "When you attack the enemy king, that's CHECK. The opponent must respond at once.",
+        coach:
+          "When you attack the enemy king, that's CHECK. The opponent must respond at once.",
         fen: "k7/8/8/8/8/8/8/3RK3 w - - 0 1",
       },
       {
@@ -1489,13 +1540,15 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "Checkmate is a check the king cannot escape. It wins the game instantly.",
+        coach:
+          "Checkmate is a check the king cannot escape. It wins the game instantly.",
         fen: "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
       },
       {
         id: "watch",
         kind: "observe",
-        coach: "Watch the rook swing to the back rank — the king is fenced in by its own pawns.",
+        coach:
+          "Watch the rook swing to the back rank — the king is fenced in by its own pawns.",
         fen: "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
         moves: ["a1:a8"],
       },
@@ -1527,13 +1580,15 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "Three golden rules: control the centre, develop your knights and bishops, and castle your king to safety.",
+        coach:
+          "Three golden rules: control the centre, develop your knights and bishops, and castle your king to safety.",
         fen: START,
       },
       {
         id: "watch",
         kind: "observe",
-        coach: "Watch ideal development: centre pawn, both knights, a bishop, then castling.",
+        coach:
+          "Watch ideal development: centre pawn, both knights, a bishop, then castling.",
         fen: START,
         moves: ["e2:e4", "e7:e5", "g1:f3", "b8:c6", "f1:c4", "g8:f6", "e1:g1"],
       },
@@ -1563,7 +1618,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "The Italian Game is a classical opening: quick development and a bishop aimed at f7, Black's weakest point.",
+        coach:
+          "The Italian Game is a classical opening: quick development and a bishop aimed at f7, Black's weakest point.",
         fen: START,
       },
       {
@@ -1599,7 +1655,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "The Ruy Lopez pressures the c6 knight that defends e5 — one of the most respected openings in chess.",
+        coach:
+          "The Ruy Lopez pressures the c6 knight that defends e5 — one of the most respected openings in chess.",
         fen: START,
       },
       {
@@ -1635,15 +1692,27 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "Against 1.e4, the Sicilian (1...c5) fights for the centre asymmetrically — the most popular reply at every level.",
+        coach:
+          "Against 1.e4, the Sicilian (1...c5) fights for the centre asymmetrically — the most popular reply at every level.",
         fen: START,
       },
       {
         id: "watch",
         kind: "observe",
-        coach: "Watch the Open Sicilian: White trades the d-pawn for active piece play.",
+        coach:
+          "Watch the Open Sicilian: White trades the d-pawn for active piece play.",
         fen: START,
-        moves: ["e2:e4", "c7:c5", "g1:f3", "d7:d6", "d2:d4", "c5:d4", "f3:d4", "g8:f6", "b1:c3"],
+        moves: [
+          "e2:e4",
+          "c7:c5",
+          "g1:f3",
+          "d7:d6",
+          "d2:d4",
+          "c5:d4",
+          "f3:d4",
+          "g8:f6",
+          "b1:c3",
+        ],
       },
       {
         id: "try",
@@ -1710,7 +1779,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "A PIN freezes a piece: it can't move because a more valuable piece sits behind it. Pin the knight that guards e5.",
+        coach:
+          "A PIN freezes a piece: it can't move because a more valuable piece sits behind it. Pin the knight that guards e5.",
         fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 4 3",
       },
       {
@@ -1739,7 +1809,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "A SKEWER is a pin in reverse: check the king so it must step aside, then capture the piece behind it.",
+        coach:
+          "A SKEWER is a pin in reverse: check the king so it must step aside, then capture the piece behind it.",
         fen: "q7/8/8/k7/8/8/8/1R4K1 w - - 0 1",
       },
       {
@@ -1768,18 +1839,21 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "A DISCOVERED ATTACK: move one piece to unveil an attack from the piece behind it. Your knight hides the rook's aim at the queen.",
+        coach:
+          "A DISCOVERED ATTACK: move one piece to unveil an attack from the piece behind it. Your knight hides the rook's aim at the queen.",
         fen: "q5k1/8/8/8/8/N7/8/R5K1 w - - 0 1",
       },
       {
         id: "discover",
         kind: "move",
-        coach: "Move the knight off the a-file to discover your rook's attack on the queen.",
+        coach:
+          "Move the knight off the a-file to discover your rook's attack on the queen.",
         fen: "q5k1/8/8/8/8/N7/8/R5K1 w - - 0 1",
         solution: ["a3:c4", "a3:b5", "a3:c2"],
         highlight: ["a8"],
         successText: "Discovered! The rook now attacks the queen on a8.",
-        failText: "Move the knight away from the a-file (e.g. to c4) to unveil the rook.",
+        failText:
+          "Move the knight away from the a-file (e.g. to c4) to unveil the rook.",
         tag: "discovery",
       },
     ],
@@ -1799,7 +1873,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "In king endgames, the OPPOSITION wins ground: stand your king directly facing the enemy with one square between — the side NOT to move must give way.",
+        coach:
+          "In king endgames, the OPPOSITION wins ground: stand your king directly facing the enemy with one square between — the side NOT to move must give way.",
         fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
       },
       {
@@ -1824,7 +1899,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "A pawn that reaches the last rank becomes a queen. Converting an extra pawn is how most endgames are won.",
+        coach:
+          "A pawn that reaches the last rank becomes a queen. Converting an extra pawn is how most endgames are won.",
         fen: "8/4P3/8/8/8/8/8/4K1k1 w - - 0 1",
       },
       {
@@ -1853,7 +1929,8 @@ export const LESSONS = [
       {
         id: "info",
         kind: "info",
-        coach: "With a queen and king you can force mate against a lone king. The king does the cornering, the queen delivers.",
+        coach:
+          "With a queen and king you can force mate against a lone king. The king does the cornering, the queen delivers.",
         fen: "k7/4Q3/1K6/8/8/8/8/8 w - - 0 1",
       },
       {
@@ -1922,4 +1999,3 @@ export const LESSONS = [
     ],
   },
 ];
-

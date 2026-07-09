@@ -38,17 +38,22 @@ export const progressPushSchema = z.object({
   settings: z.record(z.string(), z.unknown()).optional(),
   homeworkDone: z.record(z.string(), z.array(z.string())).optional(),
   placementDone: z.boolean().optional(),
-  journalEntries: z.array(z.object({
-    id: z.string().max(64),
-    day: z.string().max(16),
-    date: z.number().int(),
-    kind: z.enum(["lesson", "match", "review", "exam", "reflection"]),
-    title: z.string().max(200),
-    confidence: z.number().min(1).max(5),
-    note: z.string().max(2000),
-    summary: z.string().max(500),
-    ref: z.string().nullable(),
-  })).max(100).optional(),
+  journalEntries: z
+    .array(
+      z.object({
+        id: z.string().max(64),
+        day: z.string().max(16),
+        date: z.number().int(),
+        kind: z.enum(["lesson", "match", "review", "exam", "reflection"]),
+        title: z.string().max(200),
+        confidence: z.number().min(1).max(5),
+        note: z.string().max(2000),
+        summary: z.string().max(500),
+        ref: z.string().nullable(),
+      }),
+    )
+    .max(100)
+    .optional(),
 });
 
 export type ProgressPushBody = z.infer<typeof progressPushSchema>;

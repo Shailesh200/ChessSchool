@@ -18,12 +18,14 @@ export function RatingBadge() {
   const rating = useProgression((s) => s.rating);
   const r = mounted ? rating : 800;
   return (
-    <div className="flex items-center justify-between rounded-card border border-hairline bg-surface-card p-4">
+    <div className="rounded-card border-hairline bg-surface-card flex items-center justify-between border p-4">
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-ink-500">Player strength</div>
-        <div className="text-xs font-semibold text-ink-500">{title(r)}</div>
+        <div className="text-ink-500 text-[11px] font-bold tracking-wide uppercase">
+          Player strength
+        </div>
+        <div className="text-ink-500 text-xs font-semibold">{title(r)}</div>
       </div>
-      <div className="text-3xl font-extrabold tabular-nums text-brand">{r}</div>
+      <div className="text-brand text-3xl font-extrabold tabular-nums">{r}</div>
     </div>
   );
 }

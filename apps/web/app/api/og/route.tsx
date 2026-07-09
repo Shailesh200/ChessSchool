@@ -13,13 +13,16 @@ export async function GET(req: NextRequest) {
   const badgeParam = sp.get("badge") ?? undefined;
 
   let title = titleParam ?? "Learn Chess Online";
-  let subtitle = subtitleParam ?? "Free chess school — structured classes, puzzles, and live games.";
+  let subtitle =
+    subtitleParam ?? "Free chess school — structured classes, puzzles, and live games.";
   let badge = badgeParam ?? "Chess School";
   let icon = emoji ?? "🎓";
 
   if (kind === "home") {
     title = titleParam ?? "Learn Chess Online";
-    subtitle = subtitleParam ?? "Free chess school with classes, puzzles, bots & live multiplayer.";
+    subtitle =
+      subtitleParam ??
+      "Free chess school with classes, puzzles, bots & live multiplayer.";
     badge = badgeParam ?? "Learn Chess";
     icon = emoji ?? "🎓";
   } else if (kind === "lesson") {

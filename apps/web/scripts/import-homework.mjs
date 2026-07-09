@@ -25,7 +25,9 @@ const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
 // (zero downloads) — same as `db:seed-homework`.
 if (!existsSync(INPUT)) {
   if (!process.argv[2]) {
-    console.log(`ℹ ${INPUT} not found — deriving homework from the already-seeded curriculum instead.`);
+    console.log(
+      `ℹ ${INPUT} not found — deriving homework from the already-seeded curriculum instead.`,
+    );
     await import("./seed-homework.mjs");
     process.exit(0);
   }
@@ -40,10 +42,45 @@ const MIN_POPULARITY = 75;
 
 // Homework type → { themes it draws from, optional rating window }.
 const TYPES = {
-  warmup: { label: "Warmup", emoji: "🤸", themes: ["oneMove", "mateIn1", "hangingPiece", "fork"], max: 1200 },
-  practice: { label: "Tactics", emoji: "🎯", themes: ["fork", "pin", "skewer", "discoveredAttack", "doubleCheck", "deflection"], min: 1100, max: 1900 },
-  review: { label: "Checkmate review", emoji: "🔍", themes: ["mateIn2", "mateIn3", "backRankMate", "smotheredMate", "rookEndgame", "endgame"], min: 1200 },
-  reflection: { label: "Reflection", emoji: "📝", themes: ["advancedPawn", "promotion", "quietMove", "advantage", "intermezzo", "zugzwang"], min: 1300 },
+  warmup: {
+    label: "Warmup",
+    emoji: "🤸",
+    themes: ["oneMove", "mateIn1", "hangingPiece", "fork"],
+    max: 1200,
+  },
+  practice: {
+    label: "Tactics",
+    emoji: "🎯",
+    themes: ["fork", "pin", "skewer", "discoveredAttack", "doubleCheck", "deflection"],
+    min: 1100,
+    max: 1900,
+  },
+  review: {
+    label: "Checkmate review",
+    emoji: "🔍",
+    themes: [
+      "mateIn2",
+      "mateIn3",
+      "backRankMate",
+      "smotheredMate",
+      "rookEndgame",
+      "endgame",
+    ],
+    min: 1200,
+  },
+  reflection: {
+    label: "Reflection",
+    emoji: "📝",
+    themes: [
+      "advancedPawn",
+      "promotion",
+      "quietMove",
+      "advantage",
+      "intermezzo",
+      "zugzwang",
+    ],
+    min: 1300,
+  },
 };
 const typeFor = (themes, rating) => {
   for (const [id, t] of Object.entries(TYPES)) {
@@ -57,16 +94,56 @@ const typeFor = (themes, rating) => {
 // Concept (topic) tag — aligned with the curriculum's tags so homework can be
 // filtered to topics the student has already studied.
 const CONCEPTS = [
-  { id: "mate", themes: ["mateIn1", "mateIn2", "mateIn3", "backRankMate", "smotheredMate", "mate", "hookMate"] },
+  {
+    id: "mate",
+    themes: [
+      "mateIn1",
+      "mateIn2",
+      "mateIn3",
+      "backRankMate",
+      "smotheredMate",
+      "mate",
+      "hookMate",
+    ],
+  },
   { id: "fork", themes: ["fork"] },
   { id: "pin", themes: ["pin", "skewer"] },
   { id: "discovered", themes: ["discoveredAttack", "doubleCheck"] },
-  { id: "sacrifice", themes: ["sacrifice", "attraction", "deflection", "clearance", "interference", "decoy"] },
-  { id: "trapped", themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"] },
-  { id: "endgame", themes: ["endgame", "rookEndgame", "pawnEndgame", "queenEndgame", "promotion", "advancedPawn", "zugzwang"] },
-  { id: "advantage", themes: ["advantage", "crushing", "quietMove", "intermezzo", "defensiveMove"] },
+  {
+    id: "sacrifice",
+    themes: [
+      "sacrifice",
+      "attraction",
+      "deflection",
+      "clearance",
+      "interference",
+      "decoy",
+    ],
+  },
+  {
+    id: "trapped",
+    themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"],
+  },
+  {
+    id: "endgame",
+    themes: [
+      "endgame",
+      "rookEndgame",
+      "pawnEndgame",
+      "queenEndgame",
+      "promotion",
+      "advancedPawn",
+      "zugzwang",
+    ],
+  },
+  {
+    id: "advantage",
+    themes: ["advantage", "crushing", "quietMove", "intermezzo", "defensiveMove"],
+  },
 ];
-const conceptOf = (themes) => (CONCEPTS.find((c) => c.themes.some((t) => themes.includes(t))) ?? { id: "tactics" }).id;
+const conceptOf = (themes) =>
+  (CONCEPTS.find((c) => c.themes.some((t) => themes.includes(t))) ?? { id: "tactics" })
+    .id;
 
 function lineStream(path) {
   if (!existsSync(path)) {
@@ -76,18 +153,27 @@ function lineStream(path) {
   if (path.endsWith(".zst")) {
     const zstd = spawn("zstd", ["-dc", path]);
     zstd.on("error", (e) => {
-      console.error(`✗ Could not run zstd (${e.code || e.message}). brew install zstd (macOS) / apt-get install zstd (Linux), or decompress manually.`);
+      console.error(
+        `✗ Could not run zstd (${e.code || e.message}). brew install zstd (macOS) / apt-get install zstd (Linux), or decompress manually.`,
+      );
       process.exit(1);
     });
     return createInterface({ input: zstd.stdout, crlfDelay: Infinity });
   }
   if (path.endsWith(".gz")) {
-    return createInterface({ input: createReadStream(path).pipe(createGunzip()), crlfDelay: Infinity });
+    return createInterface({
+      input: createReadStream(path).pipe(createGunzip()),
+      crlfDelay: Infinity,
+    });
   }
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
 }
 
-const uci = (m) => ({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: m.length > 4 ? m[4] : undefined });
+const uci = (m) => ({
+  from: m.slice(0, 2),
+  to: m.slice(2, 4),
+  promotion: m.length > 4 ? m[4] : undefined,
+});
 
 /** Turn a Lichess (FEN, UCI moves) puzzle into validated multi-step lesson steps. */
 function buildSteps(fen, movesStr, label) {
@@ -103,7 +189,12 @@ function buildSteps(fen, movesStr, label) {
     steps.push({
       id: `m${i}`,
       kind: "move",
-      coach: i === 1 ? `Your move — find the ${label.toLowerCase()} idea.` : lastIdx ? "Finish it off." : "Good — keep going.",
+      coach:
+        i === 1
+          ? `Your move — find the ${label.toLowerCase()} idea.`
+          : lastIdx
+            ? "Finish it off."
+            : "Good — keep going.",
       fen: before,
       solution: [`${mv.from}:${mv.to}`],
       tag: "homework",
@@ -118,7 +209,10 @@ function buildSteps(fen, movesStr, label) {
 const seen = new Map(); // type -> count matched (for skipping the head)
 const picked = new Map(); // type -> puzzles[]
 const NEED = (MAX_SESSIONS + 2) * PUZZLES_PER;
-for (const t of Object.keys(TYPES)) { seen.set(t, 0); picked.set(t, []); }
+for (const t of Object.keys(TYPES)) {
+  seen.set(t, 0);
+  picked.set(t, []);
+}
 const done = () => Object.keys(TYPES).every((t) => picked.get(t).length >= NEED);
 
 let scanned = 0;
@@ -126,9 +220,13 @@ console.log(`Reading ${INPUT} … homework pool`);
 const rl = lineStream(INPUT);
 let header = true;
 for await (const line of rl) {
-  if (header) { header = false; continue; }
+  if (header) {
+    header = false;
+    continue;
+  }
   scanned++;
-  if (scanned % 500000 === 0) process.stdout.write(`\r  scanned ${scanned.toLocaleString()}…`);
+  if (scanned % 500000 === 0)
+    process.stdout.write(`\r  scanned ${scanned.toLocaleString()}…`);
   if (done() || scanned > 6_000_000) break;
   const c = line.split(",");
   if (c.length < 8) continue;
@@ -181,7 +279,9 @@ for (const [type, meta] of Object.entries(TYPES)) {
         if (steps) chunk.push(steps);
       }
       if (chunk.length < 2) break;
-      const steps = chunk.flatMap((s, k) => s.map((x, j) => ({ ...x, id: `s${k}_${j}` })));
+      const steps = chunk.flatMap((s, k) =>
+        s.map((x, j) => ({ ...x, id: `s${k}_${j}` })),
+      );
       insert.run(
         `hw-${type}-${made + 1}`,
         type,
@@ -199,5 +299,7 @@ for (const [type, meta] of Object.entries(TYPES)) {
   }
   console.log(`  ${meta.emoji} ${type}: ${made} sessions (${pool.length} puzzles)`);
 }
-console.log(`✅ Imported ${total} homework lessons into local.db. Next: pnpm db:dump && pnpm db:remote`);
+console.log(
+  `✅ Imported ${total} homework lessons into local.db. Next: pnpm db:dump && pnpm db:remote`,
+);
 db.close();

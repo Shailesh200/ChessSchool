@@ -37,7 +37,11 @@ export function Mascot({
       className={cn("inline-block", float && !cheering && "animate-bob", className)}
       initial={false}
       animate={cheering ? { scale: [1, 1.1, 1], y: [0, -6, 0] } : { scale: 1, y: 0 }}
-      transition={cheering ? { duration: 0.55, ease: "easeOut" } : { type: "spring", stiffness: 300, damping: 20 }}
+      transition={
+        cheering
+          ? { duration: 0.55, ease: "easeOut" }
+          : { type: "spring", stiffness: 300, damping: 20 }
+      }
       style={{ width: size, height: size }}
       aria-hidden
     >
@@ -48,7 +52,7 @@ export function Mascot({
         height={size}
         draggable={false}
         priority={size >= 120}
-        className="h-full w-full select-none object-contain"
+        className="h-full w-full object-contain select-none"
       />
     </motion.div>
   );

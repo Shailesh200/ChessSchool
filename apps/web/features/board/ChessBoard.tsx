@@ -16,13 +16,13 @@ const PROMO_GLYPHS: Record<"w" | "b", Record<"q" | "r" | "b" | "n", string>> = {
 };
 
 // react-chessboard touches the DOM; load client-only to avoid hydration drift.
-const Chessboard = dynamic(
-  () => import("react-chessboard").then((m) => m.Chessboard),
-  { ssr: false, loading: () => <BoardSkeleton /> },
-);
+const Chessboard = dynamic(() => import("react-chessboard").then((m) => m.Chessboard), {
+  ssr: false,
+  loading: () => <BoardSkeleton />,
+});
 
 function BoardSkeleton() {
-  return <div className="skeleton aspect-square w-full rounded-card" />;
+  return <div className="skeleton rounded-card aspect-square w-full" />;
 }
 
 export interface ChessBoardProps {
@@ -70,12 +70,17 @@ export function ChessBoard({
     [pieceTheme],
   );
   const [selected, setSelected] = useState<Square | null>(null);
-  const [promo, setPromo] = useState<{ from: Square; to: Square; color: "w" | "b" } | null>(null);
+  const [promo, setPromo] = useState<{
+    from: Square;
+    to: Square;
+    color: "w" | "b";
+  } | null>(null);
 
   // Split the selected piece's legal moves into quiet moves (dots) and captures
   // (rings), so the board shows which squares win an opponent's piece.
   const { dotTargets, captureTargets } = useMemo(() => {
-    if (!selected) return { dotTargets: [] as Square[], captureTargets: [] as Square[] };
+    if (!selected)
+      return { dotTargets: [] as Square[], captureTargets: [] as Square[] };
     const dot: Square[] = [];
     const cap: Square[] = [];
     for (const m of new ChessEngine(fen).legalMoves(selected)) {
@@ -134,7 +139,10 @@ export function ChessBoard({
       styles[lastMove.to] = { background: "rgba(255, 224, 138, 0.55)" };
     }
     for (const sq of highlight) {
-      styles[sq] = { boxShadow: "inset 0 0 0 4px rgba(91,91,214,0.7)", borderRadius: "8px" };
+      styles[sq] = {
+        boxShadow: "inset 0 0 0 4px rgba(91,91,214,0.7)",
+        borderRadius: "8px",
+      };
     }
     if (selected) {
       styles[selected] = { background: "rgba(123, 224, 179, 0.45)" };
@@ -142,14 +150,16 @@ export function ChessBoard({
     for (const t of dotTargets) {
       styles[t] = {
         ...(styles[t] ?? {}),
-        background: "radial-gradient(circle, rgba(91,91,214,0.45) 22%, transparent 24%)",
+        background:
+          "radial-gradient(circle, rgba(91,91,214,0.45) 22%, transparent 24%)",
       };
     }
     // Capturable pieces: a ring around the square so you can see the target.
     for (const t of captureTargets) {
       styles[t] = {
         ...(styles[t] ?? {}),
-        background: "radial-gradient(circle, transparent 0%, transparent 78%, rgba(244,63,94,0.55) 80%)",
+        background:
+          "radial-gradient(circle, transparent 0%, transparent 78%, rgba(244,63,94,0.55) 80%)",
         borderRadius: "8px",
       };
     }
@@ -169,7 +179,17 @@ export function ChessBoard({
       };
     }
     return styles;
-  }, [lastMove, highlight, highlightFiles, highlightRanks, selected, dotTargets, captureTargets, checkSquare, successSquare]);
+  }, [
+    lastMove,
+    highlight,
+    highlightFiles,
+    highlightRanks,
+    selected,
+    dotTargets,
+    captureTargets,
+    checkSquare,
+    successSquare,
+  ]);
 
   return (
     <div
@@ -212,16 +232,18 @@ export function ChessBoard({
       />
 
       {promo && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/45 backdrop-blur-sm">
-          <div className="rounded-card border border-hairline bg-surface-card p-3 [box-shadow:var(--shadow-pop)]">
-            <p className="mb-2 text-center text-xs font-extrabold text-ink-700">Promote to</p>
+        <div className="bg-ink/45 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+          <div className="rounded-card border-hairline bg-surface-card border p-3 [box-shadow:var(--shadow-pop)]">
+            <p className="text-ink-700 mb-2 text-center text-xs font-extrabold">
+              Promote to
+            </p>
             <div className="flex gap-2">
               {(["q", "r", "b", "n"] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => choosePromotion(p)}
                   aria-label={`Promote to ${p}`}
-                  className="btn-tactile flex h-14 w-14 items-center justify-center rounded-card border-2 border-hairline bg-surface text-3xl hover:border-brand"
+                  className="btn-tactile rounded-card border-hairline bg-surface hover:border-brand flex h-14 w-14 items-center justify-center border-2 text-3xl"
                 >
                   {PROMO_GLYPHS[promo.color][p]}
                 </button>

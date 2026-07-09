@@ -42,7 +42,11 @@ export function ConfirmDialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <button aria-label="Cancel" className="absolute inset-0 bg-ink/45 backdrop-blur-sm" onClick={onCancel} />
+          <button
+            aria-label="Cancel"
+            className="bg-ink/45 absolute inset-0 backdrop-blur-sm"
+            onClick={onCancel}
+          />
           <motion.div
             role="alertdialog"
             aria-modal="true"
@@ -51,15 +55,21 @@ export function ConfirmDialog({
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 28 }}
-            className="relative w-full max-w-xs rounded-card border border-hairline bg-surface-card p-5 [box-shadow:var(--shadow-pop)]"
+            className="rounded-card border-hairline bg-surface-card relative w-full max-w-xs border p-5 [box-shadow:var(--shadow-pop)]"
           >
-            <h2 className="text-lg font-extrabold text-ink">{title}</h2>
-            {message && <p className="mt-1 text-sm font-semibold text-ink-500">{message}</p>}
+            <h2 className="text-ink text-lg font-extrabold">{title}</h2>
+            {message && (
+              <p className="text-ink-500 mt-1 text-sm font-semibold">{message}</p>
+            )}
             <div className="mt-4 flex gap-2">
               <Button variant="ghost" block onClick={onCancel}>
                 {cancelLabel}
               </Button>
-              <Button variant={tone === "danger" ? "danger" : "primary"} block onClick={onConfirm}>
+              <Button
+                variant={tone === "danger" ? "danger" : "primary"}
+                block
+                onClick={onConfirm}
+              >
                 {confirmLabel}
               </Button>
             </div>

@@ -20,7 +20,11 @@ import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
-import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson } from "@chess-school/progression";
+import {
+  deriveTutorialVisuals,
+  formatCoachText,
+  isPreschoolLesson,
+} from "@chess-school/progression";
 import { PreschoolQuiz } from "./PreschoolQuiz";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
@@ -44,7 +48,10 @@ function findReply(fenA: string, fenB: string): { from: Square; to: Square } | n
     const target = fenB.split(" ")[0];
     for (const m of g.legalMoves()) {
       const t = g.clone();
-      if (t.move({ from: m.from, to: m.to, promotion: m.promotion }) && t.fen().split(" ")[0] === target) {
+      if (
+        t.move({ from: m.from, to: m.to, promotion: m.promotion }) &&
+        t.fen().split(" ")[0] === target
+      ) {
         return { from: m.from as Square, to: m.to as Square };
       }
     }
@@ -80,7 +87,9 @@ export function LessonPlayer({
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("playing");
-  const [displayFen, setDisplayFen] = useState<string | undefined>(lesson.steps[0]?.fen);
+  const [displayFen, setDisplayFen] = useState<string | undefined>(
+    lesson.steps[0]?.fen,
+  );
   const [correctCount, setCorrectCount] = useState(0);
   const [prevIndex, setPrevIndex] = useState(0);
   const [observeDone, setObserveDone] = useState(false);
@@ -101,7 +110,11 @@ export function LessonPlayer({
   const total = lesson.steps.length;
 
   useEffect(() => {
-    trackEvent("lesson_start", { lessonId: lesson.id, tag: lesson.tag, exam: lesson.exam });
+    trackEvent("lesson_start", {
+      lessonId: lesson.id,
+      tag: lesson.tag,
+      exam: lesson.exam,
+    });
   }, [lesson.id, lesson.tag, lesson.exam]);
 
   // Reset per-step state during render when the step changes.
@@ -185,8 +198,13 @@ export function LessonPlayer({
       progression.registerActivity(isoDay());
       markHomeworkDone();
       if (dailyPuzzle) progression.markDailyPuzzleDone();
-      trackEvent("lesson_complete", { lessonId: lesson.id, tutorial: true, xp: lesson.xp });
-      const nextId = nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
+      trackEvent("lesson_complete", {
+        lessonId: lesson.id,
+        tutorial: true,
+        xp: lesson.xp,
+      });
+      const nextId =
+        nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
       startNav();
       router.push(nextId ? `/lesson/${nextId}` : "/");
       return;
@@ -233,8 +251,14 @@ export function LessonPlayer({
     // Resolve the lesson's class — prefer the DB-passed class (works for
     // generated classes); fall back to the constants for older callers.
     const dbClass = lessonClass ?? null;
-    const constCls = !dbClass ? getClass(lesson.unit) ?? classByExamId(lesson.id) : null;
-    const cls = dbClass ?? (constCls ? { id: constCls.id, title: constCls.title, lessonIds: constCls.lessonIds } : null);
+    const constCls = !dbClass
+      ? (getClass(lesson.unit) ?? classByExamId(lesson.id))
+      : null;
+    const cls =
+      dbClass ??
+      (constCls
+        ? { id: constCls.id, title: constCls.title, lessonIds: constCls.lessonIds }
+        : null);
 
     // Exam: passing graduates the whole class.
     if (lesson.exam && ratio >= 0.67 && cls) {
@@ -248,7 +272,9 @@ export function LessonPlayer({
     // Normal lesson: did finishing it complete (graduate) the whole class?
     if (cls && !progression.graduatedClasses.includes(cls.id)) {
       const records = useProgression.getState().lessons;
-      const allMastered = cls.lessonIds.length > 0 && cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= 0.9);
+      const allMastered =
+        cls.lessonIds.length > 0 &&
+        cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= 0.9);
       if (allMastered) {
         progression.graduateClass(cls.id);
         setGraduatedTitle(cls.title);
@@ -278,7 +304,8 @@ export function LessonPlayer({
       // If the next step continues this position (opponent replied), animate that
       // reply so the player sees what changed before their next move (#multistep).
       const next = lesson.steps[index + 1] as LessonStep | undefined;
-      const reply = next?.kind === "move" && next.fen ? findReply(engine.fen(), next.fen) : null;
+      const reply =
+        next?.kind === "move" && next.fen ? findReply(engine.fen(), next.fen) : null;
       if (reply && next?.fen) {
         timers.current.push(
           window.setTimeout(() => {
@@ -331,7 +358,12 @@ export function LessonPlayer({
     }
   }
 
-  const PROMO_NAMES: Record<string, string> = { q: "queen", r: "rook", b: "bishop", n: "knight" };
+  const PROMO_NAMES: Record<string, string> = {
+    q: "queen",
+    r: "rook",
+    b: "bishop",
+    n: "knight",
+  };
   const feedbackText = formatCoachText(
     phase === "correct"
       ? promoted
@@ -363,10 +395,14 @@ export function LessonPlayer({
   const isObserving = step.kind === "observe" && !observeDone;
   const solvable = step.kind === "move" && phase === "playing";
   const toMove: "w" | "b" | null =
-    step.kind === "move" && step.fen ? (new ChessEngine(step.fen).turn() as "w" | "b") : null;
+    step.kind === "move" && step.fen
+      ? (new ChessEngine(step.fen).turn() as "w" | "b")
+      : null;
   // Two-stage hint: 1 = highlight the piece to move, 2 = also show the arrow.
   const hintFrom: Square | null =
-    hintLevel >= 1 && solvable && step.solution?.[0] ? (step.solution[0].split(":")[0] as Square) : null;
+    hintLevel >= 1 && solvable && step.solution?.[0]
+      ? (step.solution[0].split(":")[0] as Square)
+      : null;
   const hintArrows: BoardArrow[] =
     hintLevel >= 2 && solvable && step.solution?.[0]
       ? [
@@ -381,33 +417,59 @@ export function LessonPlayer({
   const preschool = isPreschoolLesson(lesson.id);
   const tutorial = deriveTutorialVisuals(step);
   const boardArrows: BoardArrow[] = preschool
-    ? [...tutorial.arrows, ...(phase === "playing" && solvable && !isObserving ? hintArrows : [])]
+    ? [
+        ...tutorial.arrows,
+        ...(phase === "playing" && solvable && !isObserving ? hintArrows : []),
+      ]
     : phase === "playing" && !isObserving
       ? [...(step.arrows ?? []), ...hintArrows]
       : [];
   const boardHighlight: Square[] = preschool
-    ? [...tutorial.highlight, ...(phase === "playing" && solvable && !isObserving && hintFrom ? [hintFrom] : [])]
+    ? [
+        ...tutorial.highlight,
+        ...(phase === "playing" && solvable && !isObserving && hintFrom
+          ? [hintFrom]
+          : []),
+      ]
     : phase === "playing" && !isObserving
       ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
       : [];
-  const boardHighlightFiles = preschool ? tutorial.highlightFiles : (step.highlightFiles ?? []);
-  const boardHighlightRanks = preschool ? tutorial.highlightRanks : (step.highlightRanks ?? []);
+  const boardHighlightFiles = preschool
+    ? tutorial.highlightFiles
+    : (step.highlightFiles ?? []);
+  const boardHighlightRanks = preschool
+    ? tutorial.highlightRanks
+    : (step.highlightRanks ?? []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
-      <div className="pt-safe sticky top-0 z-20 bg-surface/90 px-4 py-3 backdrop-blur">
+    <div className="bg-surface flex min-h-dvh flex-col">
+      <div className="pt-safe bg-surface/90 sticky top-0 z-20 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <button
-            onClick={() => { startNav(); router.push("/"); }}
+            onClick={() => {
+              startNav();
+              router.push("/");
+            }}
             aria-label="Back to campus"
-            className="btn-tactile flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-card text-ink-700 [box-shadow:var(--shadow-card)] hover:text-brand"
+            className="btn-tactile border-hairline bg-surface-card text-ink-700 hover:text-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="m15 18-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="m15 18-6-6 6-6"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
-          <ProgressBar value={index + (phase === "correct" ? 1 : 0)} max={total} tone="success" className="flex-1" />
-          <span className="text-xs font-bold text-ink-500">
+          <ProgressBar
+            value={index + (phase === "correct" ? 1 : 0)}
+            max={total}
+            tone="success"
+            className="flex-1"
+          />
+          <span className="text-ink-500 text-xs font-bold">
             {index + 1}/{total}
           </span>
           <button
@@ -418,25 +480,30 @@ export function LessonPlayer({
             }}
             aria-label={sound ? "Mute sounds" : "Unmute sounds"}
             aria-pressed={sound}
-            className="btn-tactile flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-card text-ink-700 [box-shadow:var(--shadow-card)]"
+            className="btn-tactile border-hairline bg-surface-card text-ink-700 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
           >
             {sound ? "🔊" : "🔇"}
           </button>
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-4 px-4 py-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4">
         <div className="flex min-h-[4.75rem] shrink-0 items-start gap-2">
-          <Mascot expression={expression} size={88} float={false} className="mt-1 shrink-0" />
+          <Mascot
+            expression={expression}
+            size={88}
+            float={false}
+            className="mt-1 shrink-0"
+          />
           <motion.div
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border border-hairline bg-surface-card px-4 py-3 text-sm font-semibold leading-relaxed text-ink [box-shadow:var(--shadow-card)]"
+            className="border-hairline bg-surface-card text-ink relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)]"
           >
             <p className="whitespace-pre-wrap">{feedbackText}</p>
             {lesson.exam && (
-              <span className="self-start rounded-pill bg-warning/20 px-1.5 py-0.5 text-[10px] font-extrabold text-warning">
+              <span className="rounded-pill bg-warning/20 text-warning self-start px-1.5 py-0.5 text-[10px] font-extrabold">
                 EXAM
               </span>
             )}
@@ -445,14 +512,22 @@ export function LessonPlayer({
 
         {step.kind === "quiz" ? (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
-            <PreschoolQuiz key={index} step={step} phase={phase} onAnswer={handleQuizAnswer} />
+            <PreschoolQuiz
+              key={index}
+              step={step}
+              phase={phase}
+              onAnswer={handleQuizAnswer}
+            />
           </div>
         ) : (
           step.fen && (
             <div className="flex min-h-0 flex-1 items-center justify-center">
               {/* Viewport-based size = never re-measured, so the board cannot
                   resize/flicker when the feedback footer or coach text changes. */}
-              <div className="relative" style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}>
+              <div
+                className="relative"
+                style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}
+              >
                 <ChessBoard
                   key={index}
                   fen={displayFen ?? step.fen}
@@ -476,9 +551,9 @@ export function LessonPlayer({
         {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
         <div className="flex h-10 items-center justify-between gap-2">
           {toMove ? (
-            <span className="flex items-center gap-2 rounded-pill bg-surface-sunken px-3 py-1.5 text-sm font-extrabold text-ink">
+            <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
               <span
-                className={`inline-block h-4 w-4 rounded-full border border-ink-300 ${
+                className={`border-ink-300 inline-block h-4 w-4 rounded-full border ${
                   toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
                 }`}
               />
@@ -488,7 +563,9 @@ export function LessonPlayer({
             <span />
           )}
           {isObserving ? (
-            <p className="text-center text-sm font-bold text-brand">▶ Watching the example…</p>
+            <p className="text-brand text-center text-sm font-bold">
+              ▶ Watching the example…
+            </p>
           ) : solvable && !lesson.exam ? (
             <button
               onClick={() => {
@@ -497,19 +574,25 @@ export function LessonPlayer({
                 haptics.fire("tap");
               }}
               disabled={hintLevel >= 2}
-              className="btn-tactile rounded-pill bg-surface-sunken px-4 py-1.5 text-xs font-bold text-ink-700 disabled:opacity-50"
+              className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
             >
-              {hintLevel === 0 ? "💡 Show a hint" : hintLevel === 1 ? "💡 Show the move" : "💡 Follow the arrow"}
+              {hintLevel === 0
+                ? "💡 Show a hint"
+                : hintLevel === 1
+                  ? "💡 Show the move"
+                  : "💡 Follow the arrow"}
             </button>
           ) : null}
         </div>
 
         {/* Fills the space below the board + reinforces the concept */}
         {step.kind !== "quiz" && (
-          <div className="mx-auto mt-1 flex w-full max-w-xs items-start gap-2 rounded-card border border-hairline bg-surface-card/70 px-3 py-2">
+          <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2">
             <span className="text-base leading-none">🎓</span>
-            <p className="text-[11px] font-semibold leading-snug text-ink-500">
-              {LESSON_TIPS[step.tag ?? ""] ?? LESSON_TIPS[lesson.tag] ?? "Take your time and calculate before you move."}
+            <p className="text-ink-500 text-[11px] leading-snug font-semibold">
+              {LESSON_TIPS[step.tag ?? ""] ??
+                LESSON_TIPS[lesson.tag] ??
+                "Take your time and calculate before you move."}
             </p>
           </div>
         )}
@@ -542,7 +625,8 @@ function FeedbackBar({
   // Move steps auto-advance (green flash) / auto-retry — the footer button is only
   // for info/observe/quiz steps that need a manual "Continue".
   const show =
-    (playing && (stepKind === "info" || (stepKind === "observe" && observeReady))) || Boolean(quizReady);
+    (playing && (stepKind === "info" || (stepKind === "observe" && observeReady))) ||
+    Boolean(quizReady);
 
   // Always reserve the footer height so the board never resizes (no CLS / flicker).
   return (
@@ -555,7 +639,7 @@ function FeedbackBar({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className="mx-auto flex max-w-xl items-center justify-end gap-4 rounded-2xl border border-hairline bg-surface-card px-4 py-3"
+            className="border-hairline bg-surface-card mx-auto flex max-w-xl items-center justify-end gap-4 rounded-2xl border px-4 py-3"
           >
             <Button variant="success" onClick={onContinue} block>
               Continue
@@ -593,7 +677,11 @@ function LessonComplete({
   const allHomeworkDone = homeworkDoneCount >= ROUTINE_STEPS.length;
   // Prefer the DB-computed next lesson; fall back to the constants graph.
   // Homework never chains into "continue learning" — it returns to the homework screen.
-  const nextId = isHomework ? null : nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
+  const nextId = isHomework
+    ? null
+    : nextLessonId !== undefined
+      ? nextLessonId
+      : nextLessonAfter(lesson.id);
   const go = (id: string, href: string, action?: () => void) => {
     if (busy) return;
     setBusy(id);
@@ -603,7 +691,7 @@ function LessonComplete({
     else router.push(href);
   };
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden bg-surface px-6 text-center">
+    <div className="bg-surface relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden px-6 text-center">
       <Confetti count={graduatedTitle ? 40 : 28} />
       <motion.div
         initial={{ scale: 0, rotate: -10 }}
@@ -617,12 +705,12 @@ function LessonComplete({
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-pill bg-gold/20 px-4 py-1 text-xs font-extrabold uppercase tracking-wide text-warning"
+            className="rounded-pill bg-gold/20 text-warning px-4 py-1 text-xs font-extrabold tracking-wide uppercase"
           >
             🎓 Class graduated
           </motion.div>
-          <h1 className="text-3xl font-extrabold text-ink">{graduatedTitle}</h1>
-          <p className="text-sm font-semibold text-ink-500">
+          <h1 className="text-ink text-3xl font-extrabold">{graduatedTitle}</h1>
+          <p className="text-ink-500 text-sm font-semibold">
             You&apos;ve mastered this class. The next one is unlocked!
           </p>
         </>
@@ -631,11 +719,11 @@ function LessonComplete({
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-extrabold text-ink"
+            className="text-ink text-3xl font-extrabold"
           >
             {allHomeworkDone ? "All homework done for today! 🎉" : "Homework done! ✅"}
           </motion.h1>
-          <p className="text-sm font-semibold text-ink-500">
+          <p className="text-ink-500 text-sm font-semibold">
             {allHomeworkDone
               ? "You've completed every routine today — see you tomorrow!"
               : "Nice work. Head back to finish the rest of today's homework."}
@@ -645,7 +733,7 @@ function LessonComplete({
         <motion.h1
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-extrabold text-ink"
+          className="text-ink text-3xl font-extrabold"
         >
           {lesson.exam ? "Exam complete!" : "Lesson complete!"}
         </motion.h1>
@@ -653,7 +741,11 @@ function LessonComplete({
       <div className="flex gap-3">
         <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
         <StatPill label="Correct" value={`${correct}`} tone="text-success" />
-        <StatPill label="Mistakes" value={`${mistakes}`} tone={mistakes === 0 ? "text-success" : "text-danger"} />
+        <StatPill
+          label="Mistakes"
+          value={`${mistakes}`}
+          tone={mistakes === 0 ? "text-success" : "text-danger"}
+        />
       </div>
 
       {/* Guest → enroll prompt (#2): progress is saved locally and follows you up. */}
@@ -661,13 +753,20 @@ function LessonComplete({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-xs rounded-card border border-brand-100 bg-brand-50 p-4 text-center"
+          className="rounded-card border-brand-100 bg-brand-50 w-full max-w-xs border p-4 text-center"
         >
-          <p className="text-sm font-extrabold text-ink">📌 Save your progress</p>
-          <p className="mt-1 text-xs font-semibold text-ink-500">
-            Enroll free to keep your XP and continue on any device — everything you&apos;ve done so far comes with you.
+          <p className="text-ink text-sm font-extrabold">📌 Save your progress</p>
+          <p className="text-ink-500 mt-1 text-xs font-semibold">
+            Enroll free to keep your XP and continue on any device — everything
+            you&apos;ve done so far comes with you.
           </p>
-          <Button size="sm" block className="mt-3" loading={busy === "enroll"} onClick={() => go("enroll", "/register")}>
+          <Button
+            size="sm"
+            block
+            className="mt-3"
+            loading={busy === "enroll"}
+            onClick={() => go("enroll", "/register")}
+          >
             Enroll free
           </Button>
         </motion.div>
@@ -676,20 +775,40 @@ function LessonComplete({
       <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
         {isHomework ? (
           allHomeworkDone ? (
-            <Button size="lg" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
+            <Button
+              size="lg"
+              block
+              loading={busy === "home"}
+              onClick={() => go("home", "/", onDone)}
+            >
               Back to academy →
             </Button>
           ) : (
-            <Button size="lg" block loading={busy === "hw"} onClick={() => go("hw", "/plan")}>
+            <Button
+              size="lg"
+              block
+              loading={busy === "hw"}
+              onClick={() => go("hw", "/plan")}
+            >
               Continue your homework →
             </Button>
           )
         ) : nextId ? (
-          <Button size="lg" block loading={busy === "next"} onClick={() => go("next", `/lesson/${nextId}`)}>
+          <Button
+            size="lg"
+            block
+            loading={busy === "next"}
+            onClick={() => go("next", `/lesson/${nextId}`)}
+          >
             Continue learning →
           </Button>
         ) : (
-          <Button size="lg" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
+          <Button
+            size="lg"
+            block
+            loading={busy === "home"}
+            onClick={() => go("home", "/", onDone)}
+          >
             Back to campus
           </Button>
         )}
@@ -698,7 +817,12 @@ function LessonComplete({
             📝 Reflect
           </Button>
           {!isHomework && nextId && (
-            <Button variant="ghost" block loading={busy === "home"} onClick={() => go("home", "/", onDone)}>
+            <Button
+              variant="ghost"
+              block
+              loading={busy === "home"}
+              onClick={() => go("home", "/", onDone)}
+            >
               Back to campus
             </Button>
           )}
@@ -720,11 +844,19 @@ function LessonComplete({
   );
 }
 
-function StatPill({ label, value, tone }: { label: string; value: string; tone: string }) {
+function StatPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+}) {
   return (
-    <div className="rounded-card border border-hairline bg-surface-card px-5 py-3">
+    <div className="rounded-card border-hairline bg-surface-card border px-5 py-3">
       <div className={`text-2xl font-extrabold ${tone}`}>{value}</div>
-      <div className="text-xs font-semibold text-ink-500">{label}</div>
+      <div className="text-ink-500 text-xs font-semibold">{label}</div>
     </div>
   );
 }

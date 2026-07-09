@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Chess } from "chess.js";
 import { LESSONS } from "./curriculum";
-import { isUnlocked } from "./unlock";
+import { isUnlocked, masteryOf } from "./unlock";
 import { levelForXp, xpProgress } from "@/core/store/progression.store";
 
 describe("curriculum integrity", () => {
@@ -41,9 +41,16 @@ describe("curriculum integrity", () => {
       for (const step of lesson.steps) {
         if (step.kind !== "quiz") continue;
         expect(step.question, `${lesson.id}/${step.id} question`).toBeTruthy();
-        expect((step.options ?? []).length, `${lesson.id}/${step.id} options`).toBeGreaterThanOrEqual(2);
-        expect(step.correct, `${lesson.id}/${step.id} correct`).toBeGreaterThanOrEqual(0);
-        expect(step.correct!, `${lesson.id}/${step.id} correct`).toBeLessThan(step.options!.length);
+        expect(
+          (step.options ?? []).length,
+          `${lesson.id}/${step.id} options`,
+        ).toBeGreaterThanOrEqual(2);
+        expect(step.correct, `${lesson.id}/${step.id} correct`).toBeGreaterThanOrEqual(
+          0,
+        );
+        expect(step.correct!, `${lesson.id}/${step.id} correct`).toBeLessThan(
+          step.options!.length,
+        );
       }
     }
   });
@@ -58,6 +65,7 @@ describe("unlock logic", () => {
   it("root lessons are unlocked, gated lessons are locked initially", () => {
     expect(isUnlocked("board-basics", {})).toBe(true);
     expect(isUnlocked("fork-master", {})).toBe(false);
+    expect(isUnlocked("unknown-lesson-id", {})).toBe(false);
   });
 
   it("unlocks a lesson when prerequisites are mastered", () => {
@@ -65,6 +73,15 @@ describe("unlock logic", () => {
       "board-basics": { mastery: 1, attempts: 1, lastSeen: 0, dueAt: 0 },
     };
     expect(isUnlocked("pawn-power", records)).toBe(true);
+  });
+
+  it("reads mastery for a lesson id", () => {
+    expect(masteryOf("missing", {})).toBe(0);
+    expect(
+      masteryOf("board-basics", {
+        "board-basics": { mastery: 0.8, attempts: 1, lastSeen: 0, dueAt: 0 },
+      }),
+    ).toBe(0.8);
   });
 });
 

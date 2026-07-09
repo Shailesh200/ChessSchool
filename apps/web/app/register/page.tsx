@@ -8,7 +8,8 @@ export const metadata = {
     "Create a free ChessSchool account — save progress, take the placement test, and graduate through chess classes.",
   ...socialMeta({
     title: "Join ChessSchool — Free",
-    description: "Enroll in the free online chess academy. Classes, puzzles, and live play.",
+    description:
+      "Enroll in the free online chess academy. Classes, puzzles, and live play.",
     path: "/register",
     kind: "home",
     badge: "Enroll Free",

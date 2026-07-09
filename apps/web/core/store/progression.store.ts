@@ -58,7 +58,12 @@ export interface ProgressionState {
   passSchoolExam: (stage: string) => void;
   awardXp: (amount: number) => void;
   setDailyGoalXp: (xp: number) => void;
-  recordLesson: (id: string, correct: number, total: number, incorrect?: number) => void;
+  recordLesson: (
+    id: string,
+    correct: number,
+    total: number,
+    incorrect?: number,
+  ) => void;
   recordWeakness: (tag: string) => void;
   unlockAchievement: (id: string) => boolean;
   registerActivity: (today: string) => void;
@@ -173,10 +178,13 @@ export const useProgression = create<ProgressionState>()(
 
       passSchoolExam: (stage) =>
         set((s) =>
-          s.schoolExamsPassed.includes(stage) ? s : { schoolExamsPassed: [...s.schoolExamsPassed, stage] },
+          s.schoolExamsPassed.includes(stage)
+            ? s
+            : { schoolExamsPassed: [...s.schoolExamsPassed, stage] },
         ),
 
-      logMistake: (m) => set((s) => ({ mistakeLog: [m, ...s.mistakeLog].slice(0, 30) })),
+      logMistake: (m) =>
+        set((s) => ({ mistakeLog: [m, ...s.mistakeLog].slice(0, 30) })),
 
       awardXp: (amount) =>
         set((s) => {
@@ -186,7 +194,10 @@ export const useProgression = create<ProgressionState>()(
             xp: s.xp + amount,
             todayXp: (sameDay ? s.todayXp : 0) + amount,
             todayKey: today,
-            activityDays: { ...s.activityDays, [today]: (s.activityDays[today] ?? 0) + amount },
+            activityDays: {
+              ...s.activityDays,
+              [today]: (s.activityDays[today] ?? 0) + amount,
+            },
           };
         }),
 
@@ -199,7 +210,10 @@ export const useProgression = create<ProgressionState>()(
           const mastery = prev ? prev.mastery * 0.5 + score * 0.5 : score;
           const days = mastery > 0.9 ? 14 : mastery > 0.7 ? 5 : mastery > 0.4 ? 2 : 1;
           // Keep the best (fewest mistakes) run for scoring.
-          const bestIncorrect = prev?.incorrect === undefined ? incorrect : Math.min(prev.incorrect, incorrect);
+          const bestIncorrect =
+            prev?.incorrect === undefined
+              ? incorrect
+              : Math.min(prev.incorrect, incorrect);
           return {
             lessons: {
               ...s.lessons,
@@ -252,7 +266,12 @@ export const useProgression = create<ProgressionState>()(
             { ...merged, placementDone: s.placementDone },
             { ...snap, placementDone: snap.placementDone },
           );
-          return { ...next, placementDone: Boolean(next.placementDone || s.placementDone || snap.placementDone) };
+          return {
+            ...next,
+            placementDone: Boolean(
+              next.placementDone || s.placementDone || snap.placementDone,
+            ),
+          };
         }),
 
       // Account is the source of truth: overwrite local with the server snapshot.

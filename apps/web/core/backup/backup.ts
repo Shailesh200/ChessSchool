@@ -74,14 +74,24 @@ export interface ImportPreview {
 
 /** Validate a parsed backup before applying (#86 input validation). */
 export function validateBackup(value: unknown): ImportPreview {
-  if (typeof value !== "object" || value === null) return { ok: false, reason: "Not a JSON object" };
+  if (typeof value !== "object" || value === null)
+    return { ok: false, reason: "Not a JSON object" };
   const b = value as Partial<BackupFile>;
   if (b.app !== "chessschool") return { ok: false, reason: "Not a ChessSchool backup" };
-  if (typeof b.schema !== "number") return { ok: false, reason: "Missing schema version" };
-  if (b.schema > BACKUP_SCHEMA) return { ok: false, reason: `Newer backup (v${b.schema}) — update the app` };
-  if (!Array.isArray(b.games) || !Array.isArray(b.journal)) return { ok: false, reason: "Corrupt records" };
-  if (typeof b.localStorage !== "object" || b.localStorage === null) return { ok: false, reason: "Missing settings" };
-  return { ok: true, schema: b.schema, games: b.games.length, journal: b.journal.length };
+  if (typeof b.schema !== "number")
+    return { ok: false, reason: "Missing schema version" };
+  if (b.schema > BACKUP_SCHEMA)
+    return { ok: false, reason: `Newer backup (v${b.schema}) — update the app` };
+  if (!Array.isArray(b.games) || !Array.isArray(b.journal))
+    return { ok: false, reason: "Corrupt records" };
+  if (typeof b.localStorage !== "object" || b.localStorage === null)
+    return { ok: false, reason: "Missing settings" };
+  return {
+    ok: true,
+    schema: b.schema,
+    games: b.games.length,
+    journal: b.journal.length,
+  };
 }
 
 /** Replace local data with a validated backup, then the caller reloads. */

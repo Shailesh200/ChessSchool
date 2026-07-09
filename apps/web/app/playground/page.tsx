@@ -45,7 +45,11 @@ export default function PlaygroundPage() {
     setHint([]);
     audio.play(applied.captured ? "capture" : "move");
     haptics.fire("tap");
-    setMsg(e.isGameOver() ? "Game over — reset to keep exploring." : `${e.turn() === "w" ? "White" : "Black"} to move`);
+    setMsg(
+      e.isGameOver()
+        ? "Game over — reset to keep exploring."
+        : `${e.turn() === "w" ? "White" : "Black"} to move`,
+    );
     return true;
   }, []);
 
@@ -104,8 +108,8 @@ export default function PlaygroundPage() {
     <AppShell>
       <div className="flex flex-col gap-4">
         <BackButton />
-        <h1 className="text-xl font-extrabold text-ink">Playground</h1>
-        <div className="rounded-card border border-hairline bg-surface-card px-3 py-2 text-center text-sm font-bold text-ink">
+        <h1 className="text-ink text-xl font-extrabold">Playground</h1>
+        <div className="rounded-card border-hairline bg-surface-card text-ink border px-3 py-2 text-center text-sm font-bold">
           {msg}
         </div>
 
@@ -121,10 +125,22 @@ export default function PlaygroundPage() {
         </div>
 
         <div className="grid grid-cols-4 gap-2">
-          <Button variant="outline" size="sm" onClick={undo}><Icon name="undo" size={16} />Undo</Button>
-          <Button variant="outline" size="sm" onClick={() => setFlip((f) => !f)}><Icon name="flip" size={16} />Flip</Button>
-          <Button variant="outline" size="sm" onClick={showHint}><Icon name="bulb" size={16} />Hint</Button>
-          <Button variant="outline" size="sm" onClick={reset}><Icon name="plus" size={16} />Reset</Button>
+          <Button variant="outline" size="sm" onClick={undo}>
+            <Icon name="undo" size={16} />
+            Undo
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setFlip((f) => !f)}>
+            <Icon name="flip" size={16} />
+            Flip
+          </Button>
+          <Button variant="outline" size="sm" onClick={showHint}>
+            <Icon name="bulb" size={16} />
+            Hint
+          </Button>
+          <Button variant="outline" size="sm" onClick={reset}>
+            <Icon name="plus" size={16} />
+            Reset
+          </Button>
         </div>
 
         <div className="flex gap-2">
@@ -132,11 +148,15 @@ export default function PlaygroundPage() {
             value={fenInput}
             onChange={(e) => setFenInput(e.target.value)}
             placeholder="Paste a FEN to load…"
-            className="flex-1 rounded-pill border border-hairline bg-surface px-3 py-2 text-xs font-semibold text-ink"
+            className="rounded-pill border-hairline bg-surface text-ink flex-1 border px-3 py-2 text-xs font-semibold"
             aria-label="FEN input"
           />
-          <Button size="sm" onClick={loadFen}>Load</Button>
-          <Button size="sm" variant="outline" onClick={copyFen}>Copy</Button>
+          <Button size="sm" onClick={loadFen}>
+            Load
+          </Button>
+          <Button size="sm" variant="outline" onClick={copyFen}>
+            Copy
+          </Button>
         </div>
       </div>
     </AppShell>

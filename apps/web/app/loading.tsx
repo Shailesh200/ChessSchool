@@ -19,17 +19,21 @@ export default function Loading() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-surface">
+    <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-5">
       <div className="relative h-16 w-16">
-        <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-hairline border-t-brand" />
-        <div className="absolute inset-0 flex animate-pulse items-center justify-center text-3xl">♟️</div>
+        <div className="border-hairline border-t-brand absolute inset-0 animate-spin rounded-full border-[3px]" />
+        <div className="absolute inset-0 flex animate-pulse items-center justify-center text-3xl">
+          ♟️
+        </div>
       </div>
-      <p className="text-sm font-extrabold tracking-tight text-ink-700">{MESSAGES[i % MESSAGES.length]}</p>
+      <p className="text-ink-700 text-sm font-extrabold tracking-tight">
+        {MESSAGES[i % MESSAGES.length]}
+      </p>
       <div className="flex gap-1.5">
         {[0, 1, 2].map((d) => (
           <span
             key={d}
-            className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand"
+            className="bg-brand h-1.5 w-1.5 animate-bounce rounded-full"
             style={{ animationDelay: `${d * 0.15}s` }}
           />
         ))}

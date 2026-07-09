@@ -16,7 +16,8 @@ export const metadata: Metadata = {
     "Browse every chess lesson and class at ChessSchool — tactics, openings, endgames, and puzzles. Free online chess school library.",
   ...socialMeta({
     title: "Chess Lesson Library",
-    description: "Browse all chess classes, puzzles, and lessons — free online chess school.",
+    description:
+      "Browse all chess classes, puzzles, and lessons — free online chess school.",
     path: "/library",
     kind: "home",
     badge: "Chess Library",
@@ -31,7 +32,13 @@ export default async function LibraryPage() {
   const sems = await db.select().from(semesters).orderBy(asc(semesters.sortOrder));
   const cls = await db.select().from(classes).orderBy(asc(classes.sortOrder));
   const meta = await db
-    .select({ id: lessons.id, classId: lessons.classId, title: lessons.title, emoji: lessons.emoji, sortOrder: lessons.sortOrder })
+    .select({
+      id: lessons.id,
+      classId: lessons.classId,
+      title: lessons.title,
+      emoji: lessons.emoji,
+      sortOrder: lessons.sortOrder,
+    })
     .from(lessons)
     .orderBy(asc(lessons.sortOrder));
 
@@ -51,7 +58,7 @@ export default async function LibraryPage() {
       className: classNameById.get(m.classId) ?? "Lessons",
     }));
     return (
-      <div className="min-h-dvh bg-surface px-5 py-8">
+      <div className="bg-surface min-h-dvh px-5 py-8">
         <div className="mx-auto flex max-w-2xl flex-col gap-5">
           <BackButton />
           <MyCompletedLibrary lessons={libLessons} />
@@ -61,25 +68,28 @@ export default async function LibraryPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-surface px-5 py-8">
+    <div className="bg-surface min-h-dvh px-5 py-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <BackButton />
         <div className="flex items-center justify-between">
           <Logo />
           <Link
             href={user ? "/account" : "/login"}
-            className="rounded-pill border-2 border-hairline px-4 py-1.5 text-sm font-bold text-ink-700"
+            className="rounded-pill border-hairline text-ink-700 border-2 px-4 py-1.5 text-sm font-bold"
           >
             {user ? user.name : "Log in"}
           </Link>
         </div>
 
         <div>
-          <h1 className="text-2xl font-extrabold text-ink">Chess Lesson Library</h1>
-          <p className="mt-2 text-sm font-semibold leading-relaxed text-ink-600">
-            Browse every free chess lesson at ChessSchool — tactics puzzles, opening theory, endgames, and beginner
-            classes. {total.toLocaleString()} interactive lessons across {cls.length} classes.
-            {user ? ` Welcome back, ${user.name}!` : " Enroll free to track your progress."}
+          <h1 className="text-ink text-2xl font-extrabold">Chess Lesson Library</h1>
+          <p className="text-ink-600 mt-2 text-sm leading-relaxed font-semibold">
+            Browse every free chess lesson at ChessSchool — tactics puzzles, opening
+            theory, endgames, and beginner classes. {total.toLocaleString()} interactive
+            lessons across {cls.length} classes.
+            {user
+              ? ` Welcome back, ${user.name}!`
+              : " Enroll free to track your progress."}
           </p>
         </div>
 
@@ -87,32 +97,36 @@ export default async function LibraryPage() {
           <section key={sem.id}>
             <div className="mb-2 flex items-center gap-2">
               <span
-                className="shrink-0 rounded-pill px-3 py-1 text-xs font-extrabold text-white"
+                className="rounded-pill shrink-0 px-3 py-1 text-xs font-extrabold text-white"
                 style={{ backgroundColor: sem.color }}
               >
                 {sem.title}
               </span>
-              <span className="truncate text-xs font-semibold text-ink-500">{sem.blurb}</span>
+              <span className="text-ink-500 truncate text-xs font-semibold">
+                {sem.blurb}
+              </span>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {cls
                 .filter((c) => c.semesterId === sem.id)
                 .map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/class/${c.id}`}
-                      className="btn-tactile flex items-center gap-3 rounded-card border border-hairline bg-surface-card p-3 [box-shadow:var(--shadow-card)]"
-                    >
-                      <span className="text-2xl">{c.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-extrabold text-ink">{c.title}</p>
-                        <p className="truncate text-xs font-semibold text-ink-500">
-                          {countByClass.get(c.id) ?? 0} lessons
-                        </p>
-                      </div>
-                      <Icon name="arrowRight" size={18} className="text-brand" />
-                    </Link>
-                  ))}
+                  <Link
+                    key={c.id}
+                    href={`/class/${c.id}`}
+                    className="btn-tactile rounded-card border-hairline bg-surface-card flex items-center gap-3 border p-3 [box-shadow:var(--shadow-card)]"
+                  >
+                    <span className="text-2xl">{c.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-ink truncate text-sm font-extrabold">
+                        {c.title}
+                      </p>
+                      <p className="text-ink-500 truncate text-xs font-semibold">
+                        {countByClass.get(c.id) ?? 0} lessons
+                      </p>
+                    </div>
+                    <Icon name="arrowRight" size={18} className="text-brand" />
+                  </Link>
+                ))}
             </div>
           </section>
         ))}

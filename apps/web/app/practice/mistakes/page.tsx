@@ -16,22 +16,33 @@ export default function PracticeMistakesPage() {
   const mistakeLog = useProgression((s) => s.mistakeLog);
 
   if (!mounted) {
-    return <div className="flex min-h-dvh items-center justify-center bg-surface text-sm font-bold text-ink-500">Loading…</div>;
+    return (
+      <div className="bg-surface text-ink-500 flex min-h-dvh items-center justify-center text-sm font-bold">
+        Loading…
+      </div>
+    );
   }
 
   // De-dupe by position and keep the most recent dozen.
   const seen = new Set<string>();
-  const picks = mistakeLog.filter((m) => (seen.has(m.fen) ? false : (seen.add(m.fen), true))).slice(0, 12);
+  const picks = mistakeLog
+    .filter((m) => (seen.has(m.fen) ? false : (seen.add(m.fen), true)))
+    .slice(0, 12);
 
   if (!picks.length) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface px-6 text-center">
+      <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
         <Mascot expression="happy" size={96} />
-        <p className="text-lg font-extrabold text-ink">No mistakes to practise yet 🎉</p>
-        <p className="max-w-xs text-sm font-semibold text-ink-500">
-          As you play lessons, the spots you get wrong are saved here so you can re-solve them correctly.
+        <p className="text-ink text-lg font-extrabold">
+          No mistakes to practise yet 🎉
         </p>
-        <Link href="/" className="text-sm font-extrabold text-brand">← Back to academy</Link>
+        <p className="text-ink-500 max-w-xs text-sm font-semibold">
+          As you play lessons, the spots you get wrong are saved here so you can
+          re-solve them correctly.
+        </p>
+        <Link href="/" className="text-brand text-sm font-extrabold">
+          ← Back to academy
+        </Link>
       </div>
     );
   }

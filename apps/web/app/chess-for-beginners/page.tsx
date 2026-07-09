@@ -13,7 +13,8 @@ export const metadata: Metadata = {
     "Chess for beginners: learn the board, pieces, rules, and notation step by step. Free Pre-School classes with interactive puzzles at ChessSchool.",
   ...socialMeta({
     title: "Chess for Beginners",
-    description: "Start from zero — board, pieces, checkmate, and notation with a friendly coach.",
+    description:
+      "Start from zero — board, pieces, checkmate, and notation with a friendly coach.",
     path: "/chess-for-beginners",
     kind: "home",
     badge: "Beginners",
@@ -27,18 +28,22 @@ export default function ChessForBeginnersPage() {
       <FaqJsonLd items={BEGINNER_FAQ} />
       <article className="flex flex-col gap-8 pb-6">
         <header className="flex flex-col gap-3">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-brand">Chess for beginners</p>
-          <h1 className="text-2xl font-extrabold leading-tight text-ink sm:text-3xl">
+          <p className="text-brand text-xs font-extrabold tracking-wide uppercase">
+            Chess for beginners
+          </p>
+          <h1 className="text-ink text-2xl leading-tight font-extrabold sm:text-3xl">
             Learn chess from scratch — board, pieces &amp; rules
           </h1>
-          <p className="text-sm font-semibold leading-relaxed text-ink-600">{BEGINNER_INTRO}</p>
+          <p className="text-ink-600 text-sm leading-relaxed font-semibold">
+            {BEGINNER_INTRO}
+          </p>
           <NavButton href="/class/class-pre-board" size="sm" className="self-start">
             Start Pre-School →
           </NavButton>
         </header>
 
         <section aria-labelledby="preschool-heading">
-          <h2 id="preschool-heading" className="mb-3 text-lg font-extrabold text-ink">
+          <h2 id="preschool-heading" className="text-ink mb-3 text-lg font-extrabold">
             Pre-School classes for new players
           </h2>
           <CurriculumLinkGrid
@@ -78,12 +83,12 @@ export default function ChessForBeginnersPage() {
         </section>
 
         <section aria-labelledby="after-heading">
-          <h2 id="after-heading" className="text-lg font-extrabold text-ink">
+          <h2 id="after-heading" className="text-ink text-lg font-extrabold">
             Already know the basics?
           </h2>
-          <p className="mt-2 text-sm font-semibold leading-relaxed text-ink-600">
-            Take the 8-puzzle placement test (~2 minutes). We&apos;ll recommend Elementary, Middle, or High School so
-            you skip material you already know.
+          <p className="text-ink-600 mt-2 text-sm leading-relaxed font-semibold">
+            Take the 8-puzzle placement test (~2 minutes). We&apos;ll recommend
+            Elementary, Middle, or High School so you skip material you already know.
           </p>
           <NavButton href="/placement" variant="outline" size="sm" className="mt-3">
             Take placement test →

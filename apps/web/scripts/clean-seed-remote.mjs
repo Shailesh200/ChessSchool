@@ -30,7 +30,14 @@ const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN })
 
 // Drop child tables before parents (FKs reference users). seed.sql recreates them
 // empty via CREATE TABLE IF NOT EXISTS, then loads curriculum content.
-const USER_TABLES = ["lesson_records", "progress", "profiles", "sessions", "game_sessions", "users"];
+const USER_TABLES = [
+  "lesson_records",
+  "progress",
+  "profiles",
+  "sessions",
+  "game_sessions",
+  "users",
+];
 console.log("⚠️  Wiping all user data…");
 await client.execute("PRAGMA foreign_keys=OFF");
 for (const t of USER_TABLES) await client.execute(`DROP TABLE IF EXISTS ${t}`);

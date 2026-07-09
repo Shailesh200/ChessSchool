@@ -11,9 +11,14 @@ export default defineConfig({
       // Pure, framework-free logic — the load-bearing code. UI screens/components
       // need RNTL/Detox (tracked as follow-up in CODE_REVIEW.md) and are excluded
       // so the threshold reflects real logic coverage, not untestable view code.
-      include: ["src/progression.ts", "src/progress-utils.ts", "src/chess-utils.ts"],
+      include: [
+        "src/chess-utils.ts",
+        "src/progress-utils.ts",
+        "../../packages/progression/src/**/*.ts",
+        "../../packages/core/src/**/*.ts",
+      ],
       reporter: ["text", "text-summary"],
-      thresholds: { lines: 85, functions: 85, branches: 80, statements: 85 },
+      thresholds: { lines: 90, functions: 90, branches: 85, statements: 90 },
     },
   },
 });

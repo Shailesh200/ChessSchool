@@ -7,15 +7,21 @@ import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import dynamic from "next/dynamic";
-import { applyDocumentSettings, rehydrateAllStores } from "@/core/bootstrap/storeBootstrap";
+import {
+  applyDocumentSettings,
+  rehydrateAllStores,
+} from "@/core/bootstrap/storeBootstrap";
 import { trackEvent } from "@/core/analytics/track";
 import { ProgressSync } from "@/components/providers/ProgressSync";
 import { initVitalsReporting } from "@/core/vitals/reportVitals";
 
 // Not needed at first paint — keep them out of the initial bundle.
-const Toaster = dynamic(() => import("@/components/ui/Toaster").then((m) => m.Toaster), {
-  ssr: false,
-});
+const Toaster = dynamic(
+  () => import("@/components/ui/Toaster").then((m) => m.Toaster),
+  {
+    ssr: false,
+  },
+);
 const Diagnostics = dynamic(
   () => import("@/components/dev/Diagnostics").then((m) => m.Diagnostics),
   { ssr: false },

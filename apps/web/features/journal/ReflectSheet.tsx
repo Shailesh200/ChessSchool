@@ -54,18 +54,22 @@ export function ReflectSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title="Add to your journal">
-      <p className="mb-1 text-sm font-bold text-ink">{title}</p>
-      <p className="mb-4 text-xs font-semibold text-ink-500">{summary}</p>
+      <p className="text-ink mb-1 text-sm font-bold">{title}</p>
+      <p className="text-ink-500 mb-4 text-xs font-semibold">{summary}</p>
 
-      <label className="mb-1 block text-xs font-extrabold text-ink-700">How confident do you feel?</label>
+      <label className="text-ink-700 mb-1 block text-xs font-extrabold">
+        How confident do you feel?
+      </label>
       <div className="mb-4 flex justify-between">
         {CONFIDENCE.map((emoji, i) => (
           <button
             key={i}
             onClick={() => setConfidence(i + 1)}
             aria-label={`Confidence ${i + 1} of 5`}
-            className={`flex h-11 w-11 items-center justify-center rounded-pill text-xl transition-transform ${
-              confidence === i + 1 ? "scale-110 bg-brand-50 ring-2 ring-brand" : "bg-surface-sunken"
+            className={`rounded-pill flex h-11 w-11 items-center justify-center text-xl transition-transform ${
+              confidence === i + 1
+                ? "bg-brand-50 ring-brand scale-110 ring-2"
+                : "bg-surface-sunken"
             }`}
           >
             {emoji}
@@ -73,7 +77,7 @@ export function ReflectSheet({
         ))}
       </div>
 
-      <label className="mb-1 block text-xs font-extrabold text-ink-700" htmlFor="note">
+      <label className="text-ink-700 mb-1 block text-xs font-extrabold" htmlFor="note">
         What did you learn? Biggest mistake? Plan?
       </label>
       <textarea
@@ -82,12 +86,16 @@ export function ReflectSheet({
         onChange={(e) => setNote(e.target.value)}
         rows={3}
         placeholder="A line or two for future-you…"
-        className="mb-4 w-full rounded-card border border-hairline bg-surface p-3 text-sm font-semibold text-ink"
+        className="rounded-card border-hairline bg-surface text-ink mb-4 w-full border p-3 text-sm font-semibold"
       />
 
       <div className="flex gap-2">
-        <Button variant="ghost" block onClick={onClose}>Skip</Button>
-        <Button block onClick={save}>{saved ? "✓ Saved" : "Save entry"}</Button>
+        <Button variant="ghost" block onClick={onClose}>
+          Skip
+        </Button>
+        <Button block onClick={save}>
+          {saved ? "✓ Saved" : "Save entry"}
+        </Button>
       </div>
     </Sheet>
   );

@@ -41,7 +41,12 @@ export const useToasts = create<ToastState>((set) => ({
 /** Fire a toast from anywhere. */
 export function toast(
   message: string,
-  opts: { icon?: IconName; tone?: ToastTone; action?: ToastItem["action"]; sticky?: boolean } = {},
+  opts: {
+    icon?: IconName;
+    tone?: ToastTone;
+    action?: ToastItem["action"];
+    sticky?: boolean;
+  } = {},
 ): void {
   useToasts.getState().push({
     message,

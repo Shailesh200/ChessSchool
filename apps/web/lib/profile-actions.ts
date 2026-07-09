@@ -10,8 +10,8 @@ const HOUSE_BY_GOAL: Record<string, string> = {
   "beat-friends": "Knights",
   "reach-1000": "Pawns",
   "reach-1500": "Rooks",
-  "openings": "Bishops",
-  "tournament": "Queens",
+  openings: "Bishops",
+  tournament: "Queens",
 };
 
 export async function saveOnboarding(input: {

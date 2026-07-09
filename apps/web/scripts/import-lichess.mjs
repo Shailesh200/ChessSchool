@@ -28,34 +28,118 @@ const MIN_POPULARITY = 80; // Lichess popularity score 0–100; keep well-liked 
 
 // ── Curriculum mapping ───────────────────────────────────────────────────────
 const STAGE = (r) =>
-  r < 1000 ? { id: "elementary", title: "Elementary", order: 0 }
-  : r < 1350 ? { id: "middle", title: "Middle School", order: 1 }
-  : r < 1700 ? { id: "high", title: "High School", order: 2 }
-  : r < 2100 ? { id: "university", title: "University", order: 3 }
-  : { id: "master", title: "Masters", order: 4 };
+  r < 1000
+    ? { id: "elementary", title: "Elementary", order: 0 }
+    : r < 1350
+      ? { id: "middle", title: "Middle School", order: 1 }
+      : r < 1700
+        ? { id: "high", title: "High School", order: 2 }
+        : r < 2100
+          ? { id: "university", title: "University", order: 3 }
+          : { id: "master", title: "Masters", order: 4 };
 
 // First matching group wins (ordered by teaching priority).
 const GROUPS = [
-  { id: "mate", label: "Checkmates", emoji: "♚", color: "#dc2626", themes: ["mateIn1", "mateIn2", "mateIn3", "mateIn4", "mateIn5", "backRankMate", "smotheredMate", "mate", "hookMate", "anastasiaMate", "arabianMate", "bodenMate"] },
+  {
+    id: "mate",
+    label: "Checkmates",
+    emoji: "♚",
+    color: "#dc2626",
+    themes: [
+      "mateIn1",
+      "mateIn2",
+      "mateIn3",
+      "mateIn4",
+      "mateIn5",
+      "backRankMate",
+      "smotheredMate",
+      "mate",
+      "hookMate",
+      "anastasiaMate",
+      "arabianMate",
+      "bodenMate",
+    ],
+  },
   { id: "fork", label: "Forks", emoji: "🍴", color: "#ea580c", themes: ["fork"] },
-  { id: "pin", label: "Pins & Skewers", emoji: "📌", color: "#d97706", themes: ["pin", "skewer"] },
-  { id: "discovered", label: "Discovered Attacks", emoji: "🎯", color: "#7c3aed", themes: ["discoveredAttack", "doubleCheck"] },
-  { id: "sacrifice", label: "Sacrifices & Combinations", emoji: "🔥", color: "#db2777", themes: ["sacrifice", "attraction", "deflection", "clearance", "interference", "decoy", "attackingF2F7"] },
-  { id: "trapped", label: "Win Material", emoji: "💰", color: "#16a34a", themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"] },
-  { id: "endgame", label: "Endgames", emoji: "♔", color: "#0891b2", themes: ["endgame", "rookEndgame", "pawnEndgame", "queenEndgame", "bishopEndgame", "knightEndgame", "queenRookEndgame", "zugzwang", "promotion", "advancedPawn"] },
-  { id: "advantage", label: "Convert the Advantage", emoji: "📈", color: "#2563eb", themes: ["advantage", "crushing", "defensiveMove", "quietMove", "intermezzo"] },
+  {
+    id: "pin",
+    label: "Pins & Skewers",
+    emoji: "📌",
+    color: "#d97706",
+    themes: ["pin", "skewer"],
+  },
+  {
+    id: "discovered",
+    label: "Discovered Attacks",
+    emoji: "🎯",
+    color: "#7c3aed",
+    themes: ["discoveredAttack", "doubleCheck"],
+  },
+  {
+    id: "sacrifice",
+    label: "Sacrifices & Combinations",
+    emoji: "🔥",
+    color: "#db2777",
+    themes: [
+      "sacrifice",
+      "attraction",
+      "deflection",
+      "clearance",
+      "interference",
+      "decoy",
+      "attackingF2F7",
+    ],
+  },
+  {
+    id: "trapped",
+    label: "Win Material",
+    emoji: "💰",
+    color: "#16a34a",
+    themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"],
+  },
+  {
+    id: "endgame",
+    label: "Endgames",
+    emoji: "♔",
+    color: "#0891b2",
+    themes: [
+      "endgame",
+      "rookEndgame",
+      "pawnEndgame",
+      "queenEndgame",
+      "bishopEndgame",
+      "knightEndgame",
+      "queenRookEndgame",
+      "zugzwang",
+      "promotion",
+      "advancedPawn",
+    ],
+  },
+  {
+    id: "advantage",
+    label: "Convert the Advantage",
+    emoji: "📈",
+    color: "#2563eb",
+    themes: ["advantage", "crushing", "defensiveMove", "quietMove", "intermezzo"],
+  },
 ];
-const groupFor = (themes) => GROUPS.find((g) => g.themes.some((t) => themes.includes(t)));
+const groupFor = (themes) =>
+  GROUPS.find((g) => g.themes.some((t) => themes.includes(t)));
 
 const TUTORIALS = {
   mate: "A checkmate attacks the king so it has no legal escape. Look for forcing checks first, and watch how the enemy king's escape squares are cut off.",
   fork: "A fork is one piece attacking two targets at once. Knights are the classic forkers — aim at the king plus a queen or rook so your opponent can only save one.",
   pin: "A pin freezes a piece in front of a more valuable one. A skewer is the reverse — hit the valuable piece so it must move and you win what's behind it.",
-  discovered: "A discovered attack moves one piece to unveil an attack from another. A discovered check is brutal: you check the king and grab material on the same move.",
-  sacrifice: "A sacrifice gives up material for a bigger gain — a mating attack or a winning combination. Calculate the forcing line to the very end before you commit.",
-  trapped: "Winning material starts with spotting undefended or overloaded pieces. Capture defenders, trap pieces with no squares, and never leave a piece hanging.",
-  endgame: "Endgames are about precision: activate your king, push passed pawns, and use opposition and zugzwang. Small edges convert into wins with accurate technique.",
-  advantage: "When you're ahead, convert cleanly: trade pieces (not pawns), improve your worst piece, and avoid counterplay. Quiet, accurate moves win won positions.",
+  discovered:
+    "A discovered attack moves one piece to unveil an attack from another. A discovered check is brutal: you check the king and grab material on the same move.",
+  sacrifice:
+    "A sacrifice gives up material for a bigger gain — a mating attack or a winning combination. Calculate the forcing line to the very end before you commit.",
+  trapped:
+    "Winning material starts with spotting undefended or overloaded pieces. Capture defenders, trap pieces with no squares, and never leave a piece hanging.",
+  endgame:
+    "Endgames are about precision: activate your king, push passed pawns, and use opposition and zugzwang. Small edges convert into wins with accurate technique.",
+  advantage:
+    "When you're ahead, convert cleanly: trade pieces (not pawns), improve your worst piece, and avoid counterplay. Quiet, accurate moves win won positions.",
 };
 
 // ── CSV stream ───────────────────────────────────────────────────────────────
@@ -83,12 +167,19 @@ function lineStream(path) {
     return createInterface({ input: zstd.stdout, crlfDelay: Infinity });
   }
   if (path.endsWith(".gz")) {
-    return createInterface({ input: createReadStream(path).pipe(createGunzip()), crlfDelay: Infinity });
+    return createInterface({
+      input: createReadStream(path).pipe(createGunzip()),
+      crlfDelay: Infinity,
+    });
   }
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
 }
 
-const uci = (m) => ({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: m.length > 4 ? m[4] : undefined });
+const uci = (m) => ({
+  from: m.slice(0, 2),
+  to: m.slice(2, 4),
+  promotion: m.length > 4 ? m[4] : undefined,
+});
 
 /** Turn a Lichess (FEN, UCI moves) puzzle into validated multi-step lesson steps. */
 function buildSteps(fen, movesStr, group) {
@@ -135,9 +226,15 @@ console.log(`Reading ${INPUT} … target ${TARGET_TOTAL} puzzles`);
 const rl = lineStream(INPUT);
 let header = true;
 for await (const line of rl) {
-  if (header) { header = false; continue; } // PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags
+  if (header) {
+    header = false;
+    continue;
+  } // PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags
   scanned++;
-  if (scanned % 500000 === 0) process.stdout.write(`\r  scanned ${scanned.toLocaleString()} rows · kept ${kept}…`);
+  if (scanned % 500000 === 0)
+    process.stdout.write(
+      `\r  scanned ${scanned.toLocaleString()} rows · kept ${kept}…`,
+    );
   // Stop once we have plenty, or once buckets stop filling (avoids scanning all ~5M rows).
   if (kept >= TARGET_TOTAL * 1.4) break;
   if (kept > 0 && scanned - lastKeptAt > 1_500_000) break;
@@ -153,13 +250,18 @@ for await (const line of rl) {
   const stage = STAGE(rating);
   const key = `${stage.id}:${group.id}`;
   let arr = buckets.get(key);
-  if (!arr) { arr = []; buckets.set(key, arr); }
+  if (!arr) {
+    arr = [];
+    buckets.set(key, arr);
+  }
   if (arr.length >= PER_BUCKET_CAP) continue;
   arr.push({ id: c[0], fen: c[1], moves: c[2], rating, themes, stage, group });
   kept++;
   lastKeptAt = scanned;
 }
-console.log(`\nScanned ${scanned.toLocaleString()} rows, collected ${kept} candidates across ${buckets.size} buckets.`);
+console.log(
+  `\nScanned ${scanned.toLocaleString()} rows, collected ${kept} candidates across ${buckets.size} buckets.`,
+);
 
 // ── Build semesters/classes/lessons + validate ───────────────────────────────
 const semesters = [];
@@ -175,17 +277,36 @@ for (const g of GROUPS) {
     if (!arr || arr.length < 3) continue;
     arr.sort((a, b) => a.rating - b.rating); // easy → hard within the concept
     const semId = `pz-${st.id}-${g.id}`;
-    semesters.push({ id: semId, title: `${st.title}: ${g.label}`, blurb: `${g.label} from real games`, color: g.color, stage: st.id, sortOrder: st.order * 10 + GROUPS.indexOf(g) });
+    semesters.push({
+      id: semId,
+      title: `${st.title}: ${g.label}`,
+      blurb: `${g.label} from real games`,
+      color: g.color,
+      stage: st.id,
+      sortOrder: st.order * 10 + GROUPS.indexOf(g),
+    });
 
     let made = [];
     for (const pz of arr) {
       const steps = buildSteps(pz.fen, pz.moves, g);
-      if (!steps) { invalid++; continue; }
+      if (!steps) {
+        invalid++;
+        continue;
+      }
       made.push({ pz, steps });
       if (made.length >= TARGET_TOTAL) break;
     }
     // chunk into classes with meaningful, rating-banded names (not "Forks 1/2/3")
-    const LEVELS = ["Basics", "Building Up", "Sharper", "Tougher", "Advanced", "Tricky", "Expert", "Mastery"];
+    const LEVELS = [
+      "Basics",
+      "Building Up",
+      "Sharper",
+      "Tougher",
+      "Advanced",
+      "Tricky",
+      "Expert",
+      "Mastery",
+    ];
     for (let ci = 0; ci * PER_CLASS < made.length; ci++) {
       const slice = made.slice(ci * PER_CLASS, (ci + 1) * PER_CLASS);
       if (!slice.length) break;
@@ -206,17 +327,33 @@ for (const g of GROUPS) {
       });
       // Lesson 1 of every class: the hand-authored concept tutorial.
       lessons.push({
-        id: `${classId}-tutorial`, classId, title: `${g.label}: the idea`, subtitle: "Tutorial", emoji: "🎓",
-        tag: g.id, xp: 15, isExam: 0, prerequisites: "[]", sortOrder: 0,
-        steps: JSON.stringify([{ id: "t", kind: "info", coach: TUTORIALS[g.id], fen: slice[0].steps[0].fen }]),
+        id: `${classId}-tutorial`,
+        classId,
+        title: `${g.label}: the idea`,
+        subtitle: "Tutorial",
+        emoji: "🎓",
+        tag: g.id,
+        xp: 15,
+        isExam: 0,
+        prerequisites: "[]",
+        sortOrder: 0,
+        steps: JSON.stringify([
+          { id: "t", kind: "info", coach: TUTORIALS[g.id], fen: slice[0].steps[0].fen },
+        ]),
       });
       slice.forEach(({ pz, steps }, li) => {
         lessons.push({
-          id: `${classId}-l${li + 1}`, classId,
+          id: `${classId}-l${li + 1}`,
+          classId,
           title: `${g.label} · ${pz.rating}`,
           subtitle: `${Math.ceil(steps.length)} move${steps.length > 1 ? "s" : ""}`,
-          emoji: g.emoji, tag: g.id, xp: 10 + steps.length * 4, isExam: 0, prerequisites: "[]",
-          steps: JSON.stringify(steps), sortOrder: li + 1,
+          emoji: g.emoji,
+          tag: g.id,
+          xp: 10 + steps.length * 4,
+          isExam: 0,
+          prerequisites: "[]",
+          steps: JSON.stringify(steps),
+          sortOrder: li + 1,
         });
         total++;
       });
@@ -224,23 +361,39 @@ for (const g of GROUPS) {
   }
 }
 
-console.log(`Built ${lessons.length} lessons (${total} puzzles + tutorials) · ${classes.length} classes · ${semesters.length} semesters · invalid skipped: ${invalid}`);
+console.log(
+  `Built ${lessons.length} lessons (${total} puzzles + tutorials) · ${classes.length} classes · ${semesters.length} semesters · invalid skipped: ${invalid}`,
+);
 
 // ── Write into local.db (replaces a prior import; leaves seed.mjs content intact) ──
 if (!existsSync("local.db")) {
-  console.error("✗ local.db not found. Run `pnpm db:fresh` first to create the schema + base curriculum, then re-run this import.");
+  console.error(
+    "✗ local.db not found. Run `pnpm db:fresh` first to create the schema + base curriculum, then re-run this import.",
+  );
   process.exit(1);
 }
 const db = new Database("local.db");
-const hasTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='lessons'").get();
+const hasTables = db
+  .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='lessons'")
+  .get();
 if (!hasTables) {
-  console.error("✗ local.db has no schema. Run `pnpm db:fresh` first, then re-run this import.");
+  console.error(
+    "✗ local.db has no schema. Run `pnpm db:fresh` first, then re-run this import.",
+  );
   process.exit(1);
 }
-db.exec("DELETE FROM lessons WHERE class_id LIKE 'pz-%'; DELETE FROM classes WHERE id LIKE 'pz-%'; DELETE FROM semesters WHERE id LIKE 'pz-%';");
-const insSem = db.prepare("INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES (@id,@title,@blurb,@color,@stage,@sortOrder)");
-const insCls = db.prepare("INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,sort_order) VALUES (@id,@semesterId,@title,@emoji,@blurb,@difficulty,@sortOrder)");
-const insLes = db.prepare("INSERT INTO lessons (id,class_id,title,subtitle,emoji,tag,xp,is_exam,prerequisites,steps,sort_order) VALUES (@id,@classId,@title,@subtitle,@emoji,@tag,@xp,@isExam,@prerequisites,@steps,@sortOrder)");
+db.exec(
+  "DELETE FROM lessons WHERE class_id LIKE 'pz-%'; DELETE FROM classes WHERE id LIKE 'pz-%'; DELETE FROM semesters WHERE id LIKE 'pz-%';",
+);
+const insSem = db.prepare(
+  "INSERT INTO semesters (id,title,blurb,color,stage,sort_order) VALUES (@id,@title,@blurb,@color,@stage,@sortOrder)",
+);
+const insCls = db.prepare(
+  "INSERT INTO classes (id,semester_id,title,emoji,blurb,difficulty,sort_order) VALUES (@id,@semesterId,@title,@emoji,@blurb,@difficulty,@sortOrder)",
+);
+const insLes = db.prepare(
+  "INSERT INTO lessons (id,class_id,title,subtitle,emoji,tag,xp,is_exam,prerequisites,steps,sort_order) VALUES (@id,@classId,@title,@subtitle,@emoji,@tag,@xp,@isExam,@prerequisites,@steps,@sortOrder)",
+);
 const tx = db.transaction(() => {
   for (const s of semesters) insSem.run(s);
   for (const c of classes) insCls.run(c);

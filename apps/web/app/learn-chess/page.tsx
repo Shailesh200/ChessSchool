@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     "Learn chess online for free with structured classes, tactics puzzles, and live play. ChessSchool is an online chess academy for beginners through advanced players.",
   ...socialMeta({
     title: "Learn Chess Online — Free Chess School",
-    description: "Structured chess classes, puzzles, bots, and live multiplayer — 100% free.",
+    description:
+      "Structured chess classes, puzzles, bots, and live multiplayer — 100% free.",
     path: "/learn-chess",
     kind: "home",
     badge: "Learn Chess",
@@ -32,14 +33,17 @@ export default function LearnChessPage() {
       <FaqJsonLd items={SEO_FAQ} />
       <article className="flex flex-col gap-8 pb-6">
         <header className="flex flex-col gap-3">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-brand">Free online chess school</p>
-          <h1 className="text-2xl font-extrabold leading-tight text-ink sm:text-3xl">
+          <p className="text-brand text-xs font-extrabold tracking-wide uppercase">
+            Free online chess school
+          </p>
+          <h1 className="text-ink text-2xl leading-tight font-extrabold sm:text-3xl">
             Learn chess online — structured classes, not random puzzles
           </h1>
-          <p className="text-sm font-semibold leading-relaxed text-ink-600">
-            ChessSchool is a free chess academy in your browser. Graduate through semesters — from the chess board and
-            piece moves to openings, tactics, endgames, and live multiplayer. No download required to start learning
-            chess today.
+          <p className="text-ink-600 text-sm leading-relaxed font-semibold">
+            ChessSchool is a free chess academy in your browser. Graduate through
+            semesters — from the chess board and piece moves to openings, tactics,
+            endgames, and live multiplayer. No download required to start learning chess
+            today.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <NavButton href="/register" size="sm">
@@ -56,21 +60,29 @@ export default function LearnChessPage() {
 
         {LEARN_CHESS_SECTIONS.map((section) => (
           <section key={section.id} aria-labelledby={`${section.id}-heading`}>
-            <h2 id={`${section.id}-heading`} className="text-lg font-extrabold text-ink">
+            <h2
+              id={`${section.id}-heading`}
+              className="text-ink text-lg font-extrabold"
+            >
               {section.title}
             </h2>
-            <p className="mt-2 text-sm font-semibold leading-relaxed text-ink-600">{section.body}</p>
+            <p className="text-ink-600 mt-2 text-sm leading-relaxed font-semibold">
+              {section.body}
+            </p>
           </section>
         ))}
 
         <section aria-labelledby="curriculum-heading">
-          <h2 id="curriculum-heading" className="mb-3 text-lg font-extrabold text-ink">
+          <h2 id="curriculum-heading" className="text-ink mb-3 text-lg font-extrabold">
             Popular chess classes
           </h2>
           <CurriculumLinkGrid links={CURRICULUM_HIGHLIGHTS} />
-          <p className="mt-3 text-xs font-semibold text-ink-500">
+          <p className="text-ink-500 mt-3 text-xs font-semibold">
             Browse the full{" "}
-            <Link href="/library" className="font-bold text-brand underline-offset-2 hover:underline">
+            <Link
+              href="/library"
+              className="text-brand font-bold underline-offset-2 hover:underline"
+            >
               lesson library
             </Link>{" "}
             — 1,600+ FEN-verified lessons.
@@ -79,9 +91,11 @@ export default function LearnChessPage() {
 
         <FaqSection items={SEO_FAQ} />
 
-        <section className="rounded-card border border-brand/20 bg-brand/5 p-4 text-center">
-          <p className="text-sm font-extrabold text-ink">Ready to learn chess?</p>
-          <p className="mt-1 text-xs font-semibold text-ink-500">Join thousands of students at the academy — free forever.</p>
+        <section className="rounded-card border-brand/20 bg-brand/5 border p-4 text-center">
+          <p className="text-ink text-sm font-extrabold">Ready to learn chess?</p>
+          <p className="text-ink-500 mt-1 text-xs font-semibold">
+            Join thousands of students at the academy — free forever.
+          </p>
           <NavButton href="/" size="sm" className="mt-3">
             Open ChessSchool →
           </NavButton>

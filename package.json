@@ -13,9 +13,17 @@
     "format": "prettier --write .",
     "web": "pnpm --filter web",
     "mobile": "pnpm --filter mobile",
-    "mobile:release:check": "pnpm --filter mobile release:check"
+    "mobile:release:check": "pnpm --filter mobile release:check",
+    "verify:milestone": "bash scripts/verify-milestone.sh",
+    "verify:web": "bash scripts/verify-web-seo.sh && bash scripts/verify-web-lighthouse.sh",
+    "verify:web-seo": "bash scripts/verify-web-seo.sh",
+    "verify:web-lighthouse": "bash scripts/verify-web-lighthouse.sh",
+    "verify:e2e-routes": "node scripts/verify-e2e-route-coverage.mjs",
+    "verify:coverage": "bash scripts/verify-test-coverage.sh"
   },
   "devDependencies": {
+    "chrome-launcher": "^1.2.1",
+    "lighthouse": "^12.8.2",
     "turbo": "^2.5.5",
     "prettier": "^3.9.1",
     "prettier-plugin-tailwindcss": "^0.8.0"

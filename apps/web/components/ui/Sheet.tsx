@@ -35,7 +35,7 @@ export function Sheet({
         >
           <button
             aria-label="Close"
-            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+            className="bg-ink/40 absolute inset-0 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
@@ -46,10 +46,10 @@ export function Sheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
-            className="pb-safe relative w-full max-w-xl rounded-t-3xl border border-hairline bg-surface-card p-5"
+            className="pb-safe border-hairline bg-surface-card relative w-full max-w-xl rounded-t-3xl border p-5"
           >
-            <div className="mx-auto mb-3 h-1.5 w-12 rounded-pill bg-surface-sunken" />
-            <h2 className="mb-3 text-lg font-extrabold text-ink">{title}</h2>
+            <div className="rounded-pill bg-surface-sunken mx-auto mb-3 h-1.5 w-12" />
+            <h2 className="text-ink mb-3 text-lg font-extrabold">{title}</h2>
             {children}
           </motion.div>
         </motion.div>

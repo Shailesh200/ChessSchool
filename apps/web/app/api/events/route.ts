@@ -14,7 +14,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const parsed = analyticsBatchSchema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
 
   const user = await getApiUser(req);
   try {
