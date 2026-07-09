@@ -1011,7 +1011,7 @@ Owner confirms browser screenshots match approved mocks; `pnpm verify:milestone`
 
 ### Status
 
-**In Progress (Phase B slice 3 — Lottie, empty states, chrome icons)**
+**In Progress (Phase B slice 4 — mockup parity, ceremony motion, perf budget)**
 
 ### Inputs
 
