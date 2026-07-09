@@ -255,11 +255,48 @@ At the end of every milestone slice (when presenting for owner review), engineer
 
 1. **Branch & checkout** — branch name and how to check it out locally
 2. **Automated gates** — exact commands run (e.g. `pnpm verify:milestone`, with note if `SKIP_LIGHTHOUSE=1` was used for dev only)
-3. **Manual UI checks** — routes to open, viewports (390px + 1280px), and what to look for vs approved mocks
-4. **Regression spot-checks** — 2–3 core flows that must still work (campus → lesson, play bot, settings)
-5. **Known gaps** — anything not covered or deferred to next slice
+3. **Verification report** — paste results from `pnpm verify:milestone` (see template below); **never skip Lighthouse/CWV on sign-off**
+4. **Manual UI checks** — routes to open, viewports (390px + 1280px), and what to look for vs approved mocks
+5. **Regression spot-checks** — 2–3 core flows that must still work (campus → lesson, play bot, settings)
+6. **Known gaps** — anything not covered or deferred to next slice
 
 Owner uses this checklist for sign-off; it is **not** a substitute for `pnpm verify:milestone` green.
+
+#### Verification report template (required)
+
+Engineering **must** include this block when presenting for owner review (copy from terminal output):
+
+```markdown
+### Verification report — M-XXX slice N
+
+**Command:** `pnpm verify:milestone` (full — no SKIP_LIGHTHOUSE)
+
+| Gate | Result |
+|------|--------|
+| typecheck | ✓ / ✗ |
+| lint | ✓ / ✗ |
+| format:check | ✓ / ✗ |
+| unit coverage (≥90%) | ✓ / ✗ |
+| build | ✓ / ✗ |
+| e2e route coverage (≥90%) | ✓ / ✗ (N/M routes) |
+| SEO baseline | ✓ / ✗ |
+| db:fresh + e2e | ✓ / ✗ (N tests) |
+| Lighthouse (19 routes) | ✓ / ✗ |
+
+**Lighthouse summary** (mobile, production `next start`, from script footer):
+
+| Screen | Perf | LCP | FCP | CLS | Status |
+|--------|------|-----|-----|-----|--------|
+| Campus | … | … | … | … | PASS/FAIL |
+| … | … | … | … | … | … |
+
+**CWV failures** (if any — list route + metric + value vs max):
+- e.g. Campus: Perf 81 (min 85); Playground: LCP 5.2s (max 5.0s)
+
+**Notes:** lab variance, flaky routes, or owner-approved waivers.
+```
+
+Run Lighthouse only: `pnpm verify:web-lighthouse`. See `scripts/web-lighthouse-routes.json` for tier thresholds (critical / public / app).
 
 **After approval only:**
 

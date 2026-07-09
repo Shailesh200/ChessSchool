@@ -21,6 +21,8 @@ Runs, in order:
 9. `pnpm e2e` — Playwright smoke + route tests
 10. `bash scripts/verify-web-lighthouse.sh` — Lighthouse + SEO scores on every route in `web-lighthouse-routes.json`
 
+**Milestone handoffs must paste the Lighthouse summary table + any CWV failures** into the verification report (see `plans/00_MASTER_DEVELOPMENT_PLAN.md` → Verification report template).
+
 ## Escape hatches (document in milestone PR if used)
 
 | Env var | Effect |
