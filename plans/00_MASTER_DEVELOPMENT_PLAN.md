@@ -1,8 +1,8 @@
 # ChessSchool — Master Development Plan
 
 > **Status:** Approved implementation roadmap  
-> **Version:** 1.7  
-> **Date:** 2026-07-09 (revised — branch-per-milestone workflow, full verify gates, 90% coverage)  
+> **Version:** 1.8  
+> **Date:** 2026-07-09 (revised — branch-per-milestone, commit-only main, full verify gates)  
 > **Authority:** Single source of truth for ChessSchool development execution  
 > **Supersedes:** Ad-hoc wave planning in `README.md`; does not supersede `CLAUDE.md` operational runbook (which this plan will drive updates to)
 
@@ -71,7 +71,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
 | **Next Milestone** | M-075 Phase B completion · M-045–M-048 (pre-GA hardening) |
 | **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-09 (v1.7 — branch-per-milestone workflow enforced) |
+| **Last Updated** | 2026-07-09 (v1.8 — commit-only to main; push on owner request) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -183,11 +183,12 @@ milestone/M-075-ui-overhaul
 4. pnpm verify:milestone  (all gates green)
 5. Present for owner review (PR or summary)
 6. Owner approves
-7. Merge milestone branch → main
-8. Push origin main
-9. Mark milestone Verified in this plan
-10. Delete or archive the milestone branch
-11. Create next milestone branch from updated main  →  go to step 3
+7. Merge milestone branch → main (local commit on `main`)
+8. Mark milestone Verified in this plan
+9. Delete or archive the milestone branch
+10. Create next milestone branch from updated main  →  go to step 3
+
+**Push:** engineering **never** runs `git push origin main` unless the owner explicitly asks. Commits stay local until then.
 ```
 
 ### What goes where
@@ -201,7 +202,8 @@ milestone/M-075-ui-overhaul
 
 - **Never commit milestone work directly to `main`** during active development.
 - **One milestone = one branch.** Do not stack unmerged milestone work on the same branch.
-- **Do not start the next milestone** until the previous branch is **merged to `main` and pushed**.
+- **Do not start the next milestone** until the previous branch is **merged to local `main`** (committed, not necessarily pushed).
+- **Never push to `origin/main`** unless the owner explicitly requests it.
 - **Every new web feature** in a milestone must include **Playwright e2e** tests and updates to `scripts/web-e2e-routes.json` / `web-lighthouse-routes.json` when routes change.
 - **No merge to `main` without `pnpm verify:milestone` green** (owner does not run it — engineering does).
 - **No merge to `main` without explicit owner approval.**
@@ -249,10 +251,11 @@ At the end of every milestone, **before presenting for final review**:
 
 **After approval only:**
 
-5. **Merge milestone branch to `main`** — squash or merge commit; message references milestone ID (e.g. `M-043: online PvP seat auth`).
-6. **Push `origin main`** so Vercel deploys the approved work.
-7. **Mark milestone Verified** — update status in this plan only after merge to `main`.
-8. **Create next milestone branch** from updated `main` before starting the next milestone.
+5. **Merge milestone branch to `main`** — squash or merge commit; message references milestone ID (e.g. `M-043: online PvP seat auth`). **Commit only — do not push.**
+6. **Mark milestone Verified** — update status in this plan only after merge to local `main`.
+7. **Create next milestone branch** from updated `main` before starting the next milestone.
+
+**Push (owner-initiated only):** when the owner asks, run `git push origin main` to publish and trigger Vercel deploy.
 
 **Hard rules:**
 - Never request final review before `pnpm verify:milestone` passes.
@@ -260,6 +263,7 @@ At the end of every milestone, **before presenting for final review**:
 - Never commit active milestone work directly to `main` — use the milestone branch.
 - Never merge to `main` before verification passes and owner approves.
 - Never begin a new milestone while the previous milestone branch is unmerged.
+- **Never push to remote** (`git push`, `git push origin main`) unless the owner explicitly asks.
 
 ---
 
@@ -1388,7 +1392,7 @@ Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 | 6 | **Deployable state** | Vercel preview deploy succeeds for web changes |
 | 7 | **Lighthouse** (when web UI touched) | Accessibility/BP 100; Performance ≥90 logged |
 | 8 | **Approval granted** | Milestone owner approves |
-| 9 | **Merged to `main`** | Milestone branch merged and pushed to `origin main` |
+| 9 | **Merged to local `main`** | Milestone branch merged and committed on `main` (not pushed unless owner asks) |
 | 10 | **Progress updated** | Project Progress section updated; milestone marked **Verified** |
 
 ### Sign-Off
