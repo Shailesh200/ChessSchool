@@ -1,8 +1,8 @@
 # ChessSchool — Master Development Plan
 
 > **Status:** Approved implementation roadmap  
-> **Version:** 1.3  
-> **Date:** 2026-07-09 (revised — branch workflow, full verify gates, 90% coverage)  
+> **Version:** 1.7  
+> **Date:** 2026-07-09 (revised — branch-per-milestone workflow, full verify gates, 90% coverage)  
 > **Authority:** Single source of truth for ChessSchool development execution  
 > **Supersedes:** Ad-hoc wave planning in `README.md`; does not supersede `CLAUDE.md` operational runbook (which this plan will drive updates to)
 
@@ -71,7 +71,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
 | **Next Milestone** | M-075 Phase B completion · M-045–M-048 (pre-GA hardening) |
 | **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-09 (v1.6 — M-059 active on main) |
+| **Last Updated** | 2026-07-09 (v1.7 — branch-per-milestone workflow enforced) |
 | **Overall Completion %** | ~72% product · ~50% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -95,22 +95,22 @@ This Master Development Plan converts existing product documentation (`README.md
 ## Milestone Execution Model
 
 ```text
-Start Milestone
+Create milestone branch from main
       ↓
-   Develop
+   Develop (commits on branch only)
       ↓
     Verify
       ↓
   Fix Issues
       ↓
-   Complete
+ Owner approves → merge to main
       ↓
-Next Milestone
+Next milestone branch from main
 ```
 
 - **No fixed sprint durations** — milestones complete when verified
-- **Deployable after every milestone** — monorepo remains buildable; web deployable to Vercel
-- **Verify before advance** — Definition of Done must pass before proceeding
+- **Deployable after every milestone merge** — monorepo remains buildable; web deployable to Vercel
+- **Verify before advance** — Definition of Done must pass before merge and before the next branch opens
 
 ## Source Documents
 
@@ -136,11 +136,12 @@ This section defines how development must proceed throughout the ChessSchool lif
 ## Core Discipline
 
 1. **One active milestone at a time.** Only one milestone may be actively implemented at a time. Do not parallelize milestones that share unverified dependencies.
-2. **Dependencies must be Verified.** Never begin a milestone until all dependency milestones are marked **Verified**.
-3. **No early implementation.** Never implement functionality belonging to a future milestone, even if it seems convenient.
-4. **No skipped dependencies.** Never bypass the dependency graph — especially **G-Hardening** (M-043–M-048) or **G-WebGA** (M-063, M-075, M-059, M-070–M-073).
-5. **No undocumented features.** Never introduce capabilities not defined in the current milestone scope without Change Management.
-6. **Documentation is authoritative.** Follow `CLAUDE.md`, this plan, and referenced docs for the current milestone.
+2. **One milestone = one branch.** All milestone work is committed on a dedicated `milestone/M-XXX-*` branch — **never directly on `main`** while the milestone is in progress.
+3. **Dependencies must be Verified.** Never begin a milestone until all dependency milestones are marked **Verified**.
+4. **No early implementation.** Never implement functionality belonging to a future milestone, even if it seems convenient.
+5. **No skipped dependencies.** Never bypass the dependency graph — especially **G-Hardening** (M-043–M-048) or **G-WebGA** (M-063, M-075, M-059, M-070–M-073).
+6. **No undocumented features.** Never introduce capabilities not defined in the current milestone scope without Change Management.
+7. **Documentation is authoritative.** Follow `CLAUDE.md`, this plan, and referenced docs for the current milestone.
 
 ## When Implementation Uncovers Missing Work
 
@@ -163,42 +164,47 @@ This section defines how development must proceed throughout the ChessSchool lif
 
 ## Milestone Branch Workflow (mandatory)
 
-Every milestone ships on its **own git branch** and merges to `main` only after verification + owner approval.
+**Approved process:** every milestone is developed on its **own git branch**. `main` stays stable; milestone work lands only after owner approval and merge. Then repeat with a fresh branch for the next milestone.
 
 ### Branch naming
 
 ```text
 milestone/M-043-online-pvp-security
+milestone/M-059-responsive-browser
 milestone/M-075-ui-overhaul
 ```
 
-### Lifecycle
+### Lifecycle (repeat for each milestone)
 
 ```text
-Create branch from main
-      ↓
-Implement milestone scope only
-      ↓
-pnpm verify:milestone  (all gates green)
-      ↓
-Present for owner review (PR or summary)
-      ↓
-Owner approves
-      ↓
-Commit on milestone branch
-      ↓
-Merge to main + push origin
-      ↓
-Mark milestone Verified in this plan
-      ↓
-Create next milestone branch
+1. git checkout main && git pull
+2. git checkout -b milestone/M-XXX-short-name
+3. Implement milestone scope — commit on this branch as you go
+4. pnpm verify:milestone  (all gates green)
+5. Present for owner review (PR or summary)
+6. Owner approves
+7. Merge milestone branch → main
+8. Push origin main
+9. Mark milestone Verified in this plan
+10. Delete or archive the milestone branch
+11. Create next milestone branch from updated main  →  go to step 3
 ```
 
-**Hard rules:**
+### What goes where
+
+| Location | Allowed content |
+|----------|-----------------|
+| **`milestone/M-XXX-*` branch** | All commits for the active milestone (code, tests, plan updates for that milestone) |
+| **`main`** | Only merged, owner-approved milestone work; hotfixes per Change Management |
+
+### Hard rules
+
+- **Never commit milestone work directly to `main`** during active development.
 - **One milestone = one branch.** Do not stack unmerged milestone work on the same branch.
-- **Do not start the next milestone** until the previous branch is **merged and pushed to `main`**.
+- **Do not start the next milestone** until the previous branch is **merged to `main` and pushed**.
 - **Every new web feature** in a milestone must include **Playwright e2e** tests and updates to `scripts/web-e2e-routes.json` / `web-lighthouse-routes.json` when routes change.
-- **No merge without `pnpm verify:milestone` green** (owner does not run it — engineering does).
+- **No merge to `main` without `pnpm verify:milestone` green** (owner does not run it — engineering does).
+- **No merge to `main` without explicit owner approval.**
 
 ## Testing & Quality Gates (mandatory)
 
@@ -243,14 +249,15 @@ At the end of every milestone, **before presenting for final review**:
 
 **After approval only:**
 
-5. **Commit milestone work** on the milestone branch — message references milestone ID (e.g. `M-043: online PvP seat auth`).
-6. **Owner approves** → **merge branch to `main` and push** `origin main`.
+5. **Merge milestone branch to `main`** — squash or merge commit; message references milestone ID (e.g. `M-043: online PvP seat auth`).
+6. **Push `origin main`** so Vercel deploys the approved work.
 7. **Mark milestone Verified** — update status in this plan only after merge to `main`.
-8. **Create next milestone branch** from updated `main`.
+8. **Create next milestone branch** from updated `main` before starting the next milestone.
 
 **Hard rules:**
 - Never request final review before `pnpm verify:milestone` passes.
-- Never commit before explicit owner approval.
+- Never merge to `main` before explicit owner approval.
+- Never commit active milestone work directly to `main` — use the milestone branch.
 - Never merge to `main` before verification passes and owner approves.
 - Never begin a new milestone while the previous milestone branch is unmerged.
 
@@ -1381,8 +1388,8 @@ Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 | 6 | **Deployable state** | Vercel preview deploy succeeds for web changes |
 | 7 | **Lighthouse** (when web UI touched) | Accessibility/BP 100; Performance ≥90 logged |
 | 8 | **Approval granted** | Milestone owner approves |
-| 9 | **Changes committed** | Git commit with milestone ID |
-| 10 | **Progress updated** | Project Progress section updated |
+| 9 | **Merged to `main`** | Milestone branch merged and pushed to `origin main` |
+| 10 | **Progress updated** | Project Progress section updated; milestone marked **Verified** |
 
 ### Sign-Off
 
