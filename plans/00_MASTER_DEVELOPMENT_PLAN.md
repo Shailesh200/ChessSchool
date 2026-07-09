@@ -234,7 +234,7 @@ See `scripts/README.md` for manifests and coverage scope.
 
 | Role | Responsibility |
 |------|----------------|
-| **Engineering (implementation agent)** | Run all verification commands; fix failures; update docs; present for final review **only when green** |
+| **Engineering (implementation agent)** | Run all verification commands; fix failures; update docs; present for final review **only when green**; include **How to verify** steps |
 | **Milestone owner (you)** | Final review — confirm Definition of Done; approve or request changes |
 
 At the end of every milestone, **before presenting for final review**:
@@ -247,7 +247,19 @@ At the end of every milestone, **before presenting for final review**:
    `SKIP_LIGHTHOUSE=1` is for local debugging only — **not** valid for milestone sign-off.
 2. **Fix all failures** — do not request final review with failing gates.
 3. **Update documentation** — this plan's Project Progress, `CLAUDE.md` if operational commands changed.
-4. **Present for final review** — verification summary + Definition of Done checklist.
+4. **Present for final review** — verification summary + Definition of Done checklist + **manual verification steps** (see below).
+
+### Manual verification steps (required in every handoff)
+
+At the end of every milestone slice (when presenting for owner review), engineering **must** include a **How to verify** section with:
+
+1. **Branch & checkout** — branch name and how to check it out locally
+2. **Automated gates** — exact commands run (e.g. `pnpm verify:milestone`, with note if `SKIP_LIGHTHOUSE=1` was used for dev only)
+3. **Manual UI checks** — routes to open, viewports (390px + 1280px), and what to look for vs approved mocks
+4. **Regression spot-checks** — 2–3 core flows that must still work (campus → lesson, play bot, settings)
+5. **Known gaps** — anything not covered or deferred to next slice
+
+Owner uses this checklist for sign-off; it is **not** a substitute for `pnpm verify:milestone` green.
 
 **After approval only:**
 
@@ -1385,7 +1397,7 @@ Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 | # | Gate | Requirement |
 |---|------|-------------|
 | 1 | **Functionality complete** | All deliverables implemented |
-| 2 | **Acceptance criteria satisfied** | Verification checklist passes |
+| 2 | **Acceptance criteria satisfied** | Verification checklist passes; **How to verify** steps shared with owner |
 | 3 | **`pnpm verify:milestone`** | Full script green (or `bun run verify:milestone` after M-076) |
 | 4 | **Mobile tests** (when mobile touched) | `pnpm --filter mobile typecheck && test` green |
 | 5 | **Documentation updated** | This plan + CLAUDE.md if needed |
