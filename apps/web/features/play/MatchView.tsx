@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
-import { commentOnMove, matchGreeting, passPlayGreeting, matchRecap } from "@/features/coaching/coach";
+import { commentOnMove, matchGreeting, passPlayGreeting, matchRecap, calculationCoachPrompt, confirmCoachMove, thinkingGreeting } from "@/features/coaching/coach";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
@@ -86,10 +86,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     if (active.pgn) return matchGreeting(0, "Coach", true);
     if (active.mode === "bot") {
       const b = botProfile(active.targetElo);
+      if (active.thinkingMode) return thinkingGreeting(active.targetElo, b.name);
       return matchGreeting(active.targetElo, b.name, false);
     }
     return passPlayGreeting();
   });
+  const [pendingMove, setPendingMove] = useState<MoveInput | null>(null);
+  const [pendingSan, setPendingSan] = useState<string | null>(null);
   const [over, setOver] = useState<null | {
     text: string;
     win: boolean;
@@ -126,11 +129,19 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [clock, setClock] = useState({ w: active.whiteMs, b: active.blackMs });
 
   const isBot = active.mode === "bot";
+  const thinkingGame = Boolean(active.thinkingMode);
   const bot = botProfile(active.targetElo);
   const botName = bot.name;
   const playerColor: "w" | "b" = "w";
 
-  useCoachSpeech(coach, "match", !thinking && !over, true);
+  useCoachSpeech(coach, "match", !thinking && !over && !pendingMove, true);
+
+  const showCalculationPrompt = useCallback(() => {
+    const e = engineRef.current;
+    setCoach(
+      calculationCoachPrompt(e.history().length, e.inCheck(), active.targetElo),
+    );
+  }, [active.targetElo]);
 
   const persist = useCallback(
     (from?: string, to?: string) => {
@@ -358,7 +369,82 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       setThinking(false);
       checkOver();
     });
-  }, [active.targetElo, persist, checkOver]);
+  }, [active.targetElo, persist, checkOver, bot.name]);
+
+  const commitMove = useCallback(
+    (move: MoveInput): boolean => {
+      const e = engineRef.current;
+      const before = e.fen();
+      const applied = e.move(move);
+      if (!applied) return false;
+      setLastMove({ from: move.from, to: move.to });
+      setFen(e.fen());
+      setPgn(e.pgn());
+      audio.play(applied.captured ? "capture" : "move");
+      if (applied.promotion) audio.play("promotion");
+      if (e.inCheck()) audio.play("check");
+      haptics.fire("tap");
+      persist(move.from, move.to);
+      if (isBot) {
+        setCoach(
+          commentOnMove({
+            beforeFen: before,
+            move: applied,
+            botElo: active.targetElo,
+            botName: bot.name,
+            reactingToPlayer: true,
+            moveNumber: e.history().length,
+          }),
+        );
+      }
+      if (!checkOver() && isBot) botMove();
+      return true;
+    },
+    [isBot, persist, checkOver, botMove, active.targetElo, bot.name],
+  );
+
+  // Thinking game: coach calculation prompt when it's the player's turn.
+  useEffect(() => {
+    if (!thinkingGame || over || !isBot || thinking || pendingMove) return;
+    const e = engineRef.current;
+    if (e.isGameOver() || e.turn() !== playerColor) return;
+    showCalculationPrompt();
+  }, [fen, thinkingGame, over, isBot, thinking, pendingMove, playerColor, showCalculationPrompt]);
+
+  const handleMove = useCallback(
+    (move: MoveInput): boolean => {
+      const e = engineRef.current;
+      if (thinking || e.isGameOver()) return false;
+      if (isBot && e.turn() !== playerColor) return false;
+
+      if (thinkingGame && isBot) {
+        const trial = new ChessEngine(e.fen());
+        const preview = trial.move(move);
+        if (!preview) return false;
+        setPendingMove(move);
+        setPendingSan(preview.san);
+        setCoach(confirmCoachMove(preview.san));
+        return false;
+      }
+
+      return commitMove(move);
+    },
+    [thinking, thinkingGame, isBot, commitMove],
+  );
+
+  const confirmPending = useCallback(() => {
+    if (!pendingMove) return;
+    if (commitMove(pendingMove)) {
+      setPendingMove(null);
+      setPendingSan(null);
+    }
+  }, [pendingMove, commitMove]);
+
+  const cancelPending = useCallback(() => {
+    setPendingMove(null);
+    setPendingSan(null);
+    showCalculationPrompt();
+  }, [showCalculationPrompt]);
 
   // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
   useEffect(() => {
@@ -399,39 +485,6 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     }, 250);
     return () => window.clearInterval(id);
   }, [hasClock, over, finalize]);
-
-  const handleMove = useCallback(
-    (move: MoveInput): boolean => {
-      const e = engineRef.current;
-      if (thinking || e.isGameOver()) return false;
-      if (isBot && e.turn() !== playerColor) return false;
-      const before = e.fen();
-      const applied = e.move(move);
-      if (!applied) return false;
-      setLastMove({ from: move.from, to: move.to });
-      setFen(e.fen());
-      setPgn(e.pgn());
-      audio.play(applied.captured ? "capture" : "move");
-      if (applied.promotion) audio.play("promotion");
-      if (e.inCheck()) audio.play("check");
-      haptics.fire("tap");
-      persist(move.from, move.to);
-      if (isBot)
-        setCoach(
-          commentOnMove({
-            beforeFen: before,
-            move: applied,
-            botElo: active.targetElo,
-            botName: bot.name,
-            reactingToPlayer: true,
-            moveNumber: e.history().length,
-          }),
-        );
-      if (!checkOver() && isBot) botMove();
-      return true;
-    },
-    [thinking, isBot, persist, checkOver, botMove],
-  );
 
   function doResign() {
     setResignOpen(false);
@@ -490,14 +543,22 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const viewing = viewPly !== null;
   const displayFen = viewing && frames[viewPly] ? frames[viewPly] : fen;
   const boardPx = boardSize ? Math.min(boardSize, BOARD_MAX_PX) : 0;
+  const stagedMove =
+    pendingMove && !viewing ? { from: pendingMove.from, to: pendingMove.to } : lastMove;
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col">
       {/* top action bar */}
       <div className="pt-safe border-hairline bg-surface/90 sticky top-0 z-20 border-b px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
-          <span className="text-ink text-sm font-extrabold">
+          <span className="text-ink flex items-center gap-2 text-sm font-extrabold">
             {isBot ? `vs ${botName} · ${active.targetElo}` : "vs Human"}
+            {thinkingGame && (
+              <span className="bg-brand-50 text-brand-700 rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
+                <Icon name="brain" size={12} />
+                Thinking
+              </span>
+            )}
           </span>
           <div className="flex items-center gap-1.5">
             <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
@@ -574,7 +635,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             fen={displayFen}
             orientation={orientation}
             onMove={handleMove}
-            lastMove={lastMove}
+            lastMove={stagedMove}
             checkSquare={checkSquare}
             interactive={!over && !thinking && !viewing}
           />
@@ -695,6 +756,21 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             )}
           </AnimatePresence>
         </div>
+        {pendingMove && pendingSan && !over && (
+          <div className="mt-3 flex w-full flex-col items-center gap-2">
+            <p className="text-ink-500 text-center text-xs font-semibold">
+              Staged move: <span className="text-ink font-extrabold">{pendingSan}</span>
+            </p>
+            <div className="flex w-full gap-2">
+              <Button size="sm" variant="outline" block onClick={cancelPending}>
+                Rethink
+              </Button>
+              <Button size="sm" block onClick={confirmPending}>
+                Play {pendingSan}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* player bar (clock + captured material) */}

@@ -35,6 +35,7 @@ export function MatchChooser() {
   const rating = useProgression((s) => s.rating);
   const [mode, setMode] = useState<MatchMode>("bot");
   const [adaptive, setAdaptive] = useState(false);
+  const [thinkingGame, setThinkingGame] = useState(false);
   const [timeMin, setTimeMin] = useState(0);
   const [creating, setCreating] = useState(false);
   const router = useRouter();
@@ -42,8 +43,9 @@ export function MatchChooser() {
   function begin() {
     haptics.fire("success");
     audio.play("unlock");
-    // Adaptive: the bot plays at your current rating (which then moves with results).
-    start(mode, adaptive ? rating : targetElo, timeMin);
+    const elo = adaptive ? rating : targetElo;
+    const clock = thinkingGame && mode === "bot" ? 0 : timeMin;
+    start(mode, elo, clock, false, thinkingGame && mode === "bot");
   }
 
   async function playOnline() {
@@ -167,14 +169,46 @@ export function MatchChooser() {
                   </div>
                 </div>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  setThinkingGame((t) => !t);
+                  haptics.fire("select");
+                }}
+                className={`rounded-card mt-4 flex w-full items-center justify-between border-2 px-3 py-2 text-left transition-colors ${
+                  thinkingGame
+                    ? "border-brand bg-brand-50"
+                    : "border-hairline bg-surface-card"
+                }`}
+              >
+                <span>
+                  <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                    <Icon name="brain" size={16} className="text-brand shrink-0" />
+                    Thinking game
+                  </span>
+                  <span className="text-ink-500 block text-xs font-semibold">
+                    No clock — coach prompts and confirm each move
+                  </span>
+                </span>
+                <span
+                  className={`h-5 w-5 shrink-0 rounded-full border-2 ${thinkingGame ? "border-brand bg-brand" : "border-ink-300"}`}
+                />
+              </button>
             </Card>
           </motion.div>
         )}
 
         <motion.div variants={listItem}>
-          <Card>
+          <Card className={thinkingGame && mode === "bot" ? "opacity-50" : undefined}>
             <p className="text-ink mb-2 text-sm font-extrabold">Time control</p>
-            <div className="flex flex-wrap gap-2">
+            {thinkingGame && mode === "bot" && (
+              <p className="text-ink-500 mb-2 text-xs font-semibold">
+                Disabled for thinking games — calculate without clock pressure.
+              </p>
+            )}
+            <div
+              className={`flex flex-wrap gap-2 ${thinkingGame && mode === "bot" ? "pointer-events-none" : ""}`}
+            >
               {TIME_PRESETS.map((t) => (
                 <button
                   key={t.min}
@@ -222,7 +256,8 @@ export function MatchChooser() {
         targetElo={targetElo}
         adaptive={adaptive}
         rating={rating}
-        timeMin={timeMin}
+        timeMin={thinkingGame && mode === "bot" ? 0 : timeMin}
+        thinkingGame={thinkingGame && mode === "bot"}
       />
     </div>
   );

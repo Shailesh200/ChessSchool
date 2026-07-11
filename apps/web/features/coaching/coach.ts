@@ -11,6 +11,11 @@ import {
   passPlayGreeting as passPlayGreetingFor,
 } from "./matchCommentary";
 import { buildMatchRecap, type GameRecapInput } from "./gameRecap";
+import {
+  calculationPrompt,
+  confirmMovePrompt,
+  thinkingMatchGreeting,
+} from "./thinkingPrompt";
 
 /**
  * Coach voice — personalities retint feedback tone. Match commentary blends
@@ -53,6 +58,22 @@ export function commentOnMove(input: MatchCommentInput): string {
 
 export function matchGreeting(elo: number, botName: string, resumed: boolean): string {
   return matchGreetingFor(elo, botName, resumed, personality());
+}
+
+export function thinkingGreeting(elo: number, botName: string): string {
+  return thinkingMatchGreeting(elo, botName, personality());
+}
+
+export function calculationCoachPrompt(
+  moveNumber: number,
+  inCheck: boolean,
+  botElo: number,
+): string {
+  return calculationPrompt(personality(), botElo, moveNumber, inCheck);
+}
+
+export function confirmCoachMove(san: string): string {
+  return confirmMovePrompt(san, personality());
 }
 
 export function passPlayGreeting(): string {

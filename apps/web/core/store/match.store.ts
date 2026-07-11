@@ -35,6 +35,8 @@ export interface ActiveMatch {
   timeControlMin: number;
   whiteMs: number;
   blackMs: number;
+  /** Calculation training — coach prompts + confirm before each player move */
+  thinkingMode?: boolean;
   /** launched from the homework screen — game-over returns there */
   fromHomework?: boolean;
   /** Result overlay + mate review restore after navigation / refresh */
@@ -48,6 +50,7 @@ interface MatchStore {
     targetElo: number,
     timeControlMin: number,
     fromHomework?: boolean,
+    thinkingMode?: boolean,
   ) => void;
   sync: (patch: { fen: string; pgn: string; from?: string; to?: string }) => void;
   setClocks: (whiteMs: number, blackMs: number) => void;
@@ -61,7 +64,7 @@ export const useMatch = create<MatchStore>()(
   persist(
     (set) => ({
       active: null,
-      start: (mode, targetElo, timeControlMin, fromHomework) =>
+      start: (mode, targetElo, timeControlMin, fromHomework, thinkingMode) =>
         set({
           active: {
             id: `g${Date.now()}`,
@@ -76,6 +79,7 @@ export const useMatch = create<MatchStore>()(
             timeControlMin,
             whiteMs: timeControlMin * 60_000,
             blackMs: timeControlMin * 60_000,
+            thinkingMode: thinkingMode ?? false,
             fromHomework: fromHomework ?? false,
             endSnapshot: null,
           },
@@ -123,9 +127,8 @@ export const useMatch = create<MatchStore>()(
     {
       name: "chessschool.activematch",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       skipHydration: true,
-      // v1 matches had no clock fields — default them to "no clock".
       migrate: (persisted) => {
         const s = persisted as { active?: ActiveMatch | null };
         if (s?.active && s.active.timeControlMin === undefined) {
@@ -135,6 +138,9 @@ export const useMatch = create<MatchStore>()(
         }
         if (s?.active && s.active.endSnapshot === undefined) {
           s.active.endSnapshot = null;
+        }
+        if (s?.active && s.active.thinkingMode === undefined) {
+          s.active.thinkingMode = false;
         }
         return s as { active: ActiveMatch | null };
       },

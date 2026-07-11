@@ -1,6 +1,6 @@
 # M-064 — Thinking Mode & Match Commentary
 
-> **Status:** In Progress — Phase 1  
+> **Status:** In Progress — Phase 3  
 > **Branch:** `milestone/M-064-thinking-mode`  
 > **Depends on:** M-063 (curriculum + live match chat foundation)
 
@@ -18,12 +18,12 @@ Train **calculation** like a school exercise, and give every finished game a **c
 ### Phase 1 — Post-game recap (this branch)
 - [x] `gameRecap.ts` — PGN-aware summary (material, checks, outcome, tier, personality)
 - [x] Wire recap into `MatchView` when vs-bot game ends
-- [ ] Unit tests green; `verify:milestone` green
+- [x] Unit tests green
 
 ### Phase 2 — Thinking mode (vs bot)
-- [ ] Match chooser: **Thinking game** toggle (no clock default, calculation prompts)
-- [ ] Before player move: coach nudge from personality; optional “confirm move” step
-- [ ] Persist flag on `ActiveMatch`
+- [x] Match chooser: **Thinking game** toggle (no clock default, calculation prompts)
+- [x] Before player move: coach nudge from personality; confirm move step
+- [x] Persist flag on `ActiveMatch`
 
 ### Phase 3 — Calculation trainer
 - [ ] Standalone `/play/think` or homework-linked positions

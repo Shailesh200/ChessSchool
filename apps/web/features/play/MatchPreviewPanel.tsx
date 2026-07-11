@@ -17,17 +17,23 @@ export function MatchPreviewPanel({
   adaptive,
   rating,
   timeMin,
+  thinkingGame = false,
 }: {
   mode: MatchMode;
   targetElo: number;
   adaptive: boolean;
   rating: number;
   timeMin: number;
+  thinkingGame?: boolean;
 }) {
   const mounted = useMounted();
   const elo = adaptive ? rating : targetElo;
   const bot = mode === "bot" ? botProfile(elo) : null;
-  const timeLabel = timeMin === 0 ? "No clock" : `${timeMin} min per side`;
+  const timeLabel = thinkingGame
+    ? "Thinking (no clock)"
+    : timeMin === 0
+      ? "No clock"
+      : `${timeMin} min per side`;
 
   return (
     <aside className="hidden lg:block">
@@ -62,6 +68,9 @@ export function MatchPreviewPanel({
             <PreviewRow icon="share" label="Opponent" value="Two players or online" />
           )}
           <PreviewRow icon="calendar" label="Clock" value={timeLabel} />
+          {thinkingGame && (
+            <PreviewRow icon="brain" label="Training" value="Confirm each move" />
+          )}
         </div>
         {bot && <p className="text-ink-500 text-xs font-semibold">{bot.blurb}</p>}
       </Card>
@@ -74,7 +83,7 @@ function PreviewRow({
   label,
   value,
 }: {
-  icon: "play" | "target" | "share" | "calendar";
+  icon: "play" | "target" | "share" | "calendar" | "brain";
   label: string;
   value: string;
 }) {
