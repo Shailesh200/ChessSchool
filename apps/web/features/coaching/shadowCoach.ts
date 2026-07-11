@@ -6,10 +6,7 @@ function pick(list: string[], seed: number): string {
   return list[Math.abs(seed) % list.length] ?? list[0] ?? "";
 }
 
-const GREETING: Record<
-  CoachPersonality,
-  { sameSeat: string[]; flipped: string[] }
-> = {
+const GREETING: Record<CoachPersonality, { sameSeat: string[]; flipped: string[] }> = {
   friendly: {
     sameSeat: [
       "Shadow rematch vs {name} — try a fresh idea on the same line.",
@@ -59,7 +56,10 @@ const GREETING: Record<
 const SHADOW_MOVE: Record<CoachPersonality, string[]> = {
   friendly: ["{name} plays {san} — just like last time.", "Shadow: {san}. Your turn!"],
   strict: ["{san}. Book move from {name}.", "Shadow {san}. Answer."],
-  mentor: ["Recorded {san} from {name} — what's your plan against it?", "{name} replays {san}."],
+  mentor: [
+    "Recorded {san} from {name} — what's your plan against it?",
+    "{name} replays {san}.",
+  ],
   tactical: ["{san} from the tape. Look for a tactic.", "Shadow {san} — any shots?"],
   minimal: ["{san}.", "Shadow {san}."],
 };
@@ -85,9 +85,15 @@ const OFF_BOOK: Record<CoachPersonality, string[]> = {
 };
 
 const PLAYER_MOVE: Record<CoachPersonality, string[]> = {
-  friendly: ["Nice — you're steering away from the old game.", "Interesting — let's see if shadow can keep up."],
+  friendly: [
+    "Nice — you're steering away from the old game.",
+    "Interesting — let's see if shadow can keep up.",
+  ],
   strict: ["Deviation noted.", "Not the same line as before."],
-  mentor: ["A new idea — compare it mentally to your previous try.", "Different path — evaluate the shadow reply."],
+  mentor: [
+    "A new idea — compare it mentally to your previous try.",
+    "Different path — evaluate the shadow reply.",
+  ],
   tactical: ["New line — scan for tactics.", "Fresh move — any forcing follow-up?"],
   minimal: ["New.", "Different."],
 };
@@ -99,11 +105,12 @@ export function shadowGreeting(
   flipped: boolean,
 ): string {
   const seat = flipped ? "flipped" : "sameSeat";
-  const raw = pick(GREETING[personality][seat], opponentName.length + (flipped ? 7 : 3));
+  const raw = pick(
+    GREETING[personality][seat],
+    opponentName.length + (flipped ? 7 : 3),
+  );
   const colorWord = playerColor === "w" ? "White" : "Black";
-  const line = raw
-    .replaceAll("{name}", opponentName)
-    .replaceAll("{color}", colorWord);
+  const line = raw.replaceAll("{name}", opponentName).replaceAll("{color}", colorWord);
   return applyCoachLine(line, personality, "greeting");
 }
 

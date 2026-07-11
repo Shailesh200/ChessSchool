@@ -150,7 +150,9 @@ function Beard({ spec }: { spec: VoicePortraitSpec }) {
   if (spec.beard === "stubble")
     return <ellipse cx="48" cy="58" rx="14" ry="10" fill={spec.hair} opacity="0.25" />;
   if (spec.beard === "goatee")
-    return <path d="M42 54 Q48 66 54 54 Q48 62 42 54" fill={spec.hair} opacity="0.85" />;
+    return (
+      <path d="M42 54 Q48 66 54 54 Q48 62 42 54" fill={spec.hair} opacity="0.85" />
+    );
   return (
     <path
       d="M34 52 Q48 68 62 52 Q58 62 48 64 Q38 62 34 52"
@@ -177,9 +179,18 @@ function Detail({ spec }: { spec: VoicePortraitSpec }) {
     case "sparkle":
       return (
         <>
-          <path d="M20 24 L22 28 L26 26 L22 30 L20 34 L18 30 L14 28 L18 26 Z" fill="#FDE047" />
-          <path d="M74 20 L75 23 L78 22 L75 25 L74 28 L73 25 L70 22 L73 23 Z" fill="#A78BFA" />
-          <path d="M76 58 L77 60 L79 59 L77 61 L76 63 L75 61 L73 59 L75 60 Z" fill="#F472B6" />
+          <path
+            d="M20 24 L22 28 L26 26 L22 30 L20 34 L18 30 L14 28 L18 26 Z"
+            fill="#FDE047"
+          />
+          <path
+            d="M74 20 L75 23 L78 22 L75 25 L74 28 L73 25 L70 22 L73 23 Z"
+            fill="#A78BFA"
+          />
+          <path
+            d="M76 58 L77 60 L79 59 L77 61 L76 63 L75 61 L73 59 L75 60 Z"
+            fill="#F472B6"
+          />
         </>
       );
     default:

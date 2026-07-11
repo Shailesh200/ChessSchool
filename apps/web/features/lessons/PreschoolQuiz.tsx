@@ -15,10 +15,12 @@ const LETTERS = "ABCDEF";
 export function PreschoolQuiz({
   step,
   phase,
+  answerLabel = "Choose your answer",
   onAnswer,
 }: {
   step: LessonStep;
   phase: "playing" | "correct" | "wrong";
+  answerLabel?: string;
   onAnswer: (correct: boolean) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
@@ -74,7 +76,7 @@ export function PreschoolQuiz({
       {/* Answers — start on the next line / section */}
       <div className="flex flex-col gap-2">
         <p className="text-ink-500 text-[10px] font-extrabold tracking-widest uppercase">
-          Choose your answer
+          {answerLabel}
         </p>
         <motion.div
           key={shake}

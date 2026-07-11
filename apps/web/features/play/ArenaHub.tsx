@@ -75,8 +75,8 @@ export function ArenaHub() {
         <BackButton fallback="/play" />
         <h1 className="text-ink text-xl font-extrabold">Arena tournament</h1>
         <p className="text-ink-500 text-sm font-semibold">
-          Four-bot round robin at your chosen level — climb the standings and earn
-          bonus XP when the run finishes.
+          Four-bot round robin at your chosen level — climb the standings and earn bonus
+          XP when the run finishes.
         </p>
 
         {runInProgress && active && standings && (
@@ -99,7 +99,9 @@ export function ArenaHub() {
                 <li
                   key={row.id}
                   className={`rounded-card flex items-center justify-between px-3 py-2 text-sm ${
-                    row.isPlayer ? "bg-brand-50 border-brand/30 border" : "bg-surface-sunken"
+                    row.isPlayer
+                      ? "bg-brand-50 border-brand/30 border"
+                      : "bg-surface-sunken"
                   }`}
                 >
                   <span className="text-ink font-extrabold">

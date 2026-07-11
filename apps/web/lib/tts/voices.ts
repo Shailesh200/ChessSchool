@@ -36,6 +36,7 @@ export const COACH_VOICE_IDS = [
   "steffan",
   "tony",
   "jane",
+  "grant",
   "sara",
   "jason",
   "andrew",
@@ -50,7 +51,7 @@ export const COACH_VOICE_PICKER_IDS = [
   "emma",
   "aria",
   "jane",
-  "sara",
+  "grant",
   "sonia",
   "natasha",
   "neerja",
@@ -70,6 +71,7 @@ export const COACH_VOICE_ALIASES: Partial<Record<CoachVoiceId, CoachVoiceId>> = 
   steffan: "roger",
   jason: "brian",
   andrew: "brian",
+  sara: "grant",
 };
 
 export function normalizeCoachVoice(id: CoachVoiceId): CoachVoiceId {
@@ -80,7 +82,7 @@ export const COACH_VOICE_GROUPS: { label: string; ids: CoachVoiceId[] }[] = [
   { label: "Smart match", ids: ["auto"] },
   {
     label: "Coaches",
-    ids: ["emma", "aria", "jane", "sara", "sonia", "natasha", "neerja"],
+    ids: ["emma", "aria", "jane", "grant", "sonia", "natasha", "neerja"],
   },
   {
     label: "Narrators",
@@ -121,8 +123,8 @@ export const COACH_VOICE_OPTIONS: {
     edge: { name: "en-IE-EmilyNeural", rate: 1.02, pitch: "+1Hz" },
   },
   {
-    id: "sara",
-    title: "Sara",
+    id: "grant",
+    title: "Grant",
     hint: "Mature US, calm & low",
     edge: { name: "en-US-NancyNeural", rate: 0.86, pitch: "-8Hz" },
   },

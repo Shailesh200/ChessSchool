@@ -1,5 +1,7 @@
 // Curated lessons (data only). Imported by content/lessons.ts and the seeder.
 
+import { PRESCHOOL_EXTRA } from "./preschool-lessons-extra.mjs";
+
 /**
  * ChessSchool lesson content — constants / data layer (backend-swappable).
  * A future API can return this exact `Lesson[]` shape. Keep this file pure data.
@@ -12,6 +14,7 @@
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 export const LESSONS = [
+  ...PRESCHOOL_EXTRA,
   // ── Pre-School (optional warm-up — board, pieces, notation) ───────────────
   {
     id: "pre-board-intro",
@@ -27,7 +30,7 @@ export const LESSONS = [
         id: "grid",
         kind: "info",
         coach:
-          "Chess is played on a board of 64 squares — 8 rows and 8 columns. Squares alternate light and dark colours. We always set up the board so a light square sits in the bottom-right corner from each player's view.",
+          "Chess is played on a square board — 8 rows and 8 columns (64 squares). Squares alternate light and dark. Always set up the board so a light square is in the bottom-right corner.",
         fen: START,
         highlight: ["h1", "a8"],
         highlightFiles: ["h"],
@@ -328,11 +331,11 @@ export const LESSONS = [
   },
   {
     id: "pre-pawn-quiz",
-    unit: "class-pre-moves",
+    unit: "class-pre-pawn-moves",
     title: "Pawn Quiz",
     subtitle: "Forward only",
     emoji: "♟️",
-    prerequisites: ["pre-pawn-basics"],
+    prerequisites: ["pre-pawn-capture-step"],
     xp: 10,
     tag: "preschool",
     steps: [
@@ -358,11 +361,11 @@ export const LESSONS = [
   },
   {
     id: "pre-knight-basics",
-    unit: "class-pre-moves",
+    unit: "class-pre-knight-moves",
     title: "Knight Rules",
     subtitle: "The L-shaped jumper",
     emoji: "🐴",
-    prerequisites: ["pre-moves-e4"],
+    prerequisites: ["pre-knight-jump-empty"],
     xp: 20,
     tag: "preschool",
     steps: [
@@ -396,7 +399,7 @@ export const LESSONS = [
   },
   {
     id: "pre-knight-quiz",
-    unit: "class-pre-moves",
+    unit: "class-pre-knight-moves",
     title: "Knight Quiz",
     subtitle: "Jump over pieces",
     emoji: "🐴",
@@ -425,11 +428,11 @@ export const LESSONS = [
   },
   {
     id: "pre-rook-basics",
-    unit: "class-pre-moves",
+    unit: "class-pre-rook-moves",
     title: "Rook Rules",
     subtitle: "Straight-line slides",
     emoji: "♜",
-    prerequisites: ["pre-knight-quiz"],
+    prerequisites: ["pre-rook-side-rank"],
     xp: 20,
     tag: "preschool",
     steps: [
@@ -468,7 +471,7 @@ export const LESSONS = [
   },
   {
     id: "pre-rook-quiz",
-    unit: "class-pre-moves",
+    unit: "class-pre-rook-moves",
     title: "Rook Quiz",
     subtitle: "Ranks & files",
     emoji: "♜",
@@ -497,11 +500,11 @@ export const LESSONS = [
   },
   {
     id: "pre-bishop-basics",
-    unit: "class-pre-moves",
+    unit: "class-pre-bishop-moves",
     title: "Bishop Rules",
     subtitle: "Diagonal slides",
     emoji: "♝",
-    prerequisites: ["pre-rook-quiz"],
+    prerequisites: ["pre-bishop-diagonal-info"],
     xp: 20,
     tag: "preschool",
     steps: [
@@ -531,7 +534,7 @@ export const LESSONS = [
   },
   {
     id: "pre-bishop-quiz",
-    unit: "class-pre-moves",
+    unit: "class-pre-bishop-moves",
     title: "Bishop Quiz",
     subtitle: "One colour forever",
     emoji: "♝",
@@ -560,11 +563,11 @@ export const LESSONS = [
   },
   {
     id: "pre-queen-moves",
-    unit: "class-pre-moves",
+    unit: "class-pre-queen-moves",
     title: "Queen Movement",
     subtitle: "Rook + bishop combined",
     emoji: "♛",
-    prerequisites: ["pre-bishop-quiz"],
+    prerequisites: ["pre-queen-on-diagonal"],
     xp: 20,
     tag: "preschool",
     steps: [
@@ -608,7 +611,7 @@ export const LESSONS = [
   },
   {
     id: "pre-queen-slide-quiz",
-    unit: "class-pre-moves",
+    unit: "class-pre-queen-moves",
     title: "Queen Quiz",
     subtitle: "How she moves",
     emoji: "♛",
@@ -637,11 +640,11 @@ export const LESSONS = [
   },
   {
     id: "pre-king-moves",
-    unit: "class-pre-moves",
+    unit: "class-pre-king-moves",
     title: "King Movement",
     subtitle: "One careful step",
     emoji: "♚",
-    prerequisites: ["pre-queen-slide-quiz"],
+    prerequisites: ["pre-king-one-square"],
     xp: 20,
     tag: "preschool",
     steps: [
@@ -674,7 +677,7 @@ export const LESSONS = [
   },
   {
     id: "pre-king-quiz",
-    unit: "class-pre-moves",
+    unit: "class-pre-king-moves",
     title: "King Quiz",
     subtitle: "One square only",
     emoji: "♚",
@@ -708,7 +711,7 @@ export const LESSONS = [
     title: "Capturing",
     subtitle: "Remove opponent pieces",
     emoji: "⚔️",
-    prerequisites: ["pre-king-quiz"],
+    prerequisites: ["pre-king-one-square"],
     xp: 10,
     tag: "preschool",
     steps: [

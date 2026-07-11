@@ -1,0 +1,2 @@
+{"id":"cs-pz-novice-attack-0001","stage":"novice","concepts":["attack"],"rating":831,"source":"adapted","sourceRef":"lichess:Bg29h","fen":"4r1k1/ppq2p2/2p1r1pp/2Pp4/N7/1PBB3P/P1Q2PP1/4R1K1 w - - 4 24","line":["a4b2","e6e1","c3e1","e8e1"]}
+{"id":"cs-pz-novice-attack-0002","stage":"novice","concepts":["attack"],"rating":814,"source":"adapted","sourceRef":"lichess:hoNTt","fen":"1r3rk1/1b3pbp/3Rp1p1/4P3/2p2P2/2q4P/5RPN/3Q2K1 b - - 1 32","line":["f8d8","d6d8","b8d8","d1d8"]}

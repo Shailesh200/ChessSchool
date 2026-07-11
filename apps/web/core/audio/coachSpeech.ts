@@ -1,6 +1,7 @@
 "use client";
 
 import { applyCoachLine, type CoachContext } from "@/features/coaching/personality";
+import { voicePreviewText } from "@/lib/tts/voicePreview";
 import { normalizeCoachVoice, resolveEdgeVoice } from "@/lib/tts/voices";
 import {
   useSettings,
@@ -50,7 +51,8 @@ function playUrl(url: string, volume: number, gen: number): Promise<void> {
 }
 
 function speakWithBrowser(text: string, volume: number, gen: number): Promise<void> {
-  if (typeof window === "undefined" || !window.speechSynthesis) return Promise.resolve();
+  if (typeof window === "undefined" || !window.speechSynthesis)
+    return Promise.resolve();
   window.speechSynthesis.cancel();
   if (gen !== speakGen) return Promise.resolve();
 
@@ -128,22 +130,25 @@ export async function speakCoachText(text: string): Promise<void> {
 /** Preview a voice from Settings (sample line). Stops any prior preview first. */
 export async function previewCoachVoice(
   voice: CoachVoiceId,
-  sample = "Nice work — keep scanning the board for your next idea.",
+  sample?: string,
 ): Promise<void> {
   const settings = useSettings.getState();
   if (!settings.sound) return;
 
+  const line = (sample ?? voicePreviewText(voice, settings.coachPersonality)).trim();
+  if (!line) return;
+
   stopCoachSpeech();
   const gen = speakGen;
   const resolved = normalizeCoachVoice(voice);
-  const url = await fetchCloudAudio(sample, settings.coachPersonality, resolved);
+  const url = await fetchCloudAudio(line, settings.coachPersonality, resolved);
   if (gen !== speakGen) return;
 
   if (url) {
     await playUrl(url, settings.volume, gen);
     return;
   }
-  await speakWithBrowser(sample, settings.volume, gen);
+  await speakWithBrowser(line, settings.volume, gen);
 }
 
 /**
@@ -157,6 +162,10 @@ export async function speakCoachLine(
   const settings = useSettings.getState();
   if (!settings.sound || !settings.coachSpeech) return;
 
-  const text = applyCoachLine(raw, personality ?? settings.coachPersonality, context).trim();
+  const text = applyCoachLine(
+    raw,
+    personality ?? settings.coachPersonality,
+    context,
+  ).trim();
   await speakCoachText(text);
 }

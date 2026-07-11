@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { speakCoachLine, speakCoachText, stopCoachSpeech } from "@/core/audio/coachSpeech";
+import {
+  speakCoachLine,
+  speakCoachText,
+  stopCoachSpeech,
+} from "@/core/audio/coachSpeech";
 import type { CoachContext } from "@/features/coaching/personality";
 import { useSettings } from "@/core/store/settings.store";
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { calculationPrompt, confirmMovePrompt, thinkingMatchGreeting } from "./thinkingPrompt";
+import {
+  calculationPrompt,
+  confirmMovePrompt,
+  thinkingMatchGreeting,
+} from "./thinkingPrompt";
 
 describe("thinkingPrompt", () => {
   it("gives in-check prompts when king is attacked", () => {

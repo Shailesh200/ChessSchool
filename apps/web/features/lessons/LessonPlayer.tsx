@@ -21,7 +21,11 @@ import { checkLessonAchievements } from "@/features/progression/achievements";
 import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { isTutorialLesson, scoredStepCount } from "@/features/school/classExam";
-import { applyCoachLine, type CoachContext } from "@/features/coaching/personality";
+import {
+  applyCoachLine,
+  quizUiLabels,
+  type CoachContext,
+} from "@/features/coaching/personality";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
@@ -31,14 +35,21 @@ import {
   formatCoachText,
   isPreschoolLesson,
 } from "@chess-school/progression";
+import { PreschoolQuiz } from "./PreschoolQuiz";
+import type { Lesson, LessonStep } from "./types";
+import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
+
+const PROMO_NAMES: Record<string, string> = {
+  q: "queen",
+  r: "rook",
+  b: "bishop",
+  n: "knight",
+};
 
 type LessonCeremony =
   | { variant: "graduation"; title: string; badge: string }
   | { variant: "exam"; title: string; badge: string; subtitle: string }
   | null;
-import { PreschoolQuiz } from "./PreschoolQuiz";
-import type { Lesson, LessonStep } from "./types";
-import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
 type Phase = "playing" | "correct" | "wrong" | "complete";
 
@@ -153,6 +164,45 @@ export function LessonPlayer({
       timers.current.forEach((t) => window.clearTimeout(t));
     };
   }, [index, step]);
+
+  const coachSeed = step ? `${lesson.id}:${step.id}:${index}` : lesson.id;
+  const rawFeedback = step
+    ? formatCoachText(
+        phase === "correct"
+          ? promoted
+            ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
+            : step.kind === "quiz"
+              ? ""
+              : (step.successText ?? "Nice work!")
+          : phase === "wrong"
+            ? step.kind === "quiz"
+              ? (step.failText ?? "")
+              : (step.failText ?? "Not quite — try again!")
+            : step.kind === "quiz"
+              ? ""
+              : step.coach,
+      )
+    : "";
+  const coachContext: CoachContext = !step
+    ? "lesson"
+    : phase === "correct"
+      ? step.kind === "quiz"
+        ? "quiz-success"
+        : "success"
+      : phase === "wrong"
+        ? step.kind === "quiz"
+          ? "quiz-wrong"
+          : "wrong"
+        : step.kind === "quiz"
+          ? "quiz"
+          : "lesson";
+  const feedbackText = applyCoachLine(
+    rawFeedback,
+    coachPersonality,
+    coachContext,
+    coachSeed,
+  );
+  useCoachSpeech(feedbackText, coachContext, phase !== "complete" && !!step, true);
 
   if (!step) return null;
 
@@ -380,35 +430,8 @@ export function LessonPlayer({
     }
   }
 
-  const PROMO_NAMES: Record<string, string> = {
-    q: "queen",
-    r: "rook",
-    b: "bishop",
-    n: "knight",
-  };
-  const rawFeedback = formatCoachText(
-    phase === "correct"
-      ? promoted
-        ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
-        : step.kind === "quiz"
-          ? (step.successText ?? "Correct! ✓")
-          : (step.successText ?? "Nice work!")
-      : phase === "wrong"
-        ? (step.failText ?? "Not quite — try again!")
-        : step.kind === "quiz"
-          ? "Choose the best answer below."
-          : step.coach,
-  );
-  const coachContext: CoachContext =
-    phase === "correct"
-      ? "success"
-      : phase === "wrong"
-        ? "wrong"
-        : step.kind === "quiz"
-          ? "quiz"
-          : "lesson";
-  const feedbackText = applyCoachLine(rawFeedback, coachPersonality, coachContext);
-  useCoachSpeech(feedbackText, coachContext, phase !== "complete", true);
+  const quizLabels =
+    step.kind === "quiz" ? quizUiLabels(coachPersonality, coachSeed) : null;
 
   if (phase === "complete") {
     return (
@@ -565,6 +588,7 @@ export function LessonPlayer({
                 key={index}
                 step={step}
                 phase={phase}
+                answerLabel={quizLabels?.answers}
                 onAnswer={handleQuizAnswer}
               />
             </div>

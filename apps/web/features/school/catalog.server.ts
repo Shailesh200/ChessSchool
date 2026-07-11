@@ -4,6 +4,16 @@ import type { Semester, SchoolClass } from "@/content/school";
 import type { Catalog } from "./structure";
 import { getCurriculumSkeleton } from "./curriculum-skeleton.server";
 
+/** Puzzle-heavy classes ship lesson count only — keeps RSC payloads under Next cache limits. */
+const MAX_CLIENT_LESSON_IDS = 64;
+
+function shapeClassForClient(row: SchoolClass, lessonIds: string[]): SchoolClass {
+  if (lessonIds.length <= MAX_CLIENT_LESSON_IDS) {
+    return { ...row, lessonIds };
+  }
+  return { ...row, lessonIds: [], lessonCount: lessonIds.length };
+}
+
 /**
  * The live curriculum, read from the DB (the single source of truth — curated +
  * generated + anything added in /admin). Shaped exactly like the old constants
@@ -26,18 +36,19 @@ export async function getCatalog(): Promise<Catalog> {
   }
 
   const classById = new Map(
-    cls.map((c) => [
-      c.id,
-      {
+    cls.map((c) => {
+      const lessonIds = lessonIdsByClass.get(c.id) ?? [];
+      const base = {
         id: c.id,
         title: c.title,
         emoji: c.emoji,
         blurb: c.blurb,
         difficulty: c.difficulty,
         examId: c.examId ?? undefined,
-        lessonIds: lessonIdsByClass.get(c.id) ?? [],
-      } as SchoolClass,
-    ]),
+        lessonIds,
+      } as SchoolClass;
+      return [c.id, shapeClassForClient(base, lessonIds)] as const;
+    }),
   );
 
   // Order curriculum so a beginner builds up properly: per stage, the hand-authored

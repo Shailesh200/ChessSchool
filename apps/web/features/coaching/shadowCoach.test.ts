@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  shadowGreeting,
-  shadowMoveLine,
-  shadowOffBookLine,
-} from "./shadowCoach";
+import { shadowGreeting, shadowMoveLine, shadowOffBookLine } from "./shadowCoach";
 
 describe("shadowCoach", () => {
   it("greets with opponent name", () => {

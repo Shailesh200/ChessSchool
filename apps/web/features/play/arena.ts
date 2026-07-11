@@ -103,7 +103,8 @@ export function arenaStandings(run: ArenaRun): ArenaStandingsRow[] {
   }
 
   return [...rows].sort(
-    (a, b) => b.points - a.points || b.played - a.played || a.name.localeCompare(b.name),
+    (a, b) =>
+      b.points - a.points || b.played - a.played || a.name.localeCompare(b.name),
   );
 }
 

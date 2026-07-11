@@ -68,11 +68,7 @@ export function CoachVoiceFace({
     <motion.span
       className="inline-flex"
       animate={
-        playing
-          ? { scale: [1, 1.06, 1] }
-          : selected
-            ? { y: [0, -2, 0] }
-            : { y: 0 }
+        playing ? { scale: [1, 1.06, 1] } : selected ? { y: [0, -2, 0] } : { y: 0 }
       }
       transition={
         playing

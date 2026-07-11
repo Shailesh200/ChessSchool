@@ -1,11 +1,13 @@
 /** School concept taxonomy — shared by bank, import, and stats. */
 
 export const STAGE_BANDS = [
-  { id: "elementary", title: "Elementary", order: 0, min: 0, max: 999 },
-  { id: "middle", title: "Middle School", order: 1, min: 1000, max: 1349 },
-  { id: "high", title: "High School", order: 2, min: 1350, max: 1699 },
-  { id: "university", title: "University", order: 3, min: 1700, max: 2099 },
-  { id: "master", title: "Masters", order: 4, min: 2100, max: 4000 },
+  { id: "novice", title: "Novice", order: 0, min: 300, max: 849 },
+  { id: "elementary", title: "Elementary", order: 1, min: 850, max: 1099 },
+  { id: "middle", title: "Middle School", order: 2, min: 1100, max: 1399 },
+  { id: "high", title: "High School", order: 3, min: 1400, max: 1749 },
+  { id: "university", title: "University", order: 4, min: 1750, max: 2149 },
+  { id: "master", title: "Masters", order: 5, min: 2150, max: 2499 },
+  { id: "expert", title: "Expert", order: 6, min: 2500, max: 4000 },
 ];
 
 /** @param {number} rating */
@@ -16,6 +18,13 @@ export function stageForRating(rating) {
 }
 
 export const CONCEPT_GROUPS = [
+  {
+    id: "opening",
+    label: "Opening Ideas",
+    emoji: "🚪",
+    color: "#0d9488",
+    themes: ["opening", "openingTrap"],
+  },
   {
     id: "mate",
     label: "Checkmates",
@@ -63,7 +72,6 @@ export const CONCEPT_GROUPS = [
       "clearance",
       "interference",
       "decoy",
-      "attackingF2F7",
     ],
   },
   {
@@ -98,6 +106,25 @@ export const CONCEPT_GROUPS = [
     color: "#2563eb",
     themes: ["advantage", "crushing", "defensiveMove", "quietMove", "intermezzo"],
   },
+  {
+    id: "pawn",
+    label: "Pawn Play",
+    emoji: "♟️",
+    color: "#78716c",
+    themes: ["pawnStructure", "underPromotion", "advancedPawn"],
+  },
+  {
+    id: "attack",
+    label: "King Attacks",
+    emoji: "⚔️",
+    color: "#be123c",
+    themes: [
+      "kingsideAttack",
+      "queensideAttack",
+      "exposedKing",
+      "attackingF2F7",
+    ],
+  },
 ];
 
 /** @param {string[]} themes */
@@ -106,6 +133,8 @@ export function conceptForThemes(themes) {
 }
 
 export const CONCEPT_TUTORIALS = {
+  opening:
+    "Opening puzzles reward development, quick castling, and punishing traps. Look at undefended pieces and whether a natural-looking move walks into a tactic.",
   mate: "A checkmate attacks the king so it has no legal escape. Look for forcing checks first, and watch how the enemy king's escape squares are cut off.",
   fork: "A fork is one piece attacking two targets at once. Knights are the classic forkers — aim at the king plus a queen or rook so your opponent can only save one.",
   pin: "A pin freezes a piece in front of a more valuable one. A skewer is the reverse — hit the valuable piece so it must move and you win what's behind it.",
@@ -119,14 +148,20 @@ export const CONCEPT_TUTORIALS = {
     "Endgames are about precision: activate your king, push passed pawns, and use opposition and zugzwang. Small edges convert into wins with accurate technique.",
   advantage:
     "When you're ahead, convert cleanly: trade pieces (not pawns), improve your worst piece, and avoid counterplay. Quiet, accurate moves win won positions.",
+  pawn:
+    "Pawn puzzles train structure and timing: passed pawns, fixing weaknesses, and promotions. Count who can promote first before you push.",
+  attack:
+    "Attacking the king means opening lines and removing defenders. Look for checks, sacrifices on f7 or g7, and whether the king has nowhere to run.",
 };
 
 const TUTORIAL_FRAMES = {
+  novice: "First tactics steps — ",
   elementary: "Welcome to tactics class! ",
   middle: "Middle School tactics — ",
   high: "High School study hall — ",
   university: "University seminar — ",
   master: "Masters cohort — ",
+  expert: "Expert board — ",
 };
 
 /** Stage-framed tutorial copy for puzzle-semester classes. */

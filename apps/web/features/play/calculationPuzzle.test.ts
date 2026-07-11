@@ -10,7 +10,9 @@ import type { LessonStep } from "@/features/lessons/types";
 
 describe("calculationPuzzle", () => {
   it("matches solution keys", () => {
-    expect(moveMatchesSolution({ from: "e2", to: "e4" }, ["e2:e4", "d2:d4"])).toBe(true);
+    expect(moveMatchesSolution({ from: "e2", to: "e4" }, ["e2:e4", "d2:d4"])).toBe(
+      true,
+    );
     expect(moveMatchesSolution({ from: "d2", to: "d4" }, ["e2:e4"])).toBe(false);
     expect(moveKey({ from: "a1", to: "a8" })).toBe("a1:a8");
   });

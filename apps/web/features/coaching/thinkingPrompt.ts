@@ -1,5 +1,6 @@
 import type { CoachPersonality } from "@/core/store/settings.store";
 import { applyCoachLine } from "./personality";
+import { buildThinkingGreeting } from "./botVoice";
 import { tierForElo } from "./matchCommentary";
 
 function hash(s: string): number {
@@ -308,38 +309,9 @@ export function thinkingMatchGreeting(
   botName: string,
   personality: CoachPersonality,
 ): string {
-  const seed = hash(`think:${botName}:${elo}:${personality}`);
-  const intros: Record<CoachPersonality, string[]> = {
-    friendly: [
-      `Thinking game vs ${botName} (${elo}) — no clock, just calculation.`,
-      `Hi! I'm ${botName}. Take your time and calculate each move.`,
-      `Calculation training at ${elo} — confirm every move before it plays.`,
-      `No rush today — picture each line before you commit.`,
-    ],
-    strict: [
-      `Calculation mode vs ${botName}, ${elo}. Confirm every move.`,
-      `${botName} · ${elo}. Think first, move second.`,
-      `Training duel · ${elo}. Verify each candidate.`,
-      `Discipline match — no impulse moves.`,
-    ],
-    mentor: [
-      `Training calc vs ${botName} (${elo}). Picture the line before you play.`,
-      `Thinking match with ${botName} — build the habit of seeing replies.`,
-      `Slow chess at ${elo} — quality of thought over speed.`,
-      `Let's train calculation — confirm moves when you're sure.`,
-    ],
-    tactical: [
-      `Sharp thinking duel vs ${botName} (${elo}) — calculate tactics to the end.`,
-      `${botName} at ${elo}. Find the idea, then confirm the move.`,
-      `Tactical calc mode — see the whole combination first.`,
-      `Hunt forcing lines — then lock in your move.`,
-    ],
-    minimal: [
-      `Think vs ${botName}.`,
-      `Calc mode · ${botName}.`,
-      `Confirm moves · ${elo}.`,
-      `Calculate. Then play.`,
-    ],
-  };
-  return applyCoachLine(pick(intros[personality], seed), personality, "greeting");
+  return applyCoachLine(
+    buildThinkingGreeting(elo, botName, personality),
+    personality,
+    "greeting",
+  );
 }

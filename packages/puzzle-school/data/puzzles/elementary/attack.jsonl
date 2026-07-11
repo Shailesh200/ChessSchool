@@ -1,0 +1,2 @@
+{"id":"cs-pz-elementary-attack-0001","stage":"elementary","concepts":["attack"],"rating":989,"source":"adapted","sourceRef":"lichess:VyF5u","fen":"r5kb/3n3p/p2RpPpB/8/2r5/2p2P2/PPP3PP/1K1R4 b - - 0 22","line":["d7f6","d6d8","a8d8","d1d8"]}
+{"id":"cs-pz-elementary-attack-0002","stage":"elementary","concepts":["attack"],"rating":968,"source":"adapted","sourceRef":"lichess:ratN5","fen":"Q1b1q1k1/p4ppp/5n2/2p1r3/3p4/4B2P/PP3PP1/RN2R1K1 w - - 1 19","line":["e3d2","e5e1","d2e1","e8e1"]}

@@ -28,11 +28,13 @@ export function movesFromPgn(pgn: string): MoveInput[] {
 export function opponentMoves(pgn: string, playerColor: Color): MoveInput[] {
   const engine = ChessEngine.fromPgn(pgn || "");
   const shadowColor: Color = playerColor === "w" ? "b" : "w";
-  return engine.history().flatMap((m) =>
-    m.color === shadowColor
-      ? [{ from: m.from, to: m.to, promotion: m.promotion }]
-      : [],
-  );
+  return engine
+    .history()
+    .flatMap((m) =>
+      m.color === shadowColor
+        ? [{ from: m.from, to: m.to, promotion: m.promotion }]
+        : [],
+    );
 }
 
 export interface ShadowConfig {
@@ -50,12 +52,11 @@ export function shadowFromGame(
   if (!game.pgn?.trim() || game.moveCount < 2) return null;
   let playerColor = inferPlayerColor(game);
   if (opts?.flipColor) playerColor = playerColor === "w" ? "b" : "w";
-  const opponentName =
-    opts?.flipColor
-      ? "your past self"
-      : playerColor === "w"
-        ? game.blackName
-        : game.whiteName;
+  const opponentName = opts?.flipColor
+    ? "your past self"
+    : playerColor === "w"
+      ? game.blackName
+      : game.whiteName;
   return {
     gameId: game.id,
     pgn: game.pgn,

@@ -6,7 +6,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
-import { commentOnMove, matchGreeting, passPlayGreeting, matchRecap, calculationCoachPrompt, confirmCoachMove, thinkingGreeting, shadowGreeting, shadowMoveLine, shadowOffBookLine } from "@/features/coaching/coach";
+import {
+  commentOnMove,
+  matchGreeting,
+  passPlayGreeting,
+  matchRecap,
+  calculationCoachPrompt,
+  confirmCoachMove,
+  thinkingGreeting,
+  shadowGreeting,
+  shadowMoveLine,
+  shadowOffBookLine,
+} from "@/features/coaching/coach";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
@@ -149,19 +160,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const bot = botProfile(active.targetElo);
   const botName = bot.name;
   const playerColor = shadow?.playerColor ?? "w";
-  const shadowLineRef = useRef(
-    opponentMoves(shadow?.shadowPgn ?? "", playerColor),
-  );
+  const shadowLineRef = useRef(opponentMoves(shadow?.shadowPgn ?? "", playerColor));
   const thinkingGame = Boolean(active.thinkingMode) && isBot;
 
-  // Match bubble is visual-only — don't speak bot names, "Shadow", etc.
-  useCoachSpeech(coach, "match", false, true);
+  // Coach narrates the match (move commentary, greetings, recap) when coach speech is on.
+  useCoachSpeech(coach, "match", true, true);
 
   const showCalculationPrompt = useCallback(() => {
     const e = engineRef.current;
-    setCoach(
-      calculationCoachPrompt(e.history().length, e.inCheck(), active.targetElo),
-    );
+    setCoach(calculationCoachPrompt(e.history().length, e.inCheck(), active.targetElo));
   }, [active.targetElo]);
 
   const persist = useCallback(
@@ -188,9 +195,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         mode: isShadow ? "shadow" : active.mode,
         pgn: pgnText,
         fen: e.fen(),
-        whiteName: isShadow ? (playerColor === "w" ? "You" : shadow!.opponentName) : isBot ? "You" : "White",
+        whiteName: isShadow
+          ? playerColor === "w"
+            ? "You"
+            : shadow!.opponentName
+          : isBot
+            ? "You"
+            : "White",
         blackName: isShadow
-          ? (playerColor === "b" ? "You" : shadow!.opponentName)
+          ? playerColor === "b"
+            ? "You"
+            : shadow!.opponentName
           : isBot
             ? `${bot.name} (${active.targetElo})`
             : "Black",
@@ -295,7 +310,18 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         moveCount: game.moveCount,
       });
     },
-    [active, isBot, isArena, isShadow, arena, playerColor, shadow, progression, bot.name, setEndSnapshot],
+    [
+      active,
+      isBot,
+      isArena,
+      isShadow,
+      arena,
+      playerColor,
+      shadow,
+      progression,
+      bot.name,
+      setEndSnapshot,
+    ],
   );
 
   /** Restore game-over UI when PGN already ended but snapshot missing (older sessions). */
@@ -478,7 +504,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         runOpponentTurn();
       return true;
     },
-    [isBot, autoOpponent, shadowOffBook, persist, checkOver, runOpponentTurn, active.targetElo, bot.name, playerColor],
+    [
+      isBot,
+      autoOpponent,
+      shadowOffBook,
+      persist,
+      checkOver,
+      runOpponentTurn,
+      active.targetElo,
+      bot.name,
+      playerColor,
+    ],
   );
 
   // Thinking game: coach calculation prompt when it's the player's turn.
@@ -487,7 +523,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const e = engineRef.current;
     if (e.isGameOver() || e.turn() !== playerColor) return;
     showCalculationPrompt();
-  }, [fen, thinkingGame, over, isBot, thinking, pendingMove, playerColor, showCalculationPrompt]);
+  }, [
+    fen,
+    thinkingGame,
+    over,
+    isBot,
+    thinking,
+    pendingMove,
+    playerColor,
+    showCalculationPrompt,
+  ]);
 
   const handleMove = useCallback(
     (move: MoveInput): boolean => {
@@ -637,10 +682,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             {isArena
               ? `Arena · vs ${arena?.opponentName ?? "bot"}`
               : isShadow
-              ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
-              : isBot
-                ? `vs ${botName} · ${active.targetElo}`
-                : "vs Human"}
+                ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
+                : isBot
+                  ? `vs ${botName} · ${active.targetElo}`
+                  : "vs Human"}
             {thinkingGame && (
               <span className="bg-brand-50 text-brand-700 rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
                 <Icon name="brain" size={12} />
@@ -684,7 +729,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             isShadow
               ? playerColor === "b"
                 ? "You"
-                : shadow?.opponentName ?? "Shadow"
+                : (shadow?.opponentName ?? "Shadow")
               : isBot
                 ? `${botName} · ${active.targetElo}`
                 : "Black"
@@ -773,7 +818,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   </div>
                   {arenaRunDone && (
                     <div className="rounded-pill bg-brand-50 text-brand-700 mt-3 inline-flex items-center gap-2 px-4 py-1.5 text-sm font-extrabold">
-                      Arena complete · #{arenaRunDone.placement} · +{arenaRunDone.xpEarned} XP
+                      Arena complete · #{arenaRunDone.placement} · +
+                      {arenaRunDone.xpEarned} XP
                     </div>
                   )}
                   {isBot && !isArena && over.ratingDelta !== 0 && (

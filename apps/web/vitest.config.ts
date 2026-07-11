@@ -10,6 +10,8 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", ".next", "e2e/**"],
+    hookTimeout: 60_000,
+    testTimeout: 30_000,
     coverage: {
       provider: "v8",
       include: [

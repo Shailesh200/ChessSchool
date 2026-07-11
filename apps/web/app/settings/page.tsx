@@ -182,7 +182,10 @@ export default function SettingsPage() {
                   aria-label="Bot difficulty"
                 />
               </Row>
-              <Row label="Coach personality" hint="Tone of feedback">
+              <Row
+                label="Coach personality"
+                hint="Friendly = warm & funny · Strict = sarcastic · Mentor = wise hints · Tactical = hype · Minimal = deadpan wit"
+              >
                 <div className="flex items-center gap-2">
                   <FlatAvatar
                     id={COACH_AVATAR[s.coachPersonality] ?? "coach-friendly"}

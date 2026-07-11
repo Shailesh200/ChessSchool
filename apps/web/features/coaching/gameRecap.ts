@@ -2,6 +2,7 @@ import type { CoachPersonality } from "@/core/store/settings.store";
 import type { EndReason } from "@/core/db/db";
 import type { VerboseMove } from "@/core/types/chess";
 import { applyCoachLine } from "./personality";
+import { buildRecapEpilogue } from "./botVoice";
 import { tierForElo } from "./matchCommentary";
 
 export interface GameRecapInput {
@@ -30,7 +31,13 @@ function summarizeMaterial(history: VerboseMove[], playerColor: "w" | "b") {
   for (const m of history) {
     if (!m.captured) continue;
     const val =
-      m.captured === "q" ? 9 : m.captured === "r" ? 5 : m.captured === "b" || m.captured === "n" ? 3 : 1;
+      m.captured === "q"
+        ? 9
+        : m.captured === "r"
+          ? 5
+          : m.captured === "b" || m.captured === "n"
+            ? 3
+            : 1;
     if (m.color === playerColor) player += val;
     else bot += val;
   }
@@ -43,7 +50,8 @@ function countChecks(history: VerboseMove[], color: "w" | "b"): number {
 
 /** Post-game coach recap — personality + bot tier, from move history. */
 export function buildMatchRecap(input: GameRecapInput): string {
-  const { history, personality, botElo, botName, playerColor, playerWon, reason } = input;
+  const { history, personality, botElo, botName, playerColor, playerWon, reason } =
+    input;
   const tier = tierForElo(botElo);
   const moves = history.length;
   const mat = summarizeMaterial(history, playerColor);
@@ -90,7 +98,10 @@ export function buildMatchRecap(input: GameRecapInput): string {
         `Great win vs ${botName}! ${statLine} Replay the mating attack.`,
         `You beat ${botName}! ${checkLine || statLine}`,
       ],
-      strict: [`Victory vs ${botName}. ${statLine} Note what forced mate.`, `Win. ${checkLine || statLine}`],
+      strict: [
+        `Victory vs ${botName}. ${statLine} Note what forced mate.`,
+        `Win. ${checkLine || statLine}`,
+      ],
       mentor: [
         `Well played against ${botName}. ${statLine} Study the final combination.`,
         `You earned this vs ${botName}. ${checkLine || "Calculate those finishing lines again."}`,
@@ -121,53 +132,85 @@ export function buildMatchRecap(input: GameRecapInput): string {
       minimal: [`Lost to ${botName}.`, `Defeat.`],
     },
     draw: {
-      friendly: [`Draw with ${botName} — ${statLine}`, `Split the point vs ${botName}. ${statLine}`],
+      friendly: [
+        `Draw with ${botName} — ${statLine}`,
+        `Split the point vs ${botName}. ${statLine}`,
+      ],
       strict: [`Draw vs ${botName}. ${statLine}`, `Half point. ${statLine}`],
-      mentor: [`Draw against ${botName}. ${statLine} What plan would you try next time?`, `Shared result. ${statLine}`],
-      tactical: [`Hard-fought draw vs ${botName}. ${statLine}`, `Stale battle — ${statLine}`],
+      mentor: [
+        `Draw against ${botName}. ${statLine} What plan would you try next time?`,
+        `Shared result. ${statLine}`,
+      ],
+      tactical: [
+        `Hard-fought draw vs ${botName}. ${statLine}`,
+        `Stale battle — ${statLine}`,
+      ],
       minimal: ["Draw.", `Draw vs ${botName}.`],
     },
     "flag win": {
-      friendly: [`You won on time vs ${botName}! ${statLine}`, `Clock win — ${statLine}`],
-      strict: [`Flag fall — win. ${statLine}`, `Won on time. Manage the clock better next game too.`],
-      mentor: [`Time trouble win vs ${botName}. ${statLine} Practice faster decisions.`, `Flag win. ${statLine}`],
+      friendly: [
+        `You won on time vs ${botName}! ${statLine}`,
+        `Clock win — ${statLine}`,
+      ],
+      strict: [
+        `Flag fall — win. ${statLine}`,
+        `Won on time. Manage the clock better next game too.`,
+      ],
+      mentor: [
+        `Time trouble win vs ${botName}. ${statLine} Practice faster decisions.`,
+        `Flag win. ${statLine}`,
+      ],
       tactical: [`${botName} flagged — ${statLine}`, `Speed kill vs ${botName}.`],
       minimal: ["Won on time.", "Flag win."],
     },
     "flag loss": {
-      friendly: [`Ran out of time vs ${botName}. ${statLine}`, `Clock got you — try a longer control.`],
+      friendly: [
+        `Ran out of time vs ${botName}. ${statLine}`,
+        `Clock got you — try a longer control.`,
+      ],
       strict: [`Lost on time. ${statLine}`, `Flagged. Budget time in the middlegame.`],
-      mentor: [`Time loss vs ${botName}. ${statLine} Use increment or longer clocks while learning.`, `Flag loss. ${statLine}`],
+      mentor: [
+        `Time loss vs ${botName}. ${statLine} Use increment or longer clocks while learning.`,
+        `Flag loss. ${statLine}`,
+      ],
       tactical: [`${botName} won on time. ${statLine}`, `Too slow — ${statLine}`],
       minimal: ["Lost on time.", "Flagged."],
     },
     "resign win": {
-      friendly: [`${botName} resigned — ${statLine}`, `Win — opponent resigned. ${statLine}`],
+      friendly: [
+        `${botName} resigned — ${statLine}`,
+        `Win — opponent resigned. ${statLine}`,
+      ],
       strict: [`Resignation win. ${statLine}`, `Point earned. ${statLine}`],
-      mentor: [`${botName} resigned. ${statLine} You had a winning plan.`, `Resign win. ${statLine}`],
-      tactical: [`${botName} quit — you had them. ${statLine}`, `Resignation. ${statLine}`],
+      mentor: [
+        `${botName} resigned. ${statLine} You had a winning plan.`,
+        `Resign win. ${statLine}`,
+      ],
+      tactical: [
+        `${botName} quit — you had them. ${statLine}`,
+        `Resignation. ${statLine}`,
+      ],
       minimal: ["Opponent resigned.", "Win."],
     },
     "resign loss": {
-      friendly: [`You resigned vs ${botName}. ${statLine} Review if you could fight on.`, `Resigned — ${statLine}`],
-      strict: [`Resignation. ${statLine} Only resign when truly lost.`, `You resigned. ${statLine}`],
-      mentor: [`Resigned vs ${botName}. ${statLine} Replay the turning point.`, `Resign loss. ${statLine}`],
+      friendly: [
+        `You resigned vs ${botName}. ${statLine} Review if you could fight on.`,
+        `Resigned — ${statLine}`,
+      ],
+      strict: [
+        `Resignation. ${statLine} Only resign when truly lost.`,
+        `You resigned. ${statLine}`,
+      ],
+      mentor: [
+        `Resigned vs ${botName}. ${statLine} Replay the turning point.`,
+        `Resign loss. ${statLine}`,
+      ],
       tactical: [`You resigned to ${botName}. ${statLine}`, `Resignation. ${statLine}`],
       minimal: ["You resigned.", "Loss."],
     },
   };
 
-  const tierTail: Record<string, string> = {
-    novice: playerWon ? " Keep building those basics." : " Pip-level games are for learning — try again.",
-    casual: playerWon ? " Solid for this level." : " Review one tactic from this game.",
-    developing: playerWon ? " Good calc for this rating band." : " Calculate checks and captures next time.",
-    club: playerWon ? " Club-level win — note your best move." : " Club players punish loose pieces — scan the board.",
-    expert: playerWon ? " Strong result at expert strength." : " Expert bots demand precise defense.",
-    master: playerWon ? " Impressive vs master-level play." : " Small slips cost games at this level.",
-    elite: playerWon ? " Elite scalp — save this PGN." : " Titan-tier — every move must be concrete.",
-  };
-
   const base = pick(pools[outcome]?.[personality] ?? pools.draw.friendly, seed);
-  const tail = tierTail[tier] ?? "";
+  const tail = buildRecapEpilogue(botName, personality, tier, playerWon, seed);
   return applyCoachLine(`${base}${tail}`.trim(), personality, "match");
 }

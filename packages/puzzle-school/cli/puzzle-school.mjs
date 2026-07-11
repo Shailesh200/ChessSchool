@@ -79,6 +79,8 @@ async function adaptCsv(input, outDir) {
   /** @type {Map<string, { lines: string[], next: number }>} */
   const writers = new Map();
   const seen = new Set();
+  const seenIds = new Set();
+  const PER_BUCKET = 800;
   let scanned = 0;
   let kept = 0;
   let skipped = 0;
@@ -107,11 +109,17 @@ async function adaptCsv(input, outDir) {
     const stage = stageForRating(rating);
     const fen = c[1];
     const moves = c[2].trim();
+    const puzzleId = c[0];
+    if (seenIds.has(puzzleId)) {
+      skipped++;
+      continue;
+    }
     const dup = `${fen}|${moves}`;
     if (seen.has(dup)) {
       skipped++;
       continue;
     }
+    seenIds.add(puzzleId);
     seen.add(dup);
 
     const key = `${stage.id}:${group.id}`;
@@ -120,6 +128,7 @@ async function adaptCsv(input, outDir) {
       bucket = { lines: [], next: 0 };
       writers.set(key, bucket);
     }
+    if (bucket.lines.length >= PER_BUCKET) continue;
     bucket.next += 1;
     const id = `cs-pz-${stage.id}-${group.id}-${String(bucket.next).padStart(4, "0")}`;
     const record = {

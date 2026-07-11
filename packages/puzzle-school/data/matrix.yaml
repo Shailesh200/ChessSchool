@@ -1,14 +1,17 @@
-# Stage × concept lesson targets (launch bar). Counts are puzzle lessons, not tutorials.
-# Pre-School is hand-authored only — not in this matrix.
+# Stage × concept lesson targets. Pre-School is hand-authored only — not in this matrix.
 
 stages:
-  elementary: { rating: [0, 999], min_classes: 3 }
-  middle: { rating: [1000, 1349], min_classes: 3 }
-  high: { rating: [1350, 1699], min_classes: 3 }
-  university: { rating: [1700, 2099], min_classes: 3 }
-  master: { rating: [2100, 4000], min_classes: 3 }
+  novice: { rating: [300, 849], min_classes: 3 }
+  elementary: { rating: [850, 1099], min_classes: 3 }
+  middle: { rating: [1100, 1399], min_classes: 3 }
+  high: { rating: [1400, 1749], min_classes: 3 }
+  university: { rating: [1750, 2149], min_classes: 3 }
+  master: { rating: [2150, 2499], min_classes: 3 }
+  expert: { rating: [2500, 4000], min_classes: 3 }
 
 concepts:
+  - id: opening
+    label: Opening Ideas
   - id: trapped
     label: Win Material
   - id: fork
@@ -25,8 +28,15 @@ concepts:
     label: Sacrifices
   - id: advantage
     label: Convert Advantage
+  - id: pawn
+    label: Pawn Play
+  - id: attack
+    label: King Attacks
 
 launch:
   min_puzzle_lessons: 8000
-  stretch_puzzle_lessons: 16000
+  stretch_puzzle_lessons: 32000
   tier_a_authored: 1200
+  per_bucket: 800
+  min_popularity: 90
+  min_plays: 100

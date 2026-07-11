@@ -15,6 +15,7 @@ import {
 } from "@/features/coaching/coach";
 import { applyCoachLine } from "@/features/coaching/personality";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
+import type { CoachPersonality } from "@/core/store/settings.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useProgression } from "@/core/store/progression.store";
 import { audio } from "@/core/audio/audioEngine";
@@ -27,45 +28,69 @@ import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 type Phase = "loading" | "calc" | "correct" | "wrong" | "revealed";
 
 export function CalculationTrainer() {
-  const router = useRouter();
   const personality = useSettings((s) => s.coachPersonality);
   const rating = useProgression((s) => s.rating);
+  const [offset, setOffset] = useState(0);
+
+  return (
+    <CalculationTrainerSession
+      key={`${offset}:${personality}:${rating}`}
+      offset={offset}
+      personality={personality}
+      rating={rating}
+      onNext={() => setOffset((n) => n + 1)}
+    />
+  );
+}
+
+function CalculationTrainerSession({
+  offset,
+  personality,
+  rating,
+  onNext,
+}: {
+  offset: number;
+  personality: CoachPersonality;
+  rating: number;
+  onNext: () => void;
+}) {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const [puzzle, setPuzzle] = useState<CalculationPuzzle | null>(null);
-  const [offset, setOffset] = useState(0);
   const [coach, setCoach] = useState("");
   const [pendingMove, setPendingMove] = useState<MoveInput | null>(null);
   const [pendingSan, setPendingSan] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(0);
   const [attempted, setAttempted] = useState(false);
 
-  const loadPuzzle = useCallback(async (n: number) => {
-    setPhase("loading");
-    setPendingMove(null);
-    setPendingSan(null);
-    setHintLevel(0);
-    setAttempted(false);
-    try {
-      const res = await fetch(`/api/think?n=${n}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("fetch");
-      const data = (await res.json()) as { puzzle: CalculationPuzzle };
-      const p = data.puzzle;
-      setPuzzle(p);
-      const engine = new ChessEngine(p.fen);
-      const intro = applyCoachLine(p.coach, personality, "lesson");
-      const prompt = calculationCoachPrompt(0, engine.inCheck(), rating);
-      setCoach(`${intro} ${prompt}`.trim());
-      setPhase("calc");
-    } catch {
-      toast("Could not load puzzle", { tone: "danger" });
-      setPuzzle(null);
-      setCoach("No puzzles in the pool yet — run db:fresh locally.");
-    }
-  }, [personality, rating]);
-
   useEffect(() => {
-    void loadPuzzle(offset);
-  }, [loadPuzzle, offset]);
+    let cancelled = false;
+    fetch(`/api/think?n=${offset}`, { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) throw new Error("fetch");
+        return res.json() as Promise<{ puzzle: CalculationPuzzle }>;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        const p = data.puzzle;
+        setPuzzle(p);
+        const engine = new ChessEngine(p.fen);
+        const intro = applyCoachLine(p.coach, personality, "lesson");
+        const prompt = calculationCoachPrompt(0, engine.inCheck(), rating);
+        setCoach(`${intro} ${prompt}`.trim());
+        setPhase("calc");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        toast("Could not load puzzle", { tone: "danger" });
+        setPuzzle(null);
+        setCoach("No puzzles in the pool yet — run db:fresh locally.");
+        setPhase("calc");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [offset, personality, rating]);
 
   useCoachSpeech(coach, "lesson", phase === "calc" && !pendingMove, true);
 
@@ -140,9 +165,7 @@ export function CalculationTrainer() {
     setPendingMove(null);
     setPendingSan(null);
     const engine = new ChessEngine(puzzle.fen);
-    setCoach(
-      calculationCoachPrompt(engine.history().length, engine.inCheck(), rating),
-    );
+    setCoach(calculationCoachPrompt(engine.history().length, engine.inCheck(), rating));
   }, [puzzle, rating]);
 
   const revealSolution = useCallback(() => {
@@ -150,7 +173,13 @@ export function CalculationTrainer() {
     setPendingMove(null);
     setPendingSan(null);
     setPhase("revealed");
-    setCoach(applyCoachLine("Here's the idea — study the line, then try another.", personality, "lesson"));
+    setCoach(
+      applyCoachLine(
+        "Here's the idea — study the line, then try another.",
+        personality,
+        "lesson",
+      ),
+    );
     audio.play("notify");
   }, [puzzle, personality]);
 
@@ -162,10 +191,6 @@ export function CalculationTrainer() {
     const engine = new ChessEngine(puzzle.fen);
     setCoach(calculationCoachPrompt(0, engine.inCheck(), rating));
   }, [puzzle, rating]);
-
-  const nextPuzzle = useCallback(() => {
-    setOffset((n) => n + 1);
-  }, []);
 
   return (
     <AppShell>
@@ -254,15 +279,11 @@ export function CalculationTrainer() {
             </>
           )}
           {(phase === "correct" || phase === "revealed") && (
-            <Button size="sm" block onClick={nextPuzzle}>
+            <Button size="sm" block onClick={onNext}>
               Next puzzle
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => router.push("/play")}
-          >
+          <Button size="sm" variant="outline" onClick={() => router.push("/play")}>
             Back to play
           </Button>
         </div>

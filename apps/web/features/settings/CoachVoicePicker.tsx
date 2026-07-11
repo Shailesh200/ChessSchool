@@ -8,6 +8,7 @@ import {
   COACH_VOICE_OPTIONS,
   normalizeCoachVoice,
 } from "@/lib/tts/voices";
+import { voicePreviewText } from "@/lib/tts/voicePreview";
 import { CoachVoiceFace } from "@/components/ui/coachVoiceFaces/CoachVoiceFace";
 import { previewCoachVoice, stopCoachSpeech } from "@/core/audio/coachSpeech";
 import { haptics } from "@/core/haptics/haptics";
@@ -52,7 +53,7 @@ export function CoachVoicePicker({
     setPreviewing(canonical);
 
     try {
-      await previewCoachVoice(canonical);
+      await previewCoachVoice(canonical, voicePreviewText(canonical, personality));
     } finally {
       if (previewSession.current === session) {
         setPreviewing(null);
@@ -68,7 +69,11 @@ export function CoachVoicePicker({
       className="flex flex-col gap-4"
     >
       {COACH_VOICE_GROUPS.map((group) => (
-        <motion.div key={group.label} variants={listItem} className="flex flex-col gap-2">
+        <motion.div
+          key={group.label}
+          variants={listItem}
+          className="flex flex-col gap-2"
+        >
           <p className="text-ink-500 text-[10px] font-extrabold tracking-wide uppercase">
             {group.label}
           </p>
@@ -83,9 +88,7 @@ export function CoachVoicePicker({
               const selected = active === id;
               const playing = previewing === id;
               const hint =
-                id === "auto"
-                  ? `Follows ${personality} coach style`
-                  : voiceHint(id);
+                id === "auto" ? `Follows ${personality} coach style` : voiceHint(id);
 
               return (
                 <button

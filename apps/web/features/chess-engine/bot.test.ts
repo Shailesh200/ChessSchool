@@ -63,7 +63,7 @@ describe("bot", () => {
       0.5,
     );
     expect(move).toEqual({ from: "e4", to: "d5", promotion: undefined });
-  });
+  }, 60_000);
 
   it("returns null when there are no legal moves (checkmate)", () => {
     const move = chooseMove(

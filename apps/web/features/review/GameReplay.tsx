@@ -238,7 +238,11 @@ export function GameReplay({ id }: { id: string }) {
               Shadow rematch
             </span>
           </Button>
-          <Button className="w-full" variant="outline" onClick={() => startShadowRematch(true)}>
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => startShadowRematch(true)}
+          >
             <span className="inline-flex items-center gap-2">
               <Icon name="flip" size={18} />
               Defend vs your attack

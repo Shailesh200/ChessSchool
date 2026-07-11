@@ -30,7 +30,9 @@ describe("buildMatchRecap", () => {
   });
 
   it("varies by personality", () => {
-    const history = Array.from({ length: 24 }, (_, i) => move(i % 2 === 0 ? "e4" : "e5", i % 2 === 0 ? "w" : "b"));
+    const history = Array.from({ length: 24 }, (_, i) =>
+      move(i % 2 === 0 ? "e4" : "e5", i % 2 === 0 ? "w" : "b"),
+    );
     const friendly = buildMatchRecap({
       history,
       personality: "friendly",

@@ -1,10 +1,7 @@
 import { chooseMove, eloToConfig } from "@/features/chess-engine/bot";
 import { useSettings } from "@/core/store/settings.store";
 import type { BoardArrow, VerboseMove } from "@/core/types/chess";
-import {
-  encourage as encourageFor,
-  nudge as nudgeFor,
-} from "./personality";
+import { encourage as encourageFor, nudge as nudgeFor } from "./personality";
 import {
   commentOnMatchMove,
   matchGreeting as matchGreetingFor,

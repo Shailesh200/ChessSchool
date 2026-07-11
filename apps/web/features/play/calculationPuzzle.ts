@@ -21,7 +21,10 @@ export function moveKey(move: Pick<MoveInput, "from" | "to">): string {
   return `${move.from}:${move.to}`;
 }
 
-export function moveMatchesSolution(move: Pick<MoveInput, "from" | "to">, solutions: string[]): boolean {
+export function moveMatchesSolution(
+  move: Pick<MoveInput, "from" | "to">,
+  solutions: string[],
+): boolean {
   return solutions.includes(moveKey(move));
 }
 
@@ -37,9 +40,12 @@ export function pickIndex(length: number, seed: string): number {
 }
 
 /** First interactive move step in a homework lesson. */
-export function firstMoveStep(steps: LessonStep[]): { index: number; step: LessonStep } | null {
+export function firstMoveStep(
+  steps: LessonStep[],
+): { index: number; step: LessonStep } | null {
   const index = steps.findIndex(
-    (s) => s.kind === "move" && s.fen && Array.isArray(s.solution) && s.solution.length > 0,
+    (s) =>
+      s.kind === "move" && s.fen && Array.isArray(s.solution) && s.solution.length > 0,
   );
   if (index < 0) return null;
   return { index, step: steps[index]! };

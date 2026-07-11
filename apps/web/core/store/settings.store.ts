@@ -31,6 +31,7 @@ export type CoachVoiceId =
   | "tony"
   | "steffan"
   | "jane"
+  | "grant"
   | "sara"
   | "jason"
   | "andrew";

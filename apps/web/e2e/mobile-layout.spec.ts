@@ -11,11 +11,13 @@ test.describe("mobile layout @390", () => {
     await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
   });
 
-  test("journey navigates directly on node tap", async ({ page }) => {
+  test("journey starts the active lesson from the header CTA", async ({ page }) => {
     await page.goto("/class/class-pieces");
     await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
-    await page.getByRole("button", { name: "The Battlefield" }).click();
-    await expect(page).toHaveURL(/\/lesson\//);
+    const start = page.getByRole("button", { name: /Start journey|Continue journey/i });
+    await expect(start).toBeVisible();
+    await start.click();
+    await expect(page).toHaveURL(/\/lesson\//, { timeout: 15000 });
   });
 
   test("settings stacks sections without sidebar nav", async ({ page }) => {

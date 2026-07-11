@@ -106,11 +106,13 @@ export function classProgress(
   cls: SchoolClass,
   records: Record<string, LessonRecord>,
 ): { done: number; total: number; pct: number } {
-  const total = cls.lessonIds.length;
-  const done = cls.lessonIds.filter(
-    (id) => (records[id]?.mastery ?? 0) >= MASTERED,
-  ).length;
-  return { done, total, pct: total === 0 ? 0 : done / total };
+  const total = cls.lessonCount ?? cls.lessonIds.length;
+  if (total === 0) return { done: 0, total: 0, pct: 0 };
+  const done =
+    cls.lessonIds.length > 0
+      ? cls.lessonIds.filter((id) => (records[id]?.mastery ?? 0) >= MASTERED).length
+      : 0;
+  return { done, total, pct: done / total };
 }
 
 export function isClassGraduated(
@@ -119,6 +121,7 @@ export function isClassGraduated(
   graduatedClasses: string[],
 ): boolean {
   if (graduatedClasses.includes(cls.id)) return true;
+  if (cls.lessonIds.length === 0) return false;
   return cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= MASTERED);
 }
 
