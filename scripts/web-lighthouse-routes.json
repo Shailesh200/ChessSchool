@@ -1,6 +1,7 @@
 {
   "routes": [
-    { "path": "/", "label": "Campus", "tier": "critical", "auth": false },
+    { "path": "/academy", "label": "Campus", "tier": "critical", "auth": false },
+    { "path": "/", "label": "Landing", "tier": "public", "auth": false },
     { "path": "/learn-chess", "label": "Learn chess SEO", "tier": "public", "auth": false },
     { "path": "/chess-for-beginners", "label": "Beginners SEO", "tier": "public", "auth": false },
     { "path": "/privacy", "label": "Privacy", "tier": "public", "auth": false },

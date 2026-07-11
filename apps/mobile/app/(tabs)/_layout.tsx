@@ -17,7 +17,8 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: colors.surfaceCard, borderTopColor: colors.hairline },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Learn", tabBarIcon: tabIcon("learn") }} />
+      <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: tabIcon("sparkle") }} />
+      <Tabs.Screen name="academy" options={{ title: "Academy", tabBarIcon: tabIcon("learn") }} />
       <Tabs.Screen name="play" options={{ title: "Play", tabBarIcon: tabIcon("play") }} />
       <Tabs.Screen name="review" options={{ title: "Review", tabBarIcon: tabIcon("review") }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon("cap") }} />

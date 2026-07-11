@@ -63,11 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const { user } = await api<{ user: User }>("/api/auth/me");
           setUser(user);
+          setGuest(false);
           void loadSettingsFromAccount();
           void fetchProgress(true).catch(() => void 0);
         } catch {
           await clearToken();
+          setGuest(true);
+          setUser(GUEST_USER);
         }
+      } else {
+        setGuest(true);
+        setUser(GUEST_USER);
       }
       setLoading(false);
     })();

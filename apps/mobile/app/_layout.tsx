@@ -22,7 +22,7 @@ import { UpdateBanner } from "@/UpdateBanner";
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function Gate() {
-  const { user, loading, needsOnboarding } = useAuth();
+  const { user, guest, loading, needsOnboarding } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -30,10 +30,10 @@ function Gate() {
     if (loading) return;
     const onLogin = segments[0] === "login";
     const onOnboarding = segments[0] === "onboarding";
-    if (!user && !onLogin) router.replace("/login");
-    else if (user && needsOnboarding && !onOnboarding) router.replace("/onboarding");
-    else if (user && !needsOnboarding && (onLogin || onOnboarding)) router.replace("/(tabs)");
-  }, [user, loading, needsOnboarding, segments]);
+    if (user && !guest && needsOnboarding && !onOnboarding) router.replace("/onboarding");
+    else if (user && !guest && !needsOnboarding && (onLogin || onOnboarding))
+      router.replace("/(tabs)");
+  }, [user, guest, loading, needsOnboarding, segments, router]);
 
   if (loading) {
     return <ScreenLoader variant="fullscreen" label="Opening the academy…" />;
