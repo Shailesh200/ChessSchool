@@ -5,6 +5,7 @@ import { semesters, classes, lessons, lessonRecords, progress } from "@/db/schem
 import { getApiUser } from "@/lib/auth";
 import { STAGES } from "@/content/school";
 import { isOptionalStage, orderClasses } from "@/lib/school-order";
+import { parseExtraData } from "@/lib/progress-merge";
 
 export const dynamic = "force-dynamic";
 
@@ -96,12 +97,7 @@ export async function GET(req: Request) {
         .where(eq(progress.userId, user.id))
         .limit(1)
     )[0];
-    try {
-      examsPassed =
-        (prow?.data ? (JSON.parse(prow.data).schoolExamsPassed as string[]) : []) ?? [];
-    } catch {
-      examsPassed = [];
-    }
+    examsPassed = parseExtraData(prow?.data).schoolExamsPassed ?? [];
   }
   const counts: Record<string, { done: number; total: number }> = {};
   for (const l of les) {

@@ -65,13 +65,13 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-045–M-048 — pre-GA hardening (next) |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slices 1–4 (merged 2026-07-10) · **M-059 (Verified 2026-07-10)** |
+| **Current Milestone** | M-046 — DB Indexes & Curriculum Cache |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slices 1–4 (merged 2026-07-10) · M-059 (Verified 2026-07-10) · **M-045 (Verified 2026-07-11)** |
 | **In Progress** | M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-045–M-048 (pre-GA hardening) |
-| **Deferred (pre-GA, not active)** | M-045–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-10 (v2.1 — M-059 Verified sign-off merged to main) |
+| **Next Milestone** | M-046 → M-047 → M-048 (pre-GA hardening) |
+| **Deferred (pre-GA, not active)** | M-046–M-048 hardening — resume before M-073 |
+| **Last Updated** | 2026-07-11 (v2.2 — M-045 Verified merged to main) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -446,7 +446,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-042** | Mobile Themes & Settings | App themes, board themes, coach personality (partial sync) | **Verified** |
 | **M-043** | Online PvP Security | Seat ownership, auth-required moves, CSPRNG game IDs | **Verified** |
 | **M-044** | Progress API Hardening | Transactional upsert, max-merge columns, no delete-all | **Verified** |
-| **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | Not Started |
+| **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | **Verified** |
 | **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | Not Started |
 | **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | Not Started |
 | **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | Not Started |
@@ -808,7 +808,7 @@ H1 and H2 resolved; integration tests green; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**In Progress (owner review pending)**
 
 ### Inputs
 
@@ -822,10 +822,10 @@ H1 and H2 resolved; integration tests green; milestone **Verified**.
 
 ### Deliverables
 
-- [ ] Rate limit middleware (IP + user keyed)
-- [ ] Zod validation on all POST bodies
-- [ ] Reject negative/huge XP, invalid mastery values
-- [ ] Malformed JSON returns 400, not 500
+- [x] Rate limit middleware (IP + user keyed)
+- [x] Zod validation on all POST bodies
+- [x] Reject negative/huge XP, invalid mastery values
+- [x] Malformed JSON returns 400, not 500
 
 ### Definition of Done
 

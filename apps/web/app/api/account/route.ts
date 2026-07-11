@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { deleteUserAccount, getApiUser, revokeToken } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,14 @@ const COOKIE = "chessschool_session";
 export async function DELETE(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const limited = enforceRateLimit(
+    req,
+    "account:delete",
+    { limit: 5, windowMs: 60_000 },
+    user.id,
+  );
+  if (limited) return limited;
 
   const bearer = req.headers.get("authorization");
   if (bearer?.startsWith("Bearer ")) await revokeToken(bearer.slice(7));

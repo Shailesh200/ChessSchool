@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { getApiUser } from "@/lib/auth";
 import { vitalsBatchSchema } from "@/lib/api-schemas";
 import { insertWebVitals } from "@/lib/analytics/serverInsert";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 /** Accept batched Core Web Vitals from the client (sendBeacon-friendly). */
 export async function POST(req: Request) {
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
+  const limited = enforceRateLimit(req, "vitals", { limit: 60, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const raw = await req.json().catch(() => null);
+  if (raw === null) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const parsed = vitalsBatchSchema.safeParse(raw);

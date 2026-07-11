@@ -89,3 +89,28 @@ export const analyticsEventSchema = z.object({
 export const analyticsBatchSchema = z.object({
   events: z.array(analyticsEventSchema).min(1).max(20),
 });
+
+const chessSquare = z.string().regex(/^[a-h][1-8]$/);
+
+/** Online PvP session mutations — seat token required on every action. */
+export const sessionPostSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("move"),
+    seatToken: z.string().min(8).max(256),
+    from: chessSquare,
+    to: chessSquare,
+    promotion: z.enum(["q", "r", "b", "n"]).optional(),
+  }),
+  z.object({
+    action: z.literal("resign"),
+    seatToken: z.string().min(8).max(256),
+  }),
+  z.object({
+    action: z.literal("timeout"),
+    seatToken: z.string().min(8).max(256),
+    color: z.enum(["w", "b"]).optional(),
+    seat: z.enum(["w", "b"]).optional(),
+  }),
+]);
+
+export type SessionPostBody = z.infer<typeof sessionPostSchema>;

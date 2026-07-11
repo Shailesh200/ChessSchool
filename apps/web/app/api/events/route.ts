@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { getApiUser } from "@/lib/auth";
 import { analyticsBatchSchema } from "@/lib/api-schemas";
 import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 /** Accept batched product analytics events from the client. */
 export async function POST(req: Request) {
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
+  const limited = enforceRateLimit(req, "events", { limit: 60, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const raw = await req.json().catch(() => null);
+  if (raw === null) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const parsed = analyticsBatchSchema.safeParse(raw);
