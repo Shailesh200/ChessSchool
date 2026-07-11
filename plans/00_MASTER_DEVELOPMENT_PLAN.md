@@ -65,13 +65,13 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-046 — DB Indexes & Curriculum Cache |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A (Verified 2026-07-09) · M-075 Phase B slices 1–4 (merged 2026-07-10) · M-059 (Verified 2026-07-10) · **M-045 (Verified 2026-07-11)** |
+| **Current Milestone** | M-047 — Session Token Hashing |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045 (Verified 2026-07-11) · **M-046 (Verified 2026-07-11)** |
 | **In Progress** | M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-046 → M-047 → M-048 (pre-GA hardening) |
-| **Deferred (pre-GA, not active)** | M-046–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-11 (v2.2 — M-045 Verified merged to main) |
+| **Next Milestone** | M-047 → M-048 (pre-GA hardening) |
+| **Deferred (pre-GA, not active)** | M-047–M-048 hardening — resume before M-073 |
+| **Last Updated** | 2026-07-11 (v2.3 — M-046 Verified merged to main) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -447,7 +447,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-043** | Online PvP Security | Seat ownership, auth-required moves, CSPRNG game IDs | **Verified** |
 | **M-044** | Progress API Hardening | Transactional upsert, max-merge columns, no delete-all | **Verified** |
 | **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | **Verified** |
-| **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | Not Started |
+| **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | **Verified** |
 | **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | Not Started |
 | **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | Not Started |
 | **M-049** | Mobile Resilience | 401 handling, fetch error states, write queue hardening | Not Started |
@@ -845,7 +845,9 @@ H3 resolved; fuzzing malformed bodies returns 400; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**Verified (owner approved 2026-07-11)**
+
+Deliverables: Drizzle indexes on hot FK columns, `getCurriculumSkeleton()` with `updateTag` invalidation on admin save, campus/next-lesson/library/catalog wired to cached skeleton (no per-request 16k lesson scan). Resolves CODE_REVIEW H4 + H5.
 
 ### Inputs
 
@@ -858,10 +860,10 @@ H3 resolved; fuzzing malformed bodies returns 400; milestone **Verified**.
 
 ### Deliverables
 
-- [ ] Drizzle index migration
-- [ ] `getCatalog()` cache with tag invalidation on admin save
-- [ ] Placement puzzle set precomputed/cached
-- [ ] Measurable latency improvement on `/api/campus`
+- [x] Drizzle index migration
+- [x] `getCatalog()` cache with tag invalidation on admin save
+- [x] Placement puzzle set precomputed/cached
+- [x] Measurable latency improvement on `/api/campus`
 
 ### Definition of Done
 

@@ -1,33 +1,19 @@
 import "server-only";
-import { asc } from "drizzle-orm";
-import { db } from "@/db";
-import { semesters as semT, classes as classT, lessons as lessonT } from "@/db/schema";
 import { STAGES } from "@/content/school";
 import type { Semester, SchoolClass } from "@/content/school";
 import type { Catalog } from "./structure";
+import { getCurriculumSkeleton } from "./curriculum-skeleton.server";
 
 /**
  * The live curriculum, read from the DB (the single source of truth — curated +
  * generated + anything added in /admin). Shaped exactly like the old constants
  * so the school logic/UI works unchanged.
  *
- * Pages that call this set `revalidate` (ISR) so the 500+-lesson read is cached
- * between navigations; admin edits call revalidatePath to refresh.
+ * Curriculum metadata is cached via `getCurriculumSkeleton()`; admin edits call
+ * `invalidateCurriculumCache()` to refresh.
  */
 export async function getCatalog(): Promise<Catalog> {
-  const [sems, cls, les] = await Promise.all([
-    db.select().from(semT).orderBy(asc(semT.sortOrder)),
-    db.select().from(classT).orderBy(asc(classT.sortOrder)),
-    db
-      .select({
-        id: lessonT.id,
-        classId: lessonT.classId,
-        isExam: lessonT.isExam,
-        title: lessonT.title,
-      })
-      .from(lessonT)
-      .orderBy(asc(lessonT.sortOrder)),
-  ]);
+  const { semesters: sems, classes: cls, lessons: les } = await getCurriculumSkeleton();
 
   const lessonIdsByClass = new Map<string, string[]>();
   const titles: Record<string, string> = {};

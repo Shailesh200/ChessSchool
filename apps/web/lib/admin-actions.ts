@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { semesters, classes, lessons } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { invalidateCurriculumCache } from "@/lib/curriculum-cache";
 
 async function requireAdmin(): Promise<{ ok: true } | { error: string }> {
   const user = await getCurrentUser();
@@ -16,6 +17,7 @@ async function requireAdmin(): Promise<{ ok: true } | { error: string }> {
 }
 
 function refresh() {
+  invalidateCurriculumCache();
   revalidatePath("/", "layout"); // refresh the ISR-cached campus/lesson pages
   revalidatePath("/admin");
   revalidatePath("/library");

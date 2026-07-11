@@ -1,17 +1,18 @@
+import { unstable_cache } from "next/cache";
+import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { lessons } from "@/db/schema";
+import { CURRICULUM_CACHE_TAG } from "@/features/school/curriculum-skeleton.server";
 
 export type PlacementPuzzle = { fen: string; solution: string[] };
 
-let cached: PlacementPuzzle[] | null = null;
-let cachedAt = 0;
-const TTL_MS = 3600_000;
+async function buildPlacementPuzzles(): Promise<PlacementPuzzle[]> {
+  const rows = await db
+    .select({ steps: lessons.steps })
+    .from(lessons)
+    .orderBy(asc(lessons.sortOrder))
+    .limit(600);
 
-/** Cached pool of ~8 spread puzzles for placement tests. */
-export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
-  if (cached && Date.now() - cachedAt < TTL_MS) return cached;
-
-  const rows = await db.select({ steps: lessons.steps }).from(lessons).limit(600);
   const all: PlacementPuzzle[] = [];
   for (const r of rows) {
     try {
@@ -34,13 +35,16 @@ export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
   const puzzles: PlacementPuzzle[] = [];
   for (let i = 0; i < all.length && puzzles.length < 8; i += stride)
     puzzles.push(all[i]!);
-
-  cached = puzzles;
-  cachedAt = Date.now();
   return puzzles;
 }
 
-export function clearPlacementCache(): void {
-  cached = null;
-  cachedAt = 0;
+const getCachedPlacementPuzzles = unstable_cache(
+  buildPlacementPuzzles,
+  ["placement-puzzles-v1"],
+  { tags: [CURRICULUM_CACHE_TAG], revalidate: 3600 },
+);
+
+/** Cached pool of ~8 spread puzzles for placement tests. */
+export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
+  return getCachedPlacementPuzzles();
 }

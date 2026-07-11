@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { lessons, classes, semesters, lessonRecords } from "@/db/schema";
+import { lessonRecords } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
+import { getCurriculumSkeleton } from "@/features/school/curriculum-skeleton.server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,30 +13,13 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ groups: [] });
 
   const recs = await db
-    .select()
+    .select({ lessonId: lessonRecords.lessonId, mastery: lessonRecords.mastery })
     .from(lessonRecords)
     .where(eq(lessonRecords.userId, user.id));
   const doneIds = new Set(recs.filter((r) => r.mastery >= 0.9).map((r) => r.lessonId));
   if (doneIds.size === 0) return NextResponse.json({ groups: [] });
 
-  const [les, cls, sems] = await Promise.all([
-    db
-      .select({
-        id: lessons.id,
-        title: lessons.title,
-        emoji: lessons.emoji,
-        classId: lessons.classId,
-      })
-      .from(lessons),
-    db.select({ id: classes.id, semesterId: classes.semesterId }).from(classes),
-    db
-      .select({
-        id: semesters.id,
-        title: semesters.title,
-        sortOrder: semesters.sortOrder,
-      })
-      .from(semesters),
-  ]);
+  const { semesters: sems, classes: cls, lessons: les } = await getCurriculumSkeleton();
   const classSem = new Map(cls.map((c) => [c.id, c.semesterId]));
   const semTitle = new Map(sems.map((s) => [s.id, s.title]));
   const semOrder = new Map(sems.map((s) => [s.id, s.sortOrder]));
