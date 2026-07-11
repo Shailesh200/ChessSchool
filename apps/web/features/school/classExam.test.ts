@@ -7,12 +7,26 @@ describe("buildClassExamSteps", () => {
     const teaching = [
       {
         steps: JSON.stringify([
-          { id: "q1", kind: "quiz", coach: "", question: "A?", options: [], correct: 0 },
+          {
+            id: "q1",
+            kind: "quiz",
+            coach: "",
+            question: "A?",
+            options: [],
+            correct: 0,
+          },
         ] satisfies LessonStep[]),
       },
       {
         steps: JSON.stringify([
-          { id: "q2", kind: "quiz", coach: "", question: "B?", options: [], correct: 1 },
+          {
+            id: "q2",
+            kind: "quiz",
+            coach: "",
+            question: "B?",
+            options: [],
+            correct: 1,
+          },
         ] satisfies LessonStep[]),
       },
     ];
@@ -25,7 +39,13 @@ describe("buildClassExamSteps", () => {
     const teaching = [
       {
         steps: JSON.stringify([
-          { id: "m1", kind: "move", coach: "Play e4.", fen: "8/8/8/8/8/8/8/8 w - - 0 1", solution: ["e2:e4"] },
+          {
+            id: "m1",
+            kind: "move",
+            coach: "Play e4.",
+            fen: "8/8/8/8/8/8/8/8 w - - 0 1",
+            solution: ["e2:e4"],
+          },
           { id: "q1", kind: "quiz", coach: "", question: "?", options: [], correct: 0 },
         ] satisfies LessonStep[]),
       },
@@ -38,7 +58,9 @@ describe("buildClassExamSteps", () => {
 
 describe("isTutorialLesson", () => {
   it("treats exams as scored even when quiz-only", () => {
-    expect(isTutorialLesson([{ id: "q", kind: "quiz" } as LessonStep], true)).toBe(false);
+    expect(isTutorialLesson([{ id: "q", kind: "quiz" } as LessonStep], true)).toBe(
+      false,
+    );
   });
 
   it("marks info-only lessons as tutorials", () => {

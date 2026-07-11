@@ -52,9 +52,12 @@ if (validation.summary.rejected > 0) {
 }
 
 const buckets = bucketPuzzles(puzzles);
-const { semesters, classes, lessons, puzzleCount } = buildCurriculumFromBuckets(buckets, {
-  targetTotal: TARGET_TOTAL,
-});
+const { semesters, classes, lessons, puzzleCount } = buildCurriculumFromBuckets(
+  buckets,
+  {
+    targetTotal: TARGET_TOTAL,
+  },
+);
 
 console.log(
   `Built ${lessons.length} lessons (${puzzleCount} puzzles + tutorials) · ${classes.length} classes · ${semesters.length} semesters`,
@@ -94,7 +97,9 @@ tx();
 
 const importReport = emptyReport("import-puzzle-school", bankDir);
 importReport.summary.scanned = puzzles.length;
-importReport.summary.inserted = lessons.filter((l) => l.classId.startsWith("pz-")).length;
+importReport.summary.inserted = lessons.filter((l) =>
+  l.classId.startsWith("pz-"),
+).length;
 importReport.summary.rejected = validation.summary.rejected;
 importReport.summary.warnings = validation.summary.warnings;
 importReport.byOutcome = validation.byOutcome;
@@ -103,4 +108,6 @@ finalizeReport(importReport, { failOnReject: false });
 printReportSummary(importReport);
 writeFileSync(REPORT_PATH, JSON.stringify(importReport, null, 2));
 console.log(`  Report:     ${REPORT_PATH}`);
-console.log(`✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump`);
+console.log(
+  `✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump`,
+);

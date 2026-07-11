@@ -298,10 +298,15 @@ export async function importPuzzleJsonl(
   )[0];
   if (!exists) return { error: `Class "${classId}" not found.` };
 
-  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   if (lines.length === 0) return { error: "No puzzle lines found." };
   if (lines.length > MAX_PUZZLE_JSONL) {
-    return { error: `Max ${MAX_PUZZLE_JSONL} puzzles per import (got ${lines.length}).` };
+    return {
+      error: `Max ${MAX_PUZZLE_JSONL} puzzles per import (got ${lines.length}).`,
+    };
   }
 
   /** @type {import('@chess-school/puzzle-school').BankPuzzle[]} */

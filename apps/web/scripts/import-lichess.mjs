@@ -21,7 +21,11 @@ import { createInterface } from "node:readline";
 import { createGunzip } from "node:zlib";
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
-import { emptyReport, printReportSummary, finalizeReport } from "@chess-school/puzzle-school";
+import {
+  emptyReport,
+  printReportSummary,
+  finalizeReport,
+} from "@chess-school/puzzle-school";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 // Defaults to OUR committed curated set at repo root; pass a path to re-curate.
@@ -424,10 +428,14 @@ const tx = db.transaction(() => {
   for (const l of lessons) insLes.run(l);
 });
 tx();
-importReport.summary.inserted = lessons.filter((l) => l.classId.startsWith("pz-")).length;
+importReport.summary.inserted = lessons.filter((l) =>
+  l.classId.startsWith("pz-"),
+).length;
 importReport.durationMs = Date.now() - importStarted;
 finalizeReport(importReport, { failOnReject: false });
 printReportSummary(importReport);
 writeFileSync(REPORT_PATH, JSON.stringify(importReport, null, 2));
 console.log(`  Report:     ${REPORT_PATH}`);
-console.log(`✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump && pnpm db:remote`);
+console.log(
+  `✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump && pnpm db:remote`,
+);

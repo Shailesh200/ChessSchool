@@ -22,17 +22,18 @@ function parseSteps(raw: string): LessonStep[] {
  * Build a short class exam from recent teaching lessons — move puzzles when
  * available, otherwise quiz steps (Pre-School classes).
  */
-export function buildClassExamSteps(
-  teaching: TeachingRow[],
-  limit = 5,
-): LessonStep[] {
+export function buildClassExamSteps(teaching: TeachingRow[], limit = 5): LessonStep[] {
   const recent = teaching.slice(-2);
   const pool = recent.length ? recent : teaching;
 
-  const moves = pool.flatMap((r) => parseSteps(r.steps).filter((s) => s.kind === "move"));
+  const moves = pool.flatMap((r) =>
+    parseSteps(r.steps).filter((s) => s.kind === "move"),
+  );
   if (moves.length > 0) return sampleExamSteps(moves, limit);
 
-  const quizzes = pool.flatMap((r) => parseSteps(r.steps).filter((s) => s.kind === "quiz"));
+  const quizzes = pool.flatMap((r) =>
+    parseSteps(r.steps).filter((s) => s.kind === "quiz"),
+  );
   if (quizzes.length > 0) return sampleExamSteps(quizzes, limit);
 
   return [];

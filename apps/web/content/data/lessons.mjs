@@ -953,7 +953,10 @@ export const LESSONS = [
         coach: "",
         question: "When can you capture en passant?",
         options: [
-          { label: "Right after the enemy pawn jumps two squares beside yours", emoji: "⚡" },
+          {
+            label: "Right after the enemy pawn jumps two squares beside yours",
+            emoji: "⚡",
+          },
           { label: "Any time later in the game", emoji: "⏳" },
           { label: "Only with a knight", emoji: "🐴" },
           { label: "Never — it is not a real rule", emoji: "🚫" },
@@ -1242,7 +1245,8 @@ export const LESSONS = [
           { label: "1 point", emoji: "♟️" },
         ],
         correct: 0,
-        explain: "The queen is worth 9 points — almost as much as a rook (5) and bishop (3) combined.",
+        explain:
+          "The queen is worth 9 points — almost as much as a rook (5) and bishop (3) combined.",
         failText: "Remember: Queen = 9, Rook = 5, Bishop/Knight = 3, Pawn = 1.",
         visual: "piece-roster",
       },

@@ -7,7 +7,6 @@
  * auth/user tables are untouched when they already exist.
  */
 import { readFileSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 
 const SEED_PATH = new URL("../db/seed.sql", import.meta.url);

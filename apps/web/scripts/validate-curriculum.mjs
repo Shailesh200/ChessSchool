@@ -10,10 +10,7 @@
 import { writeFileSync, existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import Database from "better-sqlite3";
-import {
-  validateCurriculum,
-  printReportSummary,
-} from "@chess-school/puzzle-school";
+import { validateCurriculum, printReportSummary } from "@chess-school/puzzle-school";
 
 const args = process.argv.slice(2);
 const remote = args.includes("--remote");
@@ -28,7 +25,9 @@ async function loadFromTurso() {
   }
   const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
   const [lessons, classes, semesters] = await Promise.all([
-    client.execute("SELECT id, class_id AS classId, tag, prerequisites, steps FROM lessons"),
+    client.execute(
+      "SELECT id, class_id AS classId, tag, prerequisites, steps FROM lessons",
+    ),
     client.execute("SELECT id, semester_id AS semesterId FROM classes"),
     client.execute("SELECT id FROM semesters"),
   ]);
