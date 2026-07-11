@@ -19,6 +19,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm puzzle-school:validate
       - run: pnpm --filter web db:fresh
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm verify:milestone

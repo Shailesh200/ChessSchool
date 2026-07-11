@@ -20,7 +20,8 @@
     "verify:web-lighthouse": "bash scripts/verify-web-lighthouse.sh",
     "verify:e2e-routes": "node scripts/verify-e2e-route-coverage.mjs",
     "verify:coverage": "bash scripts/verify-test-coverage.sh",
-    "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs"
+    "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs",
+    "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate"
   },
   "devDependencies": {
     "chrome-launcher": "^1.2.1",

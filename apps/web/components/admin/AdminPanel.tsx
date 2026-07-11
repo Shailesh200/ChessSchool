@@ -13,7 +13,10 @@ import {
   createLesson,
   deleteLesson,
   importContent,
+  importPuzzleJsonl,
 } from "@/lib/admin-actions";
+
+const PUZZLE_JSONL_EXAMPLE = `{"id":"cs-pz-middle-fork-demo","stage":"middle","concepts":["fork"],"rating":1110,"source":"authored","fen":"3R4/8/K7/pB2b3/1p6/1P2k3/3p4/8 w - - 4 58","line":["a6a5","e5c7","a5b4","c7d8"],"coach":{"setup":"Find the fork on the next move."}}`;
 
 const IMPORT_EXAMPLE = `{
   "semester": { "title": "Semester 7 · Imports", "stage": "middle", "color": "#5b5bd6" },
@@ -124,6 +127,9 @@ export function AdminPanel({
         {/* Bulk import (#14) */}
         <ImportSection />
 
+        {/* Puzzle School JSONL */}
+        <PuzzleJsonlSection classes={classes} />
+
         {/* Recent admin lessons */}
         {recent.length > 0 && (
           <Section title="Recently added">
@@ -213,6 +219,55 @@ function ImportSection() {
               {IMPORT_EXAMPLE}
             </pre>
           </details>
+        </form>
+      </Card>
+    </Section>
+  );
+}
+
+function PuzzleJsonlSection({ classes }: { classes: Opt[] }) {
+  const [state, formAction, pending] = useActionState(importPuzzleJsonl, undefined);
+  const [jsonl, setJsonl] = useState("");
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) setJsonl(await file.text());
+  }
+
+  return (
+    <Section title="Import puzzle bank records (JSONL)">
+      <Card>
+        <form action={formAction} className="flex flex-col gap-3">
+          <p className="text-ink-500 text-xs font-semibold">
+            One Puzzle School puzzle object per line — validated with chess.js before
+            save. Max 50 per batch. Use{" "}
+            <code className="font-mono">pnpm puzzle-school adapt-csv</code> for bulk
+            bank builds.
+          </p>
+          <Select name="classId" label="Target class" options={classes} />
+          <input
+            type="file"
+            accept=".jsonl,application/jsonl,text/plain"
+            onChange={onFile}
+            className="text-ink-700 file:rounded-pill file:bg-surface-sunken file:text-ink-700 text-xs font-semibold file:mr-3 file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold"
+          />
+          <textarea
+            name="jsonl"
+            value={jsonl}
+            onChange={(e) => setJsonl(e.target.value)}
+            rows={6}
+            placeholder={PUZZLE_JSONL_EXAMPLE}
+            className="rounded-card border-hairline bg-surface text-ink focus:border-brand border px-3 py-2 font-mono text-[11px] leading-relaxed outline-none"
+          />
+          {state?.error && (
+            <p className="text-danger text-xs font-bold">{state.error}</p>
+          )}
+          {state?.ok && (
+            <p className="text-success text-xs font-bold">✓ {state.message}</p>
+          )}
+          <Button type="submit" size="sm" disabled={pending}>
+            {pending ? "Importing…" : "Import puzzles"}
+          </Button>
         </form>
       </Card>
     </Section>
