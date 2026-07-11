@@ -1,6 +1,6 @@
 # M-065 — Tournament & Shadow Opponent Modes
 
-> **Status:** In Progress — Phase 3  
+> **Status:** In Progress — Phase 4 (optional Swiss)  
 > **Branch:** `milestone/M-065-shadow-tournament`  
 > **Depends on:** M-064 (match flow, saved games, coach commentary)
 
@@ -26,10 +26,10 @@
 - [x] Optional: play as the opposite color (defend vs your past attack)
 - [x] Fix shadow replay indexing (opponent-only move list)
 
-### Phase 3 — Arena tournament (local)
-- [ ] 4-bot round-robin at chosen ELO band
-- [ ] Standings card + XP
-- [ ] Persist run in progression store
+### Phase 3 — Arena tournament (local) ✅
+- [x] 4-bot round-robin at chosen ELO band
+- [x] Standings card + XP
+- [x] Persist run in progression store
 
 ### Phase 4 — Swiss bracket (optional)
 - [ ] Pairing logic for 8-player bot Swiss

@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Toggle } from "@/components/ui/Toggle";
-import { useSettings, type CoachPersonality, type CoachVoiceId } from "@/core/store/settings.store";
+import { useSettings, type CoachPersonality } from "@/core/store/settings.store";
 import { Select } from "@/components/ui/Select";
-import { COACH_VOICE_OPTIONS } from "@/lib/tts/voices";
-import { previewCoachVoice } from "@/core/audio/coachSpeech";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
@@ -14,6 +12,7 @@ import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
 import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
 import { COACH_AVATAR } from "@/components/ui/iconMaps";
+import { CoachVoicePicker } from "@/features/settings/CoachVoicePicker";
 import {
   SettingsNav,
   SettingsPanel,
@@ -110,30 +109,17 @@ export default function SettingsPage() {
                 />
               </Row>
               {s.coachSpeech && (
-                <Row label="Voice" hint="Who reads the coach lines">
-                  <div className="flex items-center gap-2">
-                    <Select
-                      className="w-44 shrink-0"
-                      options={COACH_VOICE_OPTIONS.map((v) => ({
-                        id: v.id,
-                        title: v.title,
-                      }))}
-                      value={s.coachVoice}
-                      onChange={(v) => {
-                        const voice = v as CoachVoiceId;
-                        s.set("coachVoice", voice);
-                        void previewCoachVoice(voice);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="text-brand-600 text-xs font-extrabold hover:underline"
-                      onClick={() => void previewCoachVoice(s.coachVoice)}
-                    >
-                      Preview
-                    </button>
-                  </div>
-                </Row>
+                <div className="border-hairline -mx-1 border-t py-4">
+                  <p className="text-ink text-sm font-extrabold">Speaking voice</p>
+                  <p className="text-ink-500 mt-0.5 mb-3 text-xs font-semibold">
+                    Tap a face to hear a preview — each voice has its own character.
+                  </p>
+                  <CoachVoicePicker
+                    value={s.coachVoice}
+                    personality={s.coachPersonality}
+                    onChange={(voice) => s.set("coachVoice", voice)}
+                  />
+                </div>
               )}
               <Row label="Haptics" hint="Vibration on supported devices">
                 <Toggle

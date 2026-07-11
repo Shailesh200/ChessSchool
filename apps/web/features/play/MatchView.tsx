@@ -20,6 +20,8 @@ import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useMatch, type ActiveMatch } from "@/core/store/match.store";
+import { useArena } from "@/core/store/arena.store";
+import type { ArenaRunRecord } from "@/features/play/arena";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { trackEvent } from "@/core/analytics/track";
 import { usePlan } from "@/core/store/plan.store";
@@ -130,6 +132,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [mateReviewHistory, setMateReviewHistory] =
     useState<VerboseMove[]>(restoredMateHistory);
   const [finalPgn, setFinalPgn] = useState(snap?.mateReviewPending ? active.pgn : "");
+  const [arenaRunDone, setArenaRunDone] = useState<ArenaRunRecord | null>(null);
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const [boardBox, boardSize] = useSquareSize();
@@ -139,6 +142,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
 
   const isBot = active.mode === "bot";
   const isShadow = active.mode === "shadow";
+  const arena = active.arena;
+  const isArena = Boolean(arena);
   const shadow = active.shadow;
   const autoOpponent = isBot || isShadow;
   const bot = botProfile(active.targetElo);
@@ -149,7 +154,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   );
   const thinkingGame = Boolean(active.thinkingMode) && isBot;
 
-  useCoachSpeech(coach, "match", !thinking && !over && !pendingMove, true);
+  // Match bubble is visual-only — don't speak bot names, "Shadow", etc.
+  useCoachSpeech(coach, "match", false, true);
 
   const showCalculationPrompt = useCallback(() => {
     const e = engineRef.current;
@@ -200,7 +206,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       };
       const playerWon = (isBot || isShadow) && winner === playerColor;
       const ratingBefore = useProgression.getState().rating;
-      if (isBot) {
+      if (isBot && !isArena) {
         const score = winner === null ? 0.5 : playerWon ? 1 : 0;
         progression.updateRating(active.targetElo, score);
         const st = useProgression.getState();
@@ -211,9 +217,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           rating: st.rating,
         }).forEach((id) => unlockAndCelebrate(id));
       }
+      if (isArena && arena) {
+        const score = winner === null ? 0.5 : playerWon ? 1 : 0;
+        useArena.getState().recordResult(arena.opponentId, score, active.id);
+        const record = useArena.getState().completeIfDone();
+        if (record) setArenaRunDone(record);
+      }
       const ratingAfter = useProgression.getState().rating;
-      if (playerWon) {
+      if (playerWon && !isArena) {
         progression.awardXp(40);
+        audio.play("victory");
+      } else if (playerWon && isArena) {
         audio.play("victory");
       } else if (winner === null) {
         audio.play("notify");
@@ -273,7 +287,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       await saveGame(game);
       usePlan.getState().markActivity("match", isoDay());
       trackEvent("game_end", {
-        mode: isShadow ? "shadow" : active.mode,
+        mode: isArena ? "arena" : isShadow ? "shadow" : active.mode,
         result,
         reason,
         bot: isBot,
@@ -281,7 +295,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         moveCount: game.moveCount,
       });
     },
-    [active, isBot, progression, bot.name, setEndSnapshot],
+    [active, isBot, isArena, isShadow, arena, playerColor, shadow, progression, bot.name, setEndSnapshot],
   );
 
   /** Restore game-over UI when PGN already ended but snapshot missing (older sessions). */
@@ -357,10 +371,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const e = engineRef.current;
     if (e.isGameOver()) return;
     setThinking(true);
+    const elo = isShadow ? Math.max(active.targetElo, 1200) : active.targetElo;
     // Search runs in a Web Worker (no UI freeze), overlapped with a ≥1s beat.
     const before = e.fen();
     Promise.all([
-      getBotMove(e.fen(), eloToConfig(active.targetElo), Math.random()),
+      getBotMove(e.fen(), eloToConfig(elo), Math.random()),
       new Promise((r) => window.setTimeout(r, 1000)),
     ]).then(([move]) => {
       if (move) {
@@ -388,7 +403,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       setThinking(false);
       checkOver();
     });
-  }, [active.targetElo, persist, checkOver, bot.name]);
+  }, [active.targetElo, isShadow, persist, checkOver, bot.name]);
+
+  const shadowFallbackToBot = useCallback(() => {
+    setShadowOffBook(true);
+    setCoach(shadowOffBookLine());
+    const e = engineRef.current;
+    if (!e.isGameOver() && e.turn() !== playerColor) botMove();
+    else setThinking(false);
+  }, [playerColor, botMove]);
 
   const shadowMove = useCallback(() => {
     if (!shadow || shadowOffBook) return;
@@ -399,14 +422,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const move = shadowLineRef.current[oppIdx];
     window.setTimeout(() => {
       if (!move) {
-        setThinking(false);
+        shadowFallbackToBot();
         return;
       }
       const applied = e.move(move);
       if (!applied) {
-        setCoach(shadowOffBookLine());
-        setShadowOffBook(true);
-        setThinking(false);
+        shadowFallbackToBot();
         return;
       }
       setLastMove({ from: move.from, to: move.to });
@@ -419,7 +440,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       setThinking(false);
       checkOver();
     }, 650);
-  }, [shadow, shadowOffBook, playerColor, persist, checkOver]);
+  }, [shadow, shadowOffBook, playerColor, persist, checkOver, shadowFallbackToBot]);
+
+  const runOpponentTurn = useCallback(() => {
+    if (isShadow && shadowOffBook) botMove();
+    else if (isShadow) shadowMove();
+    else if (isBot) botMove();
+  }, [isShadow, isBot, shadowOffBook, botMove, shadowMove]);
 
   const commitMove = useCallback(
     (move: MoveInput): boolean => {
@@ -447,12 +474,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           }),
         );
       }
-      if (!checkOver() && isBot) botMove();
-      else if (!checkOver() && isShadow && !shadowOffBook && e.turn() !== playerColor)
-        shadowMove();
+      if (!checkOver() && autoOpponent && engineRef.current.turn() !== playerColor)
+        runOpponentTurn();
       return true;
     },
-    [isBot, isShadow, shadowOffBook, persist, checkOver, botMove, shadowMove, active.targetElo, bot.name, playerColor],
+    [isBot, autoOpponent, shadowOffBook, persist, checkOver, runOpponentTurn, active.targetElo, bot.name, playerColor],
   );
 
   // Thinking game: coach calculation prompt when it's the player's turn.
@@ -498,12 +524,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     showCalculationPrompt();
   }, [showCalculationPrompt]);
 
-  // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
+  // Resume: if it's the opponent's turn on mount (e.g. after refresh), let them move.
   useEffect(() => {
     const e = engineRef.current;
-    if (isBot && !e.isGameOver() && e.turn() !== playerColor) botMove();
-    else if (isShadow && !shadowOffBook && !e.isGameOver() && e.turn() !== playerColor)
-      shadowMove();
+    if (!e.isGameOver() && e.turn() !== playerColor && autoOpponent) runOpponentTurn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -610,7 +634,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       <div className="pt-safe border-hairline bg-surface/90 sticky top-0 z-20 border-b px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
           <span className="text-ink flex items-center gap-2 text-sm font-extrabold">
-            {isShadow
+            {isArena
+              ? `Arena · vs ${arena?.opponentName ?? "bot"}`
+              : isShadow
               ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
               : isBot
                 ? `vs ${botName} · ${active.targetElo}`
@@ -637,9 +663,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                 onClick={() => {
                   leaveMatch();
                   audio.play("transition");
+                  if (isArena) router.push("/play/arena");
                 }}
               >
-                New game
+                {isArena ? "Arena" : "New game"}
               </Button>
             ) : (
               <Button size="sm" variant="danger" onClick={() => setResignOpen(true)}>
@@ -694,10 +721,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* board — capped square; container max-w-xl matches coach/clocks row */}
       <div
         ref={boardBox}
-        className="mx-auto flex min-h-0 w-full max-w-xl flex-1 items-center justify-center px-3 py-2"
+        className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col items-center justify-center px-3 py-2"
       >
         <div
-          className="relative max-w-full"
+          className="relative max-w-full shrink-0"
           style={{
             width: boardPx || undefined,
             height: boardPx || undefined,
@@ -744,7 +771,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   <div className="text-ink mt-1 text-2xl font-extrabold">
                     {over.text}
                   </div>
-                  {isBot && over.ratingDelta !== 0 && (
+                  {arenaRunDone && (
+                    <div className="rounded-pill bg-brand-50 text-brand-700 mt-3 inline-flex items-center gap-2 px-4 py-1.5 text-sm font-extrabold">
+                      Arena complete · #{arenaRunDone.placement} · +{arenaRunDone.xpEarned} XP
+                    </div>
+                  )}
+                  {isBot && !isArena && over.ratingDelta !== 0 && (
                     <div className="rounded-pill bg-surface-sunken mt-3 inline-flex items-center gap-2 px-4 py-1.5">
                       <span className="text-ink-500 text-xs font-bold">Rating</span>
                       <span
@@ -804,6 +836,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       >
                         Back to homework
                       </Button>
+                    ) : isArena ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          leaveMatch();
+                          router.push("/play/arena");
+                        }}
+                      >
+                        {arenaRunDone ? "Arena home" : "Next round"}
+                      </Button>
                     ) : (
                       <Button
                         size="sm"
@@ -830,12 +872,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             )}
           </AnimatePresence>
         </div>
-        {pendingMove && pendingSan && !over && (
-          <div className="mt-3 flex w-full flex-col items-center gap-2">
+      </div>
+
+      {pendingMove && pendingSan && !over && (
+        <div className="mx-auto w-full max-w-xl px-3 pb-2">
+          <div className="border-hairline bg-surface-card rounded-2xl border p-3 [box-shadow:var(--shadow-card)] lg:mx-auto lg:max-w-md">
             <p className="text-ink-500 text-center text-xs font-semibold">
               Staged move: <span className="text-ink font-extrabold">{pendingSan}</span>
             </p>
-            <div className="flex w-full gap-2">
+            <div className="mt-2 flex gap-2">
               <Button size="sm" variant="outline" block onClick={cancelPending}>
                 Rethink
               </Button>
@@ -844,8 +889,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
               </Button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* player bar (clock + captured material) */}
       <div className="mx-auto w-full max-w-xl px-3">

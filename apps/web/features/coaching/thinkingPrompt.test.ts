@@ -7,6 +7,17 @@ describe("thinkingPrompt", () => {
     expect(line.toLowerCase()).toMatch(/check/);
   });
 
+  it("varies prompts across move numbers", () => {
+    const a = calculationPrompt("friendly", 600, 4, false);
+    const b = calculationPrompt("friendly", 600, 22, false);
+    expect(a).not.toBe(b);
+  });
+
+  it("does not always append king-safety nudge", () => {
+    const line = calculationPrompt("friendly", 300, 6, false);
+    expect(line.toLowerCase()).not.toMatch(/king safe/);
+  });
+
   it("confirms staged moves with SAN", () => {
     const line = confirmMovePrompt("Nf3", "mentor");
     expect(line).toMatch(/Nf3/);

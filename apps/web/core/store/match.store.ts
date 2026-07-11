@@ -17,10 +17,18 @@ export interface ShadowMeta {
   flipped?: boolean;
 }
 
+export interface ArenaMeta {
+  runId: string;
+  opponentId: string;
+  bandElo: number;
+  opponentName: string;
+}
+
 export interface MatchStartOpts {
   fromHomework?: boolean;
   thinkingMode?: boolean;
   shadow?: ShadowMeta;
+  arena?: ArenaMeta;
 }
 
 /** Persisted game-over UI — survives tab switches and refresh. */
@@ -48,6 +56,7 @@ export interface ActiveMatch {
   blackMs: number;
   thinkingMode?: boolean;
   shadow?: ShadowMeta;
+  arena?: ArenaMeta;
   fromHomework?: boolean;
   endSnapshot: MatchEndSnapshot | null;
 }
@@ -89,6 +98,7 @@ export const useMatch = create<MatchStore>()(
             blackMs: timeControlMin * 60_000,
             thinkingMode: opts?.thinkingMode ?? false,
             shadow: opts?.shadow,
+            arena: opts?.arena,
             fromHomework: opts?.fromHomework ?? false,
             endSnapshot: null,
           },
@@ -136,7 +146,7 @@ export const useMatch = create<MatchStore>()(
     {
       name: "chessschool.activematch",
       storage: createJSONStorage(() => localStorage),
-      version: 5,
+      version: 6,
       skipHydration: true,
       migrate: (persisted) => {
         const s = persisted as { active?: ActiveMatch | null };
@@ -150,6 +160,9 @@ export const useMatch = create<MatchStore>()(
         }
         if (s?.active && s.active.thinkingMode === undefined) {
           s.active.thinkingMode = false;
+        }
+        if (s?.active && s.active.arena === undefined) {
+          s.active.arena = undefined;
         }
         return s as { active: ActiveMatch | null };
       },

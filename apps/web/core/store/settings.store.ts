@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { normalizeCoachVoice } from "@/lib/tts/voices";
 
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
@@ -16,11 +17,21 @@ export type CoachVoiceId =
   | "auto"
   | "jenny"
   | "aria"
-  | "jane"
-  | "sara"
+  | "emma"
+  | "michelle"
+  | "sonia"
+  | "natasha"
+  | "neerja"
   | "guy"
   | "davis"
+  | "roger"
+  | "brian"
+  | "ryan"
+  | "william"
   | "tony"
+  | "steffan"
+  | "jane"
+  | "sara"
   | "jason"
   | "andrew";
 
@@ -107,7 +118,7 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 5,
+      version: 6,
       skipHydration: true,
       // v1 -> v2: introduce schoolTheme; older board themes still resolve.
       // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
@@ -126,6 +137,9 @@ export const useSettings = create<SettingsState>()(
         }
         if (version < 5) {
           if (!s.coachVoice) s.coachVoice = "auto";
+        }
+        if (version < 6 && s.coachVoice) {
+          s.coachVoice = normalizeCoachVoice(s.coachVoice);
         }
         return { ...defaults, ...s } as SettingsState;
       },

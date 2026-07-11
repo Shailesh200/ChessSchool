@@ -69,8 +69,8 @@ This Master Development Plan converts existing product documentation (`README.md
 | **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · **M-063 (Verified 2026-07-11)** · **M-064 (Verified 2026-07-11)** · G-Hardening complete |
 | **In Progress** | M-065 · M-071 |
 | **Blocked** | M-073 (until G-WebGA) |
-| **Next Milestone** | M-065 Phase 2 |
-| **Last Updated** | 2026-07-11 (v2.9 — M-064 merged; M-065 Phase 1 shadow opponent) |
+| **Next Milestone** | M-065 Phase 4 (optional Swiss) |
+| **Last Updated** | 2026-07-11 (v2.10 — M-065 Phase 3 arena tournament) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.

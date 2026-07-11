@@ -237,6 +237,34 @@ export function MatchChooser() {
                 haptics.fire("select");
                 audio.play("select");
                 startNav();
+                router.push("/play/arena");
+              }}
+            >
+              <span className="flex items-center gap-3">
+                <IconBadge name="trophy" size="lg" tone="brand" />
+                <span>
+                  <span className="text-ink block text-sm font-extrabold">
+                    Arena tournament
+                  </span>
+                  <span className="text-ink-500 block text-xs font-semibold">
+                    4-bot round robin — standings and bonus XP
+                  </span>
+                </span>
+              </span>
+              <Icon name="chevronRight" size={18} className="text-ink-300 shrink-0" />
+            </button>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={listItem}>
+          <Card>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 text-left"
+              onClick={() => {
+                haptics.fire("select");
+                audio.play("select");
+                startNav();
                 router.push("/play/think");
               }}
             >

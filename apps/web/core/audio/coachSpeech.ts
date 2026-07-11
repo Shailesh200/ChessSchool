@@ -1,6 +1,7 @@
 "use client";
 
 import { applyCoachLine, type CoachContext } from "@/features/coaching/personality";
+import { normalizeCoachVoice, resolveEdgeVoice } from "@/lib/tts/voices";
 import {
   useSettings,
   type CoachPersonality,
@@ -16,24 +17,51 @@ function cacheKey(
   personality: CoachPersonality,
   voice: CoachVoiceId,
 ): string {
-  return `${voice}:${personality}:${text}`;
+  const resolved = normalizeCoachVoice(voice);
+  const edge = resolveEdgeVoice(personality, resolved);
+  return `${edge.name}|${edge.rate}|${edge.pitch}|${personality}|${resolved}|${text}`;
 }
 
 function stopCurrent() {
   if (currentAudio) {
     currentAudio.pause();
+    currentAudio.currentTime = 0;
     currentAudio.src = "";
     currentAudio = null;
   }
 }
 
-function speakWithBrowser(text: string, volume: number) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+function playUrl(url: string, volume: number, gen: number): Promise<void> {
+  stopCurrent();
+  if (gen !== speakGen) return Promise.resolve();
+
+  const el = new Audio(url);
+  el.volume = Math.min(1, Math.max(0, volume));
+  currentAudio = el;
+  return new Promise((resolve) => {
+    const finish = () => {
+      if (currentAudio === el) currentAudio = null;
+      resolve();
+    };
+    el.addEventListener("ended", finish, { once: true });
+    el.addEventListener("error", finish, { once: true });
+    void el.play().catch(finish);
+  });
+}
+
+function speakWithBrowser(text: string, volume: number, gen: number): Promise<void> {
+  if (typeof window === "undefined" || !window.speechSynthesis) return Promise.resolve();
   window.speechSynthesis.cancel();
+  if (gen !== speakGen) return Promise.resolve();
+
   const utter = new SpeechSynthesisUtterance(text);
   utter.volume = Math.min(1, Math.max(0, volume));
   utter.rate = 1;
-  window.speechSynthesis.speak(utter);
+  return new Promise((resolve) => {
+    utter.onend = () => resolve();
+    utter.onerror = () => resolve();
+    window.speechSynthesis.speak(utter);
+  });
 }
 
 async function fetchCloudAudio(
@@ -41,14 +69,15 @@ async function fetchCloudAudio(
   personality: CoachPersonality,
   voice: CoachVoiceId,
 ): Promise<string | null> {
-  const key = cacheKey(text, personality, voice);
+  const resolved = normalizeCoachVoice(voice);
+  const key = cacheKey(text, personality, resolved);
   const hit = audioCache.get(key);
   if (hit) return hit;
 
   const res = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, personality, voice }),
+    body: JSON.stringify({ text, personality, voice: resolved }),
   });
   if (!res.ok) return null;
 
@@ -66,15 +95,7 @@ async function fetchCloudAudio(
   return url;
 }
 
-function playUrl(url: string, volume: number) {
-  stopCurrent();
-  const el = new Audio(url);
-  el.volume = Math.min(1, Math.max(0, volume));
-  currentAudio = el;
-  void el.play().catch(() => {});
-}
-
-/** Stop any in-flight coach speech (e.g. on unmount). */
+/** Stop any in-flight coach speech (e.g. on unmount or voice switch). */
 export function stopCoachSpeech() {
   speakGen++;
   stopCurrent();
@@ -91,22 +112,20 @@ export async function speakCoachText(text: string): Promise<void> {
   const line = text.trim();
   if (!line || line === "Thinking…") return;
 
-  const gen = ++speakGen;
-  const url = await fetchCloudAudio(
-    line,
-    settings.coachPersonality,
-    settings.coachVoice,
-  );
+  stopCoachSpeech();
+  const gen = speakGen;
+  const voice = normalizeCoachVoice(settings.coachVoice);
+  const url = await fetchCloudAudio(line, settings.coachPersonality, voice);
   if (gen !== speakGen) return;
 
   if (url) {
-    playUrl(url, settings.volume);
+    await playUrl(url, settings.volume, gen);
     return;
   }
-  speakWithBrowser(line, settings.volume);
+  await speakWithBrowser(line, settings.volume, gen);
 }
 
-/** Preview a voice from Settings (sample line). */
+/** Preview a voice from Settings (sample line). Stops any prior preview first. */
 export async function previewCoachVoice(
   voice: CoachVoiceId,
   sample = "Nice work — keep scanning the board for your next idea.",
@@ -114,15 +133,17 @@ export async function previewCoachVoice(
   const settings = useSettings.getState();
   if (!settings.sound) return;
 
-  const gen = ++speakGen;
-  const url = await fetchCloudAudio(sample, settings.coachPersonality, voice);
+  stopCoachSpeech();
+  const gen = speakGen;
+  const resolved = normalizeCoachVoice(voice);
+  const url = await fetchCloudAudio(sample, settings.coachPersonality, resolved);
   if (gen !== speakGen) return;
 
   if (url) {
-    playUrl(url, settings.volume);
+    await playUrl(url, settings.volume, gen);
     return;
   }
-  speakWithBrowser(sample, settings.volume);
+  await speakWithBrowser(sample, settings.volume, gen);
 }
 
 /**
