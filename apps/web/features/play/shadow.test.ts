@@ -48,4 +48,10 @@ describe("shadow", () => {
     expect(cfg?.playerColor).toBe("w");
     expect(cfg?.opponentName).toMatch(/Cody/);
   });
+
+  it("flips player color", () => {
+    const cfg = shadowFromGame(game(), { flipColor: true });
+    expect(cfg?.playerColor).toBe("b");
+    expect(cfg?.flipped).toBe(true);
+  });
 });

@@ -14,6 +14,7 @@ export interface ShadowMeta {
   shadowPgn: string;
   playerColor: Color;
   opponentName: string;
+  flipped?: boolean;
 }
 
 export interface MatchStartOpts {

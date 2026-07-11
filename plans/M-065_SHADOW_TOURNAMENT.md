@@ -1,6 +1,6 @@
 # M-065 — Tournament & Shadow Opponent Modes
 
-> **Status:** In Progress — Phase 2  
+> **Status:** In Progress — Phase 3  
 > **Branch:** `milestone/M-065-shadow-tournament`  
 > **Depends on:** M-064 (match flow, saved games, coach commentary)
 
@@ -21,9 +21,10 @@
 - [x] Entry from Play chooser → `/play/shadow`
 - [x] Shadow rematch CTA on game replay (`/review/[id]`)
 
-### Phase 2 — Shadow polish
-- [ ] Coach lines for shadow mode (personality + off-book)
-- [ ] Optional: play as the opposite color (defend vs your past attack)
+### Phase 2 — Shadow polish ✅
+- [x] Coach lines for shadow mode (personality + off-book)
+- [x] Optional: play as the opposite color (defend vs your past attack)
+- [x] Fix shadow replay indexing (opponent-only move list)
 
 ### Phase 3 — Arena tournament (local)
 - [ ] 4-bot round-robin at chosen ELO band

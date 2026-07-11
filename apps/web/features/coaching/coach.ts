@@ -16,6 +16,11 @@ import {
   confirmMovePrompt,
   thinkingMatchGreeting,
 } from "./thinkingPrompt";
+import {
+  shadowGreeting as shadowGreetingFor,
+  shadowMoveLine as shadowMoveLineFor,
+  shadowOffBookLine as shadowOffBookLineFor,
+} from "./shadowCoach";
 
 /**
  * Coach voice — personalities retint feedback tone. Match commentary blends
@@ -78,6 +83,22 @@ export function confirmCoachMove(san: string): string {
 
 export function passPlayGreeting(): string {
   return passPlayGreetingFor(personality());
+}
+
+export function shadowGreeting(
+  opponentName: string,
+  playerColor: "w" | "b",
+  flipped: boolean,
+): string {
+  return shadowGreetingFor(personality(), opponentName, playerColor, flipped);
+}
+
+export function shadowMoveLine(san: string, opponentName: string): string {
+  return shadowMoveLineFor(personality(), san, opponentName);
+}
+
+export function shadowOffBookLine(): string {
+  return shadowOffBookLineFor(personality());
 }
 
 export function matchRecap(input: Omit<GameRecapInput, "personality">): string {

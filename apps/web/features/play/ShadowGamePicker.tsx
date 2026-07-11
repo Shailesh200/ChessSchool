@@ -6,7 +6,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
 import { listGames, type SavedGame } from "@/core/db/db";
 import { useMatch } from "@/core/store/match.store";
 import { shadowFromGame } from "@/features/play/shadow";
@@ -31,8 +30,8 @@ export function ShadowGamePicker() {
     );
   }, []);
 
-  function begin(game: SavedGame) {
-    const shadow = shadowFromGame(game);
+  function begin(game: SavedGame, flipColor = false) {
+    const shadow = shadowFromGame(game, { flipColor });
     if (!shadow) return;
     haptics.fire("success");
     audio.play("unlock");
@@ -42,6 +41,7 @@ export function ShadowGamePicker() {
         shadowPgn: shadow.pgn,
         playerColor: shadow.playerColor,
         opponentName: shadow.opponentName,
+        flipped: shadow.flipped,
       },
     });
     startNav();
@@ -74,22 +74,23 @@ export function ShadowGamePicker() {
         <ul className="flex flex-col gap-2">
           {games?.map((g) => (
             <li key={g.id}>
-              <button
-                type="button"
-                className="rounded-card border-hairline bg-surface-card flex w-full items-center justify-between gap-3 border p-3 text-left [box-shadow:var(--shadow-card)]"
-                onClick={() => begin(g)}
-              >
-                <span className="min-w-0">
-                  <span className="text-ink block truncate text-sm font-extrabold">
-                    {g.whiteName} vs {g.blackName}
-                  </span>
-                  <span className="text-ink-500 block text-xs font-semibold">
-                    {outcomeLabel(g)} · {g.moveCount} moves ·{" "}
-                    {new Date(g.updatedAt).toLocaleDateString()}
-                  </span>
+              <div className="rounded-card border-hairline bg-surface-card border p-3 [box-shadow:var(--shadow-card)]">
+                <span className="text-ink block truncate text-sm font-extrabold">
+                  {g.whiteName} vs {g.blackName}
                 </span>
-                <Icon name="chevronRight" size={18} className="text-ink-300 shrink-0" />
-              </button>
+                <span className="text-ink-500 mt-0.5 block text-xs font-semibold">
+                  {outcomeLabel(g)} · {g.moveCount} moves ·{" "}
+                  {new Date(g.updatedAt).toLocaleDateString()}
+                </span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => begin(g, false)}>
+                    Same seat
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => begin(g, true)}>
+                    Swap sides
+                  </Button>
+                </div>
+              </div>
             </li>
           ))}
         </ul>

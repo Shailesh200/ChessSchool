@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
-import { commentOnMove, matchGreeting, passPlayGreeting, matchRecap, calculationCoachPrompt, confirmCoachMove, thinkingGreeting } from "@/features/coaching/coach";
+import { commentOnMove, matchGreeting, passPlayGreeting, matchRecap, calculationCoachPrompt, confirmCoachMove, thinkingGreeting, shadowGreeting, shadowMoveLine, shadowOffBookLine } from "@/features/coaching/coach";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
@@ -28,7 +28,7 @@ import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { MatchMateReviewModal } from "@/features/play/MatchMateReviewModal";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
-import { movesFromPgn } from "@/features/play/shadow";
+import { opponentMoves } from "@/features/play/shadow";
 import type { MoveInput, Square, VerboseMove } from "@/core/types/chess";
 
 function engineFromPgn(pgn: string): ChessEngine {
@@ -86,7 +86,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [coach, setCoach] = useState(() => {
     if (active.pgn) return matchGreeting(0, "Coach", true);
     if (active.mode === "shadow" && active.shadow) {
-      return `Shadow rematch vs ${active.shadow.opponentName} — try a new idea against the same line.`;
+      return shadowGreeting(
+        active.shadow.opponentName,
+        active.shadow.playerColor,
+        active.shadow.flipped ?? false,
+      );
     }
     if (active.mode === "bot") {
       const b = botProfile(active.targetElo);
@@ -140,7 +144,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const bot = botProfile(active.targetElo);
   const botName = bot.name;
   const playerColor = shadow?.playerColor ?? "w";
-  const shadowLineRef = useRef(movesFromPgn(shadow?.shadowPgn ?? ""));
+  const shadowLineRef = useRef(
+    opponentMoves(shadow?.shadowPgn ?? "", playerColor),
+  );
   const thinkingGame = Boolean(active.thinkingMode) && isBot;
 
   useCoachSpeech(coach, "match", !thinking && !over && !pendingMove, true);
@@ -389,8 +395,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const e = engineRef.current;
     if (e.isGameOver() || e.turn() === playerColor) return;
     setThinking(true);
-    const ply = e.history().length;
-    const move = shadowLineRef.current[ply];
+    const oppIdx = e.history().filter((m) => m.color !== playerColor).length;
+    const move = shadowLineRef.current[oppIdx];
     window.setTimeout(() => {
       if (!move) {
         setThinking(false);
@@ -398,7 +404,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       }
       const applied = e.move(move);
       if (!applied) {
-        setCoach("You left the book — shadow can't follow. Keep playing on your own!");
+        setCoach(shadowOffBookLine());
         setShadowOffBook(true);
         setThinking(false);
         return;
@@ -408,7 +414,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       setPgn(e.pgn());
       audio.play(applied.captured ? "capture" : "move");
       if (e.inCheck()) audio.play("check");
-      setCoach(`Shadow plays ${applied.san}.`);
+      setCoach(shadowMoveLine(applied.san, shadow.opponentName));
       persist(move.from, move.to);
       setThinking(false);
       checkOver();

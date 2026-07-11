@@ -93,9 +93,9 @@ export function GameReplay({ id }: { id: string }) {
 
   const preventionTip = mate ? matePreventionTip(mate.pattern) : "";
 
-  function startShadowRematch() {
+  function startShadowRematch(flipColor = false) {
     if (!game) return;
-    const shadow = shadowFromGame(game);
+    const shadow = shadowFromGame(game, { flipColor });
     if (!shadow) return;
     haptics.fire("success");
     audio.play("unlock");
@@ -105,6 +105,7 @@ export function GameReplay({ id }: { id: string }) {
         shadowPgn: shadow.pgn,
         playerColor: shadow.playerColor,
         opponentName: shadow.opponentName,
+        flipped: shadow.flipped,
       },
     });
     startNav();
@@ -230,12 +231,20 @@ export function GameReplay({ id }: { id: string }) {
       </Card>
 
       {game.moveCount >= 2 && (
-        <Button className="w-full" onClick={startShadowRematch}>
-          <span className="inline-flex items-center gap-2">
-            <Icon name="users" size={18} />
-            Shadow rematch
-          </span>
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button className="w-full" onClick={() => startShadowRematch(false)}>
+            <span className="inline-flex items-center gap-2">
+              <Icon name="users" size={18} />
+              Shadow rematch
+            </span>
+          </Button>
+          <Button className="w-full" variant="outline" onClick={() => startShadowRematch(true)}>
+            <span className="inline-flex items-center gap-2">
+              <Icon name="flip" size={18} />
+              Defend vs your attack
+            </span>
+          </Button>
+        </div>
       )}
     </div>
   );

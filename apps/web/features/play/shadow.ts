@@ -40,16 +40,27 @@ export interface ShadowConfig {
   pgn: string;
   playerColor: Color;
   opponentName: string;
+  flipped?: boolean;
 }
 
-export function shadowFromGame(game: SavedGame): ShadowConfig | null {
+export function shadowFromGame(
+  game: SavedGame,
+  opts?: { flipColor?: boolean },
+): ShadowConfig | null {
   if (!game.pgn?.trim() || game.moveCount < 2) return null;
-  const playerColor = inferPlayerColor(game);
-  const opponentName = playerColor === "w" ? game.blackName : game.whiteName;
+  let playerColor = inferPlayerColor(game);
+  if (opts?.flipColor) playerColor = playerColor === "w" ? "b" : "w";
+  const opponentName =
+    opts?.flipColor
+      ? "your past self"
+      : playerColor === "w"
+        ? game.blackName
+        : game.whiteName;
   return {
     gameId: game.id,
     pgn: game.pgn,
     playerColor,
     opponentName,
+    flipped: opts?.flipColor ?? false,
   };
 }
