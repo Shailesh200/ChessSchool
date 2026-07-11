@@ -1,6 +1,6 @@
 # M-064 — Thinking Mode & Match Commentary
 
-> **Status:** In Progress — Phase 3  
+> **Status:** In Progress — Phase 4  
 > **Branch:** `milestone/M-064-thinking-mode`  
 > **Depends on:** M-063 (curriculum + live match chat foundation)
 
@@ -26,9 +26,9 @@ Train **calculation** like a school exercise, and give every finished game a **c
 - [x] Persist flag on `ActiveMatch`
 
 ### Phase 3 — Calculation trainer
-- [ ] Standalone `/play/think` or homework-linked positions
-- [ ] Hide answer until player commits a line or taps “Show solution”
-- [ ] Stockfish-lite hint (optional, behind existing engine)
+- [x] Standalone `/play/think` + entry from Play chooser
+- [x] Hide answer until player locks in a move or taps Show solution
+- [x] Two-step hints via existing engine (`hintArrow`)
 
 ### Phase 4 — Review integration
 - [ ] Recap links to mate review / journal reflect
