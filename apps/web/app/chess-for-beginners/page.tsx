@@ -61,16 +61,28 @@ export default function ChessForBeginnersPage() {
                 emoji: "♞",
               },
               {
-                href: "/class/class-pre-rules",
-                title: "Chess Rules",
-                description: "Check, checkmate, stalemate, promotion, castling.",
-                emoji: "📜",
-              },
-              {
                 href: "/class/class-pre-moves",
                 title: "Piece Moves",
-                description: "Hands-on puzzles for every piece type.",
+                description: "Hands-on practice for every piece type.",
                 emoji: "♟️",
+              },
+              {
+                href: "/class/class-pre-capture",
+                title: "Capture & Blocking",
+                description: "Taking pieces and blocked paths.",
+                emoji: "⚔️",
+              },
+              {
+                href: "/class/class-pre-special",
+                title: "Special Moves",
+                description: "Promotion, castling, and en passant.",
+                emoji: "✨",
+              },
+              {
+                href: "/class/class-pre-endings",
+                title: "How Games End",
+                description: "Check, checkmate, stalemate, and draws.",
+                emoji: "🏁",
               },
               {
                 href: "/class/class-pre-language",

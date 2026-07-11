@@ -29,6 +29,7 @@
     "db:dump": "node scripts/dump.mjs",
     "db:import-puzzles": "node scripts/import-puzzle-school.mjs",
     "db:import-puzzle-school": "node scripts/import-puzzle-school.mjs",
+    "puzzle-school:validate": "node ../../packages/puzzle-school/cli/puzzle-school.mjs validate",
     "curriculum:validate": "node scripts/validate-curriculum.mjs",
     "db:reset": "rm -f local.db local.db-shm local.db-wal",
     "db:fresh": "pnpm db:reset && pnpm db:push && pnpm db:seed && pnpm db:seed-homework",

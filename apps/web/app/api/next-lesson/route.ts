@@ -46,7 +46,14 @@ export async function GET(req: Request) {
     const sem = sems.find((s) => s.id === c.semesterId);
     if (
       sem &&
-      shouldSkipSemester(sem, semClassIds.get(sem.id) ?? [], mastery, lessonClassById)
+      shouldSkipSemester(
+        sem,
+        semClassIds.get(sem.id) ?? [],
+        mastery,
+        lessonClassById,
+        orderedClasses,
+        sems,
+      )
     ) {
       continue;
     }

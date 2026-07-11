@@ -20,6 +20,7 @@ import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
 import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
+import { isTutorialLesson, scoredStepCount } from "@/features/school/classExam";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
@@ -192,7 +193,7 @@ export function LessonPlayer({
   function finish() {
     // Tutorials (no puzzles to solve) just mark done and flow to the next lesson —
     // no "lesson complete" celebration screen.
-    const isTutorial = !lesson.steps.some((s) => s.kind === "move");
+    const isTutorial = isTutorialLesson(lesson.steps, lesson.exam);
     if (isTutorial) {
       progression.recordLesson(lesson.id, 1, 1); // counts as completed
       progression.awardXp(lesson.xp);
@@ -211,7 +212,7 @@ export function LessonPlayer({
       return;
     }
     setPhase("complete");
-    const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
+    const interactive = scoredStepCount(lesson.steps) || 1;
     const correct = correctRef.current; // fresh count (state may lag the auto-advance)
     setFinalMistakes(wrongRef.current);
     const ratio = correct / interactive;
@@ -365,8 +366,12 @@ export function LessonPlayer({
   }
 
   function handleQuizAnswer(ok: boolean) {
-    if (ok) setPhase("correct");
-    else {
+    if (ok) {
+      correctRef.current += 1;
+      setCorrectCount(correctRef.current);
+      setPhase("correct");
+    } else {
+      wrongRef.current += 1;
       setPhase("wrong");
       timers.current.push(window.setTimeout(() => setPhase("playing"), 900));
     }

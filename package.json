@@ -19,7 +19,8 @@
     "verify:web-seo": "bash scripts/verify-web-seo.sh",
     "verify:web-lighthouse": "bash scripts/verify-web-lighthouse.sh",
     "verify:e2e-routes": "node scripts/verify-e2e-route-coverage.mjs",
-    "verify:coverage": "bash scripts/verify-test-coverage.sh"
+    "verify:coverage": "bash scripts/verify-test-coverage.sh",
+    "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs"
   },
   "devDependencies": {
     "chrome-launcher": "^1.2.1",

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LessonStep } from "./types";
 import { formatCoachText } from "@chess-school/progression";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { PreschoolQuizVisual } from "./PreschoolQuizVisual";
+import { shuffleQuizOptions } from "./shuffleQuizOptions";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 
@@ -22,8 +23,10 @@ export function PreschoolQuiz({
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [shake, setShake] = useState(0);
-  const options = step.options ?? [];
-  const correctIdx = step.correct ?? 0;
+  const { options, correctIdx } = useMemo(
+    () => shuffleQuizOptions(step.options ?? [], step.correct ?? 0),
+    [step.id, step.options, step.correct],
+  );
 
   function pick(i: number) {
     if (phase === "correct" || picked !== null) return;

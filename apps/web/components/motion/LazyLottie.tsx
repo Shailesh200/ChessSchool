@@ -22,9 +22,18 @@ const SRC: Record<LottieAsset, string> = {
   "streak-milestone": "/lottie/streak-milestone.json",
 };
 
+/** Dev placeholder JSON (solid shapes) — keep SVG/icon children visible until GA exports. */
+const PLACEHOLDER_LOTTIE = new Set<LottieAsset>([
+  "lesson-complete",
+  "class-graduate",
+  "exam-pass",
+  "achievement-unlock",
+  "streak-milestone",
+]);
+
 /**
  * Lazy-loaded Lottie — static fallback always paints first; animation overlays
- * when JSON loads. Skipped when reduced-motion.
+ * only for non-placeholder JSON. Skipped when reduced-motion.
  */
 export function LazyLottie({
   asset,
@@ -41,7 +50,7 @@ export function LazyLottie({
   const [data, setData] = useState<object | null>(null);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || PLACEHOLDER_LOTTIE.has(asset)) return;
     let cancelled = false;
     fetch(SRC[asset])
       .then((r) => (r.ok ? r.json() : null))
@@ -54,7 +63,7 @@ export function LazyLottie({
     };
   }, [asset, reduced]);
 
-  const showLottie = !reduced && data;
+  const showLottie = !reduced && !PLACEHOLDER_LOTTIE.has(asset) && data;
 
   return (
     <div className={cn("relative flex items-center justify-center", className)}>

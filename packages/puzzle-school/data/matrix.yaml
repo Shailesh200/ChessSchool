@@ -6,7 +6,7 @@ stages:
   middle: { rating: [1000, 1349], min_classes: 3 }
   high: { rating: [1350, 1699], min_classes: 3 }
   university: { rating: [1700, 2099], min_classes: 3 }
-  master: { rating: [2100, 3000], min_classes: 3 }
+  master: { rating: [2100, 4000], min_classes: 3 }
 
 concepts:
   - id: trapped

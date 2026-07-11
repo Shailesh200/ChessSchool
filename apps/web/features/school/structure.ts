@@ -220,6 +220,20 @@ export interface SchoolLocation {
   complete: boolean; // whole school finished
 }
 
+export function hasStartedRequiredTrack(
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  semesters: Semester[] = SEMESTERS,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): boolean {
+  for (const cls of allClasses) {
+    if (isOptionalClass(cls.id, semesters)) continue;
+    if (graduatedClasses.includes(cls.id)) return true;
+    if (classHasStarted(cls, records)) return true;
+  }
+  return false;
+}
+
 /** Where the student currently stands — powers the breadcrumb / resume card. */
 export function currentLocation(
   records: Record<string, LessonRecord>,
@@ -229,10 +243,18 @@ export function currentLocation(
 ): SchoolLocation {
   const allClasses = semesters.flatMap((s) => s.classes);
   const titleOf = (id: string) => titles[id] ?? getLesson(id)?.title ?? "Lesson";
+  const requiredStarted = hasStartedRequiredTrack(
+    records,
+    graduatedClasses,
+    semesters,
+    allClasses,
+  );
   for (const semester of semesters) {
     const stage = STAGES.find((st) => st.id === semester.stage);
-    if (stage?.optional && !semester.classes.some((c) => classHasStarted(c, records)))
-      continue;
+    const optionalStarted = semester.classes.some((c) => classHasStarted(c, records));
+    // Pre-School is optional, but brand-new students start here — skip only if they
+    // already began the required curriculum elsewhere (placement, prior guest progress).
+    if (stage?.optional && !optionalStarted && requiredStarted) continue;
     for (const cls of semester.classes) {
       if (!isClassGraduated(cls, records, graduatedClasses)) {
         const lessonId = nextLessonInClass(cls, records) ?? cls.lessonIds[0] ?? "";

@@ -6,12 +6,17 @@
   "description": "Curriculum bank format, validation, and import reports (open-source ready)",
   "exports": {
     ".": "./src/index.mjs",
-    "./report": "./src/report.mjs"
+    "./report": "./src/report.mjs",
+    "./bank": "./src/bank.mjs",
+    "./curriculum-build": "./src/curriculum-build.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0"
   },
   "scripts": {
-    "test": "node --test src/*.test.mjs"
+    "test": "node --test src/*.test.mjs",
+    "validate": "node cli/puzzle-school.mjs validate",
+    "stats": "node cli/puzzle-school.mjs stats",
+    "adapt-csv": "node cli/puzzle-school.mjs adapt-csv"
   }
 }

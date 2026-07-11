@@ -94,5 +94,9 @@ const getCachedSkeleton = unstable_cache(
 
 /** Cached curriculum skeleton — shared by campus, catalog, library, next-lesson. */
 export async function getCurriculumSkeleton(): Promise<CurriculumSkeleton> {
+  // Dev re-seeds local.db often; skip the 1h cache so campus matches the DB immediately.
+  if (process.env.NODE_ENV === "development") {
+    return loadCurriculumSkeleton();
+  }
   return getCachedSkeleton();
 }

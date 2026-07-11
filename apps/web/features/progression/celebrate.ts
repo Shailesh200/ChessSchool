@@ -12,7 +12,7 @@ export function unlockAndCelebrate(id: string): boolean {
     icon: "trophy",
     tone: "success",
     lottie: "achievement-unlock",
-    sticky: true,
+    duration: 4500,
   });
   return true;
 }

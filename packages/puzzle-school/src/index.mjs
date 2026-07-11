@@ -130,3 +130,15 @@ export function validateCurriculum(input, opts = {}) {
 export { PRESCHOOL_TOPICS, preschoolTopicForLesson, topicIndex };
 export { emptyReport, printReportSummary, finalizeReport } from "./report.mjs";
 export { validateLessonSteps, validatePreschoolSpine } from "./validate.mjs";
+export { loadBank, bucketPuzzles } from "./bank.mjs";
+export { validateBank } from "./validate-bank.mjs";
+export { bankStats, printBankStats } from "./stats.mjs";
+export { compilePuzzleSteps } from "./compile-lesson.mjs";
+export { buildCurriculumFromBuckets } from "./curriculum-build.mjs";
+export {
+  CONCEPT_GROUPS,
+  CONCEPT_TUTORIALS,
+  STAGE_BANDS,
+  conceptForThemes,
+  stageForRating,
+} from "./concepts.mjs";

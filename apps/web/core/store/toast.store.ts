@@ -17,6 +17,8 @@ export interface ToastItem {
   action?: { label: string; onClick: () => void };
   /** sticky toasts stay until dismissed/actioned (no auto-timeout) */
   sticky?: boolean;
+  /** auto-dismiss delay in ms (ignored when sticky) */
+  duration?: number;
 }
 
 interface ToastState {
@@ -35,7 +37,7 @@ export const useToasts = create<ToastState>((set) => ({
     if (typeof window !== "undefined" && !t.sticky) {
       window.setTimeout(() => {
         set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) }));
-      }, 2600);
+      }, t.duration ?? 2600);
     }
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })),
@@ -51,6 +53,7 @@ export function toast(
     lottie?: LottieAsset;
     action?: ToastItem["action"];
     sticky?: boolean;
+    duration?: number;
   } = {},
 ): void {
   useToasts.getState().push({
@@ -61,5 +64,6 @@ export function toast(
     lottie: opts.lottie,
     action: opts.action,
     sticky: opts.sticky,
+    duration: opts.duration,
   });
 }
