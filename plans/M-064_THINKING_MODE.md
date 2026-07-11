@@ -1,6 +1,6 @@
 # M-064 — Thinking Mode & Match Commentary
 
-> **Status:** In Progress — Phase 4  
+> **Status:** Verified (Phases 1–3 merged 2026-07-11; Phase 4 review hooks → M-065+ backlog)  
 > **Branch:** `milestone/M-064-thinking-mode`  
 > **Depends on:** M-063 (curriculum + live match chat foundation)
 
@@ -30,7 +30,7 @@ Train **calculation** like a school exercise, and give every finished game a **c
 - [x] Hide answer until player locks in a move or taps Show solution
 - [x] Two-step hints via existing engine (`hintArrow`)
 
-### Phase 4 — Review integration
+### Phase 4 — Review integration (deferred)
 - [ ] Recap links to mate review / journal reflect
 - [ ] Key-moment bookmarks from replay frames
 
