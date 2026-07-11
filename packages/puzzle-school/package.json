@@ -1,0 +1,17 @@
+{
+  "name": "@chess-school/puzzle-school",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Curriculum bank format, validation, and import reports (open-source ready)",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./report": "./src/report.mjs"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0"
+  },
+  "scripts": {
+    "test": "node --test src/*.test.mjs"
+  }
+}

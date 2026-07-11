@@ -22,18 +22,9 @@ const SRC: Record<LottieAsset, string> = {
   "streak-milestone": "/lottie/streak-milestone.json",
 };
 
-/** Dev placeholders — colored shapes only; never overlay until GA exports land. */
-const PLACEHOLDER_ASSETS = new Set<LottieAsset>([
-  "lesson-complete",
-  "class-graduate",
-  "exam-pass",
-  "achievement-unlock",
-  "streak-milestone",
-]);
-
 /**
  * Lazy-loaded Lottie — static fallback always paints first; animation overlays
- * only when a non-placeholder JSON loads. Skipped when reduced-motion.
+ * when JSON loads. Skipped when reduced-motion.
  */
 export function LazyLottie({
   asset,
@@ -48,10 +39,9 @@ export function LazyLottie({
 }) {
   const reduced = useReducedMotion();
   const [data, setData] = useState<object | null>(null);
-  const isPlaceholder = PLACEHOLDER_ASSETS.has(asset);
 
   useEffect(() => {
-    if (reduced || isPlaceholder) return;
+    if (reduced) return;
     let cancelled = false;
     fetch(SRC[asset])
       .then((r) => (r.ok ? r.json() : null))
@@ -62,9 +52,9 @@ export function LazyLottie({
     return () => {
       cancelled = true;
     };
-  }, [asset, reduced, isPlaceholder]);
+  }, [asset, reduced]);
 
-  const showLottie = !reduced && !isPlaceholder && data;
+  const showLottie = !reduced && data;
 
   return (
     <div className={cn("relative flex items-center justify-center", className)}>

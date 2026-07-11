@@ -27,7 +27,9 @@
     "db:import-homework": "node scripts/import-homework.mjs",
     "db:build-puzzles": "node scripts/build-puzzle-set.mjs",
     "db:dump": "node scripts/dump.mjs",
-    "db:import-puzzles": "node scripts/import-lichess.mjs",
+    "db:import-puzzles": "node scripts/import-puzzle-school.mjs",
+    "db:import-puzzle-school": "node scripts/import-puzzle-school.mjs",
+    "curriculum:validate": "node scripts/validate-curriculum.mjs",
     "db:reset": "rm -f local.db local.db-shm local.db-wal",
     "db:fresh": "pnpm db:reset && pnpm db:push && pnpm db:seed && pnpm db:seed-homework",
     "db:remote": "node scripts/seed-remote.mjs",
@@ -37,6 +39,7 @@
   "dependencies": {
     "@chess-school/core": "workspace:*",
     "@chess-school/progression": "workspace:*",
+    "@chess-school/puzzle-school": "workspace:*",
     "@libsql/client": "^0.17.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

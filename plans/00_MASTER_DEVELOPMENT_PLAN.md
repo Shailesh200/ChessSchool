@@ -49,7 +49,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
 | **Browser** | M-059 | **Verified** | Desktop sidebar + responsive layouts @390–1280 (owner approved 2026-07-10) |
 | **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
-| **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
+| **Content** | M-063 | Not Started | Puzzle School bank + superb school-themed lessons (≥8k launch) |
 | **Trust** | M-043–M-048, M-070 | M-043–M-048 **Verified** · M-070 pending | Security, data integrity, privacy audit |
 | **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
 
@@ -65,12 +65,12 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-063 — Curriculum Content Expansion |
+| **Current Milestone** | M-063 — Puzzle School & Curriculum Quality |
 | **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · G-Hardening complete |
-| **In Progress** | M-071 |
+| **In Progress** | M-063 · M-071 |
 | **Blocked** | M-073 (until G-WebGA) |
 | **Next Milestone** | M-063 (G-WebGA content gate) |
-| **Last Updated** | 2026-07-11 (v2.6 — M-048 Verified merged to main; G-Hardening complete) |
+| **Last Updated** | 2026-07-11 (v2.7 — M-063 Phase 1 in progress) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -463,7 +463,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-060** | Global Search (⌘K) | Universal lesson/class search + keyboard shortcuts | Not Started |
 | **M-061** | Onboarding V2 | Goal/experience/time/coach → first-week plan | Not Started |
 | **M-062** | Admin CMS UX Polish | Custom dropdowns, bulk operations, import UX | Not Started |
-| **M-063** | Curriculum Content Expansion | Unit hierarchy, capstones, content pipeline — **G-WebGA gate** | Not Started |
+| **M-063** | Puzzle School & Curriculum Quality | Own puzzle bank, school-themed lessons, ≥8k launch — **G-WebGA gate** | **In Progress** |
 | **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | Not Started |
 | **M-065** | Tournament & Shadow Opponent Modes | Swiss/arena, shadow replay opponent | Not Started |
 | **M-066** | Certificate PDF & Graduation Archive | Exportable certificates, trophy room depth | Not Started |
@@ -932,75 +932,86 @@ Integration tests run in CI; cover highest-risk API paths; milestone **Verified*
 
 ---
 
-## M-063 — Curriculum Content Expansion (G-WebGA)
+## M-063 — Puzzle School & Curriculum Quality (G-WebGA)
 
 | Field | Value |
 |-------|-------|
 | **Milestone ID** | M-063 |
 | **Phase** | 5b — Web GA Content Gate |
-| **Docs** | `README.md` curriculum depth, `scripts/import-lichess.mjs`, `CLAUDE.md` |
+| **Docs** | **`plans/M-063_PUZZLE_SCHOOL.md`** (owner spec), `packages/puzzle-school/`, `CLAUDE.md` |
+| **Supersedes** | Lichess-bulk-as-primary approach in original M-063 scope |
 
 ### Status
 
-**Not Started**
+**In Progress** — Phase 1: `@chess-school/puzzle-school` + `curriculum:validate` + import reports
+
+### Vision
+
+Superb, school-themed lessons (Chess.com / Duolingo *quality bar*, not a clone). Own **Puzzle School** bank (~8k launch, ~16k stretch) — hand-authored and curated, not raw Lichess `pz-*` dumps. Separable package for future open-source.
 
 ### Inputs
 
-- M-048 API Integration Tests (Verified) — hardening complete
-- M-023 Admin CMS (Verified)
-- M-022 Lichess Import (Verified)
+- M-048 Verified — hardening complete
+- M-023 Admin CMS · M-022 Lichess import (demoted to optional reference tooling)
 
 ### Outputs
 
-- Expanded curriculum covering all active school stages with credible lesson depth (not just puzzle bulk)
-- Unit/Section hierarchy where applicable; capstone matches per major class
-- Updated `db/seed.sql` + Turso remote seed path documented
-- Admin CMS supports new content shapes if schema extended
+- `packages/puzzle-school/` — validate CLI, schema, concept taxonomy, bank format
+- Puzzle bank populated to launch bar; `import-puzzle-school.mjs` wires bank → DB
+- Hand-authored flagship semesters + capstones + school-themed tutorials
+- Content matrix (`matrix.yaml`) + quality rubric; Turso re-seed (users preserved)
+- Admin puzzle/lesson import hooks
 
 ### Objective
 
-Ship enough **authored, FEN-verified curriculum** that chess-school.in can launch as a real academy — not a demo with sparse early stages and empty later stages.
+Launch chess-school.in as a **real academy**: every lesson on the ladder is worth playing; puzzles teach with coach voice and school framing; content system is **outside the app** and open-source-ready.
 
 ### Scope
 
 **Included:**
-- Expand hand-authored base classes (openings, endgames, tactics depth)
-- Run Lichess import to target counts per stage×concept matrix
-- Capstone match lessons for graduation classes
-- Content QA pass (chess.js validation, spot-check playthrough)
-- Update curriculum stats / campus to reflect full ladder
+- Puzzle School package + import adapter (see `plans/M-063_PUZZLE_SCHOOL.md`)
+- Unified concept taxonomy; quality validation (automated + human rubric)
+- Expand hand-authored classes; capstone matches; tutorial copy per concept
+- Bank ≥8,000 verified lessons for launch; matrix tracks growth toward ~16k
+- Retire production reliance on `import-lichess.mjs` / `pz-*` semesters
 
 **Excluded:**
-- Personalized Mistake-DNA puzzles (M-058)
-- Story Mode narrative (M-067)
+- M-058 Mistake-DNA · M-067 Story Mode
+- Copying Chess.com / Duolingo UI or lesson flows wholesale
 
-### Launch bar (minimum)
+### Launch bar (revised)
 
 | Criterion | Target |
 |-----------|--------|
-| Active stages with ≥3 populated classes each | All 5 stages |
-| Lessons per core tactics/opening class | ≥12 verified |
-| Total curriculum lessons in production DB | ≥8,000 (import + authored) |
-| Broken/invalid FEN lines | 0 (seed + import validation) |
-| Empty "teaser only" classes on campus | 0 for launch stages |
+| Lessons from Puzzle School bank | **≥8,000** verified (stretch ~16k post-GA) |
+| Production `pz-*` Lichess semesters | **0** |
+| Active stages with ≥3 populated classes | All 5 launch stages |
+| Lessons per core class | ≥12 + tutorial where specified |
+| Invalid FEN / broken lines | 0 |
+| Empty teaser classes on campus | 0 |
+| `pnpm puzzle-school validate` | 0 errors |
 
 ### Deliverables
 
-- [ ] Content matrix document in `plans/` (stage × concept × lesson count)
-- [ ] Seeder/import scripts updated for target counts
-- [ ] Production Turso re-seeded (content tables only — users preserved)
-- [ ] Admin can add/edit new lesson shapes
-- [ ] Spot-check: complete one full semester path end-to-end in browser
+- [ ] `plans/M-063_PUZZLE_SCHOOL.md` — owner spec (this document)
+- [ ] `packages/puzzle-school/` scaffold + validate CLI
+- [ ] `matrix.yaml` + initial bank buckets
+- [ ] `import-puzzle-school.mjs`; Lichess path demoted to reference-only
+- [ ] Flagship authored content + capstones
+- [ ] Admin puzzle import; Turso content re-seed
+- [ ] End-to-end semester spot-check + owner quality sign-off
 
 ### Verification Checklist
 
-- [ ] `pnpm --filter web db:import-puzzles` completes with 0 validation errors
-- [ ] Campus shows populated classes for launch stages (no empty shells)
+- [ ] `pnpm --filter puzzle-school validate` — 0 errors
+- [ ] `pnpm --filter web db:import-puzzle-school` completes
+- [ ] Campus populated for all launch stages
 - [ ] `pnpm verify:milestone` green
+- [ ] Owner spot-check: lesson quality bar met
 
 ### Definition of Done
 
-Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
+Launch bar met; Puzzle School package and bank committed; production no longer depends on Lichess bulk; milestone **Verified**.
 
 ---
 

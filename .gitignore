@@ -45,6 +45,7 @@ next-env.d.ts
 local.db
 local.db-shm
 local.db-wal
+curriculum-import-report.json
 
 # Lichess puzzle import source (large external data — never commit)
 lichess_db_puzzle.csv

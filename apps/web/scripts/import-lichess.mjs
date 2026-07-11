@@ -14,14 +14,21 @@
  * is auto-applied, you play the next move…). Every line is re-validated with chess.js.
  */
 import { spawn } from "node:child_process";
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { createGunzip } from "node:zlib";
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
+import { emptyReport, printReportSummary, finalizeReport } from "@chess-school/puzzle-school";
 
-// Defaults to OUR committed curated set; pass the raw Lichess file to re-curate.
-const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+// Defaults to OUR committed curated set at repo root; pass a path to re-curate.
+const INPUT = process.argv[2] ?? join(REPO_ROOT, "data/chess-school-puzzles.csv.gz");
+const REPORT_PATH = "curriculum-import-report.json";
+const importStarted = Date.now();
+const importReport = emptyReport("import-puzzle-school", INPUT);
 const TARGET_TOTAL = Number(process.env.LIMIT ?? 16000); // full curated pool by default; override with LIMIT=
 const PER_CLASS = 18; // puzzles (lessons) per class
 const MIN_POPULARITY = 80; // Lichess popularity score 0–100; keep well-liked puzzles
@@ -240,6 +247,7 @@ for await (const line of rl) {
   if (kept > 0 && scanned - lastKeptAt > 1_500_000) break;
   const c = line.split(",");
   if (c.length < 8) continue;
+  importReport.summary.scanned++;
   const rating = Number(c[3]);
   const popularity = Number(c[5]);
   if (!rating || popularity < MIN_POPULARITY) continue;
@@ -254,7 +262,15 @@ for await (const line of rl) {
     arr = [];
     buckets.set(key, arr);
   }
-  if (arr.length >= PER_BUCKET_CAP) continue;
+  if (arr.length >= PER_BUCKET_CAP) {
+    importReport.byOutcome.skipped.push({
+      id: c[0],
+      reason: "bucket_full",
+      detail: key,
+    });
+    importReport.summary.skipped++;
+    continue;
+  }
   arr.push({ id: c[0], fen: c[1], moves: c[2], rating, themes, stage, group });
   kept++;
   lastKeptAt = scanned;
@@ -291,6 +307,12 @@ for (const g of GROUPS) {
       const steps = buildSteps(pz.fen, pz.moves, g);
       if (!steps) {
         invalid++;
+        importReport.byOutcome.rejected.push({
+          id: `lichess:${pz.id}`,
+          reason: "illegal_line",
+          detail: `${semId} rating ${pz.rating}`,
+        });
+        importReport.summary.rejected++;
         continue;
       }
       made.push({ pz, steps });
@@ -342,8 +364,9 @@ for (const g of GROUPS) {
         ]),
       });
       slice.forEach(({ pz, steps }, li) => {
+        const lessonId = `${classId}-l${li + 1}`;
         lessons.push({
-          id: `${classId}-l${li + 1}`,
+          id: lessonId,
           classId,
           title: `${g.label} · ${pz.rating}`,
           subtitle: `${Math.ceil(steps.length)} move${steps.length > 1 ? "s" : ""}`,
@@ -356,6 +379,7 @@ for (const g of GROUPS) {
           sortOrder: li + 1,
         });
         total++;
+        importReport.byOutcome.success.push(lessonId);
       });
     }
   }
@@ -400,4 +424,10 @@ const tx = db.transaction(() => {
   for (const l of lessons) insLes.run(l);
 });
 tx();
-console.log(`✅ Imported into local.db. Next: pnpm db:dump && pnpm db:remote`);
+importReport.summary.inserted = lessons.filter((l) => l.classId.startsWith("pz-")).length;
+importReport.durationMs = Date.now() - importStarted;
+finalizeReport(importReport, { failOnReject: false });
+printReportSummary(importReport);
+writeFileSync(REPORT_PATH, JSON.stringify(importReport, null, 2));
+console.log(`  Report:     ${REPORT_PATH}`);
+console.log(`✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump && pnpm db:remote`);

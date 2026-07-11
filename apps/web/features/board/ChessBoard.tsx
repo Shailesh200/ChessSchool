@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { ChessEngine } from "@/features/chess-engine/engine";
@@ -70,6 +70,8 @@ export function ChessBoard({
   showAnimations = true,
   boardId,
 }: ChessBoardProps) {
+  const autoBoardId = useId();
+  const resolvedBoardId = boardId ?? autoBoardId;
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
   const colors = getBoardTheme(boardTheme);
@@ -208,9 +210,8 @@ export function ChessBoard({
       }`}
     >
       <Chessboard
-        key={fen}
         options={{
-          id: boardId,
+          id: resolvedBoardId,
           position: fen,
           boardOrientation: orientation,
           allowDragging: interactive,

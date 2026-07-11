@@ -563,7 +563,8 @@ export function LessonPlayer({
                   }}
                 >
                   <ChessBoard
-                    key={`${index}-${displayFen ?? step.fen}`}
+                    key={index}
+                    boardId={`lesson-${lesson.id}`}
                     fen={displayFen ?? step.fen}
                     orientation={step.orientation ?? "white"}
                     onMove={handleMove}

@@ -1,0 +1,32 @@
+# Stage × concept lesson targets (launch bar). Counts are puzzle lessons, not tutorials.
+# Pre-School is hand-authored only — not in this matrix.
+
+stages:
+  elementary: { rating: [0, 999], min_classes: 3 }
+  middle: { rating: [1000, 1349], min_classes: 3 }
+  high: { rating: [1350, 1699], min_classes: 3 }
+  university: { rating: [1700, 2099], min_classes: 3 }
+  master: { rating: [2100, 3000], min_classes: 3 }
+
+concepts:
+  - id: trapped
+    label: Win Material
+  - id: fork
+    label: Forks
+  - id: pin
+    label: Pins & Skewers
+  - id: mate
+    label: Checkmates
+  - id: discovered
+    label: Discovered Attacks
+  - id: endgame
+    label: Endgames
+  - id: sacrifice
+    label: Sacrifices
+  - id: advantage
+    label: Convert Advantage
+
+launch:
+  min_puzzle_lessons: 8000
+  stretch_puzzle_lessons: 16000
+  tier_a_authored: 1200
