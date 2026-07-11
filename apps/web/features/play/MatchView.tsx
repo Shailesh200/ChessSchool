@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
-import { commentOnMove } from "@/features/coaching/coach";
+import { commentOnMove, matchGreeting, passPlayGreeting } from "@/features/coaching/coach";
+import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
 import { Button } from "@/components/ui/Button";
@@ -81,13 +82,14 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       : null,
   );
   const [flip, setFlip] = useState(active.mode === "pass");
-  const [coach, setCoach] = useState(
-    active.pgn
-      ? "Welcome back — your game is right where you left it."
-      : active.mode === "bot"
-        ? `${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
-        : "Your move. Good luck!",
-  );
+  const [coach, setCoach] = useState(() => {
+    if (active.pgn) return matchGreeting(0, "Coach", true);
+    if (active.mode === "bot") {
+      const b = botProfile(active.targetElo);
+      return matchGreeting(active.targetElo, b.name, false);
+    }
+    return passPlayGreeting();
+  });
   const [over, setOver] = useState<null | {
     text: string;
     win: boolean;
@@ -127,6 +129,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const bot = botProfile(active.targetElo);
   const botName = bot.name;
   const playerColor: "w" | "b" = "w";
+
+  useCoachSpeech(coach, "match", !thinking && !over, true);
 
   const persist = useCallback(
     (from?: string, to?: string) => {
@@ -326,7 +330,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           audio.play(applied.captured ? "capture" : "move");
           if (e.inCheck()) audio.play("check");
           // The bot reacts to its own move (the bubble shows who's speaking).
-          setCoach(commentOnMove(before, applied, Math.random()));
+          setCoach(
+            commentOnMove({
+              beforeFen: before,
+              move: applied,
+              botElo: active.targetElo,
+              botName: bot.name,
+              reactingToPlayer: false,
+              moveNumber: e.history().length,
+            }),
+          );
           persist(move.from, move.to);
         }
       }
@@ -391,7 +404,17 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       if (e.inCheck()) audio.play("check");
       haptics.fire("tap");
       persist(move.from, move.to);
-      if (isBot) setCoach(commentOnMove(before, applied, Math.random()));
+      if (isBot)
+        setCoach(
+          commentOnMove({
+            beforeFen: before,
+            move: applied,
+            botElo: active.targetElo,
+            botName: bot.name,
+            reactingToPlayer: true,
+            moveNumber: e.history().length,
+          }),
+        );
       if (!checkOver() && isBot) botMove();
       return true;
     },

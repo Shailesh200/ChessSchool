@@ -31,6 +31,8 @@ const SYNCED_SETTING_KEYS = [
   "appTheme",
   "pieceTheme",
   "coachPersonality",
+  "coachSpeech",
+  "coachVoice",
   "targetElo",
   "textScale",
   "colorblind",

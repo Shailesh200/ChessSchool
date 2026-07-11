@@ -21,6 +21,8 @@ import { checkLessonAchievements } from "@/features/progression/achievements";
 import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
 import { isTutorialLesson, scoredStepCount } from "@/features/school/classExam";
+import { applyCoachLine, type CoachContext } from "@/features/coaching/personality";
+import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
@@ -113,6 +115,7 @@ export function LessonPlayer({
 
   const progression = useProgression();
   const sound = useSettings((s) => s.sound);
+  const coachPersonality = useSettings((s) => s.coachPersonality);
   const toggleSetting = useSettings((s) => s.toggle);
   const total = lesson.steps.length;
 
@@ -383,7 +386,7 @@ export function LessonPlayer({
     b: "bishop",
     n: "knight",
   };
-  const feedbackText = formatCoachText(
+  const rawFeedback = formatCoachText(
     phase === "correct"
       ? promoted
         ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
@@ -396,6 +399,16 @@ export function LessonPlayer({
           ? "Choose the best answer below."
           : step.coach,
   );
+  const coachContext: CoachContext =
+    phase === "correct"
+      ? "success"
+      : phase === "wrong"
+        ? "wrong"
+        : step.kind === "quiz"
+          ? "quiz"
+          : "lesson";
+  const feedbackText = applyCoachLine(rawFeedback, coachPersonality, coachContext);
+  useCoachSpeech(feedbackText, coachContext, phase !== "complete", true);
 
   if (phase === "complete") {
     return (

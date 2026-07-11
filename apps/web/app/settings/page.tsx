@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Toggle } from "@/components/ui/Toggle";
-import { useSettings, type CoachPersonality } from "@/core/store/settings.store";
+import { useSettings, type CoachPersonality, type CoachVoiceId } from "@/core/store/settings.store";
 import { Select } from "@/components/ui/Select";
+import { COACH_VOICE_OPTIONS } from "@/lib/tts/voices";
+import { previewCoachVoice } from "@/core/audio/coachSpeech";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
@@ -100,6 +102,39 @@ export default function SettingsPage() {
                   aria-label="Volume"
                 />
               </Row>
+              <Row label="Coach voice" hint="Read chat bubbles aloud">
+                <Toggle
+                  checked={s.coachSpeech}
+                  onChange={(v) => s.set("coachSpeech", v)}
+                  label="Coach voice"
+                />
+              </Row>
+              {s.coachSpeech && (
+                <Row label="Voice" hint="Who reads the coach lines">
+                  <div className="flex items-center gap-2">
+                    <Select
+                      className="w-44 shrink-0"
+                      options={COACH_VOICE_OPTIONS.map((v) => ({
+                        id: v.id,
+                        title: v.title,
+                      }))}
+                      value={s.coachVoice}
+                      onChange={(v) => {
+                        const voice = v as CoachVoiceId;
+                        s.set("coachVoice", voice);
+                        void previewCoachVoice(voice);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-brand-600 text-xs font-extrabold hover:underline"
+                      onClick={() => void previewCoachVoice(s.coachVoice)}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </Row>
+              )}
               <Row label="Haptics" hint="Vibration on supported devices">
                 <Toggle
                   checked={s.haptics}

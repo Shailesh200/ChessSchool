@@ -11,9 +11,26 @@ export type ColorblindMode = "none" | "deuteranopia";
 export type CoachPersonality =
   "friendly" | "strict" | "mentor" | "tactical" | "minimal";
 
+/** TTS voice — `auto` follows coach personality; otherwise a fixed Edge neural voice. */
+export type CoachVoiceId =
+  | "auto"
+  | "jenny"
+  | "aria"
+  | "jane"
+  | "sara"
+  | "guy"
+  | "davis"
+  | "tony"
+  | "jason"
+  | "andrew";
+
 export interface SettingsState {
   sound: boolean;
   volume: number; // 0..1
+  /** Read coach / bot chat bubbles aloud (cloud TTS). */
+  coachSpeech: boolean;
+  /** Spoken voice — independent of personality wording. */
+  coachVoice: CoachVoiceId;
   haptics: boolean;
   reducedMotion: boolean;
   hints: boolean;
@@ -48,6 +65,8 @@ type BooleanSettingKey = {
 const defaults = {
   sound: true,
   volume: 1,
+  coachSpeech: true,
+  coachVoice: "auto" as CoachVoiceId,
   haptics: true,
   reducedMotion: false,
   hints: true,
@@ -88,7 +107,7 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 5,
       skipHydration: true,
       // v1 -> v2: introduce schoolTheme; older board themes still resolve.
       // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
@@ -101,6 +120,12 @@ export const useSettings = create<SettingsState>()(
         if (version < 3) {
           if (s.sharePerformance === undefined) s.sharePerformance = true;
           if (s.shareAnalytics === undefined) s.shareAnalytics = true;
+        }
+        if (version < 4) {
+          if (s.coachSpeech === undefined) s.coachSpeech = true;
+        }
+        if (version < 5) {
+          if (!s.coachVoice) s.coachVoice = "auto";
         }
         return { ...defaults, ...s } as SettingsState;
       },
