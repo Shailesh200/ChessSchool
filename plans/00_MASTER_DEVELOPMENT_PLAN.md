@@ -65,13 +65,13 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-047 — Session Token Hashing |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045 (Verified 2026-07-11) · **M-046 (Verified 2026-07-11)** |
+| **Current Milestone** | M-048 — API Integration Tests |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045 (Verified 2026-07-11) · M-046 (Verified 2026-07-11) · **M-047 (Verified 2026-07-11)** |
 | **In Progress** | M-071 |
 | **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-047 → M-048 (pre-GA hardening) |
-| **Deferred (pre-GA, not active)** | M-047–M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-11 (v2.3 — M-046 Verified merged to main) |
+| **Next Milestone** | M-048 (pre-GA hardening) |
+| **Deferred (pre-GA, not active)** | M-048 hardening — resume before M-073 |
+| **Last Updated** | 2026-07-11 (v2.4 — M-047 Verified merged to main) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -448,7 +448,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-044** | Progress API Hardening | Transactional upsert, max-merge columns, no delete-all | **Verified** |
 | **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | **Verified** |
 | **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | **Verified** |
-| **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | Not Started |
+| **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | **Verified** |
 | **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | Not Started |
 | **M-049** | Mobile Resilience | 401 handling, fetch error states, write queue hardening | Not Started |
 | **M-050** | Mobile UX Correctness | Promotion picker, mastery scoring, bot clocks, online clock tick | Not Started |
@@ -881,17 +881,24 @@ H4 and H5 resolved; campus API avoids loading 16k lesson rows per request; miles
 
 ### Status
 
-**Not Started**
+**Verified (2026-07-11)**
 
 ### Deliverables
 
-- [ ] Store `sha256(token)` in `sessions` table; cookie/Bearer carries raw token
-- [ ] Migration path for existing sessions
-- [ ] Expired session cleanup job or cron
+- [x] Store `sha256(token)` in `sessions` table; cookie/Bearer carries raw token
+- [x] Migration path for existing sessions
+- [x] Expired session cleanup job or cron
 
 ### Definition of Done
 
 DB leak does not expose usable session tokens; milestone **Verified**.
+
+### Verification
+
+- `lib/session-token.ts` + `lib/session-store.ts` — hash at rest, legacy row migrate-on-read
+- Integration tests against temp libSQL; auth/cron wired through session-store
+- Daily cron `GET /api/cron/cleanup-sessions` (`CRON_SECRET` required in prod)
+- `SKIP_LIGHTHOUSE=1 pnpm verify:milestone` — 81 unit + 35 e2e passed
 
 ---
 

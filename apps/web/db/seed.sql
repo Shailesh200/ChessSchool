@@ -234,3 +234,5 @@ INSERT INTO homework_lessons (id,type,title,subtitle,emoji,tag,xp,steps,sort_ord
 CREATE INDEX IF NOT EXISTS lesson_records_user_id_idx ON lesson_records(user_id);
 CREATE INDEX IF NOT EXISTS lessons_class_id_idx ON lessons(class_id);
 CREATE INDEX IF NOT EXISTS classes_semester_id_idx ON classes(semester_id);
+CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
