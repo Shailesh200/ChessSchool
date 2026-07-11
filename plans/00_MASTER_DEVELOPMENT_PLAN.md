@@ -808,7 +808,9 @@ H1 and H2 resolved; integration tests green; milestone **Verified**.
 
 ### Status
 
-**In Progress (owner review pending)**
+**Verified (owner approved 2026-07-11)**
+
+Deliverables: IP/user rate limits on auth + mutating routes, Zod on session moves + auth FormData actions, malformed JSON → 400, campus safe JSON parse. Resolves CODE_REVIEW H3.
 
 ### Inputs
 
