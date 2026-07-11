@@ -1,13 +1,8 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { execSync } from "node:child_process";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { applyProgressPush } from "./progress-server";
+import { createIsolatedTestDb } from "@/lib/test-db.harness";
 
 const USER = "user-progress-test";
 
@@ -26,20 +21,13 @@ function emptyPush(overrides: Record<string, unknown> = {}) {
 }
 
 describe("applyProgressPush integration", () => {
-  let dir: string;
-  let dbPath: string;
-  let db: ReturnType<typeof drizzle<typeof schema>>;
+  let teardown: () => void;
+  let db: ReturnType<typeof createIsolatedTestDb>["db"];
 
   beforeEach(async () => {
-    dir = mkdtempSync(join(tmpdir(), "cs-progress-"));
-    dbPath = join(dir, "test.db");
-    execSync("pnpm exec drizzle-kit push", {
-      cwd: process.cwd(),
-      env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
-      stdio: "pipe",
-    });
-    const client = createClient({ url: `file:${dbPath}` });
-    db = drizzle(client, { schema });
+    const ctx = createIsolatedTestDb();
+    teardown = ctx.teardown;
+    db = ctx.db;
     const now = Date.now();
     await db.insert(schema.users).values({
       id: USER,
@@ -55,7 +43,7 @@ describe("applyProgressPush integration", () => {
   });
 
   afterEach(() => {
-    rmSync(dir, { recursive: true, force: true });
+    teardown();
   });
 
   it("does not wipe lesson records when client posts an empty lessons map", async () => {

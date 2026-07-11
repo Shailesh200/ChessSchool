@@ -1,10 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { execSync } from "node:child_process";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { hashSessionToken } from "@/lib/session-token";
@@ -14,24 +8,18 @@ import {
   purgeExpiredSessions,
   revokeSessionByRawToken,
 } from "@/lib/session-store";
+import { createIsolatedTestDb } from "@/lib/test-db.harness";
 
 const USER = "user-session-test";
 
 describe("session-store integration", () => {
-  let dir: string;
-  let dbPath: string;
-  let db: ReturnType<typeof drizzle<typeof schema>>;
+  let teardown: () => void;
+  let db: ReturnType<typeof createIsolatedTestDb>["db"];
 
   beforeEach(async () => {
-    dir = mkdtempSync(join(tmpdir(), "cs-session-"));
-    dbPath = join(dir, "test.db");
-    execSync("pnpm exec drizzle-kit push", {
-      cwd: process.cwd(),
-      env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
-      stdio: "pipe",
-    });
-    const client = createClient({ url: `file:${dbPath}` });
-    db = drizzle(client, { schema });
+    const ctx = createIsolatedTestDb();
+    teardown = ctx.teardown;
+    db = ctx.db;
     await db.insert(schema.users).values({
       id: USER,
       email: "session@test.dev",
@@ -43,7 +31,7 @@ describe("session-store integration", () => {
   });
 
   afterEach(() => {
-    rmSync(dir, { recursive: true, force: true });
+    teardown();
   });
 
   it("stores sha256 hash, not raw token", async () => {

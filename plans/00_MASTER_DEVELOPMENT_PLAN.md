@@ -50,7 +50,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | **Browser** | M-059 | **Verified** | Desktop sidebar + responsive layouts @390–1280 (owner approved 2026-07-10) |
 | **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
 | **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
-| **Trust** | M-043–M-048, M-070 | Partial | Security, data integrity, privacy audit |
+| **Trust** | M-043–M-048, M-070 | M-043–M-048 **Verified** · M-070 pending | Security, data integrity, privacy audit |
 | **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
 
 **Web GA is not** the native App Store release (that is **G-Mobile**, M-049–M-053, after M-073).
@@ -65,13 +65,12 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-048 — API Integration Tests |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045 (Verified 2026-07-11) · M-046 (Verified 2026-07-11) · **M-047 (Verified 2026-07-11)** |
+| **Current Milestone** | M-063 — Curriculum Content Expansion |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · G-Hardening complete |
 | **In Progress** | M-071 |
-| **Blocked** | M-063 (until M-048) · M-073 (until G-WebGA) |
-| **Next Milestone** | M-048 (pre-GA hardening) |
-| **Deferred (pre-GA, not active)** | M-048 hardening — resume before M-073 |
-| **Last Updated** | 2026-07-11 (v2.4 — M-047 Verified merged to main) |
+| **Blocked** | M-073 (until G-WebGA) |
+| **Next Milestone** | M-063 (G-WebGA content gate) |
+| **Last Updated** | 2026-07-11 (v2.6 — M-048 Verified merged to main; G-Hardening complete) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -449,7 +448,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | **Verified** |
 | **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | **Verified** |
 | **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | **Verified** |
-| **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | Not Started |
+| **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | **Verified** |
 | **M-049** | Mobile Resilience | 401 handling, fetch error states, write queue hardening | Not Started |
 | **M-050** | Mobile UX Correctness | Promotion picker, mastery scoring, bot clocks, online clock tick | Not Started |
 | **M-051** | Mobile Accessibility & Polish | accessibilityLabel, virtualization, pull-to-refresh, sound parity | Not Started |
@@ -912,19 +911,24 @@ DB leak does not expose usable session tokens; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**Verified (2026-07-11)** — **G-Hardening gate complete**
 
 ### Deliverables
 
-- [ ] Vitest + in-memory/test libSQL file setup
-- [ ] Tests: auth register/login/logout
-- [ ] Tests: progress merge (depends on M-044 semantics)
-- [ ] Tests: session seat ownership (depends on M-043)
-- [ ] CI runs integration suite
+- [x] Vitest + in-memory/test libSQL file setup (`lib/test-db.harness.ts`)
+- [x] Tests: auth register/login/logout
+- [x] Tests: progress merge (depends on M-044 semantics)
+- [x] Tests: session seat ownership (depends on M-043)
+- [x] CI runs integration suite (`test:integration` + `verify-test-coverage.sh`)
 
 ### Definition of Done
 
 Integration tests run in CI; cover highest-risk API paths; milestone **Verified**. **G-Hardening gate complete.**
+
+### Verification
+
+- 15 integration tests (auth, progress, session APIs + libSQL helpers)
+- `pnpm test:integration` + `SKIP_LIGHTHOUSE=1 pnpm verify:milestone` — green
 
 ---
 

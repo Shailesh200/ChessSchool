@@ -12,6 +12,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run integration.test",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "format": "prettier --write .",
