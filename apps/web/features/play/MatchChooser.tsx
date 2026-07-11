@@ -45,7 +45,9 @@ export function MatchChooser() {
     audio.play("unlock");
     const elo = adaptive ? rating : targetElo;
     const clock = thinkingGame && mode === "bot" ? 0 : timeMin;
-    start(mode, elo, clock, false, thinkingGame && mode === "bot");
+    start(mode, elo, clock, {
+      thinkingMode: thinkingGame && mode === "bot",
+    });
   }
 
   async function playOnline() {
@@ -197,6 +199,34 @@ export function MatchChooser() {
             </Card>
           </motion.div>
         )}
+
+        <motion.div variants={listItem}>
+          <Card>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 text-left"
+              onClick={() => {
+                haptics.fire("select");
+                audio.play("select");
+                startNav();
+                router.push("/play/shadow");
+              }}
+            >
+              <span className="flex items-center gap-3">
+                <IconBadge name="users" size="lg" tone="brand" />
+                <span>
+                  <span className="text-ink block text-sm font-extrabold">
+                    Shadow opponent
+                  </span>
+                  <span className="text-ink-500 block text-xs font-semibold">
+                    Rematch a saved game — opponent moves replay from PGN
+                  </span>
+                </span>
+              </span>
+              <Icon name="chevronRight" size={18} className="text-ink-300 shrink-0" />
+            </button>
+          </Card>
+        </motion.div>
 
         <motion.div variants={listItem}>
           <Card>

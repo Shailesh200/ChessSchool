@@ -105,7 +105,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
   function startAdaptiveMatch() {
     haptics.fire("success");
     audio.play("unlock");
-    startMatch("bot", rating, 0, true); // adaptive: bot plays at your current rating
+    startMatch("bot", rating, 0, { fromHomework: true });
     router.push("/play");
   }
 

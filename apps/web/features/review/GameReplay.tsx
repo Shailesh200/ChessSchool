@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Card } from "@/components/ui/Card";
@@ -11,8 +12,14 @@ import { getGame, type SavedGame } from "@/core/db/db";
 import { replayFrames, analyzeMate, matePreventionTip, type Frame } from "./replay";
 import type { BoardArrow, Square } from "@/core/types/chess";
 import { audio } from "@/core/audio/audioEngine";
+import { useMatch } from "@/core/store/match.store";
+import { shadowFromGame } from "@/features/play/shadow";
+import { startNav } from "@/core/store/nav.store";
+import { haptics } from "@/core/haptics/haptics";
 
 export function GameReplay({ id }: { id: string }) {
+  const router = useRouter();
+  const startMatch = useMatch((s) => s.start);
   const [game, setGame] = useState<SavedGame | null | undefined>(undefined);
   const [frames, setFrames] = useState<Frame[]>([]);
   const [idx, setIdx] = useState(0);
@@ -85,6 +92,24 @@ export function GameReplay({ id }: { id: string }) {
   }
 
   const preventionTip = mate ? matePreventionTip(mate.pattern) : "";
+
+  function startShadowRematch() {
+    if (!game) return;
+    const shadow = shadowFromGame(game);
+    if (!shadow) return;
+    haptics.fire("success");
+    audio.play("unlock");
+    startMatch("shadow", 0, 0, {
+      shadow: {
+        sourceGameId: shadow.gameId,
+        shadowPgn: shadow.pgn,
+        playerColor: shadow.playerColor,
+        opponentName: shadow.opponentName,
+      },
+    });
+    startNav();
+    router.push("/play");
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -203,6 +228,15 @@ export function GameReplay({ id }: { id: string }) {
           ))}
         </div>
       </Card>
+
+      {game.moveCount >= 2 && (
+        <Button className="w-full" onClick={startShadowRematch}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="users" size={18} />
+            Shadow rematch
+          </span>
+        </Button>
+      )}
     </div>
   );
 }

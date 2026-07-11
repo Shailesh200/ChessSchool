@@ -65,12 +65,12 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-064 — Thinking Mode & Match Commentary |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · **M-063 (Verified 2026-07-11)** · G-Hardening complete |
-| **In Progress** | M-064 · M-071 |
+| **Current Milestone** | M-065 — Tournament & Shadow Opponent Modes |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · **M-063 (Verified 2026-07-11)** · **M-064 (Verified 2026-07-11)** · G-Hardening complete |
+| **In Progress** | M-065 · M-071 |
 | **Blocked** | M-073 (until G-WebGA) |
-| **Next Milestone** | M-064 |
-| **Last Updated** | 2026-07-11 (v2.8 — M-063 merged; M-064 Phase 1) |
+| **Next Milestone** | M-065 Phase 2 |
+| **Last Updated** | 2026-07-11 (v2.9 — M-064 merged; M-065 Phase 1 shadow opponent) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -464,8 +464,8 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-061** | Onboarding V2 | Goal/experience/time/coach → first-week plan | Not Started |
 | **M-062** | Admin CMS UX Polish | Custom dropdowns, bulk operations, import UX | Not Started |
 | **M-063** | Puzzle School & Curriculum Quality | Own puzzle bank, school-themed lessons, ≥8k launch — **G-WebGA gate** | **Verified** |
-| **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | **In Progress** |
-| **M-065** | Tournament & Shadow Opponent Modes | Swiss/arena, shadow replay opponent | Not Started |
+| **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | **Verified** |
+| **M-065** | Tournament & Shadow Opponent Modes | Swiss/arena, shadow replay opponent | **In Progress** |
 | **M-066** | Certificate PDF & Graduation Archive | Exportable certificates, trophy room depth | Not Started |
 | **M-067** | Story Mode | Narrative campaign layer over curriculum | Not Started |
 | **M-068** | Observability & SRE | Structured logging, alerting, session cleanup cron | Not Started |

@@ -28,6 +28,7 @@ import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { MatchMateReviewModal } from "@/features/play/MatchMateReviewModal";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
+import { movesFromPgn } from "@/features/play/shadow";
 import type { MoveInput, Square, VerboseMove } from "@/core/types/chess";
 
 function engineFromPgn(pgn: string): ChessEngine {
@@ -84,6 +85,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [flip, setFlip] = useState(active.mode === "pass");
   const [coach, setCoach] = useState(() => {
     if (active.pgn) return matchGreeting(0, "Coach", true);
+    if (active.mode === "shadow" && active.shadow) {
+      return `Shadow rematch vs ${active.shadow.opponentName} — try a new idea against the same line.`;
+    }
     if (active.mode === "bot") {
       const b = botProfile(active.targetElo);
       if (active.thinkingMode) return thinkingGreeting(active.targetElo, b.name);
@@ -91,6 +95,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     }
     return passPlayGreeting();
   });
+  const [shadowOffBook, setShadowOffBook] = useState(false);
   const [pendingMove, setPendingMove] = useState<MoveInput | null>(null);
   const [pendingSan, setPendingSan] = useState<string | null>(null);
   const [over, setOver] = useState<null | {
@@ -129,10 +134,14 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [clock, setClock] = useState({ w: active.whiteMs, b: active.blackMs });
 
   const isBot = active.mode === "bot";
-  const thinkingGame = Boolean(active.thinkingMode);
+  const isShadow = active.mode === "shadow";
+  const shadow = active.shadow;
+  const autoOpponent = isBot || isShadow;
   const bot = botProfile(active.targetElo);
   const botName = bot.name;
-  const playerColor: "w" | "b" = "w";
+  const playerColor = shadow?.playerColor ?? "w";
+  const shadowLineRef = useRef(movesFromPgn(shadow?.shadowPgn ?? ""));
+  const thinkingGame = Boolean(active.thinkingMode) && isBot;
 
   useCoachSpeech(coach, "match", !thinking && !over && !pendingMove, true);
 
@@ -164,11 +173,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       const result = winner === "w" ? "1-0" : winner === "b" ? "0-1" : "1/2-1/2";
       const game: SavedGame = {
         id: active.id,
-        mode: active.mode,
+        mode: isShadow ? "shadow" : active.mode,
         pgn: pgnText,
         fen: e.fen(),
-        whiteName: isBot ? "You" : "White",
-        blackName: isBot ? `${bot.name} (${active.targetElo})` : "Black",
+        whiteName: isShadow ? (playerColor === "w" ? "You" : shadow!.opponentName) : isBot ? "You" : "White",
+        blackName: isShadow
+          ? (playerColor === "b" ? "You" : shadow!.opponentName)
+          : isBot
+            ? `${bot.name} (${active.targetElo})`
+            : "Black",
         createdAt: active.createdAt,
         updatedAt: Date.now(),
         turn: e.turn(),
@@ -179,7 +192,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         elo: isBot ? active.targetElo : null,
         durationMs: Date.now() - active.createdAt,
       };
-      const playerWon = isBot && winner === playerColor;
+      const playerWon = (isBot || isShadow) && winner === playerColor;
       const ratingBefore = useProgression.getState().rating;
       if (isBot) {
         const score = winner === null ? 0.5 : playerWon ? 1 : 0;
@@ -254,7 +267,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       await saveGame(game);
       usePlan.getState().markActivity("match", isoDay());
       trackEvent("game_end", {
-        mode: active.mode,
+        mode: isShadow ? "shadow" : active.mode,
         result,
         reason,
         bot: isBot,
@@ -371,6 +384,37 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     });
   }, [active.targetElo, persist, checkOver, bot.name]);
 
+  const shadowMove = useCallback(() => {
+    if (!shadow || shadowOffBook) return;
+    const e = engineRef.current;
+    if (e.isGameOver() || e.turn() === playerColor) return;
+    setThinking(true);
+    const ply = e.history().length;
+    const move = shadowLineRef.current[ply];
+    window.setTimeout(() => {
+      if (!move) {
+        setThinking(false);
+        return;
+      }
+      const applied = e.move(move);
+      if (!applied) {
+        setCoach("You left the book — shadow can't follow. Keep playing on your own!");
+        setShadowOffBook(true);
+        setThinking(false);
+        return;
+      }
+      setLastMove({ from: move.from, to: move.to });
+      setFen(e.fen());
+      setPgn(e.pgn());
+      audio.play(applied.captured ? "capture" : "move");
+      if (e.inCheck()) audio.play("check");
+      setCoach(`Shadow plays ${applied.san}.`);
+      persist(move.from, move.to);
+      setThinking(false);
+      checkOver();
+    }, 650);
+  }, [shadow, shadowOffBook, playerColor, persist, checkOver]);
+
   const commitMove = useCallback(
     (move: MoveInput): boolean => {
       const e = engineRef.current;
@@ -398,9 +442,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         );
       }
       if (!checkOver() && isBot) botMove();
+      else if (!checkOver() && isShadow && !shadowOffBook && e.turn() !== playerColor)
+        shadowMove();
       return true;
     },
-    [isBot, persist, checkOver, botMove, active.targetElo, bot.name],
+    [isBot, isShadow, shadowOffBook, persist, checkOver, botMove, shadowMove, active.targetElo, bot.name, playerColor],
   );
 
   // Thinking game: coach calculation prompt when it's the player's turn.
@@ -415,7 +461,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     (move: MoveInput): boolean => {
       const e = engineRef.current;
       if (thinking || e.isGameOver()) return false;
-      if (isBot && e.turn() !== playerColor) return false;
+      if (autoOpponent && e.turn() !== playerColor) return false;
 
       if (thinkingGame && isBot) {
         const trial = new ChessEngine(e.fen());
@@ -450,6 +496,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   useEffect(() => {
     const e = engineRef.current;
     if (isBot && !e.isGameOver() && e.turn() !== playerColor) botMove();
+    else if (isShadow && !shadowOffBook && !e.isGameOver() && e.turn() !== playerColor)
+      shadowMove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -491,7 +539,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     if (over) return;
     const e = engineRef.current;
     // In pass-and-play the side to move resigns; vs bot the player (white) resigns.
-    const loser = isBot ? playerColor : e.turn();
+    const loser = autoOpponent ? playerColor : e.turn();
     const winner: "w" | "b" = loser === "w" ? "b" : "w";
     void finalize("resign", winner);
   }
@@ -520,9 +568,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const view = useMemo(() => new ChessEngine(fen), [fen]);
   const orientation: "white" | "black" = isBot
     ? "white"
-    : flip && view.turn() === "b"
-      ? "black"
-      : "white";
+    : isShadow
+      ? playerColor === "w"
+        ? "white"
+        : "black"
+      : flip && view.turn() === "b"
+        ? "black"
+        : "white";
   const checkSquare = view.inCheck() ? view.kingSquare(view.turn()) : null;
   const mat = useMemo(() => materialAdvantage(fen), [fen]);
   const turn = view.turn();
@@ -552,7 +604,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       <div className="pt-safe border-hairline bg-surface/90 sticky top-0 z-20 border-b px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
           <span className="text-ink flex items-center gap-2 text-sm font-extrabold">
-            {isBot ? `vs ${botName} · ${active.targetElo}` : "vs Human"}
+            {isShadow
+              ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
+              : isBot
+                ? `vs ${botName} · ${active.targetElo}`
+                : "vs Human"}
             {thinkingGame && (
               <span className="bg-brand-50 text-brand-700 rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
                 <Icon name="brain" size={12} />
@@ -591,7 +647,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* opponent bar (clock + captured material) */}
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <PlayerBar
-          name={isBot ? `${botName} · ${active.targetElo}` : "Black"}
+          name={
+            isShadow
+              ? playerColor === "b"
+                ? "You"
+                : shadow?.opponentName ?? "Shadow"
+              : isBot
+                ? `${botName} · ${active.targetElo}`
+                : "Black"
+          }
           advantage={topAdv}
           ms={hasClock ? topClock : null}
           active={hasClock && !over && turn === "b"}
@@ -602,15 +666,19 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <div className="flex items-start gap-2">
           <div className="bg-brand-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
-            {isBot ? (
-              <BotAvatar elo={active.targetElo} size={44} />
+            {autoOpponent ? (
+              isShadow ? (
+                <Icon name="users" size={22} duotone />
+              ) : (
+                <BotAvatar elo={active.targetElo} size={44} />
+              )
             ) : (
               <Icon name="message" size={22} duotone />
             )}
           </div>
           <div className="border-hairline bg-surface-card text-ink min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
             <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
-              {isBot ? bot.name : "Coach"}
+              {isShadow ? "Shadow" : isBot ? bot.name : "Coach"}
             </span>
             <span className="line-clamp-2">{thinking ? "Thinking…" : coach}</span>
           </div>
@@ -776,7 +844,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* player bar (clock + captured material) */}
       <div className="mx-auto w-full max-w-xl px-3">
         <PlayerBar
-          name={isBot ? "You" : "White"}
+          name={isShadow || isBot ? "You" : "White"}
           advantage={bottomAdv}
           ms={hasClock ? bottomClock : null}
           active={hasClock && !over && turn === "w"}
@@ -823,7 +891,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}
         kind="match"
-        title={isBot ? `Match vs ${bot.name} (${active.targetElo})` : "vs Human match"}
+        title={
+          isShadow
+            ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
+            : isBot
+              ? `Match vs ${bot.name} (${active.targetElo})`
+              : "vs Human match"
+        }
         summary={over?.text ?? "Match complete."}
         refId={active.id}
       />
