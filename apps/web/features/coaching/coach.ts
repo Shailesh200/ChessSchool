@@ -10,6 +10,7 @@ import {
   matchGreeting as matchGreetingFor,
   passPlayGreeting as passPlayGreetingFor,
 } from "./matchCommentary";
+import { buildMatchRecap, type GameRecapInput } from "./gameRecap";
 
 /**
  * Coach voice — personalities retint feedback tone. Match commentary blends
@@ -19,6 +20,7 @@ import {
 export { applyCoachLine, personaOf } from "./personality";
 export type { CoachContext } from "./personality";
 export type { MatchMoveContext } from "./matchCommentary";
+export type { GameRecapInput } from "./gameRecap";
 
 function personality() {
   return useSettings.getState().coachPersonality;
@@ -55,6 +57,10 @@ export function matchGreeting(elo: number, botName: string, resumed: boolean): s
 
 export function passPlayGreeting(): string {
   return passPlayGreetingFor(personality());
+}
+
+export function matchRecap(input: Omit<GameRecapInput, "personality">): string {
+  return buildMatchRecap({ ...input, personality: personality() });
 }
 
 export function hintArrow(fen: string, strength = 1600): BoardArrow | null {

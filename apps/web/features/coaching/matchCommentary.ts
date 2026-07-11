@@ -48,7 +48,7 @@ function pick(list: string[], seed: number): string {
   return list[Math.abs(seed) % list.length] ?? list[0] ?? "";
 }
 
-function tierForElo(elo: number): BotTier {
+export function tierForElo(elo: number): BotTier {
   if (elo <= 500) return "novice";
   if (elo <= 800) return "casual";
   if (elo <= 1100) return "developing";

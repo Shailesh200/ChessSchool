@@ -49,7 +49,7 @@ This Master Development Plan converts existing product documentation (`README.md
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
 | **Browser** | M-059 | **Verified** | Desktop sidebar + responsive layouts @390–1280 (owner approved 2026-07-10) |
 | **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
-| **Content** | M-063 | Not Started | Puzzle School bank + superb school-themed lessons (≥8k launch) |
+| **Content** | M-063 | **Verified** | Puzzle School bank + superb school-themed lessons (≥8k launch) |
 | **Trust** | M-043–M-048, M-070 | M-043–M-048 **Verified** · M-070 pending | Security, data integrity, privacy audit |
 | **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
 
@@ -65,12 +65,12 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
 | **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-063 — Puzzle School & Curriculum Quality |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · G-Hardening complete |
-| **In Progress** | M-063 · M-071 |
+| **Current Milestone** | M-064 — Thinking Mode & Match Commentary |
+| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · **M-063 (Verified 2026-07-11)** · G-Hardening complete |
+| **In Progress** | M-064 · M-071 |
 | **Blocked** | M-073 (until G-WebGA) |
-| **Next Milestone** | M-063 (G-WebGA content gate) |
-| **Last Updated** | 2026-07-11 (v2.7 — M-063 Phase 1 in progress) |
+| **Next Milestone** | M-064 |
+| **Last Updated** | 2026-07-11 (v2.8 — M-063 merged; M-064 Phase 1) |
 | **Overall Completion %** | ~74% product · ~55% Web GA ready |
 
 > Update this section as milestones are completed and verified.
@@ -463,8 +463,8 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-060** | Global Search (⌘K) | Universal lesson/class search + keyboard shortcuts | Not Started |
 | **M-061** | Onboarding V2 | Goal/experience/time/coach → first-week plan | Not Started |
 | **M-062** | Admin CMS UX Polish | Custom dropdowns, bulk operations, import UX | Not Started |
-| **M-063** | Puzzle School & Curriculum Quality | Own puzzle bank, school-themed lessons, ≥8k launch — **G-WebGA gate** | **In Progress** |
-| **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | Not Started |
+| **M-063** | Puzzle School & Curriculum Quality | Own puzzle bank, school-themed lessons, ≥8k launch — **G-WebGA gate** | **Verified** |
+| **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | **In Progress** |
 | **M-065** | Tournament & Shadow Opponent Modes | Swiss/arena, shadow replay opponent | Not Started |
 | **M-066** | Certificate PDF & Graduation Archive | Exportable certificates, trophy room depth | Not Started |
 | **M-067** | Story Mode | Narrative campaign layer over curriculum | Not Started |
@@ -943,7 +943,7 @@ Integration tests run in CI; cover highest-risk API paths; milestone **Verified*
 
 ### Status
 
-**In Progress** — Phase 1: `@chess-school/puzzle-school` + `curriculum:validate` + import reports
+**Verified** — Puzzle School bank (~16.8k), Pre-School spine, coach TTS, match commentary (M-063 branch merged to main 2026-07-11).
 
 ### Vision
 

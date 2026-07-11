@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
-import { commentOnMove, matchGreeting, passPlayGreeting } from "@/features/coaching/coach";
+import { commentOnMove, matchGreeting, passPlayGreeting, matchRecap } from "@/features/coaching/coach";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
@@ -215,6 +215,18 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         newRating: ratingAfter,
         reason,
       });
+      if (isBot) {
+        setCoach(
+          matchRecap({
+            history,
+            botElo: active.targetElo,
+            botName: bot.name,
+            playerColor,
+            playerWon,
+            reason,
+          }),
+        );
+      }
       setEndSnapshot({
         text,
         win: playerWon,
