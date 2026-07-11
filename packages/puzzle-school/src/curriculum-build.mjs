@@ -1,9 +1,10 @@
 import { compilePuzzleSteps } from "./compile-lesson.mjs";
 import {
   CONCEPT_GROUPS,
-  CONCEPT_TUTORIALS,
+  tutorialCoach,
   STAGE_BANDS,
 } from "./concepts.mjs";
+import { capstoneIntro } from "./coach-voice.mjs";
 
 const LEVELS = [
   "Basics",
@@ -54,9 +55,12 @@ export function buildCurriculumFromBuckets(buckets, opts = {}) {
         if (made.length >= TARGET_TOTAL) break;
       }
 
+      const classCount = Math.ceil(made.length / PER_CLASS);
+
       for (let ci = 0; ci * PER_CLASS < made.length; ci++) {
         const slice = made.slice(ci * PER_CLASS, (ci + 1) * PER_CLASS);
         if (!slice.length) break;
+        const isLastClass = ci >= classCount - 1;
         const classId = `${semId}-c${ci + 1}`;
         const difficulty = Math.min(6, st.order + 1 + Math.floor(ci / 3));
         const level = LEVELS[ci] ?? `Set ${ci + 1}`;
@@ -88,7 +92,7 @@ export function buildCurriculumFromBuckets(buckets, opts = {}) {
             {
               id: "t",
               kind: "info",
-              coach: CONCEPT_TUTORIALS[g.id],
+              coach: tutorialCoach(g.id, st.id),
               fen: slice[0].steps[0].fen,
             },
           ]),
@@ -110,6 +114,37 @@ export function buildCurriculumFromBuckets(buckets, opts = {}) {
           });
           total++;
         });
+
+        if (isLastClass) {
+          const capPicks = slice.slice(-Math.min(3, slice.length));
+          const capSteps = [
+            {
+              id: "cap-0",
+              kind: "info",
+              coach: capstoneIntro(g.id, st.id, singular),
+              fen: capPicks[0].steps[0].fen,
+            },
+          ];
+          let capN = 1;
+          for (const { steps } of capPicks) {
+            for (const s of steps) {
+              capSteps.push({ ...s, id: `cap-${capN++}` });
+            }
+          }
+          lessons.push({
+            id: `${classId}-capstone`,
+            classId,
+            title: `${singular} Capstone`,
+            subtitle: "Graduation match",
+            emoji: "🏆",
+            tag: g.id,
+            xp: 35 + capSteps.length * 5,
+            isExam: 0,
+            prerequisites: "[]",
+            steps: JSON.stringify(capSteps),
+            sortOrder: slice.length + 1,
+          });
+        }
       }
     }
   }

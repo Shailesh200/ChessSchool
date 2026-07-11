@@ -138,7 +138,9 @@ export { buildCurriculumFromBuckets } from "./curriculum-build.mjs";
 export {
   CONCEPT_GROUPS,
   CONCEPT_TUTORIALS,
+  tutorialCoach,
   STAGE_BANDS,
   conceptForThemes,
   stageForRating,
 } from "./concepts.mjs";
+export { setupCoach, capstoneIntro, finishCoach, midCoachAt } from "./coach-voice.mjs";

@@ -33,6 +33,17 @@ pnpm --filter web db:import-puzzle-school       # reads packages/puzzle-school/d
 pnpm --filter web curriculum:validate
 ```
 
+## Coach voice
+
+Puzzle lessons use the school coach in `src/coach-voice.mjs`:
+
+- **Setup** — stage-aware prompts per concept (no generic “find the idea” copy)
+- **Mid-line** — short encouragement between combination moves
+- **Capstone** — intro for the graduation match on each semester’s final class
+- **Tutorials** — `tutorialCoach(concept, stage)` frames `CONCEPT_TUTORIALS` with Elementary → Masters tone
+
+Override per puzzle in the bank with `coach.setup`, `coach.success`, and `coach.hint`.
+
 ## Commands (from repo root)
 
 ```bash

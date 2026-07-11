@@ -121,6 +121,21 @@ export const CONCEPT_TUTORIALS = {
     "When you're ahead, convert cleanly: trade pieces (not pawns), improve your worst piece, and avoid counterplay. Quiet, accurate moves win won positions.",
 };
 
+const TUTORIAL_FRAMES = {
+  elementary: "Welcome to tactics class! ",
+  middle: "Middle School tactics — ",
+  high: "High School study hall — ",
+  university: "University seminar — ",
+  master: "Masters cohort — ",
+};
+
+/** Stage-framed tutorial copy for puzzle-semester classes. */
+export function tutorialCoach(conceptId, stageId) {
+  const body = CONCEPT_TUTORIALS[conceptId] ?? CONCEPT_TUTORIALS.trapped;
+  const frame = TUTORIAL_FRAMES[stageId] ?? "Today's lesson: ";
+  return `${frame}${body}`;
+}
+
 /** @param {string} conceptId */
 export function conceptGroup(conceptId) {
   return CONCEPT_GROUPS.find((g) => g.id === conceptId) ?? null;

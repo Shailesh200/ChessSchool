@@ -1,5 +1,6 @@
 import { Chess } from "chess.js";
 import { conceptGroup } from "./concepts.mjs";
+import { setupCoach, finishCoach, midCoachAt } from "./coach-voice.mjs";
 
 /** @param {string} uci */
 function uciMove(uci) {
@@ -42,13 +43,13 @@ export function compilePuzzleSteps(puzzle) {
     if (!applied) return { error: `illegal_student_move:${moves[i]}` };
 
     const lastIdx = i + 1 >= moves.length;
+    const moveNum = (i - 1) / 2;
     const coach =
       i === 1
-        ? (puzzle.coach?.setup ??
-          `Your move. Find the ${group.label.toLowerCase().replace(/s$/, "")} idea.`)
+        ? (puzzle.coach?.setup ?? setupCoach(group.id, puzzle.stage ?? "elementary"))
         : lastIdx
-          ? (puzzle.coach?.success ?? "Finish it off — find the final move.")
-          : "Good. Now find the next move in the combination.";
+          ? (puzzle.coach?.success ?? finishCoach())
+          : midCoachAt(moveNum);
 
     steps.push({
       id: `m${i}`,
