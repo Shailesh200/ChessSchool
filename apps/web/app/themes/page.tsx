@@ -194,7 +194,7 @@ export default function ThemesPage() {
             {/* Piece sets */}
             <section>
               <h2 className="text-ink mb-2 text-sm font-extrabold">Piece sets</h2>
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {PIECE_THEMES.map((p) => {
                   const active = pieceTheme === p.id;
                   return (
@@ -205,16 +205,16 @@ export default function ThemesPage() {
                         haptics.fire("select");
                         audio.play("transition");
                       }}
-                      className={`btn-tactile rounded-card flex flex-col items-center gap-1 border-2 p-2 ${
+                      className={`btn-tactile rounded-card flex min-w-[5.5rem] flex-col items-center gap-1.5 border-2 p-3 ${
                         active
                           ? "border-brand bg-brand-50"
                           : "border-hairline bg-surface-card"
                       }`}
                     >
-                      <div className="bg-surface-sunken rounded-lg px-1 py-1.5">
+                      <div className="bg-surface-sunken w-full rounded-lg px-2 py-2">
                         <PiecePreview themeId={p.id} />
                       </div>
-                      <p className="text-ink truncate text-[11px] font-extrabold">
+                      <p className="text-ink w-full truncate text-center text-xs font-extrabold">
                         {p.name}
                       </p>
                     </button>

@@ -1,6 +1,6 @@
 import "server-only";
 import { JWT } from "google-auth-library";
-import { TTS_MAX_CHARS, TTS_VOICES } from "./voices";
+import { TTS_MAX_CHARS, TTS_VOICES, COACH_SPEECH_RATE_MULTIPLIER } from "./voices";
 import type { CoachPersonality } from "@/core/store/settings.store";
 
 type ServiceAccount = {
@@ -62,7 +62,7 @@ export async function synthesizeGoogleSpeech(
       voice: { languageCode: voice.languageCode, name: voice.name },
       audioConfig: {
         audioEncoding: "MP3",
-        speakingRate: voice.speakingRate,
+        speakingRate: Math.min(2.5, voice.speakingRate * COACH_SPEECH_RATE_MULTIPLIER),
         pitch: voice.pitch,
       },
     }),

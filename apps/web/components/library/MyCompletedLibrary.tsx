@@ -42,7 +42,7 @@ export function MyCompletedLibrary({ lessons }: { lessons: LibLesson[] }) {
           illustration="library"
           title="No completed lessons yet"
           description="Finish lessons on campus and they'll collect here for easy review."
-          action={{ label: "Go to campus", href: "/" }}
+          action={{ label: "Go to campus", href: "/academy" }}
           className="mt-6"
         />
       ) : (

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import {
   speakCoachLine,
   speakCoachText,
   stopCoachSpeech,
+  coachTextAlreadyQueued,
 } from "@/core/audio/coachSpeech";
 import type { CoachContext } from "@/features/coaching/personality";
 import { useSettings } from "@/core/store/settings.store";
@@ -24,10 +25,14 @@ export function useCoachSpeech(
   const personality = useSettings((s) => s.coachPersonality);
   const lastSpoken = useRef("");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled || !sound || !coachSpeech) return;
     const line = text.trim();
     if (!line || line === lastSpoken.current) return;
+    if (coachTextAlreadyQueued(line)) {
+      lastSpoken.current = line;
+      return;
+    }
     lastSpoken.current = line;
     if (styled) void speakCoachText(line);
     else void speakCoachLine(line, context, personality);

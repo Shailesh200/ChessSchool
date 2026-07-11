@@ -2,7 +2,7 @@
 
 import { applyCoachLine, type CoachContext } from "@/features/coaching/personality";
 import { voicePreviewText } from "@/lib/tts/voicePreview";
-import { normalizeCoachVoice, resolveEdgeVoice } from "@/lib/tts/voices";
+import { normalizeCoachVoice, resolveEdgeVoice, COACH_SPEECH_RATE_MULTIPLIER } from "@/lib/tts/voices";
 import {
   useSettings,
   type CoachPersonality,
@@ -12,6 +12,12 @@ import {
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
 let speakGen = 0;
+/** Dedupes hook-triggered speech when a handler already queued the same line. */
+let lastQueuedCoachText = "";
+
+export function coachTextAlreadyQueued(text: string): boolean {
+  return lastQueuedCoachText === text.trim();
+}
 
 function cacheKey(
   text: string,
@@ -58,7 +64,7 @@ function speakWithBrowser(text: string, volume: number, gen: number): Promise<vo
 
   const utter = new SpeechSynthesisUtterance(text);
   utter.volume = Math.min(1, Math.max(0, volume));
-  utter.rate = 1;
+  utter.rate = COACH_SPEECH_RATE_MULTIPLIER;
   return new Promise((resolve) => {
     utter.onend = () => resolve();
     utter.onerror = () => resolve();
@@ -114,9 +120,19 @@ export async function speakCoachText(text: string): Promise<void> {
   const line = text.trim();
   if (!line || line === "Thinking…") return;
 
+  const voice = normalizeCoachVoice(settings.coachVoice);
+  const key = cacheKey(line, settings.coachPersonality, voice);
+  const cached = audioCache.get(key);
+
+  lastQueuedCoachText = line;
   stopCoachSpeech();
   const gen = speakGen;
-  const voice = normalizeCoachVoice(settings.coachVoice);
+
+  if (cached) {
+    await playUrl(cached, settings.volume, gen);
+    return;
+  }
+
   const url = await fetchCloudAudio(line, settings.coachPersonality, voice);
   if (gen !== speakGen) return;
 

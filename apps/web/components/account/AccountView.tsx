@@ -74,7 +74,7 @@ export function AccountView({
             )}
 
             <Link
-              href="/"
+              href="/academy"
               className="text-ink-500 text-center text-sm font-bold lg:text-left"
             >
               Go to campus →

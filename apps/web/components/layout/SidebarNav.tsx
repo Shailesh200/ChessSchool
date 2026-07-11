@@ -28,9 +28,7 @@ export function SidebarNav() {
   const { into, need } = xpProgress(xp);
 
   const loadingHref =
-    pending && (pending === "/" ? pathname !== "/" : !pathname.startsWith(pending))
-      ? pending
-      : null;
+    pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
     <aside className="border-hairline bg-surface-card hidden w-[220px] shrink-0 flex-col border-r lg:flex">

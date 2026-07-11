@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { ChessBoard } from "@/features/board/ChessBoard";
@@ -197,7 +198,7 @@ function CalculationTrainerSession({
       <div className="mx-auto flex max-w-xl flex-col gap-4 pb-8">
         <BackButton fallback="/play" />
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-ink text-xl font-extrabold">Calculation trainer</h1>
+          <h1 className="text-ink text-xl font-extrabold">Lesson trainer</h1>
           <span className="bg-brand-50 text-brand-700 rounded-pill inline-flex items-center gap-1 px-2 py-1 text-[10px] font-extrabold tracking-wide uppercase">
             <Icon name="brain" size={12} />
             Think
@@ -205,8 +206,11 @@ function CalculationTrainerSession({
         </div>
 
         {puzzle && (
-          <p className="text-ink-500 text-xs font-semibold">
-            {puzzle.emoji} {puzzle.title} · {puzzle.tag}
+          <p className="text-ink-500 flex items-center gap-2 text-xs font-semibold">
+            <ContentIcon emoji={puzzle.emoji} size={18} variant="inline" tone="brand" />
+            <span>
+              {puzzle.title} · {puzzle.tag}
+            </span>
           </p>
         )}
 

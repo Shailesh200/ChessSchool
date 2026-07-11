@@ -442,7 +442,7 @@ export function LessonPlayer({
         ceremony={ceremony}
         nextLessonId={nextLessonId}
         homeworkStep={homeworkStep}
-        onDone={() => router.push("/")}
+        onDone={() => router.push("/academy")}
       />
     );
   }
@@ -503,7 +503,7 @@ export function LessonPlayer({
           <button
             onClick={() => {
               startNav();
-              router.push("/");
+              router.push("/academy");
             }}
             aria-label="Back to campus"
             className="btn-tactile border-hairline bg-surface-card text-ink-700 hover:text-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"

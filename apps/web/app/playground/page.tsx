@@ -23,7 +23,7 @@ export default function PlaygroundPage() {
   const isAdmin = useSession((s) => s.isAdmin);
   // Playground is an admin tool — send non-admins back to campus.
   useEffect(() => {
-    if (authed !== null && !isAdmin) router.replace("/");
+    if (authed !== null && !isAdmin) router.replace("/academy");
   }, [authed, isAdmin, router]);
 
   const engineRef = useRef(new ChessEngine());

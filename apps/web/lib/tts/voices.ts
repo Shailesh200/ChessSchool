@@ -237,14 +237,20 @@ export const TTS_VOICES: Record<CoachPersonality, TtsVoiceProfile> = {
 
 export const TTS_MAX_CHARS = 500;
 
+/** Global playback speed for coach + narrator voices (Edge rate / Google speakingRate / browser). */
+export const COACH_SPEECH_RATE_MULTIPLIER = 1.2;
+
 export function resolveEdgeVoice(
   personality: CoachPersonality,
   voiceId: CoachVoiceId,
 ): EdgeVoiceProfile {
   const id = normalizeCoachVoice(voiceId);
-  if (id !== "auto") {
-    const picked = COACH_VOICE_OPTIONS.find((o) => o.id === id);
-    if (picked?.edge.name) return picked.edge;
-  }
-  return TTS_VOICES[personality]?.edge ?? TTS_VOICES.friendly.edge;
+  const base =
+    id !== "auto"
+      ? (COACH_VOICE_OPTIONS.find((o) => o.id === id)?.edge ?? TTS_VOICES.friendly.edge)
+      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES.friendly.edge);
+  return {
+    ...base,
+    rate: Math.min(2.5, base.rate * COACH_SPEECH_RATE_MULTIPLIER),
+  };
 }

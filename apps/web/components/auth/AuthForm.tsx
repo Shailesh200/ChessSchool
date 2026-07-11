@@ -67,7 +67,7 @@ export function AuthForm({
           </Link>
         </p>
         <p className="text-ink-300 mt-2 text-center text-xs font-semibold">
-          <Link href="/">Continue as guest →</Link>
+          <Link href="/academy">Continue as guest →</Link>
         </p>
       </div>
     </div>

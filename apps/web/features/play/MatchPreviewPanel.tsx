@@ -6,9 +6,10 @@ import { ChessBoard } from "@/features/board/ChessBoard";
 import { useMounted } from "@/core/hooks/useMounted";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
-import type { MatchMode } from "@/core/store/match.store";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+type ChooserMode = "bot" | "pass" | "training";
 
 /** Static preview panel for Play desktop layout (lg+). */
 export function MatchPreviewPanel({
@@ -17,23 +18,22 @@ export function MatchPreviewPanel({
   adaptive,
   rating,
   timeMin,
-  thinkingGame = false,
+  trainingLabel,
 }: {
-  mode: MatchMode;
+  mode: ChooserMode;
   targetElo: number;
   adaptive: boolean;
   rating: number;
   timeMin: number;
-  thinkingGame?: boolean;
+  trainingLabel?: string;
 }) {
   const mounted = useMounted();
   const elo = adaptive ? rating : targetElo;
   const bot = mode === "bot" ? botProfile(elo) : null;
-  const timeLabel = thinkingGame
-    ? "Thinking (no clock)"
-    : timeMin === 0
-      ? "No clock"
-      : `${timeMin} min per side`;
+  const timeLabel = timeMin === 0 ? "No clock" : `${timeMin} min per side`;
+
+  const modeLabel =
+    mode === "bot" ? "vs Bot" : mode === "pass" ? "vs Human" : "Training";
 
   return (
     <aside className="hidden lg:block">
@@ -56,20 +56,18 @@ export function MatchPreviewPanel({
           )}
         </div>
         <div className="flex flex-col gap-2 text-sm">
-          <PreviewRow
-            icon="play"
-            label="Mode"
-            value={mode === "bot" ? "vs Bot" : "vs Human"}
-          />
+          <PreviewRow icon="play" label="Mode" value={modeLabel} />
           {bot && (
             <PreviewRow icon="target" label="Opponent" value={`${bot.name} (${elo})`} />
           )}
           {mode === "pass" && (
             <PreviewRow icon="share" label="Opponent" value="Two players or online" />
           )}
-          <PreviewRow icon="calendar" label="Clock" value={timeLabel} />
-          {thinkingGame && (
-            <PreviewRow icon="brain" label="Training" value="Confirm each move" />
+          {mode === "training" && trainingLabel && (
+            <PreviewRow icon="brain" label="Training" value={trainingLabel} />
+          )}
+          {mode !== "training" && (
+            <PreviewRow icon="calendar" label="Clock" value={timeLabel} />
           )}
         </div>
         {bot && <p className="text-ink-500 text-xs font-semibold">{bot.blurb}</p>}

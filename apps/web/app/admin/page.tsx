@@ -24,7 +24,7 @@ export default async function AdminPage() {
           admin, set your user&apos;s <code>role</code> to <code>admin</code> — run{" "}
           <code>pnpm db:studio</code>, open the <code>users</code> table, and change it.
         </p>
-        <Link href="/" className="text-brand font-bold">
+        <Link href="/academy" className="text-brand font-bold">
           ← Back to campus
         </Link>
       </div>

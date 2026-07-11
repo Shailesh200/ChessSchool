@@ -129,7 +129,7 @@ export function JourneyView({
     <div className="flex flex-col gap-5">
       <BackButton label="Campus" fallback="/" className="self-start lg:hidden" />
       <button
-        onClick={() => router.push("/")}
+        onClick={() => router.push("/academy")}
         className="text-brand hidden self-start text-sm font-bold lg:inline-flex lg:items-center lg:gap-1"
       >
         <Icon name="chevronRight" size={16} className="rotate-180" />

@@ -5,7 +5,7 @@ test.describe("mobile layout @390", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test("campus uses bottom nav and single-column layout", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/academy");
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden();
     await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
@@ -31,6 +31,7 @@ test.describe("mobile layout @390", () => {
   test("no horizontal overflow on primary routes", async ({ page }) => {
     const routes = [
       "/",
+      "/academy",
       "/class/class-pieces",
       "/play",
       "/dashboard",

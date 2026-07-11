@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("campus map renders resume card, semesters and classes", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/academy");
   await expect(page.getByText("Daily goal")).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Your place in school" }),

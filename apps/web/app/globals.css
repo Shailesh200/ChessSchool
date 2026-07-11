@@ -311,29 +311,54 @@ html[data-app-theme="midnight"] {
   --shadow-pop: 0 18px 40px -10px rgba(0, 0, 0, 0.6);
 }
 
-/* School themes retint the brand + accent (all AA-safe with white text). */
+/* School themes — brand, accent, and chrome surfaces (nav, cards, campus). */
 html[data-school-theme="elementary"] {
   --brand-500: #2563eb;
   --brand-600: #1d4ed8;
   --brand-700: #1e40af;
+  --brand-50: #dbeafe;
+  --brand-100: #bfdbfe;
   --accent-500: #f2613f;
+  --surface: #f3f7ff;
+  --surface-card: #ffffff;
+  --surface-sunken: #e8f0fe;
+  --hairline: #cdd9f0;
 }
 html[data-school-theme="highschool"] {
   --brand-500: #0f766e;
   --brand-600: #0d655e;
   --brand-700: #0a504a;
+  --brand-50: #ccfbf1;
+  --brand-100: #99f6e4;
   --accent-500: #cf4324;
+  --surface: #f0faf8;
+  --surface-card: #ffffff;
+  --surface-sunken: #e0f2ef;
+  --hairline: #c5e8e0;
 }
 html[data-school-theme="university"] {
   --brand-500: #5b5bd6;
   --brand-600: #4b46c4;
   --brand-700: #3b35a0;
+  --brand-50: #ededfd;
+  --brand-100: #d8d7fa;
+  --accent-500: #f2613f;
+  --surface: #f5f5ff;
+  --surface-card: #ffffff;
+  --surface-sunken: #ebebf8;
+  --hairline: #d6d6f0;
 }
 html[data-school-theme="graduation"] {
   --brand-500: #6d28d9;
   --brand-600: #5b21b6;
   --brand-700: #4c1d95;
+  --brand-50: #f3e8ff;
+  --brand-100: #e9d5ff;
   --accent-500: #d97706;
+  --surface: #faf5ff;
+  --surface-card: #ffffff;
+  --surface-sunken: #f1e8fd;
+  --hairline: #e4d4f7;
 }
 
 /* Prevent iOS Safari from zooming when focusing a small input (font < 16px). */

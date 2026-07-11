@@ -99,7 +99,7 @@ export function PlacementTest({
       });
       audio.play("graduation");
       startNav();
-      router.push("/");
+      router.push("/academy");
     };
 
     return (

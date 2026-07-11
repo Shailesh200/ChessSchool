@@ -14,9 +14,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const [pending, setPending] = useState<string | null>(null);
   const loadingHref =
-    pending && (pending === "/" ? pathname !== "/" : !pathname.startsWith(pending))
-      ? pending
-      : null;
+    pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
     <nav
