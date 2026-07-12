@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, primaryKey } from "drizzle-orm/sqlite-core";
 
 /**
  * ChessSchool database schema (SQLite via Drizzle).
@@ -12,11 +12,28 @@ import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  /** Null for Google-only accounts. */
+  passwordHash: text("password_hash"),
   name: text("name").notNull(),
   role: text("role").notNull().default("student"), // "student" | "admin"
   createdAt: integer("created_at").notNull(),
 });
+
+export const oauthAccounts = sqliteTable(
+  "oauth_accounts",
+  {
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.provider, table.providerAccountId] }),
+    index("oauth_accounts_user_id_idx").on(table.userId),
+  ],
+);
 
 export const sessions = sqliteTable(
   "sessions",

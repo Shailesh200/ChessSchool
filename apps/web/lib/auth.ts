@@ -2,9 +2,14 @@ import "server-only";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { users, sessions, profiles, progress, lessonRecords } from "@/db/schema";
+import { users, sessions, profiles, progress, lessonRecords, oauthAccounts } from "@/db/schema";
+import {
+  GOOGLE_PROVIDER,
+  googleProfileFromIdToken,
+  type GoogleProfile,
+} from "@/lib/google-oauth.server";
 import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 import {
   createSession,
@@ -48,6 +53,11 @@ async function startSession(userId: string): Promise<void> {
     path: "/",
     maxAge: SESSION_DAYS * 86400,
   });
+}
+
+/** Set the httpOnly web session cookie (password or Google web login). */
+export async function establishWebSession(userId: string): Promise<void> {
+  await startSession(userId);
 }
 
 export async function registerUser(
@@ -94,7 +104,10 @@ export async function loginUser(
   const user = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (user && !user.passwordHash) {
+      return { error: "This account uses Google sign-in." };
+    }
     return { error: "Wrong email or password." };
   }
   await startSession(user.id);
@@ -196,7 +209,10 @@ export async function loginWithToken(
   const user = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (user && !user.passwordHash) {
+      return { error: "This account uses Google sign-in." };
+    }
     return { error: "Wrong email or password." };
   }
   const token = await createSessionToken(user.id);
@@ -205,6 +221,117 @@ export async function loginWithToken(
     token,
     user: { id: user.id, email: user.email, name: user.name, role: user.role },
   };
+}
+
+async function provisionNewStudent(
+  id: string,
+  email: string,
+  name: string,
+  passwordHash: string | null,
+): Promise<void> {
+  const now = Date.now();
+  await db.insert(users).values({
+    id,
+    email,
+    passwordHash,
+    name: name.trim(),
+    role: "student",
+    createdAt: now,
+  });
+  await db.insert(profiles).values({
+    userId: id,
+    studentNo: makeStudentNo(),
+    enrolledAt: now,
+    rankTitle: "Novice",
+  });
+  await db.insert(progress).values({ userId: id, updatedAt: now });
+}
+
+async function linkGoogleAccount(userId: string, sub: string): Promise<void> {
+  await db
+    .insert(oauthAccounts)
+    .values({
+      provider: GOOGLE_PROVIDER,
+      providerAccountId: sub,
+      userId,
+      createdAt: Date.now(),
+    })
+    .onConflictDoNothing();
+}
+
+function toSessionUser(user: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}): SessionUser {
+  return { id: user.id, email: user.email, name: user.name, role: user.role };
+}
+
+/** Sign in or enroll via Google — links to an existing email account when present. */
+export async function signInWithGoogle(
+  profile: GoogleProfile,
+): Promise<{ user: SessionUser; isNewUser: boolean } | { error: string }> {
+  if (!profile.emailVerified) {
+    return { error: "Google did not verify this email." };
+  }
+
+  const email = profile.email.trim().toLowerCase();
+  const oauthRow = (
+    await db
+      .select({ userId: oauthAccounts.userId })
+      .from(oauthAccounts)
+      .where(
+        and(
+          eq(oauthAccounts.provider, GOOGLE_PROVIDER),
+          eq(oauthAccounts.providerAccountId, profile.sub),
+        ),
+      )
+      .limit(1)
+  )[0];
+
+  if (oauthRow) {
+    const user = (
+      await db.select().from(users).where(eq(users.id, oauthRow.userId)).limit(1)
+    )[0];
+    if (!user) return { error: "Account not found." };
+    void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
+    return { user: toSessionUser(user), isNewUser: false };
+  }
+
+  const existing = (
+    await db.select().from(users).where(eq(users.email, email)).limit(1)
+  )[0];
+  if (existing) {
+    await linkGoogleAccount(existing.id, profile.sub);
+    void insertAnalyticsEvents([{ name: "login", userId: existing.id }]).catch(
+      () => void 0,
+    );
+    return { user: toSessionUser(existing), isNewUser: false };
+  }
+
+  const id = randomUUID();
+  await provisionNewStudent(id, email, profile.name, null);
+  await linkGoogleAccount(id, profile.sub);
+  void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
+  return {
+    user: { id, email, name: profile.name.trim(), role: "student" },
+    isNewUser: true,
+  };
+}
+
+/** Mobile: verify a Google ID token and return a bearer session. */
+export async function signInWithGoogleIdToken(
+  idToken: string,
+): Promise<
+  { token: string; user: SessionUser; isNewUser: boolean } | { error: string }
+> {
+  const profile = await googleProfileFromIdToken(idToken);
+  if ("error" in profile) return profile;
+  const res = await signInWithGoogle(profile);
+  if ("error" in res) return res;
+  const token = await createSessionToken(res.user.id);
+  return { token, user: res.user, isNewUser: res.isNewUser };
 }
 
 /** Permanently delete a student account and all associated data. */

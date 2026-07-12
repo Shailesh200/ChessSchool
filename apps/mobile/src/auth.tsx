@@ -14,6 +14,7 @@ type AuthState = {
   continueAsGuest: () => void;
   exitGuest: () => void;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<{ isNewUser: boolean }>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;

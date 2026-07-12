@@ -1,5 +1,8 @@
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { registerAction } from "@/lib/auth-actions";
+import { getCurrentUser } from "@/lib/auth";
 import { socialMeta } from "@/lib/seo";
 
 export const metadata = {
@@ -17,6 +20,13 @@ export const metadata = {
   }),
 };
 
-export default function RegisterPage() {
-  return <AuthForm mode="register" action={registerAction} />;
+export const dynamic = "force-dynamic";
+
+export default async function RegisterPage() {
+  if (await getCurrentUser()) redirect("/");
+  return (
+    <Suspense fallback={<div className="skeleton mx-auto mt-24 h-64 max-w-sm rounded-card" />}>
+      <AuthForm mode="register" action={registerAction} />
+    </Suspense>
+  );
 }
