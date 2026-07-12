@@ -1,6 +1,6 @@
 # M-071 — Documentation Refresh
 
-**Status:** In progress  
+**Status:** Verified (2026-07-12)  
 **Gate:** G-WebGA  
 **Branch:** `milestone/M-071-documentation-refresh`
 
@@ -38,7 +38,7 @@ stale mobile parity audit. Update master plan progress after M-056, M-057, M-070
 - [x] `PARITY.md` points to `PARITY_GAPS.md` only
 - [x] Master plan lists M-070 Verified, M-071 In Progress
 - [x] README opening reflects accounts + Turso + Google OAuth
-- [ ] Owner approval → merge to `main`
+- [x] Owner approval → merge to `main`
 
 ## Out of scope (deferred)
 

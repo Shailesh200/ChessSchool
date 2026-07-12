@@ -65,11 +65,11 @@ This Master Development Plan converts existing product documentation (`README.md
 |--------|-------|
 | **Overall Progress** | ~78% (product surface) · ~70% (Web GA ready) |
 | **Current Phase** | Web GA final gates |
-| **Current Milestone** | M-071 — Documentation Refresh |
-| **Completed Milestones** | M-001–M-048 (Verified) · M-056 · M-057 · M-059 · M-063 · M-064 · M-070 · M-075 Phase A/B (Verified) · G-Hardening complete |
-| **In Progress** | M-071 |
+| **Current Milestone** | M-072 — Visual Regression & Storybook |
+| **Completed Milestones** | M-001–M-048 (Verified) · M-056 · M-057 · M-059 · M-063 · M-064 · M-070 · M-071 · M-075 Phase A/B (Verified) · G-Hardening complete |
+| **In Progress** | M-072 |
 | **Blocked** | M-073 (until G-WebGA) |
-| **Next Milestone** | M-072 — Visual Regression & Storybook |
+| **Next Milestone** | M-073 — Web GA Launch Readiness |
 | **Last Updated** | 2026-07-12 (v2.11 — M-070 security audit; M-071 docs) |
 | **Overall Completion %** | ~78% product · ~70% Web GA ready |
 
@@ -471,7 +471,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-068** | Observability & SRE | Structured logging, alerting, session cleanup cron | Not Started |
 | **M-069** | Performance Optimization | Bot off main thread, curriculum query optimization, lazy routes | Not Started |
 | **M-070** | Security Audit & Privacy | Pen-test fixes, privacy policy alignment — **G-WebGA gate** | **Verified** |
-| **M-071** | Documentation Refresh | Reconcile CLAUDE.md, retire stale PARITY.md — **G-WebGA gate** | **In Progress** |
+| **M-071** | Documentation Refresh | Reconcile CLAUDE.md, retire stale PARITY.md — **G-WebGA gate** | **Verified** |
 | **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | Not Started |
 | **M-073** | Web GA Launch Readiness | Launch checklist, marketing pages, support runbook — **G-WebGA gate** | Not Started |
 | **M-074** | Continuous Evolution | Ongoing content, engine updates, community features | Ongoing |

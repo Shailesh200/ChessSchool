@@ -125,9 +125,9 @@ Remote: `git@github-personal:Shailesh200/ChessSchool.git`. Commit email `iamshai
 - **New web routes/features:** add Playwright e2e + update `scripts/web-e2e-routes.json` and `scripts/web-lighthouse-routes.json`
 
 ## Milestone status (2026-07-12)
-**Verified recently:** M-056 Google OAuth · M-057 guest enroll prompt · M-070 security audit  
-**In progress:** M-071 documentation refresh  
-**Next Web GA gates:** M-072 visual regression · M-073 launch runbook  
+**Verified recently:** M-056 Google OAuth · M-057 guest enroll prompt · M-070 security audit · M-071 documentation refresh  
+**In progress:** M-072 visual regression  
+**Next Web GA gates:** M-073 launch runbook  
 **Post Web GA:** M-049–M-053 mobile store · M-058 personalized puzzles · M-060 global search · M-076 toolchain
 
 **Done (summary):** hosted PWA, accounts + Student ID + Google OAuth, DB curriculum + Lichess import (~5k+ puzzles), admin CMS + JSON import, progress sync (hardened), Stockfish WASM, dashboard/journal/plan/homework, secure online PvP, responsive browser layouts, premium UI overhaul, mobile ~90% screen parity, shared progression package, production hardening M-043–M-048.
