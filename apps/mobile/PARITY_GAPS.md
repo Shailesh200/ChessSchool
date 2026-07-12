@@ -45,7 +45,7 @@ The existing `apps/mobile/PARITY.md` predates a lot of work. **These claims in i
 - ❌ "dashboard ❌" — `apps/mobile/app/dashboard.tsx` exists (SkillRadar + heatmap).
 - The "daily goal uses lifetime XP" bug is **fixed** (`apps/mobile/app/(tabs)/index.tsx:57` uses `activityDays[today]`).
 
-Treat **this file (`PARITY_GAPS.md`) as current**; keep `PARITY.md` only as history.
+Treat **this file (`PARITY_GAPS.md`) as current**; `PARITY.md` was retired in M-071 (redirect stub only).
 
 ---
 

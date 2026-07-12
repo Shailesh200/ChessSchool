@@ -1,6 +1,6 @@
 # Implementation plan — full web↔app parity
 
-Companion to `PARITY.md` (the audit). This is the *how*. Bar: **visually indistinguishable at a glance + behaviorally identical**. (Honest caveat: native RN ≠ web CSS at the literal pixel level — font metrics, flexbox rounding, and shadows differ slightly — so "pixel-perfect" is asymptotic, not absolute.)
+Companion to [`PARITY_GAPS.md`](PARITY_GAPS.md) (the audit backlog). This is the *how*. Bar: **visually indistinguishable at a glance + behaviorally identical**. (Honest caveat: native RN ≠ web CSS at the literal pixel level — font metrics, flexbox rounding, and shadows differ slightly — so "pixel-perfect" is asymptotic, not absolute.)
 
 ## A. How we resolve STYLING + POSITIONING (the visual gap)
 The problem so far: I've eyeballed screenshots. The fix is a **measured, token-driven** method, per screen:
@@ -11,10 +11,10 @@ The problem so far: I've eyeballed screenshots. The fix is a **measured, token-d
 4. **Component primitives.** Build RN equivalents of web's shared UI (Card, Button, Pill, ProgressBar, Sheet, Row) once, with web's exact paddings/radii, so every screen inherits correct styling.
 5. **Typography.** Match font size **and** line-height **and** weight per text role (h1/h2/body/caption) to web's; Fredoka metrics differ slightly — accept ≤1px drift.
 
-Verification of visual parity = the overlay-diff harness (below), screen by screen, logged in `PARITY.md`.
+Verification of visual parity = the overlay-diff harness (below), screen by screen, logged in `PARITY_GAPS.md`.
 
 ## B. How we resolve BEHAVIOR (the logic gap)
-Root cause (see PARITY.md): web computes progression client-side in Zustand stores; mobile doesn't.
+Root cause (see `PARITY_GAPS.md`): web and mobile now share `@chess-school/progression`; remaining gaps are mostly UI/guest-gating and depth features.
 **Fix = extract `packages/progression`** — pure functions (`recordLesson`, `awardXp`, `registerActivity`,
 `logMistake`, `recordWeakness`, `updateRating`, `checkLesson/MatchAchievements`, `markHomework`,
 `graduateClass`, spaced-rep `dueAt`) with **injectable storage**. Web's store delegates to it (no behavior
@@ -26,16 +26,16 @@ change → web safe); mobile imports the same functions and applies them to its 
 - **Device-only (you confirm):** audio (🎧) and animation/motion (🎬) can't be seen in static screenshots. I'll ship a per-release **device checklist** for these.
 - **Logic:** unit-test `packages/progression` so web + app provably compute the same outputs.
 
-## D. Phased execution (verified each step)
-- **P0 — Content:** deploy additive backend to prod (web-safe hotfix) → app gets 16k. *(in progress)*
-- **P1 — Shared progression** (`packages/progression`) → wire mobile lesson/play/homework. Closes the behavioral class of gaps.
-- **P2 — Visual parity pass** (method A) across Learn → Lesson → Play → Profile → Homework → Review → Settings, overlay-diffed.
-- **P3 — Board/Play interactions:** drag-to-move, promotion chooser, coordinates, check-highlight, clock, material, move-list, resign, adaptive, remaining board themes, classic piece set, `cute`/`blossom` id fix.
-- **P4 — Lesson depth:** progressive hints, wrong-move-shown-red, opponent-reply animation, richer complete screen (confetti/next/Reflect).
-- **P5 — Feel:** Cody motion (Reanimated), audio tuning.
-- **P6 — Missing screens:** onboarding, placement, exams + journey map, dashboard (radar/heatmap), practice-mistakes, library search, account.
-- **P7 — Online PvP** (Ably; largest).
-- **(Later) Stockfish WASM** for a web-strength bot.
+## D. Phased execution (status 2026-07-12)
+- **P0 — Content:** ✅ DB-driven curriculum + Lichess import on prod
+- **P1 — Shared progression:** ✅ `packages/progression` wired on mobile
+- **P2 — Visual parity:** 🟡 ongoing — overlay diff per screen
+- **P3 — Board/Play:** 🟡 clocks, promotion, themes largely done; polish remains
+- **P4 — Lesson depth:** 🟡 hints, animations, enroll prompt (M-057 web)
+- **P5 — Feel:** 🟡 Cody motion, audio parity
+- **P6 — Missing screens:** 🟡 most routes exist; dashboard, exams, library depth vary
+- **P7 — Online PvP:** ✅ foundation + seat auth (M-043); mobile clocks polish pending
+- **Store release:** M-053 after Web GA (M-073)
 
 ## E. Deploy safety (P0 detail)
 Prod = `main` @ repo root (old structure). The monorepo migration would break the Vercel build unless Root

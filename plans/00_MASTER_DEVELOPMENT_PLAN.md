@@ -48,9 +48,9 @@ This Master Development Plan converts existing product documentation (`README.md
 |---------|-----------|--------|-------------|
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
 | **Browser** | M-059 | **Verified** | Desktop sidebar + responsive layouts @390–1280 (owner approved 2026-07-10) |
-| **Polish** | M-075 | **In Progress** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
-| **Content** | M-063 | **Verified** | Puzzle School bank + superb school-themed lessons (≥8k launch) |
-| **Trust** | M-043–M-048, M-070 | M-043–M-048 **Verified** · M-070 pending | Security, data integrity, privacy audit |
+| **Polish** | M-075 | **Verified** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
+| **Content** | M-063 | **Verified** | Puzzle School bank + school-themed lessons |
+| **Trust** | M-043–M-048, M-070 | M-043–M-048 **Verified** · **M-070 Verified** (2026-07-12) | Security, data integrity, privacy audit |
 | **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
 
 **Web GA is not** the native App Store release (that is **G-Mobile**, M-049–M-053, after M-073).
@@ -63,15 +63,15 @@ This Master Development Plan converts existing product documentation (`README.md
 
 | Metric | Value |
 |--------|-------|
-| **Overall Progress** | ~74% (product surface) · ~55% (Web GA ready) |
-| **Current Phase** | Web GA Polish + pre-GA hardening |
-| **Current Milestone** | M-065 — Tournament & Shadow Opponent Modes |
-| **Completed Milestones** | M-001–M-044 (Verified) · M-075 Phase A/B slices (merged) · M-059 (Verified 2026-07-10) · M-045–**M-048 (Verified 2026-07-11)** · **M-063 (Verified 2026-07-11)** · **M-064 (Verified 2026-07-11)** · G-Hardening complete |
-| **In Progress** | M-065 · M-071 |
+| **Overall Progress** | ~78% (product surface) · ~70% (Web GA ready) |
+| **Current Phase** | Web GA final gates |
+| **Current Milestone** | M-071 — Documentation Refresh |
+| **Completed Milestones** | M-001–M-048 (Verified) · M-056 · M-057 · M-059 · M-063 · M-064 · M-070 · M-075 Phase A/B (Verified) · G-Hardening complete |
+| **In Progress** | M-071 |
 | **Blocked** | M-073 (until G-WebGA) |
-| **Next Milestone** | M-065 Phase 4 (optional Swiss) |
-| **Last Updated** | 2026-07-11 (v2.10 — M-065 Phase 3 arena tournament) |
-| **Overall Completion %** | ~74% product · ~55% Web GA ready |
+| **Next Milestone** | M-072 — Visual Regression & Storybook |
+| **Last Updated** | 2026-07-12 (v2.11 — M-070 security audit; M-071 docs) |
+| **Overall Completion %** | ~78% product · ~70% Web GA ready |
 
 > Update this section as milestones are completed and verified.
 
@@ -119,7 +119,7 @@ Next milestone branch from main
 | `README.md` | Historical waves, feature inventory, deferred systems |
 | `CODE_REVIEW.md` | Production-readiness audit (security, data integrity) |
 | `apps/mobile/PLAN.md` | Mobile parity strategy (tokens, overlay-diff, phases) |
-| `apps/mobile/PARITY_GAPS.md` | Current mobile backlog (authoritative over stale `PARITY.md`) |
+| `apps/mobile/PARITY_GAPS.md` | Current mobile backlog (authoritative; `PARITY.md` retired M-071) |
 | `apps/mobile/RELEASE.md` | EAS build, OTA, store submission |
 | `apps/mobile/STOCKFISH.md` | Native engine integration |
 | `AGENTS.md` | Next.js 16 agent rules |
@@ -456,8 +456,8 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-053** | App Store & Play Store Release | EAS build, store listings, OTA channels | Not Started |
 | **M-054** | Bi-directional Settings Sync | Web reads account settings; unified merge semantics | Not Started |
 | **M-055** | Mobile Playground | Port `/playground` to native | Not Started |
-| **M-056** | Google OAuth | Social sign-in alongside email/password | Not Started |
-| **M-057** | Guest → Account Enroll Prompt | Post-first-lesson enrollment CTA (web + mobile alignment) | Not Started |
+| **M-056** | Google OAuth | Social sign-in alongside email/password | **Verified** |
+| **M-057** | Guest → Account Enroll Prompt | Post-first-lesson enrollment CTA (web + mobile alignment) | **Verified** |
 | **M-058** | Personalized Puzzles (Mistake DNA) | Generate drills from user mistakes + Stockfish verify | Not Started |
 | **M-059** | Responsive Browser Layouts | Desktop/tablet breakpoints, container queries — **G-WebGA gate** | **Verified** |
 | **M-060** | Global Search (⌘K) | Universal lesson/class search + keyboard shortcuts | Not Started |
@@ -470,12 +470,12 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-067** | Story Mode | Narrative campaign layer over curriculum | Not Started |
 | **M-068** | Observability & SRE | Structured logging, alerting, session cleanup cron | Not Started |
 | **M-069** | Performance Optimization | Bot off main thread, curriculum query optimization, lazy routes | Not Started |
-| **M-070** | Security Audit & Privacy | Pen-test fixes, privacy policy alignment — **G-WebGA gate** | Not Started |
+| **M-070** | Security Audit & Privacy | Pen-test fixes, privacy policy alignment — **G-WebGA gate** | **Verified** |
 | **M-071** | Documentation Refresh | Reconcile CLAUDE.md, retire stale PARITY.md — **G-WebGA gate** | **In Progress** |
 | **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | Not Started |
 | **M-073** | Web GA Launch Readiness | Launch checklist, marketing pages, support runbook — **G-WebGA gate** | Not Started |
 | **M-074** | Continuous Evolution | Ongoing content, engine updates, community features | Ongoing |
-| **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | **In Progress (Phase A)** |
+| **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | **Verified** |
 | **M-076** | Toolchain Modernization | Bun (from pnpm), Oxlint, Oxfmt, Lefthook — post Web GA | Not Started |
 | **M-077** | Scaling Architecture & ADR | When/how to split BE from Next.js; caching, CDN, job queues | Not Started |
 | **M-078** | Backend Service Extraction | Standalone API service if ADR approves; mobile/web clients unchanged | Not Started |
@@ -568,7 +568,7 @@ flowchart TD
 | Admin CMS | M-023, M-062 | Covered (UX polish pending) |
 | Curriculum (DB + Lichess) | M-021, M-022, **M-063** | Partial (M-063 gated before Web GA) |
 | Responsive Browser (Web GA) | **M-059** ✓, M-010 | Both Verified |
-| Premium UI & Motion | M-003, **M-075** (design approval gate) | Phase 1 done; wireframes pending |
+| Premium UI & Motion | M-003, **M-075** | **Verified** (Phase A/B owner approved 2026-07-10) |
 | Backend Scaling | **M-077, M-078** | Not started (monolithic Next.js + Turso today) |
 | Toolchain (Bun/Oxlint) | **M-076** | Planned post Web GA |
 | Library Free-Browse | M-024 | Covered |
@@ -577,7 +577,7 @@ flowchart TD
 | SEO & Landing Pages | M-034 | Covered |
 | Mobile App (all surfaces) | M-038–M-042, M-049–M-053 | ~90% screens; ship track pending |
 | Stockfish Analysis | M-026, M-052 | Web covered; native branch |
-| Google OAuth | M-056 | Not started |
+| Google OAuth | M-056 | **Verified** |
 | Personalized Puzzles | M-058 | Not started |
 | Global Search | M-060 | Not started |
 | Certificates | M-066 | Not started |
@@ -1410,12 +1410,12 @@ The roadmap (`plans/00_MASTER_DEVELOPMENT_PLAN.md`) is the **permanent source of
 ```text
 M-001 → M-042   Foundation through Mobile Parity       (Verified)
 M-044 ✓        Progress API Hardening (Verified)
-M-075 Phase A  UI design package → owner approval    ← CURRENT
-M-059 + M-075-B Browser layouts + UI implementation (after approval)
-M-045 → M-048  Production Hardening (deferred — required before M-073)
-M-063          Curriculum Content Expansion             G-WebGA
-M-070 → M-072  Security Audit, Docs, Visual QA          G-WebGA
-M-073          Web GA Launch                            PUBLIC LAUNCH
+M-075 ✓        UI design + implementation (Verified)
+M-059 ✓        Browser layouts (Verified)
+M-063 ✓        Curriculum expansion (Verified)
+M-070 ✓        Security audit (Verified)
+M-071          Documentation refresh                    ← CURRENT
+M-072 → M-073  Visual QA, launch runbook                G-WebGA
         ↓
 M-049 → M-053   Mobile Ship Track                        (~4–6 weeks)  post Web GA
 M-054 → M-062   Cross-Surface & Product                  (~6–10 weeks)
@@ -1430,22 +1430,17 @@ M-074           Continuous Evolution                     (ongoing)
 
 Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 
-**Phase A — Design + polish path (prioritized)**
-1. **M-075 Phase A** — Wireframes, mockups, SVG/Lottie/motion specs → **your approval** ← **CURRENT**
-2. **M-059** — Responsive browser layouts (per approved mocks)
-3. **M-075 Phase B** — SVG assets, Lottie, animations, UI implementation
+**Phase A — Design + polish (complete)**
+1. ~~M-075 Phase A/B~~ · ~~M-059~~ — **Verified**
 
-**Phase A′ — Hardening (before Web GA, not blocking design)**
-4. **M-045–M-048** — Rate limit, indexes, token hash, API integration tests
+**Phase A′ — Hardening (complete)**
+2. ~~M-045–M-048~~ · ~~M-070~~ — **Verified**
 
-**Phase B — Web GA gates**
-5. **M-063** — Curriculum content expansion
-6. **M-070 → M-072** — Security audit, docs, visual QA
-7. **M-073** — Web GA launch
-9. **M-070** — Security audit & privacy
-10. **M-071** — Documentation refresh
-11. **M-072** — Visual regression / Storybook
-12. **M-073** — Web GA launch (PWA ✓ + browser) 🚀
+**Phase B — Web GA gates (current)**
+3. ~~M-063~~ — **Verified**
+4. **M-071** — Documentation refresh ← **CURRENT**
+5. **M-072** — Visual regression / Storybook
+6. **M-073** — Web GA launch 🚀
 
 **Phase C — Mobile (after Web GA)**
 11. **M-049–M-051** — Mobile resilience, UX, accessibility

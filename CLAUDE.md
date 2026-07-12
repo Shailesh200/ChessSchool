@@ -6,9 +6,9 @@ A premium, offline-capable **chess-learning PWA** (+ companion Expo app) structu
 
 Live: https://chess-school.in · Repo: `Shailesh200/ChessSchool` (personal GitHub).
 
-**Master plan:** [`plans/00_MASTER_DEVELOPMENT_PLAN.md`](plans/00_MASTER_DEVELOPMENT_PLAN.md) — milestone-driven roadmap. **Launch strategy: Web GA first** (mobile store after M-073).
+**Master plan:** [`plans/00_MASTER_DEVELOPMENT_PLAN.md`](plans/00_MASTER_DEVELOPMENT_PLAN.md) — milestone-driven roadmap. **Launch strategy: Web GA first** (native app store after M-073).
 
-**Web GA** = public-ready **PWA** (installable, offline — M-010 done) + **browser view** (desktop/tablet responsive — M-059) + approved UI polish (M-075). Not the native app store.
+**Web GA** = public-ready **PWA** (installable, offline — M-010 ✓) + **browser view** (responsive desktop/tablet — M-059 ✓) + approved UI polish (M-075 ✓) + security/docs/QA gates (M-070 ✓, M-071 in progress, M-072–M-073 pending). Not the native App Store release (M-049–M-053).
 
 ## Stack
 - **Next.js 16** (App Router, Turbopack, async `params`, Server Actions) — `apps/web`
@@ -18,9 +18,9 @@ Live: https://chess-school.in · Repo: `Shailesh200/ChessSchool` (personal GitHu
 - **chess.js** · **react-chessboard v5** (web) · custom SVG board (mobile)
 - **Stockfish-18 WASM** in Web Worker (web analysis + strong bot)
 - **Zustand** (persisted, `skipHydration`) · **`@chess-school/progression`** shared package
-- Auth: **bcryptjs** + DB sessions + httpOnly cookies (web) · Bearer + SecureStore (mobile)
+- Auth: **bcryptjs** + DB sessions (SHA-256 stored) + httpOnly cookies (web) · Bearer + SecureStore (mobile) · **Google OAuth** (M-056)
 - Procedural **Web Audio** (no sample files) · hand-rolled service worker (`apps/web/public/sw.js`)
-- Realtime PvP: **Ably** (optional) + polling fallback
+- Realtime PvP: **Ably** (optional) + polling fallback · seat tokens + authenticated moves (M-043)
 - Monorepo: **pnpm** + **Turborepo** *(planned → Bun/Oxlint/Oxfmt/Lefthook in M-076)*
 - Tooling: ESLint, Prettier, Vitest, Playwright e2e (`channel:"chrome"`)
 
@@ -31,7 +31,7 @@ apps/mobile/       Expo native app
 packages/core/     @chess-school/core — engine, bot, types
 packages/progression/  @chess-school/progression — XP, streak, mastery reducers
 data/              chess-school-puzzles.csv.gz (Lichess import source)
-plans/             Master development plan + ADRs
+plans/             Master development plan + milestone specs + ADRs
 ```
 
 ## Content architecture
@@ -65,34 +65,57 @@ pnpm --filter web db:dump && pnpm --filter web db:remote
 ## Database
 - Local: `DATABASE_URL` unset → `apps/web/local.db`
 - Remote: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN`
-- Schema: `apps/web/db/schema.ts` — users, sessions, profiles, progress, lessonRecords, semesters, classes, lessons, homeworkLessons, gameSessions
+- Schema: `apps/web/db/schema.ts` — users, oauth_accounts, sessions, profiles, progress, lessonRecords, semesters, classes, lessons, homeworkLessons, gameSessions, analytics_events, web_vitals
 - `db/seed.sql` is **non-destructive** for user tables — re-seeding preserves accounts
+- After schema changes (e.g. OAuth): `pnpm --filter web db:push` locally and against Turso
+
+## Auth & accounts
+- Email/password register + login; **Google sign-in** when OAuth env vars are set (web button + mobile token API)
+- Google links to existing email account on first sign-in with same address
+- Google-only accounts cannot use password login
+- Guest mode: local progress only until enroll; **M-057** enroll prompt after first guest lesson
+
+### Env vars (auth)
+```bash
+# Google OAuth (web + mobile token endpoint)
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...   # same client ID — shows the sign-in button
+NEXT_PUBLIC_APP_URL=https://chess-school.in   # or http://localhost:3000 locally
+```
+Redirect URI: `{APP_URL}/api/auth/google/callback`
 
 ## Progress sync
-Logged-in users: `ProgressSync` pulls on login, debounced push to `/api/progress`. Guest mode preserved; merge toast on enroll.
+Logged-in users: `ProgressSync` pulls on login, debounced push to `/api/progress`. Guest mode preserved; merge on enroll. Server uses **transactional upsert + max-merge** (M-044). Mobile uses a serialized write queue to avoid client clobber.
 
-**Known debt (M-044):** progress POST delete-all + last-write-wins on typed columns — see `CODE_REVIEW.md`.
+## Security (M-043–M-048, M-070)
+- PvP: authenticated seat ownership, HMAC seat tokens, CSPRNG game IDs, server-validated timeouts
+- Sessions: SHA-256 token hash in DB; expiry cleanup cron (`CRON_SECRET`)
+- Rate limiting on auth, progress, session, account, events, vitals, TTS (in-memory per instance — see `plans/M-070_SECURITY_AUDIT.md` for GA notes)
+- CSP + security headers in `apps/web/next.config.ts`
+- Privacy policy: `/privacy` (aligned with OAuth, analytics, TTS in M-070)
+- Audit reference: `CODE_REVIEW.md` (historical) · `plans/M-070_SECURITY_AUDIT.md` (current)
 
 ## Realtime (online PvP)
-Optimistic moves + adaptive polling by default. Set **`ABLY_API_KEY`** for instant push via `/api/ably-token`. Without key → 503 + silent polling fallback.
-
-**Known debt (M-043):** seat ownership / auth on session moves — see `CODE_REVIEW.md` C1/C2.
+Optimistic moves + adaptive polling by default. Set **`ABLY_API_KEY`** for instant push via `/api/ably-token`. Without key → 503 + silent polling fallback. **`SESSION_TOKEN_SECRET`** required in production for seat tokens.
 
 ## Deployment
 - **Vercel** auto-deploys `main`. **Root Directory → `apps/web`** (required).
-- Env: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, optional `ABLY_API_KEY`. Coach TTS uses **Microsoft Edge Read Aloud** server-side (no API key). Optional `GOOGLE_TTS_CREDENTIALS` + `TTS_PROVIDER=google` if GCP billing is enabled.
+- Env: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, optional `ABLY_API_KEY`, `SESSION_TOKEN_SECRET`, `CRON_SECRET`, Google OAuth vars above. Coach TTS uses **Microsoft Edge Read Aloud** server-side (no API key). Optional `GOOGLE_TTS_CREDENTIALS` + `TTS_PROVIDER=google` if GCP billing is enabled.
 - CI: `.github/workflows/ci.yml` — typecheck, lint, test, build, e2e
 - **Make an admin:** register, then `UPDATE users SET role='admin' WHERE email='…'` in Turso console
 
 ## Mobile
-- Parity backlog: `apps/mobile/PARITY_GAPS.md` (authoritative — `PARITY.md` is stale)
-- Release: `apps/mobile/RELEASE.md` · Store ship is **M-053**, after Web GA
+- Parity backlog: **`apps/mobile/PARITY_GAPS.md`** (authoritative)
+- Strategy: `apps/mobile/PLAN.md` · Release: `apps/mobile/RELEASE.md`
+- `apps/mobile/PARITY.md` is **retired** (M-071) — do not update
+- Store ship is **M-053**, after Web GA
 
 ## Corporate-network caveat (this machine)
-Office proxy resets Turso/Vercel CLI TLS — seed/provision from personal network. GitHub SSH (`github-personal`) works from office.
+Office proxy resets Turso/Vercel CLI TLS — seed/provision from personal network. GitHub SSH (`github-personal`) works from office. Node TLS may need `NODE_EXTRA_CA_CERTS=/tmp/corp-ca.pem`.
 
 ## Git identity
-Remote: `git@github-personal:Shailesh200/ChessSchool.git`. Commit email `iamshailesh121@gmail.com`.
+Remote: `git@github-personal:Shailesh200/ChessSchool.git`. Commit email `iamshailesh121@gmail.com`. Co-author trailer: `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
 
 ## Conventions
 - Match surrounding code; react-compiler lint (no ref access during render, no setState-in-effect)
@@ -101,11 +124,10 @@ Remote: `git@github-personal:Shailesh200/ChessSchool.git`. Commit email `iamshai
 - **Milestones:** one branch per milestone (`milestone/M-###-slug`) → `pnpm verify:milestone` → owner approval → merge to `main`
 - **New web routes/features:** add Playwright e2e + update `scripts/web-e2e-routes.json` and `scripts/web-lighthouse-routes.json`
 
-## Current milestone & backlog
-**Current:** M-043 — Online PvP Security  
-**Web GA path:** M-043–M-048 → M-063 → M-075 Phase A (wireframes — **owner approval**) → M-059 (browser) → M-075 Phase B → M-070–M-073 → launch  
-**Post Web GA:** M-049–M-053 mobile store · M-076 toolchain · M-077–M-078 scaling  
+## Milestone status (2026-07-12)
+**Verified recently:** M-056 Google OAuth · M-057 guest enroll prompt · M-070 security audit  
+**In progress:** M-071 documentation refresh  
+**Next Web GA gates:** M-072 visual regression · M-073 launch runbook  
+**Post Web GA:** M-049–M-053 mobile store · M-058 personalized puzzles · M-060 global search · M-076 toolchain
 
-Done: hosted PWA (M-010), accounts + Student ID, DB curriculum + Lichess import, admin CMS + JSON import, progress sync, Stockfish WASM, dashboard/journal/plan/homework, online PvP (foundation), mobile ~90% screen parity, shared progression package.
-
-Pending (from master plan): progress API hardening, PvP seat auth, curriculum expansion, **wireframes/mockups for UI overhaul**, responsive browser layouts, UI implementation (post-approval), Google OAuth, guest enroll prompt, personalized puzzles, global search, native app store release.
+**Done (summary):** hosted PWA, accounts + Student ID + Google OAuth, DB curriculum + Lichess import (~5k+ puzzles), admin CMS + JSON import, progress sync (hardened), Stockfish WASM, dashboard/journal/plan/homework, secure online PvP, responsive browser layouts, premium UI overhaul, mobile ~90% screen parity, shared progression package, production hardening M-043–M-048.

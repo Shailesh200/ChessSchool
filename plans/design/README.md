@@ -40,7 +40,7 @@ plans/design/
 | MOTION.md — Framer + Lottie moments | ✅ Approved |
 | BREAKPOINTS.md | ✅ Approved |
 | Reference SVG samples | ✅ Approved |
-| Owner approval | ✅ Full Phase A · **Phase B in progress** |
+| Owner approval | ✅ Full Phase A · **Phase B Verified** (2026-07-10) |
 
 ---
 
@@ -64,11 +64,10 @@ Both must be represented in mockups:
 
 ---
 
-## Reprioritized track (2026-07-09)
+## Reprioritized track (2026-07-12)
 
 ```text
-M-044 ✓  →  M-075 Phase A (now)  →  [your approval]  →  M-059 + M-075-B
-                                                      ↘  M-045–M-048 (before Web GA)
+M-075 ✓ · M-059 ✓ · M-063 ✓ · M-070 ✓  →  M-071 (docs)  →  M-072  →  M-073 Web GA
 ```
 
-Hardening **M-045–M-048** resumes before launch; it does not block design review.
+Post–Web GA: M-049–M-053 mobile store · M-076 toolchain.
