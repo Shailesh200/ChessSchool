@@ -32,6 +32,7 @@ export type Settings = {
   boardTheme: BoardTheme;
   pieceTheme: PieceThemeId;
   appTheme: string;
+  enrollPromptDismissedAt: number | null;
 };
 
 const KEY = "chessschool.settings";
@@ -54,6 +55,7 @@ const DEFAULTS: Settings = {
   boardTheme: "classic",
   pieceTheme: "classic",
   appTheme: "default",
+  enrollPromptDismissedAt: null,
 };
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();

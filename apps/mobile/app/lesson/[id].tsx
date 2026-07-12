@@ -21,7 +21,8 @@ import { ScreenLoader } from "@/ScreenLoader";
 import { PreschoolQuiz } from "@/PreschoolQuiz";
 import { ReflectSheet } from "@/ReflectSheet";
 import { applyClassGraduation, applyLessonComplete, graduateClass, isoDay, type Mistake } from "@/progression";
-import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson } from "@chess-school/progression";
+import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson, lessonsAttemptedCount, shouldShowEnrollPrompt } from "@chess-school/progression";
+import { settings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Step = {
@@ -171,7 +172,8 @@ export default function LessonScreen() {
   const { id, hw, daily } = useLocalSearchParams<{ id: string; hw?: string; daily?: string }>();
   const router = useRouter();
   const { guest, exitGuest } = useAuth();
-  const { hints: hintsEnabled } = useSettings();
+  const appSettings = useSettings();
+  const { hints: hintsEnabled } = appSettings;
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 470);
 
@@ -191,6 +193,7 @@ export default function LessonScreen() {
   const [hintLevel, setHintLevel] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [lessonsAttempted, setLessonsAttempted] = useState(0);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
   const mistakesRef = useRef<Mistake[]>([]);
@@ -366,6 +369,10 @@ export default function LessonScreen() {
         invalidateLearnCache();
         setGraduatedTitle(completedClassTitle);
       }
+      const prog = await fetchProgress();
+      setLessonsAttempted(
+        lessonsAttemptedCount((prog.lessons ?? {}) as Record<string, { attempts?: number }>),
+      );
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch (e) {
@@ -449,6 +456,13 @@ export default function LessonScreen() {
   }
 
   if (phase === "complete") {
+    const showGuestEnroll =
+      guest &&
+      shouldShowEnrollPrompt({
+        authed: false,
+        dismissedAt: appSettings.enrollPromptDismissedAt,
+        lessonsAttempted,
+      });
     return (
       <SafeAreaView style={styles.safe}>
         <Confetti count={28} />
@@ -461,7 +475,7 @@ export default function LessonScreen() {
             <StatPill label="Correct" value={`${correctRef.current}`} tone={colors.success} styles={styles} />
             <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} styles={styles} />
           </View>
-          {guest && (
+          {showGuestEnroll && (
             <View style={styles.enrollCard}>
               <Text style={styles.enrollTitle}>Save your progress</Text>
               <Text style={styles.enrollCopy}>Enroll to keep this lesson, your streak, journal, homework, and badges across devices.</Text>
@@ -473,6 +487,12 @@ export default function LessonScreen() {
                   router.push("/login");
                 }}
               />
+              <Pressable
+                onPress={() => settings.set("enrollPromptDismissedAt", Date.now())}
+                style={{ marginTop: space[2], paddingVertical: space[1] }}
+              >
+                <Text style={[styles.enrollCopy, { color: colors.ink500 }]}>Maybe later</Text>
+              </Pressable>
             </View>
           )}
           {saveError ? (

@@ -19,9 +19,12 @@ import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import {
   dueLessonIds,
   isDailyPuzzleDone,
+  lessonsAttemptedCount,
   needsPlacementTest,
   shouldRecommendPreschool,
+  shouldShowEnrollPrompt,
 } from "@chess-school/progression";
+import { EnrollPromptBanner } from "@/components/auth/EnrollPrompt";
 import type { Catalog } from "@/features/school/structure";
 
 const CampusMap = dynamic(
@@ -62,6 +65,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const dailyPuzzleDay = useProgression((s) => s.dailyPuzzleDay);
   const homeworkDone = usePlan((s) => s.routineDone.length);
   const targetElo = useSettings((s) => s.targetElo);
+  const dismissedAt = useSettings((s) => s.enrollPromptDismissedAt);
   const graduatedClasses = useProgression((s) => s.graduatedClasses);
   const mounted = useMounted();
   const rehydrateReady = useRehydrateReady();
@@ -73,6 +77,14 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
     mounted &&
     shouldRecommendPreschool(targetElo, { lessons, graduatedClasses });
   const dueIds = dueLessonIds(lessons);
+  const lessonsAttempted = lessonsAttemptedCount(lessons);
+  const showEnrollBanner =
+    authedResolved === false &&
+    shouldShowEnrollPrompt({
+      authed: false,
+      dismissedAt,
+      lessonsAttempted,
+    });
   const [daily, setDaily] = useState<DailyPuzzle | null>(null);
 
   useEffect(() => {
@@ -125,6 +137,10 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
 
         {authedResolved === true && rehydrateReady && (
           <StreakMilestoneBanner streak={streak} />
+        )}
+
+        {showEnrollBanner && (
+          <EnrollPromptBanner next="/academy" />
         )}
 
         {recommendPreschool && (

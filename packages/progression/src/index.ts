@@ -113,6 +113,7 @@ export * from "./spacedRep";
 export * from "./formatCoach";
 export * from "./boardGrid";
 export * from "./preschool";
+export * from "./enrollPrompt";
 
 /** Enrolled users with low XP see the placement CTA; guests never do. */
 export const PLACEMENT_XP_CAP = 200;

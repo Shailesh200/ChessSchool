@@ -71,6 +71,8 @@ export interface SettingsState {
   shareAnalytics: boolean;
   targetElo: number; // 500..2500
   textScale: number; // 1 = 100%
+  /** Epoch ms when guest dismissed the enroll prompt — snooze 7 days. */
+  enrollPromptDismissedAt: number | null;
 
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
   /** Apply many settings in one update (avoids re-render / theme flicker cascades). */
@@ -105,6 +107,7 @@ const defaults = {
   shareAnalytics: true,
   targetElo: 600,
   textScale: 1,
+  enrollPromptDismissedAt: null as number | null,
 };
 
 export const useSettings = create<SettingsState>()(
@@ -130,7 +133,7 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 9,
+      version: 10,
       skipHydration: true,
       // v1 -> v2: introduce schoolTheme; older board themes still resolve.
       // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
@@ -165,6 +168,9 @@ export const useSettings = create<SettingsState>()(
         // v8 -> v9: Barbie/Princess renamed to Fairytale.
         if (version < 9 && (piece === "barbie" || piece === "princess")) {
           s.pieceTheme = "fairytale";
+        }
+        if (version < 10 && s.enrollPromptDismissedAt === undefined) {
+          s.enrollPromptDismissedAt = null;
         }
         return { ...defaults, ...s } as SettingsState;
       },

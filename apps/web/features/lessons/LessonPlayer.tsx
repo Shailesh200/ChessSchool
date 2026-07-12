@@ -28,6 +28,7 @@ import {
 } from "@/features/coaching/personality";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { prefetchCoachText } from "@/core/audio/coachSpeech";
+import { EnrollPrompt, EnrollPromptBanner } from "@/components/auth/EnrollPrompt";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
@@ -35,6 +36,9 @@ import {
   deriveTutorialVisuals,
   formatCoachText,
   isPreschoolLesson,
+  lessonsAttemptedCount,
+  shouldAutoOpenEnrollPrompt,
+  shouldShowEnrollPrompt,
 } from "@chess-school/progression";
 import { PreschoolQuiz } from "./PreschoolQuiz";
 import type { Lesson, LessonStep } from "./types";
@@ -775,8 +779,17 @@ function LessonComplete({
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [enrollOpen, setEnrollOpen] = useState(false);
   const router = useRouter();
   const authed = useSession((s) => s.authed);
+  const lessons = useProgression((s) => s.lessons);
+  const dismissedAt = useSettings((s) => s.enrollPromptDismissedAt);
+  const lessonsAttempted = lessonsAttemptedCount(lessons);
+  const showEnroll = shouldShowEnrollPrompt({
+    authed,
+    dismissedAt,
+    lessonsAttempted,
+  });
   const homeworkDoneCount = usePlan((s) => s.routineDone.length);
   const isHomework = !!homeworkStep;
   const allHomeworkDone = homeworkDoneCount >= ROUTINE_STEPS.length;
@@ -795,6 +808,18 @@ function LessonComplete({
     if (action) action();
     else router.push(href);
   };
+
+  useEffect(() => {
+    if (
+      shouldAutoOpenEnrollPrompt({
+        authed,
+        dismissedAt,
+        lessonsAttempted,
+      })
+    ) {
+      setEnrollOpen(true);
+    }
+  }, [authed, dismissedAt, lessonsAttempted]);
 
   const variant = ceremony?.variant ?? (lesson.exam ? "exam" : "lesson");
   const headline =
@@ -837,24 +862,18 @@ function LessonComplete({
             />
           </div>
 
-          {authed === false && (
-            <div className="rounded-card border-brand-100 bg-brand-50 w-full border p-4 text-center">
-              <p className="text-ink text-sm font-extrabold">Save your progress</p>
-              <p className="text-ink-500 mt-1 text-xs font-semibold">
-                Enroll free to keep your XP and continue on any device — everything
-                you&apos;ve done so far comes with you.
-              </p>
-              <Button
-                size="sm"
-                block
-                className="mt-3"
-                loading={busy === "enroll"}
-                onClick={() => go("enroll", "/register")}
-              >
-                Enroll free
-              </Button>
-            </div>
+          {showEnroll && (
+            <EnrollPromptBanner
+              next={nextId ? `/lesson/${nextId}` : "/academy"}
+              className="w-full"
+            />
           )}
+
+          <EnrollPrompt
+            open={enrollOpen}
+            onClose={() => setEnrollOpen(false)}
+            next={nextId ? `/lesson/${nextId}` : "/academy"}
+          />
 
           <div className="flex w-full flex-col items-center gap-2">
             {isHomework ? (
