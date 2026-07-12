@@ -6,6 +6,7 @@ import { ChessEngine } from "@chess-school/core";
 import { ChessBoard, type Arrow } from "@/ChessBoard";
 import { api } from "@/api";
 import { FetchErrorView } from "@/FetchErrorView";
+import { progressStore } from "@/progressStore";
 import { movesFromSyncGame, normalizeSyncGame, type SyncGame } from "@/progression";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
@@ -131,7 +132,7 @@ function analyzeMate(fen: string): MateInfo | null {
 }
 
 export default function ReplayScreen() {
-  const { index } = useLocalSearchParams<{ index: string }>();
+  const { index, id } = useLocalSearchParams<{ index: string; id?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 32, 440);
@@ -144,9 +145,19 @@ export default function ReplayScreen() {
     setLoadError(false);
     setLoading(true);
     try {
+      const cached = progressStore.get();
+      const localGames = ((cached?.recentGames as unknown[]) ?? []).map(normalizeSyncGame);
+      if (id) {
+        const found = localGames.find((g) => g?.id === id) ?? null;
+        if (found) {
+          setGame(found);
+          return;
+        }
+      }
       const d = await api<{ recentGames: unknown[] }>("/api/progress");
-      const raw = d.recentGames?.[Number(index)];
-      setGame(raw ? normalizeSyncGame(raw) : null);
+      const games = (d.recentGames ?? []).map(normalizeSyncGame);
+      const raw = id ? games.find((g) => g?.id === id) : games[Number(index)];
+      setGame(raw ?? null);
     } catch {
       setLoadError(true);
       setGame(null);
@@ -157,7 +168,7 @@ export default function ReplayScreen() {
 
   useEffect(() => {
     void loadGame();
-  }, [index]);
+  }, [index, id]);
 
   const frames = useMemo(() => (game ? buildFrames(movesFromSyncGame(game)) : []), [game]);
 

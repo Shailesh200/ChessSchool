@@ -33,8 +33,9 @@ change → web safe); mobile imports the same functions and applies them to its 
 - **P3 — Board/Play:** 🟡 clocks, promotion, themes largely done; polish remains
 - **P4 — Lesson depth:** 🟡 hints, animations, enroll prompt (M-057 web)
 - **P5 — Feel:** 🟡 Cody motion, audio parity
-- **P6 — Missing screens:** 🟡 most routes exist; dashboard, exams, library depth vary
-- **P7 — Online PvP:** ✅ foundation + seat auth (M-043); mobile clocks polish pending
+- **P6 — Missing screens:** ✅ core routes + profile/onboarding API sync; library depth varies
+- **P7 — Online PvP:** ✅ foundation + seat auth; Ably when `ABLY_API_KEY` set on server
+- **P8 — Auth parity:** ✅ Google Sign-In UI, server onboarding, real Student ID
 - **Store release:** M-053 after Web GA (M-073)
 
 ## E. Deploy safety (P0 detail)

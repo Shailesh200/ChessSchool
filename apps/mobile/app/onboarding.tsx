@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
 import { settings } from "@/settings";
+import { saveOnboardingToServer } from "@/profile";
+import { mutateProgress } from "@/progressStore";
 import { Button } from "@/Button";
 import { haptics } from "@/haptics";
 import { colors, font, radius, space, type } from "@/theme";
@@ -56,6 +58,8 @@ export default function OnboardingScreen() {
   const [coach, setCoach] = useState("");
   const [theme, setTheme] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
 
   const STEPS = [
     { title: `Welcome, ${first}!`, sub: "Let's tailor your studies. What's your main goal?", opts: GOALS, value: goal, set: setGoal },
@@ -69,16 +73,43 @@ export default function OnboardingScreen() {
   const current = STEPS[step];
   const canNext = isAvatar ? !!avatar : !!current?.value;
 
-  function finish() {
+  async function finish() {
+    if (finishing) return;
+    setFinishing(true);
+    setFinishError(null);
     settings.set("goal", goal);
     settings.set("targetElo", Number(elo) || 600);
     settings.set("planTier", (time || "standard") as never);
     settings.set("coachPersonality", coach || "friendly");
     settings.set("appTheme", theme || "default");
     settings.set("avatar", avatar || "🎓");
-    haptics.success();
-    finishOnboarding();
-    router.replace("/(tabs)");
+    try {
+      await saveOnboardingToServer(goal, avatar || "🎓");
+      await mutateProgress((snap) => ({ ...snap, settings: settings.get() }));
+      haptics.success();
+      finishOnboarding();
+      router.replace("/account");
+    } catch (e) {
+      setFinishError(e instanceof Error ? e.message : "Could not complete enrollment.");
+      setFinishing(false);
+    }
+  }
+
+  if (finishing) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.finishCenter]} edges={["top", "bottom"]}>
+        <Text style={{ fontSize: 48 }}>{avatar || "🎓"}</Text>
+        <Text style={styles.finishTitle}>Welcome to ChessSchool, {first}!</Text>
+        <Text style={styles.finishSub}>Issuing your Student ID…</Text>
+        <ActivityIndicator color={colors.brand} style={{ marginTop: space[4] }} />
+        {finishError && (
+          <>
+            <Text style={styles.finishError}>{finishError}</Text>
+            <Button label="Try again" variant="outline" onPress={() => { setFinishing(false); void finish(); }} />
+          </>
+        )}
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -159,4 +190,8 @@ const styles = StyleSheet.create({
   avatarGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[3], justifyContent: "center" },
   avatarCell: { width: 64, height: 64, borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, justifyContent: "center", alignItems: "center" },
   footer: { flexDirection: "row", gap: space[3], padding: space[4], borderTopWidth: 1, borderTopColor: colors.hairline },
+  finishCenter: { justifyContent: "center", alignItems: "center", padding: space[6], gap: space[2] },
+  finishTitle: { ...type["2xl"], fontFamily: font.bold, color: colors.ink, textAlign: "center", marginTop: space[3] },
+  finishSub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+  finishError: { ...type.sm, fontFamily: font.semibold, color: colors.danger, textAlign: "center", marginTop: space[3] },
 });

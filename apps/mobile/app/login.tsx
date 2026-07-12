@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -18,8 +18,14 @@ import { font, radius, space, type } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
 
+type GoogleBtnProps = {
+  disabled?: boolean;
+  onIdToken: (idToken: string) => Promise<void>;
+  onError: (message: string) => void;
+};
+
 export default function LoginScreen() {
-  const { login, register, continueAsGuest } = useAuth();
+  const { login, register, loginWithGoogle, continueAsGuest } = useAuth();
   const { colors } = useAppTheme();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
@@ -27,7 +33,15 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [GoogleBtn, setGoogleBtn] = useState<ComponentType<GoogleBtnProps> | null>(null);
   const isRegister = mode === "register";
+
+  useEffect(() => {
+    if (!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID?.trim()) return;
+    void import("@/GoogleSignInButton")
+      .then((mod) => setGoogleBtn(() => mod.GoogleSignInButton))
+      .catch(() => setGoogleBtn(null));
+  }, []);
 
   const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
@@ -73,6 +87,24 @@ export default function LoginScreen() {
     guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
     legal: { color: colors.brand, fontSize: 12, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },
   });
+
+  const handleGoogle = useCallback(
+    async (idToken: string) => {
+      setError(null);
+      setBusy(true);
+      try {
+        await loginWithGoogle(idToken);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Google sign-in failed";
+        setError(msg === "Google sign-in is not configured." ? "Google sign-in is not available right now." : msg);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [loginWithGoogle],
+  );
+
+  const handleGoogleError = useCallback((message: string) => setError(message), []);
 
   async function submit() {
     setError(null);
@@ -142,7 +174,10 @@ export default function LoginScreen() {
           <Text style={styles.or}>or</Text>
           <View style={styles.line} />
         </View>
-        <Pressable style={styles.guestButton} onPress={continueAsGuest} disabled={busy}>
+        {GoogleBtn ? (
+          <GoogleBtn disabled={busy} onIdToken={handleGoogle} onError={handleGoogleError} />
+        ) : null}
+        <Pressable style={[styles.guestButton, { marginTop: space[3] }]} onPress={continueAsGuest} disabled={busy}>
           <Text style={styles.guestText}>Continue as a guest</Text>
         </Pressable>
         <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>

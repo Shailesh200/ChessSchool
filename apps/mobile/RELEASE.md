@@ -17,6 +17,34 @@ Android-first guide for EAS Build, EAS Update (OTA), and Google Play Store submi
 4. **Google Play Console** — developer account verified ($25).
 5. **Privacy policy live** — `https://chess-school.in/privacy`
 6. **Production API** — `https://chess-school.in` (set in `eas.json` for all release profiles).
+7. **Google Sign-In (native)** — see [Google OAuth setup](#google-oauth-setup-native) below.
+
+---
+
+## Google OAuth setup (native)
+
+The web client ID (`EXPO_PUBLIC_GOOGLE_CLIENT_ID`) is **not** valid as an Android/iOS client. Using it causes **Access blocked: Authorization error**.
+
+In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (same project as web):
+
+### Android OAuth client
+- Application type: **Android**
+- Package name: `com.chessschool.app`
+- SHA-1: from EAS credentials (`eas credentials -p android`) or your upload keystore
+- Copy the **Android client ID** → `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` in `eas.json` / `.env`
+
+### iOS OAuth client (when shipping iOS)
+- Application type: **iOS**
+- Bundle ID: `com.chessschool.app`
+- Copy the **iOS client ID** → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+
+### Server (Vercel)
+Add the same native client IDs to `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` so `/api/auth/google/token` accepts ID tokens from the app.
+
+### Redirect URI (auto)
+Expo uses `com.chessschool.app:/oauthredirect` — no manual redirect URI entry needed for Android/iOS native clients.
+
+Rebuild the app after changing env vars (`expo start -c` is not enough for EAS builds).
 
 ---
 

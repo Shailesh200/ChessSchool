@@ -8,6 +8,11 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:3000",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com"
+      },
       "ios": {
         "simulator": true
       }
@@ -17,6 +22,7 @@
       "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://chess-school.in",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
         "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
       },
       "android": {
@@ -30,6 +36,7 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://chess-school.in",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
         "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
       },
       "android": {

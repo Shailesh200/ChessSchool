@@ -10,6 +10,7 @@ import { BackButton } from "@/BackButton";
 import { Confetti } from "@/Confetti";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
+import { EXAM_PASS_RATIO } from "@/classExam";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, space, type } from "@/theme";
@@ -24,7 +25,6 @@ const STAGE_NAME: Record<string, string> = {
 };
 
 type Step = { id: string; fen: string; solution: string[]; coach?: string };
-const PASS_RATIO = 0.7;
 
 export default function SchoolExamScreen() {
   const { stage } = useLocalSearchParams<{ stage: string }>();
@@ -73,7 +73,7 @@ export default function SchoolExamScreen() {
   }
 
   if (done) {
-    const need = Math.ceil(steps.length * PASS_RATIO);
+    const need = Math.ceil(steps.length * EXAM_PASS_RATIO);
     const passed = correctRef.current >= need;
     return (
       <SafeAreaView style={styles.safe}>
@@ -119,7 +119,7 @@ export default function SchoolExamScreen() {
       setDisplayFen(undefined);
       setLastMove(null);
       if (i + 1 >= steps!.length) {
-        if (correctRef.current >= Math.ceil(steps!.length * PASS_RATIO)) void recordPass();
+        if (correctRef.current >= Math.ceil(steps!.length * EXAM_PASS_RATIO)) void recordPass();
         setDone(true);
       } else setI((n) => n + 1);
     }, ok ? 900 : 1250);

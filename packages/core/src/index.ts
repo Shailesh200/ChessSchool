@@ -3,4 +3,6 @@ export * from "./types/chess";
 export * from "./engine/engine";
 export * from "./engine/material";
 export * from "./engine/bot";
+export * from "./play/bots";
+export * from "./review/replay";
 export * from "./achievements";

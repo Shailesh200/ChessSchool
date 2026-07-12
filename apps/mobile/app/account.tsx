@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/auth";
 import { useProgress } from "@/progressStore";
 import { useSettings } from "@/settings";
+import { fetchProfile, type StudentProfile } from "@/profile";
 import { rankForClasses } from "@/progress-utils";
 import { Icon } from "@/Icon";
 import { Button } from "@/Button";
@@ -23,9 +24,20 @@ export default function AccountScreen() {
   const p = useProgress();
   const { avatar } = useSettings();
   const [deleting, setDeleting] = useState(false);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
   const graduated = ((p?.graduatedClasses as string[]) ?? []).length;
   const rank = rankForClasses(graduated);
-  const studentNo = `CS-${(user?.id ?? "00000000").replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  const studentNo = profile?.studentNo ?? "—";
+  const house = profile?.house ?? "Pawns";
+  const enrolled = profile
+    ? new Date(profile.enrolledAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })
+    : "—";
+  const displayAvatar = profile?.avatarUrl ?? avatar;
+
+  useEffect(() => {
+    if (guest || !user) return;
+    void fetchProfile().then(setProfile);
+  }, [guest, user]);
 
   const styles = useMemo(
     () =>
@@ -107,7 +119,7 @@ export default function AccountScreen() {
             <Icon name="cap" size={22} color="#fff" />
           </View>
           <View style={styles.idMain}>
-            <View style={styles.avatar}><Text style={styles.avatarText}>{avatar || (user?.name?.[0]?.toUpperCase() ?? "?")}</Text></View>
+            <View style={styles.avatar}><Text style={styles.avatarText}>{displayAvatar || (user?.name?.[0]?.toUpperCase() ?? "?")}</Text></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.idName} numberOfLines={1}>{user?.name}</Text>
               <Text style={styles.idEmail} numberOfLines={1}>{user?.email}</Text>
@@ -116,8 +128,8 @@ export default function AccountScreen() {
           </View>
           <View style={styles.idMeta}>
             <Text style={styles.idMetaText}>Rank · {rank}</Text>
-            <Text style={styles.idMetaText}>House · Scholars</Text>
-            <Text style={styles.idMetaText}>Since · 2026</Text>
+            <Text style={styles.idMetaText}>House · {house}</Text>
+            <Text style={styles.idMetaText}>Since · {enrolled}</Text>
           </View>
         </LinearGradient>
 

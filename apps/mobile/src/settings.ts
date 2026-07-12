@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import type { PieceThemeId } from "./Piece";
+import { normalizePieceThemeId, type PieceThemeId } from "./pieceThemes";
+import { normalizeCoachVoice } from "./coachVoices";
 
 export type BoardTheme =
   | "classic"
@@ -13,7 +14,10 @@ export type BoardTheme =
   | "paper"
   | "midnight"
   | "green" // legacy alias → tournament
-  | "wood"; // legacy alias → wooden
+  | "wood" // legacy alias → wooden
+  | "violet" // legacy — web migrated names
+  | "slate"
+  | "forest";
 export type Settings = {
   haptics: boolean;
   sound: boolean;
@@ -28,10 +32,13 @@ export type Settings = {
   schedule: "daily" | "weekdays" | "weekends";
   avatar: string;
   coachPersonality: string;
+  coachSpeech: boolean;
+  coachVoice: string;
   goal: string;
   boardTheme: BoardTheme;
   pieceTheme: PieceThemeId;
   appTheme: string;
+  schoolTheme: string;
   enrollPromptDismissedAt: number | null;
 };
 
@@ -51,10 +58,13 @@ const DEFAULTS: Settings = {
   schedule: "daily",
   avatar: "🎓",
   coachPersonality: "friendly",
+  coachSpeech: true,
+  coachVoice: "auto",
   goal: "",
   boardTheme: "classic",
   pieceTheme: "classic",
   appTheme: "default",
+  schoolTheme: "university",
   enrollPromptDismissedAt: null,
 };
 let state: Settings = { ...DEFAULTS };
@@ -62,9 +72,14 @@ const listeners = new Set<() => void>();
 
 function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
   const pieceTheme = (next as { pieceTheme?: string }).pieceTheme;
+  const schoolTheme = (next as { schoolTheme?: string }).schoolTheme;
   return {
     ...next,
-    pieceTheme: pieceTheme === "blossom" ? "cute" : next.pieceTheme,
+    pieceTheme: pieceTheme !== undefined ? normalizePieceThemeId(pieceTheme) : next.pieceTheme,
+    coachVoice: next.coachVoice !== undefined ? normalizeCoachVoice(next.coachVoice) : next.coachVoice,
+    schoolTheme: schoolTheme && ["elementary", "highschool", "university", "graduation"].includes(schoolTheme)
+      ? schoolTheme
+      : next.schoolTheme ?? "university",
   } as Partial<Settings>;
 }
 
@@ -165,6 +180,9 @@ export const BOARD_THEMES: Record<BoardTheme, { light: string; dark: string; mov
   // legacy aliases so previously-saved settings still resolve
   green: { light: "#e9eef0", dark: "#6a9b78", move: "#f2c14e" },
   wood: { light: "#e8cfa6", dark: "#a9743f", move: "#7fd1a8" },
+  violet: { light: "#ede7f6", dark: "#b9a8e6", move: "#7be0b3" },
+  slate: { light: "#e8eef7", dark: "#9bb8d3", move: "#5aa9e6" },
+  forest: { light: "#e9efe1", dark: "#a3c293", move: "#7fd1a8" },
 };
 
 /** Themes shown in the picker (excludes legacy aliases). */

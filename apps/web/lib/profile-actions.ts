@@ -5,14 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-
-const HOUSE_BY_GOAL: Record<string, string> = {
-  "beat-friends": "Knights",
-  "reach-1000": "Pawns",
-  "reach-1500": "Rooks",
-  openings: "Bishops",
-  tournament: "Queens",
-};
+import { houseForGoal } from "@/lib/profile-shared";
 
 export async function saveOnboarding(input: {
   goal: string;
@@ -25,7 +18,7 @@ export async function saveOnboarding(input: {
     .set({
       goal: input.goal,
       avatarUrl: input.avatar,
-      house: HOUSE_BY_GOAL[input.goal] ?? "Pawns",
+      house: houseForGoal(input.goal),
       onboarded: 1,
     })
     .where(eq(profiles.userId, user.id));

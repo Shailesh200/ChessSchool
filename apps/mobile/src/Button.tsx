@@ -17,15 +17,31 @@ export function Button({
 }: {
   label: string;
   onPress: () => void;
-  variant?: "primary" | "accent" | "success" | "outline";
+  variant?: "primary" | "accent" | "success" | "outline" | "danger";
   size?: "sm" | "lg";
   block?: boolean;
   style?: ViewStyle;
 }) {
   const [pressed, setPressed] = useState(false);
   const outline = variant === "outline";
-  const bg = outline ? colors.surfaceCard : variant === "accent" ? colors.accent : variant === "success" ? colors.success : colors.brand;
-  const edge = outline ? colors.hairline : variant === "accent" ? colors.accent600 : variant === "success" ? colors.success600 : colors.brand700;
+  const bg = outline
+    ? colors.surfaceCard
+    : variant === "danger"
+      ? colors.danger
+      : variant === "accent"
+        ? colors.accent
+        : variant === "success"
+          ? colors.success
+          : colors.brand;
+  const edge = outline
+    ? colors.hairline
+    : variant === "danger"
+      ? "#b91c1c"
+      : variant === "accent"
+        ? colors.accent600
+        : variant === "success"
+          ? colors.success600
+          : colors.brand700;
   const fg = outline ? colors.ink : "#fff";
   const padV = size === "lg" ? 14 : 9;
   const labelType = size === "lg" ? type.sm : type.xs;

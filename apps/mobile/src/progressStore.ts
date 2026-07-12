@@ -76,7 +76,7 @@ async function pullRemote(): Promise<ProgressSnap> {
 }
 
 /** Pull account progress, merging any in-memory guest progress into a new account. */
-export async function syncProgressAfterAuth(): Promise<ProgressSnap> {
+export async function syncProgressAfterAuth(): Promise<{ snap: ProgressSnap; merged: boolean }> {
   const local = cache ? snapBody(cache as Record<string, unknown>) : {};
   if (!localProgressPresent(local)) {
     const guest = await loadGuestSnap();
@@ -84,7 +84,7 @@ export async function syncProgressAfterAuth(): Promise<ProgressSnap> {
   }
   inflight = pullRemote();
   const server = await inflight;
-  if (!server) return null;
+  if (!server) return { snap: null, merged: false };
 
   const serverBody = snapBody(server as Record<string, unknown>);
   const guestHad = localProgressPresent(local);
@@ -101,13 +101,16 @@ export async function syncProgressAfterAuth(): Promise<ProgressSnap> {
       cache = { ...(server as Record<string, unknown>), ...merged };
       lastWriteError = e instanceof Error ? e.message : "Progress save failed";
     }
-  } else {
-    cache = server;
-    lastWriteError = null;
+    lastFetchAt = Date.now();
+    emit();
+    return { snap: cache, merged: true };
   }
+
+  cache = server;
+  lastWriteError = null;
   lastFetchAt = Date.now();
   emit();
-  return cache;
+  return { snap: cache, merged: false };
 }
 
 export async function fetchProgress(force = false): Promise<ProgressSnap> {

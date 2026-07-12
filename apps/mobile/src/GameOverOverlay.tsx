@@ -60,8 +60,22 @@ export function GameOverOverlay({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(28,27,46,0.55)", justifyContent: "center", padding: space[5] },
-  card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[5], gap: space[3], ...shadowCard },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(28,27,46,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: space[5],
+  },
+  card: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: colors.surfaceCard,
+    borderRadius: radius.card,
+    padding: space[5],
+    gap: space[3],
+    ...shadowCard,
+  },
   title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
   sub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
   ratingPill: { alignSelf: "center", backgroundColor: colors.brand50, borderRadius: radius.pill, paddingHorizontal: space[4], paddingVertical: space[2] },

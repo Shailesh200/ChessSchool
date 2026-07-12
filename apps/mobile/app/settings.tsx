@@ -10,6 +10,8 @@ import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { COACH_VOICE_GROUPS, COACH_VOICE_OPTIONS, normalizeCoachVoice } from "@/coachVoices";
+import { speakCoachText, stopCoachSpeech } from "@/coachSpeech";
 
 const COACHES = [
   { value: "friendly", label: "Friendly", emoji: "😊" },
@@ -68,6 +70,52 @@ export default function SettingsScreen() {
           <Divider />
           <SliderRow label="Bot difficulty" hint={`Target ELO ${s.targetElo}`} value={s.targetElo} min={300} max={2500} step={100} onChange={(v) => settings.set("targetElo", v)} />
         </View>
+
+        <Text style={styles.section}>Coach voice</Text>
+        <View style={styles.card}>
+          <Row label="Coach speech" hint="Read coach lines aloud during matches">
+            <Switch value={s.coachSpeech} onValueChange={(v) => settings.set("coachSpeech", v)} trackColor={track} />
+          </Row>
+        </View>
+
+        {s.coachSpeech && (
+          <>
+            {COACH_VOICE_GROUPS.map((group) => (
+              <View key={group.label}>
+                <Text style={styles.voiceGroup}>{group.label}</Text>
+                <View style={styles.voiceGrid}>
+                  {group.ids.map((id) => {
+                    const opt = COACH_VOICE_OPTIONS.find((v) => v.id === id)!;
+                    const on = normalizeCoachVoice(s.coachVoice) === id;
+                    return (
+                      <Pressable
+                        key={id}
+                        style={[styles.voiceCard, on && styles.voiceCardOn]}
+                        onPress={() => {
+                          stopCoachSpeech();
+                          settings.set("coachVoice", id);
+                          void speakCoachText(
+                            id === "auto"
+                              ? "I'll match your coach personality."
+                              : `Hi, I'm ${opt.title}. Ready when you are.`,
+                          );
+                        }}
+                      >
+                        <Text style={{ fontSize: 22 }}>{opt.emoji}</Text>
+                        <Text style={[styles.voiceTitle, on && { color: colors.brand }]} numberOfLines={1}>
+                          {opt.title}
+                        </Text>
+                        <Text style={styles.voiceHint} numberOfLines={2}>
+                          {opt.hint}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
 
         <Text style={styles.section}>Coach personality</Text>
         <View style={styles.coachGrid}>
@@ -139,6 +187,12 @@ const styles = StyleSheet.create({
   coachCard: { width: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.md, paddingHorizontal: space[3], paddingVertical: space[3], borderWidth: 2, borderColor: "transparent", ...shadowCard },
   coachCardOn: { borderColor: colors.brand },
   coachLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  voiceGroup: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginTop: space[3], marginBottom: space[2] },
+  voiceGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  voiceCard: { width: "30%", minWidth: 96, flexGrow: 1, alignItems: "center", backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[2], borderWidth: 2, borderColor: "transparent", ...shadowCard },
+  voiceCardOn: { borderColor: colors.brand, backgroundColor: colors.brand50 },
+  voiceTitle: { ...type.xs, fontFamily: font.bold, color: colors.ink, marginTop: 4, textAlign: "center" },
+  voiceHint: { ...type.xs, fontFamily: font.semibold, color: colors.ink300, fontSize: 9, textAlign: "center", marginTop: 2 },
   card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], ...shadowCard },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: space[3] },
   sliderRow: { paddingVertical: space[3] },

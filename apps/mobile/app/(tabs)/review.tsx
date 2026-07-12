@@ -1,7 +1,9 @@
+import { useEffect, useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
-import { useProgress } from "@/progressStore";
+import { useProgress, mutateProgress } from "@/progressStore";
+import { markHomeworkActivity } from "@/homeworkRoutine";
+import { isoDay } from "@/progression";
 import { Cody } from "@/Cody";
 import { Icon } from "@/Icon";
 import { Button } from "@/Button";
@@ -40,6 +42,18 @@ export default function ReviewScreen() {
     [progress],
   );
 
+  useEffect(() => {
+    void mutateProgress((snap) => markHomeworkActivity(snap, "review", isoDay()));
+  }, []);
+
+  const END_LABEL: Record<string, string> = {
+    checkmate: "Checkmate",
+    resign: "Resigned",
+    timeout: "On time",
+    draw: "Draw",
+    stalemate: "Stalemate",
+  };
+
   const RESULT = {
     win: { label: "Win", color: colors.success },
     loss: { label: "Loss", color: colors.danger },
@@ -74,19 +88,23 @@ export default function ReviewScreen() {
             const r = RESULT[pr];
             const title = g.mode === "pass" ? "vs Human" : g.mode === "online" ? "vs Friend (online)" : `vs Bot · ${g.elo ?? "?"}`;
             const moveCount = g.moveCount || movesFromSyncGame(g).length;
+            const date = new Date(g.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+            const endLabel = g.endReason ? END_LABEL[g.endReason] ?? g.endReason : null;
             return (
               <Pressable
                 key={g.id}
-                testID={`game-${i}`}
+                testID={`game-${g.id}`}
                 style={styles.card}
-                onPress={() => router.push({ pathname: "/replay/[index]", params: { index: String(i) } })}
+                onPress={() => router.push({ pathname: "/replay/[index]", params: { index: "0", id: g.id } })}
               >
                 <View style={[styles.badge, { backgroundColor: r.color + "22" }]}>
                   <Text style={[styles.badgeText, { color: r.color }]}>{r.label}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{title}</Text>
-                  <Text style={styles.sub}>{moveCount} moves</Text>
+                  <Text style={styles.sub}>
+                    {date} · {moveCount} moves{endLabel ? ` · ${endLabel}` : ""}
+                  </Text>
                 </View>
                 <Icon name="chevronRight" size={18} color={colors.ink300} />
               </Pressable>

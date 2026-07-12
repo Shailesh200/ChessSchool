@@ -17,23 +17,48 @@ import { AnimatedSplash } from "@/AnimatedSplash";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
 import { NetworkBanner } from "@/NetworkBanner";
+import { Toaster } from "@/Toaster";
 import { UpdateBanner } from "@/UpdateBanner";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
+const ACADEMY = "/(tabs)/academy" as const;
+
 function Gate() {
-  const { user, guest, loading, needsOnboarding } = useAuth();
+  const { user, guest, loading, needsOnboarding, orientationDone, enterGuestBrowse } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
-    const onLogin = segments[0] === "login";
-    const onOnboarding = segments[0] === "onboarding";
-    if (user && !guest && needsOnboarding && !onOnboarding) router.replace("/onboarding");
-    else if (user && !guest && !needsOnboarding && (onLogin || onOnboarding))
-      router.replace("/(tabs)");
-  }, [user, guest, loading, needsOnboarding, segments, router]);
+    const root = segments[0] as string | undefined;
+    const onOrientation = root === undefined || root === "index";
+    const onLogin = root === "login";
+    const onOnboarding = root === "onboarding";
+
+    if (user && !guest) {
+      if (needsOnboarding && !onOnboarding) router.replace("/onboarding");
+      else if (!needsOnboarding && (onLogin || onOrientation)) router.replace(ACADEMY);
+      return;
+    }
+
+    if (guest && user) {
+      if (onOrientation || onOnboarding || onLogin) router.replace(ACADEMY);
+      return;
+    }
+
+    if (!orientationDone) {
+      if (!onOrientation) router.replace("/");
+      return;
+    }
+
+    if (onLogin) return;
+
+    if (onOrientation) {
+      enterGuestBrowse();
+      router.replace(ACADEMY);
+    }
+  }, [user, guest, loading, needsOnboarding, orientationDone, segments, router, enterGuestBrowse]);
 
   if (loading) {
     return <ScreenLoader variant="fullscreen" label="Opening the academy…" />;
@@ -81,6 +106,7 @@ export default function RootLayout() {
           <ThemedStatusBar />
           <NetworkBanner />
           <UpdateBanner />
+          <Toaster />
           <AuthProvider>
             <ErrorBoundary>
               <Gate />

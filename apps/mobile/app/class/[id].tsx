@@ -8,11 +8,23 @@ import { Button } from "@/Button";
 import { FetchErrorView } from "@/FetchErrorView";
 import { TopBar } from "@/TopBar";
 import { haptics } from "@/haptics";
+import { isLessonUnlocked } from "@/lessonUnlock";
 import { fetchProgress, lessonRecordsFromCache, progressStore } from "@/progressStore";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
-type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
-type ClassData = { class: { id: string; title: string; emoji: string; blurb: string; examId: string | null }; lessons: LessonLite[]; exam: { id: string; title: string } | null };
+type LessonLite = {
+  id: string;
+  title: string;
+  subtitle: string;
+  emoji: string;
+  prerequisites?: string[];
+};
+type ClassData = {
+  class: { id: string; title: string; emoji: string; blurb: string; examId: string | null };
+  lessons: LessonLite[];
+  exam: { id: string; title: string } | null;
+  unlocked?: boolean;
+};
 type NodeStatus = "completed" | "active" | "locked" | "exam";
 type JNode = { id: string; title: string; subtitle: string; emoji: string; mastery: number; status: NodeStatus };
 
@@ -93,18 +105,32 @@ export default function ClassJourneyScreen() {
     };
   }, []);
 
+  const classUnlocked = data?.unlocked !== false;
+
   const { nodes, done, activeIndex, minutes } = useMemo(() => {
     const lessons = data?.lessons ?? [];
     const masteryOf = (lid: string) => records[lid]?.mastery ?? 0;
     const doneN = lessons.filter((l) => masteryOf(l.id) >= 0.9).length;
-    const active = lessons.findIndex((l) => masteryOf(l.id) < 0.9);
+    let active = -1;
+    let foundActive = false;
     const ns: JNode[] = lessons.map((l, i) => {
       const m = masteryOf(l.id);
-      const status: NodeStatus = m >= 0.9 ? "completed" : i === active ? "active" : "locked";
-      return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status };
+      const prereqOk = isLessonUnlocked(l.id, l.prerequisites ?? [], records);
+      if (!classUnlocked || !prereqOk) {
+        return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "locked" as const };
+      }
+      if (m >= 0.9) {
+        return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "completed" as const };
+      }
+      if (!foundActive) {
+        foundActive = true;
+        active = i;
+        return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "active" as const };
+      }
+      return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "locked" as const };
     });
     return { nodes: ns, done: doneN, activeIndex: active, minutes: (lessons.length + (data?.exam ? 1 : 0)) * 3 };
-  }, [data, records]);
+  }, [data, records, classUnlocked]);
 
   if (loadError) {
     return (
@@ -125,7 +151,7 @@ export default function ClassJourneyScreen() {
   const cls = data.class;
   const total = data.lessons.length;
   const firstActionable = nodes.find((n) => n.status === "active") ?? nodes.find((n) => n.status === "completed");
-  const canTestOut = total > 0 && done / total >= 0.5 && done < total;
+  const canTestOut = classUnlocked && total > 0 && done / total >= 0.5 && done < total;
   const visibleCount = Math.min(nodes.length, Math.max(shown, activeIndex + 1));
   const go = (lid: string, status: NodeStatus) => {
     if (status === "locked") { haptics.error(); return; }
@@ -141,7 +167,13 @@ export default function ClassJourneyScreen() {
           <Text style={styles.back}>← Campus</Text>
         </Pressable>
 
-        {/* Subject header */}
+        {!classUnlocked && (
+          <View style={styles.lockBanner}>
+            <Text style={styles.lockTitle}>Class locked</Text>
+            <Text style={styles.lockSub}>Graduate the previous class on Campus to unlock this journey.</Text>
+          </View>
+        )}
+
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <View style={styles.emojiTile}><Text style={{ fontSize: 28 }}>{cls.emoji}</Text></View>
@@ -155,7 +187,7 @@ export default function ClassJourneyScreen() {
             <Text style={styles.chip}>⏱️ ~{minutes} min</Text>
             <Text style={styles.chip}>⭐ {done}/{total} mastered</Text>
           </View>
-          {firstActionable && (
+          {classUnlocked && firstActionable && (
             <View style={{ marginTop: space[3] }}>
               <Button label={done > 0 ? "Continue journey" : "Start journey"} onPress={() => go(firstActionable.id, firstActionable.status)} />
             </View>
@@ -167,7 +199,6 @@ export default function ClassJourneyScreen() {
           )}
         </View>
 
-        {/* Milestone path */}
         <View style={styles.path}>
           {nodes.slice(0, visibleCount).map((n, i) => (
             <JourneyNode key={n.id} node={n} index={i} onPress={() => go(n.id, n.status)} />
@@ -177,7 +208,7 @@ export default function ClassJourneyScreen() {
               <Text style={styles.showMoreText}>Show {Math.min(8, nodes.length - visibleCount)} more lessons ▾</Text>
             </Pressable>
           )}
-          {data.exam && visibleCount >= nodes.length && (
+          {data.exam && visibleCount >= nodes.length && classUnlocked && (
             <JourneyNode
               node={{ id: data.exam.id, title: data.exam.title, subtitle: "Pass to graduate", emoji: "📝", mastery: 0, status: "exam" }}
               index={nodes.length}
@@ -195,6 +226,15 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: { padding: space[5], gap: space[5], paddingBottom: 40 },
   back: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+  lockBanner: {
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: "#fff7e6",
+    padding: space[4],
+  },
+  lockTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  lockSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
   showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
   showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
   header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },

@@ -4,7 +4,7 @@ import { Button } from "./Button";
 import { mutateProgress } from "./progressStore";
 import { haptics } from "./haptics";
 import { sfx } from "./sfx";
-import { colors, font, radius, space, type } from "./theme";
+import { colors, font, radius, shadowCard, space, type } from "./theme";
 
 export type JournalKind = "lesson" | "match" | "review" | "exam" | "reflection";
 
@@ -73,9 +73,9 @@ export function ReflectSheet({
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.sheetTitle}>Add to your journal</Text>
           <Text style={styles.entryTitle}>{title}</Text>
           <Text style={styles.summary}>{summary}</Text>
@@ -118,13 +118,28 @@ export function ReflectSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(28,27,46,0.45)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: colors.surfaceCard, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space[5], paddingBottom: space[8] },
-  sheetTitle: { ...type.lg, fontFamily: font.bold, color: colors.ink, marginBottom: space[2] },
-  entryTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  summary: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginBottom: space[4] },
-  label: { ...type.xs, fontFamily: font.bold, color: colors.ink700, marginBottom: space[2] },
-  confRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: space[4] },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(28,27,46,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: space[6],
+  },
+  card: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.surfaceCard,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    padding: space[5],
+    ...shadowCard,
+  },
+  sheetTitle: { ...type.lg, fontFamily: font.bold, color: colors.ink, textAlign: "center", marginBottom: space[2] },
+  entryTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
+  summary: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginBottom: space[4], textAlign: "center" },
+  label: { ...type.xs, fontFamily: font.bold, color: colors.ink700, marginBottom: space[2], textAlign: "center" },
+  confRow: { flexDirection: "row", justifyContent: "center", gap: space[2], marginBottom: space[4] },
   confBtn: { width: 44, height: 44, borderRadius: radius.pill, justifyContent: "center", alignItems: "center", backgroundColor: colors.surfaceSunken },
   confBtnOn: { backgroundColor: colors.brand50, borderWidth: 2, borderColor: colors.brand, transform: [{ scale: 1.08 }] },
   input: { minHeight: 88, borderWidth: 1, borderColor: colors.hairline, borderRadius: radius.card, backgroundColor: colors.surface, padding: space[3], fontFamily: font.semibold, color: colors.ink, textAlignVertical: "top", marginBottom: space[4] },

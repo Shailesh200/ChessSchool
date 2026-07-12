@@ -11,6 +11,18 @@ export function googleClientId(): string | null {
   return process.env.GOOGLE_CLIENT_ID ?? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? null;
 }
 
+/** All client IDs that may appear as the `aud` claim on mobile ID tokens. */
+export function googleTokenAudiences(): string[] {
+  const ids = [
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_IOS_CLIENT_ID,
+    process.env.GOOGLE_ANDROID_CLIENT_ID,
+  ];
+  return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))];
+}
+
 /** Public site origin for OAuth redirect URIs. */
 export function appOrigin(req?: Request): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
@@ -70,11 +82,11 @@ export async function googleProfileFromCode(
 export async function googleProfileFromIdToken(
   idToken: string,
 ): Promise<GoogleProfile | { error: string }> {
-  const clientId = googleClientId();
-  if (!clientId) return { error: "Google OAuth is not configured." };
-  const client = new OAuth2Client(clientId);
+  const audiences = googleTokenAudiences();
+  if (audiences.length === 0) return { error: "Google OAuth is not configured." };
+  const client = new OAuth2Client(audiences[0]);
   try {
-    const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+    const ticket = await client.verifyIdToken({ idToken, audience: audiences });
     const payload = ticket.getPayload();
     if (!payload?.sub || !payload.email) {
       return { error: "Google profile was incomplete." };

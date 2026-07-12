@@ -81,9 +81,10 @@ pnpm --filter web db:dump && pnpm --filter web db:remote
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=...   # same client ID — shows the sign-in button
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=...   # mobile Google Sign-In (EAS env / local .env)
 NEXT_PUBLIC_APP_URL=https://chess-school.in   # or http://localhost:3000 locally
 ```
-Redirect URI: `{APP_URL}/api/auth/google/callback`
+Redirect URI: `{APP_URL}/api/auth/google/callback` · Mobile profile: `GET /api/profile`, `POST /api/profile/onboarding`
 
 ## Progress sync
 Logged-in users: `ProgressSync` pulls on login, debounced push to `/api/progress`. Guest mode preserved; merge on enroll. Server uses **transactional upsert + max-merge** (M-044). Mobile uses a serialized write queue to avoid client clobber.

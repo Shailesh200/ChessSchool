@@ -93,7 +93,7 @@ export default function MistakePracticeScreen() {
           <Text style={styles.doneTitle}>Practice complete!</Text>
           <Text style={styles.muted}>You reviewed {mistakes.length} mistake positions.</Text>
           <View style={{ width: 220, marginTop: space[4] }}>
-            <Button label="Back to academy" onPress={() => router.replace("/(tabs)")} />
+            <Button label="Back to academy" onPress={() => router.replace("/(tabs)/academy")} />
           </View>
         </View>
       </SafeAreaView>

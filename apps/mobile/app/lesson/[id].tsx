@@ -22,6 +22,8 @@ import { PreschoolQuiz } from "@/PreschoolQuiz";
 import { ReflectSheet } from "@/ReflectSheet";
 import { applyClassGraduation, applyLessonComplete, graduateClass, isoDay, type Mistake } from "@/progression";
 import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson, lessonsAttemptedCount, shouldShowEnrollPrompt } from "@chess-school/progression";
+import { EXAM_PASS_RATIO, isTutorialLesson, scoredStepCount } from "@/classExam";
+import { markHomeworkActivities, markHomeworkActivity } from "@/homeworkRoutine";
 import { settings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
@@ -61,8 +63,6 @@ const LESSON_TIPS: Record<string, string> = {
   promotion: "Reach the last rank to promote — usually a queen, but a knight can fork!",
   opening: "In the opening: develop your pieces, control the centre, and castle early.",
 };
-
-const EXAM_PASS_RATIO = 0.7;
 
 function findReply(fenA: string, fenB: string): { from: string; to: string } | null {
   try {
@@ -321,15 +321,48 @@ export default function LessonScreen() {
   }
 
   async function finish() {
-    const moveSteps = lesson!.steps.filter((st) => st.kind === "move").length;
-    const totalMoves = moveSteps || 1;
-    const correct = moveSteps === 0 ? 1 : Math.max(0, moveSteps - wrongRef.current);
-    const ratio = correct / totalMoves;
+    const interactive = scoredStepCount(lesson!.steps) || 1;
+    const correct = correctRef.current;
+    const ratio = correct / interactive;
 
     if (lesson!.exam && ratio < EXAM_PASS_RATIO) {
       setPhase("exam-failed");
       haptics.error();
       sfx.play("error");
+      return;
+    }
+
+    // Info-only tutorials — record progress and chain to next lesson (no celebration screen).
+    if (isTutorialLesson(lesson!.steps, lesson!.exam)) {
+      setResolvingNext(true);
+      try {
+        await mutateProgress((snap) => {
+          let next = applyLessonComplete(snap, {
+            lessonId: lesson!.id,
+            correct: 1,
+            total: 1,
+            mistakes: 0,
+            xp: lesson!.xp,
+            logs: [],
+          });
+          const today = isoDay();
+          if (hw) next = markHomeworkActivity(next, hw, today);
+          else next = markHomeworkActivities(next, ["lesson", "practice"], today);
+          if (daily === "1") next = { ...next, dailyPuzzleDay: today };
+          return next;
+        });
+        invalidateLearnCache();
+        const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
+        if (!rs.complete && rs.lessonId && rs.lessonId !== id) {
+          router.replace({ pathname: "/lesson/[id]", params: { id: rs.lessonId } });
+        } else {
+          router.replace("/(tabs)/academy");
+        }
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : "Could not save progress");
+      } finally {
+        setResolvingNext(false);
+      }
       return;
     }
 
@@ -342,15 +375,12 @@ export default function LessonScreen() {
     try {
       if (!progressSavedRef.current) {
         await mutateProgress((snap) => {
-          let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total: totalMoves, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
-          if (hw) {
-            const today = isoDay();
-            const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
-            hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
-            next = { ...next, homeworkDone: hd };
-          }
+          let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total: interactive, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+          const today = isoDay();
+          if (hw) next = markHomeworkActivity(next, hw, today);
+          else next = markHomeworkActivities(next, ["lesson", "practice"], today);
           if (daily === "1") {
-            next = { ...next, dailyPuzzleDay: isoDay() };
+            next = { ...next, dailyPuzzleDay: today };
           }
           if (lesson!.exam && ratio >= EXAM_PASS_RATIO && lessonClass) {
             next = applyClassGraduation(next, { classId: lessonClass.id, lessonIds: lessonClass.lessonIds });
@@ -371,7 +401,7 @@ export default function LessonScreen() {
       }
       const prog = await fetchProgress();
       setLessonsAttempted(
-        lessonsAttemptedCount((prog.lessons ?? {}) as Record<string, { attempts?: number }>),
+        lessonsAttemptedCount((prog?.lessons ?? {}) as Record<string, { attempts?: number }>),
       );
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
@@ -430,16 +460,16 @@ export default function LessonScreen() {
   }
 
   if (phase === "exam-failed") {
-    const moveSteps = lesson.steps.filter((st) => st.kind === "move").length || 1;
-    const correct = Math.max(0, moveSteps - wrongRef.current);
-    const need = Math.ceil(moveSteps * EXAM_PASS_RATIO);
+    const interactive = scoredStepCount(lesson.steps) || 1;
+    const correct = correctRef.current;
+    const need = Math.ceil(interactive * EXAM_PASS_RATIO);
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
           <Cody expression="sad" size={140} />
           <Text style={styles.doneTitle}>Not quite yet</Text>
           <Text style={styles.doneSub}>
-            {correct}/{moveSteps} correct — you need {need} ({Math.round(EXAM_PASS_RATIO * 100)}%) to pass. Review the class and try again!
+            {correct}/{interactive} correct — you need {need} ({Math.round(EXAM_PASS_RATIO * 100)}%) to pass. Review the class and try again!
           </Text>
           <View style={styles.pills}>
             <StatPill label="Correct" value={`${correct}`} tone={colors.success} styles={styles} />

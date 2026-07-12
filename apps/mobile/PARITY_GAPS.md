@@ -1,10 +1,12 @@
 # Web → Mobile Parity Gaps
 
-> **Status (Jul 2026):** Many P0 items from this doc are now **landed** (guest-gating, class exams, seat tokens, game saves, report card, checkmate replay, board animation, Cody bundled offline, app icon/splash/eas). Remaining gaps are tracked in the remediation plan — treat unchecked items below as backlog, not current blockers.
+> **Status (Jul 2026):** Most P0/P1 gaps are **landed** — guest-gating, class exams, themes, report card, ReflectSheet, game saves, Google Sign-In UI, profile/onboarding API sync, and real Student ID on account. Remaining backlog is mostly P2 polish (overlay diff, modals, sound parity) and admin-only Playground.
 
 **Source of truth:** `apps/web` (the production Next.js PWA). **Target:** `apps/mobile` (Expo React Native).
-**Method:** direct code audit of current source on branch `feat/native-stockfish` (not runtime; not the older `apps/mobile/PARITY.md`, which is **stale** — see §0.3).
+**Method:** direct code audit of current source (not runtime).
 **Goal:** a single backlog of every place the app diverges from web — features, logic, UI/CSS/alignment, animation, sound, colors/themes, guest-gating, and button/modal handlers.
+
+> **Note:** Sections below retain historical audit detail. For current shipped state, see `apps/mobile/PLAN.md` §D and verify in code before picking up an item.
 
 > This document is organized two ways on purpose (per request):
 > **Part A — by area** (cross-cutting systems) and **Part B — screen by screen**.
@@ -23,9 +25,30 @@
 
 Category labels used inline: `[Feature]` `[Logic]` `[UI/CSS]` `[Animation]` `[Sound]` `[Color/Theme]` `[Guest]` `[Modal/Handler]` `[Security]`.
 
-## 0.2 Executive summary
+## 0.2 Executive summary (updated Jul 2026)
 
-The mobile app has **broad screen coverage** (login, onboarding, campus, journey, lesson, play vs bot/pass/online, review, replay, journal, dashboard, account, library, placement, exams, settings, themes) and the **progression reducers are ported 1:1** (XP, EWMA mastery, spaced-rep, streak, ELO K=32, achievements, mistakes). The gaps are concentrated in:
+Mobile now has **broad parity** with web for core school flows: curriculum, lessons, play (bot/pass/online), exams, placement, journal reflections, dashboard analytics, guest-gating, app themes, and account sync. **Recently closed gaps:**
+
+- Google Sign-In button + `loginWithGoogle` (`apps/mobile/app/login.tsx`, `src/GoogleSignInButton.tsx`)
+- Profile REST API + onboarding persistence (`/api/profile`, `/api/profile/onboarding`)
+- Real Student ID / house / enrolled date on account (`apps/mobile/app/account.tsx`)
+- Guest progress merge toast after login (`apps/mobile/src/auth.tsx`)
+- Homework routine auto-tracking + streak (`apps/mobile/src/homeworkRoutine.ts`)
+- Placement aligned with web (`graduateClass`, 70%/40% cutoffs, opt-out)
+- Exam pass bar 67% + tutorial silent completion (`apps/mobile/src/classExam.ts`)
+- Online seat token persistence (`apps/mobile/src/onlineSeat.ts`)
+- Review metadata + replay by game id; academy homework done banner
+
+**Remaining gaps** (lower priority — polish / optional):
+
+1. **Visual polish** — overlay diff per screen, designed modals/toasts, route transitions (P2).
+2. **Admin Playground** — web-only admin tool; no mobile route needed for students (P3).
+3. **Coach TTS + move commentary** — web server-side read-aloud; mobile uses static bot copy (P1 feel).
+4. **Bot match resume** — web persists in-progress games; mobile resets on leave (P1).
+5. **Class-level journey unlock** — web gates by graduation chain; mobile journey is in-class only (P1).
+6. **Sound/animation depth** — differentiated SFX voices, Cody motion (P2).
+
+## 0.2a Original executive summary (historical audit — Jul 2026)
 
 1. **Guest-gating is inverted** — web hides progress chrome / personal data / account from guests; mobile shows everything to guests (P0/P1).
 2. **App-wide color themes + dark mode don't exist on mobile** — the single biggest visual-system gap; onboarding "theme" choice is mis-mapped to a board theme (P0/P1).

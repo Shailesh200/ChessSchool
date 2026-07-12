@@ -8,9 +8,12 @@ import { Button } from "@/Button";
 import { TopBar } from "@/TopBar";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
+import { botProfile, BOT_ELO_PRESETS } from "@/bots";
+import { BotAvatar } from "@/BotAvatar";
+import { useSettings, settings } from "@/settings";
 import { colors, font, radius, space, type } from "@/theme";
 
-const ELOS = [300, 600, 900, 1200, 1600, 2000];
+const ELOS = [...BOT_ELO_PRESETS];
 const TIMES = [
   { id: "none", label: "No clock" },
   { id: "5", label: "5 min" },
@@ -73,22 +76,15 @@ const ASSISTED_VARIANTS: { id: AssistedVariant; title: string; subtitle: string 
   },
 ];
 
-function personality(elo: number): string {
-  if (elo < 800) return "🙂 Cody · Casual beginner";
-  if (elo < 1100) return "🤔 Cody · Steady improver";
-  if (elo < 1500) return "😏 Cody · Sharp tactician";
-  return "😎 Cody · Seasoned master";
-}
-
 export default function PlaySetupScreen() {
   const router = useRouter();
   const { guest } = useAuth();
+  const { targetElo } = useSettings();
   const [rating, setRating] = useState(800);
   const [mode, setMode] = useState<ChooserMode>("bot");
   const [trainingMode, setTrainingMode] = useState<TrainingMode>("shadow");
   const [assistedVariant, setAssistedVariant] = useState<AssistedVariant>("full");
   const [adaptive, setAdaptive] = useState(false);
-  const [elo, setElo] = useState(600);
   const [time, setTime] = useState("none");
   const [creating, setCreating] = useState(false);
 
@@ -96,7 +92,7 @@ export default function PlaySetupScreen() {
     api<{ rating: number }>("/api/progress").then((d) => setRating(d.rating ?? 800)).catch(() => void 0);
   }, []);
 
-  const effectiveElo = adaptive ? rating : elo;
+  const effectiveElo = adaptive ? rating : targetElo;
   const selectedTraining = TRAINING_OPTIONS.find((t) => t.id === trainingMode)!;
 
   function guardEnrolled(action: () => void) {
@@ -214,24 +210,31 @@ export default function PlaySetupScreen() {
               </Pressable>
               <View style={[styles.pills, adaptive && styles.pillsDim]}>
                 {ELOS.map((e) => {
-                  const on = !adaptive && e === elo;
+                  const on = !adaptive && e === targetElo;
                   return (
                     <Pressable
                       key={e}
-                      style={[styles.pill, on && styles.pillOn]}
+                      style={[styles.pill, on && styles.pillOn, styles.pillWithAvatar]}
                       onPress={() => {
                         setAdaptive(false);
-                        setElo(e);
+                        settings.set("targetElo", e);
                         haptics.tap();
                       }}
                       disabled={adaptive}
                     >
+                      <BotAvatar elo={e} size={24} />
                       <Text style={[styles.pillText, on && styles.pillTextOn]}>{e}</Text>
                     </Pressable>
                   );
                 })}
               </View>
-              <Text style={styles.persona}>{personality(effectiveElo)}</Text>
+              <View style={styles.personaRow}>
+                <BotAvatar elo={effectiveElo} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.personaName}>{botProfile(effectiveElo).name}</Text>
+                  <Text style={styles.persona}>{botProfile(effectiveElo).blurb}</Text>
+                </View>
+              </View>
             </View>
 
             <View style={styles.card}>
@@ -462,15 +465,18 @@ const styles = StyleSheet.create({
   pills: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   pillsDim: { opacity: 0.4 },
   pill: {
-    paddingHorizontal: space[4],
+    paddingHorizontal: space[3],
     paddingVertical: 8,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceSunken,
   },
+  pillWithAvatar: { flexDirection: "row", alignItems: "center", gap: 6 },
   pillOn: { backgroundColor: colors.brand },
   pillText: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
   pillTextOn: { color: "#fff" },
-  persona: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginTop: space[3] },
+  personaRow: { flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[3] },
+  personaName: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  persona: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
   chevron: { fontSize: 18, color: colors.ink300 },
   trainingRow: {
     flexDirection: "row",

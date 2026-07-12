@@ -1,14 +1,16 @@
 import { useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
+import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
 import { mutateProgress } from "@/progressStore";
-import { prependRecentGame, type EndReason } from "@/progression";
+import { prependRecentGame, isoDay, type EndReason } from "@/progression";
+import { markHomeworkActivity } from "@/homeworkRoutine";
 import { buildSyncGame, winnerFromPlayerResult, endReasonFromStatus } from "@/gameHistory";
 import { useSettings } from "@/settings";
 import { clock as fmtClock } from "@/chess-utils";
@@ -59,6 +61,7 @@ export default function PassPlayScreen() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [over, setOver] = useState<OverState | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [resignOpen, setResignOpen] = useState(false);
 
   const turn = fen.split(" ")[1] === "b" ? "b" : "w";
   const hasClock = timeMs > 0 && !over;
@@ -105,10 +108,10 @@ export default function PassPlayScreen() {
       winner,
       playerResult: result,
     });
-    void mutateProgress((snap) => ({
-      ...snap,
-      recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game),
-    }));
+    void mutateProgress((snap) => {
+      let next = { ...snap, recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game) };
+      return markHomeworkActivity(next, "match", isoDay());
+    });
   }
 
   function finish(result: "win" | "loss" | "draw", title: string, win: boolean, endReason: EndReason = "checkmate") {
@@ -116,21 +119,11 @@ export default function PassPlayScreen() {
     setOver({ title, win, gameId: gameIdRef.current });
   }
 
-  function resign() {
-    if (over) return;
-    Alert.alert("Resign?", `${turn === "w" ? "You" : "Guest"} will lose if you resign.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Resign",
-        style: "destructive",
-        onPress: () => {
-          const whiteResigned = turn === "w";
-          finish(whiteResigned ? "loss" : "win", `${whiteResigned ? "You" : "Guest"} resigned`, !whiteResigned, "resign");
-          haptics.success();
-          sfx.play("win");
-        },
-      },
-    ]);
+  function confirmResign() {
+    const whiteResigned = turn === "w";
+    finish(whiteResigned ? "loss" : "win", `${whiteResigned ? "You" : "Guest"} resigned`, !whiteResigned, "resign");
+    haptics.success();
+    sfx.play("win");
   }
 
   function handleMove(from: string, to: string, promotion: "q" | "r" | "b" | "n" = "q"): boolean {
@@ -164,7 +157,7 @@ export default function PassPlayScreen() {
         </Pressable>
         <Text style={styles.title}>Pass &amp; play</Text>
         {!over && (
-          <Pressable style={styles.resign} onPress={resign}><Text style={styles.resignText}>Resign</Text></Pressable>
+          <Pressable style={styles.resign} onPress={() => !over && setResignOpen(true)}><Text style={styles.resignText}>Resign</Text></Pressable>
         )}
       </View>
 
@@ -198,6 +191,19 @@ export default function PassPlayScreen() {
         title="Pass & play"
         summary={over?.title ?? "Match reflection"}
         refId={over?.gameId ?? null}
+      />
+
+      <ConfirmDialog
+        open={resignOpen}
+        title="Resign?"
+        message={`${turn === "w" ? "You" : "Guest"} will lose if you resign.`}
+        confirmLabel="Resign"
+        tone="danger"
+        onCancel={() => setResignOpen(false)}
+        onConfirm={() => {
+          setResignOpen(false);
+          confirmResign();
+        }}
       />
     </SafeAreaView>
   );

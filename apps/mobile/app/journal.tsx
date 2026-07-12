@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -7,6 +7,7 @@ import { Icon } from "@/Icon";
 import { TopBar } from "@/TopBar";
 import { BackButton } from "@/BackButton";
 import { mutateProgress, useProgress } from "@/progressStore";
+import { markHomeworkActivity } from "@/homeworkRoutine";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Mistake = { fen: string; played: string; best: string; tag: string };
@@ -43,6 +44,10 @@ export default function JournalScreen() {
   const [confidence, setConfidence] = useState(3);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    void mutateProgress((snap) => markHomeworkActivity(snap, "reflection", isoDay()));
+  }, []);
 
   async function saveReflection() {
     const trimmed = note.trim();

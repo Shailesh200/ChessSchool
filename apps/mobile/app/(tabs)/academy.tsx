@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useSyncExternalStore } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
@@ -15,6 +15,8 @@ import { useProgress } from "@/progressStore";
 import { useLearnData } from "@/useLearnData";
 import { useSettings } from "@/settings";
 import { dueLessonIds, isDailyPuzzleDone, isoDay, needsPlacementTest, shouldRecommendPreschool } from "@/progression";
+import { allRoutineDoneToday, routineDoneToday, ROUTINE_STEP_IDS } from "@/homeworkRoutine";
+import { getActiveBotMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
 import { font, radius, space, type } from "@/theme";
 
 type Progress = {
@@ -140,7 +142,14 @@ export default function AcademyScreen() {
     });
   const dueIds = dueLessonIds((p?.lessons ?? {}) as Record<string, { mastery: number; attempts: number; lastSeen: number; dueAt: number }>);
   const dailyDone = daily ? isDailyPuzzleDone(daily.day, p?.dailyPuzzleDay) : false;
+  const homeworkDoneCount = routineDoneToday(p as Record<string, unknown> | null, today).length;
+  const homeworkAllDone = allRoutineDoneToday(p as Record<string, unknown> | null, today);
   const showSkeleton = initialLoading && !data;
+
+  useEffect(() => {
+    void hydrateMatchStore();
+  }, []);
+  const activeMatch = useSyncExternalStore(subscribeMatchStore, getActiveBotMatch, () => null);
 
   return (
     <ThemedSafeArea edges={["top"]}>
@@ -200,6 +209,27 @@ export default function AcademyScreen() {
               </View>
             )}
 
+            {activeMatch && (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>♟️ Bot match in progress</Text>
+                <Text style={styles.cardSub}>Rated {activeMatch.targetElo} · {activeMatch.moves.length} moves played</Text>
+                <View style={{ marginTop: space[3] }}>
+                  <Button
+                    label="Resume match →"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/play/game",
+                        params: {
+                          elo: String(activeMatch.targetElo),
+                          time: activeMatch.timeControlMin > 0 ? String(activeMatch.timeControlMin) : "none",
+                        },
+                      })
+                    }
+                  />
+                </View>
+              </View>
+            )}
+
             {resume && !resume.complete && resume.lessonId && (
               <View style={styles.card}>
                 <View style={styles.breadcrumb}>
@@ -255,10 +285,16 @@ export default function AcademyScreen() {
             {!guest && (
               <Pressable testID="homework" style={styles.homework} onPress={() => router.push("/homework")}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.homeworkTitle}>📋 Today's homework</Text>
-                  <Text style={styles.homeworkSub}>Finish today's set to keep your streak</Text>
+                  <Text style={styles.homeworkTitle}>
+                    {homeworkAllDone ? "✅ Homework done for today!" : "📋 Today's homework"}
+                  </Text>
+                  <Text style={styles.homeworkSub}>
+                    {homeworkAllDone
+                      ? "Great work — come back tomorrow for a fresh set."
+                      : `${homeworkDoneCount}/${ROUTINE_STEP_IDS.length} done — finish today's set to keep your streak`}
+                  </Text>
                 </View>
-                <Text style={styles.homeworkCta}>Open →</Text>
+                {!homeworkAllDone && <Text style={styles.homeworkCta}>Open →</Text>}
               </Pressable>
             )}
 
