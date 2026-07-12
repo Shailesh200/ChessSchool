@@ -1,3 +1,4 @@
+import { EnrollGate } from "@/components/auth/EnrollGate";
 import { AssistedPlay } from "@/features/play/AssistedPlay";
 
 export default async function AssistedPlayPage({
@@ -7,5 +8,10 @@ export default async function AssistedPlayPage({
 }) {
   const { mode } = await searchParams;
   const variant = mode === "puzzle" ? "puzzle" : "full";
-  return <AssistedPlay variant={variant} />;
+  const next = `/play/assisted${mode === "puzzle" ? "?mode=puzzle" : ""}`;
+  return (
+    <EnrollGate next={next}>
+      <AssistedPlay variant={variant} />
+    </EnrollGate>
+  );
 }

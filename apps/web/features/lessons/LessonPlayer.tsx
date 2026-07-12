@@ -27,6 +27,7 @@ import {
   type CoachContext,
 } from "@/features/coaching/personality";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
+import { prefetchCoachText } from "@/core/audio/coachSpeech";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
@@ -203,6 +204,30 @@ export function LessonPlayer({
     coachSeed,
   );
   useCoachSpeech(feedbackText, coachContext, phase !== "complete" && !!step, true);
+
+  // Warm TTS for the next step while the student works on the current one.
+  useEffect(() => {
+    if (phase === "complete") return;
+    const next = lesson.steps[index + 1];
+    if (!next) return;
+    const nextRaw =
+      next.kind === "quiz"
+        ? ""
+        : formatCoachText(next.coach ?? "");
+    if (!nextRaw.trim()) return;
+    const nextLine = applyCoachLine(
+      nextRaw,
+      coachPersonality,
+      next.kind === "quiz" ? "quiz" : "lesson",
+      `${lesson.id}:${next.id}:${index + 1}`,
+    );
+    void prefetchCoachText(nextLine);
+  }, [index, lesson.id, lesson.steps, phase, coachPersonality]);
+
+  useEffect(() => {
+    if (phase === "complete" || !feedbackText.trim()) return;
+    void prefetchCoachText(feedbackText);
+  }, [feedbackText, phase]);
 
   if (!step) return null;
 

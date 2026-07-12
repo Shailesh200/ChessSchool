@@ -13,6 +13,7 @@ import {
   isClassGraduated,
   isClassUnlocked,
   isOptionalClass,
+  isStageGraduatedForDisplay,
   type SchoolClass,
   type Catalog,
 } from "./structure";
@@ -60,17 +61,31 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
     .map((stage) => {
       const semesters = semestersForStage(stage.id, catalog.semesters);
       const classes = semesters.flatMap((s) => s.classes);
-      const cleared =
-        examsPassed.includes(stage.id) || (classes.length > 0 && classes.every(isDone));
-      return { stage, semesters, classes, cleared };
+      return { stage, semesters, classes };
     })
     .filter((i) => i.classes.length > 0);
-  const stages = stageInfos.map((info, idx) => ({
+  const stageInfosWithCleared = stageInfos.map((info, idx) => ({
+    ...info,
+    cleared: isStageGraduatedForDisplay(
+      idx,
+      stageInfos.map((s) => ({
+        id: s.stage.id,
+        optional: s.stage.optional,
+        classes: s.classes,
+      })),
+      records,
+      graduated,
+      examsPassed,
+    ),
+  }));
+  const stages = stageInfosWithCleared.map((info, idx) => ({
     ...info,
     unlocked:
       idx === 0 ||
-      stageInfos.slice(0, idx).every((s) => s.cleared || Boolean(s.stage.optional)),
-    prevName: idx > 0 ? stageInfos[idx - 1]!.stage.name : "",
+      stageInfosWithCleared
+        .slice(0, idx)
+        .every((s) => s.cleared || Boolean(s.stage.optional)),
+    prevName: idx > 0 ? stageInfosWithCleared[idx - 1]!.stage.name : "",
   }));
 
   return (

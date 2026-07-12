@@ -99,6 +99,7 @@ export function MatchChooser() {
   const authed = useSession((s) => s.authed);
   const rehydrateReady = useRehydrateReady();
   const guest = rehydrateReady && authed === false;
+  const needsEnroll = !rehydrateReady || authed !== true;
 
   const [mode, setMode] = useState<ChooserMode>("bot");
   const [trainingMode, setTrainingMode] = useState<TrainingMode>("shadow");
@@ -109,7 +110,7 @@ export function MatchChooser() {
   const router = useRouter();
 
   function guardEnrolled(action: () => void) {
-    if (guest) {
+    if (needsEnroll) {
       toast("Enroll to unlock this feature", { tone: "default" });
       startNav();
       router.push("/register?next=/play");
@@ -330,12 +331,16 @@ export function MatchChooser() {
                 <div className="flex flex-col gap-2">
                   {TRAINING_OPTIONS.map((opt) => {
                     const active = trainingMode === opt.id;
-                    const locked = guest && opt.enrolledOnly;
+                    const locked = needsEnroll && opt.enrolledOnly;
                     return (
                       <button
                         key={opt.id}
                         type="button"
                         onClick={() => {
+                          if (locked) {
+                            guardEnrolled(() => void 0);
+                            return;
+                          }
                           setTrainingMode(opt.id);
                           haptics.fire("select");
                         }}
@@ -381,7 +386,7 @@ export function MatchChooser() {
               </Card>
             </motion.div>
 
-            {trainingMode === "assisted" && (
+            {trainingMode === "assisted" && !needsEnroll && (
               <motion.div variants={listItem}>
                 <Card>
                   <p className="text-ink mb-3 text-sm font-extrabold">Assisted format</p>
@@ -433,8 +438,8 @@ export function MatchChooser() {
             </motion.div>
 
             <motion.div variants={listItem}>
-              <Button size="lg" block onClick={beginTraining}>
-                {guest
+              <Button size="lg" block onClick={beginTraining} disabled={needsEnroll}>
+                {needsEnroll
                   ? "Enroll to start"
                   : trainingMode === "assisted"
                     ? `Start ${ASSISTED_VARIANTS.find((v) => v.id === assistedVariant)?.title.toLowerCase() ?? "assisted play"}`

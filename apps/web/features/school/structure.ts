@@ -125,6 +125,49 @@ export function isClassGraduated(
   return cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= MASTERED);
 }
 
+/** Stage cleared by exam pass or every class mastered. */
+export function isStageCleared(
+  stageId: string,
+  classes: SchoolClass[],
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  examsPassed: string[],
+): boolean {
+  return (
+    examsPassed.includes(stageId) ||
+    (classes.length > 0 &&
+      classes.every((c) => isClassGraduated(c, records, graduatedClasses)))
+  );
+}
+
+/**
+ * Optional stages (e.g. Pre-School) show as graduated once the student clears a
+ * later required school — e.g. passing Elementary graduates Pre-School on the map.
+ */
+export function isStageGraduatedForDisplay(
+  stageIdx: number,
+  stages: { id: string; optional?: boolean; classes: SchoolClass[] }[],
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  examsPassed: string[],
+): boolean {
+  const entry = stages[stageIdx];
+  if (!entry) return false;
+  if (isStageCleared(entry.id, entry.classes, records, graduatedClasses, examsPassed)) {
+    return true;
+  }
+  if (!entry.optional) return false;
+  for (let j = stageIdx + 1; j < stages.length; j++) {
+    const later = stages[j]!;
+    if (later.optional) continue;
+    if (isStageCleared(later.id, later.classes, records, graduatedClasses, examsPassed)) {
+      return true;
+    }
+    break;
+  }
+  return false;
+}
+
 /** A class is unlocked if it's first, or the previous required class is graduated. Optional stages unlock internally only. */
 export function isClassUnlocked(
   classId: string,

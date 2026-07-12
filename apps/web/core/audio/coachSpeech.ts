@@ -103,6 +103,21 @@ async function fetchCloudAudio(
   return url;
 }
 
+/** Warm the TTS cache so the next speak starts without waiting on the network. */
+export async function prefetchCoachText(text: string): Promise<void> {
+  const settings = useSettings.getState();
+  if (!settings.sound || !settings.coachSpeech) return;
+
+  const line = text.trim();
+  if (!line || line === "Thinking…") return;
+
+  const voice = normalizeCoachVoice(settings.coachVoice);
+  const key = cacheKey(line, settings.coachPersonality, voice);
+  if (audioCache.has(key)) return;
+
+  await fetchCloudAudio(line, settings.coachPersonality, voice);
+}
+
 /** Stop any in-flight coach speech (e.g. on unmount or voice switch). */
 export function stopCoachSpeech() {
   speakGen++;

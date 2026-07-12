@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import {
+  prefetchCoachText,
   speakCoachLine,
   speakCoachText,
   stopCoachSpeech,
@@ -34,6 +35,7 @@ export function useCoachSpeech(
       return;
     }
     lastSpoken.current = line;
+    void prefetchCoachText(line);
     if (styled) void speakCoachText(line);
     else void speakCoachLine(line, context, personality);
   }, [text, context, enabled, sound, coachSpeech, personality, styled]);
