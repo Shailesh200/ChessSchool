@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { bootApiTestEnv, bearer, readJson, testIp } from "@/lib/test-db.harness";
+import { eq } from "drizzle-orm";
+import { analyticsEvents, users, webVitals } from "@/db/schema";
+import { bootApiTestEnv, bearer, readJson, testIp, type TestDb } from "@/lib/test-db.harness";
 
 const PW = "testpass123";
 
 describe("auth API integration", () => {
   let teardown: () => void = () => {};
+  let db: TestDb;
   let postRegister: typeof import("@/app/api/auth/register/route").POST;
   let postLogin: typeof import("@/app/api/auth/login/route").POST;
   let postLogout: typeof import("@/app/api/auth/logout/route").POST;
@@ -13,7 +16,7 @@ describe("auth API integration", () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    ({ teardown } = await bootApiTestEnv());
+    ({ teardown, db } = await bootApiTestEnv());
     postRegister = (await import("@/app/api/auth/register/route")).POST;
     postLogin = (await import("@/app/api/auth/login/route")).POST;
     postLogout = (await import("@/app/api/auth/logout/route")).POST;
@@ -106,5 +109,56 @@ describe("auth API integration", () => {
       }),
     );
     expect(login.status).toBe(401);
+  });
+
+  it("account deletion purges analytics and vitals rows", async () => {
+    const email = `delete-${Date.now()}@test.dev`;
+    const reg = await postRegister(
+      new Request("http://test/api/auth/register", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...testIp(30) },
+        body: JSON.stringify({ email, password: PW, name: "Delete Me" }),
+      }),
+    );
+    const { token, user } = await readJson<{ token: string; user: { id: string } }>(reg);
+
+    const now = Date.now();
+    await db.insert(analyticsEvents).values({
+      id: `evt-${now}`,
+      name: "lesson_complete",
+      props: "{}",
+      pathname: "/lesson/x",
+      userId: user.id,
+      createdAt: now,
+    });
+    await db.insert(webVitals).values({
+      id: `vit-${now}`,
+      name: "LCP",
+      value: 1.2,
+      rating: "good",
+      pathname: "/",
+      userId: user.id,
+      createdAt: now,
+    });
+
+    const delRoute = (await import("@/app/api/account/route")).DELETE;
+    const del = await delRoute(
+      new Request("http://test/api/account", {
+        method: "DELETE",
+        headers: { ...bearer(token), ...testIp(31) },
+      }),
+    );
+    expect(del.status).toBe(200);
+
+    expect(
+      (await db.select().from(users).where(eq(users.id, user.id)).limit(1))[0],
+    ).toBeUndefined();
+    expect(
+      (await db.select().from(analyticsEvents).where(eq(analyticsEvents.userId, user.id)))
+        .length,
+    ).toBe(0);
+    expect(
+      (await db.select().from(webVitals).where(eq(webVitals.userId, user.id))).length,
+    ).toBe(0);
   });
 });

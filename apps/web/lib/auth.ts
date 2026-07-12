@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { users, sessions, profiles, progress, lessonRecords, oauthAccounts } from "@/db/schema";
+import { users, sessions, profiles, progress, lessonRecords, oauthAccounts, analyticsEvents, webVitals } from "@/db/schema";
 import {
   GOOGLE_PROVIDER,
   googleProfileFromIdToken,
@@ -67,12 +67,14 @@ export async function registerUser(
 ): Promise<{ ok: true } | { error: string }> {
   email = email.trim().toLowerCase();
   if (!email.includes("@")) return { error: "Enter a valid email." };
-  if (password.length < 6) return { error: "Password must be at least 6 characters." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!name.trim()) return { error: "Enter your name." };
   const existing = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (existing) return { error: "That email is already enrolled." };
+  if (existing) {
+    return { error: "Could not create an account with this email. Try signing in." };
+  }
 
   const id = randomUUID();
   const now = Date.now();
@@ -174,10 +176,10 @@ export async function registerWithToken(
 ): Promise<{ token: string; user: SessionUser } | { error: string }> {
   email = email.trim().toLowerCase();
   if (!email.includes("@")) return { error: "Enter a valid email." };
-  if (password.length < 6) return { error: "Password must be at least 6 characters." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!name.trim()) return { error: "Enter your name." };
   if ((await db.select().from(users).where(eq(users.email, email)).limit(1))[0]) {
-    return { error: "That email is already enrolled." };
+    return { error: "Could not create an account with this email. Try signing in." };
   }
   const id = randomUUID();
   const now = Date.now();
@@ -342,9 +344,12 @@ export async function deleteUserAccount(
   if (!user) return { error: "Account not found." };
   if (user.role === "admin") return { error: "Admin accounts cannot be deleted here." };
   await db.delete(lessonRecords).where(eq(lessonRecords.userId, userId));
+  await db.delete(analyticsEvents).where(eq(analyticsEvents.userId, userId));
+  await db.delete(webVitals).where(eq(webVitals.userId, userId));
   await db.delete(sessions).where(eq(sessions.userId, userId));
   await db.delete(progress).where(eq(progress.userId, userId));
   await db.delete(profiles).where(eq(profiles.userId, userId));
+  await db.delete(oauthAccounts).where(eq(oauthAccounts.userId, userId));
   await db.delete(users).where(eq(users.id, userId));
   return { ok: true };
 }

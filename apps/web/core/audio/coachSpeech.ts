@@ -84,6 +84,7 @@ async function fetchCloudAudio(
 
   const res = await fetch("/api/tts", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, personality, voice: resolved }),
   });

@@ -116,14 +116,38 @@ export async function POST(
   }
 
   if (body.action === "timeout") {
-    const flagged = body.color ?? body.seat;
-    if (flagged !== "w" && flagged !== "b") {
-      return NextResponse.json({ error: "invalid timeout" }, { status: 400 });
+    const now = Date.now();
+    let whiteMs = s.whiteMs;
+    let blackMs = s.blackMs;
+    if (s.status === "active" && s.timeControlMin > 0) {
+      const elapsed = Math.max(0, now - s.updatedAt);
+      if (s.turn === "w") whiteMs = Math.max(0, whiteMs - elapsed);
+      else blackMs = Math.max(0, blackMs - elapsed);
     }
+    const wTimedOut = whiteMs <= 0;
+    const bTimedOut = blackMs <= 0;
+    if (!wTimedOut && !bTimedOut) {
+      return NextResponse.json({ error: "clock still running" }, { status: 409 });
+    }
+    // Derive the timed-out seat from server clocks — never trust client `color`.
+    const flagged: "w" | "b" =
+      wTimedOut && !bTimedOut
+        ? "w"
+        : bTimedOut && !wTimedOut
+          ? "b"
+          : s.turn === "b"
+            ? "b"
+            : "w";
     const winner = flagged === "w" ? "b" : "w";
     await db
       .update(gameSessions)
-      .set({ status: "over", result: `time:${winner}`, updatedAt: Date.now() })
+      .set({
+        status: "over",
+        result: `time:${winner}`,
+        whiteMs,
+        blackMs,
+        updatedAt: now,
+      })
       .where(eq(gameSessions.id, id));
     return respond(id);
   }

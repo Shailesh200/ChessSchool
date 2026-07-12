@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getApiUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { synthesizeCoachSpeech, ttsConfigured } from "@/lib/tts/synthesize.server";
 
@@ -15,7 +16,13 @@ const bodySchema = z.object({
 
 /** Cloud TTS for coach / bot chat bubbles (Edge by default; Google optional). */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "tts", { limit: 90, windowMs: 60_000 });
+  const user = await getApiUser(req);
+  const limited = enforceRateLimit(
+    req,
+    "tts",
+    user ? { limit: 90, windowMs: 60_000 } : { limit: 24, windowMs: 60_000 },
+    user?.id,
+  );
   if (limited) return limited;
 
   if (!ttsConfigured()) {

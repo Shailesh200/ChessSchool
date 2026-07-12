@@ -6,11 +6,18 @@ import {
 } from "@/lib/google-oauth-cookies.server";
 import { googleOAuthConfigured, googleProfileFromCode } from "@/lib/google-oauth.server";
 import { establishWebSession, signInWithGoogle } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 /** Google OAuth callback — exchanges code, links account, sets session cookie. */
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "auth:google-callback", {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   if (!googleOAuthConfigured()) {
     return NextResponse.redirect(new URL("/login?error=google_unavailable", req.url));
   }
