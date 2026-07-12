@@ -191,9 +191,12 @@ export default function ThemesPage() {
               </div>
             </section>
 
-            {/* Piece sets */}
+            {/* Piece sets — distinct silhouettes */}
             <section>
-              <h2 className="text-ink mb-2 text-sm font-extrabold">Piece sets</h2>
+              <h2 className="text-ink mb-1 text-sm font-extrabold">Piece sets</h2>
+              <p className="text-ink-500 mb-2 text-xs font-semibold">
+                Fairytale uses flat storybook silhouettes — mice, castles, princesses, and more.
+              </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {PIECE_THEMES.map((p) => {
                   const active = pieceTheme === p.id;
@@ -217,15 +220,22 @@ export default function ThemesPage() {
                       <p className="text-ink w-full truncate text-center text-xs font-extrabold">
                         {p.name}
                       </p>
+                      <p className="text-ink-500 w-full truncate text-center text-[10px] font-semibold">
+                        {p.family}
+                      </p>
                     </button>
                   );
                 })}
               </div>
             </section>
 
-            {/* School themes */}
+            {/* School themes — identity layered on app theme */}
             <section>
-              <h2 className="text-ink mb-2 text-sm font-extrabold">School themes</h2>
+              <h2 className="text-ink mb-1 text-sm font-extrabold">School theme</h2>
+              <p className="text-ink-500 mb-2 text-xs font-semibold">
+                Brand colors and campus styling — works together with your app theme
+                above.
+              </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {SCHOOL_THEMES.map((t) => {
                   const active = schoolTheme === t.id;
@@ -237,7 +247,7 @@ export default function ThemesPage() {
                         haptics.fire("select");
                         audio.play("transition");
                       }}
-                      className={`btn-tactile rounded-card flex flex-col items-center gap-1 border-2 p-3 ${
+                      className={`btn-tactile school-chrome-card flex flex-col items-center gap-1 border-2 p-3 ${
                         active
                           ? "border-brand bg-brand-50"
                           : "border-hairline bg-surface-card"
@@ -246,6 +256,9 @@ export default function ThemesPage() {
                       <ContentIcon emoji={t.emoji} size={24} selected={active} />
                       <span className="text-ink truncate text-xs font-extrabold">
                         {t.name}
+                      </span>
+                      <span className="text-ink-500 line-clamp-2 text-center text-[10px] font-semibold leading-tight">
+                        {t.chrome}
                       </span>
                     </button>
                   );

@@ -7,7 +7,18 @@ import { normalizeCoachVoice } from "@/lib/tts/voices";
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
 export type PieceTheme =
-  "classic" | "marble" | "crystal" | "neon" | "forest" | "ocean" | "cute";
+  | "classic"
+  | "merida"
+  | "alpha"
+  | "marble"
+  | "crystal"
+  | "neon"
+  | "forest"
+  | "ocean"
+  | "cartoon"
+  | "fairytale"
+  | "anime"
+  | "fantasy";
 export type ColorblindMode = "none" | "deuteranopia";
 export type CoachPersonality =
   "friendly" | "strict" | "mentor" | "tactical" | "minimal";
@@ -119,7 +130,7 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 6,
+      version: 9,
       skipHydration: true,
       // v1 -> v2: introduce schoolTheme; older board themes still resolve.
       // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
@@ -141,6 +152,19 @@ export const useSettings = create<SettingsState>()(
         }
         if (version < 6 && s.coachVoice) {
           s.coachVoice = normalizeCoachVoice(s.coachVoice);
+        }
+        // v6 -> v7: `cute` was ornate Fantasy; Cartoon uses kiwen-suwi silhouettes.
+        const piece = s.pieceTheme as string | undefined;
+        if (version < 7 && piece === "cute") {
+          s.pieceTheme = "fantasy";
+        }
+        // v7 -> v8: Cute renamed to Cartoon (`cartoon` id).
+        if (version < 8 && piece === "cute") {
+          s.pieceTheme = "cartoon";
+        }
+        // v8 -> v9: Barbie/Princess renamed to Fairytale.
+        if (version < 9 && (piece === "barbie" || piece === "princess")) {
+          s.pieceTheme = "fairytale";
         }
         return { ...defaults, ...s } as SettingsState;
       },

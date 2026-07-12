@@ -71,6 +71,16 @@
   --dur-fast: 140ms;
   --dur-base: 240ms;
   --dur-slow: 420ms;
+
+  /* School identity — layered ON TOP of app theme (never overrides --surface*). */
+  --school-radius-card: var(--radius-lg);
+  --school-radius-badge: var(--radius-pill);
+  --school-card-border: 1px solid var(--hairline);
+  --school-card-shadow: var(--shadow-card);
+  --school-header-bg: transparent;
+  --school-header-pattern: none;
+  --school-badge-tracking: 0.04em;
+  --school-progress-radius: var(--radius-pill);
 }
 
 @theme inline {
@@ -311,7 +321,7 @@ html[data-app-theme="midnight"] {
   --shadow-pop: 0 18px 40px -10px rgba(0, 0, 0, 0.6);
 }
 
-/* School themes — brand, accent, and chrome surfaces (nav, cards, campus). */
+/* School themes — brand, accent, and campus chrome ONLY (app theme owns surfaces). */
 html[data-school-theme="elementary"] {
   --brand-500: #2563eb;
   --brand-600: #1d4ed8;
@@ -319,10 +329,20 @@ html[data-school-theme="elementary"] {
   --brand-50: #dbeafe;
   --brand-100: #bfdbfe;
   --accent-500: #f2613f;
-  --surface: #f3f7ff;
-  --surface-card: #ffffff;
-  --surface-sunken: #e8f0fe;
-  --hairline: #cdd9f0;
+  --school-radius-card: 1.375rem;
+  --school-radius-badge: 999px;
+  --school-card-border: 2px solid color-mix(in srgb, var(--brand-300) 28%, var(--hairline));
+  --school-header-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-50) 72%, transparent),
+    transparent 68%
+  );
+  --school-header-pattern: radial-gradient(
+    circle at 14% 24%,
+    color-mix(in srgb, var(--accent-500) 14%, transparent),
+    transparent 46%
+  );
+  --school-badge-tracking: 0.06em;
 }
 html[data-school-theme="highschool"] {
   --brand-500: #0f766e;
@@ -331,10 +351,24 @@ html[data-school-theme="highschool"] {
   --brand-50: #ccfbf1;
   --brand-100: #99f6e4;
   --accent-500: #cf4324;
-  --surface: #f0faf8;
-  --surface-card: #ffffff;
-  --surface-sunken: #e0f2ef;
-  --hairline: #c5e8e0;
+  --school-radius-card: 0.75rem;
+  --school-radius-badge: 0.5rem;
+  --school-card-border: 1px solid color-mix(in srgb, var(--brand-600) 22%, var(--hairline));
+  --school-card-shadow: 0 1px 2px rgba(15, 118, 110, 0.08), var(--elev-2);
+  --school-header-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-50) 55%, transparent),
+    transparent
+  );
+  --school-header-pattern: repeating-linear-gradient(
+    -12deg,
+    transparent,
+    transparent 10px,
+    color-mix(in srgb, var(--brand-500) 5%, transparent) 10px,
+    color-mix(in srgb, var(--brand-500) 5%, transparent) 11px
+  );
+  --school-badge-tracking: 0.08em;
+  --school-progress-radius: 0.375rem;
 }
 html[data-school-theme="university"] {
   --brand-500: #5b5bd6;
@@ -343,10 +377,18 @@ html[data-school-theme="university"] {
   --brand-50: #ededfd;
   --brand-100: #d8d7fa;
   --accent-500: #f2613f;
-  --surface: #f5f5ff;
-  --surface-card: #ffffff;
-  --surface-sunken: #ebebf8;
-  --hairline: #d6d6f0;
+  --school-radius-card: var(--radius-lg);
+  --school-card-border: 1px solid color-mix(in srgb, var(--brand-300) 24%, var(--hairline));
+  --school-header-bg: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--brand-50) 80%, transparent),
+    transparent 72%
+  );
+  --school-header-pattern: radial-gradient(
+    ellipse 80% 60% at 88% 0%,
+    color-mix(in srgb, var(--brand-300) 18%, transparent),
+    transparent
+  );
 }
 html[data-school-theme="graduation"] {
   --brand-500: #6d28d9;
@@ -355,10 +397,40 @@ html[data-school-theme="graduation"] {
   --brand-50: #f3e8ff;
   --brand-100: #e9d5ff;
   --accent-500: #d97706;
-  --surface: #faf5ff;
-  --surface-card: #ffffff;
-  --surface-sunken: #f1e8fd;
-  --hairline: #e4d4f7;
+  --school-radius-card: var(--radius-xl);
+  --school-card-border: 1px solid color-mix(in srgb, var(--gold-500) 35%, var(--hairline));
+  --school-card-shadow:
+    0 1px 2px rgba(109, 40, 217, 0.08),
+    0 10px 28px -14px color-mix(in srgb, var(--brand-500) 28%, transparent);
+  --school-header-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-50) 70%, transparent),
+    color-mix(in srgb, var(--gold-500) 8%, transparent)
+  );
+  --school-header-pattern: radial-gradient(
+    circle at 78% 18%,
+    color-mix(in srgb, var(--gold-500) 16%, transparent),
+    transparent 42%
+  );
+}
+
+/* Campus / school chrome — consumes --school-* tokens (independent of app palette). */
+.school-chrome-card {
+  border-radius: var(--school-radius-card);
+  border: var(--school-card-border);
+  box-shadow: var(--school-card-shadow);
+}
+
+.school-stage-header {
+  border-radius: var(--school-radius-card);
+  background-color: var(--school-header-bg);
+  background-image: var(--school-header-pattern);
+  padding: 0.625rem 0.75rem;
+}
+
+.school-semester-badge {
+  border-radius: var(--school-radius-badge);
+  letter-spacing: var(--school-badge-tracking);
 }
 
 /* Prevent iOS Safari from zooming when focusing a small input (font < 16px). */

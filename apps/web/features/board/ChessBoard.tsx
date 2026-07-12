@@ -75,11 +75,7 @@ export function ChessBoard({
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
   const colors = getBoardTheme(boardTheme);
-  // "classic" → react-chessboard's polished default set; themes → custom pieces.
-  const pieces = useMemo(
-    () => (pieceTheme === "classic" ? undefined : buildPieces(pieceTheme)),
-    [pieceTheme],
-  );
+  const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{
     from: Square;

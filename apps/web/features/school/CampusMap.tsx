@@ -150,7 +150,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
           return (
             <section key={stage.id}>
               {/* Stage header — the full Elementary → Master ladder */}
-              <div className="mb-3 flex items-center gap-2">
+              <div className="school-stage-header mb-3 flex items-center gap-2">
                 <ContentIcon emoji={stage.emoji} size={22} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -208,7 +208,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                           className="btn-tactile mb-2 flex w-full items-center gap-2 text-left"
                         >
                           <span
-                            className="rounded-pill shrink-0 px-3 py-1 text-xs font-extrabold text-white"
+                            className="school-semester-badge shrink-0 px-3 py-1 text-xs font-extrabold text-white"
                             style={{ backgroundColor: sem.color }}
                           >
                             {sem.title}
@@ -368,8 +368,8 @@ function ClassCard({
   return (
     <motion.div
       variants={listItem}
-      className={`rounded-card bg-surface-card border p-4 [box-shadow:var(--shadow-card)] ${
-        grad ? "border-gold" : "border-hairline"
+      className={`school-chrome-card bg-surface-card p-4 ${
+        grad ? "border-gold" : ""
       } ${unlocked ? "" : "opacity-60"}`}
     >
       <div className="flex items-center gap-3">
