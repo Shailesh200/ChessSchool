@@ -92,6 +92,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void syncProgressAfterAuth().catch(() => void 0);
   };
 
+  const loginWithGoogle = async (idToken: string) => {
+    const { token, user, isNewUser } = await api<{
+      token: string;
+      user: User;
+      isNewUser: boolean;
+    }>("/api/auth/google/token", {
+      method: "POST",
+      body: { idToken },
+    });
+    await setToken(token);
+    setGuest(false);
+    setUser(user);
+    if (isNewUser) setNeedsOnboarding(true);
+    void loadSettingsFromAccount();
+    void syncProgressAfterAuth().catch(() => void 0);
+    return { isNewUser };
+  };
+
   const register = async (email: string, password: string, name: string) => {
     const { token, user } = await api<{ token: string; user: User }>("/api/auth/register", {
       method: "POST",
@@ -127,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, exitGuest, login, register, logout, deleteAccount }}>
+    <AuthCtx.Provider value={{ user, guest, loading, needsOnboarding, finishOnboarding: () => setNeedsOnboarding(false), continueAsGuest, exitGuest, login, loginWithGoogle, register, logout, deleteAccount }}>
       {children}
     </AuthCtx.Provider>
   );
