@@ -11,7 +11,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "http://localhost:3000",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com"
       },
       "ios": {
         "simulator": true
@@ -23,12 +24,15 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://chess-school.in",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
-        "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Xmx4096m"
       },
       "android": {
         "buildType": "apk",
         "image": "sdk-54",
-        "gradleCommand": ":app:assembleRelease --no-configure-on-demand"
+        "resourceClass": "medium",
+        "gradleCommand": ":app:assembleRelease --no-configure-on-demand -Dorg.gradle.configureondemand=false"
       }
     },
     "production": {
@@ -37,12 +41,15 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://chess-school.in",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
-        "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Xmx4096m"
       },
       "android": {
         "buildType": "app-bundle",
         "image": "sdk-54",
-        "gradleCommand": ":app:bundleRelease --no-configure-on-demand"
+        "resourceClass": "medium",
+        "gradleCommand": ":app:bundleRelease --no-configure-on-demand -Dorg.gradle.configureondemand=false"
       }
     }
   },

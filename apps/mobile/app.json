@@ -11,13 +11,14 @@
       "policy": "appVersion"
     },
     "updates": {
-      "checkAutomatically": "ON_LOAD",
+      "checkAutomatically": "ON_ERROR_RECOVERY",
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/af6d1946-9dd2-42ef-b2a3-ad71bfbb7854"
     },
     "newArchEnabled": false,
     "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#fbfaff"
     },
@@ -28,7 +29,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 1,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5b5bd6"
@@ -52,8 +53,10 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/splash-icon.png",
           "backgroundColor": "#fbfaff",
           "dark": {
+            "image": "./assets/splash-icon.png",
             "backgroundColor": "#1c1b2e"
           }
         }
@@ -63,8 +66,7 @@
         "expo-build-properties",
         {
           "android": {
-            "newArchEnabled": false,
-            "kotlinVersion": "2.0.21"
+            "newArchEnabled": false
           },
           "ios": {
             "newArchEnabled": false

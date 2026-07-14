@@ -1,4 +1,4 @@
-import { NativeModule, requireNativeModule } from "expo";
+import { NativeModule, requireOptionalNativeModule } from "expo";
 
 // Events emitted by the native engine (one UCI output line at a time).
 type StockfishEvents = {
@@ -14,6 +14,7 @@ declare class StockfishNativeModule extends NativeModule<StockfishEvents> {
   isReady(): boolean;
 }
 
-// Resolves only in a dev build that includes this module; throws in Expo Go / web
-// (callers in src/stockfish.ts guard the require and fall back to the JS engine).
-export default requireNativeModule<StockfishNativeModule>("Stockfish");
+// Apple-only module today — optional so Android / Expo Go never throw on import.
+const Stockfish = requireOptionalNativeModule<StockfishNativeModule>("Stockfish");
+
+export default Stockfish;

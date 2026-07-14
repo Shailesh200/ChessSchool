@@ -18,11 +18,12 @@ type StockfishNative = {
 
 let native: StockfishNative | null = null;
 try {
-  // Optional local module — absent in Expo Go / web, so guard the require.
+  // Optional local module — absent on Android / Expo Go / web.
+  // Module uses requireOptionalNativeModule so require() itself must not throw.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const mod = require("../modules/stockfish");
-  native = (mod?.default ?? mod) as StockfishNative;
-  if (native && typeof native.sendCommand !== "function") native = null;
+  const candidate = (mod?.default ?? mod) as StockfishNative | null;
+  native = candidate && typeof candidate.sendCommand === "function" ? candidate : null;
 } catch {
   native = null;
 }

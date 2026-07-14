@@ -17,7 +17,7 @@ Android-first guide for EAS Build, EAS Update (OTA), and Google Play Store submi
 4. **Google Play Console** — developer account verified ($25).
 5. **Privacy policy live** — `https://chess-school.in/privacy`
 6. **Production API** — `https://chess-school.in` (set in `eas.json` for all release profiles).
-7. **Google Sign-In (native)** — see [Google OAuth setup](#google-oauth-setup-native) below.
+7. **Google Sign-In (native)** — see [Google OAuth setup](#google-oauth-setup-native) below and **`docs/ENV.md`** for the full variable checklist (Vercel + EAS + local `.env`).
 
 ---
 
@@ -31,7 +31,7 @@ In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (sa
 - Application type: **Android**
 - Package name: `com.chessschool.app`
 - SHA-1: from EAS credentials (`eas credentials -p android`) or your upload keystore
-- Copy the **Android client ID** → `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` in `eas.json` / `.env`
+- Copy the **Android client ID** → `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` in EAS env / `apps/mobile/.env` (see `apps/mobile/.env.example`)
 
 ### iOS OAuth client (when shipping iOS)
 - Application type: **iOS**
@@ -39,7 +39,7 @@ In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (sa
 - Copy the **iOS client ID** → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
 
 ### Server (Vercel)
-Add the same native client IDs to `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` so `/api/auth/google/token` accepts ID tokens from the app.
+Add the same native client IDs to `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` (and optional `EXPO_PUBLIC_*` aliases) so `/api/auth/google/token` accepts ID tokens from the app. See `apps/web/.env.example` and `docs/ENV.md`.
 
 ### Redirect URI (auto)
 Expo uses `com.chessschool.app:/oauthredirect` — no manual redirect URI entry needed for Android/iOS native clients.
@@ -187,6 +187,8 @@ Fill in Play Console while verification completes:
 |-------|-----|
 | `No Next.js` / monorepo build fails on Vercel | Web only — mobile uses EAS, not Vercel |
 | EAS build can't resolve `@chess-school/core` | Run build from `apps/mobile`; pnpm workspace is auto-detected |
+| EAS Gradle / KSP failure (`IncompatibleClassChangeError`, kotlin metadata) | Do **not** set `expo-build-properties.android.kotlinVersion` — let Expo SDK 54 pick the toolchain. Keep `gradleCommand` + `GRADLE_OPTS` with configure-on-demand off |
+| Preview APK instant crash on open | Pin Expo SDK-compatible natives (`expo-speech@~14` for SDK 54). Rebuild after `expo install` — stale wrong ABI builds crash at module load |
 | OTA not applying | Run `eas update:configure`; production build must use `channel: production` |
 | Updates disabled in dev | Expected — OTA only runs in release builds |
 | Play rejection: missing deletion | Account screen → Delete account |
