@@ -1,13 +1,15 @@
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { settings, useSettings, BOARD_THEMES, SELECTABLE_BOARD_THEMES, BOARD_THEME_NAMES } from "@/settings";
 import { APP_THEMES } from "@/appThemes";
 import { SCHOOL_THEMES } from "@/schoolThemes";
 import { ChessBoard } from "@/ChessBoard";
 import { PIECE_THEMES, PiecePreview } from "@/Piece";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
-import { ThemedSafeArea } from "@/ThemedSafeArea";
+import { Button } from "@/Button";
+import { Icon } from "@/Icon";
+import { emojiToIcon } from "@/iconMaps";
 import { useAppTheme } from "@/ThemeProvider";
 import { haptics } from "@/haptics";
 import { font, radius, shadowCard, space, type } from "@/theme";
@@ -19,6 +21,7 @@ export default function ThemesScreen() {
   const { colors } = useAppTheme();
   const { width } = useWindowDimensions();
   const preview = Math.min(width - 96, 300);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const boardName = BOARD_THEME_NAMES[boardTheme] ?? boardTheme;
   const pieceName = PIECE_THEMES.find((p) => p.id === pieceTheme)?.name ?? pieceTheme;
@@ -69,21 +72,35 @@ export default function ThemesScreen() {
         cardLabel: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textAlign: "center" },
         cardFamily: { ...type.caption, fontFamily: font.semibold, color: colors.ink300, textAlign: "center" },
         cardLabelOn: { color: colors.brand },
+        themeLabelRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+        modalBackdrop: {
+          flex: 1,
+          backgroundColor: "rgba(15,23,42,0.55)",
+          justifyContent: "center",
+          padding: space[5],
+        },
+        modalCard: {
+          backgroundColor: colors.surfaceCard,
+          borderRadius: radius.card,
+          padding: space[5],
+          ...shadowCard,
+        },
+        modalTitle: { ...type.lg, fontFamily: font.bold, color: colors.ink },
+        modalSub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
       }),
     [colors],
   );
 
   return (
-    <ThemedSafeArea edges={["top"]}>
-      <TopBar />
-      <ScrollView contentContainerStyle={styles.content}>
+    <AppShell>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 }]}>
         <View style={styles.header}>
           <BackButton />
           <Text style={styles.h1}>Theme Studio</Text>
           <Text style={styles.sub}>Preview and switch instantly — same sets as the website.</Text>
-          <View style={styles.live}>
-            <Text style={styles.liveText}>Live preview</Text>
-          </View>
+          <Pressable style={styles.live} onPress={() => setPreviewOpen(true)}>
+            <Text style={styles.liveText}>Full preview</Text>
+          </Pressable>
           <Text style={styles.liveDetail}>
             {boardName} board · {pieceName} pieces
           </Text>
@@ -110,9 +127,12 @@ export default function ThemesScreen() {
                   <View style={{ flex: 1, backgroundColor: t.colors.surface }} />
                   <View style={{ flex: 1, backgroundColor: t.colors.brand }} />
                 </View>
-                <Text style={[styles.cardLabel, on && styles.cardLabelOn]} numberOfLines={1}>
-                  {t.emoji} {t.name}
-                </Text>
+                <View style={styles.themeLabelRow}>
+                  <Icon name={emojiToIcon(t.emoji)} size={14} color={on ? colors.brand : colors.ink500} duotone />
+                  <Text style={[styles.cardLabel, on && styles.cardLabelOn]} numberOfLines={1}>
+                    {t.name}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -170,15 +190,33 @@ export default function ThemesScreen() {
                   <View style={{ flex: 1, backgroundColor: t.brand }} />
                   <View style={{ flex: 1, backgroundColor: t.accent }} />
                 </View>
-                <Text style={[styles.cardLabel, on && styles.cardLabelOn]} numberOfLines={1}>
-                  {t.emoji} {t.name}
-                </Text>
+                <View style={styles.themeLabelRow}>
+                  <Icon name={emojiToIcon(t.emoji)} size={14} color={on ? colors.brand : colors.ink500} duotone />
+                  <Text style={[styles.cardLabel, on && styles.cardLabelOn]} numberOfLines={1}>
+                    {t.name}
+                  </Text>
+                </View>
                 <Text style={styles.cardFamily} numberOfLines={2}>{t.chrome}</Text>
               </Pressable>
             );
           })}
         </View>
       </ScrollView>
-    </ThemedSafeArea>
+
+      <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setPreviewOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Theme preview</Text>
+            <Text style={styles.modalSub}>
+              {boardName} board · {pieceName} pieces
+            </Text>
+            <View style={{ alignItems: "center", marginVertical: space[3] }}>
+              <ChessBoard fen={PREVIEW_FEN} size={preview} interactive={false} lastMove={{ from: "c4", to: "c5" }} />
+            </View>
+            <Button label="Close" variant="outline" onPress={() => setPreviewOpen(false)} />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </AppShell>
   );
 }

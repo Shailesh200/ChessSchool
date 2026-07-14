@@ -23,13 +23,17 @@ import {
   clearBotMatch,
   finishBotMatch,
   getActiveBotMatch,
+  getActiveMatch,
   hydrateMatchStore,
   startBotMatch,
   syncBotMatch,
 } from "@/matchStore";
+import { completeArenaIfDone, hydrateArenaStore, recordArenaResult } from "@/arenaStore";
 import { botProfile } from "@/bots";
 import { MateReviewModal } from "@/MateReviewModal";
 import { BotAvatar } from "@/BotAvatar";
+import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
+import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -57,14 +61,14 @@ function buildFrames(moves: string[]): string[] {
 function PlayerBar({
   name,
   botElo,
-  avatarEmoji,
+  avatarId,
   advantage,
   active,
   clockMs,
 }: {
   name: string;
   botElo?: number;
-  avatarEmoji?: string;
+  avatarId?: string;
   advantage: number;
   active?: boolean;
   clockMs?: number;
@@ -75,7 +79,7 @@ function PlayerBar({
         <BotAvatar elo={botElo} size={32} />
       ) : (
         <View style={styles.userAvatar}>
-          <Text style={{ fontSize: 18 }}>{avatarEmoji ?? "🎓"}</Text>
+          <FlatAvatar id={resolveAvatar(avatarId)} size={32} />
         </View>
       )}
       <Text style={styles.playerName} numberOfLines={1}>{name}</Text>
@@ -88,7 +92,7 @@ function PlayerBar({
 
 export default function GameScreen() {
   const router = useRouter();
-  const { elo: eloParam, time: timeParam } = useLocalSearchParams<{ elo: string; time?: string }>();
+  const { elo: eloParam, time: timeParam, arena: arenaParam } = useLocalSearchParams<{ elo: string; time?: string; arena?: string }>();
   const elo = Number(eloParam) || 1000;
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
@@ -117,11 +121,11 @@ export default function GameScreen() {
 
   useEffect(() => {
     void (async () => {
-      await hydrateMatchStore();
-      if (canResumeBotMatch(elo, timeControlMin)) {
-        const saved = getActiveBotMatch()!;
+      await Promise.all([hydrateMatchStore(), hydrateArenaStore()]);
+      const saved = getActiveMatch();
+      if (saved && !saved.finished && (canResumeBotMatch(elo, timeControlMin) || (arenaParam === "1" && saved.arena))) {
         engineRef.current = new ChessEngine(saved.fen);
-        gameIdRef.current = `g${saved.createdAt}`;
+        gameIdRef.current = saved.matchId;
         createdAtRef.current = saved.createdAt;
         setFen(saved.fen);
         setMoves(saved.moves);
@@ -129,10 +133,10 @@ export default function GameScreen() {
         setCoachText(coachGreeting(elo, bot.name, true, personality));
         return;
       }
-      startBotMatch(elo, timeControlMin);
+      if (arenaParam !== "1") startBotMatch(elo, timeControlMin);
       setCoachText(coachGreeting(elo, bot.name, false, personality));
     })();
-  }, [elo, timeControlMin, bot.name, personality]);
+  }, [arenaParam, elo, timeControlMin, bot.name, personality]);
 
   const turn = engineRef.current.turn();
   const hasClock = timeMs > 0 && !over;
@@ -207,6 +211,12 @@ export default function GameScreen() {
     } catch {
       /* local-only guest */
     }
+    const active = getActiveMatch();
+    if (active?.arena) {
+      const score = result === "win" ? 1 : result === "draw" ? 0.5 : 0;
+      recordArenaResult(active.arena.opponentId, score, gameIdRef.current);
+      void hydrateArenaStore().then(() => completeArenaIfDone());
+    }
     setOver({ title, win, ratingDelta, newRating, gameId: gameIdRef.current, subtitle: result === "draw" ? "Draw" : undefined });
     finishBotMatch();
   }
@@ -238,6 +248,7 @@ export default function GameScreen() {
     const h = e.history();
     const applied = h[h.length - 1]!;
     sfx.play(applied.captured ? "capture" : "move");
+    if (e.inCheck()) sfx.play("check");
     const nextMoves = [...moves, `${from}:${to}`];
     setFen(e.fen());
     setMoves(nextMoves);
@@ -267,6 +278,7 @@ export default function GameScreen() {
         const bh = e.history();
         const botMove = bh[bh.length - 1]!;
         sfx.play(botMove.captured ? "capture" : "move");
+        if (e.inCheck()) sfx.play("check");
         const afterMoves = [...nextMoves, `${m.from}:${m.to}`];
         setFen(e.fen());
         setMoves(afterMoves);
@@ -347,7 +359,7 @@ export default function GameScreen() {
 
         <PlayerBar
           name="You"
-          avatarEmoji={avatar || "🎓"}
+          avatarId={avatar}
           advantage={Math.max(0, mat.w - mat.b)}
           active={!thinking && !over && !viewing && turn === "w"}
           clockMs={timeMs > 0 ? whiteMs : undefined}

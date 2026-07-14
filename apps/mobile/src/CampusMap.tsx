@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "./Button";
+import { Icon } from "./Icon";
+import { emojiToIcon } from "./iconMaps";
+import { haptics } from "./haptics";
 import { colors, font, radius, space, type } from "./theme";
 
 export type CampusClass = { id: string; title: string; emoji: string; blurb: string; done: number; total: number; graduated: boolean; unlocked: boolean; examId?: string | null };
@@ -26,12 +29,12 @@ function ClassCard({ cls, color, onOpen, onTestToUnlock, onTestOut }: { cls: Cam
     <View style={[styles.classCard, { borderColor: cls.graduated ? colors.gold : colors.hairline }, !cls.unlocked && { opacity: 0.6 }]}>
       <View style={styles.classRow}>
         <View style={[styles.tile, { backgroundColor: cls.unlocked ? color + "1a" : colors.surfaceSunken }]}>
-          <Text style={{ fontSize: 22 }}>{cls.unlocked ? cls.emoji : "🔒"}</Text>
+          <Icon name={cls.unlocked ? emojiToIcon(cls.emoji) : "lock"} size={22} color={cls.unlocked ? colors.brand : colors.ink500} duotone />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={styles.classTitle} numberOfLines={1}>{cls.title}</Text>
-            {cls.graduated && <Text style={{ fontSize: 13 }}>🎓</Text>}
+            {cls.graduated && <Icon name="cap" size={13} color={colors.gold} />}
           </View>
           <Text style={styles.classBlurb} numberOfLines={1}>{cls.blurb}</Text>
         </View>
@@ -41,21 +44,25 @@ function ClassCard({ cls, color, onOpen, onTestToUnlock, onTestOut }: { cls: Cam
       {cls.unlocked && (
         <View style={{ marginTop: space[3] }}>
           <Button
+            testID={`class-${cls.id}`}
             label={cls.graduated ? "Review class" : cls.done > 0 ? "Continue" : "Start class"}
             variant={cls.graduated ? "outline" : "primary"}
             size="sm"
-            onPress={onOpen}
+            onPress={() => {
+              haptics.tap();
+              onOpen();
+            }}
           />
         </View>
       )}
       {cls.unlocked && cls.examId && !cls.graduated && onTestOut && (
         <View style={{ marginTop: space[2] }}>
-          <Button label="📝 Test out" variant="outline" size="sm" onPress={onTestOut} />
+          <Button label="Test out" variant="outline" size="sm" onPress={onTestOut} />
         </View>
       )}
       {!cls.unlocked && onTestToUnlock && (
         <View style={{ marginTop: space[3] }}>
-          <Button label="🎓 Test to unlock" variant="outline" size="sm" onPress={onTestToUnlock} />
+          <Button label="Test to unlock" variant="outline" size="sm" onPress={onTestToUnlock} />
         </View>
       )}
     </View>
@@ -64,8 +71,18 @@ function ClassCard({ cls, color, onOpen, onTestToUnlock, onTestOut }: { cls: Cam
 
 export function CampusMap({ stages }: { stages: CampusStage[] }) {
   const router = useRouter();
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
 
-  // Default-expand the first semester that still has an unlocked, non-graduated class.
+  const allClasses = useMemo(
+    () => stages.flatMap((st) => st.semesters.flatMap((sem) => sem.classes)),
+    [stages],
+  );
+  const pastIds = useMemo(() => {
+    const frontierIdx = allClasses.findIndex((c) => !c.graduated);
+    const end = frontierIdx === -1 ? allClasses.length : frontierIdx;
+    return new Set(allClasses.slice(0, end).map((c) => c.id));
+  }, [allClasses]);
   const defaultOpen = useMemo(() => {
     for (const st of stages) {
       if (st.locked) continue;
@@ -88,6 +105,13 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
 
   return (
     <View style={{ gap: space[8] }}>
+      {pastIds.size > 0 && (
+        <Pressable style={styles.pastToggle} onPress={() => setShowCompleted((v) => !v)}>
+          <Text style={styles.pastToggleText}>
+            {showCompleted ? "Hide" : "Show"} past classes ({pastIds.size})
+          </Text>
+        </Pressable>
+      )}
       {stages.map((stage, i) => {
         const descriptor = stage.blurb.split("·")[1]?.trim();
         const nextName = stages[i + 1]?.name;
@@ -95,17 +119,30 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
           return (
             <View key={stage.id} style={{ opacity: 0.7 }}>
               <View style={styles.lockedBanner}>
-                <Text style={{ fontSize: 24 }}>🔒</Text>
+                <Icon name="lock" size={24} color={colors.ink500} />
                 <Text style={styles.lockedName}>{stage.name}</Text>
                 <Text style={styles.lockedSub}>Graduate the previous school to unlock · {stage.totalClasses} classes</Text>
               </View>
             </View>
           );
         }
+        if (stage.cleared && !expandedStages[stage.id]) {
+          return (
+            <Pressable
+              key={stage.id}
+              style={styles.clearedBanner}
+              onPress={() => setExpandedStages((e) => ({ ...e, [stage.id]: true }))}
+            >
+              <Icon name="cap" size={22} color={colors.gold} duotone />
+              <Text style={styles.clearedTitle}>{stage.name} — graduated</Text>
+              <Text style={styles.clearedSub}>Tap to review classes</Text>
+            </Pressable>
+          );
+        }
         return (
           <View key={stage.id}>
             <View style={styles.stageHeader}>
-              <Text style={{ fontSize: 20 }}>{stage.emoji}</Text>
+              <Icon name={emojiToIcon(stage.emoji)} size={20} color={colors.brand} duotone />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
                   <Text style={styles.stageName} numberOfLines={1}>{stage.name}</Text>
@@ -131,7 +168,10 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
                     </Pressable>
                     {o ? (
                       <View style={{ gap: space[3] }}>
-                        {sem.classes.slice(0, shownOf(sem.id)).map((cls) => (
+                        {sem.classes
+                          .slice(0, shownOf(sem.id))
+                          .filter((cls) => showCompleted || !pastIds.has(cls.id))
+                          .map((cls) => (
                           <ClassCard
                             key={cls.id}
                             cls={cls}
@@ -168,10 +208,13 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
             {!stage.cleared && !stage.optional && nextName && (
               <Pressable style={styles.examBtn} onPress={() => router.push({ pathname: "/exam/school/[stage]", params: { stage: stage.id } })}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.examTitle}>📝 {stage.name} Exam</Text>
+                  <View style={styles.examTitleRow}>
+                    <Icon name="journal" size={16} color={colors.ink} />
+                    <Text style={styles.examTitle}>{stage.name} Exam</Text>
+                  </View>
                   <Text style={styles.examSub}>Pass to unlock {nextName} →</Text>
                 </View>
-                <Text style={{ fontSize: 20 }}>🎓</Text>
+                <Icon name="cap" size={20} color={colors.gold} duotone />
               </Pressable>
             )}
           </View>
@@ -179,7 +222,10 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
       })}
 
       <View style={styles.endBanner}>
-        <Text style={styles.endTitle}>🚧 More schools coming soon</Text>
+        <View style={styles.endTitleRow}>
+          <Icon name="warning" size={18} color={colors.ink500} />
+          <Text style={styles.endTitle}>More schools coming soon</Text>
+        </View>
         <Text style={styles.endSub}>New programs are being added — keep climbing the ladder!</Text>
       </View>
     </View>
@@ -210,10 +256,17 @@ const styles = StyleSheet.create({
   lockedSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", marginTop: 2 },
   endBanner: { borderRadius: radius.card, borderWidth: 1, borderStyle: "dashed", borderColor: colors.hairline, backgroundColor: colors.surfaceSunken, padding: space[4], alignItems: "center" },
   endTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  endTitleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
   endSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", marginTop: space[1] },
   examBtn: { marginTop: space[4], flexDirection: "row", alignItems: "center", borderRadius: radius.card, borderWidth: 2, borderColor: "rgba(246,195,67,0.5)", backgroundColor: "#fdf6e0", paddingHorizontal: space[4], paddingVertical: space[3] },
   examTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  examTitleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
   examSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
   loadMore: { paddingVertical: space[3], alignItems: "center" },
   loadMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+  pastToggle: { alignSelf: "flex-end", backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1] },
+  pastToggleText: { ...type.xs, fontFamily: font.bold, color: colors.ink700 },
+  clearedBanner: { borderRadius: radius.card, borderWidth: 1, borderColor: "rgba(246,195,67,0.5)", backgroundColor: "#fdf6e0", padding: space[4], alignItems: "center" },
+  clearedTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginTop: space[1] },
+  clearedSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500 },
 });

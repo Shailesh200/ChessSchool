@@ -6,6 +6,7 @@ import { ChessEngine } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
 import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
+import { Icon } from "@/Icon";
 import { BackButton } from "@/BackButton";
 import { Confetti } from "@/Confetti";
 import { api } from "@/api";
@@ -64,7 +65,7 @@ export default function SchoolExamScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Text style={{ fontSize: 30 }}>📝</Text>
+          <Icon name="journal" size={30} color={colors.brand} duotone />
           <Text style={styles.doneSub}>No exam is available for this school yet.</Text>
           <View style={{ marginTop: space[4], width: 200 }}><Button label="Back to campus" variant="outline" onPress={() => router.back()} /></View>
         </View>
@@ -82,7 +83,7 @@ export default function SchoolExamScreen() {
           <Cody expression={passed ? "cheer" : "sad"} size={140} />
           <Text style={styles.doneTitle}>{passed ? `${stageName} Exam passed!` : "Not quite yet"}</Text>
           <Text style={styles.doneSub}>
-            {correctRef.current}/{steps.length} correct · {passed ? `${nextName} unlocked 🎉` : `You need ${need} to pass — keep practicing!`}
+            {correctRef.current}/{steps.length} correct · {passed ? `${nextName} unlocked` : `You need ${need} to pass — keep practicing!`}
           </Text>
           <View style={{ marginTop: space[5], width: 260, gap: space[2] }}>
             {passed ? (
@@ -152,7 +153,10 @@ export default function SchoolExamScreen() {
       </View>
 
       <View style={styles.hintBar}>
-        <Text style={styles.hintText}>🎓 Take your time and calculate before you move.</Text>
+        <View style={styles.hintRow}>
+          <Icon name="cap" size={16} color={colors.ink500} />
+          <Text style={styles.hintText}>Take your time and calculate before you move.</Text>
+        </View>
       </View>
 
       <View style={styles.bottom}>
@@ -182,6 +186,7 @@ const styles = StyleSheet.create({
   turnText: { fontSize: 13, fontFamily: font.bold, color: colors.ink500 },
   hintBar: { marginHorizontal: space[4], backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingVertical: 12, paddingHorizontal: space[4], alignItems: "center", borderWidth: 1, borderColor: colors.hairline },
   hintText: { fontSize: 13, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+  hintRow: { flexDirection: "row", alignItems: "center", gap: space[2], justifyContent: "center" },
   bottom: { paddingHorizontal: space[4], paddingTop: space[3], paddingBottom: space[2], minHeight: 52, justifyContent: "center" },
   moveCue: { textAlign: "center", fontSize: 13, fontFamily: font.semibold, color: colors.ink500 },
   doneTitle: { ...type["2xl"], fontFamily: font.bold, color: colors.ink, marginTop: space[4], textAlign: "center" },

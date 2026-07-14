@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/auth";
@@ -8,10 +8,11 @@ import { useSettings } from "@/settings";
 import { fetchProfile, type StudentProfile } from "@/profile";
 import { rankForClasses } from "@/progress-utils";
 import { Icon } from "@/Icon";
+import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { Button } from "@/Button";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
-import { ThemedSafeArea } from "@/ThemedSafeArea";
+import { RatingBadge } from "@/RatingBadge";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
 
@@ -19,7 +20,7 @@ import { PRIVACY_URL } from "@/constants";
 
 export default function AccountScreen() {
   const router = useRouter();
-  const { user, guest, exitGuest, logout, deleteAccount } = useAuth();
+  const { user, guest, loading: authLoading, logout, deleteAccount } = useAuth();
   const { colors } = useAppTheme();
   const p = useProgress();
   const { avatar } = useSettings();
@@ -35,9 +36,9 @@ export default function AccountScreen() {
   const displayAvatar = profile?.avatarUrl ?? avatar;
 
   useEffect(() => {
-    if (guest || !user) return;
-    void fetchProfile().then(setProfile);
-  }, [guest, user]);
+    if (authLoading || guest || !user) return;
+    void fetchProfile().then(setProfile).catch(() => setProfile(null));
+  }, [authLoading, guest, user]);
 
   const styles = useMemo(
     () =>
@@ -60,9 +61,29 @@ export default function AccountScreen() {
         idMetaText: { ...type.xs, fontFamily: font.bold, color: "#fff", opacity: 0.9 },
         legalLink: { ...type.sm, fontFamily: font.bold, color: colors.brand, textAlign: "center" as const },
         dangerHint: { ...type.xs, fontFamily: font.medium, color: colors.ink500, textAlign: "center" as const, lineHeight: 18 },
+        statRow: { flexDirection: "row", gap: space[2] },
+        stat: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3] },
+        statValue: { ...type.lg, fontFamily: font.bold, color: colors.ink },
+        statLabel: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
       }),
     [colors],
   );
+
+  const xp = (p?.xp as number | undefined) ?? 0;
+  const streak = (p?.streak as number | undefined) ?? 0;
+
+  async function shareStudentId() {
+    const lines = [
+      "CHESSSCHOOL · STUDENT ID",
+      user?.name ?? "",
+      user?.email ?? "",
+      studentNo,
+      `Rank · ${rank}`,
+      `House · ${house}`,
+      `Since · ${enrolled}`,
+    ].join("\n");
+    await Share.share({ message: lines, title: `ChessSchool ID ${studentNo}` });
+  }
 
   const confirmDelete = () => {
     Alert.alert(
@@ -88,29 +109,31 @@ export default function AccountScreen() {
   };
 
   useEffect(() => {
-    if (!guest) return;
-    exitGuest();
-    router.replace("/login");
-  }, [exitGuest, guest, router]);
+    if (authLoading) return;
+    if (guest || !user) router.replace("/login");
+  }, [authLoading, guest, user, router]);
 
-  if (guest) {
+  if (authLoading || guest || !user) {
     return (
-      <ThemedSafeArea edges={["top"]}>
+      <AppShell showBottomNav={false}>
         <View style={styles.center}>
-          <Text style={styles.h1}>Account required</Text>
-          <Text style={styles.muted}>Log in or enroll to view your Student ID.</Text>
+          <Text style={styles.h1}>Account</Text>
+          <Text style={styles.muted}>
+            {authLoading ? "Loading your Student ID…" : "Log in or enroll to view your Student ID."}
+          </Text>
         </View>
-      </ThemedSafeArea>
+      </AppShell>
     );
   }
 
   return (
-    <ThemedSafeArea edges={["top"]}>
-      <TopBar />
+    <AppShell>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <BackButton />
-          <Text style={styles.h1}>Account</Text>
+          <Text testID="account-title" style={styles.h1}>
+            Account
+          </Text>
         </View>
 
         <LinearGradient colors={[colors.brand, colors.brand700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.idCard}>
@@ -119,7 +142,13 @@ export default function AccountScreen() {
             <Icon name="cap" size={22} color="#fff" />
           </View>
           <View style={styles.idMain}>
-            <View style={styles.avatar}><Text style={styles.avatarText}>{displayAvatar || (user?.name?.[0]?.toUpperCase() ?? "?")}</Text></View>
+            <View style={styles.avatar}>
+              {displayAvatar ? (
+                <FlatAvatar id={displayAvatar} size={56} />
+              ) : (
+                <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() ?? "?"}</Text>
+              )}
+            </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.idName} numberOfLines={1}>{user?.name}</Text>
               <Text style={styles.idEmail} numberOfLines={1}>{user?.email}</Text>
@@ -133,8 +162,27 @@ export default function AccountScreen() {
           </View>
         </LinearGradient>
 
+        <RatingBadge />
+
+        <View style={styles.statRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{xp}</Text>
+            <Text style={styles.statLabel}>XP</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{streak}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{graduated}</Text>
+            <Text style={styles.statLabel}>Classes</Text>
+          </View>
+        </View>
+
+        <Button label="Save / Share Student ID" variant="outline" onPress={() => void shareStudentId()} />
+
         <View style={{ gap: space[3], marginTop: space[2] }}>
-          {user?.role === "admin" && <Button label="📚 Browse the lesson library" variant="outline" onPress={() => router.push("/library")} />}
+          {user?.role === "admin" && <Button label="Browse the lesson library" variant="outline" onPress={() => router.push("/library")} />}
           <Button label="Log out" variant="outline" onPress={logout} />
           <Text style={styles.legalLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
             Privacy policy
@@ -143,6 +191,6 @@ export default function AccountScreen() {
           <Button label={deleting ? "Deleting…" : "Delete account"} variant="outline" onPress={confirmDelete} />
         </View>
       </ScrollView>
-    </ThemedSafeArea>
+    </AppShell>
   );
 }

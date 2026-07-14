@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { normalizePieceThemeId, type PieceThemeId } from "./pieceThemes";
+import { normalizePieceThemeId, normalizeBoardThemeId } from "@chess-school/progression";
+import { type PieceThemeId } from "./pieceThemes";
 import { normalizeCoachVoice } from "./coachVoices";
 
 export type BoardTheme =
@@ -40,6 +41,8 @@ export type Settings = {
   appTheme: string;
   schoolTheme: string;
   enrollPromptDismissedAt: number | null;
+  diagnostics: boolean;
+  textScale: number;
 };
 
 const KEY = "chessschool.settings";
@@ -47,7 +50,7 @@ const isWeb = Platform.OS === "web";
 const DEFAULTS: Settings = {
   haptics: true,
   sound: true,
-  volume: 0.8,
+  volume: 1,
   reducedMotion: false,
   highContrast: false,
   colorblind: false,
@@ -56,7 +59,7 @@ const DEFAULTS: Settings = {
   planTier: "standard",
   customGoalXp: 60,
   schedule: "daily",
-  avatar: "🎓",
+  avatar: "ava-knight",
   coachPersonality: "friendly",
   coachSpeech: true,
   coachVoice: "auto",
@@ -66,16 +69,20 @@ const DEFAULTS: Settings = {
   appTheme: "default",
   schoolTheme: "university",
   enrollPromptDismissedAt: null,
+  diagnostics: false,
+  textScale: 1,
 };
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
 
 function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
   const pieceTheme = (next as { pieceTheme?: string }).pieceTheme;
+  const boardTheme = (next as { boardTheme?: string }).boardTheme;
   const schoolTheme = (next as { schoolTheme?: string }).schoolTheme;
   return {
     ...next,
-    pieceTheme: pieceTheme !== undefined ? normalizePieceThemeId(pieceTheme) : next.pieceTheme,
+    boardTheme: boardTheme !== undefined ? (normalizeBoardThemeId(boardTheme) as BoardTheme) : next.boardTheme,
+    pieceTheme: pieceTheme !== undefined ? (normalizePieceThemeId(pieceTheme) as PieceThemeId) : next.pieceTheme,
     coachVoice: next.coachVoice !== undefined ? normalizeCoachVoice(next.coachVoice) : next.coachVoice,
     schoolTheme: schoolTheme && ["elementary", "highschool", "university", "graduation"].includes(schoolTheme)
       ? schoolTheme

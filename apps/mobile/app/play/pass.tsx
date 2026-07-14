@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
+import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { mutateProgress } from "@/progressStore";
 import { prependRecentGame, isoDay, type EndReason } from "@/progression";
 import { markHomeworkActivity } from "@/homeworkRoutine";
@@ -19,10 +20,22 @@ import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
-function PlayerBar({ name, emoji, active, captured, clockMs }: { name: string; emoji: string; active: boolean; captured: number; clockMs?: number }) {
+function PlayerBar({
+  name,
+  avatarId,
+  active,
+  captured,
+  clockMs,
+}: {
+  name: string;
+  avatarId: string;
+  active: boolean;
+  captured: number;
+  clockMs?: number;
+}) {
   return (
     <View style={[styles.bar, active && styles.barActive]}>
-      <Text style={styles.barEmoji}>{emoji}</Text>
+      <FlatAvatar id={avatarId} size={32} />
       <Text style={styles.barName} numberOfLines={1}>{name}</Text>
       {active && <View style={styles.dot} />}
       {captured > 0 && <Text style={styles.adv}>+{captured}</Text>}
@@ -74,7 +87,7 @@ export default function PassPlayScreen() {
       if (flaggedRef.current || over) return;
       flaggedRef.current = true;
       const whiteWins = loser === "b";
-      finish(whiteWins ? "win" : "loss", whiteWins ? "Black ran out of time — You win! 🏆" : "You ran out of time ⏱️", whiteWins, "timeout");
+      finish(whiteWins ? "win" : "loss", whiteWins ? "Black ran out of time — You win!" : "You ran out of time", whiteWins, "timeout");
     },
   });
 
@@ -139,7 +152,7 @@ export default function PassPlayScreen() {
       const st = e.status();
       if (st === "checkmate") {
         const whiteWins = e.turn() === "b";
-        finish(whiteWins ? "win" : "loss", `Checkmate — ${whiteWins ? "You" : "Guest"} win${whiteWins ? "" : "s"}! 🏆`, whiteWins, "checkmate");
+        finish(whiteWins ? "win" : "loss", `Checkmate — ${whiteWins ? "You" : "Guest"} win${whiteWins ? "" : "s"}!`, whiteWins, "checkmate");
         haptics.success();
         sfx.play("win");
       } else {
@@ -168,11 +181,11 @@ export default function PassPlayScreen() {
       )}
 
       <View style={{ flex: 1, justifyContent: "center" }}>
-        <PlayerBar name="Guest Player" emoji="🙂" active={turn === "b" && !over} captured={Math.max(0, mat.b - mat.w)} clockMs={timeMs > 0 ? blackMs : undefined} />
+        <PlayerBar name="Guest Player" avatarId="ava-fox" active={turn === "b" && !over} captured={Math.max(0, mat.b - mat.w)} clockMs={timeMs > 0 ? blackMs : undefined} />
         <View style={{ alignItems: "center", marginVertical: space[2] }}>
           <ChessBoard fen={fen} size={boardSize} orientation="white" onMove={handleMove} interactive={!over} lastMove={lastMove} checkSquare={checkSquare} />
         </View>
-        <PlayerBar name="You" emoji={avatar || "🎓"} active={turn === "w" && !over} captured={Math.max(0, mat.w - mat.b)} clockMs={timeMs > 0 ? whiteMs : undefined} />
+        <PlayerBar name="You" avatarId={avatar || "ava-knight"} active={turn === "w" && !over} captured={Math.max(0, mat.w - mat.b)} clockMs={timeMs > 0 ? whiteMs : undefined} />
       </View>
 
       <GameOverOverlay
@@ -221,7 +234,6 @@ const styles = StyleSheet.create({
   status: { ...type.base, fontFamily: font.bold, color: colors.ink },
   bar: { flexDirection: "row", alignItems: "center", gap: space[2], marginHorizontal: space[4], paddingHorizontal: space[3], paddingVertical: space[2], borderRadius: radius.md, borderWidth: 1, borderColor: "transparent" },
   barActive: { backgroundColor: colors.surfaceCard, borderColor: colors.brand100, ...shadowCard },
-  barEmoji: { fontSize: 22 },
   barName: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
   adv: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },

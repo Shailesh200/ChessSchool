@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -121,6 +121,7 @@ function createLessonStyles() {
       ...shadowCard,
     },
     hintText: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+    hintRow: { flexDirection: "row", alignItems: "center", gap: space[2], justifyContent: "center" },
     hintBtn: { borderRadius: radius.pill, backgroundColor: colors.brand50, paddingHorizontal: space[4], paddingVertical: space[2] },
     hintBtnText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
     turnRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2] },
@@ -199,6 +200,10 @@ export default function LessonScreen() {
   const mistakesRef = useRef<Mistake[]>([]);
   const progressSavedRef = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [lessonSound, setLessonSound] = useState(true);
+  const playSfx = useCallback((name: Parameters<typeof sfx.play>[0]) => {
+    if (lessonSound) sfx.play(name);
+  }, [lessonSound]);
 
   async function loadLesson() {
     setLoadError(false);
@@ -261,7 +266,7 @@ export default function LessonScreen() {
         setLastMove({ from: from!, to: to! });
         setDisplayFen(e.fen());
         haptics.tap();
-        sfx.play("move");
+        playSfx("move");
         if (i === step.moves!.length - 1) setObserveReady(true);
       }, 800 * (i + 1));
       timers.current.push(t);
@@ -328,7 +333,7 @@ export default function LessonScreen() {
     if (lesson!.exam && ratio < EXAM_PASS_RATIO) {
       setPhase("exam-failed");
       haptics.error();
-      sfx.play("error");
+      playSfx("error");
       return;
     }
 
@@ -370,7 +375,7 @@ export default function LessonScreen() {
     setResolvingNext(true);
     setSaveError(null);
     haptics.success();
-    sfx.play("win");
+    playSfx("win");
     let completedClassTitle: string | null = null;
     try {
       if (!progressSavedRef.current) {
@@ -421,10 +426,10 @@ export default function LessonScreen() {
     // Show & animate the played move (correct OR wrong) with move/capture sound.
     setDisplayFen(e.fen());
     setLastMove({ from, to });
-    sfx.play(mv.captured ? "capture" : "move");
+    playSfx(mv.captured ? "capture" : "move");
     if (ok) {
       haptics.success();
-      timers.current.push(setTimeout(() => sfx.play("success"), 160));
+      timers.current.push(setTimeout(() => playSfx("success"), 160));
       correctRef.current += 1;
       setPhase("correct");
       const next = lesson!.steps[index + 1];
@@ -434,7 +439,7 @@ export default function LessonScreen() {
           setTimeout(() => {
             setLastMove(reply);
             setDisplayFen(next.fen);
-            sfx.play("move");
+            playSfx("move");
           }, 850),
         );
         timers.current.push(setTimeout(advance, 1850));
@@ -443,7 +448,7 @@ export default function LessonScreen() {
       }
     } else {
       haptics.error();
-      timers.current.push(setTimeout(() => sfx.play("error"), 160));
+      timers.current.push(setTimeout(() => playSfx("error"), 160));
       wrongRef.current += 1;
       if (step.fen) mistakesRef.current.push({ fen: step.fen, played: `${from}:${to}`, best: step.solution?.[0] ?? "", tag: step.tag ?? "tactics", at: Date.now() });
       setPhase("wrong");
@@ -498,7 +503,9 @@ export default function LessonScreen() {
         <Confetti count={28} />
         <View style={styles.center}>
           <Cody expression="cheer" size={140} />
-          <Text style={styles.doneTitle}>{graduatedTitle ? "Class graduated! 🎓" : lesson.exam ? "Exam complete!" : hw ? "Homework done! 🎉" : "Lesson complete!"}</Text>
+          <Text style={styles.doneTitle}>
+            {graduatedTitle ? "Class graduated!" : lesson.exam ? "Exam complete!" : hw ? "Homework done!" : "Lesson complete!"}
+          </Text>
           {graduatedTitle ? <Text style={styles.doneSub}>{graduatedTitle} is now complete.</Text> : hw && <Text style={styles.doneSub}>One step done — keep going to finish today's set.</Text>}
           <View style={styles.pills}>
             <StatPill label="XP earned" value={`+${lesson.xp}`} tone={colors.brand} styles={styles} />
@@ -550,7 +557,7 @@ export default function LessonScreen() {
             )}
             <View style={{ flexDirection: "row", gap: space[2], alignItems: "stretch" }}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Button label="📝 Reflect" variant="outline" size="sm" onPress={() => setReflectOpen(true)} />
+                <Button label="Reflect" variant="outline" size="sm" onPress={() => setReflectOpen(true)} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Button label="Back to campus" variant="outline" size="sm" onPress={() => router.back()} />
@@ -578,8 +585,8 @@ export default function LessonScreen() {
       ? step.failText ?? "Not quite — try again."
       : phase === "correct"
         ? step.kind === "quiz"
-          ? step.successText ?? "Correct! 🎉"
-          : step.successText ?? "Correct! 🎉"
+          ? step.successText ?? "Correct!"
+          : step.successText ?? "Correct!"
         : step.kind === "quiz"
           ? "Choose the best answer below."
           : step.coach,
@@ -623,6 +630,9 @@ export default function LessonScreen() {
         <Text style={styles.counter}>
           {index + 1}/{total}
         </Text>
+        <Pressable style={styles.circle} onPress={() => setLessonSound((v) => !v)} hitSlop={8} accessibilityLabel={lessonSound ? "Mute lesson sounds" : "Unmute lesson sounds"}>
+          <Icon name={lessonSound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
+        </Pressable>
         <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
           <Icon name="flip" size={18} color={colors.ink} />
         </Pressable>
@@ -633,7 +643,7 @@ export default function LessonScreen() {
         <Cody expression={mood} size={72} />
         <View style={styles.bubble}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            <Text style={styles.bubbleText}>{feedback}</Text>
+            <Text testID="lesson-coach" style={styles.bubbleText}>{feedback}</Text>
           </ScrollView>
         </View>
       </View>
@@ -683,15 +693,21 @@ export default function LessonScreen() {
       {/* Hint bar — board steps only */}
       {step.kind !== "quiz" && (
       <View style={styles.hintBar}>
-        <Text style={styles.hintText}>🎓 {hint}</Text>
+        <View style={styles.hintRow}>
+          <Icon name="cap" size={16} color={colors.ink500} />
+          <Text style={styles.hintText}>{hint}</Text>
+        </View>
         {hintsEnabled && solvable && (
           <Pressable
             style={styles.hintBtn}
             onPress={() => setHintLevel((h) => Math.min(2, h + 1))}
           >
-            <Text style={styles.hintBtnText}>
-              {hintLevel === 0 ? "💡 Show a hint" : hintLevel === 1 ? "💡 Show the move" : "💡 Follow the arrow"}
-            </Text>
+            <View style={styles.hintRow}>
+              <Icon name="bulb" size={14} color={colors.brand} />
+              <Text style={styles.hintBtnText}>
+                {hintLevel === 0 ? "Show a hint" : hintLevel === 1 ? "Show the move" : "Follow the arrow"}
+              </Text>
+            </View>
           </Pressable>
         )}
       </View>

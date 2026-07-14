@@ -57,7 +57,7 @@ export default function OnlineLobbyScreen() {
         <Text style={styles.lead}>Play a friend on another device — create a game and share the code, or enter theirs.</Text>
 
         <View style={{ width: "100%", marginTop: space[5], gap: space[3] }}>
-          <Button label={busy === "create" ? "Creating…" : "🎮 Create a game"} variant="success" onPress={create} />
+          <Button label={busy === "create" ? "Creating…" : "Create a game"} variant="success" onPress={create} />
 
           <View style={styles.or}><View style={styles.line} /><Text style={styles.orText}>or</Text><View style={styles.line} /></View>
 

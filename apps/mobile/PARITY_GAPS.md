@@ -1,16 +1,89 @@
 # Web → Mobile Parity Gaps
 
-> **Status (Jul 2026):** Most P0/P1 gaps are **landed** — guest-gating, class exams, themes, report card, ReflectSheet, game saves, Google Sign-In UI, profile/onboarding API sync, and real Student ID on account. Remaining backlog is mostly P2 polish (overlay diff, modals, sound parity) and admin-only Playground.
+> **Status (Jul 2026):** **P1 + P2 parity complete** for student-facing flows. **Visual/semantic matrix: 18/18** (`parity/reports/`, `pnpm parity:semantic` + iOS compare). Remaining ops: **Google OAuth client IDs** (env templates in `docs/ENV.md`).
+
+**Recently closed (P1 completion batch):**
+- `AppShell` + `BottomNav` on stack routes; match screens use immersive focus (no chrome)
+- Settings backup export/import, diagnostics HUD, text scale, hints wired to board
+- Replay autoplay, scrubber, SAN move list
+- Review recommended-class card + resigned badge
+- Account `RatingBadge`, stat tiles, Share Student ID
+- Campus show/hide past classes, cleared-school collapse, graduated resume card
+- Playground route (admin), welcome interstitial, online share + join expiry
+- Practice mistakes played-vs-best arrows
 
 **Source of truth:** `apps/web` (the production Next.js PWA). **Target:** `apps/mobile` (Expo React Native).
 **Method:** direct code audit of current source (not runtime).
 **Goal:** a single backlog of every place the app diverges from web — features, logic, UI/CSS/alignment, animation, sound, colors/themes, guest-gating, and button/modal handlers.
 
-> **Note:** Sections below retain historical audit detail. For current shipped state, see `apps/mobile/PLAN.md` §D and verify in code before picking up an item.
+> **Note:** Sections below retain historical audit detail. For current shipped state, see `apps/mobile/PLAN.md` §D and **§0.4** below.
 
 > This document is organized two ways on purpose (per request):
 > **Part A — by area** (cross-cutting systems) and **Part B — screen by screen**.
 > Every item is tagged with a **priority** and a **web citation** so it can be picked up directly.
+
+## 0.4 Accurate remaining backlog (Jul 2026)
+
+Legend: ✅ done · 🟡 partial · ❌ open
+
+### P0 — architecture / data / ops
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Cross-surface full game history (Dexie PGN ↔ mobile `recentGames`) | ✅ | Shared `SyncGame` + API; mobile caches `recentGames` locally; web Dexie syncs on pull |
+| Native assisted / arena / shadow play modes | ✅ | `play/shadow.tsx`, `shadow-game.tsx`, `arena.tsx`, `assisted.tsx` + `AssistedPlayView` |
+| Google OAuth client IDs (Android/iOS) | 🟡 | Env templates: `docs/ENV.md`, `.env.example`; fill values in Google Cloud + Vercel + EAS |
+| Online seat-token security (web) | ✅ | Shared API uses `createGameSessionId` + `verifySeatToken` |
+
+### P1 — user-visible feature gaps
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Guest gating (TopBar, profile, settings, play online) | ✅ | Enroll CTAs + auth-only hub links |
+| App themes + dark mode (`ThemeProvider`) | ✅ | 6 app themes + school themes |
+| `graduateClass` on lesson/exam pass | ✅ | Lessons, exams, placement |
+| Class journey unlock chain (graduation gates next class) | 🟡 | In-class journey works; cross-class chain lighter than web |
+| Bot match resume (persist in-progress) | ✅ | `matchStore` + resume card on Play tab |
+| Coach TTS + live commentary | ✅ | Cloud `/api/tts` + `expo-speech` offline fallback |
+| Settings bi-directional sync (`data.settings`) | ✅ | Pull on `fetchProgress`; push on `settings.set` |
+| `textScale` applied globally | 🟡 | `useType()` in shell (TopBar, BottomNav, settings); tab screens adopt incrementally |
+| Accessibility toggles (`highContrast`/`colorblind`/`hints`) | 🟡 | Stored; hints wired to board; contrast/colorblind partial |
+| Piece theme id `cute` ↔ `blossom` alias | ✅ | `normalizePieceThemeId` in progression package |
+
+### P2 — polish / feel
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| `AppShell` + bottom nav on stack routes | ✅ | settings, dashboard, class, library, homework, journal, themes, classes, stage |
+| Theme Studio full-screen preview modal | ✅ | `themes.tsx` Modal |
+| `AnimatedNumber` (TopBar, profile stats) | ✅ | |
+| Cody bob animation | ✅ | |
+| Journey active-node pulse | ✅ | `class/[id].tsx` |
+| Lesson sound mute toggle | ✅ | |
+| Review pull-to-refresh | ✅ | |
+| Replay scrub SFX | ✅ | Manual step/slider plays move sound |
+| Bot game check SFX | ✅ | `play/game.tsx` |
+| `Sheet` primitive | ✅ | `src/Sheet.tsx` |
+| Achievement descriptions on profile | ✅ | |
+| Distinct SFX recipes (not aliases) | ✅ | Per-voice pitch/volume in `sfx.ts` |
+| Route transitions / NavProgress | ✅ | `NavProgress` in `AppShell` |
+| Campus card spring + haptics breadth | 🟡 | Haptics on class CTA; spring animation deferred |
+| Theme-derived board overlay colors | ✅ | `ChessBoard` uses theme `move` color |
+| Red/green move flash on wrong/right | ✅ | `successSquare` / `checkSquare` in lessons |
+| SkillRadar legend / bar polish | ✅ | Progress bars under radar on dashboard |
+| List virtualization (long catalogs) | ✅ | `SectionList` on library + all-classes |
+
+### P3 — minor
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Legacy board theme alias ids (`violet`/`slate` vs `green`/`wood`) | ✅ | `normalizeBoardThemeId` in progression package |
+| Volume default 0.8 vs 1 | ✅ | Mobile default now `1` |
+| Logo component (web SVG mark) | ✅ | `src/Logo.tsx` |
+| Button disabled-state micro-interactions | ✅ | `Button` `disabled` prop |
+| Copy / micro-label parity pass | ❌ | |
+
+**Historical sections A–B below:** treat unchecked bullets as **stale** unless they appear in §0.4 as ❌/🟡.
 
 ---
 
@@ -140,9 +213,9 @@ Web has **18 procedural voices** (`apps/web/core/audio/audioEngine.ts:15-33`): s
 | NavProgress | `apps/web/components/ui/NavProgress.tsx` | **absent** | P2 |
 | Select (custom dropdown) | `apps/web/components/ui/Select.tsx` | Pressable grids | P2 |
 | Card / ProgressBar / NavButton as shared primitives | yes | inline styles | P3 |
-| Logo component | `apps/web/components/ui/Logo.tsx` | text emoji | P3 |
+| Logo component | `apps/web/components/ui/Logo.tsx` | `Logo` + Icon/FlatAvatar | done |
 
-Icon set (28) and Button are at parity; mobile Button lacks a loading spinner and `danger` variant.
+Icon set (full web parity + `iconMaps` / FlatAvatar) and Button are at parity; mobile Button lacks a loading spinner and `danger` variant.
 
 ## A8. Settings, sync & backup
 
@@ -179,7 +252,7 @@ Icon set (28) and Button are at parity; mobile Button lacks a loading spinner an
 ## B1. Login / Register  (`apps/web/app/{login,register}` ↔ `apps/mobile/app/login.tsx`)
 - **P1 `[Feature]`** No post-login **welcome interstitial** + `pullProgress()` on mobile; web routes to `/welcome` and merges guest→account progress with a toast (`apps/web/lib/auth-actions.ts:28`, `apps/web/app/welcome/page.tsx:17-27`, `apps/web/core/sync/pullProgress.ts:42-52`). Mobile goes straight to tabs and `progressStore.clear()` with no merge (`apps/mobile/src/auth.tsx:64-74`).
 - **P1 `[Logic]`** Logout doesn't fully reset local state on mobile (settings/progression/targetElo persist → next guest inherits them). Web resets progression+session+targetElo (`apps/web/components/account/LogoutButton.tsx:18-29`).
-- **P2 `[UI/CSS]`** Mobile uses text "♟️ ChessSchool" instead of the `Logo` component; register copy omits the "earn your Student ID" line.
+- **P2 `[UI/CSS]`** Register copy omits the "earn your Student ID" line (Logo mark now uses `Logo` / Icon assets).
 - **P3 `[UI/CSS]`** Continue button on auth screens isn't disabled when no field; guest affordance is a prominent button vs web's subtle link.
 
 ## B2. Onboarding  (`apps/web/components/onboarding/OnboardingWizard.tsx` ↔ `apps/mobile/app/onboarding.tsx`)

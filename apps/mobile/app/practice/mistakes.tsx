@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-na
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChessEngine } from "@chess-school/core";
-import { ChessBoard } from "@/ChessBoard";
+import { ChessBoard, type Arrow } from "@/ChessBoard";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
 import { Cody } from "@/Cody";
@@ -32,6 +32,7 @@ export default function MistakePracticeScreen() {
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+  const [showArrows, setShowArrows] = useState(false);
   const [displayFen, setDisplayFen] = useState<string | null>(null);
 
   const item = mistakes[index];
@@ -40,6 +41,7 @@ export default function MistakePracticeScreen() {
     setFeedback(null);
     setLastMove(null);
     setDisplayFen(null);
+    setShowArrows(false);
     setIndex((n) => n + 1);
   }
 
@@ -75,7 +77,7 @@ export default function MistakePracticeScreen() {
         <View style={styles.header}><BackButton /><Text style={styles.h1}>Mistake practice</Text></View>
         <View style={styles.center}>
           <Cody expression="cheer" size={128} />
-          <Text style={styles.doneTitle}>No mistakes to practise yet 🎉</Text>
+          <Text style={styles.doneTitle}>No mistakes to practise yet</Text>
           <Text style={styles.muted}>Play lessons and matches. I’ll turn your missed positions into drills here.</Text>
           <View style={{ width: 220, marginTop: space[4] }}>
             <Button label="Back to academy" onPress={() => router.back()} />
@@ -101,6 +103,13 @@ export default function MistakePracticeScreen() {
   }
 
   const turn = item.fen.split(" ")[1] === "b" ? "Black" : "White";
+  const reviewArrows: Arrow[] = showArrows
+    ? [
+        { startSquare: item.played.split(":")[0]!, endSquare: item.played.split(":")[1]!, color: colors.danger },
+        { startSquare: item.best.split(":")[0]!, endSquare: item.best.split(":")[1]!, color: colors.success },
+      ]
+    : [];
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
@@ -121,15 +130,23 @@ export default function MistakePracticeScreen() {
       </View>
 
       <View style={styles.boardWrap}>
-        <ChessBoard fen={displayFen ?? item.fen} size={boardSize} orientation={turn === "Black" ? "black" : "white"} onMove={onMove} interactive={!feedback} lastMove={lastMove} />
+        <ChessBoard
+          fen={displayFen ?? item.fen}
+          size={boardSize}
+          orientation={turn === "Black" ? "black" : "white"}
+          onMove={onMove}
+          interactive={!feedback}
+          lastMove={lastMove}
+          arrows={reviewArrows}
+        />
       </View>
 
       <View style={styles.footer}>
         {feedback === "correct" ? (
           <Button label={index + 1 >= mistakes.length ? "Finish practice" : "Next position →"} variant="success" onPress={next} />
         ) : (
-          <Pressable style={styles.hint} onPress={() => setLastMove({ from: item.best.split(":")[0]!, to: item.best.split(":")[1]! })}>
-            <Text style={styles.hintText}>Hint: show best-move arrow</Text>
+          <Pressable style={styles.hint} onPress={() => setShowArrows(true)}>
+            <Text style={styles.hintText}>Show played vs best arrows</Text>
           </Pressable>
         )}
       </View>

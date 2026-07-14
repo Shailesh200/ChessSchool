@@ -15,10 +15,6 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const DRAG_ACTIVATION_DISTANCE = 10;
 const MOVE_ANIMATION_MS = 480;
 const MOVE_EASING = Easing.inOut(Easing.cubic);
-const PROMO_GLYPHS: Record<"w" | "b", Record<PromotionPiece, string>> = {
-  w: { q: "♕", r: "♖", b: "♗", n: "♘" },
-  b: { q: "♛", r: "♜", b: "♝", n: "♞" },
-};
 function hexToRgba(hex: string, alpha: number) {
   const value = hex.replace("#", "");
   const int = Number.parseInt(value.length === 3 ? value.split("").map((c) => c + c).join("") : value, 16);
@@ -128,7 +124,7 @@ export function ChessBoard({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [promo, setPromo] = useState<{ from: string; to: string; color: "w" | "b" } | null>(null);
-  const { boardTheme, pieceTheme, reducedMotion } = useSettings();
+  const { boardTheme, pieceTheme, reducedMotion, hints: showHints } = useSettings();
   const { light: LIGHT, dark: DARK, move: MOVE } = BOARD_THEMES[boardTheme];
   const lastTone = lastMoveTone(boardTheme, MOVE);
   const selectedTint = hexToRgba(MOVE, 0.38);
@@ -159,7 +155,7 @@ export function ChessBoard({
   };
 
   const { dots, captures } = useMemo(() => {
-    if (!selected) return { dots: new Set<string>(), captures: new Set<string>() };
+    if (!selected || !showHints) return { dots: new Set<string>(), captures: new Set<string>() };
     const d = new Set<string>();
     const c = new Set<string>();
     try {
@@ -171,7 +167,7 @@ export function ChessBoard({
       /* none */
     }
     return { dots: d, captures: c };
-  }, [selected, fen]);
+  }, [selected, fen, showHints]);
 
   // Tap-to-move fallback (used when the gesture didn't drag).
   function tap(sq: string, piece: Cell) {
@@ -406,7 +402,7 @@ export function ChessBoard({
             <View style={styles.promoRow}>
               {(["q", "r", "b", "n"] as const).map((piece) => (
                 <Pressable key={piece} style={styles.promoBtn} onPress={() => choosePromotion(piece)}>
-                  <Text style={styles.promoGlyph}>{PROMO_GLYPHS[promo.color][piece]}</Text>
+                  <Piece type={piece} color={promo.color} size={40} gid={`promo-${piece}`} themeId={pieceTheme} />
                 </Pressable>
               ))}
             </View>
@@ -437,5 +433,4 @@ const styles = StyleSheet.create({
   promoTitle: { ...type.xs, fontFamily: font.bold, color: colors.ink700, textAlign: "center", marginBottom: space[2] },
   promoRow: { flexDirection: "row", gap: space[2] },
   promoBtn: { width: 56, height: 56, borderRadius: radius.card, borderWidth: 2, borderColor: colors.hairline, backgroundColor: colors.surface, justifyContent: "center", alignItems: "center", borderBottomWidth: 4 },
-  promoGlyph: { fontSize: 32, color: colors.ink },
 });

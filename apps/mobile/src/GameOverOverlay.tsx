@@ -46,8 +46,8 @@ export function GameOverOverlay({
             </View>
           )}
           <View style={styles.actions}>
-            {onReflect && <Button label="📝 Reflect" variant="outline" size="sm" onPress={onReflect} />}
-            {onReview && <Button label="🔍 Review" variant="outline" size="sm" onPress={onReview} />}
+            {onReflect && <Button label="Reflect" variant="outline" size="sm" onPress={onReflect} />}
+            {onReview && <Button label="Review" variant="outline" size="sm" onPress={onReview} />}
             <Button label="New game" variant="success" onPress={onNewGame} />
             <Pressable onPress={onExit} style={styles.exit}>
               <Text style={styles.exitText}>{exitLabel}</Text>

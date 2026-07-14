@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "@/api";
 import { Icon } from "@/Icon";
-import { TopBar } from "@/TopBar";
+import { emojiToIcon } from "@/iconMaps";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
-import { colors, font, radius, shadowCard, space } from "@/theme";
+import { useAppTheme } from "@/ThemeProvider";
+import { font, radius, shadowCard, space } from "@/theme";
 
 type Cls = { id: string; title: string; emoji: string; blurb: string; done: number; total: number };
 type Stage = { id: string; name: string; emoji: string; classes: Cls[] };
@@ -14,8 +15,37 @@ type Stage = { id: string; name: string; emoji: string; classes: Cls[] };
 export default function StageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useAppTheme();
   const [stage, setStage] = useState<Stage | null>(null);
   const [missing, setMissing] = useState(false);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        center: { flex: 1, justifyContent: "center", alignItems: "center" },
+        muted: { fontFamily: font.medium, color: colors.ink500 },
+        header: { paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[2], gap: space[2] },
+        titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
+        h1: { fontSize: 20, fontFamily: font.bold, color: colors.ink },
+        content: { paddingHorizontal: space[5], paddingBottom: 100 },
+        card: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          backgroundColor: colors.surfaceCard,
+          borderRadius: radius.card,
+          padding: 14,
+          marginBottom: 10,
+          ...shadowCard,
+        },
+        emoji: { width: 32, alignItems: "center" },
+        title: { fontSize: 15, fontFamily: font.bold, color: colors.ink },
+        sub: { fontSize: 12, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
+        track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
+        fill: { height: 8, borderRadius: radius.pill },
+      }),
+    [colors],
+  );
 
   useEffect(() => {
     api<{ stages: Stage[] }>("/api/campus")
@@ -28,11 +58,13 @@ export default function StageScreen() {
   }, [id]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
+    <AppShell>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.h1}>{stage ? `${stage.emoji} ${stage.name}` : "School"}</Text>
+        <View style={styles.titleRow}>
+          {stage && <Icon name={emojiToIcon(stage.emoji)} size={20} color={colors.brand} duotone />}
+          <Text style={styles.h1}>{stage ? stage.name : "School"}</Text>
+        </View>
       </View>
 
       {!stage ? (
@@ -49,7 +81,9 @@ export default function StageScreen() {
                 style={styles.card}
                 onPress={() => router.push({ pathname: "/class/[id]", params: { id: c.id } })}
               >
-                <Text style={styles.emoji}>{c.emoji}</Text>
+                <View style={styles.emoji}>
+                  <Icon name={emojiToIcon(c.emoji)} size={26} color={colors.brand} duotone />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{c.title}</Text>
                   <Text style={styles.sub}>
@@ -66,21 +100,6 @@ export default function StageScreen() {
           })}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </AppShell>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  muted: { fontFamily: font.medium, color: colors.ink500 },
-  header: { paddingHorizontal: 20, paddingTop: space[2], paddingBottom: space[2], gap: space[2] },
-  h1: { fontSize: 20, fontFamily: font.bold, color: colors.ink },
-  content: { paddingHorizontal: 20, paddingBottom: 30 },
-  card: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: 14, marginBottom: 10, ...shadowCard },
-  emoji: { fontSize: 26 },
-  title: { fontSize: 15, fontFamily: font.bold, color: colors.ink },
-  sub: { fontSize: 12, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
-  track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
-  fill: { height: 8, borderRadius: radius.pill },
-});

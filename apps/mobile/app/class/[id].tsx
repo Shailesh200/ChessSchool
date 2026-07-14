@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Circle, G } from "react-native-svg";
 import { api } from "@/api";
 import { Button } from "@/Button";
 import { FetchErrorView } from "@/FetchErrorView";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
+import { Icon } from "@/Icon";
+import { emojiToIcon } from "@/iconMaps";
 import { haptics } from "@/haptics";
 import { isLessonUnlocked } from "@/lessonUnlock";
 import { fetchProgress, lessonRecordsFromCache, progressStore } from "@/progressStore";
+import { useSettings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type LessonLite = {
@@ -29,6 +32,21 @@ type NodeStatus = "completed" | "active" | "locked" | "exam";
 type JNode = { id: string; title: string; subtitle: string; emoji: string; mastery: number; status: NodeStatus };
 
 function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onPress: () => void }) {
+  const { reducedMotion } = useSettings();
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (node.status !== "active" || reducedMotion) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [node.status, pulse, reducedMotion]);
+
   const offset = index % 2 === 0 ? 0 : index % 4 === 1 ? 48 : -48;
   const r = 30;
   const circ = 2 * Math.PI * r;
@@ -43,7 +61,17 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
       {index > 0 && <View style={styles.connector} />}
       <Pressable onPress={onPress} style={{ alignItems: "center", gap: 4, transform: [{ translateX: offset }], opacity: locked ? 0.6 : 1 }}>
         <View style={{ width: 76, height: 76, justifyContent: "center", alignItems: "center" }}>
-          {node.status === "active" && <View style={styles.halo} />}
+          {node.status === "active" && (
+            <Animated.View
+              style={[
+                styles.halo,
+                {
+                  opacity: reducedMotion ? 0.35 : pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.55] }),
+                  transform: [{ scale: reducedMotion ? 1 : pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }],
+                },
+              ]}
+            />
+          )}
           <Svg width={76} height={76} style={{ position: "absolute" }}>
             <G rotation={-90} origin="38, 38">
               <Circle cx={38} cy={38} r={r} fill="none" stroke={colors.surfaceSunken} strokeWidth={6} />
@@ -51,7 +79,13 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
             </G>
           </Svg>
           <View style={[styles.nodeCircle, { backgroundColor: bg }]}>
-            <Text style={{ fontSize: 20 }}>{locked ? "🔒" : node.status === "completed" ? "✓" : node.emoji}</Text>
+            {locked ? (
+              <Icon name="lock" size={20} color={colors.ink500} />
+            ) : node.status === "completed" ? (
+              <Icon name="check" size={20} color={colors.gold} />
+            ) : (
+              <Icon name={emojiToIcon(node.emoji)} size={20} color={colors.brand} duotone />
+            )}
           </View>
         </View>
         <Text style={styles.nodeTitle} numberOfLines={1}>{node.title}</Text>
@@ -160,9 +194,8 @@ export default function ClassJourneyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
-      <ScrollView contentContainerStyle={styles.content}>
+    <AppShell>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 }]}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={styles.back}>← Campus</Text>
         </Pressable>
@@ -176,16 +209,27 @@ export default function ClassJourneyScreen() {
 
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <View style={styles.emojiTile}><Text style={{ fontSize: 28 }}>{cls.emoji}</Text></View>
+            <View style={styles.emojiTile}>
+              <Icon name={emojiToIcon(cls.emoji)} size={28} color={colors.brand} duotone />
+            </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.title} numberOfLines={1}>{cls.title}</Text>
+              <Text testID="class-title" style={styles.title} numberOfLines={1}>{cls.title}</Text>
               <Text style={styles.blurb} numberOfLines={1}>{cls.blurb}</Text>
             </View>
           </View>
           <View style={styles.chips}>
-            <Text style={styles.chip}>📚 {total} lessons</Text>
-            <Text style={styles.chip}>⏱️ ~{minutes} min</Text>
-            <Text style={styles.chip}>⭐ {done}/{total} mastered</Text>
+            <View style={styles.chipRow}>
+              <Icon name="book" size={12} color={colors.ink700} />
+              <Text style={styles.chip}>{total} lessons</Text>
+            </View>
+            <View style={styles.chipRow}>
+              <Icon name="calendar" size={12} color={colors.ink700} />
+              <Text style={styles.chip}>~{minutes} min</Text>
+            </View>
+            <View style={styles.chipRow}>
+              <Icon name="star" size={12} color={colors.ink700} />
+              <Text style={styles.chip}>{done}/{total} mastered</Text>
+            </View>
           </View>
           {classUnlocked && firstActionable && (
             <View style={{ marginTop: space[3] }}>
@@ -217,7 +261,7 @@ export default function ClassJourneyScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppShell>
   );
 }
 
@@ -243,7 +287,8 @@ const styles = StyleSheet.create({
   title: { ...type.lg, fontFamily: font.bold, color: colors.ink },
   blurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
-  chip: { ...type.caption, fontFamily: font.bold, color: colors.ink700, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1], overflow: "hidden" },
+  chipRow: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1] },
+  chip: { ...type.caption, fontFamily: font.bold, color: colors.ink700, overflow: "hidden" },
   path: { width: "100%", maxWidth: 320, alignSelf: "center", alignItems: "center" },
   connector: { width: 6, height: 24, borderRadius: radius.pill, backgroundColor: colors.hairline, marginVertical: 4 },
   halo: { position: "absolute", width: 76, height: 76, borderRadius: 38, backgroundColor: "rgba(91,91,214,0.22)" },

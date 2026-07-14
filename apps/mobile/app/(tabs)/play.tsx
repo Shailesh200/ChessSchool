@@ -5,12 +5,15 @@ import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { useAuth } from "@/auth";
 import { Button } from "@/Button";
+import { Icon } from "@/Icon";
 import { TopBar } from "@/TopBar";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { botProfile, BOT_ELO_PRESETS } from "@/bots";
 import { BotAvatar } from "@/BotAvatar";
+import { emojiToIcon } from "@/iconMaps";
 import { useSettings, settings } from "@/settings";
+import { canResumeAnyMatch, getActiveMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
 import { colors, font, radius, space, type } from "@/theme";
 
 const ELOS = [...BOT_ELO_PRESETS];
@@ -87,6 +90,12 @@ export default function PlaySetupScreen() {
   const [adaptive, setAdaptive] = useState(false);
   const [time, setTime] = useState("none");
   const [creating, setCreating] = useState(false);
+  const [resumeMatch, setResumeMatch] = useState(getActiveMatch());
+
+  useEffect(() => {
+    void hydrateMatchStore().then(() => setResumeMatch(getActiveMatch()));
+    return subscribeMatchStore(() => setResumeMatch(getActiveMatch()));
+  }, []);
 
   useEffect(() => {
     api<{ rating: number }>("/api/progress").then((d) => setRating(d.rating ?? 800)).catch(() => void 0);
@@ -150,6 +159,37 @@ export default function PlaySetupScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.h1}>New match</Text>
 
+        {canResumeAnyMatch() && resumeMatch && (
+          <View style={styles.resumeCard}>
+            <Text style={styles.resumeTitle}>Resume in-progress game</Text>
+            <Text style={styles.resumeSub}>
+              {resumeMatch.mode === "shadow"
+                ? `Shadow vs ${resumeMatch.shadow?.opponentName ?? "opponent"}`
+                : resumeMatch.mode === "arena"
+                  ? `Arena vs ${resumeMatch.arena?.opponentName ?? "bot"}`
+                  : `Bot game · ${resumeMatch.targetElo} ELO`}
+              {" · "}
+              {resumeMatch.moves.length} moves played
+            </Text>
+            <Button
+              label="Continue match →"
+              size="sm"
+              onPress={() => {
+                if (resumeMatch.mode === "shadow") router.push("/play/shadow-game");
+                else
+                  router.push({
+                    pathname: "/play/game",
+                    params: {
+                      elo: String(resumeMatch.targetElo),
+                      time: resumeMatch.timeControlMin ? String(resumeMatch.timeControlMin) : "none",
+                      arena: resumeMatch.arena ? "1" : undefined,
+                    },
+                  });
+              }}
+            />
+          </View>
+        )}
+
         <View style={styles.modeRow}>
           <Pressable
             style={[styles.mode, mode === "bot" && styles.modeOn]}
@@ -158,7 +198,7 @@ export default function PlaySetupScreen() {
               haptics.tap();
             }}
           >
-            <Text style={styles.modeEmoji}>🤖</Text>
+            <Icon name="robot" size={28} color={mode === "bot" ? colors.brand : colors.ink} duotone />
             <Text style={styles.modeTitle}>vs Bot</Text>
             <Text style={styles.modeSub}>Adaptive AI 300–2000</Text>
           </Pressable>
@@ -169,7 +209,7 @@ export default function PlaySetupScreen() {
               haptics.tap();
             }}
           >
-            <Text style={styles.modeEmoji}>👥</Text>
+            <Icon name="users" size={28} color={mode === "human" ? colors.brand : colors.ink} duotone />
             <Text style={styles.modeTitle}>vs Human</Text>
             <Text style={styles.modeSub}>Pass & play or online</Text>
           </Pressable>
@@ -182,7 +222,7 @@ export default function PlaySetupScreen() {
             haptics.tap();
           }}
         >
-          <Text style={styles.modeEmoji}>🎯</Text>
+          <Icon name="target" size={28} color={mode === "training" ? colors.brand : colors.ink} duotone />
           <Text style={styles.modeTitle}>Training</Text>
           <Text style={styles.modeSub}>Shadow, arena, assisted play & drills</Text>
         </Pressable>
@@ -199,7 +239,10 @@ export default function PlaySetupScreen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.adaptiveTitle}>🎯 Adaptive bot</Text>
+                  <View style={styles.adaptiveTitleRow}>
+                    <Icon name="target" size={18} color={colors.ink} duotone />
+                    <Text style={styles.adaptiveTitle}>Adaptive bot</Text>
+                  </View>
                   <Text style={styles.adaptiveSub}>
                     Matches your level (~{rating}) & adjusts as you play
                   </Text>
@@ -258,7 +301,7 @@ export default function PlaySetupScreen() {
               </View>
             </View>
 
-            <Button label="Start match" onPress={beginBot} />
+            <Button testID="play-start-match" label="Start match" onPress={beginBot} />
           </>
         )}
 
@@ -271,7 +314,10 @@ export default function PlaySetupScreen() {
                 onPress={() => router.push({ pathname: "/play/pass", params: { time } })}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.adaptiveTitle}>👥 Pass & play</Text>
+                  <View style={styles.adaptiveTitleRow}>
+                    <Icon name="users" size={18} color={colors.ink} duotone />
+                    <Text style={styles.adaptiveTitle}>Pass & play</Text>
+                  </View>
                   <Text style={styles.adaptiveSub}>Two players take turns on this device</Text>
                 </View>
                 <Text style={styles.chevron}>›</Text>
@@ -328,12 +374,12 @@ export default function PlaySetupScreen() {
                     <View style={[styles.radio, active && styles.radioOn]}>
                       {active && <View style={styles.radioDot} />}
                     </View>
-                    <Text style={styles.trainingEmoji}>{opt.emoji}</Text>
+                    <Icon name={emojiToIcon(opt.emoji)} size={22} color={active ? colors.brand : colors.ink} duotone />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.trainingTitle}>
-                        {opt.title}
-                        {guest && opt.enrolledOnly ? " 🔒" : ""}
-                      </Text>
+                      <View style={styles.adaptiveTitleRow}>
+                        <Text style={styles.trainingTitle}>{opt.title}</Text>
+                        {guest && opt.enrolledOnly && <Icon name="lock" size={14} color={colors.ink500} />}
+                      </View>
                       <Text style={styles.trainingSub}>{opt.subtitle}</Text>
                     </View>
                   </Pressable>
@@ -436,6 +482,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  resumeCard: {
+    backgroundColor: colors.brand50,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.brand100,
+    padding: space[4],
+    gap: space[2],
+    marginBottom: space[2],
+  },
+  resumeTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  resumeSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500 },
   summaryCard: { backgroundColor: colors.surfaceSunken },
   cardLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginBottom: space[3] },
   adaptive: {
@@ -450,6 +507,7 @@ const styles = StyleSheet.create({
   },
   adaptiveOn: { borderColor: colors.brand, backgroundColor: colors.brand50 },
   adaptiveTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+  adaptiveTitleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
   adaptiveSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
   radio: {
     width: 22,

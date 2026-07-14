@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
 import { Cody } from "@/Cody";
 import { Icon } from "@/Icon";
+import { emojiToIcon } from "@/iconMaps";
 import { Button } from "@/Button";
 import { CampusMap } from "@/CampusMap";
 import { TopBar } from "@/TopBar";
@@ -85,6 +86,7 @@ export default function AcademyScreen() {
         crumb: { ...type.caption, fontFamily: font.bold, color: colors.ink500 },
         crumbSep: { ...type.caption, color: colors.ink300 },
         cardTitle: { ...type.lg, fontFamily: font.bold, color: colors.ink, marginTop: space[1] },
+        cardTitleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
         cardSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
         rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
         goalTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
@@ -169,9 +171,13 @@ export default function AcademyScreen() {
           <Cody expression="wave" size={64} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.title} numberOfLines={1}>
-              {guest ? "Welcome, future student!" : streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
+              {guest ? "Welcome to ChessSchool!" : streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
             </Text>
-            <Text style={styles.subtitle}>{guest ? "Enroll to track progress, homework, badges, and your Student ID." : "Graduate through classes. Become a stronger player."}</Text>
+            <Text style={styles.subtitle}>
+              {guest
+                ? "Enroll to the academy to track your progress."
+                : "Graduate through classes. Become a stronger player."}
+            </Text>
           </View>
           {!guest && (
             <View style={styles.ratingChip}>
@@ -189,7 +195,10 @@ export default function AcademyScreen() {
           <>
             {recommendPreschool && (
               <View style={styles.placementOptional}>
-                <Text style={styles.placementTitle}>🧸 Optional: Pre-School for complete beginners</Text>
+                <View style={styles.cardTitleRow}>
+                  <Icon name="seedling" size={18} color={colors.brand} duotone />
+                  <Text style={styles.placementTitle}>Optional: Pre-School for complete beginners</Text>
+                </View>
                 <Text style={styles.placementSub}>
                   Learn the board, pieces, and notation (d6, Nf3, Qd5) — skip anytime if you know the rules.
                 </Text>
@@ -201,7 +210,10 @@ export default function AcademyScreen() {
 
             {showPlacement && (
               <View style={styles.placement}>
-                <Text style={styles.placementTitle}>🎯 New here? Take a quick placement test</Text>
+                <View style={styles.cardTitleRow}>
+                  <Icon name="target" size={18} color={colors.brand} duotone />
+                  <Text style={styles.placementTitle}>New here? Take a quick placement test</Text>
+                </View>
                 <Text style={styles.placementSub}>8 puzzles (~2 min) — we'll place you in Elementary, Middle, or High School.</Text>
                 <View style={{ marginTop: space[3], alignSelf: "flex-start" }}>
                   <Button label="Start placement test →" size="sm" onPress={() => router.push("/placement")} />
@@ -211,7 +223,10 @@ export default function AcademyScreen() {
 
             {activeMatch && (
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>♟️ Bot match in progress</Text>
+                <View style={styles.cardTitleRow}>
+                  <Icon name="pawn" size={18} color={colors.brand} duotone />
+                  <Text style={styles.cardTitle}>Bot match in progress</Text>
+                </View>
                 <Text style={styles.cardSub}>Rated {activeMatch.targetElo} · {activeMatch.moves.length} moves played</Text>
                 <View style={{ marginTop: space[3] }}>
                   <Button
@@ -230,10 +245,25 @@ export default function AcademyScreen() {
               </View>
             )}
 
+            {resume?.complete && (
+              <View style={styles.card}>
+                <View style={styles.cardTitleRow}>
+                  <Icon name="trophy" size={18} color={colors.gold} duotone />
+                  <Text style={styles.cardTitle}>You&apos;ve graduated!</Text>
+                </View>
+                <Text style={styles.cardSub}>Replay a class or sharpen up with a match.</Text>
+                <View style={{ marginTop: space[3], flexDirection: "row", gap: space[2] }}>
+                  <Button label="Review a class" size="sm" onPress={() => router.push("/classes")} />
+                  <Button label="Play a match" size="sm" variant="outline" onPress={() => router.push("/(tabs)/play")} />
+                </View>
+              </View>
+            )}
+
             {resume && !resume.complete && resume.lessonId && (
               <View style={styles.card}>
                 <View style={styles.breadcrumb}>
-                  <Text style={styles.crumb}>🎓 {resume.semesterTitle}</Text>
+                  <Icon name="cap" size={14} color={colors.ink500} />
+                  <Text style={styles.crumb}>{resume.semesterTitle}</Text>
                   <Text style={styles.crumbSep}> › </Text>
                   <Text style={[styles.crumb, { color: colors.brand }]}>{resume.className}</Text>
                   <Text style={styles.crumbSep}> · </Text>
@@ -256,7 +286,10 @@ export default function AcademyScreen() {
             {!guest && dueIds.length > 0 && (
               <Pressable style={styles.reviewCard} onPress={() => router.push({ pathname: "/lesson/[id]", params: { id: dueIds[0]! } })}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.homeworkTitle}>🔁 Review due</Text>
+                  <View style={styles.cardTitleRow}>
+                    <Icon name="review" size={18} color={colors.brand} duotone />
+                    <Text style={styles.homeworkTitle}>Review due</Text>
+                  </View>
                   <Text style={styles.homeworkSub}>
                     {dueIds.length} lesson{dueIds.length === 1 ? "" : "s"} ready to strengthen your memory
                   </Text>
@@ -271,9 +304,14 @@ export default function AcademyScreen() {
                 onPress={() => router.push({ pathname: "/lesson/[id]", params: { id: daily.lessonId!, daily: "1" } })}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.homeworkTitle}>
-                    {dailyDone ? "✅ Daily puzzle done" : `${daily.emoji ?? "🧩"} Daily puzzle`}
-                  </Text>
+                  <View style={styles.cardTitleRow}>
+                    {dailyDone ? (
+                      <Icon name="check" size={18} color={colors.success} />
+                    ) : (
+                      <Icon name={emojiToIcon(daily.emoji ?? "🧩")} size={18} color={colors.brand} duotone />
+                    )}
+                    <Text style={styles.homeworkTitle}>{dailyDone ? "Daily puzzle done" : "Daily puzzle"}</Text>
+                  </View>
                   <Text style={styles.homeworkSub}>
                     {dailyDone ? "Come back tomorrow for a fresh position." : daily.title ?? "One rated puzzle for everyone today"}
                   </Text>
@@ -285,9 +323,14 @@ export default function AcademyScreen() {
             {!guest && (
               <Pressable testID="homework" style={styles.homework} onPress={() => router.push("/homework")}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.homeworkTitle}>
-                    {homeworkAllDone ? "✅ Homework done for today!" : "📋 Today's homework"}
-                  </Text>
+                  <View style={styles.cardTitleRow}>
+                    {homeworkAllDone ? (
+                      <Icon name="check" size={18} color={colors.success} />
+                    ) : (
+                      <Icon name="journal" size={18} color={colors.brand} duotone />
+                    )}
+                    <Text style={styles.homeworkTitle}>{homeworkAllDone ? "Homework done for today!" : "Today's homework"}</Text>
+                  </View>
                   <Text style={styles.homeworkSub}>
                     {homeworkAllDone
                       ? "Great work — come back tomorrow for a fresh set."

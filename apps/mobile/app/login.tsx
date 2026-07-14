@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,8 +10,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth";
 import { PasswordField } from "@/PasswordField";
+import { Logo } from "@/Logo";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
@@ -25,8 +27,9 @@ type GoogleBtnProps = {
 };
 
 export default function LoginScreen() {
-  const { login, register, loginWithGoogle, continueAsGuest } = useAuth();
+  const { login, register, loginWithGoogle, continueAsGuest, exitGuest, guest } = useAuth();
   const { colors } = useAppTheme();
+  const params = useLocalSearchParams<{ email?: string; password?: string }>();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,6 +37,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [GoogleBtn, setGoogleBtn] = useState<ComponentType<GoogleBtnProps> | null>(null);
+  const parityAutoLoginKey = useRef<string | null>(null);
   const isRegister = mode === "register";
 
   useEffect(() => {
@@ -43,9 +47,35 @@ export default function LoginScreen() {
       .catch(() => setGoogleBtn(null));
   }, []);
 
+  // Maestro cannot reliably fill React-controlled RN inputs — parity deep-link
+  // login seeds credentials (and auto-submits) when EXPO_PUBLIC_PARITY=1.
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_PARITY !== "1") return;
+    const rawEmail = params.email;
+    const rawPassword = params.password;
+    const e = (Array.isArray(rawEmail) ? rawEmail[0] : rawEmail)?.trim() ?? "";
+    const p = (Array.isArray(rawPassword) ? rawPassword[0] : rawPassword) ?? "";
+    if (!e || !p) return;
+    const key = `${e}\0${p}`;
+    if (parityAutoLoginKey.current === key) return;
+    parityAutoLoginKey.current = key;
+    if (guest) exitGuest();
+    setMode("login");
+    setEmail(e);
+    setPassword(p);
+    setBusy(true);
+    setError(null);
+    void login(e, p)
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : "Something went wrong";
+        setError(msg);
+        parityAutoLoginKey.current = null;
+      })
+      .finally(() => setBusy(false));
+  }, [exitGuest, guest, login, params.email, params.password]);
+
   const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
-    logo: { fontSize: 22, fontFamily: font.bold, color: colors.brand, textAlign: "center", marginBottom: space[6] },
     title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
     subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
     input: {
@@ -127,7 +157,9 @@ export default function LoginScreen() {
   return (
     <ThemedSafeArea>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.center}>
-        <Text style={styles.logo}>♟️ ChessSchool</Text>
+        <View style={{ alignItems: "center", marginBottom: space[2] }}>
+          <Logo size={40} />
+        </View>
         <Text style={styles.title}>{isRegister ? "Enroll at ChessSchool" : "Welcome back"}</Text>
         <Text style={styles.subtitle}>
           {isRegister ? "Create your student account to save progress." : "Log in to continue your studies."}
@@ -144,6 +176,7 @@ export default function LoginScreen() {
           />
         )}
         <TextInput
+          testID="login-email"
           style={styles.input}
           placeholder="Email"
           placeholderTextColor={colors.ink300}
@@ -151,21 +184,28 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          autoComplete="off"
+          textContentType="oneTimeCode"
+          importantForAutofill="no"
         />
         <PasswordField
+          testID="login-password"
           placeholder="Password"
           placeholderTextColor={colors.ink300}
           value={password}
           onChangeText={setPassword}
+          autoComplete="off"
+          textContentType="oneTimeCode"
+          importantForAutofill="no"
         />
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        <Pressable style={styles.button} onPress={submit} disabled={busy}>
+        <Pressable testID="login-submit" style={styles.button} onPress={submit} disabled={busy}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{isRegister ? "Enroll" : "Log in"}</Text>}
         </Pressable>
 
-        <Pressable onPress={() => setMode(isRegister ? "login" : "register")}>
+        <Pressable testID="login-mode-register" onPress={() => setMode(isRegister ? "login" : "register")}>
           <Text style={styles.switch}>{isRegister ? "Already enrolled? Log in" : "New here? Enroll now"}</Text>
         </Pressable>
 
