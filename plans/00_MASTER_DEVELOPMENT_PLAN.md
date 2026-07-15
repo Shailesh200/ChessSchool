@@ -63,15 +63,15 @@ This Master Development Plan converts existing product documentation (`README.md
 
 | Metric | Value |
 |--------|-------|
-| **Overall Progress** | ~78% (product surface) · ~70% (Web GA ready) |
+| **Overall Progress** | ~80% (product surface) · ~85% (Web GA ready) |
 | **Current Phase** | Web GA final gates |
-| **Current Milestone** | M-072 — Visual Regression & Storybook |
-| **Completed Milestones** | M-001–M-048 (Verified) · M-056 · M-057 · M-059 · M-063 · M-064 · M-070 · M-071 · M-075 Phase A/B (Verified) · G-Hardening complete |
-| **In Progress** | M-072 |
-| **Blocked** | M-073 (until G-WebGA) |
+| **Current Milestone** | M-073 — Web GA Launch Readiness |
+| **Completed Milestones** | M-001–M-048 (Verified) · M-056 · M-057 · M-059 · M-063 · M-064 · M-070 · M-071 · M-072 · M-075 Phase A/B (Verified) · G-Hardening complete |
+| **In Progress** | — |
+| **Blocked** | — |
 | **Next Milestone** | M-073 — Web GA Launch Readiness |
-| **Last Updated** | 2026-07-12 (v2.11 — M-070 security audit; M-071 docs) |
-| **Overall Completion %** | ~78% product · ~70% Web GA ready |
+| **Last Updated** | 2026-07-16 (v2.13 — M-072 Verified) |
+| **Overall Completion %** | ~80% product · ~85% Web GA ready |
 
 > Update this section as milestones are completed and verified.
 
@@ -472,7 +472,7 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-069** | Performance Optimization | Bot off main thread, curriculum query optimization, lazy routes | Not Started |
 | **M-070** | Security Audit & Privacy | Pen-test fixes, privacy policy alignment — **G-WebGA gate** | **Verified** |
 | **M-071** | Documentation Refresh | Reconcile CLAUDE.md, retire stale PARITY.md — **G-WebGA gate** | **Verified** |
-| **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | Not Started |
+| **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | **Verified** |
 | **M-073** | Web GA Launch Readiness | Launch checklist, marketing pages, support runbook — **G-WebGA gate** | Not Started |
 | **M-074** | Continuous Evolution | Ongoing content, engine updates, community features | Ongoing |
 | **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | **Verified** |
@@ -1438,9 +1438,9 @@ Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 
 **Phase B — Web GA gates (current)**
 3. ~~M-063~~ — **Verified**
-4. **M-071** — Documentation refresh ← **CURRENT**
-5. **M-072** — Visual regression / Storybook
-6. **M-073** — Web GA launch 🚀
+4. ~~M-071~~ — Documentation refresh — **Verified**
+5. ~~M-072~~ — Visual regression / Storybook — **Verified**
+6. **M-073** — Web GA launch 🚀 ← **CURRENT**
 
 **Phase C — Mobile (after Web GA)**
 11. **M-049–M-051** — Mobile resilience, UX, accessibility

@@ -9,6 +9,8 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   reporter: [["list"]],
+  // Stable names across darwin/linux so CI and local share baselines (M-072).
+  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{arg}{ext}",
   use: {
     baseURL: process.env.BASE_URL ?? "http://localhost:3210",
     channel: "chrome",
