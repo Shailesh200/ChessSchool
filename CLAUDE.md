@@ -47,6 +47,7 @@ pnpm dev              # web dev (ensure-db + Turbopack)
 pnpm build            # turbo build all packages
 pnpm typecheck | lint | test | e2e
 pnpm verify:milestone # full gate: typecheck, lint, coverage≥90%, e2e, SEO, Lighthouse
+pnpm --filter web storybook     # M-072 UI component catalog
 pnpm --filter web db:fresh      # reset + push + seed local
 pnpm --filter web db:import-puzzles
 pnpm --filter web db:dump && pnpm --filter web db:remote

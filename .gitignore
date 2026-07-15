@@ -68,3 +68,6 @@ android/
 apps/mobile/dist/
 parity-shots/
 apps/web/parity-shots/
+apps/web/storybook-static/
+
+*storybook.log
