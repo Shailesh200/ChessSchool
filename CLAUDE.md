@@ -8,7 +8,7 @@ Live: https://chess-school.in · Repo: `Shailesh200/ChessSchool` (personal GitHu
 
 **Master plan:** [`plans/00_MASTER_DEVELOPMENT_PLAN.md`](plans/00_MASTER_DEVELOPMENT_PLAN.md) — milestone-driven roadmap. **Launch strategy: Web GA first** (native app store after M-073).
 
-**Web GA** = public-ready **PWA** (installable, offline — M-010 ✓) + **browser view** (responsive desktop/tablet — M-059 ✓) + approved UI polish (M-075 ✓) + security/docs/QA gates (M-070 ✓, M-071 in progress, M-072–M-073 pending). Not the native App Store release (M-049–M-053).
+**Web GA** = public-ready **PWA** (installable, offline — M-010 ✓) + **browser view** (responsive desktop/tablet — M-059 ✓) + approved UI polish (M-075 ✓) + security/docs/QA gates (M-070 ✓, M-071 ✓, M-072 ✓, M-073 pending). Not the native App Store release (M-049–M-053).
 
 ## Stack
 - **Next.js 16** (App Router, Turbopack, async `params`, Server Actions) — `apps/web`
@@ -128,8 +128,8 @@ Remote: `git@github-personal:Shailesh200/ChessSchool.git`. Commit email `iamshai
 
 ## Milestone status (2026-07-12)
 **Verified recently:** M-056 Google OAuth · M-057 guest enroll prompt · M-070 security audit · M-071 documentation refresh  
-**In progress:** M-072 visual regression  
-**Next Web GA gates:** M-073 launch runbook  
+**Verified recently:** M-072 visual regression & Storybook  
+**Next Web GA gate:** M-073 launch runbook  
 **Post Web GA:** M-049–M-053 mobile store · M-058 personalized puzzles · M-060 global search · M-076 toolchain
 
 **Done (summary):** hosted PWA, accounts + Student ID + Google OAuth, DB curriculum + Lichess import (~5k+ puzzles), admin CMS + JSON import, progress sync (hardened), Stockfish WASM, dashboard/journal/plan/homework, secure online PvP, responsive browser layouts, premium UI overhaul, mobile ~90% screen parity, shared progression package, production hardening M-043–M-048.
