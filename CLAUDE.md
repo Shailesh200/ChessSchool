@@ -126,9 +126,8 @@ Remote: `git@github-personal:Shailesh200/ChessSchool.git`. Commit email `iamshai
 - **Milestones:** one branch per milestone (`milestone/M-###-slug`) → `pnpm verify:milestone` → owner approval → merge to `main`
 - **New web routes/features:** add Playwright e2e + update `scripts/web-e2e-routes.json` and `scripts/web-lighthouse-routes.json`
 
-## Milestone status (2026-07-12)
-**Verified recently:** M-056 Google OAuth · M-057 guest enroll prompt · M-070 security audit · M-071 documentation refresh  
-**Verified recently:** M-072 visual regression & Storybook  
+## Milestone status (2026-07-16)
+**Verified recently:** M-056 Google OAuth · M-057 guest enroll prompt · M-070 security audit · M-071 documentation refresh · M-072 visual regression  
 **Next Web GA gate:** M-073 launch runbook  
 **Post Web GA:** M-049–M-053 mobile store · M-058 personalized puzzles · M-060 global search · M-076 toolchain
 
