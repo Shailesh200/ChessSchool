@@ -1,14 +1,29 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { useAppTheme } from "@/ThemeProvider";
 import { GoogleMark } from "@/GoogleMark";
 import { font, radius, shadowCard, space, type } from "@/theme";
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? "";
 const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ?? "";
-const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() ?? "";
+
+let configured = false;
+
+function ensureConfigured() {
+  if (configured) return;
+  GoogleSignin.configure({
+    webClientId: WEB_CLIENT_ID || undefined,
+    iosClientId: IOS_CLIENT_ID || undefined,
+    offlineAccess: false,
+  });
+  configured = true;
+}
 
 type Props = {
   disabled?: boolean;
@@ -16,20 +31,17 @@ type Props = {
   onError: (message: string) => void;
 };
 
-function nativeClientId(): string | null {
-  if (Platform.OS === "ios") return IOS_CLIENT_ID || null;
-  if (Platform.OS === "android") return ANDROID_CLIENT_ID || null;
-  return WEB_CLIENT_ID || null;
-}
-
-function isGoogleConfigured(): boolean {
-  if (Platform.OS === "web") return Boolean(WEB_CLIENT_ID);
-  return Boolean(WEB_CLIENT_ID && nativeClientId());
+function nativeClientReady(): boolean {
+  if (!WEB_CLIENT_ID) return false;
+  // Android: Web client ID is enough in-app; Google Cloud still needs an Android
+  // OAuth client with package com.chessschool.app + your keystore SHA-1.
+  if (Platform.OS === "ios") return Boolean(IOS_CLIENT_ID);
+  return true;
 }
 
 function configHint(): string {
   if (Platform.OS === "android") {
-    return "Add an Android OAuth client (package com.chessschool.app) as EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID.";
+    return "Set EXPO_PUBLIC_GOOGLE_CLIENT_ID (Web) and register an Android OAuth client with package com.chessschool.app + SHA-1 in Google Cloud.";
   }
   if (Platform.OS === "ios") {
     return "Add an iOS OAuth client as EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID.";
@@ -39,48 +51,7 @@ function configHint(): string {
 
 function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
   const { colors } = useAppTheme();
-
-  useEffect(() => {
-    void WebBrowser.maybeCompleteAuthSession();
-  }, []);
-
-  const clientId = nativeClientId();
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
-    {
-      webClientId: WEB_CLIENT_ID,
-      ...(Platform.OS === "ios" && IOS_CLIENT_ID ? { iosClientId: IOS_CLIENT_ID } : {}),
-      ...(Platform.OS === "android" && ANDROID_CLIENT_ID ? { androidClientId: ANDROID_CLIENT_ID } : {}),
-      selectAccount: true,
-    },
-    { scheme: "chessschool" },
-  );
-
-  useEffect(() => {
-    if (!response) return;
-    if (response.type === "error") {
-      const detail =
-        response.params?.error_description ??
-        response.params?.error ??
-        response.error?.message;
-      onError(
-        typeof detail === "string" && detail.includes("access_denied")
-          ? "Google sign-in was cancelled."
-          : typeof detail === "string"
-            ? detail
-            : "Google sign-in failed. Check OAuth client IDs for this platform.",
-      );
-      return;
-    }
-    if (response.type !== "success") return;
-    const idToken = response.params.id_token;
-    if (!idToken) {
-      onError("Google did not return a sign-in token.");
-      return;
-    }
-    void onIdToken(idToken).catch((e: unknown) => {
-      onError(e instanceof Error ? e.message : "Google sign-in failed.");
-    });
-  }, [response, onIdToken, onError]);
+  const [busy, setBusy] = useState(false);
 
   const styles = StyleSheet.create({
     button: {
@@ -99,7 +70,7 @@ function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
     disabled: { opacity: 0.55 },
   });
 
-  if (!clientId) {
+  if (!nativeClientReady()) {
     return (
       <View style={[styles.button, styles.disabled]}>
         <Text style={[styles.text, { fontSize: 13, textAlign: "center", paddingHorizontal: space[2] }]}>
@@ -109,17 +80,52 @@ function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
     );
   }
 
+  async function signIn() {
+    if (busy || disabled) return;
+    setBusy(true);
+    try {
+      ensureConfigured();
+      if (Platform.OS === "android") {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+      const response = await GoogleSignin.signIn();
+      if (!isSuccessResponse(response)) {
+        onError("Google sign-in was cancelled.");
+        return;
+      }
+      const idToken = response.data.idToken;
+      if (!idToken) {
+        onError("Google did not return a sign-in token. Confirm Web + Android OAuth clients in EAS env.");
+        return;
+      }
+      await onIdToken(idToken);
+    } catch (e: unknown) {
+      if (isErrorWithCode(e)) {
+        if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+          onError("Google sign-in was cancelled.");
+          return;
+        }
+        if (e.code === statusCodes.IN_PROGRESS) return;
+        if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          onError("Google Play Services is required for sign-in.");
+          return;
+        }
+      }
+      onError(e instanceof Error ? e.message : "Google sign-in failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Pressable
-      style={[styles.button, (disabled || !request) && styles.disabled]}
-      disabled={disabled || !request}
-      onPress={() => {
-        void promptAsync();
-      }}
+      style={[styles.button, (disabled || busy) && styles.disabled]}
+      disabled={disabled || busy}
+      onPress={() => void signIn()}
       accessibilityRole="button"
       accessibilityLabel="Continue with Google"
     >
-      {!request ? (
+      {busy ? (
         <ActivityIndicator color={colors.brand} />
       ) : (
         <>
@@ -131,13 +137,13 @@ function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
   );
 }
 
-/** Native Google Sign-In — returns an ID token for `/api/auth/google/token`. */
+/** Native Google account picker — returns an ID token for `/api/auth/google/token`. */
 export function GoogleSignInButton(props: Props) {
   if (!WEB_CLIENT_ID) return null;
   return <GoogleSignInButtonInner {...props} />;
 }
 
 export function googleSignInConfigHint(): string | null {
-  if (isGoogleConfigured()) return null;
+  if (nativeClientReady()) return null;
   return configHint();
 }

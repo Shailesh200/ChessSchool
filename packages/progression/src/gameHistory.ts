@@ -11,7 +11,7 @@ export type EndReason =
 /** Cross-platform game record stored in progress.recentGames and Dexie. */
 export type SyncGame = {
   id: string;
-  mode: "bot" | "pass" | "sandbox" | "online";
+  mode: "bot" | "pass" | "sandbox" | "online" | "shadow";
   pgn: string;
   fen: string;
   whiteName: string;
@@ -38,7 +38,7 @@ export function normalizeSyncGame(raw: unknown): SyncGame | null {
   const g = raw as Record<string, unknown>;
   if (typeof g.id !== "string") return null;
   const mode = g.mode;
-  if (mode !== "bot" && mode !== "pass" && mode !== "sandbox" && mode !== "online") return null;
+  if (mode !== "bot" && mode !== "pass" && mode !== "sandbox" && mode !== "online" && mode !== "shadow") return null;
 
   const moves = Array.isArray(g.moves) ? g.moves.filter((m): m is string => typeof m === "string") : undefined;
   const pgn = typeof g.pgn === "string" ? g.pgn : "";

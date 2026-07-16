@@ -1,0 +1,234 @@
+{
+  "viewport": { "width": 393, "height": 852 },
+  "thresholds": { "default": 0.08, "strict": 0.04, "semanticOnly": 1 },
+  "accounts": {
+    "local": {
+      "email": "parity@chess-school.local",
+      "password": "ParityPass1!",
+      "name": "Parity Student"
+    },
+    "prod": {
+      "email": "parity-bot@duochess.dev",
+      "password": "parity12345",
+      "name": "Parity Bot"
+    }
+  },
+  "screens": [
+    {
+      "id": "academy",
+      "label": "Campus / Academy",
+      "auth": "guest",
+      "thresholdRatio": 0.28,
+      "web": { "path": "/academy", "readyText": "Start learning" },
+      "native": { "steps": [], "readyText": "Welcome to ChessSchool!" },
+      "semantic": ["Start learning", "Daily goal", "Welcome to ChessSchool!"]
+    },
+    {
+      "id": "class-journey",
+      "label": "Class journey",
+      "auth": "guest",
+      "thresholdRatio": 0.15,
+      "web": { "path": "/class/class-pieces", "readyText": "Piece Movement" },
+      "native": {
+        "steps": [{ "openUrl": "/academy" }, { "waitMs": 3000 }, { "openUrl": "/class/class-pieces" }, { "waitMs": 15000 }],
+        "readyTestId": "class-title",
+        "readyText": "Piece Movement"
+      },
+      "semantic": ["Piece Movement", "Start journey"]
+    },
+    {
+      "id": "lesson",
+      "label": "Lesson player",
+      "auth": "guest",
+      "thresholdRatio": 0.3,
+      "web": { "path": "/lesson/pawn-power", "readyText": "Push your e-pawn" },
+      "native": {
+        "steps": [{ "openUrl": "/academy" }, { "waitMs": 3000 }, { "openUrl": "/lesson/pawn-power" }, { "waitMs": 15000 }],
+        "readyTestId": "lesson-coach",
+        "readyText": "Push your e-pawn"
+      },
+      "semantic": ["Push your e-pawn", "Pawns move forward"]
+    },
+    {
+      "id": "play",
+      "label": "Play chooser",
+      "auth": "guest",
+      "thresholdRatio": 0.14,
+      "web": { "path": "/play", "readyText": "New match" },
+      "native": {
+        "steps": [{ "openUrl": "/play" }],
+        "readyText": "New match"
+      },
+      "semantic": ["New match", "Start match", "vs Bot"]
+    },
+    {
+      "id": "review",
+      "label": "Review tab",
+      "auth": "guest",
+      "web": { "path": "/review", "readyText": "Review" },
+      "native": { "steps": [{ "openUrl": "/review" }], "readyText": "Review" },
+      "semantic": ["Review", "Match history"]
+    },
+    {
+      "id": "profile-guest",
+      "label": "Profile (guest)",
+      "auth": "guest",
+      "thresholdRatio": 0.095,
+      "web": { "path": "/profile", "readyText": "Playing as guest" },
+      "native": { "steps": [{ "openUrl": "/profile" }], "readyText": "Playing as guest" },
+      "semantic": ["Playing as guest", "Log in to unlock"]
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "auth": "guest",
+      "thresholdRatio": 0.14,
+      "web": { "path": "/settings", "readyText": "Sound effects" },
+      "native": {
+        "steps": [{ "openUrl": "/settings" }],
+        "readyText": "Sound effects"
+      },
+      "semantic": ["Sound effects", "Coach personality", "Reduce motion"]
+    },
+    {
+      "id": "themes",
+      "label": "Theme studio",
+      "auth": "guest",
+      "thresholdRatio": 0.34,
+      "web": { "path": "/themes", "readyText": "Theme Studio" },
+      "native": {
+        "steps": [{ "openUrl": "/themes" }],
+        "readyText": "Theme Studio"
+      },
+      "semantic": ["Theme Studio", "App theme", "Board themes"]
+    },
+    {
+      "id": "login",
+      "label": "Login",
+      "auth": "guest",
+      "thresholdRatio": 0.24,
+      "web": { "path": "/login", "readyText": "Welcome back" },
+      "native": {
+        "steps": [{ "openUrl": "/profile" }, { "tapTestId": "profile-enroll-cta" }],
+        "readyText": "Welcome back"
+      },
+      "semantic": ["Welcome back", "Log in"]
+    },
+    {
+      "id": "register",
+      "label": "Register / enroll",
+      "auth": "guest",
+      "thresholdRatio": 0.24,
+      "web": { "path": "/register", "readyText": "Enroll at ChessSchool" },
+      "native": {
+        "steps": [
+          { "openUrl": "/login" },
+          { "waitMs": 2000 },
+          { "tapTestId": "login-mode-register" }
+        ],
+        "readyText": "Enroll at ChessSchool"
+      },
+      "semantic": ["Enroll at ChessSchool", "Create your student account"]
+    },
+    {
+      "id": "dashboard",
+      "label": "Report card / dashboard",
+      "auth": "user",
+      "thresholdRatio": 0.18,
+      "web": { "path": "/dashboard", "readyText": "Skill tree" },
+      "native": {
+        "steps": [{ "openUrl": "/dashboard" }],
+        "readyText": "Skill tree"
+      },
+      "semantic": ["Skill tree", "Mistake DNA"]
+    },
+    {
+      "id": "journal",
+      "label": "Journal",
+      "auth": "user",
+      "thresholdRatio": 0.18,
+      "web": { "path": "/journal", "readyText": "Learning Journal" },
+      "native": {
+        "steps": [{ "openUrl": "/journal" }],
+        "readyText": "Journal"
+      },
+      "semantic": ["Learning Journal", "Growth summary"]
+    },
+    {
+      "id": "homework",
+      "label": "Homework / study plan",
+      "auth": "user",
+      "thresholdRatio": 0.18,
+      "web": { "path": "/plan", "readyText": "Homework" },
+      "native": {
+        "steps": [{ "openUrl": "/homework" }],
+        "readyText": "Homework"
+      },
+      "semantic": ["Homework", "Warmup"]
+    },
+    {
+      "id": "library",
+      "label": "Lesson library",
+      "auth": "user",
+      "thresholdRatio": 0.18,
+      "web": { "path": "/library", "readyText": "Your Library" },
+      "native": {
+        "steps": [{ "openUrl": "/library" }],
+        "readyText": "Lesson Library"
+      },
+      "semantic": ["Your Library", "completed"]
+    },
+    {
+      "id": "account",
+      "label": "Student ID / account",
+      "auth": "user",
+      "thresholdRatio": 0.28,
+      "web": { "path": "/account", "readyText": "My account" },
+      "native": {
+        "steps": [{ "openUrl": "/account" }, { "waitMs": 3000 }],
+        "readyTestId": "account-title",
+        "readyText": "Account"
+      },
+      "semantic": ["My account", "Student ID"],
+      "thresholdRatio": 0.32
+    },
+    {
+      "id": "profile-auth",
+      "label": "Profile (signed in)",
+      "auth": "user",
+      "thresholdRatio": 0.18,
+      "web": { "path": "/profile", "readyText": "Achievements" },
+      "native": {
+        "steps": [{ "openUrl": "/profile" }, { "waitMs": 2000 }],
+        "readyText": "Day streak"
+      },
+      "semantic": ["Achievements", "Day streak"]
+    },
+    {
+      "id": "classes",
+      "label": "All classes catalog",
+      "auth": "user",
+      "thresholdRatio": 0.18,
+      "web": { "path": "/library", "readyText": "Your Library" },
+      "native": {
+        "steps": [{ "openUrl": "/classes" }],
+        "readyText": "All classes"
+      },
+      "semantic": ["Your Library"],
+      "notes": "Web library browse vs mobile all-classes — semantic overlap, visual may differ"
+    },
+    {
+      "id": "placement",
+      "label": "Placement test entry",
+      "auth": "user",
+      "threshold": "semanticOnly",
+      "web": { "path": "/placement", "readyText": "Placement test" },
+      "native": {
+        "steps": [{ "openUrl": "/placement" }, { "waitMs": 8000 }],
+        "readyTestId": "placement-title",
+        "readyText": "Placement test"
+      },
+      "semantic": ["Placement test", "find the best move"]
+    }
+  ]
+}

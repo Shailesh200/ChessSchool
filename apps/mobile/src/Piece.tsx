@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { Image, Platform, View } from "react-native";
-import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop, SvgXml } from "react-native-svg";
+import { Image, View } from "react-native";
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from "react-native-svg";
 import {
   getPieceTheme,
   QUEEN_BALLS,
@@ -43,25 +43,15 @@ function AssetPiece({
   if (!raw) return <View style={{ width: size, height: size }} />;
   const xml = scopePieceSvg(raw, scope);
 
-  if (Platform.OS === "web") {
-    const webFilter =
-      filter === "neon"
-        ? "drop-shadow(0 0 2px #5dffb8) drop-shadow(0 0 5px #5ec8ff) saturate(1.35)"
-        : undefined;
-    const uri = `data:image/svg+xml;utf8,${encodeURIComponent(xml)}`;
-    return (
-      <Image
-        source={{ uri }}
-        style={{ width: size, height: size, ...(webFilter ? { filter: webFilter } : {}) } as object}
-        resizeMode="contain"
-      />
-    );
-  }
-
+  // Use Image on all platforms — SvgXml often fails to resolve xlink:href gradients
+  // (heritage/spatial/fantasy), making black and white look identical.
+  const uri = `data:image/svg+xml;utf8,${encodeURIComponent(xml)}`;
   return (
-    <View style={{ width: size, height: size, opacity: filter === "neon" ? 0.95 : 1 }}>
-      <SvgXml xml={xml} width={size} height={size} />
-    </View>
+    <Image
+      source={{ uri }}
+      style={{ width: size, height: size, opacity: filter === "neon" ? 0.95 : 1 }}
+      resizeMode="contain"
+    />
   );
 }
 

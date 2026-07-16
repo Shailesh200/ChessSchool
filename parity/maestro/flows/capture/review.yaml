@@ -1,0 +1,9 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///review"
+- extendedWaitUntil:
+    visible:
+      text: "Review"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

@@ -1,0 +1,14 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///academy"
+- waitForAnimationToEnd:
+    timeout: 3000
+- openLink: "chessschool:///class/class-pieces"
+- waitForAnimationToEnd:
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: "class-title"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

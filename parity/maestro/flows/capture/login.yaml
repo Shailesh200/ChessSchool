@@ -1,0 +1,11 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///profile"
+- tapOn:
+    id: "profile-enroll-cta"
+- extendedWaitUntil:
+    visible:
+      text: "Welcome back"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

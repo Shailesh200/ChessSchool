@@ -33,6 +33,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -66,6 +67,7 @@ android/
 
 # expo web export + parity harness output (build artifacts)
 apps/mobile/dist/
+parity/reports/
 parity-shots/
 apps/web/parity-shots/
 apps/web/storybook-static/

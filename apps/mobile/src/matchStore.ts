@@ -1,12 +1,32 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import type { ShadowConfig } from "./shadow";
 
 const KEY = "chessschool.activematch";
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const isWeb = Platform.OS === "web";
 
-export type ActiveBotMatch = {
-  mode: "bot";
+export type MatchMode = "bot" | "shadow" | "arena";
+
+export type ArenaMeta = {
+  runId: string;
+  opponentId: string;
+  bandElo: number;
+  opponentName: string;
+};
+
+export type MatchEndSnapshot = {
+  title: string;
+  subtitle?: string;
+  win: boolean;
+  ratingDelta: number;
+  newRating: number;
+  gameId: string;
+};
+
+export type ActiveMatch = {
+  matchId: string;
+  mode: MatchMode;
   fen: string;
   moves: string[];
   targetElo: number;
@@ -15,17 +35,18 @@ export type ActiveBotMatch = {
   blackMs: number;
   finished: boolean;
   createdAt: number;
+  shadow?: ShadowConfig;
+  arena?: ArenaMeta;
+  endSnapshot?: MatchEndSnapshot | null;
 };
 
-let active: ActiveBotMatch | null = null;
+let active: ActiveMatch | null = null;
 let hydrated = false;
 const listeners = new Set<() => void>();
 const emit = () => { for (const l of listeners) l(); };
 
 async function readRaw(): Promise<string | null> {
-  if (isWeb) {
-    return typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
-  }
+  if (isWeb) return typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
   return SecureStore.getItemAsync(KEY);
 }
 
@@ -45,7 +66,10 @@ export async function hydrateMatchStore(): Promise<void> {
   if (hydrated) return;
   try {
     const raw = await readRaw();
-    active = raw ? (JSON.parse(raw) as ActiveBotMatch) : null;
+    active = raw ? (JSON.parse(raw) as ActiveMatch) : null;
+    if (active && !(active as { matchId?: string }).matchId) {
+      active = { ...active, matchId: `g${active.createdAt}` };
+    }
   } catch {
     active = null;
   }
@@ -57,8 +81,14 @@ async function persist(): Promise<void> {
   await writeRaw(active ? JSON.stringify(active) : null);
 }
 
-export function getActiveBotMatch(): ActiveBotMatch | null {
+export function getActiveMatch(): ActiveMatch | null {
   return active && !active.finished ? active : null;
+}
+
+/** @deprecated use getActiveMatch */
+export function getActiveBotMatch(): ActiveMatch | null {
+  const m = getActiveMatch();
+  return m?.mode === "bot" ? m : null;
 }
 
 export function subscribeMatchStore(listener: () => void): () => void {
@@ -66,10 +96,11 @@ export function subscribeMatchStore(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-export function startBotMatch(targetElo: number, timeControlMin: number): ActiveBotMatch {
+function baseMatch(mode: MatchMode, targetElo: number, timeControlMin: number): ActiveMatch {
   const ms = timeControlMin * 60_000;
-  active = {
-    mode: "bot",
+  return {
+    matchId: `g${Date.now()}`,
+    mode,
     fen: START_FEN,
     moves: [],
     targetElo,
@@ -78,7 +109,26 @@ export function startBotMatch(targetElo: number, timeControlMin: number): Active
     blackMs: ms,
     finished: false,
     createdAt: Date.now(),
+    endSnapshot: null,
   };
+}
+
+export function startBotMatch(targetElo: number, timeControlMin: number): ActiveMatch {
+  active = baseMatch("bot", targetElo, timeControlMin);
+  void persist();
+  emit();
+  return active;
+}
+
+export function startShadowMatch(shadow: ShadowConfig, timeControlMin = 0): ActiveMatch {
+  active = { ...baseMatch("shadow", 1200, timeControlMin), shadow };
+  void persist();
+  emit();
+  return active;
+}
+
+export function startArenaMatch(arena: ArenaMeta, opponentElo: number, timeControlMin = 0): ActiveMatch {
+  active = { ...baseMatch("arena", opponentElo, timeControlMin), arena };
   void persist();
   emit();
   return active;
@@ -102,6 +152,13 @@ export function syncBotMatch(patch: {
   emit();
 }
 
+export function setMatchEndSnapshot(snapshot: MatchEndSnapshot): void {
+  if (!active) return;
+  active = { ...active, endSnapshot: snapshot };
+  void persist();
+  emit();
+}
+
 export function finishBotMatch(): void {
   if (!active) return;
   active = { ...active, finished: true };
@@ -115,9 +172,13 @@ export function clearBotMatch(): void {
   emit();
 }
 
-/** True when persisted game matches route params and can resume. */
 export function canResumeBotMatch(targetElo: number, timeControlMin: number): boolean {
   const m = getActiveBotMatch();
   if (!m) return false;
   return m.targetElo === targetElo && m.timeControlMin === timeControlMin && m.moves.length > 0;
+}
+
+export function canResumeAnyMatch(): boolean {
+  const m = getActiveMatch();
+  return Boolean(m && m.moves.length > 0);
 }

@@ -12,6 +12,7 @@ import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { Button } from "@/Button";
 import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
+import { ScreenLoader } from "@/ScreenLoader";
 import { RatingBadge } from "@/RatingBadge";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
@@ -20,7 +21,7 @@ import { PRIVACY_URL } from "@/constants";
 
 export default function AccountScreen() {
   const router = useRouter();
-  const { user, guest, loading: authLoading, logout, deleteAccount } = useAuth();
+  const { user, guest, loading: authLoading, logout, deleteAccount, exitGuest } = useAuth();
   const { colors } = useAppTheme();
   const p = useProgress();
   const { avatar } = useSettings();
@@ -110,18 +111,16 @@ export default function AccountScreen() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (guest || !user) router.replace("/login");
-  }, [authLoading, guest, user, router]);
+    if (guest || !user) {
+      exitGuest();
+      router.replace("/login");
+    }
+  }, [authLoading, guest, user, router, exitGuest]);
 
   if (authLoading || guest || !user) {
     return (
       <AppShell showBottomNav={false}>
-        <View style={styles.center}>
-          <Text style={styles.h1}>Account</Text>
-          <Text style={styles.muted}>
-            {authLoading ? "Loading your Student ID…" : "Log in or enroll to view your Student ID."}
-          </Text>
-        </View>
+        <ScreenLoader variant="fullscreen" label={authLoading ? "Loading your Student ID…" : "Opening login…"} />
       </AppShell>
     );
   }

@@ -1,0 +1,9 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///settings"
+- extendedWaitUntil:
+    visible:
+      text: "Sound effects"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

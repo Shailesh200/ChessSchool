@@ -269,8 +269,11 @@ export default function GameScreen() {
 
     setThinking(true);
     setTimeout(async () => {
-      const sfReady = stockfishAvailable();
-      let m = sfReady ? await nativeBestMove(e.fen(), elo) : null;
+      // Match web/core: undersized Stockfish is not used below 1400 (Pip/Cody stay on the soft JS bot).
+      let m: { from: string; to: string; promotion?: string } | null = null;
+      if (elo >= 1400 && stockfishAvailable()) {
+        m = await nativeBestMove(e.fen(), elo);
+      }
       if (!m) m = await getBotMove(e.fen(), eloToConfig(elo), Math.random());
       if (m) {
         const botBefore = e.fen();

@@ -20,6 +20,7 @@ type AuthState = {
   continueAsGuest: () => void;
   exitGuest: () => void;
   login: (email: string, password: string) => Promise<void>;
+  adoptSessionToken: (token: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<{ isNewUser: boolean }>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -109,35 +110,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       const oriented = await getOrientationSeen();
+      if (cancelled) return;
       setOrientationDone(oriented);
+
+      // Resolve a saved session BEFORE seeding guest UI. Optimistic guest-first
+      // raced with parity-auth adopt and could leave the suite stuck as guest.
       const t = await getToken();
+      if (cancelled) return;
+
       if (t) {
         try {
           const { user } = await api<{ user: User }>("/api/auth/me");
+          if (cancelled) return;
           setUser(user);
           setGuest(false);
+          setNeedsOnboarding(false);
+          setLoading(false);
           void loadSettingsFromAccount();
           void fetchProgress(true).catch(() => void 0);
           await applyOnboardingGate(setNeedsOnboarding);
+          return;
         } catch {
           await clearToken();
-          if (oriented) await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
-          else {
-            setGuest(false);
-            setUser(null);
-          }
         }
-      } else if (oriented) {
-        await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
+      }
+
+      if (oriented) {
+        setNeedsOnboarding(false);
+        setGuest(true);
+        setUser(GUEST_USER);
+        setLoading(false);
+        void fetchProgress(false).catch(() => void 0);
       } else {
         setGuest(false);
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const adoptSessionToken = async (token: string) => {
+    await setToken(token);
+    const { user } = await api<{ user: User }>("/api/auth/me");
+    setOrientationDone(true);
+    setNeedsOnboarding(false);
+    setGuest(false);
+    setUser(user);
+    await afterAuth();
+  };
 
   const login = async (email: string, password: string) => {
     const { token, user } = await api<{ token: string; user: User }>("/api/auth/login", {
@@ -222,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         continueAsGuest,
         exitGuest,
         login,
+        adoptSessionToken,
         loginWithGoogle,
         register,
         logout,

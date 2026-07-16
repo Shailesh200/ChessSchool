@@ -19,6 +19,8 @@ export function googleTokenAudiences(): string[] {
     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     process.env.GOOGLE_IOS_CLIENT_ID,
     process.env.GOOGLE_ANDROID_CLIENT_ID,
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   ];
   return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))];
 }

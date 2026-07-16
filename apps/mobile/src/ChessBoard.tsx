@@ -13,7 +13,7 @@ type PromotionPiece = "q" | "r" | "b" | "n";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const DRAG_ACTIVATION_DISTANCE = 10;
-const MOVE_ANIMATION_MS = 480;
+const MOVE_ANIMATION_MS = 220;
 const MOVE_EASING = Easing.inOut(Easing.cubic);
 function hexToRgba(hex: string, alpha: number) {
   const value = hex.replace("#", "");
@@ -124,9 +124,19 @@ export function ChessBoard({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [promo, setPromo] = useState<{ from: string; to: string; color: "w" | "b" } | null>(null);
-  const { boardTheme, pieceTheme, reducedMotion, hints: showHints } = useSettings();
-  const { light: LIGHT, dark: DARK, move: MOVE } = BOARD_THEMES[boardTheme];
-  const lastTone = lastMoveTone(boardTheme, MOVE);
+  const { boardTheme, pieceTheme, reducedMotion, hints: showHints, colorblind, highContrast } = useSettings();
+  const baseBoard = BOARD_THEMES[boardTheme] ?? BOARD_THEMES.classic;
+  // Match web html[data-cb="deuteranopia"] board palette.
+  const { light: LIGHT, dark: DARK, move: MOVE } = colorblind
+    ? { light: "#e8eef7", dark: "#9bb8d3", move: "#5aa9e6" }
+    : highContrast
+      ? {
+          light: baseBoard.light,
+          dark: baseBoard.dark,
+          move: baseBoard.move,
+        }
+      : baseBoard;
+  const lastTone = lastMoveTone(colorblind ? "slate" : boardTheme, MOVE);
   const selectedTint = hexToRgba(MOVE, 0.38);
   const cell = size / 8;
   const engineRef = useRef(new ChessEngine(fen));
@@ -292,10 +302,11 @@ export function ChessBoard({
       setRenderFen(fen);
       return;
     }
+    // Keep pre-move fen while the flyer animates — avoids vanish/jump glitches.
     const piece = pieceAtBoard(board, lastMove.from) ?? pieceAtBoard(currentBoard, lastMove.to);
     animSeq.current += 1;
-    setRenderFen(fen);
     setMoveAnim(piece ? { key: `m${animSeq.current}`, from: lastMove.from, to: lastMove.to, piece } : null);
+    if (!piece) setRenderFen(fen);
   }, [board, currentBoard, fen, lastMove, reducedMotion, renderFen]);
 
   return (
@@ -311,7 +322,8 @@ export function ChessBoard({
             const isHL = highlights?.includes(sq);
             const isCheck = checkSquare === sq;
             const isSuccess = successSquare === sq;
-            const hidden = dragFrom === sq || Boolean(moveAnim && moveAnim.to === sq);
+            const hidden =
+              dragFrom === sq || Boolean(moveAnim && (moveAnim.to === sq || moveAnim.from === sq));
             const showFile = showNotation && rank === (orientation === "white" ? 1 : 8);
             const showRank = showNotation && file === (orientation === "white" ? "a" : "h");
             const coordColor = isLight ? "rgba(28,27,46,0.55)" : "rgba(255,255,255,0.75)";
@@ -348,6 +360,7 @@ export function ChessBoard({
 
       {moveAnim && (
         <AnimatedPiece
+          key={moveAnim.key}
           type={moveAnim.piece.type}
           color={moveAnim.piece.color}
           size={cell * 0.86}
@@ -356,7 +369,10 @@ export function ChessBoard({
           from={{ x: visPos(moveAnim.from).col * cell, y: visPos(moveAnim.from).row * cell }}
           to={{ x: visPos(moveAnim.to).col * cell, y: visPos(moveAnim.to).row * cell }}
           animKey={moveAnim.key}
-          onDone={() => setMoveAnim(null)}
+          onDone={() => {
+            setRenderFen(fen);
+            setMoveAnim(null);
+          }}
         />
       )}
 

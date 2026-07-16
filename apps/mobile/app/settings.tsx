@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View, Linking } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
@@ -13,7 +13,8 @@ import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
 import { ConfirmDialog } from "@/ConfirmDialog";
 import { toast } from "@/toast";
-import { colors, font, radius, shadowCard, space } from "@/theme";
+import { useAppTheme } from "@/ThemeProvider";
+import { font, radius, shadowCard, space } from "@/theme";
 import { useType } from "@/typography";
 import { COACH_VOICE_GROUPS, COACH_VOICE_OPTIONS, normalizeCoachVoice } from "@/coachVoices";
 import { speakCoachText, stopCoachSpeech } from "@/coachSpeech";
@@ -27,17 +28,20 @@ const COACHES = [
   { value: "tactical", label: "Tactical", emoji: "⚔️" },
   { value: "minimal", label: "Minimal", emoji: "🎯" },
 ];
-const track = { true: colors.brand, false: colors.surfaceSunken };
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { guest, exitGuest } = useAuth();
+  const { guest, exitGuest, user } = useAuth();
+  const { colors } = useAppTheme();
   const s = useSettings();
   const type = useType();
-  const styles = useMemo(() => makeStyles(type), [type]);
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
+  const track = useMemo(() => ({ true: colors.brand, false: colors.surfaceSunken }), [colors]);
   const [importOpen, setImportOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState<unknown>(null);
   const storageKb = storageEstimateKB();
+
+  useEffect(() => () => stopCoachSpeech(), []);
 
   async function pickImport() {
     const res = await DocumentPicker.getDocumentAsync({ type: "application/json", copyToCacheDirectory: true });
@@ -56,7 +60,12 @@ export default function SettingsScreen() {
   return (
     <AppShell>
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton />
+        <BackButton
+          onPress={() => {
+            stopCoachSpeech();
+            router.back();
+          }}
+        />
         <Text style={styles.h1}>Settings</Text>
 
         <Text style={styles.section}>Sound & feel</Text>
@@ -89,12 +98,16 @@ export default function SettingsScreen() {
           <SliderRow label="Text size" hint={`${Math.round(s.textScale * 100)}%`} value={s.textScale} min={0.85} max={1.25} step={0.05} onChange={(v) => settings.set("textScale", v)} />
         </View>
 
-        <Text style={styles.section}>Developer</Text>
-        <View style={styles.card}>
-          <Row label="Performance diagnostics" hint="Show FPS & route timing HUD">
-            <Switch value={s.diagnostics} onValueChange={(v) => settings.set("diagnostics", v)} trackColor={track} />
-          </Row>
-        </View>
+        {user?.role === "admin" && (
+          <>
+            <Text style={styles.section}>Developer</Text>
+            <View style={styles.card}>
+              <Row label="Performance diagnostics" hint="Show FPS & route timing HUD">
+                <Switch value={s.diagnostics} onValueChange={(v) => settings.set("diagnostics", v)} trackColor={track} />
+              </Row>
+            </View>
+          </>
+        )}
 
         <Text style={styles.section}>Learning & board</Text>
         <View style={styles.card}>
@@ -156,7 +169,15 @@ export default function SettingsScreen() {
           {COACHES.map((c) => {
             const on = s.coachPersonality === c.value;
             return (
-              <Pressable key={c.value} style={[styles.coachCard, on && styles.coachCardOn]} onPress={() => settings.set("coachPersonality", c.value)}>
+              <Pressable
+                key={c.value}
+                style={[styles.coachCard, on && styles.coachCardOn]}
+                onPress={() => {
+                  stopCoachSpeech();
+                  settings.set("coachPersonality", c.value);
+                  void speakCoachText(`With a ${c.label.toLowerCase()} coach, I'll guide you this way.`);
+                }}
+              >
                 <Icon name={coachToneIcon(c.value)} size={22} color={on ? colors.brand : colors.ink} duotone />
                 <Text style={[styles.coachLabel, on && { color: colors.brand }]} numberOfLines={1}>{c.label}</Text>
               </Pressable>
@@ -178,7 +199,7 @@ export default function SettingsScreen() {
               <Text style={styles.rowHint}>
                 {storageKb != null ? `~${storageKb} KB progress cached on this device.` : "Progress syncs when you're online."}
               </Text>
-              <View style={{ flexDirection: "row", gap: space[2], marginTop: space[3] }}>
+              <View style={{ flexDirection: "column", gap: space[2], marginTop: space[3] }}>
                 <Button label="Export backup" size="sm" variant="outline" onPress={() => void exportBackupToFile().then(() => toast("Backup exported", { tone: "success" })).catch(() => toast("Export failed", { tone: "danger" }))} />
                 <Button label="Import backup" size="sm" variant="outline" onPress={() => void pickImport()} />
               </View>
@@ -220,10 +241,11 @@ export default function SettingsScreen() {
 
 function Row({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   const type = useType();
-  const styles = useMemo(() => makeStyles(type), [type]);
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
   return (
     <View style={styles.row}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingRight: space[3] }}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowHint}>{hint}</Text>
       </View>
@@ -249,7 +271,8 @@ function SliderRow({
   onChange: (v: number) => void;
 }) {
   const type = useType();
-  const styles = useMemo(() => makeStyles(type), [type]);
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
   return (
     <View style={styles.sliderRow}>
       <View style={styles.rowBetween}>
@@ -264,11 +287,12 @@ function SliderRow({
 }
 function Divider() {
   const type = useType();
-  const styles = useMemo(() => makeStyles(type), [type]);
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
   return <View style={styles.divider} />;
 }
 
-function makeStyles(type: ReturnType<typeof useType>) {
+function makeStyles(type: ReturnType<typeof useType>, colors: ReturnType<typeof useAppTheme>["colors"]) {
   return StyleSheet.create({
     content: { padding: space[5], paddingBottom: 100 },
     h1: { ...type.xl, fontFamily: font.bold, color: colors.ink, marginTop: space[3], marginBottom: space[1] },
@@ -307,7 +331,7 @@ function makeStyles(type: ReturnType<typeof useType>) {
     voiceCardOn: { borderColor: colors.brand, backgroundColor: colors.brand50 },
     voiceTitle: { ...type.xs, fontFamily: font.bold, color: colors.ink, marginTop: 4, textAlign: "center" },
     voiceHint: { ...type.xs, fontFamily: font.semibold, color: colors.ink300, fontSize: Math.max(9, Math.round(type.xs.fontSize * 0.75)), textAlign: "center", marginTop: 2 },
-    card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], ...shadowCard },
+    card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], paddingVertical: space[2], ...shadowCard },
     row: { flexDirection: "row", alignItems: "center", paddingVertical: space[3] },
     sliderRow: { paddingVertical: space[3] },
     rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

@@ -1,0 +1,9 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///play"
+- extendedWaitUntil:
+    visible:
+      text: "New match"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

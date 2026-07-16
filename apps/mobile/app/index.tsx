@@ -135,7 +135,7 @@ export default function OrientationScreen() {
             {step + 1} / {STEPS.length}
           </Text>
           {!isLast && (
-            <Pressable onPress={() => void finish()} hitSlop={8}>
+            <Pressable onPress={() => void finish()} hitSlop={8} testID="orientation-skip">
               <Text style={styles.skip}>Skip</Text>
             </Pressable>
           )}

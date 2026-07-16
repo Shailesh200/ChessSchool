@@ -61,10 +61,9 @@ function Gate() {
     }
 
     if (guest && user) {
-      // Parity credential deep-links must reach LoginScreen; guest Gate would
-      // otherwise bounce /login straight back to Academy before auto-submit.
-      if (onLogin && process.env.EXPO_PUBLIC_PARITY === "1") return;
-      if (onOrientation || onOnboarding || onLogin) router.replace(ACADEMY);
+      // Guests must reach /login to enroll (My ID → login) — do not bounce them away.
+      if (onLogin) return;
+      if (onOrientation || onOnboarding) router.replace(ACADEMY);
       return;
     }
 

@@ -34,10 +34,15 @@ function resolveApiUrl(): string {
   const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (__DEV__) {
+    // Parity harness (Metro started with EXPO_PUBLIC_PARITY=1) — always use bundled API URL.
+    if (process.env.EXPO_PUBLIC_PARITY === "1" && envUrl) {
+      return normalizeUrl(envUrl);
+    }
     const lanHost = metroDevHost();
     // Physical device: localhost in .env points at the phone — use Metro's LAN IP instead.
     if (lanHost && (!envUrl || isLocalHost(envUrl))) {
-      return `http://${lanHost}:3000`;
+      const port = envUrl?.match(/:(\d+)/)?.[1] ?? "3000";
+      return `http://${lanHost}:${port}`;
     }
     if (envUrl) return normalizeUrl(envUrl);
     return "http://localhost:3000";
@@ -102,9 +107,14 @@ async function fetchOnce<T>(path: string, opts: { method?: string; body?: unknow
   });
   if (!res.ok) {
     const msg = (await res.json().catch(() => ({}))) as { error?: string };
+    // Only wipe the session if this 401 is for the token we still hold.
+    // Stale in-flight requests (e.g. guest→auth race) must not clear a fresh adopt.
     if (res.status === 401 && opts.token) {
-      await clearToken();
-      onUnauthorized?.();
+      const current = await getToken();
+      if (current === opts.token) {
+        await clearToken();
+        onUnauthorized?.();
+      }
     }
     throw new ApiError(res.status, msg.error ?? `HTTP ${res.status}`);
   }

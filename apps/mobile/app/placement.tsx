@@ -15,12 +15,18 @@ import { settings } from "@/settings";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { useAuth } from "@/auth";
+import { ScreenLoader } from "@/ScreenLoader";
 import { colors, font, radius, space, type } from "@/theme";
 
 type Puzzle = { fen: string; solution: string[] };
 type PlacementStage = { id: string; name: string; classIds: string[] };
 
-const STAGE_ORDER = ["elementary", "middle", "high"];
+const STAGE_ORDER = ["elementary", "middle", "high"] as const;
+const STAGE_NAMES: Record<(typeof STAGE_ORDER)[number], string> = {
+  elementary: "Elementary",
+  middle: "Middle School",
+  high: "High School",
+};
 
 export default function PlacementScreen() {
   const router = useRouter();
@@ -36,6 +42,7 @@ export default function PlacementScreen() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [done, setDone] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [savingPlacement, setSavingPlacement] = useState(false);
 
   async function loadPuzzles() {
     setLoadError(false);
@@ -43,19 +50,24 @@ export default function PlacementScreen() {
     try {
       const [placement, catalog] = await Promise.all([
         api<{ puzzles: Puzzle[] }>("/api/placement"),
-        api<{ semesters: { stage: string; classes: { id: string }[] }[]; stages: { id: string; name: string }[] }>(
-          "/api/catalog",
-        ),
+        api<{
+          semesters: { id: string; stage: string }[];
+          classes: { id: string; semesterId: string }[];
+        }>("/api/catalog"),
       ]);
       const built: PlacementStage[] = STAGE_ORDER.map((id) => {
-        const classIds = catalog.semesters
-          .filter((s) => s.stage === id)
-          .flatMap((s) => s.classes.map((c) => c.id));
-        const name = catalog.stages.find((s) => s.id === id)?.name ?? id;
-        return { id, name, classIds };
+        const semesterIds = new Set(catalog.semesters.filter((s) => s.stage === id).map((s) => s.id));
+        const classIds = catalog.classes.filter((c) => semesterIds.has(c.semesterId)).map((c) => c.id);
+        return { id, name: STAGE_NAMES[id], classIds };
       }).filter((s) => s.classIds.length > 0);
       setStages(built);
-      setPuzzles(placement.puzzles ?? []);
+      // Shuffle so consecutive runs don't feel identical (pool order is curriculum-sorted).
+      const pool = [...(placement.puzzles ?? [])];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+      }
+      setPuzzles(pool);
     } catch {
       setLoadError(true);
       setPuzzles([]);
@@ -74,19 +86,28 @@ export default function PlacementScreen() {
 
   if (!puzzles) {
     return (
-      <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator color={colors.brand} size="large" /></View></SafeAreaView>
+      <SafeAreaView style={styles.safe}>
+        <ScreenLoader variant="fullscreen" label="Preparing placement puzzles…" />
+      </SafeAreaView>
     );
   }
 
   async function admitStage(targetIdx: number, elo: number) {
+    if (savingPlacement) return;
+    setSavingPlacement(true);
     settings.set("targetElo", elo);
     const classIds = stages.slice(0, targetIdx).flatMap((s) => s.classIds);
-    await mutateProgress((snap) => {
-      let next: Record<string, unknown> = { ...snap, rating: elo, placementDone: true };
-      for (const cid of classIds) next = graduateClass(next, cid);
-      return next;
-    });
-    router.replace("/(tabs)/academy");
+    try {
+      await mutateProgress((snap) => {
+        let next: Record<string, unknown> = { ...snap, rating: elo, placementDone: true };
+        for (const cid of classIds) next = graduateClass(next, cid);
+        return next;
+      });
+      router.replace("/(tabs)/academy");
+    } catch {
+      setSavingPlacement(false);
+      setLoadError(true);
+    }
   }
 
   if (loadError) {
@@ -129,15 +150,29 @@ export default function PlacementScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Cody expression="cheer" size={140} />
-          <Text style={styles.doneTitle}>You scored {correctRef.current}/{puzzles.length}</Text>
-          <Text style={styles.doneSub}>
-            Based on your test, we recommend starting at {target.name}.
-          </Text>
-          <View style={{ marginTop: space[5], width: 280, gap: space[2] }}>
-            <Button label={`Start at ${target.name} →`} variant="success" onPress={() => admitStage(targetIdx, elo)} />
-            <Button label="Start from the beginning" variant="outline" onPress={() => admitStage(0, 600)} />
-          </View>
+          {savingPlacement ? (
+            <ScreenLoader label="Saving your placement…" />
+          ) : (
+            <>
+              <Cody expression="cheer" size={140} />
+              <Text style={styles.doneTitle}>You scored {correctRef.current}/{puzzles.length}</Text>
+              <Text style={styles.doneSub}>
+                Based on your test, we recommend starting at {target.name}.
+              </Text>
+              <View style={{ marginTop: space[5], width: 280, gap: space[2] }}>
+                <Button
+                  label={`Start at ${target.name} →`}
+                  variant="success"
+                  onPress={() => admitStage(targetIdx, elo)}
+                />
+                <Button
+                  label="Start from the beginning"
+                  variant="outline"
+                  onPress={() => admitStage(0, 600)}
+                />
+              </View>
+            </>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -180,7 +215,13 @@ export default function PlacementScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.top}>
         <BackButton />
-        <Text style={styles.progress}>{i + 1}/{puzzles.length}</Text>
+        <View style={styles.topCenter}>
+          <Text testID="placement-title" style={styles.eyebrow}>
+            Placement test
+          </Text>
+          <Text style={styles.progress}>Question {i + 1} of {puzzles.length} · find the best move</Text>
+        </View>
+        <View style={{ width: 40 }} />
       </View>
       <View style={styles.body}>
         <Cody expression={mood} size={72} />
@@ -195,7 +236,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: space[5] },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: space[4], paddingTop: 6 },
-  progress: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
+  topCenter: { flex: 1, alignItems: "center", paddingHorizontal: space[2] },
+  eyebrow: { ...type.caption, fontFamily: font.bold, color: colors.brand, textTransform: "uppercase", letterSpacing: 0.5 },
+  progress: { ...type.sm, fontFamily: font.bold, color: colors.ink500, textAlign: "center", marginTop: 2 },
   body: { flex: 1, alignItems: "center", padding: space[4], gap: space[3] },
   prompt: { ...type.base, fontFamily: font.bold, color: colors.ink },
   doneTitle: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },

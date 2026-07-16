@@ -27,24 +27,29 @@ The web client ID (`EXPO_PUBLIC_GOOGLE_CLIENT_ID`) is **not** valid as an Androi
 
 In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (same project as web):
 
-### Android OAuth client
+### Android OAuth client (required for the native account picker)
 - Application type: **Android**
 - Package name: `com.chessschool.app`
-- SHA-1: from EAS credentials (`eas credentials -p android`) or your upload keystore
-- Copy the **Android client ID** → `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` in EAS env / `apps/mobile/.env` (see `apps/mobile/.env.example`)
+- SHA-1 for **local Gradle release APKs** (current `android/app` debug keystore used for release signing):
+  `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
+- SHA-1 for **EAS preview/production** Android builds (Expo keystore `tsgLua-5VY`):
+  `82:BD:4A:17:CD:02:F0:68:E6:FB:98:B4:F6:7A:08:8D:33:A2:E4:A8`
+  Add this as a **second** Android OAuth client (same package `com.chessschool.app`, this SHA-1) — Google Cloud does not merge fingerprints onto one client.
+- The app uses **`@react-native-google-signin/google-signin`** (in-app account picker, not an external browser).
+- In the app / EAS env you still set **`EXPO_PUBLIC_GOOGLE_CLIENT_ID`** to the **Web** client ID (needed for the ID token). Creating the Android client in Google Cloud with package + SHA-1 is what authorizes the APK — you do **not** paste the Android client ID over the Web client ID.
 
 ### iOS OAuth client (when shipping iOS)
 - Application type: **iOS**
 - Bundle ID: `com.chessschool.app`
 - Copy the **iOS client ID** → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+- Add the plugin option `iosUrlScheme` (reversed iOS client ID) if you ship an iOS build.
 
 ### Server (Vercel)
-Add the same native client IDs to `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` (and optional `EXPO_PUBLIC_*` aliases) so `/api/auth/google/token` accepts ID tokens from the app. See `apps/web/.env.example` and `docs/ENV.md`.
+Ensure `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` includes the **Web** client (token `aud`). Optionally add `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` for extra audiences. See `apps/web/.env.example` and `docs/ENV.md`.
 
-### Redirect URI (auto)
-Expo uses `com.chessschool.app:/oauthredirect` — no manual redirect URI entry needed for Android/iOS native clients.
+Putting the **Web** client ID into `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` breaks sign-in — those must be platform-native clients when used.
 
-Rebuild the app after changing env vars (`expo start -c` is not enough for EAS builds).
+Rebuild the native app after changing Google OAuth env vars or adding the Google Sign-In plugin (`eas build` / local Gradle). OTA JS updates are not enough.
 
 ---
 

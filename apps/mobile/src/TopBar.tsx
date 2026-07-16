@@ -31,6 +31,7 @@ export function TopBar() {
   const d = useProgress();
   const xp = (d?.xp as number) ?? 0;
   const streak = (d?.streak as number) ?? 0;
+  const rating = (d?.rating as number) ?? 800;
   const graduated = ((d?.graduatedClasses as string[]) ?? []).length;
   const { level, into, need } = levelInfo(xp);
   const pct = need > 0 ? into / need : 0;
@@ -61,6 +62,15 @@ export function TopBar() {
           alignItems: "center",
           gap: 4,
           backgroundColor: "rgba(246,195,67,0.15)",
+          borderRadius: radius.pill,
+          paddingHorizontal: space[2],
+          paddingVertical: 2,
+        },
+        ratingPill: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 3,
+          backgroundColor: colors.brand50,
           borderRadius: radius.pill,
           paddingHorizontal: space[2],
           paddingVertical: 2,
@@ -117,6 +127,10 @@ export function TopBar() {
         </View>
         <View style={styles.track}>
           <Animated.View style={[styles.fill, { width: w.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]} />
+        </View>
+        <View style={styles.ratingPill}>
+          <Icon name="target" size={14} color={colors.brand} />
+          <AnimatedNumber value={rating} style={styles.num} />
         </View>
       </View>
       <View style={styles.gpill}>

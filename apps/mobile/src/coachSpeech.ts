@@ -5,6 +5,26 @@ import { normalizeCoachVoice, type CoachVoiceId } from "./coachVoices";
 import { settings } from "./settings";
 import type { CoachPersonality } from "./matchCoach";
 
+type SpeechModule = typeof import("expo-speech");
+/** Lazy — dev clients built before expo-speech was added lack the native module. */
+let speechJs: SpeechModule | null | undefined;
+
+function getSpeechJs(): SpeechModule | null {
+  if (speechJs !== undefined) return speechJs;
+  if (Platform.OS === "web") {
+    speechJs = null;
+    return null;
+  }
+  try {
+    // Dev clients built before expo-speech was linked throw on require — skip fallback gracefully.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    speechJs = require("expo-speech") as SpeechModule;
+  } catch {
+    speechJs = null;
+  }
+  return speechJs;
+}
+
 const audioCache = new Map<string, string>();
 let currentPlayer: AudioPlayer | null = null;
 let speakGen = 0;
@@ -88,6 +108,11 @@ async function playUri(uri: string, volume: number, gen: number): Promise<void> 
 export function stopCoachSpeech(): void {
   speakGen++;
   stopCurrent();
+  try {
+    getSpeechJs()?.stop();
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function prefetchCoachText(text: string): Promise<void> {
@@ -101,16 +126,57 @@ export async function prefetchCoachText(text: string): Promise<void> {
   await fetchCloudAudio(line, normalizePersonality(s.coachPersonality), voice);
 }
 
+/** Locale/pitch hints so OS TTS isn't identical when cloud `/api/tts` is unreachable. */
+const LOCAL_VOICE: Record<string, { language: string; pitch: number; rate: number }> = {
+  auto: { language: "en-US", pitch: 1, rate: 0.95 },
+  emma: { language: "en-US", pitch: 1.05, rate: 0.95 },
+  aria: { language: "en-US", pitch: 1.1, rate: 1 },
+  jane: { language: "en-IE", pitch: 1, rate: 0.95 },
+  grant: { language: "en-US", pitch: 0.9, rate: 0.9 },
+  sonia: { language: "en-GB", pitch: 1.05, rate: 0.95 },
+  natasha: { language: "en-AU", pitch: 1.05, rate: 0.95 },
+  neerja: { language: "en-IN", pitch: 1, rate: 0.95 },
+  brian: { language: "en-GB", pitch: 0.85, rate: 0.88 },
+  guy: { language: "en-US", pitch: 0.95, rate: 0.92 },
+  roger: { language: "en-GB", pitch: 0.9, rate: 0.9 },
+  ryan: { language: "en-GB", pitch: 1.05, rate: 1 },
+  william: { language: "en-AU", pitch: 0.95, rate: 0.92 },
+  tony: { language: "en-US", pitch: 1.1, rate: 0.98 },
+};
+
+async function speakLocalFallback(text: string, gen: number, voice: CoachVoiceId): Promise<void> {
+  const Speech = getSpeechJs();
+  if (!Speech || gen !== speakGen) return;
+  const profile = LOCAL_VOICE[voice] ?? LOCAL_VOICE.auto!;
+  await new Promise<void>((resolve) => {
+    Speech.speak(text, {
+      language: profile.language,
+      pitch: profile.pitch,
+      rate: profile.rate,
+      onDone: () => resolve(),
+      onStopped: () => resolve(),
+      onError: () => resolve(),
+    });
+  });
+}
+
 export async function speakCoachText(text: string): Promise<void> {
   const s = settings.get();
   if (!s.sound || !s.coachSpeech) return;
   const line = text.trim();
   if (!line || line === "Thinking…") return;
-  const gen = ++speakGen;
+  // Match web: stop any in-flight clip before fetching the next voice line.
+  stopCoachSpeech();
+  const gen = speakGen;
   const voice = normalizeCoachVoice(s.coachVoice);
   const personality = normalizePersonality(s.coachPersonality);
   const uri = await fetchCloudAudio(line, personality, voice);
-  if (!uri || gen !== speakGen) return;
+  if (gen !== speakGen) return;
+  if (!uri) {
+    // Cloud TTS carries personality→Edge voice (same as web). Local OS TTS varies by locale.
+    await speakLocalFallback(line, gen, voice);
+    return;
+  }
   await playUri(uri, s.volume, gen);
 }
 

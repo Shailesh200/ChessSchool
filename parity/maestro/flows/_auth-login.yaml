@@ -1,0 +1,57 @@
+appId: com.chessschool.app
+---
+- openLink: ${LOGIN_LINK}
+- tapOn:
+    text: "Not Now"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible:
+      text: "Syncing your progress"
+    optional: true
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    optional: true
+    timeout: 45000
+- openLink: chessschool:///profile
+- tapOn:
+    text: "Not Now"
+    optional: true
+- tapOn:
+    text: "Open debugger to view warnings."
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 2000
+- extendedWaitUntil:
+    visible:
+      text: "Day streak"
+    optional: true
+    timeout: 20000
+- runFlow:
+    when:
+      notVisible:
+        text: "Day streak"
+    commands:
+      - openLink: ${AUTH_LINK}
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - extendedWaitUntil:
+          visible:
+            id: "tab-Academy"
+          optional: true
+          timeout: 45000
+      - openLink: chessschool:///profile
+      - waitForAnimationToEnd:
+          timeout: 2000
+- extendedWaitUntil:
+    visible:
+      text: "Day streak"
+    timeout: 120000
+- openLink: chessschool:///academy
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 60000

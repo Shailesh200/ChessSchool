@@ -190,6 +190,7 @@ export default function LessonScreen() {
   const [nextId, setNextId] = useState<string | null>(null);
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
   const [resolvingNext, setResolvingNext] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
   const [observeReady, setObserveReady] = useState(true);
   const [hintLevel, setHintLevel] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -301,14 +302,19 @@ export default function LessonScreen() {
   const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
 
   function advance() {
-    if (index + 1 >= total) finish();
-    else {
-      setIndex((i) => i + 1);
-      setPhase("playing");
-      setHintLevel(0);
-      setLastMove(null);
-      setDisplayFen(lesson!.steps[index + 1]?.fen);
+    if (advancing || resolvingNext) return;
+    setAdvancing(true);
+    if (index + 1 >= total) {
+      void finish().finally(() => setAdvancing(false));
+      return;
     }
+    setIndex((i) => i + 1);
+    setPhase("playing");
+    setHintLevel(0);
+    setLastMove(null);
+    setDisplayFen(lesson!.steps[index + 1]?.fen);
+    // Brief lock so Continue can't double-fire while the next step mounts.
+    setTimeout(() => setAdvancing(false), 450);
   }
 
   function retryExam() {
@@ -716,7 +722,12 @@ export default function LessonScreen() {
       {/* Bottom CTA */}
       <View style={styles.bottom}>
         {showContinue ? (
-          <Button label={step.kind === "observe" && !observeReady ? "Watching…" : "Continue"} variant="success" onPress={() => { if (step.kind !== "observe" || observeReady) advance(); }} />
+          <Button
+            label={advancing || resolvingNext ? "Loading…" : step.kind === "observe" && !observeReady ? "Watching…" : "Continue"}
+            variant="success"
+            disabled={advancing || resolvingNext || (step.kind === "observe" && !observeReady)}
+            onPress={() => advance()}
+          />
         ) : step.kind === "quiz" ? (
           <Text style={styles.moveCue}>Tap the answer you think is right</Text>
         ) : (

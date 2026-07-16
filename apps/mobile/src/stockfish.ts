@@ -42,7 +42,8 @@ export function eloToUci(elo: number): string[] {
   if (e >= 1320) {
     return ["setoption name UCI_LimitStrength value true", `setoption name UCI_Elo value ${e}`];
   }
-  const skill = Math.max(0, Math.min(20, Math.round((e - 300) / 51))); // 300→0 … ~1320→20
+  // Match web: keep sub-1300 presets beatable (skill 0–6, not 0–20).
+  const skill = Math.max(0, Math.min(6, Math.round((e - 850) / 120)));
   return ["setoption name UCI_LimitStrength value false", `setoption name Skill Level value ${skill}`];
 }
 

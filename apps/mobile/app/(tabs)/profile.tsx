@@ -37,7 +37,7 @@ const HUB: { icon: IconName; label: string; route: string; authOnly?: boolean; a
 ];
 
 export default function ProfileScreen() {
-  const { user, guest, exitGuest, logout } = useAuth();
+  const { user, guest, exitGuest } = useAuth();
   const router = useRouter();
   const { colors } = useAppTheme();
   const p = useProgress() as Progress | null;
@@ -75,8 +75,6 @@ export default function ProfileScreen() {
         badgeOff: { backgroundColor: colors.surfaceSunken },
         badgeTitle: { ...type.caption, fontFamily: font.bold, color: colors.ink },
         badgeDesc: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", lineHeight: 12 },
-        logout: { alignSelf: "center", borderWidth: 1, borderColor: colors.danger, borderRadius: radius.md, paddingVertical: 13, paddingHorizontal: 44 },
-        logoutText: { color: colors.danger, fontFamily: font.bold, fontSize: 15 },
       }),
     [colors],
   );
@@ -176,9 +174,6 @@ export default function ProfileScreen() {
               })}
             </View>
 
-            <Pressable style={styles.logout} onPress={logout}>
-              <Text style={styles.logoutText}>Log out</Text>
-            </Pressable>
           </>
         )}
       </ScrollView>

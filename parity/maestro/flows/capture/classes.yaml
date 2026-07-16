@@ -1,0 +1,21 @@
+appId: com.chessschool.app
+---
+- openLink: ${AUTH_LINK}
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible:
+      text: "Syncing your progress"
+    optional: true
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 60000
+- openLink: "chessschool:///classes"
+- extendedWaitUntil:
+    visible:
+      text: "All classes"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

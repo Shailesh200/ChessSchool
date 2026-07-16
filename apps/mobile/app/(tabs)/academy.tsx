@@ -179,12 +179,6 @@ export default function AcademyScreen() {
                 : "Graduate through classes. Become a stronger player."}
             </Text>
           </View>
-          {!guest && (
-            <View style={styles.ratingChip}>
-              <Icon name="target" size={16} color={colors.brand} />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View>
-          )}
         </View>
 
         {error && !data ? (

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Circle, G } from "react-native-svg";
@@ -12,8 +12,10 @@ import { emojiToIcon } from "@/iconMaps";
 import { haptics } from "@/haptics";
 import { isLessonUnlocked } from "@/lessonUnlock";
 import { fetchProgress, lessonRecordsFromCache, progressStore } from "@/progressStore";
+import { ScreenLoader } from "@/ScreenLoader";
 import { useSettings } from "@/settings";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { useAppTheme, type ThemeColors } from "@/ThemeProvider";
+import { font, radius, shadowCard, space, type } from "@/theme";
 
 type LessonLite = {
   id: string;
@@ -31,7 +33,53 @@ type ClassData = {
 type NodeStatus = "completed" | "active" | "locked" | "exam";
 type JNode = { id: string; title: string; subtitle: string; emoji: string; mastery: number; status: NodeStatus };
 
-function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onPress: () => void }) {
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    content: { padding: space[5], gap: space[5], paddingBottom: 40 },
+    back: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+    lockBanner: {
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: colors.warning,
+      backgroundColor: colors.surfaceCard,
+      padding: space[4],
+    },
+    lockTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    lockSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
+    showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
+    showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+    header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },
+    headerRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
+    emojiTile: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.brand50, justifyContent: "center", alignItems: "center" },
+    title: { ...type.lg, fontFamily: font.bold, color: colors.ink },
+    blurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
+    chipRow: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1] },
+    chip: { ...type.caption, fontFamily: font.bold, color: colors.ink700, overflow: "hidden" },
+    path: { width: "100%", maxWidth: 320, alignSelf: "center", alignItems: "center" },
+    connector: { width: 6, height: 24, borderRadius: radius.pill, backgroundColor: colors.hairline, marginVertical: 4 },
+    halo: { position: "absolute", width: 76, height: 76, borderRadius: 38, backgroundColor: "rgba(91,91,214,0.22)" },
+    nodeCircle: { position: "absolute", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", borderBottomWidth: 3, borderBottomColor: "rgba(0,0,0,0.12)" },
+    nodeTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink, maxWidth: 150 },
+    nodeSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, maxWidth: 150 },
+  });
+}
+
+function JourneyNode({
+  node,
+  index,
+  onPress,
+  styles,
+  colors,
+}: {
+  node: JNode;
+  index: number;
+  onPress: () => void;
+  styles: ReturnType<typeof makeStyles>;
+  colors: ThemeColors;
+}) {
   const { reducedMotion } = useSettings();
   const pulse = useRef(new Animated.Value(0)).current;
 
@@ -53,7 +101,7 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
   const isExam = node.status === "exam";
   const ring = node.status === "completed" ? colors.gold : isExam ? colors.warning : colors.brand;
   const prog = node.status === "locked" ? 0 : node.status === "completed" ? 1 : Math.max(node.mastery, 0.06);
-  const bg = node.status === "locked" ? colors.surfaceSunken : isExam ? "#fff7e6" : "#fff";
+  const bg = node.status === "locked" ? colors.surfaceSunken : isExam ? colors.brand50 : colors.surfaceCard;
   const locked = node.status === "locked";
 
   return (
@@ -98,6 +146,8 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
 export default function ClassJourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors: theme } = useAppTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [data, setData] = useState<ClassData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [records, setRecords] = useState<Record<string, { mastery: number }>>({});
@@ -177,7 +227,7 @@ export default function ClassJourneyScreen() {
   if (!data) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}><ActivityIndicator color={colors.brand} size="large" /></View>
+        <ScreenLoader variant="fullscreen" label="Loading class…" />
       </SafeAreaView>
     );
   }
@@ -210,7 +260,7 @@ export default function ClassJourneyScreen() {
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <View style={styles.emojiTile}>
-              <Icon name={emojiToIcon(cls.emoji)} size={28} color={colors.brand} duotone />
+              <Icon name={emojiToIcon(cls.emoji)} size={28} color={theme.brand} duotone />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text testID="class-title" style={styles.title} numberOfLines={1}>{cls.title}</Text>
@@ -219,15 +269,15 @@ export default function ClassJourneyScreen() {
           </View>
           <View style={styles.chips}>
             <View style={styles.chipRow}>
-              <Icon name="book" size={12} color={colors.ink700} />
+              <Icon name="book" size={12} color={theme.ink700} />
               <Text style={styles.chip}>{total} lessons</Text>
             </View>
             <View style={styles.chipRow}>
-              <Icon name="calendar" size={12} color={colors.ink700} />
+              <Icon name="calendar" size={12} color={theme.ink700} />
               <Text style={styles.chip}>~{minutes} min</Text>
             </View>
             <View style={styles.chipRow}>
-              <Icon name="star" size={12} color={colors.ink700} />
+              <Icon name="star" size={12} color={theme.ink700} />
               <Text style={styles.chip}>{done}/{total} mastered</Text>
             </View>
           </View>
@@ -245,7 +295,7 @@ export default function ClassJourneyScreen() {
 
         <View style={styles.path}>
           {nodes.slice(0, visibleCount).map((n, i) => (
-            <JourneyNode key={n.id} node={n} index={i} onPress={() => go(n.id, n.status)} />
+            <JourneyNode key={n.id} node={n} index={i} styles={styles} colors={theme} onPress={() => go(n.id, n.status)} />
           ))}
           {visibleCount < nodes.length && (
             <Pressable style={styles.showMore} onPress={() => setShown((s) => s + 8)}>
@@ -256,6 +306,8 @@ export default function ClassJourneyScreen() {
             <JourneyNode
               node={{ id: data.exam.id, title: data.exam.title, subtitle: "Pass to graduate", emoji: "📝", mastery: 0, status: "exam" }}
               index={nodes.length}
+              styles={styles}
+              colors={theme}
               onPress={() => go(data.exam!.id, "exam")}
             />
           )}
@@ -264,35 +316,3 @@ export default function ClassJourneyScreen() {
     </AppShell>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  content: { padding: space[5], gap: space[5], paddingBottom: 40 },
-  back: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-  lockBanner: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.warning,
-    backgroundColor: "#fff7e6",
-    padding: space[4],
-  },
-  lockTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  lockSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
-  showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
-  showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-  header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
-  emojiTile: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.brand50, justifyContent: "center", alignItems: "center" },
-  title: { ...type.lg, fontFamily: font.bold, color: colors.ink },
-  blurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
-  chipRow: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1] },
-  chip: { ...type.caption, fontFamily: font.bold, color: colors.ink700, overflow: "hidden" },
-  path: { width: "100%", maxWidth: 320, alignSelf: "center", alignItems: "center" },
-  connector: { width: 6, height: 24, borderRadius: radius.pill, backgroundColor: colors.hairline, marginVertical: 4 },
-  halo: { position: "absolute", width: 76, height: 76, borderRadius: 38, backgroundColor: "rgba(91,91,214,0.22)" },
-  nodeCircle: { position: "absolute", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", borderBottomWidth: 3, borderBottomColor: "rgba(0,0,0,0.12)" },
-  nodeTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink, maxWidth: 150 },
-  nodeSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, maxWidth: 150 },
-});

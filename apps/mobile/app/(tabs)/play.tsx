@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -14,7 +14,8 @@ import { BotAvatar } from "@/BotAvatar";
 import { emojiToIcon } from "@/iconMaps";
 import { useSettings, settings } from "@/settings";
 import { canResumeAnyMatch, getActiveMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
-import { colors, font, radius, space, type } from "@/theme";
+import { useAppTheme } from "@/ThemeProvider";
+import { font, radius, space, type } from "@/theme";
 
 const ELOS = [...BOT_ELO_PRESETS];
 const TIMES = [
@@ -80,6 +81,8 @@ const ASSISTED_VARIANTS: { id: AssistedVariant; title: string; subtitle: string 
 ];
 
 export default function PlaySetupScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { guest } = useAuth();
   const { targetElo } = useSettings();
@@ -448,7 +451,8 @@ export default function PlaySetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Record<string, string>) {
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   content: { padding: space[5], gap: space[4], paddingBottom: 40 },
   h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
@@ -552,4 +556,5 @@ const styles = StyleSheet.create({
   trainingSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
   enrollNote: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[2] },
   enrollLink: { color: colors.brand, fontFamily: font.bold },
-});
+  });
+}

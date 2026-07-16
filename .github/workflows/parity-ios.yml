@@ -1,0 +1,117 @@
+name: Parity iOS
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * *"
+
+concurrency:
+  group: parity-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity-semantic:
+    name: PWA semantic matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/generate-parity-maestro.mjs
+      - run: node scripts/verify-parity-coverage.mjs
+      - run: pnpm --filter web db:fresh
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm parity:semantic
+        env:
+          CI: true
+
+  parity-ios:
+    name: PWA ↔ iOS visual parity
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      PARITY_ENV: local
+      PARITY_BASE_URL: http://localhost:3210
+      PARITY_WEB_PORT: "3210"
+      PARITY_METRO_PORT: "8081"
+      EXPO_PUBLIC_API_URL: http://localhost:3210
+      SESSION_TOKEN_SECRET: e2e-test-session-token-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: curl -Ls "https://get.maestro.mobile.dev" | bash
+      - run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+      - run: pnpm --filter web db:fresh
+      - run: node scripts/generate-parity-maestro.mjs
+      - run: pnpm --filter web exec playwright install chromium
+      - name: Boot iOS Simulator
+        run: |
+          xcrun simctl boot "iPhone 15 Pro" 2>/dev/null || true
+          open -a Simulator
+      - name: Build and install dev client
+        working-directory: apps/mobile
+        run: |
+          npx expo prebuild -p ios --no-install
+          cd ios && pod install
+          cd ..
+          npx expo run:ios --device "iPhone 15 Pro" --no-bundler
+      - name: Run parity harness
+        run: bash scripts/parity-ios.sh
+      - name: Upload parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-ios-report
+          path: parity/reports/
+          retention-days: 14
+
+  parity-ios-prod:
+    name: PWA ↔ iOS (production API)
+    if: github.event_name == 'schedule'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      PARITY_ENV: prod
+      PARITY_BASE_URL: https://chess-school.in
+      PARITY_EMAIL: ${{ secrets.PARITY_EMAIL }}
+      PARITY_PASSWORD: ${{ secrets.PARITY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: curl -Ls "https://get.maestro.mobile.dev" | bash
+      - run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+      - run: node scripts/generate-parity-maestro.mjs
+      - run: pnpm --filter web exec playwright install chromium
+      - name: Boot simulator + parity (prod)
+        run: |
+          xcrun simctl boot "iPhone 15 Pro" 2>/dev/null || true
+          open -a Simulator
+          bash scripts/parity-ios.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-ios-prod-report
+          path: parity/reports/

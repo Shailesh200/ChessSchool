@@ -19,16 +19,26 @@
     "verify:web-seo": "bash scripts/verify-web-seo.sh",
     "verify:web-lighthouse": "bash scripts/verify-web-lighthouse.sh",
     "verify:e2e-routes": "node scripts/verify-e2e-route-coverage.mjs",
+    "verify:parity": "node scripts/verify-parity-coverage.mjs",
+    "parity:generate": "node scripts/generate-parity-maestro.mjs",
+    "parity:seed": "node scripts/parity-seed.mjs",
+    "parity:compare": "node scripts/parity-compare.mjs",
+    "parity:ios": "bash scripts/parity-ios.sh",
+    "parity:semantic": "pnpm --filter web exec playwright test e2e/parity-matrix.spec.ts",
     "verify:coverage": "bash scripts/verify-test-coverage.sh",
     "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs",
     "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "chrome-launcher": "^1.2.1",
     "lighthouse": "^12.8.2",
-    "turbo": "^2.5.5",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
     "prettier": "^3.9.1",
-    "prettier-plugin-tailwindcss": "^0.8.0"
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "sharp": "^0.35.2",
+    "turbo": "^2.5.5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

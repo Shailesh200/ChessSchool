@@ -1,0 +1,14 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///academy"
+- waitForAnimationToEnd:
+    timeout: 3000
+- openLink: "chessschool:///lesson/pawn-power"
+- waitForAnimationToEnd:
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: "lesson-coach"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

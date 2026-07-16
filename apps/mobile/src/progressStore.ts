@@ -17,6 +17,7 @@ let lastFetchAt = 0;
 let lastWriteError: string | null = null;
 const PROGRESS_STALE_MS = 30_000;
 const GUEST_KEY = "chessschool.guestProgress";
+const GAMES_CACHE_KEY = "chessschool.recentGamesCache";
 const isWeb = Platform.OS === "web";
 const listeners = new Set<() => void>();
 const emit = () => { for (const l of listeners) l(); };
@@ -61,9 +62,50 @@ export function getProgressWriteError(): string | null {
   return lastWriteError;
 }
 
+async function saveGamesCache(games: unknown[]): Promise<void> {
+  try {
+    const raw = JSON.stringify(games);
+    if (isWeb) {
+      if (typeof localStorage !== "undefined") localStorage.setItem(GAMES_CACHE_KEY, raw);
+    } else {
+      await SecureStore.setItemAsync(GAMES_CACHE_KEY, raw);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function loadGamesCache(): Promise<unknown[] | null> {
+  try {
+    const raw = isWeb
+      ? typeof localStorage !== "undefined"
+        ? localStorage.getItem(GAMES_CACHE_KEY)
+        : null
+      : await SecureStore.getItemAsync(GAMES_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as unknown[]) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function pullRemote(): Promise<ProgressSnap> {
   return api<ProgressSnap>("/api/progress")
-    .then((d) => { cache = d; lastFetchAt = Date.now(); inflight = null; emit(); return d; })
+    .then(async (d) => {
+      cache = d;
+      lastFetchAt = Date.now();
+      inflight = null;
+      if (Array.isArray((d as { recentGames?: unknown[] })?.recentGames)) {
+        await saveGamesCache((d as { recentGames: unknown[] }).recentGames);
+      }
+      try {
+        const { loadSettingsFromAccount, hydrateSettings } = await import("./settings");
+        hydrateSettings((d as { settings?: Record<string, unknown> })?.settings as never);
+      } catch {
+        /* ignore */
+      }
+      emit();
+      return d;
+    })
     .catch((e) => {
       inflight = null;
       if (e instanceof ApiError && e.status === 401) {
@@ -139,6 +181,7 @@ export const progressStore = {
   set: (d: ProgressSnap) => { cache = d; emit(); },
   clear: () => { cache = null; emit(); },
   subscribe: (l: () => void) => { listeners.add(l); return () => listeners.delete(l); },
+  loadCachedGames: loadGamesCache,
 };
 
 /** Lesson mastery map from the cached progress snapshot. */
@@ -170,6 +213,7 @@ export function mutateProgress(fn: (snap: Record<string, unknown>) => Record<str
       lastWriteError = null;
       emit();
       await saveGuestSnap(next);
+      if (Array.isArray(next.recentGames)) await saveGamesCache(next.recentGames as unknown[]);
       return;
     }
 
@@ -178,6 +222,7 @@ export function mutateProgress(fn: (snap: Record<string, unknown>) => Record<str
       cache = { ...next, user: (base as { user?: unknown }).user ?? (cache as { user?: unknown } | null)?.user };
       lastWriteError = null;
       emit();
+      if (Array.isArray(next.recentGames)) await saveGamesCache(next.recentGames as unknown[]);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         cache = next;
