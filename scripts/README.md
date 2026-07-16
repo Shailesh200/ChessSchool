@@ -36,7 +36,7 @@ Runs, in order:
 pnpm verify:coverage      # unit tests + 90% thresholds
 pnpm verify:e2e-routes    # e2e route manifest only
 pnpm verify:web-seo       # static SEO checks
-pnpm verify:web-lighthouse # production build + all routes
+pnpm verify:web-lighthouse # production build + all routes → reports/lighthouse/index.html
 pnpm verify:web           # SEO + Lighthouse
 ```
 

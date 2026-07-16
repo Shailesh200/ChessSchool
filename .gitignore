@@ -68,6 +68,7 @@ android/
 # expo web export + parity harness output (build artifacts)
 apps/mobile/dist/
 parity/reports/
+reports/lighthouse/
 parity-shots/
 apps/web/parity-shots/
 apps/web/storybook-static/

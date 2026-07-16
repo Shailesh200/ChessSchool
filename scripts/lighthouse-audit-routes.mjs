@@ -13,6 +13,7 @@ const require = createRequire(import.meta.url);
 const chromeLauncher = require("chrome-launcher");
 
 import { scoreLighthouseReport } from "./lighthouse-score.mjs";
+import { writeLighthouseReport } from "./lighthouse-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROUTES_FILE = path.join(__dirname, "web-lighthouse-routes.json");
@@ -173,6 +174,19 @@ async function main() {
           status,
         ].join(""),
     );
+  }
+
+  const report = writeLighthouseReport({
+    results,
+    baseUrl: BASE,
+    formFactor: FORM_FACTOR,
+    passed: !anyFailed,
+  });
+  log("");
+  log(`→ Lighthouse report: ${report.htmlPath}`);
+  log(`→ Lighthouse JSON:   ${report.jsonPath}`);
+  if (!anyFailed) {
+    log("✓ Open the HTML report for the full milestone scorecard");
   }
 
   if (anyFailed) {

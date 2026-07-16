@@ -61,21 +61,23 @@ export function scoreLighthouseReport(report, thresholds, options = {}) {
   }
 
   const perfScore = Math.round((report.categories.performance?.score ?? 0) * 100);
+  const a11yScore = Math.round((report.categories.accessibility?.score ?? 0) * 100);
+  const bpScore = Math.round((report.categories["best-practices"]?.score ?? 0) * 100);
+  const seoScore = Math.round((report.categories.seo?.score ?? 0) * 100);
+
   const perfOk = perfScore >= thresholds.minPerformance;
   lines.push(
     `${perfOk ? "✓" : enforcePerf ? "✗" : "⚠"} Performance: ${perfScore} (min ${thresholds.minPerformance})`,
   );
   if (enforcePerf && !perfOk) failed = true;
 
-  for (const [cat, min] of [
-    ["accessibility", minA11y],
-    ["best-practices", minBp],
-    ["seo", minSeo],
+  for (const [cat, score, min] of [
+    ["accessibility", a11yScore, minA11y],
+    ["best-practices", bpScore, minBp],
+    ["seo", seoScore, thresholds.minSeo ?? minSeo],
   ]) {
-    const score = Math.round((report.categories[cat]?.score ?? 0) * 100);
-    const minScore = cat === "seo" && thresholds.minSeo != null ? thresholds.minSeo : min;
-    const ok = score >= minScore;
-    lines.push(`${ok ? "✓" : "✗"} ${cat}: ${score} (min ${minScore})`);
+    const ok = score >= min;
+    lines.push(`${ok ? "✓" : "✗"} ${cat}: ${score} (min ${min})`);
     if (!ok) failed = true;
   }
 
@@ -115,10 +117,18 @@ export function scoreLighthouseReport(report, thresholds, options = {}) {
     summary: {
       label,
       perfScore,
+      a11yScore,
+      bpScore,
+      seoScore,
       lcp,
       fcp,
       cls,
       tbt,
+      si,
+      tti,
+      ttfb,
+      mpfid,
+      inp: inpValue,
     },
   };
 }

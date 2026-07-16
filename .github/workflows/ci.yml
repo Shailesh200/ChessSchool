@@ -106,3 +106,12 @@ jobs:
           # Lab variance on GHA runners — LCP/FCP slack; TBT/MPFID are warn-only unless STRICT.
           WEB_LH_LAB_SLACK_MS: "800"
           WEB_LH_RETRIES: "3"
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: reports/lighthouse/
+          retention-days: 14
+          if-no-files-found: ignore

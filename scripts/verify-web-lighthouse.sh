@@ -64,4 +64,9 @@ fi
 export WEB_PREVIEW_PORT="$PORT"
 node "$ROOT/scripts/lighthouse-audit-routes.mjs"
 
+REPORT_HTML="$ROOT/reports/lighthouse/index.html"
+if [ -f "$REPORT_HTML" ]; then
+  log "→ Beautiful report: $REPORT_HTML"
+fi
+
 log "✓ Web Lighthouse passed (all routes)"
