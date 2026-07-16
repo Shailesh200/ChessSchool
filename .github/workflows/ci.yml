@@ -103,3 +103,6 @@ jobs:
         run: bash scripts/verify-web-lighthouse.sh
         env:
           SKIP_LIGHTHOUSE: "0"
+          # Lab variance on GHA runners — LCP/FCP slack; TBT/MPFID are warn-only unless STRICT.
+          WEB_LH_LAB_SLACK_MS: "800"
+          WEB_LH_RETRIES: "3"

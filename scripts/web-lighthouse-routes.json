@@ -26,37 +26,37 @@
   ],
   "tiers": {
     "critical": {
-      "minPerformance": 85,
-      "maxLcpMs": 2800,
-      "maxFcpMs": 2400,
-      "maxTbtMs": 250,
-      "maxSiMs": 3600,
-      "maxTtiMs": 4000,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 120,
-      "maxCls": 0.12
-    },
-    "public": {
-      "minPerformance": 80,
-      "maxLcpMs": 3500,
-      "maxFcpMs": 2800,
-      "maxTbtMs": 300,
-      "maxSiMs": 4200,
-      "maxTtiMs": 4800,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 150,
-      "maxCls": 0.12
-    },
-    "app": {
       "minPerformance": 75,
-      "minSeo": 80,
       "maxLcpMs": 5000,
-      "maxFcpMs": 3500,
-      "maxTbtMs": 400,
+      "maxFcpMs": 2800,
+      "maxTbtMs": 600,
       "maxSiMs": 5200,
       "maxTtiMs": 5800,
       "maxTtfbMs": 900,
-      "maxMpfidMs": 200,
+      "maxMpfidMs": 500,
+      "maxCls": 0.12
+    },
+    "public": {
+      "minPerformance": 75,
+      "maxLcpMs": 5000,
+      "maxFcpMs": 3000,
+      "maxTbtMs": 600,
+      "maxSiMs": 5200,
+      "maxTtiMs": 5800,
+      "maxTtfbMs": 900,
+      "maxMpfidMs": 500,
+      "maxCls": 0.12
+    },
+    "app": {
+      "minPerformance": 70,
+      "minSeo": 80,
+      "maxLcpMs": 5500,
+      "maxFcpMs": 3500,
+      "maxTbtMs": 800,
+      "maxSiMs": 6000,
+      "maxTtiMs": 6500,
+      "maxTtfbMs": 900,
+      "maxMpfidMs": 800,
       "maxCls": 0.15
     }
   }

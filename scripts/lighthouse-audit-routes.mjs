@@ -26,6 +26,7 @@ const MIN_A11Y = Number(process.env.WEB_LH_MIN_ACCESSIBILITY || 90);
 const MIN_BP = Number(process.env.WEB_LH_MIN_BEST_PRACTICES || 90);
 const MIN_SEO = Number(process.env.WEB_LH_MIN_SEO || 90);
 const LAB_SLACK_MS = Number(process.env.WEB_LH_LAB_SLACK_MS || 150);
+const MAX_ATTEMPTS = Number(process.env.WEB_LH_RETRIES || 2);
 
 const manifest = JSON.parse(fs.readFileSync(ROUTES_FILE, "utf8"));
 const routes = manifest.routes;
@@ -79,7 +80,14 @@ async function auditRoute(chrome, route) {
     labSlackMs: LAB_SLACK_MS,
   });
 
-  return { route, scored, outPath };
+  return { route, scored, outPath, report };
+}
+
+function shouldRetry(result) {
+  if (!result) return true;
+  if (result.report?.runtimeError) return true;
+  if ((result.scored?.summary?.perfScore ?? 0) === 0) return true;
+  return false;
 }
 
 async function main() {
@@ -89,17 +97,51 @@ async function main() {
   log(`  Routes: ${routes.length}`);
   log("");
 
+  const launchOpts = {
+    chromeFlags: [
+      "--headless=new",
+      "--no-sandbox",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+    ],
+  };
+  if (process.env.CHROME_PATH) {
+    launchOpts.chromePath = process.env.CHROME_PATH;
+    log(`  Chrome: ${process.env.CHROME_PATH}`);
+  }
+
+  const chrome = await chromeLauncher.launch(launchOpts);
   const results = [];
   let anyFailed = false;
 
-  for (const route of routes) {
-    log(`→ Auditing ${route.label} (${route.path}) [${route.tier}]`);
-    const started = Date.now();
-    const chrome = await chromeLauncher.launch({
-      chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"],
-    });
-    try {
-      const result = await auditRoute(chrome, route);
+  try {
+    for (const route of routes) {
+      log(`→ Auditing ${route.label} (${route.path}) [${route.tier}]`);
+      const started = Date.now();
+      let result = null;
+      let lastErr = null;
+
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          result = await auditRoute(chrome, route);
+          if (!shouldRetry(result) || attempt === MAX_ATTEMPTS) break;
+          log(`  · retry ${attempt}/${MAX_ATTEMPTS} (empty/runtime error)`);
+        } catch (err) {
+          lastErr = err;
+          if (attempt === MAX_ATTEMPTS) break;
+          log(
+            `  · retry ${attempt}/${MAX_ATTEMPTS} (${err instanceof Error ? err.message : err})`,
+          );
+        }
+      }
+
+      if (!result) {
+        anyFailed = true;
+        log(`✗ ${route.label} failed: ${lastErr instanceof Error ? lastErr.message : lastErr}`);
+        log("");
+        continue;
+      }
+
       results.push(result);
       for (const line of result.scored.lines) {
         console.log(line);
@@ -107,13 +149,9 @@ async function main() {
       if (result.scored.failed) anyFailed = true;
       log(`  … finished in ${Math.round((Date.now() - started) / 1000)}s`);
       log("");
-    } catch (err) {
-      anyFailed = true;
-      log(`✗ ${route.label} failed: ${err instanceof Error ? err.message : err}`);
-      log("");
-    } finally {
-      await chrome.kill();
     }
+  } finally {
+    await chrome.kill();
   }
 
   console.log("→ Summary (all screens):");
