@@ -14,9 +14,10 @@ const WEB = path.join(ROOT, "apps/web");
 const NEXT = path.join(WEB, ".next");
 const MAX_KB = Number(process.env.HOME_JS_BUDGET_KB ?? 280);
 
+// Home is `app/page.tsx` (landing / campus entry) — not under `(tabs)/`.
 const manifestPath = path.join(
   NEXT,
-  "server/app/(tabs)/page_client-reference-manifest.js",
+  "server/app/page_client-reference-manifest.js",
 );
 
 if (!fs.existsSync(manifestPath)) {
@@ -27,7 +28,7 @@ if (!fs.existsSync(manifestPath)) {
 const src = fs.readFileSync(manifestPath, "utf8");
 const manifest = Function(
   "globalThis",
-  `${src}\nreturn globalThis.__RSC_MANIFEST["/(tabs)/page"];`,
+  `${src}\nreturn globalThis.__RSC_MANIFEST["/page"];`,
 )({ __RSC_MANIFEST: {} });
 
 const entryJSFiles = manifest?.entryJSFiles;
@@ -39,8 +40,7 @@ if (!entryJSFiles) {
 const ROUTE_KEYS = [
   "[project]/apps/web/app/layout",
   "[project]/apps/web/app/template",
-  "[project]/apps/web/app/(tabs)/layout",
-  "[project]/apps/web/app/(tabs)/page",
+  "[project]/apps/web/app/page",
 ];
 
 const rootManifest = JSON.parse(
