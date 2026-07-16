@@ -22,7 +22,8 @@ export function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? (mode === "register" ? "/onboarding" : "/welcome");
+  const next =
+    searchParams.get("next") ?? (mode === "register" ? "/onboarding" : "/welcome");
   const isRegister = mode === "register";
 
   return (

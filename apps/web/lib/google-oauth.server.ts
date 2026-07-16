@@ -8,7 +8,9 @@ export function googleOAuthConfigured(): boolean {
 }
 
 export function googleClientId(): string | null {
-  return process.env.GOOGLE_CLIENT_ID ?? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? null;
+  return (
+    process.env.GOOGLE_CLIENT_ID ?? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? null
+  );
 }
 
 /** All client IDs that may appear as the `aud` claim on mobile ID tokens. */

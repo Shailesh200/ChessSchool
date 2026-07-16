@@ -13,8 +13,7 @@ import { isNavTabActive, NAV_TABS } from "./nav-tabs";
 export function BottomNav() {
   const pathname = usePathname();
   const [pending, setPending] = useState<string | null>(null);
-  const loadingHref =
-    pending && !pathname.startsWith(pending) ? pending : null;
+  const loadingHref = pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
     <nav

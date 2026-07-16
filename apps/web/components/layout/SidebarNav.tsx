@@ -27,8 +27,7 @@ export function SidebarNav() {
   const level = levelForXp(xp);
   const { into, need } = xpProgress(xp);
 
-  const loadingHref =
-    pending && !pathname.startsWith(pending) ? pending : null;
+  const loadingHref = pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
     <aside className="border-hairline bg-surface-card hidden w-[220px] shrink-0 flex-col border-r lg:flex">

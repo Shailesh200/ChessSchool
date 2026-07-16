@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { gameSessions } from "@/db/schema";
-import { bootApiTestEnv, bearer, readJson, testIp, type TestDb } from "@/lib/test-db.harness";
+import {
+  bootApiTestEnv,
+  bearer,
+  readJson,
+  testIp,
+  type TestDb,
+} from "@/lib/test-db.harness";
 
 const PW = "testpass123";
 
@@ -147,8 +153,16 @@ describe("session API integration", () => {
 
   it("rejects forged timeout when server clocks still have time", async () => {
     const stamp = Date.now();
-    const whiteToken = await register(postRegister, `timeout-white-${stamp}@test.dev`, 71);
-    const blackToken = await register(postRegister, `timeout-black-${stamp}@test.dev`, 72);
+    const whiteToken = await register(
+      postRegister,
+      `timeout-white-${stamp}@test.dev`,
+      71,
+    );
+    const blackToken = await register(
+      postRegister,
+      `timeout-black-${stamp}@test.dev`,
+      72,
+    );
 
     const create = await postSession(
       new Request("http://test/api/session", {

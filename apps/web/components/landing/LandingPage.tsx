@@ -65,10 +65,26 @@ const FEATURES = [
 ] as const;
 
 const HOW_IT_WORKS = [
-  { step: "1", title: "Enroll free", body: "Create a student account — progress syncs across web and app." },
-  { step: "2", title: "Placement test", body: "Eight puzzles place you in Elementary, Middle, or High School." },
-  { step: "3", title: "Campus journey", body: "Unlock classes on the campus map and pass exams to graduate." },
-  { step: "4", title: "Play & improve", body: "Bots, assisted play, arena, and review — all in one academy." },
+  {
+    step: "1",
+    title: "Enroll free",
+    body: "Create a student account — progress syncs across web and app.",
+  },
+  {
+    step: "2",
+    title: "Placement test",
+    body: "Eight puzzles place you in Elementary, Middle, or High School.",
+  },
+  {
+    step: "3",
+    title: "Campus journey",
+    body: "Unlock classes on the campus map and pass exams to graduate.",
+  },
+  {
+    step: "4",
+    title: "Play & improve",
+    body: "Bots, assisted play, arena, and review — all in one academy.",
+  },
 ] as const;
 
 export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
@@ -93,9 +109,9 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
           </h1>
           <p className="text-ink-600 max-w-xl text-base leading-relaxed font-semibold">
             ChessSchool is a premium chess-learning academy: structured classes, coach
-            narration, placement tests, bot play, and live multiplayer. Graduate from the
-            board and pieces to openings, tactics, and endgames — free in your browser or
-            as an app.
+            narration, placement tests, bot play, and live multiplayer. Graduate from
+            the board and pieces to openings, tactics, and endgames — free in your
+            browser or as an app.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <NavButton href="/register" size="lg">
@@ -130,11 +146,21 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
         className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4"
       >
         {STAT_ICONS.map((meta, i) => {
-          const values = [stageCount, semesterCount, classCount, lessonCount.toLocaleString()];
+          const values = [
+            stageCount,
+            semesterCount,
+            classCount,
+            lessonCount.toLocaleString(),
+          ];
           return (
-            <Card key={meta.label} className="flex flex-col items-center gap-2 text-center">
+            <Card
+              key={meta.label}
+              className="flex flex-col items-center gap-2 text-center"
+            >
               <IconBadge name={meta.icon} size="md" tone="brand" />
-              <div className="text-ink text-2xl font-extrabold tabular-nums">{values[i]}</div>
+              <div className="text-ink text-2xl font-extrabold tabular-nums">
+                {values[i]}
+              </div>
               <div className="text-ink-500 text-xs font-bold">{meta.label}</div>
             </Card>
           );
@@ -153,7 +179,9 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
                 {item.step}
               </span>
               <h3 className="text-ink text-sm font-extrabold">{item.title}</h3>
-              <p className="text-ink-500 text-xs font-semibold leading-relaxed">{item.body}</p>
+              <p className="text-ink-500 text-xs leading-relaxed font-semibold">
+                {item.body}
+              </p>
             </Card>
           ))}
         </ol>
@@ -170,7 +198,9 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
               <IconBadge name={f.icon} size="md" tone="brand" />
               <div>
                 <h3 className="text-ink text-sm font-extrabold">{f.title}</h3>
-                <p className="text-ink-500 mt-1 text-xs font-semibold leading-relaxed">{f.body}</p>
+                <p className="text-ink-500 mt-1 text-xs leading-relaxed font-semibold">
+                  {f.body}
+                </p>
               </div>
             </Card>
           ))}
@@ -183,8 +213,9 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
           {stageCount} schools — one clear path
         </h2>
         <p className="text-ink-600 mt-2 max-w-2xl text-sm font-semibold">
-          From Pre-School (board setup and piece moves) through Elementary, Middle School,
-          High School, and University — each stage unlocks when you graduate the last.
+          From Pre-School (board setup and piece moves) through Elementary, Middle
+          School, High School, and University — each stage unlocks when you graduate the
+          last.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {STAGES.map((stage) => (
@@ -231,11 +262,17 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
         </div>
         <p className="text-ink-500 mt-3 text-xs font-semibold">
           Browse the full{" "}
-          <Link href="/library" className="text-brand font-bold underline-offset-2 hover:underline">
+          <Link
+            href="/library"
+            className="text-brand font-bold underline-offset-2 hover:underline"
+          >
             lesson library
           </Link>{" "}
           or open the{" "}
-          <Link href="/academy" className="text-brand font-bold underline-offset-2 hover:underline">
+          <Link
+            href="/academy"
+            className="text-brand font-bold underline-offset-2 hover:underline"
+          >
             campus map
           </Link>
           .
@@ -259,7 +296,7 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="mt-14 border-hairline border-t pt-10 scroll-mt-20">
+      <section id="faq" className="border-hairline mt-14 scroll-mt-20 border-t pt-10">
         <FaqSection title="Chess school FAQ" items={SEO_FAQ} />
       </section>
 
@@ -268,8 +305,8 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
         <IconBadge name="cap" size="lg" tone="gold" className="mx-auto" />
         <h2 className="text-ink mt-3 text-lg font-extrabold">Ready to graduate?</h2>
         <p className="text-ink-500 mx-auto mt-2 max-w-md text-sm font-semibold">
-          Join ChessSchool free — save progress, earn achievements, and play across web and
-          mobile.
+          Join ChessSchool free — save progress, earn achievements, and play across web
+          and mobile.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <NavButton href="/register" size="lg">

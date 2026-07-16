@@ -1,6 +1,9 @@
 import type { FlatAvatarId } from "@/components/ui/flatAvatars/catalog";
 import { botAvatarId, botAvatarIdForElo } from "@/components/ui/flatAvatars/catalog";
-import { botProfile as coreBotProfile, botLabel as coreBotLabel } from "@chess-school/core";
+import {
+  botProfile as coreBotProfile,
+  botLabel as coreBotLabel,
+} from "@chess-school/core";
 
 /** Named opponents per ELO band — tier logic in @chess-school/core. */
 export interface BotProfile {

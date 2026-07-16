@@ -18,13 +18,7 @@ const stages = [
 
 describe("isStageGraduatedForDisplay", () => {
   it("marks optional preschool graduated when elementary school exam is passed", () => {
-    const graduated = isStageGraduatedForDisplay(
-      0,
-      stages,
-      {},
-      [],
-      ["elementary"],
-    );
+    const graduated = isStageGraduatedForDisplay(0, stages, {}, [], ["elementary"]);
     expect(graduated).toBe(true);
   });
 

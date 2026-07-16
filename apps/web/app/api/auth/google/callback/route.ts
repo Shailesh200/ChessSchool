@@ -4,7 +4,10 @@ import {
   readGoogleOAuthCookies,
   sanitizeOAuthNext,
 } from "@/lib/google-oauth-cookies.server";
-import { googleOAuthConfigured, googleProfileFromCode } from "@/lib/google-oauth.server";
+import {
+  googleOAuthConfigured,
+  googleProfileFromCode,
+} from "@/lib/google-oauth.server";
 import { establishWebSession, signInWithGoogle } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 

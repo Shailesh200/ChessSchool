@@ -16,7 +16,10 @@ export async function POST(req: Request) {
   if (limited) return limited;
 
   if (!googleOAuthConfigured()) {
-    return NextResponse.json({ error: "Google sign-in is not configured." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Google sign-in is not configured." },
+      { status: 503 },
+    );
   }
 
   const raw = await req.json().catch(() => null);

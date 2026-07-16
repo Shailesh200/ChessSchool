@@ -15,7 +15,10 @@ export async function GET(req: Request) {
   if (limited) return limited;
 
   if (!googleOAuthConfigured()) {
-    return NextResponse.json({ error: "Google sign-in is not configured." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Google sign-in is not configured." },
+      { status: 503 },
+    );
   }
 
   const url = new URL(req.url);

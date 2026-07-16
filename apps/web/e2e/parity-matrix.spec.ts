@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 // Playwright compiles specs as CJS — load JSON manifest without ESM node: imports.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const manifest = require("../../../scripts/parity-routes.json") as {
-  accounts: { local: { email: string; password: string } };
+  accounts: { local: { email: string; password: string; name?: string } };
   screens: {
     id: string;
     label: string;
@@ -18,10 +18,21 @@ const userScreens = manifest.screens.filter((s) => s.auth === "user");
 
 async function loginWeb(page: import("@playwright/test").Page) {
   const base = process.env.BASE_URL || "http://localhost:3210";
+  // db:fresh does not seed this fixture — register (or ignore "already exists"), then login.
+  await page.request.post(`${base}/api/auth/register`, {
+    data: {
+      email: account.email,
+      password: account.password,
+      name: account.name ?? "Parity Student",
+    },
+  });
   const res = await page.request.post(`${base}/api/auth/login`, {
     data: { email: account.email, password: account.password },
   });
-  expect(res.ok()).toBeTruthy();
+  expect(
+    res.ok(),
+    `parity login failed: ${res.status()} ${await res.text()}`,
+  ).toBeTruthy();
   const body = (await res.json()) as { token?: string };
   expect(body.token).toBeTruthy();
   await page.context().addCookies([
@@ -35,7 +46,11 @@ async function loginWeb(page: import("@playwright/test").Page) {
   ]);
 }
 
-async function visibleCopy(page: import("@playwright/test").Page, text: string, timeout = 10_000) {
+async function visibleCopy(
+  page: import("@playwright/test").Page,
+  text: string,
+  timeout = 10_000,
+) {
   const heading = page.getByRole("heading", { name: text, exact: false });
   if ((await heading.count()) > 0) {
     await expect(heading.first()).toBeVisible({ timeout });
@@ -44,7 +59,10 @@ async function visibleCopy(page: import("@playwright/test").Page, text: string, 
   await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout });
 }
 
-async function assertScreen(page: import("@playwright/test").Page, screen: (typeof manifest.screens)[number]) {
+async function assertScreen(
+  page: import("@playwright/test").Page,
+  screen: (typeof manifest.screens)[number],
+) {
   await page.goto(screen.web.path, { waitUntil: "domcontentloaded" });
   if (screen.web.readyText) {
     await visibleCopy(page, screen.web.readyText, 15_000);
@@ -66,11 +84,11 @@ test.describe("parity matrix (PWA mweb semantics)", () => {
   }
 
   test.describe("signed-in screens", () => {
-  for (const screen of userScreens) {
-    test(`"${screen.id}" — ${screen.label}`, async ({ page }) => {
-      await loginWeb(page);
-      await assertScreen(page, screen);
-    });
-  }
+    for (const screen of userScreens) {
+      test(`"${screen.id}" — ${screen.label}`, async ({ page }) => {
+        await loginWeb(page);
+        await assertScreen(page, screen);
+      });
+    }
   });
 });

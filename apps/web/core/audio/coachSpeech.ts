@@ -2,7 +2,11 @@
 
 import { applyCoachLine, type CoachContext } from "@/features/coaching/personality";
 import { voicePreviewText } from "@/lib/tts/voicePreview";
-import { normalizeCoachVoice, resolveEdgeVoice, COACH_SPEECH_RATE_MULTIPLIER } from "@/lib/tts/voices";
+import {
+  normalizeCoachVoice,
+  resolveEdgeVoice,
+  COACH_SPEECH_RATE_MULTIPLIER,
+} from "@/lib/tts/voices";
 import {
   useSettings,
   type CoachPersonality,

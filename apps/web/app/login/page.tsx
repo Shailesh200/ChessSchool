@@ -24,7 +24,9 @@ export default async function LoginPage() {
   // Already logged in (e.g. tapped Back onto /login) → bounce to the Learn tab.
   if (await getCurrentUser()) redirect("/");
   return (
-    <Suspense fallback={<div className="skeleton mx-auto mt-24 h-64 max-w-sm rounded-card" />}>
+    <Suspense
+      fallback={<div className="skeleton rounded-card mx-auto mt-24 h-64 max-w-sm" />}
+    >
       <AuthForm mode="login" action={loginAction} />
     </Suspense>
   );

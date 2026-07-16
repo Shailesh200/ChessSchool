@@ -144,7 +144,10 @@ export function MatchChooser() {
       setCreating(true);
       haptics.fire("success");
       try {
-        const r = await fetch("/api/session", { method: "POST", credentials: "include" });
+        const r = await fetch("/api/session", {
+          method: "POST",
+          credentials: "include",
+        });
         if (r.status === 401) {
           toast("Log in to play online", { tone: "default" });
           startNav();
@@ -183,7 +186,10 @@ export function MatchChooser() {
           New match
         </motion.h1>
 
-        <motion.div variants={listItem} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <motion.div
+          variants={listItem}
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+        >
           <ModeCard
             active={mode === "bot"}
             iconName="robot"
@@ -221,7 +227,9 @@ export function MatchChooser() {
           <>
             <motion.div variants={listItem}>
               <Card>
-                <p className="text-ink mb-2 text-sm font-extrabold">Opponent strength</p>
+                <p className="text-ink mb-2 text-sm font-extrabold">
+                  Opponent strength
+                </p>
                 <button
                   type="button"
                   onClick={() => {
@@ -316,7 +324,9 @@ export function MatchChooser() {
               >
                 <span className="inline-flex items-center justify-center gap-2">
                   <Icon name="link" size={18} className="shrink-0" />
-                  {guest ? "Enroll to play online" : "Play a friend online (share link)"}
+                  {guest
+                    ? "Enroll to play online"
+                    : "Play a friend online (share link)"}
                 </span>
               </Button>
             </motion.div>
@@ -389,7 +399,9 @@ export function MatchChooser() {
             {trainingMode === "assisted" && !needsEnroll && (
               <motion.div variants={listItem}>
                 <Card>
-                  <p className="text-ink mb-3 text-sm font-extrabold">Assisted format</p>
+                  <p className="text-ink mb-3 text-sm font-extrabold">
+                    Assisted format
+                  </p>
                   <div className="flex flex-col gap-2">
                     {ASSISTED_VARIANTS.map((opt) => {
                       const active = assistedVariant === opt.id;
@@ -428,7 +440,9 @@ export function MatchChooser() {
 
             <motion.div variants={listItem}>
               <Card className="bg-surface-sunken/50">
-                <p className="text-ink text-sm font-extrabold">{selectedTraining.title}</p>
+                <p className="text-ink text-sm font-extrabold">
+                  {selectedTraining.title}
+                </p>
                 <p className="text-ink-500 mt-1 text-xs font-semibold">
                   {trainingMode === "assisted"
                     ? ASSISTED_VARIANTS.find((v) => v.id === assistedVariant)?.subtitle
@@ -482,7 +496,9 @@ function TimeControlCard({
               haptics.fire("select");
             }}
             className={`rounded-pill px-3 py-1 text-sm font-bold transition-colors ${
-              timeMin === t.min ? "bg-brand text-white" : "bg-surface-sunken text-ink-500"
+              timeMin === t.min
+                ? "bg-brand text-white"
+                : "bg-surface-sunken text-ink-500"
             }`}
           >
             {t.label}

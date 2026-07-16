@@ -42,8 +42,9 @@ export function EnrollPrompt({
       <div className="flex flex-col items-center gap-4 text-center">
         <FlatAvatar id="coach-friendly" size={72} />
         <p className="text-ink-600 text-sm leading-relaxed font-semibold">
-          You&apos;re making real progress! Enroll free to keep your XP, streak, and class
-          unlocks on every device — everything you&apos;ve done so far comes with you.
+          You&apos;re making real progress! Enroll free to keep your XP, streak, and
+          class unlocks on every device — everything you&apos;ve done so far comes with
+          you.
         </p>
         <div className="flex w-full flex-col gap-2">
           <Button size="lg" block onClick={enroll}>

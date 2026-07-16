@@ -25,7 +25,9 @@ export const dynamic = "force-dynamic";
 export default async function RegisterPage() {
   if (await getCurrentUser()) redirect("/");
   return (
-    <Suspense fallback={<div className="skeleton mx-auto mt-24 h-64 max-w-sm rounded-card" />}>
+    <Suspense
+      fallback={<div className="skeleton rounded-card mx-auto mt-24 h-64 max-w-sm" />}
+    >
       <AuthForm mode="register" action={registerAction} />
     </Suspense>
   );

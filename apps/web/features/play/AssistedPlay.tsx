@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
@@ -37,13 +44,21 @@ const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const BOARD_SHELL = "relative mx-auto w-full max-w-[min(100%,520px)]";
 const PAGE_SHELL = "mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pb-8";
 
-function CoachBubble({ children, loading }: { children: ReactNode; loading?: boolean }) {
+function CoachBubble({
+  children,
+  loading,
+}: {
+  children: ReactNode;
+  loading?: boolean;
+}) {
   return (
     <div className="border-hairline bg-surface-card text-ink min-h-[3.5rem] rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
       <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
         Coach
       </span>
-      <span className="line-clamp-4 leading-relaxed">{loading ? "Loading position…" : children}</span>
+      <span className="line-clamp-4 leading-relaxed">
+        {loading ? "Loading position…" : children}
+      </span>
     </div>
   );
 }
@@ -112,7 +127,10 @@ function AssistedFullGame({ rating }: { rating: number }) {
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [history, setHistory] = useState({ fens: [START_FEN], cursor: 0 });
   const [fen, setFen] = useState(START_FEN);
-  const [coach, setCoach] = useState("");
+  // Parent remounts this component when personality/rating change (`key`).
+  const [coach, setCoach] = useState(() =>
+    thinkingMatchGreeting(rating, bot.name, personality),
+  );
   const [turnPhase, setTurnPhase] = useState<TurnPhase>("your-turn");
   const [autoAdvance, setAutoAdvance] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
@@ -133,23 +151,24 @@ function AssistedFullGame({ rating }: { rating: number }) {
   useCoachSpeech(coach, "match", turnPhase !== "bot-thinking", true);
 
   useEffect(() => {
-    const greeting = thinkingMatchGreeting(rating, bot.name, personality);
-    setCoach(greeting);
-    void speakCoachText(greeting);
+    void speakCoachText(thinkingMatchGreeting(rating, bot.name, personality));
   }, [rating, bot.name, personality]);
 
   useEffect(() => () => clearAdvanceTimer(), [clearAdvanceTimer]);
 
-  const loadSnapshot = useCallback((index: number, list: string[]) => {
-    const f = list[index] ?? START_FEN;
-    engineRef.current = new ChessEngine(f);
-    setFen(f);
-    setHistory({ fens: list, cursor: index });
-    setLastMove(null);
-    pendingPlayerRef.current = null;
-    clearAdvanceTimer();
-    setTurnPhase("your-turn");
-  }, [clearAdvanceTimer]);
+  const loadSnapshot = useCallback(
+    (index: number, list: string[]) => {
+      const f = list[index] ?? START_FEN;
+      engineRef.current = new ChessEngine(f);
+      setFen(f);
+      setHistory({ fens: list, cursor: index });
+      setLastMove(null);
+      pendingPlayerRef.current = null;
+      clearAdvanceTimer();
+      setTurnPhase("your-turn");
+    },
+    [clearAdvanceTimer],
+  );
 
   const pushSnapshot = useCallback((nextFen: string) => {
     setHistory((h) => {
@@ -304,7 +323,9 @@ function AssistedFullGame({ rating }: { rating: number }) {
         <BotAvatar elo={rating} size={48} />
         <div>
           <p className="text-ink text-sm font-extrabold">{bot.name}</p>
-          <p className="text-ink-500 text-xs font-semibold">Training partner · ~{rating}</p>
+          <p className="text-ink-500 text-xs font-semibold">
+            Training partner · ~{rating}
+          </p>
         </div>
       </Card>
 
@@ -349,10 +370,20 @@ function AssistedFullGame({ rating }: { rating: number }) {
             )}
           </>
         )}
-        <Button variant="outline" size="sm" disabled={!canUndo || turnPhase === "bot-thinking"} onClick={undo}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!canUndo || turnPhase === "bot-thinking"}
+          onClick={undo}
+        >
           <Icon name="undo" size={16} /> Undo
         </Button>
-        <Button variant="outline" size="sm" disabled={!canRedo || turnPhase === "bot-thinking"} onClick={redo}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!canRedo || turnPhase === "bot-thinking"}
+          onClick={redo}
+        >
           <Icon name="redo" size={16} /> Redo
         </Button>
         {turnPhase === "bot-thinking" && (
@@ -384,7 +415,7 @@ function AssistedPuzzleDrill({
 
   useEffect(() => {
     let cancelled = false;
-    setPhase("loading");
+    // Phase is set to "loading" by the Next-puzzle click handler (and initial state).
     fetch(`/api/think?n=${offset}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: { puzzle: CalculationPuzzle }) => {
@@ -459,7 +490,16 @@ function AssistedPuzzleDrill({
       }
       return false;
     },
-    [puzzle, phase, pendingMove, displayFen, trialStack, trialCursor, personality, rating],
+    [
+      puzzle,
+      phase,
+      pendingMove,
+      displayFen,
+      trialStack,
+      trialCursor,
+      personality,
+      rating,
+    ],
   );
 
   const resetPuzzle = useCallback(() => {
@@ -520,17 +560,34 @@ function AssistedPuzzleDrill({
       </BoardShell>
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" disabled={!canTrialUndo} onClick={trialUndo}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!canTrialUndo}
+          onClick={trialUndo}
+        >
           <Icon name="undo" size={16} /> Undo
         </Button>
-        <Button variant="outline" size="sm" disabled={!canTrialRedo} onClick={trialRedo}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!canTrialRedo}
+          onClick={trialRedo}
+        >
           <Icon name="redo" size={16} /> Redo
         </Button>
         <Button variant="ghost" size="sm" onClick={resetPuzzle}>
           Reset position
         </Button>
         {phase === "done" && (
-          <Button size="sm" className="ml-auto" onClick={() => setOffset((n) => n + 1)}>
+          <Button
+            size="sm"
+            className="ml-auto"
+            onClick={() => {
+              setPhase("loading");
+              setOffset((n) => n + 1);
+            }}
+          >
             Next puzzle →
           </Button>
         )}

@@ -124,8 +124,7 @@ export const PIECE_THEMES: PieceTheme[] = [
     emoji: "✨",
     shapeSet: "pixel",
     style: "asset",
-    filter:
-      "drop-shadow(0 0 2px #5dffb8) drop-shadow(0 0 5px #5ec8ff) saturate(1.35)",
+    filter: "drop-shadow(0 0 2px #5dffb8) drop-shadow(0 0 5px #5ec8ff) saturate(1.35)",
     white: { fill: "#0a1628", stroke: "#5dffb8" },
     black: { fill: "#0a1628", stroke: "#5ec8ff" },
   },

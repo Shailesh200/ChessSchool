@@ -60,8 +60,9 @@ function sparkles(pal) {
 }
 
 const SHAPES = {
-  p: (pal) => wrap(
-    `${sparkles(pal)}
+  p: (pal) =>
+    wrap(
+      `${sparkles(pal)}
   <circle cx="22.5" cy="12.5" r="4.2" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>
   <path d="M20.5 8.8h4l.6 2.2h-5.2z" fill="url(#gold)" stroke="${pal.stroke}" stroke-width=".8"/>
   <circle cx="22.5" cy="18" r="5.5" fill="${pal.skin}" stroke="${pal.stroke}" stroke-width="1.1"/>
@@ -69,11 +70,12 @@ const SHAPES = {
   <circle cx="24.8" cy="17.5" r="1" fill="${pal.stroke}" opacity=".55"/>
   <path d="M16.5 23.5c0 5.5 2.7 9.5 6 9.5s6-4 6-9.5" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1.1"/>
   <path d="${BASE}" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  k: (pal) => wrap(
-    `${sparkles(pal)}
+  k: (pal) =>
+    wrap(
+      `${sparkles(pal)}
   <path d="M17 7.5l1.5 3 3.2-.8-.7 3.2 2.8 1.8-3.2.8.5 3.2 3-.8-1.5-3 2.5-1.8-3-.5.8-3.2z" fill="url(#gold)" stroke="${pal.stroke}" stroke-width=".9"/>
   <path d="M19 5.5h7v2.2h-7z" fill="url(#gold)" stroke="${pal.stroke}" stroke-width=".8"/>
   <circle cx="22.5" cy="15.5" r="6.2" fill="${pal.skin}" stroke="${pal.stroke}" stroke-width="1.1"/>
@@ -83,11 +85,12 @@ const SHAPES = {
   <path d="M14 22c0 6.5 3.8 11.5 8.5 11.5s8.5-5 8.5-11.5" fill="${pal.cape}" stroke="${pal.stroke}" stroke-width="1.1" opacity=".9"/>
   <path d="M16 24h13l-1.5 8H17.5z" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1"/>
   <path d="${BASE}" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  q: (pal) => wrap(
-    `${sparkles(pal)}
+  q: (pal) =>
+    wrap(
+      `${sparkles(pal)}
   <path d="M14 8.5l2 2.8h3.2L17.5 8.5h2l1.6 2.8h3.2L21 8.5h1.5l2 2.8h3.2L24.5 8.5h1.5l2 2.8h3.2L28 8.5h1z" fill="url(#gold)" stroke="${pal.stroke}" stroke-width=".75"/>
   <circle cx="17" cy="7.8" r="1.1" fill="${pal.gem}"/>
   <circle cx="22.5" cy="6.8" r="1.3" fill="${pal.gem}"/>
@@ -99,11 +102,12 @@ const SHAPES = {
   <path d="M11 24c0 8 5 14 11.5 14s11.5-6 11.5-14c-2.5 2.5-6 4-11.5 4s-9-1.5-11.5-4z" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1.2"/>
   <path d="M14 26c3 3 6 4.5 8.5 4.5s5.5-1.5 8.5-4.5" fill="none" stroke="${pal.gownHi}" stroke-width="1" opacity=".7"/>
   <path d="${BASE}" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  r: (pal) => wrap(
-    `<rect x="13" y="10" width="5" height="7" rx="1.5" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1"/>
+  r: (pal) =>
+    wrap(
+      `<rect x="13" y="10" width="5" height="7" rx="1.5" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1"/>
   <rect x="20" y="8" width="5" height="9" rx="1.5" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1"/>
   <rect x="27" y="10" width="5" height="7" rx="1.5" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1"/>
   <path d="M15 9.5h1.8l-.9-2.2zM24 7.5h1.8l-.9-2.5zM33 9.5h1.8l-.9-2.2z" fill="${pal.gem}" stroke="${pal.stroke}" stroke-width=".6"/>
@@ -112,11 +116,12 @@ const SHAPES = {
   <path d="M19 26h7v4h-7z" fill="${pal.skin}" opacity=".35" stroke="${pal.stroke}" stroke-width=".8"/>
   <circle cx="22.5" cy="28" r="1.2" fill="${pal.gem}"/>
   <path d="${BASE}" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  b: (pal) => wrap(
-    `<path d="M22.5 5.5c1.5 0 2.7 1 2.7 2.3 0 .8-.4 1.5-1 1.9" fill="none" stroke="${pal.stroke}" stroke-width="1"/>
+  b: (pal) =>
+    wrap(
+      `<path d="M22.5 5.5c1.5 0 2.7 1 2.7 2.3 0 .8-.4 1.5-1 1.9" fill="none" stroke="${pal.stroke}" stroke-width="1"/>
   <path d="M16 11l6.5-4.5 6.5 4.5v5l-6.5 3-6.5-3z" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>
   <path d="M22.5 4.5l1.8 4.5 4.5 1.8-4.5 1.8-1.8 4.5-1.8-4.5-4.5-1.8 4.5-1.8z" fill="${pal.gem}" stroke="${pal.stroke}" stroke-width=".7"/>
   <circle cx="22.5" cy="19.5" r="6.5" fill="${pal.skin}" stroke="${pal.stroke}" stroke-width="1.1"/>
@@ -125,18 +130,19 @@ const SHAPES = {
   <path d="M15.5 26c0 5.5 3.1 9.5 7 9.5s7-4 7-9.5" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1.1"/>
   <path d="M20 30h5v1.5c0 .8-1.1 1.5-2.5 1.5s-2.5-.7-2.5-1.5z" fill="url(#gold)" stroke="${pal.stroke}" stroke-width=".7"/>
   <path d="${BASE}" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  n: (pal) => wrap(
-    `<path d="M11 34c1.5-10 6-16 12.5-18.5 2-.9 3.2-2.8 3.2-5 0-2.8-2.2-5-5-5-2.2 0-4 1.2-5 3.2-1.5 3-4.5 4-7 2.5-1-.6-1.4-1.8-1-2.8.8-2 2.5-4.5 4-6 1.5-1.5 3.5-2.5 6-2.5 6.5 0 11.5 5.5 11.5 12.5V34z" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1.2" stroke-linejoin="round"/>
+  n: (pal) =>
+    wrap(
+      `<path d="M11 34c1.5-10 6-16 12.5-18.5 2-.9 3.2-2.8 3.2-5 0-2.8-2.2-5-5-5-2.2 0-4 1.2-5 3.2-1.5 3-4.5 4-7 2.5-1-.6-1.4-1.8-1-2.8.8-2 2.5-4.5 4-6 1.5-1.5 3.5-2.5 6-2.5 6.5 0 11.5 5.5 11.5 12.5V34z" fill="url(#gown)" stroke="${pal.stroke}" stroke-width="1.2" stroke-linejoin="round"/>
   <path d="M26 12c3-1 6 .5 7.5 3" fill="none" stroke="${pal.hair}" stroke-width="2.5" stroke-linecap="round"/>
   <circle cx="25" cy="14.5" r="1.4" fill="${pal.stroke}" opacity=".55"/>
   <path d="M28 10.5c1.5 0 3 .8 3.5 2" fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-linecap="round"/>
   <path d="M14 30c2 1.5 5 2 8.5 2" fill="none" stroke="${pal.goldHi}" stroke-width="1" opacity=".6"/>
   <path d="${BASE}" fill="url(#gold)" stroke="${pal.stroke}" stroke-width="1"/>`,
-    pal,
-  ),
+      pal,
+    ),
 };
 
 for (const color of ["w", "b"]) {

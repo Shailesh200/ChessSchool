@@ -91,7 +91,11 @@ export async function GET(
   const user = await getApiUser(req);
   let unlocked = true;
   if (user) {
-    const { semesters: sems, classes: allCls, lessons: les } = await getCurriculumSkeleton();
+    const {
+      semesters: sems,
+      classes: allCls,
+      lessons: les,
+    } = await getCurriculumSkeleton();
     const mastery: Record<string, number> = {};
     for (const r of await db
       .select({ lessonId: lessonRecords.lessonId, mastery: lessonRecords.mastery })
@@ -111,8 +115,18 @@ export async function GET(
       return !!c && c.total > 0 && c.done >= c.total;
     };
     const ordered = orderClasses(
-      sems.map((s) => ({ id: s.id, stage: s.stage, sortOrder: s.sortOrder, title: s.title })),
-      allCls.map((c) => ({ id: c.id, semesterId: c.semesterId, sortOrder: c.sortOrder, title: c.title })),
+      sems.map((s) => ({
+        id: s.id,
+        stage: s.stage,
+        sortOrder: s.sortOrder,
+        title: s.title,
+      })),
+      allCls.map((c) => ({
+        id: c.id,
+        semesterId: c.semesterId,
+        sortOrder: c.sortOrder,
+        title: c.title,
+      })),
     );
     unlocked = computeUnlocked(ordered, semById, classDone).get(id) ?? false;
   }

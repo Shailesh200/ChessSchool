@@ -56,7 +56,10 @@ function phase(moveNumber: number, fen: string): Phase {
   return "middlegame";
 }
 
-function iterPieces(chess: Chess, fn: (sq: Square, type: string, color: Color) => void) {
+function iterPieces(
+  chess: Chess,
+  fn: (sq: Square, type: string, color: Color) => void,
+) {
   const board = chess.board();
   for (let r = 0; r < 8; r++) {
     for (let f = 0; f < 8; f++) {
@@ -80,18 +83,28 @@ function piecesAttackedBy(chess: Chess, attacker: Color): AttackedPiece[] {
   return out;
 }
 
-function attacksAdded(beforeFen: string, afterFen: string, attacker: Color): AttackedPiece[] {
+function attacksAdded(
+  beforeFen: string,
+  afterFen: string,
+  attacker: Color,
+): AttackedPiece[] {
   const before = new Chess(beforeFen);
   const after = new Chess(afterFen);
   const prev = new Set(piecesAttackedBy(before, attacker).map((p) => p.sq));
   return piecesAttackedBy(after, attacker).filter((p) => !prev.has(p.sq));
 }
 
-function defendsAdded(beforeFen: string, afterFen: string, defender: Color): AttackedPiece[] {
+function defendsAdded(
+  beforeFen: string,
+  afterFen: string,
+  defender: Color,
+): AttackedPiece[] {
   const before = new Chess(beforeFen);
   const after = new Chess(afterFen);
   const prev = new Set(
-    iterFriendlyUnderAttack(before, defender).filter((p) => before.isAttacked(p.sq as ChessSquare, defender)).map((p) => p.sq),
+    iterFriendlyUnderAttack(before, defender)
+      .filter((p) => before.isAttacked(p.sq as ChessSquare, defender))
+      .map((p) => p.sq),
   );
   return iterFriendlyUnderAttack(after, defender).filter(
     (p) => after.isAttacked(p.sq as ChessSquare, defender) && !prev.has(p.sq),
@@ -103,7 +116,8 @@ function iterFriendlyUnderAttack(chess: Chess, color: Color): AttackedPiece[] {
   const out: AttackedPiece[] = [];
   iterPieces(chess, (sq, type, pieceColor) => {
     if (pieceColor !== color) return;
-    if (chess.isAttacked(sq as ChessSquare, them)) out.push({ sq, piece: PIECE[type] ?? "piece" });
+    if (chess.isAttacked(sq as ChessSquare, them))
+      out.push({ sq, piece: PIECE[type] ?? "piece" });
   });
   return out;
 }
@@ -272,7 +286,8 @@ function gatherFacts(
     us === "w"
   ) {
     assessment = "caution";
-    assessmentWhy = "Moving the kingside pawns early can weaken the king — castle soon or justify the push.";
+    assessmentWhy =
+      "Moving the kingside pawns early can weaken the king — castle soon or justify the push.";
   }
 
   return {
@@ -382,7 +397,12 @@ function specificLines(facts: MoveFacts, forPlayer: boolean): string[] {
     }
   }
 
-  if (!forPlayer && facts.pieceAttacked && !facts.pieceDefended && VALUE[m.piece]! >= 3) {
+  if (
+    !forPlayer &&
+    facts.pieceAttacked &&
+    !facts.pieceDefended &&
+    VALUE[m.piece]! >= 3
+  ) {
     lines.push(
       `You can take the ${PIECE[m.piece]} on ${m.to} if the tactics work — it is undefended.`,
     );
@@ -393,7 +413,9 @@ function specificLines(facts: MoveFacts, forPlayer: boolean): string[] {
 
 function nextStep(facts: MoveFacts, forPlayer: boolean): string {
   if (facts.isMate) {
-    return forPlayer ? "The game is yours." : "Review how the attack built up move by move.";
+    return forPlayer
+      ? "The game is yours."
+      : "Review how the attack built up move by move.";
   }
   if (facts.givesCheck && forPlayer) {
     return "Look at every legal reply they have before you continue.";
@@ -441,7 +463,10 @@ function composeLesson(
 
 function dedupeSentences(text: string): string {
   const banned = /\b(reply|find your next idea|picture the reply)\b/gi;
-  let out = text.replace(banned, "").replace(/\s{2,}/g, " ").trim();
+  let out = text
+    .replace(banned, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
   out = out.replace(/\s*\([NBRQK]?[a-h]?[x]?[a-h][1-8](=[NBRQ])?[+#]?\)\s*/gi, " ");
   const parts = out.split(/(?<=[.!?])\s+/).filter(Boolean);
   const seen = new Set<string>();

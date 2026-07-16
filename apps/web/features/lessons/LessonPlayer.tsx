@@ -214,10 +214,7 @@ export function LessonPlayer({
     if (phase === "complete") return;
     const next = lesson.steps[index + 1];
     if (!next) return;
-    const nextRaw =
-      next.kind === "quiz"
-        ? ""
-        : formatCoachText(next.coach ?? "");
+    const nextRaw = next.kind === "quiz" ? "" : formatCoachText(next.coach ?? "");
     if (!nextRaw.trim()) return;
     const nextLine = applyCoachLine(
       nextRaw,
@@ -779,7 +776,6 @@ function LessonComplete({
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [enrollOpen, setEnrollOpen] = useState(false);
   const router = useRouter();
   const authed = useSession((s) => s.authed);
   const lessons = useProgression((s) => s.lessons);
@@ -790,6 +786,15 @@ function LessonComplete({
     dismissedAt,
     lessonsAttempted,
   });
+  // Ceremony mounts once after a lesson — open the sheet from initial state
+  // (avoids setState-in-effect). Backdrop close only hides for this screen.
+  const [enrollOpen, setEnrollOpen] = useState(() =>
+    shouldAutoOpenEnrollPrompt({
+      authed,
+      dismissedAt,
+      lessonsAttempted,
+    }),
+  );
   const homeworkDoneCount = usePlan((s) => s.routineDone.length);
   const isHomework = !!homeworkStep;
   const allHomeworkDone = homeworkDoneCount >= ROUTINE_STEPS.length;
@@ -808,18 +813,6 @@ function LessonComplete({
     if (action) action();
     else router.push(href);
   };
-
-  useEffect(() => {
-    if (
-      shouldAutoOpenEnrollPrompt({
-        authed,
-        dismissedAt,
-        lessonsAttempted,
-      })
-    ) {
-      setEnrollOpen(true);
-    }
-  }, [authed, dismissedAt, lessonsAttempted]);
 
   const variant = ceremony?.variant ?? (lesson.exam ? "exam" : "lesson");
   const headline =

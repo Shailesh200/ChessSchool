@@ -10,7 +10,10 @@ export function createOAuthState(): string {
   return randomBytes(24).toString("hex");
 }
 
-export async function setGoogleOAuthCookies(state: string, nextPath: string): Promise<void> {
+export async function setGoogleOAuthCookies(
+  state: string,
+  nextPath: string,
+): Promise<void> {
   const jar = await cookies();
   const secure = process.env.NODE_ENV === "production";
   jar.set(STATE_COOKIE, state, {

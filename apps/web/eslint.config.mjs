@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored Stockfish engine (minified WASM loader) — not ours to lint.
     "public/engine/**",
+    // Storybook static export (local `build-storybook` artifact).
+    "storybook-static/**",
   ]),
 ]);
 

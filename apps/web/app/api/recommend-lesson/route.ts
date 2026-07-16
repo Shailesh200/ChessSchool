@@ -13,6 +13,11 @@ export async function GET(req: Request) {
   if (!lesson) return NextResponse.json({ lesson: null });
 
   return NextResponse.json({
-    lesson: { id: lesson.id, title: lesson.title, emoji: lesson.emoji, tag: lesson.tag },
+    lesson: {
+      id: lesson.id,
+      title: lesson.title,
+      emoji: lesson.emoji,
+      tag: lesson.tag,
+    },
   });
 }

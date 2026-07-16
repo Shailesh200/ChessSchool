@@ -4,7 +4,16 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { users, sessions, profiles, progress, lessonRecords, oauthAccounts, analyticsEvents, webVitals } from "@/db/schema";
+import {
+  users,
+  sessions,
+  profiles,
+  progress,
+  lessonRecords,
+  oauthAccounts,
+  analyticsEvents,
+  webVitals,
+} from "@/db/schema";
 import {
   GOOGLE_PROVIDER,
   googleProfileFromIdToken,
@@ -297,7 +306,9 @@ export async function signInWithGoogle(
       await db.select().from(users).where(eq(users.id, oauthRow.userId)).limit(1)
     )[0];
     if (!user) return { error: "Account not found." };
-    void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
+    void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(
+      () => void 0,
+    );
     return { user: toSessionUser(user), isNewUser: false };
   }
 

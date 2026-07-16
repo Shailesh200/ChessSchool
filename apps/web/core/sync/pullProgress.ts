@@ -18,7 +18,10 @@ import {
   localProgressPresent,
   normalizeSyncGame,
 } from "@chess-school/progression";
-import { normalizeBoardThemeId, normalizePieceThemeId } from "@chess-school/progression";
+import {
+  normalizeBoardThemeId,
+  normalizePieceThemeId,
+} from "@chess-school/progression";
 
 const SYNCED_SETTING_KEYS = [
   "sound",
@@ -158,8 +161,10 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
       if (key === "sound") continue;
       if (key in data.settings && data.settings[key] !== undefined) {
         let val = data.settings[key];
-        if (key === "boardTheme" && typeof val === "string") val = normalizeBoardThemeId(val);
-        if (key === "pieceTheme" && typeof val === "string") val = normalizePieceThemeId(val);
+        if (key === "boardTheme" && typeof val === "string")
+          val = normalizeBoardThemeId(val);
+        if (key === "pieceTheme" && typeof val === "string")
+          val = normalizePieceThemeId(val);
         (patch as Record<string, unknown>)[key] = val;
       }
     }

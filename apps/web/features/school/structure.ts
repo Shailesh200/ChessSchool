@@ -160,7 +160,9 @@ export function isStageGraduatedForDisplay(
   for (let j = stageIdx + 1; j < stages.length; j++) {
     const later = stages[j]!;
     if (later.optional) continue;
-    if (isStageCleared(later.id, later.classes, records, graduatedClasses, examsPassed)) {
+    if (
+      isStageCleared(later.id, later.classes, records, graduatedClasses, examsPassed)
+    ) {
       return true;
     }
     break;

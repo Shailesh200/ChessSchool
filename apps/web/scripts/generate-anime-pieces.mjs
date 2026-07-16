@@ -81,19 +81,21 @@ function speedLines(pal) {
 }
 
 const SHAPES = {
-  p: (pal) => wrap(
-    `${speedLines(pal)}
+  p: (pal) =>
+    wrap(
+      `${speedLines(pal)}
   <circle cx="22.5" cy="14.5" r="7" fill="${pal.skin}" stroke="${pal.stroke}" stroke-width="2"/>
   ${animeEyes(pal, 14.5, 5.5)}
   <rect x="15" y="9.8" width="15" height="3" rx="1" fill="${pal.band}" stroke="${pal.stroke}" stroke-width="1.2"/>
   <rect x="18.5" y="10.1" width="8" height="2.2" rx=".4" fill="${pal.metal}" stroke="${pal.stroke}" stroke-width=".7"/>
   <path d="M15.5 21.5c0 6 3.1 10.5 7 10.5s7-4.5 7-10.5" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="2" stroke-linejoin="round"/>
   <path d="${BASE}" fill="${pal.jacketLo}" stroke="${pal.stroke}" stroke-width="1.4"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  k: (pal) => wrap(
-    `${speedLines(pal)}
+  k: (pal) =>
+    wrap(
+      `${speedLines(pal)}
   <path d="M15 6l2.5 4.5 5-.8-1.2 5 4.2 2.8-5.2.5 1 5.2 4.8-1.5-2.8-4.8 3-3.2-1.2-5 4.8.2z" fill="url(#hair)" stroke="${pal.stroke}" stroke-width="1.3" stroke-linejoin="round"/>
   ${headband(pal, 12)}
   <circle cx="22.5" cy="18" r="7.2" fill="${pal.skin}" stroke="${pal.stroke}" stroke-width="2"/>
@@ -101,11 +103,12 @@ const SHAPES = {
   <path d="M13.5 25.5c0 7.5 4 13 9 13s9-5.5 9-13" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="2"/>
   <path d="M17 27h11l-1 6.5H18z" fill="${pal.band}" stroke="${pal.stroke}" stroke-width="1.2"/>
   <path d="${BASE}" fill="${pal.jacketLo}" stroke="${pal.stroke}" stroke-width="1.4"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  q: (pal) => wrap(
-    `<path d="M12 10c3-3 7-4.5 10.5-4.5s7.5 1.5 10.5 4.5" fill="none" stroke="url(#hair)" stroke-width="3" stroke-linecap="round"/>
+  q: (pal) =>
+    wrap(
+      `<path d="M12 10c3-3 7-4.5 10.5-4.5s7.5 1.5 10.5 4.5" fill="none" stroke="url(#hair)" stroke-width="3" stroke-linecap="round"/>
   <path d="M32 9c2 4 2.5 9 1 14" fill="none" stroke="url(#hair)" stroke-width="2.8" stroke-linecap="round"/>
   <circle cx="22.5" cy="17.5" r="7" fill="${pal.skin}" stroke="${pal.stroke}" stroke-width="2"/>
   ${animeEyes(pal, 17.5)}
@@ -113,11 +116,12 @@ const SHAPES = {
   <path d="M12.5 25c0 8.5 4.5 14.5 10 14.5s10-6 10-14.5" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="2"/>
   <path d="M14 27c2.5 4 5.5 6 8.5 6s6-2 8.5-6" fill="none" stroke="${pal.jacketHi}" stroke-width="1.3" opacity=".7"/>
   <path d="${BASE}" fill="${pal.jacketLo}" stroke="${pal.stroke}" stroke-width="1.4"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  r: (pal) => wrap(
-    `<rect x="12" y="12" width="6" height="9" rx="1" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="1.6"/>
+  r: (pal) =>
+    wrap(
+      `<rect x="12" y="12" width="6" height="9" rx="1" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="1.6"/>
   <rect x="19.5" y="9" width="6" height="12" rx="1" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="1.6"/>
   <rect x="27" y="12" width="6" height="9" rx="1" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="1.6"/>
   <path d="M14.5 10.5h2.5M22 8h2.5M29.5 10.5h2.5" stroke="${pal.accent}" stroke-width="2" stroke-linecap="round"/>
@@ -126,11 +130,12 @@ const SHAPES = {
   <path d="M20.5 22.5h4v2h-4z" fill="${pal.stroke}" opacity=".5"/>
   <path d="M15 26.5h15v7c0 1.8-3.4 3.2-7.5 3.2S15 35.3 15 33.5z" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="1.6"/>
   <path d="${BASE}" fill="${pal.jacketLo}" stroke="${pal.stroke}" stroke-width="1.4"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  b: (pal) => wrap(
-    `<path d="M22.5 4.5c1.6 0 2.8 1.1 2.8 2.5s-1.2 2.5-2.8 2.5" fill="none" stroke="${pal.stroke}" stroke-width="1.4"/>
+  b: (pal) =>
+    wrap(
+      `<path d="M22.5 4.5c1.6 0 2.8 1.1 2.8 2.5s-1.2 2.5-2.8 2.5" fill="none" stroke="${pal.stroke}" stroke-width="1.4"/>
   <path d="M15 12.5l7.5-5 7.5 5v6l-7.5 3.5-7.5-3.5z" fill="${pal.band}" stroke="${pal.stroke}" stroke-width="1.6" stroke-linejoin="round"/>
   <circle cx="22.5" cy="8.5" r="2.2" fill="${pal.accent}" stroke="${pal.stroke}" stroke-width="1.2"/>
   <path d="M21 7.5h3v2h-3z" fill="${pal.stroke}" opacity=".45"/>
@@ -138,11 +143,12 @@ const SHAPES = {
   ${animeEyes(pal, 20.5, 6)}
   <path d="M15.5 27.5c0 5.5 3.1 9.5 7 9.5s7-4 7-9.5" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="2"/>
   <path d="${BASE}" fill="${pal.jacketLo}" stroke="${pal.stroke}" stroke-width="1.4"/>`,
-    pal,
-  ),
+      pal,
+    ),
 
-  n: (pal) => wrap(
-    `${speedLines(pal)}
+  n: (pal) =>
+    wrap(
+      `${speedLines(pal)}
   <path d="M10 34c2-11 7.5-17.5 14-19.5 2.2-1 3.5-3.2 3.5-5.8 0-3-2.5-5.5-5.5-5.5-2.5 0-4.6 1.4-5.8 3.6-1.8 3.2-5.2 4.5-8.2 3-1.2-.7-1.6-2.2-1.1-3.4 1.2-2.8 3.5-5.8 5.8-7.5 2-1.5 4.5-2.3 7.2-2.3 7.5 0 13 6.5 13 14.5V34z" fill="url(#jacket)" stroke="${pal.stroke}" stroke-width="2" stroke-linejoin="round"/>
   <path d="M27 11.5c3.5-1.2 7 .8 8.5 4.5" fill="none" stroke="url(#hair)" stroke-width="2.8" stroke-linecap="round"/>
   <path d="M30 9.5c1.8 0 3.5 1 4.2 2.8" fill="none" stroke="${pal.accent}" stroke-width="1.6" stroke-linecap="round"/>
@@ -150,8 +156,8 @@ const SHAPES = {
   <circle cx="27.2" cy="13.6" r=".7" fill="${pal.shine}"/>
   <path d="M12 30c3 2 6.5 2.8 10 2.8" fill="none" stroke="${pal.accent}" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
   <path d="${BASE}" fill="${pal.jacketLo}" stroke="${pal.stroke}" stroke-width="1.4"/>`,
-    pal,
-  ),
+      pal,
+    ),
 };
 
 for (const color of ["w", "b"]) {

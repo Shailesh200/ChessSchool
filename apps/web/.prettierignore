@@ -5,6 +5,7 @@ test-results
 playwright-report
 dist
 build
+storybook-static
 *.db
 *.db-shm
 *.db-wal

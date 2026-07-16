@@ -6,13 +6,7 @@ import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 
 /** Redirect guests to enroll before enrolled-only play surfaces. */
-export function EnrollGate({
-  children,
-  next,
-}: {
-  children: ReactNode;
-  next: string;
-}) {
+export function EnrollGate({ children, next }: { children: ReactNode; next: string }) {
   const router = useRouter();
   const authed = useSession((s) => s.authed);
   const ready = useRehydrateReady();

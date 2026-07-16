@@ -139,9 +139,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           <StreakMilestoneBanner streak={streak} />
         )}
 
-        {showEnrollBanner && (
-          <EnrollPromptBanner next="/academy" />
-        )}
+        {showEnrollBanner && <EnrollPromptBanner next="/academy" />}
 
         {recommendPreschool && (
           <div className="rounded-card border-hairline bg-surface-sunken/80 border p-4">

@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { analyticsEvents, users, webVitals } from "@/db/schema";
-import { bootApiTestEnv, bearer, readJson, testIp, type TestDb } from "@/lib/test-db.harness";
+import {
+  bootApiTestEnv,
+  bearer,
+  readJson,
+  testIp,
+  type TestDb,
+} from "@/lib/test-db.harness";
 
 const PW = "testpass123";
 
@@ -120,7 +126,9 @@ describe("auth API integration", () => {
         body: JSON.stringify({ email, password: PW, name: "Delete Me" }),
       }),
     );
-    const { token, user } = await readJson<{ token: string; user: { id: string } }>(reg);
+    const { token, user } = await readJson<{ token: string; user: { id: string } }>(
+      reg,
+    );
 
     const now = Date.now();
     await db.insert(analyticsEvents).values({
@@ -154,8 +162,12 @@ describe("auth API integration", () => {
       (await db.select().from(users).where(eq(users.id, user.id)).limit(1))[0],
     ).toBeUndefined();
     expect(
-      (await db.select().from(analyticsEvents).where(eq(analyticsEvents.userId, user.id)))
-        .length,
+      (
+        await db
+          .select()
+          .from(analyticsEvents)
+          .where(eq(analyticsEvents.userId, user.id))
+      ).length,
     ).toBe(0);
     expect(
       (await db.select().from(webVitals).where(eq(webVitals.userId, user.id))).length,

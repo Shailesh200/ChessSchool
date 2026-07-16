@@ -195,7 +195,8 @@ export default function ThemesPage() {
             <section>
               <h2 className="text-ink mb-1 text-sm font-extrabold">Piece sets</h2>
               <p className="text-ink-500 mb-2 text-xs font-semibold">
-                Fairytale uses flat storybook silhouettes — mice, castles, princesses, and more.
+                Fairytale uses flat storybook silhouettes — mice, castles, princesses,
+                and more.
               </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {PIECE_THEMES.map((p) => {
@@ -257,7 +258,7 @@ export default function ThemesPage() {
                       <span className="text-ink truncate text-xs font-extrabold">
                         {t.name}
                       </span>
-                      <span className="text-ink-500 line-clamp-2 text-center text-[10px] font-semibold leading-tight">
+                      <span className="text-ink-500 line-clamp-2 text-center text-[10px] leading-tight font-semibold">
                         {t.chrome}
                       </span>
                     </button>

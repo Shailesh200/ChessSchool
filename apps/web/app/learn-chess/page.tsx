@@ -2,10 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { NavButton } from "@/components/ui/NavButton";
 import { CurriculumLinkGrid } from "@/components/seo/CurriculumLinkGrid";
-import {
-  CURRICULUM_HIGHLIGHTS,
-  LEARN_CHESS_SECTIONS,
-} from "@/lib/seo/content";
+import { CURRICULUM_HIGHLIGHTS, LEARN_CHESS_SECTIONS } from "@/lib/seo/content";
 import { socialMeta } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -90,8 +87,8 @@ export default function LearnChessPage() {
             Common questions
           </h2>
           <p className="text-ink-600 mt-2 text-sm font-semibold">
-            Answers about pricing, multiplayer, apps, and how long it takes to learn are on
-            our{" "}
+            Answers about pricing, multiplayer, apps, and how long it takes to learn are
+            on our{" "}
             <Link
               href="/#faq"
               className="text-brand font-bold underline-offset-2 hover:underline"

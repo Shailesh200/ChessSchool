@@ -331,7 +331,8 @@ html[data-school-theme="elementary"] {
   --accent-500: #f2613f;
   --school-radius-card: 1.375rem;
   --school-radius-badge: 999px;
-  --school-card-border: 2px solid color-mix(in srgb, var(--brand-300) 28%, var(--hairline));
+  --school-card-border: 2px solid
+    color-mix(in srgb, var(--brand-300) 28%, var(--hairline));
   --school-header-bg: linear-gradient(
     135deg,
     color-mix(in srgb, var(--brand-50) 72%, transparent),
@@ -353,7 +354,8 @@ html[data-school-theme="highschool"] {
   --accent-500: #cf4324;
   --school-radius-card: 0.75rem;
   --school-radius-badge: 0.5rem;
-  --school-card-border: 1px solid color-mix(in srgb, var(--brand-600) 22%, var(--hairline));
+  --school-card-border: 1px solid
+    color-mix(in srgb, var(--brand-600) 22%, var(--hairline));
   --school-card-shadow: 0 1px 2px rgba(15, 118, 110, 0.08), var(--elev-2);
   --school-header-bg: linear-gradient(
     180deg,
@@ -378,7 +380,8 @@ html[data-school-theme="university"] {
   --brand-100: #d8d7fa;
   --accent-500: #f2613f;
   --school-radius-card: var(--radius-lg);
-  --school-card-border: 1px solid color-mix(in srgb, var(--brand-300) 24%, var(--hairline));
+  --school-card-border: 1px solid
+    color-mix(in srgb, var(--brand-300) 24%, var(--hairline));
   --school-header-bg: linear-gradient(
     120deg,
     color-mix(in srgb, var(--brand-50) 80%, transparent),
@@ -398,7 +401,8 @@ html[data-school-theme="graduation"] {
   --brand-100: #e9d5ff;
   --accent-500: #d97706;
   --school-radius-card: var(--radius-xl);
-  --school-card-border: 1px solid color-mix(in srgb, var(--gold-500) 35%, var(--hairline));
+  --school-card-border: 1px solid
+    color-mix(in srgb, var(--gold-500) 35%, var(--hairline));
   --school-card-shadow:
     0 1px 2px rgba(109, 40, 217, 0.08),
     0 10px 28px -14px color-mix(in srgb, var(--brand-500) 28%, transparent);
