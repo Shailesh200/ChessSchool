@@ -100,7 +100,7 @@ test.describe("desktop layout @1280", () => {
       page.getByRole("heading", { name: "Theme Studio", level: 1 }),
     ).toBeVisible();
     await expect(page.getByText("Live preview")).toBeVisible();
-    await expect(page.getByText("App theme")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "App theme" })).toBeVisible();
   });
 
   test("play match board is capped and moves work at desktop width", async ({

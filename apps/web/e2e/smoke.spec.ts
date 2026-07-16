@@ -21,10 +21,10 @@ test("class journey shows the milestone path", async ({ page }) => {
 
 test("theme studio shows app + board themes with live preview", async ({ page }) => {
   await page.goto("/themes");
-  await expect(page.getByText("Theme Studio")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Theme Studio" })).toBeVisible();
   await expect(page.getByText("Live preview")).toBeVisible();
-  await expect(page.getByText("App theme")).toBeVisible();
-  await expect(page.getByText("Board themes")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "App theme" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Board themes" })).toBeVisible();
   // App theme and school theme both include "Midnight" — target App theme row only.
   await page
     .locator("section")

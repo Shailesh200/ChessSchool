@@ -1,16 +1,17 @@
 import { test, expect } from "@playwright/test";
+import { enrollWeb } from "./helpers/auth";
 
 test("arena hub renders standings and start controls", async ({ page }) => {
+  await enrollWeb(page);
   await page.goto("/play/arena");
   await expect(page.getByRole("heading", { name: /arena tournament/i })).toBeVisible();
   await expect(page.getByText(/standings|score|round/i).first()).toBeVisible();
 });
 
 test("calculation trainer loads at /play/think", async ({ page }) => {
+  await enrollWeb(page);
   await page.goto("/play/think");
-  await expect(
-    page.getByRole("heading", { name: /calculation trainer/i }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /lesson trainer/i })).toBeVisible();
   await expect(page.getByText(/coach/i).first()).toBeVisible();
 });
 

@@ -13,7 +13,8 @@ export function EnrollGate({ children, next }: { children: ReactNode; next: stri
 
   useEffect(() => {
     if (!ready) return;
-    if (authed !== true) {
+    // null = session still resolving (ProgressSync / cookie) — wait, don't bounce.
+    if (authed === false) {
       router.replace(`/register?next=${encodeURIComponent(next)}`);
     }
   }, [ready, authed, router, next]);
