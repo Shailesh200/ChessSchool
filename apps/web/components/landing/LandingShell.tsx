@@ -53,6 +53,15 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
             <Link href="/learn-chess" className="text-ink-500 hover:text-ink">
               Learn chess
             </Link>
+            <Link href="/about" className="text-ink-500 hover:text-ink">
+              About
+            </Link>
+            <Link href="/support" className="text-ink-500 hover:text-ink">
+              Support
+            </Link>
+            <Link href="/terms" className="text-ink-500 hover:text-ink">
+              Terms
+            </Link>
             <Link href="/privacy" className="text-ink-500 hover:text-ink">
               Privacy
             </Link>
