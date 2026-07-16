@@ -21,6 +21,10 @@ pnpm --filter web format:check
 echo "→ test coverage (≥${MIN_COVERAGE_PERCENT:-90}%)"
 bash scripts/verify-test-coverage.sh
 
+# Seed before build — Next prerenders catalog/campus routes against the DB.
+echo "→ pnpm --filter web db:fresh"
+pnpm --filter web db:fresh
+
 echo "→ pnpm build"
 pnpm build
 
@@ -36,9 +40,6 @@ bash scripts/verify-web-seo.sh
 echo "→ Parity route / Maestro coverage"
 node scripts/generate-parity-maestro.mjs
 node scripts/verify-parity-coverage.mjs
-
-echo "→ pnpm --filter web db:fresh"
-pnpm --filter web db:fresh
 
 echo "→ pnpm e2e"
 pnpm e2e

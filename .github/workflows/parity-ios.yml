@@ -37,8 +37,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/generate-parity-maestro.mjs
       - run: node scripts/verify-parity-coverage.mjs
+      # Seed before build — Next prerenders catalog routes against the DB.
       - run: pnpm --filter web db:fresh
-      # Playwright webServer runs `pnpm start` — needs a production build.
       - run: pnpm --filter web build
         env:
           SESSION_TOKEN_SECRET: e2e-test-session-token-secret
