@@ -1,5 +1,8 @@
 name: Parity iOS
 
+# PR / push: semantic matrix only (PWA). Heavy Simulator visual parity is
+# schedule + workflow_dispatch so it does not block every merge to main.
+
 on:
   pull_request:
     branches: [main]
@@ -7,6 +10,7 @@ on:
     branches: [main]
   schedule:
     - cron: "0 3 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: parity-ios-${{ github.ref }}
@@ -16,11 +20,16 @@ jobs:
   parity-semantic:
     name: PWA semantic matrix
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: true
+      SESSION_TOKEN_SECRET: e2e-test-session-token-secret
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4.2.0
         with:
-          version: 10
+          version: 10.30.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,9 +42,11 @@ jobs:
       - run: pnpm parity:semantic
         env:
           CI: true
+          SESSION_TOKEN_SECRET: e2e-test-session-token-secret
 
   parity-ios:
     name: PWA ↔ iOS visual parity
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     timeout-minutes: 90
     env:
@@ -47,9 +58,10 @@ jobs:
       SESSION_TOKEN_SECRET: e2e-test-session-token-secret
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4.2.0
         with:
-          version: 10
+          version: 10.30.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -93,9 +105,10 @@ jobs:
       PARITY_PASSWORD: ${{ secrets.PARITY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4.2.0
         with:
-          version: 10
+          version: 10.30.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22

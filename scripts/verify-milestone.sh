@@ -33,6 +33,10 @@ node scripts/verify-e2e-route-coverage.mjs
 echo "→ Web SEO baseline"
 bash scripts/verify-web-seo.sh
 
+echo "→ Parity route / Maestro coverage"
+node scripts/generate-parity-maestro.mjs
+node scripts/verify-parity-coverage.mjs
+
 echo "→ pnpm --filter web db:fresh"
 pnpm --filter web db:fresh
 

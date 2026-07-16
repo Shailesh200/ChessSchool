@@ -80,6 +80,13 @@ for (const route of ROUTES) {
     await page.goto(route.path, { waitUntil: "domcontentloaded" });
     await settle(page);
     await route.ready(page);
+    // Pixel baselines are authored on darwin Chrome. Ubuntu CI Chromium differs
+    // enough in fonts/AA to flake; landmarks above are the CI gate. Run
+    // `pnpm --filter web e2e -- visual.spec.ts` locally (or with
+    // FORCE_VISUAL_SCREENSHOTS=1) for screenshot diffs.
+    if (process.env.CI && process.env.FORCE_VISUAL_SCREENSHOTS !== "1") {
+      return;
+    }
     await expect(page).toHaveScreenshot(`${route.name}.png`, {
       fullPage: true,
       maxDiffPixelRatio: route.maxDiffPixelRatio ?? 0.02,
