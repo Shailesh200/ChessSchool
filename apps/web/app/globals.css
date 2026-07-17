@@ -243,7 +243,10 @@ button,
   border-radius: 4px;
 }
 
-/* Respect reduced motion globally */
+/* Respect reduced motion globally.
+   Chess piece slides are spatial feedback (where a piece went), not decoration —
+   keep those transforms so moves stay readable. In-app "Reduce motion" still
+   disables them via ChessBoard `showAnimations={false}`. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -253,6 +256,22 @@ button,
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+  [data-testid="chess-board"] [data-piece] {
+    transition-duration: 0.22s !important;
+  }
+}
+
+/* Chess pieces — keep slides on a stable compositor layer (stops flicker/glitch). */
+[data-testid="chess-board"] [data-piece] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+[data-testid="chess-board"] [data-piece] img,
+[data-testid="chess-board"] [data-piece] svg {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 /* Colorblind-friendly board option toggled via data attr on <html> */

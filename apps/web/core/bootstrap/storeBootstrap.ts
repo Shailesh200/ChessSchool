@@ -88,6 +88,11 @@ export function rehydrateAllStores(): Promise<void> {
     const plan = usePlan.getState();
     plan.ensureDay(isoDay());
     useProgression.getState().setDailyGoalXp(planGoalXp(plan));
+    // Persisted guest flag can lag a valid cookie. Hold at `null` until
+    // ProgressSync's pullProgress confirms — avoids flashing Enroll CTAs.
+    if (useSession.getState().authed === false) {
+      useSession.setState({ authed: null, user: null, isAdmin: false });
+    }
     markRehydrateReady();
   });
   return bootstrapPromise;

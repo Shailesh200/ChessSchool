@@ -10,6 +10,8 @@ import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 export function LandingShell({ children }: { children: React.ReactNode }) {
   const authed = useSession((s) => s.authed);
   const rehydrateReady = useRehydrateReady();
+  // null = ProgressSync still validating cookie — don't flash Enroll for logged-in users.
+  const sessionPending = !rehydrateReady || authed === null;
   const showAuthed = rehydrateReady && authed === true;
 
   return (
@@ -20,7 +22,13 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
             <Logo withText />
           </Link>
           <div className="flex items-center gap-2">
-            {showAuthed ? (
+            {sessionPending ? (
+              <div
+                className="skeleton h-9 w-28 rounded-full"
+                aria-hidden
+                data-testid="landing-auth-pending"
+              />
+            ) : showAuthed ? (
               <NavButton href="/academy" size="sm">
                 Continue to academy
               </NavButton>

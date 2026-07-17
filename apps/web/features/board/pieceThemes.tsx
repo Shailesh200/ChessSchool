@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 
 /**
  * Piece sets — every theme uses a distinct silhouette family.
@@ -206,7 +206,10 @@ function shade(hex: string, amt: number): string {
 type RenderFn = (props?: { svgStyle?: CSSProperties }) => React.JSX.Element;
 type Pal = { fill: string; stroke: string };
 
-function AssetPiece({
+/** Module cache — stable component identities across ChessBoard remounts. */
+const piecesCache = new Map<string, Record<string, RenderFn>>();
+
+const AssetPiece = memo(function AssetPiece({
   set,
   code,
   filter,
@@ -218,25 +221,41 @@ function AssetPiece({
   svgStyle?: CSSProperties;
 }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- bundled SVG assets
-    <img
-      src={`/pieces/${set}/${code}.svg`}
-      alt=""
-      draggable={false}
-      width="100%"
-      height="100%"
+    // Filter lives on an inner layer so parent transform slides stay glitch-free.
+    <span
       style={{
         display: "block",
-        objectFit: "contain",
+        width: "100%",
+        height: "100%",
         filter,
         ...svgStyle,
+        // Promote a clean GPU layer; keep filter off the transforming ancestor.
+        transform: "translateZ(0)",
+        WebkitBackfaceVisibility: "hidden",
+        backfaceVisibility: "hidden",
       }}
-    />
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- bundled SVG assets */}
+      <img
+        src={`/pieces/${set}/${code}.svg`}
+        alt=""
+        draggable={false}
+        decoding="async"
+        style={{
+          display: "block",
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      />
+    </span>
   );
-}
+});
 
 /** Custom 3D-shaded Staunton — only used by Marble 3D. */
-function MarblePiece({
+const MarblePiece = memo(function MarblePiece({
   type,
   pal,
   gid,
@@ -253,7 +272,15 @@ function MarblePiece({
       viewBox="0 0 45 45"
       width="100%"
       height="100%"
-      style={{ ...svgStyle, filter: "drop-shadow(0 1.7px 1.1px rgba(0,0,0,0.34))" }}
+      style={{
+        ...svgStyle,
+        filter: "drop-shadow(0 1.7px 1.1px rgba(0,0,0,0.34))",
+        transform: "translateZ(0)",
+        WebkitBackfaceVisibility: "hidden",
+        backfaceVisibility: "hidden",
+        pointerEvents: "none",
+        userSelect: "none",
+      }}
     >
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0.25" y2="1">
@@ -317,7 +344,7 @@ function MarblePiece({
       />
     </svg>
   );
-}
+});
 
 function renderMarble(
   theme: PieceTheme,
@@ -332,6 +359,9 @@ function renderMarble(
 
 /** Build a react-chessboard `pieces` map for the given theme id. */
 export function buildPieces(themeId: string): Record<string, RenderFn> {
+  const cached = piecesCache.get(themeId);
+  if (cached) return cached;
+
   const theme = getPieceTheme(themeId);
   const out: Record<string, RenderFn> = {};
   for (const color of ["w", "b"] as const) {
@@ -354,6 +384,7 @@ export function buildPieces(themeId: string): Record<string, RenderFn> {
       }
     }
   }
+  piecesCache.set(themeId, out);
   return out;
 }
 

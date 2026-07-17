@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { ChessEngine } from "@/features/chess-engine/engine";
@@ -13,6 +13,17 @@ import { buildPieces } from "./pieceThemes";
 const PROMO_GLYPHS: Record<"w" | "b", Record<"q" | "r" | "b" | "n", string>> = {
   w: { q: "♕", r: "♖", b: "♗", n: "♘" },
   b: { q: "♛", r: "♜", b: "♝", n: "♞" },
+};
+
+/** Stable board chrome — avoid recreating style objects every render (piece flicker). */
+const BOARD_STYLE: CSSProperties = {
+  borderRadius: "0.5rem",
+  overflow: "hidden",
+  // Force a compositing layer so overflow+radius+piece transforms don't flicker
+  // (Safari / iOS WebKit especially).
+  transform: "translateZ(0)",
+  WebkitBackfaceVisibility: "hidden",
+  backfaceVisibility: "hidden",
 };
 
 // react-chessboard touches the DOM; load client-only to avoid hydration drift.
@@ -67,21 +78,46 @@ export function ChessBoard({
   showNotation = false,
   fill = false,
   animationDurationInMs = 220,
-  showAnimations = true,
+  showAnimations,
   boardId,
 }: ChessBoardProps) {
-  const autoBoardId = useId();
-  const resolvedBoardId = boardId ?? autoBoardId;
+  // react-chessboard looks up squares via `querySelector('#${id}-square-…')` —
+  // IDs must be CSS-safe (React useId can include `:`).
+  const autoBoardId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const resolvedBoardId = boardId ?? (autoBoardId || "board");
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
+  const reducedMotion = useSettings((s) => s.reducedMotion);
   const colors = getBoardTheme(boardTheme);
   const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
+  // In-app Reduce motion → instant snaps. OS prefers-reduced-motion is handled in
+  // CSS (piece slides kept as functional feedback).
+  const animationsOn = showAnimations ?? !reducedMotion;
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{
     from: Square;
     to: Square;
     color: "w" | "b";
   } | null>(null);
+
+  // Keep handlers stable so react-chessboard options identity changes less often
+  // mid-animation (recreating options every render contributes to piece flicker).
+  const fenRef = useRef(fen);
+  const onMoveRef = useRef(onMove);
+  const interactiveRef = useRef(interactive);
+  const selectedRef = useRef(selected);
+  fenRef.current = fen;
+  onMoveRef.current = onMove;
+  interactiveRef.current = interactive;
+  selectedRef.current = selected;
+
+  // Drop stale selection when the position changes from outside (bot / opponent).
+  const [fenEpoch, setFenEpoch] = useState(fen);
+  if (fen !== fenEpoch) {
+    setFenEpoch(fen);
+    setSelected(null);
+    setPromo(null);
+  }
 
   // Split the selected piece's legal moves into quiet moves (dots) and captures
   // (rings), so the board shows which squares win an opponent's piece.
@@ -98,8 +134,9 @@ export function ChessBoard({
   }, [selected, fen]);
 
   function tryMove(from: Square, to: Square): boolean {
-    if (!onMove) return false;
-    const engine = new ChessEngine(fen);
+    const moveHandler = onMoveRef.current;
+    if (!moveHandler) return false;
+    const engine = new ChessEngine(fenRef.current);
     // If this move can promote, ask which piece instead of forcing a queen.
     const isPromotion = engine.legalMoves(from).some((m) => m.to === to && m.promotion);
     if (isPromotion) {
@@ -107,14 +144,14 @@ export function ChessBoard({
       setSelected(null);
       return false; // wait for the user's choice
     }
-    const ok = onMove({ from, to, promotion: "q" });
+    const ok = moveHandler({ from, to, promotion: "q" });
     if (ok) setSelected(null);
     return ok;
   }
 
   function choosePromotion(piece: PieceSymbol) {
-    if (!promo || !onMove) return;
-    onMove({ from: promo.from, to: promo.to, promotion: piece });
+    if (!promo || !onMoveRef.current) return;
+    onMoveRef.current({ from: promo.from, to: promo.to, promotion: piece });
     setPromo(null);
   }
 
@@ -198,48 +235,88 @@ export function ChessBoard({
     successSquare,
   ]);
 
+  const lightSquareStyle = useMemo(
+    () => ({ backgroundColor: colors.light }),
+    [colors.light],
+  );
+  const darkSquareStyle = useMemo(
+    () => ({ backgroundColor: colors.dark }),
+    [colors.dark],
+  );
+
+  const options = useMemo(
+    () => ({
+      id: resolvedBoardId,
+      position: fen,
+      boardOrientation: orientation,
+      allowDragging: interactive,
+      // Default is 1px — on touch a tap jitters >1px and becomes a drag, eating
+      // the click-to-move. Require real movement before a drag starts.
+      dragActivationDistance: 10,
+      animationDurationInMs,
+      showAnimations: animationsOn,
+      showNotation,
+      allowDrawingArrows: false,
+      boardStyle: BOARD_STYLE,
+      lightSquareStyle,
+      darkSquareStyle,
+      pieces,
+      squareStyles,
+      arrows,
+      onSquareClick: ({
+        square,
+        piece,
+      }: {
+        square: string;
+        piece: { pieceType: string } | null;
+      }) => {
+        if (!interactiveRef.current) return;
+        const prev = selectedRef.current;
+        if (prev && square !== prev) {
+          const moved = tryMove(prev, square as Square);
+          if (!moved && piece) setSelected(square as Square);
+          else if (!moved) setSelected(null);
+        } else if (piece) {
+          setSelected(square === prev ? null : (square as Square));
+        } else {
+          setSelected(null);
+        }
+      },
+      onPieceDrop: ({
+        sourceSquare,
+        targetSquare,
+      }: {
+        sourceSquare: string;
+        targetSquare: string | null;
+      }) => {
+        if (!interactiveRef.current || !targetSquare) return false;
+        return tryMove(sourceSquare as Square, targetSquare as Square);
+      },
+    }),
+    [
+      resolvedBoardId,
+      fen,
+      orientation,
+      interactive,
+      animationDurationInMs,
+      animationsOn,
+      showNotation,
+      lightSquareStyle,
+      darkSquareStyle,
+      pieces,
+      squareStyles,
+      arrows,
+    ],
+  );
+
   return (
     <div
       data-testid="chess-board"
-      className={`relative overflow-hidden rounded-lg [box-shadow:var(--shadow-card)] ${
+      className={`relative rounded-lg [transform:translateZ(0)] [box-shadow:var(--shadow-card)] ${
         fill ? "h-full w-full" : "aspect-square w-full"
       }`}
     >
-      <Chessboard
-        options={{
-          id: resolvedBoardId,
-          position: fen,
-          boardOrientation: orientation,
-          allowDragging: interactive,
-          // Default is 1px — on touch a tap jitters >1px and becomes a drag, eating
-          // the click-to-move. Require real movement before a drag starts.
-          dragActivationDistance: 10,
-          animationDurationInMs,
-          showAnimations,
-          showNotation,
-          lightSquareStyle: { backgroundColor: colors.light },
-          darkSquareStyle: { backgroundColor: colors.dark },
-          pieces,
-          squareStyles,
-          arrows,
-          onSquareClick: ({ square, piece }) => {
-            if (!interactive) return;
-            if (selected && square !== selected) {
-              const moved = tryMove(selected, square);
-              if (!moved && piece) setSelected(square);
-              else if (!moved) setSelected(null);
-            } else if (piece) {
-              setSelected(square === selected ? null : square);
-            } else {
-              setSelected(null);
-            }
-          },
-          onPieceDrop: ({ sourceSquare, targetSquare }) => {
-            if (!interactive || !targetSquare) return false;
-            return tryMove(sourceSquare, targetSquare);
-          },
-        }}
-      />
+      <Chessboard options={options} />
 
       {promo && (
         <div className="bg-ink/45 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">

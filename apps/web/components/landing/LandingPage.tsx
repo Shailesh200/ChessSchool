@@ -13,6 +13,7 @@ import { CurriculumLinkGrid } from "@/components/seo/CurriculumLinkGrid";
 import { FaqSection } from "@/components/seo/FaqSection";
 import { FaqJsonLd } from "@/components/seo/FaqJsonLd";
 import { SiteJsonLd } from "@/components/seo/SiteJsonLd";
+import { LandingPrimaryCtas } from "@/components/landing/LandingPrimaryCtas";
 import { CURRICULUM_HIGHLIGHTS, SEO_FAQ } from "@/lib/seo/content";
 import type { CurriculumSkeleton } from "@/features/school/curriculum-skeleton.server";
 
@@ -114,12 +115,7 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
             browser or as an app.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
-            <NavButton href="/register" size="lg">
-              Enroll free →
-            </NavButton>
-            <NavButton href="/academy" variant="outline" size="lg">
-              Explore academy
-            </NavButton>
+            <LandingPrimaryCtas enrollLabel="Enroll free →" />
             <NavButton href="/class/class-pre-board" variant="ghost" size="lg">
               Start as beginner
             </NavButton>
@@ -309,12 +305,7 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
           and mobile.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <NavButton href="/register" size="lg">
-            Enroll now
-          </NavButton>
-          <NavButton href="/academy" variant="outline" size="lg">
-            Continue to academy
-          </NavButton>
+          <LandingPrimaryCtas enrollLabel="Enroll now" />
         </div>
       </section>
     </>

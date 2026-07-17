@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { loginAction } from "@/lib/auth-actions";
 import { getCurrentUser } from "@/lib/auth";
+import { sanitizeAppNext } from "@/lib/auth-redirect";
 import { socialMeta } from "@/lib/seo";
 
 export const metadata = {
@@ -20,9 +21,16 @@ export const metadata = {
 };
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
-  // Already logged in (e.g. tapped Back onto /login) → bounce to the Learn tab.
-  if (await getCurrentUser()) redirect("/");
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // Already logged in (e.g. tapped Back onto /login) → academy (or safe ?next=).
+  if (await getCurrentUser()) {
+    const { next } = await searchParams;
+    redirect(sanitizeAppNext(next));
+  }
   return (
     <Suspense
       fallback={<div className="skeleton rounded-card mx-auto mt-24 h-64 max-w-sm" />}

@@ -52,7 +52,12 @@ export function ProgressSync() {
         });
       })
       .finally(() => {
-        if (!cancelled) initialSyncDone.current = true;
+        if (cancelled) return;
+        initialSyncDone.current = true;
+        // Network / non-401 failure left session unresolved → treat as guest.
+        if (useSession.getState().authed === null) {
+          useSession.getState().setSession(false, null);
+        }
       });
     return () => {
       cancelled = true;

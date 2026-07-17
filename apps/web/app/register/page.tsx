@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { registerAction } from "@/lib/auth-actions";
 import { getCurrentUser } from "@/lib/auth";
+import { sanitizeAppNext } from "@/lib/auth-redirect";
 import { socialMeta } from "@/lib/seo";
 
 export const metadata = {
@@ -22,8 +23,16 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function RegisterPage() {
-  if (await getCurrentUser()) redirect("/");
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // Already enrolled — cookie session is source of truth (local Zustand may lag).
+  if (await getCurrentUser()) {
+    const { next } = await searchParams;
+    redirect(sanitizeAppNext(next));
+  }
   return (
     <Suspense
       fallback={<div className="skeleton rounded-card mx-auto mt-24 h-64 max-w-sm" />}

@@ -12,7 +12,7 @@ import { pullProgress } from "@/core/sync/pullProgress";
 export default function WelcomePage() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const next = params.get("next") || "/academy";
 
   useEffect(() => {
     let done = false;
