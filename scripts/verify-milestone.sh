@@ -44,6 +44,8 @@ node scripts/verify-parity-coverage.mjs
 echo "→ pnpm e2e"
 pnpm e2e
 
+# Lighthouse also runs in GitHub Actions workflow `.github/workflows/lighthouse.yml`
+# (separate from main CI). Skip locally with SKIP_LIGHTHOUSE=1.
 if [[ "${SKIP_LIGHTHOUSE:-}" == "1" ]]; then
   echo "→ Lighthouse skipped (SKIP_LIGHTHOUSE=1)"
 else

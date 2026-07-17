@@ -20,7 +20,7 @@ Runs, in order:
 8. `pnpm --filter web db:fresh`
 9. `pnpm e2e` — Playwright smoke + route tests
 10. `node scripts/verify-home-js-budget.mjs` — home route JS ≤280 KB gzip (app chunks)
-11. `bash scripts/verify-web-lighthouse.sh` — Lighthouse + CWV on every route *(every 5th milestone merge; owner may skip intervening slices)*
+11. `bash scripts/verify-web-lighthouse.sh` — Lighthouse + CWV on every route *(local / separate GHA workflow `Lighthouse`; every 5th milestone merge; owner may skip intervening slices)*
 
 **Milestone handoffs:** paste the verification report gate table. Include the **Lighthouse summary + CWV table** on every **5th milestone merge**; otherwise note `SKIP_LIGHTHOUSE=1` and owner approval.
 

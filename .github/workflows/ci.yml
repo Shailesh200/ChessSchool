@@ -1,8 +1,9 @@
 name: CI
 
-# Required gate for PRs into main — mirrors local `pnpm verify:milestone`
-# (typecheck, lint, format, coverage, build, SEO, e2e incl. parity semantic,
-# Lighthouse/CWV) plus puzzle-school validate and parity Maestro coverage.
+# Required gate for PRs into main — core of local `pnpm verify:milestone`
+# (typecheck, lint, format, coverage, build, SEO, e2e incl. parity semantic)
+# plus puzzle-school validate and parity Maestro coverage.
+# Lighthouse / CWV runs in the separate `Lighthouse` workflow.
 
 on:
   push:
@@ -18,7 +19,7 @@ jobs:
   verify:
     name: verify:milestone
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     env:
       CI: true
       SESSION_TOKEN_SECRET: e2e-test-session-token-secret
@@ -48,21 +49,7 @@ jobs:
       - name: Install Playwright Chromium (+ OS deps)
         run: pnpm --filter web exec playwright install --with-deps chromium
 
-      - name: Resolve Chromium path for Lighthouse
-        run: |
-          CHROME="$(find "$HOME/.cache/ms-playwright" -type f -path '*/chrome-linux*/chrome' 2>/dev/null | head -1)"
-          if [ -z "$CHROME" ]; then
-            CHROME="$(find "$HOME/.cache/ms-playwright" -type f -name chrome 2>/dev/null | head -1)"
-          fi
-          if [ -z "$CHROME" ] || [ ! -x "$CHROME" ]; then
-            echo "✗ Playwright Chromium binary not found for Lighthouse"
-            find "$HOME/.cache/ms-playwright" -type f -name 'chrome*' 2>/dev/null | head -20
-            exit 1
-          fi
-          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
-          echo "Using CHROME_PATH=$CHROME"
-
-      # Discrete steps = same gates as scripts/verify-milestone.sh, clearer CI logs.
+      # Discrete steps = same gates as scripts/verify-milestone.sh (minus Lighthouse).
       - name: Typecheck
         run: pnpm typecheck
 
@@ -98,21 +85,3 @@ jobs:
 
       - name: Playwright e2e (incl. parity semantic)
         run: pnpm e2e
-
-      - name: Web Lighthouse / CWV
-        run: bash scripts/verify-web-lighthouse.sh
-        env:
-          SKIP_LIGHTHOUSE: "0"
-          # GHA lab is noisy: hard-gate A11y/BP/SEO; Perf/CWV reported as warnings.
-          WEB_LH_CI_RELAXED: "1"
-          WEB_LH_LAB_SLACK_MS: "1200"
-          WEB_LH_RETRIES: "2"
-
-      - name: Upload Lighthouse report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lighthouse-report
-          path: reports/lighthouse/
-          retention-days: 14
-          if-no-files-found: ignore

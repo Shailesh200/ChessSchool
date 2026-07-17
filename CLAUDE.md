@@ -105,7 +105,7 @@ Optimistic moves + adaptive polling by default. Set **`ABLY_API_KEY`** for insta
 - **Web GA launch runbook:** [`plans/M-073_WEB_GA_LAUNCH.md`](plans/M-073_WEB_GA_LAUNCH.md) · env vars [`docs/ENV.md`](docs/ENV.md)
 - **Vercel** auto-deploys `main`. **Root Directory → `apps/web`** (required).
 - Env: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, optional `ABLY_API_KEY`, `SESSION_TOKEN_SECRET`, `CRON_SECRET`, Google OAuth vars above. Coach TTS uses **Microsoft Edge Read Aloud** server-side (no API key). Optional `GOOGLE_TTS_CREDENTIALS` + `TTS_PROVIDER=google` if GCP billing is enabled.
-- CI: `.github/workflows/ci.yml` — typecheck, lint, test, build, e2e
+- CI: `.github/workflows/ci.yml` — typecheck, lint, test, build, e2e · Lighthouse: `.github/workflows/lighthouse.yml` (separate)
 - **Make an admin:** register, then `UPDATE users SET role='admin' WHERE email='…'` in Turso console
 
 ## Mobile
