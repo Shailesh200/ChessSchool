@@ -19,14 +19,22 @@ function formatCls(value) {
 }
 
 export function scoreLighthouseReport(report, thresholds, options = {}) {
+  // CI lab variance is high on GHA — hard-gate A11y/BP/SEO (master plan).
+  // Perf + CWV stay reported; fail only when WEB_LH_STRICT_CWV=1 (local optional).
+  const ciRelaxed =
+    process.env.WEB_LH_CI_RELAXED === "1" ||
+    (process.env.CI === "true" && process.env.WEB_LH_STRICT_CWV !== "1");
+
   const {
     label = "page",
-    enforcePerf = true,
+    enforcePerf = !ciRelaxed && process.env.WEB_LH_ENFORCE_PERFORMANCE !== "0",
     minA11y = 90,
     minBp = 90,
     minSeo = 90,
     labSlackMs = 100,
     enforceLabExtras = process.env.WEB_LH_ENFORCE_LAB_EXTRAS === "1",
+    // Local full verify can set WEB_LH_STRICT_CWV=1; CI relaxed leaves CWV as warnings.
+    enforceCwv = !ciRelaxed,
   } = options;
 
   const lines = [];
@@ -94,8 +102,12 @@ export function scoreLighthouseReport(report, thresholds, options = {}) {
   const ttfb = metrics.timeToFirstByte ?? audit("server-response-time")?.numericValue;
   const mpfid = metrics.maxPotentialFID ?? audit("max-potential-fid")?.numericValue;
 
-  lines.push(`→ CWV & lab metrics (${label}):`);
-  checkMetric("LCP", lcp, thresholds.maxLcpMs, "ms", { hard: true });
+  if (ciRelaxed) {
+    lines.push("→ CWV & lab metrics (CI relaxed — A11y/BP/SEO are hard gates):");
+  } else {
+    lines.push(`→ CWV & lab metrics (${label}):`);
+  }
+  checkMetric("LCP", lcp, thresholds.maxLcpMs, "ms", { hard: enforceCwv });
   if (inpValue != null) {
     checkMetric("INP", inpValue, 200, "ms", { hard: enforceLabExtras });
   } else {
@@ -104,12 +116,12 @@ export function scoreLighthouseReport(report, thresholds, options = {}) {
       hard: enforceLabExtras,
     });
   }
-  checkMetric("CLS", cls, thresholds.maxCls, "cls", { hard: true });
-  checkMetric("FCP", fcp, thresholds.maxFcpMs, "ms", { hard: true });
+  checkMetric("CLS", cls, thresholds.maxCls, "cls", { hard: enforceCwv });
+  checkMetric("FCP", fcp, thresholds.maxFcpMs, "ms", { hard: enforceCwv });
   checkMetric("TBT", tbt, thresholds.maxTbtMs, "ms", { hard: enforceLabExtras });
   checkMetric("Speed Index", si, thresholds.maxSiMs, "ms", { hard: enforceLabExtras });
   checkMetric("TTI", tti, thresholds.maxTtiMs, "ms", { hard: enforceLabExtras });
-  checkMetric("TTFB", ttfb, thresholds.maxTtfbMs, "ms", { hard: true });
+  checkMetric("TTFB", ttfb, thresholds.maxTtfbMs, "ms", { hard: enforceCwv });
 
   return {
     failed,

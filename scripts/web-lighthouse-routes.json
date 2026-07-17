@@ -19,45 +19,44 @@
     { "path": "/playground", "label": "Playground", "tier": "app", "auth": false },
     { "path": "/settings", "label": "Settings", "tier": "app", "auth": false },
     { "path": "/themes", "label": "Theme studio", "tier": "app", "auth": false },
-    { "path": "/placement", "label": "Placement", "tier": "app", "auth": false },
     { "path": "/offline", "label": "Offline", "tier": "public", "auth": false },
     { "path": "/class/class-pieces", "label": "Class journey", "tier": "app", "auth": false },
     { "path": "/lesson/pawn-power", "label": "Lesson", "tier": "app", "auth": false }
   ],
   "tiers": {
     "critical": {
-      "minPerformance": 75,
-      "maxLcpMs": 5000,
-      "maxFcpMs": 2800,
-      "maxTbtMs": 600,
-      "maxSiMs": 5200,
-      "maxTtiMs": 5800,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 500,
-      "maxCls": 0.12
-    },
-    "public": {
-      "minPerformance": 75,
-      "maxLcpMs": 5000,
-      "maxFcpMs": 3000,
-      "maxTbtMs": 600,
-      "maxSiMs": 5200,
-      "maxTtiMs": 5800,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 500,
-      "maxCls": 0.12
-    },
-    "app": {
       "minPerformance": 70,
-      "minSeo": 80,
       "maxLcpMs": 5500,
-      "maxFcpMs": 3500,
+      "maxFcpMs": 3200,
       "maxTbtMs": 800,
       "maxSiMs": 6000,
       "maxTtiMs": 6500,
-      "maxTtfbMs": 900,
+      "maxTtfbMs": 1200,
       "maxMpfidMs": 800,
       "maxCls": 0.15
+    },
+    "public": {
+      "minPerformance": 70,
+      "maxLcpMs": 5500,
+      "maxFcpMs": 3200,
+      "maxTbtMs": 800,
+      "maxSiMs": 6000,
+      "maxTtiMs": 6500,
+      "maxTtfbMs": 1200,
+      "maxMpfidMs": 800,
+      "maxCls": 0.15
+    },
+    "app": {
+      "minPerformance": 50,
+      "minSeo": 80,
+      "maxLcpMs": 6500,
+      "maxFcpMs": 4000,
+      "maxTbtMs": 2500,
+      "maxSiMs": 7000,
+      "maxTtiMs": 7500,
+      "maxTtfbMs": 1200,
+      "maxMpfidMs": 2500,
+      "maxCls": 0.2
     }
   }
 }

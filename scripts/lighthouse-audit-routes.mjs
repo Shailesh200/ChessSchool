@@ -14,6 +14,7 @@ const chromeLauncher = require("chrome-launcher");
 
 import { scoreLighthouseReport } from "./lighthouse-score.mjs";
 import { writeLighthouseReport } from "./lighthouse-report.mjs";
+import { writeLighthouseStepSummary } from "./lighthouse-step-summary.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROUTES_FILE = path.join(__dirname, "web-lighthouse-routes.json");
@@ -182,6 +183,7 @@ async function main() {
     formFactor: FORM_FACTOR,
     passed: !anyFailed,
   });
+  writeLighthouseStepSummary(report.payload);
   log("");
   log(`→ Lighthouse report: ${report.htmlPath}`);
   log(`→ Lighthouse JSON:   ${report.jsonPath}`);
