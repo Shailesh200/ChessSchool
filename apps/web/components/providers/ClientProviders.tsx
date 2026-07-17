@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSettings } from "@/core/store/settings.store";
 import { usePwa, type BeforeInstallPromptEvent } from "@/core/pwa/usePwa";
+import { registerServiceWorker } from "@/core/pwa/registerServiceWorker";
 import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
@@ -39,6 +40,7 @@ const NavProgress = dynamic(
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   const settings = useSettings();
   const pwa = usePwa();
+  const updateToastShown = useRef(false);
 
   // Rehydrate persisted stores once; register Core Web Vitals reporters.
   useEffect(() => {
@@ -71,36 +73,21 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
 
-  // Register the service worker.
+  // Register the service worker and watch for published updates.
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const onLoad = () => {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          reg.addEventListener("updatefound", () => {
-            const sw = reg.installing;
-            if (!sw) return;
-            sw.addEventListener("statechange", () => {
-              if (sw.state === "installed" && navigator.serviceWorker.controller) {
-                usePwa.getState().setUpdateReady(true);
-              }
-            });
-          });
-        })
-        .catch(() => void 0);
-    };
-    window.addEventListener("load", onLoad);
-    return () => window.removeEventListener("load", onLoad);
+    return registerServiceWorker(() => {
+      usePwa.getState().setUpdateReady(true);
+    });
   }, []);
 
-  // Prompt to reload when a new build is ready (the SW already skipWaiting'd;
-  // a reload swaps in the new assets).
+  // Sticky snackbar when a new build is published (reload picks up new assets).
   useEffect(() => {
-    if (!pwa.updateReady) return;
-    toast("A new version is ready", {
+    if (!pwa.updateReady || updateToastShown.current) return;
+    updateToastShown.current = true;
+    toast("A new version is published", {
       tone: "success",
       sticky: true,
+      icon: "sparkle",
       action: { label: "Reload", onClick: () => window.location.reload() },
     });
   }, [pwa.updateReady]);
