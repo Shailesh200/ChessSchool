@@ -135,9 +135,10 @@ export default function RootLayout() {
           <NetworkBanner />
           <UpdateBanner />
           <Toaster />
-          <Diagnostics />
           <AuthProvider>
+            {/* Diagnostics uses useAuth — must stay inside AuthProvider. */}
             <ErrorBoundary>
+              <Diagnostics />
               <Gate />
             </ErrorBoundary>
           </AuthProvider>
