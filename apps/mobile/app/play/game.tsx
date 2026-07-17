@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChessEngine, getBotMove, eloToConfig } from "@chess-school/core";
+import { ChessEngine, getBotMove, eloToConfig, type VerboseMove } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
+import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
@@ -12,22 +13,30 @@ import { sfx } from "@/sfx";
 import { mutateProgress } from "@/progressStore";
 import { material, clock as fmtClock } from "@/chess-utils";
 import { stockfishAvailable, nativeBestMove } from "@/stockfish";
-import { applyMatchEnd, prependRecentGame, type EndReason } from "@/progression";
+import { applyMatchEnd, prependRecentGame, isoDay, type EndReason } from "@/progression";
+import { markHomeworkActivity } from "@/homeworkRoutine";
 import { buildSyncGame, winnerFromPlayerResult, endReasonFromStatus } from "@/gameHistory";
 import { useSettings } from "@/settings";
 import { parseTimeControl, useChessClock } from "@/useChessClock";
+import {
+  canResumeBotMatch,
+  clearBotMatch,
+  finishBotMatch,
+  getActiveBotMatch,
+  getActiveMatch,
+  hydrateMatchStore,
+  startBotMatch,
+  syncBotMatch,
+} from "@/matchStore";
+import { completeArenaIfDone, hydrateArenaStore, recordArenaResult } from "@/arenaStore";
+import { botProfile } from "@/bots";
+import { MateReviewModal } from "@/MateReviewModal";
+import { BotAvatar } from "@/BotAvatar";
+import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
+import { resolveAvatar } from "@/iconMaps";
+import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
+import { useCoachSpeech } from "@/useCoachSpeech";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
-
-const BOTS = [
-  { max: 500, name: "Pip", emoji: "🐣", blurb: "Just learning the moves" },
-  { max: 800, name: "Cody", emoji: "🙂", blurb: "Casual beginner" },
-  { max: 1100, name: "Remi", emoji: "🎯", blurb: "Knows the basics" },
-  { max: 1500, name: "Sasha", emoji: "⚔️", blurb: "Sharp club player" },
-  { max: 1900, name: "Vera", emoji: "🧠", blurb: "Strong expert" },
-  { max: 2300, name: "Magnus Jr.", emoji: "👑", blurb: "Master strength" },
-  { max: 9999, name: "Titan", emoji: "🏆", blurb: "Grandmaster engine" },
-];
-const botProfile = (elo: number) => BOTS.find((b) => elo <= b.max) ?? BOTS[BOTS.length - 1]!;
 
 type OverState = {
   title: string;
@@ -49,10 +58,30 @@ function buildFrames(moves: string[]): string[] {
   return frames;
 }
 
-function PlayerBar({ name, emoji, advantage, active, clockMs }: { name: string; emoji: string; advantage: number; active?: boolean; clockMs?: number }) {
+function PlayerBar({
+  name,
+  botElo,
+  avatarId,
+  advantage,
+  active,
+  clockMs,
+}: {
+  name: string;
+  botElo?: number;
+  avatarId?: string;
+  advantage: number;
+  active?: boolean;
+  clockMs?: number;
+}) {
   return (
     <View style={[styles.playerBar, active && styles.playerBarActive]}>
-      <Text style={styles.playerEmoji}>{emoji}</Text>
+      {botElo !== undefined ? (
+        <BotAvatar elo={botElo} size={32} />
+      ) : (
+        <View style={styles.userAvatar}>
+          <FlatAvatar id={resolveAvatar(avatarId)} size={32} />
+        </View>
+      )}
       <Text style={styles.playerName} numberOfLines={1}>{name}</Text>
       {active && <View style={styles.turnDot} />}
       {advantage > 0 && <Text style={styles.advantage}>+{advantage}</Text>}
@@ -63,11 +92,13 @@ function PlayerBar({ name, emoji, advantage, active, clockMs }: { name: string; 
 
 export default function GameScreen() {
   const router = useRouter();
-  const { elo: eloParam, time: timeParam } = useLocalSearchParams<{ elo: string; time?: string }>();
+  const { elo: eloParam, time: timeParam, arena: arenaParam } = useLocalSearchParams<{ elo: string; time?: string; arena?: string }>();
   const elo = Number(eloParam) || 1000;
   const timeMs = parseTimeControl(timeParam);
+  const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
   const bot = botProfile(elo);
-  const { avatar } = useSettings();
+  const { avatar, coachPersonality } = useSettings();
+  const personality = normalizeCoachPersonality(coachPersonality);
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 24, 440);
   const engineRef = useRef(new ChessEngine());
@@ -80,15 +111,39 @@ export default function GameScreen() {
   const [thinking, setThinking] = useState(false);
   const [over, setOver] = useState<OverState | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [resignOpen, setResignOpen] = useState(false);
   const [flipped, setFlipped] = useState(false);
+  const [coachText, setCoachText] = useState("");
+  const [mateReviewOpen, setMateReviewOpen] = useState(false);
+  const [mateReviewHistory, setMateReviewHistory] = useState<VerboseMove[]>([]);
+  const [clockSeed, setClockSeed] = useState({ w: timeMs, b: timeMs });
   const flaggedRef = useRef(false);
+
+  useEffect(() => {
+    void (async () => {
+      await Promise.all([hydrateMatchStore(), hydrateArenaStore()]);
+      const saved = getActiveMatch();
+      if (saved && !saved.finished && (canResumeBotMatch(elo, timeControlMin) || (arenaParam === "1" && saved.arena))) {
+        engineRef.current = new ChessEngine(saved.fen);
+        gameIdRef.current = saved.matchId;
+        createdAtRef.current = saved.createdAt;
+        setFen(saved.fen);
+        setMoves(saved.moves);
+        setClockSeed({ w: saved.whiteMs, b: saved.blackMs });
+        setCoachText(coachGreeting(elo, bot.name, true, personality));
+        return;
+      }
+      if (arenaParam !== "1") startBotMatch(elo, timeControlMin);
+      setCoachText(coachGreeting(elo, bot.name, false, personality));
+    })();
+  }, [arenaParam, elo, timeControlMin, bot.name, personality]);
 
   const turn = engineRef.current.turn();
   const hasClock = timeMs > 0 && !over;
-  const { whiteMs, blackMs } = useChessClock({
+  const { whiteMs, blackMs, ref: clockRef } = useChessClock({
     enabled: hasClock && !thinking && viewPly === null,
-    whiteMs: timeMs,
-    blackMs: timeMs,
+    whiteMs: clockSeed.w,
+    blackMs: clockSeed.b,
     turn,
     onFlag: (loser) => {
       if (flaggedRef.current || over) return;
@@ -116,12 +171,16 @@ export default function GameScreen() {
     gameIdRef.current = `g${Date.now()}`;
     createdAtRef.current = Date.now();
     flaggedRef.current = false;
+    clearBotMatch();
+    startBotMatch(elo, timeControlMin);
     setFen(engineRef.current.fen());
     setMoves([]);
     setViewPly(null);
     setLastMove(null);
     setOver(null);
     setThinking(false);
+    setClockSeed({ w: timeMs, b: timeMs });
+    setCoachText(coachGreeting(elo, bot.name, false, personality));
   }
 
   async function endGame(mv: string[], result: "win" | "loss" | "draw", title: string, win: boolean, endReason: EndReason = "checkmate") {
@@ -143,15 +202,23 @@ export default function GameScreen() {
     try {
       await mutateProgress((snap) => {
         const before = (snap.rating as number) ?? 800;
-        const next = applyMatchEnd(snap, { botElo: elo, result });
+        let next = applyMatchEnd(snap, { botElo: elo, result });
         ratingDelta = ((next.rating as number) ?? before) - before;
         newRating = (next.rating as number) ?? before;
-        return { ...next, recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game) };
+        next = { ...next, recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game) };
+        return markHomeworkActivity(next, "match", isoDay());
       });
     } catch {
       /* local-only guest */
     }
+    const active = getActiveMatch();
+    if (active?.arena) {
+      const score = result === "win" ? 1 : result === "draw" ? 0.5 : 0;
+      recordArenaResult(active.arena.opponentId, score, gameIdRef.current);
+      void hydrateArenaStore().then(() => completeArenaIfDone());
+    }
     setOver({ title, win, ratingDelta, newRating, gameId: gameIdRef.current, subtitle: result === "draw" ? "Draw" : undefined });
+    finishBotMatch();
   }
 
   function checkOver(): boolean {
@@ -163,6 +230,8 @@ export default function GameScreen() {
       const youWon = e.turn() === "b";
       youWon ? haptics.success() : haptics.error();
       youWon ? sfx.play("win") : sfx.play("error");
+      setMateReviewHistory(e.history());
+      setMateReviewOpen(true);
       void endGame(mv, youWon ? "win" : "loss", youWon ? "Checkmate — you win! 🏆" : `Checkmate — ${bot.name} wins`, youWon, "checkmate");
     } else {
       void endGame(mv, "draw", status === "stalemate" ? "Stalemate — draw" : "Draw", false, endReasonFromStatus(status));
@@ -173,27 +242,62 @@ export default function GameScreen() {
   function handleMove(from: string, to: string, promotion: "q" | "r" | "b" | "n" = "q"): boolean {
     const e = engineRef.current;
     if (over || thinking || viewing || e.turn() !== "w") return false;
+    const beforeFen = e.fen();
     if (!e.move({ from, to, promotion })) return false;
     haptics.tap();
     const h = e.history();
-    sfx.play(h[h.length - 1]?.captured ? "capture" : "move");
+    const applied = h[h.length - 1]!;
+    sfx.play(applied.captured ? "capture" : "move");
+    if (e.inCheck()) sfx.play("check");
+    const nextMoves = [...moves, `${from}:${to}`];
     setFen(e.fen());
-    setMoves((m) => [...m, `${from}:${to}`]);
+    setMoves(nextMoves);
     setLastMove({ from, to });
+    setCoachText(
+      commentOnMove({
+        beforeFen,
+        move: applied,
+        botElo: elo,
+        botName: bot.name,
+        personality,
+        reactingToPlayer: true,
+        moveNumber: h.length,
+      }),
+    );
+    syncBotMatch({ fen: e.fen(), moves: nextMoves, whiteMs: clockRef.current.w, blackMs: clockRef.current.b });
     if (checkOver()) return true;
 
     setThinking(true);
     setTimeout(async () => {
-      const sfReady = stockfishAvailable();
-      let m = sfReady ? await nativeBestMove(e.fen(), elo) : null;
+      // Match web/core: undersized Stockfish is not used below 1400 (Pip/Cody stay on the soft JS bot).
+      let m: { from: string; to: string; promotion?: string } | null = null;
+      if (elo >= 1400 && stockfishAvailable()) {
+        m = await nativeBestMove(e.fen(), elo);
+      }
       if (!m) m = await getBotMove(e.fen(), eloToConfig(elo), Math.random());
       if (m) {
+        const botBefore = e.fen();
         e.move(m as never);
         const bh = e.history();
-        sfx.play(bh[bh.length - 1]?.captured ? "capture" : "move");
+        const botMove = bh[bh.length - 1]!;
+        sfx.play(botMove.captured ? "capture" : "move");
+        if (e.inCheck()) sfx.play("check");
+        const afterMoves = [...nextMoves, `${m.from}:${m.to}`];
         setFen(e.fen());
-        setMoves((mv) => [...mv, `${m.from}:${m.to}`]);
+        setMoves(afterMoves);
         setLastMove({ from: m.from, to: m.to });
+        setCoachText(
+          commentOnMove({
+            beforeFen: botBefore,
+            move: botMove,
+            botElo: elo,
+            botName: bot.name,
+            personality,
+            reactingToPlayer: false,
+            moveNumber: bh.length,
+          }),
+        );
+        syncBotMatch({ fen: e.fen(), moves: afterMoves, whiteMs: clockRef.current.w, blackMs: clockRef.current.b });
       }
       setThinking(false);
       checkOver();
@@ -201,13 +305,8 @@ export default function GameScreen() {
     return true;
   }
 
-  const coachText = over
-    ? null
-    : thinking
-      ? "Thinking…"
-      : moves.length === 0
-        ? `Hi! I'm rated ${elo}. Good luck!`
-        : "Your move";
+  const bubbleText = over ? null : thinking ? "Thinking…" : coachText || `Hi! I'm rated ${elo}. Good luck!`;
+  useCoachSpeech(bubbleText ?? "", !over && !thinking);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
@@ -215,7 +314,7 @@ export default function GameScreen() {
         <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
-        <Text style={styles.title} numberOfLines={1}>vs {bot.emoji} {bot.name} · {elo}</Text>
+        <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
         <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}><Icon name="flip" size={18} color={colors.ink} /></Pressable>
         <Pressable
           style={styles.resign}
@@ -223,25 +322,19 @@ export default function GameScreen() {
           accessibilityRole="button"
           onPress={() => {
             if (over) return;
-            Alert.alert("Resign?", `${bot.name} will win if you resign.`, [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Resign",
-                style: "destructive",
-                onPress: () => void endGame(moves, "loss", `Resigned — ${bot.name} wins`, false),
-              },
-            ]);
+            setResignOpen(true);
           }}
         >
           <Text style={styles.resignText}>Resign</Text>
         </Pressable>
       </View>
 
-      {coachText && (
+      {bubbleText && (
         <View style={styles.coach}>
-          <Text style={{ fontSize: 30 }}>{bot.emoji}</Text>
+          <BotAvatar elo={elo} size={48} />
           <View style={styles.bubble}>
-            <Text style={styles.bubbleText}>{bot.name}: {coachText}</Text>
+            <Text style={styles.bubbleLabel}>{bot.name}</Text>
+            <Text style={styles.bubbleText}>{bubbleText}</Text>
           </View>
         </View>
       )}
@@ -249,7 +342,7 @@ export default function GameScreen() {
       <View style={{ flex: 1, justifyContent: "center" }}>
         <PlayerBar
           name={`${bot.name} · ${elo}`}
-          emoji={bot.emoji}
+          botElo={elo}
           advantage={Math.max(0, mat.b - mat.w)}
           active={thinking && !over}
           clockMs={timeMs > 0 ? blackMs : undefined}
@@ -269,7 +362,7 @@ export default function GameScreen() {
 
         <PlayerBar
           name="You"
-          emoji={avatar || "🎓"}
+          avatarId={avatar}
           advantage={Math.max(0, mat.w - mat.b)}
           active={!thinking && !over && !viewing && turn === "w"}
           clockMs={timeMs > 0 ? whiteMs : undefined}
@@ -287,7 +380,7 @@ export default function GameScreen() {
       </View>
 
       <GameOverOverlay
-        visible={!!over}
+        visible={!!over && !mateReviewOpen}
         title={over?.title ?? ""}
         subtitle={over?.subtitle}
         win={over?.win}
@@ -299,6 +392,13 @@ export default function GameScreen() {
         onExit={() => router.back()}
       />
 
+      <MateReviewModal
+        open={mateReviewOpen}
+        history={mateReviewHistory}
+        orientation={flipped ? "black" : "white"}
+        onClose={() => setMateReviewOpen(false)}
+      />
+
       <ReflectSheet
         visible={reflectOpen}
         onClose={() => setReflectOpen(false)}
@@ -306,6 +406,19 @@ export default function GameScreen() {
         title={`Bot game vs ${bot.name}`}
         summary={over?.title ?? "Match reflection"}
         refId={over?.gameId ?? null}
+      />
+
+      <ConfirmDialog
+        open={resignOpen}
+        title="Resign?"
+        message={`${bot.name} will win if you resign.`}
+        confirmLabel="Resign"
+        tone="danger"
+        onCancel={() => setResignOpen(false)}
+        onConfirm={() => {
+          setResignOpen(false);
+          void endGame(moves, "loss", `Resigned — ${bot.name} wins`, false);
+        }}
       />
     </SafeAreaView>
   );
@@ -322,13 +435,14 @@ const styles = StyleSheet.create({
   playerBar: { flexDirection: "row", alignItems: "center", gap: space[2], marginHorizontal: space[4], paddingHorizontal: space[3], paddingVertical: space[2], borderRadius: radius.md, borderWidth: 1, borderColor: "transparent" },
   playerBarActive: { backgroundColor: colors.surfaceCard, borderColor: colors.brand100, ...shadowCard },
   turnDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
-  playerEmoji: { fontSize: 22 },
+  userAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.brand50, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.brand100 },
   playerName: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
   advantage: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
   clock: { ...type.sm, fontFamily: font.bold, color: colors.ink500, fontVariant: ["tabular-nums"] },
   clockActive: { color: colors.brand },
   coach: { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], marginTop: space[2] },
   bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: space[4], paddingVertical: space[3], borderWidth: 1, borderColor: colors.hairline, ...shadowCard },
+  bubbleLabel: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginBottom: 2 },
   bubbleText: { ...type.base, fontFamily: font.semibold, color: colors.ink },
   scrubber: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[3], marginTop: space[3], marginBottom: space[2] },
   scrubBtn: { minWidth: 56, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceCard, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: colors.hairline },

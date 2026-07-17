@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <defs>
+    <linearGradient id="gown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff8ff"/>
+      <stop offset="100%" stop-color="#ffd6f0"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe9a8"/>
+      <stop offset="100%" stop-color="#e8b84a"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="22.5" cy="41" rx="12" ry="2.4" fill="#f0b8dc" opacity=".35"/>
+  <path d="M8 10l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#ffe9a8" opacity=".85"/>
+  <path d="M36 14l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="#ffe9a8" opacity=".7"/>
+  <path d="M17 7.5l1.5 3 3.2-.8-.7 3.2 2.8 1.8-3.2.8.5 3.2 3-.8-1.5-3 2.5-1.8-3-.5.8-3.2z" fill="url(#gold)" stroke="#a8558a" stroke-width=".9"/>
+  <path d="M19 5.5h7v2.2h-7z" fill="url(#gold)" stroke="#a8558a" stroke-width=".8"/>
+  <circle cx="22.5" cy="15.5" r="6.2" fill="#ffe8f2" stroke="#a8558a" stroke-width="1.1"/>
+  <path d="M16 13.5c1.5-3 4-4.5 6.5-4.5s5 1.5 6.5 4.5" fill="none" stroke="#c9956a" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="20" cy="15" r="1" fill="#a8558a" opacity=".6"/>
+  <circle cx="25" cy="15" r="1" fill="#a8558a" opacity=".6"/>
+  <path d="M14 22c0 6.5 3.8 11.5 8.5 11.5s8.5-5 8.5-11.5" fill="#c4b5fd" stroke="#a8558a" stroke-width="1.1" opacity=".9"/>
+  <path d="M16 24h13l-1.5 8H17.5z" fill="url(#gown)" stroke="#a8558a" stroke-width="1"/>
+  <path d="M11.5 35.5h22c1.4 0 2.5 1.1 2.7 2.5l.4 2.5H8.4l.4-2.5c.2-1.4 1.3-2.5 2.7-2.5z" fill="url(#gold)" stroke="#a8558a" stroke-width="1"/>
+</svg>

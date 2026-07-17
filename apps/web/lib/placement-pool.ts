@@ -1,18 +1,23 @@
+import { unstable_cache } from "next/cache";
+import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { lessons } from "@/db/schema";
+import { CURRICULUM_CACHE_TAG } from "@/features/school/curriculum-skeleton.server";
 
 export type PlacementPuzzle = { fen: string; solution: string[] };
 
-let cached: PlacementPuzzle[] | null = null;
-let cachedAt = 0;
-const TTL_MS = 3600_000;
+const POOL_SIZE = 48;
+const DRAW_SIZE = 8;
 
-/** Cached pool of ~8 spread puzzles for placement tests. */
-export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
-  if (cached && Date.now() - cachedAt < TTL_MS) return cached;
+async function buildPlacementPool(): Promise<PlacementPuzzle[]> {
+  const rows = await db
+    .select({ steps: lessons.steps })
+    .from(lessons)
+    .orderBy(asc(lessons.sortOrder))
+    .limit(800);
 
-  const rows = await db.select({ steps: lessons.steps }).from(lessons).limit(600);
   const all: PlacementPuzzle[] = [];
+  const seenFen = new Set<string>();
   for (const r of rows) {
     try {
       for (const s of JSON.parse(r.steps) as {
@@ -20,7 +25,8 @@ export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
         fen?: string;
         solution?: string[];
       }[]) {
-        if (s.kind === "move" && s.fen && s.solution?.length) {
+        if (s.kind === "move" && s.fen && s.solution?.length && !seenFen.has(s.fen)) {
+          seenFen.add(s.fen);
           all.push({ fen: s.fen, solution: s.solution });
           break;
         }
@@ -28,19 +34,25 @@ export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
     } catch {
       /* skip malformed */
     }
-    if (all.length >= 240) break;
+    if (all.length >= POOL_SIZE) break;
   }
-  const stride = Math.max(1, Math.floor(all.length / 8));
-  const puzzles: PlacementPuzzle[] = [];
-  for (let i = 0; i < all.length && puzzles.length < 8; i += stride)
-    puzzles.push(all[i]!);
-
-  cached = puzzles;
-  cachedAt = Date.now();
-  return puzzles;
+  return all;
 }
 
-export function clearPlacementCache(): void {
-  cached = null;
-  cachedAt = 0;
+const getCachedPlacementPool = unstable_cache(
+  buildPlacementPool,
+  ["placement-pool-v2"],
+  { tags: [CURRICULUM_CACHE_TAG], revalidate: 3600 },
+);
+
+/** Draw ~8 distinct puzzles from a cached pool (fresh shuffle each request). */
+export async function getPlacementPuzzles(): Promise<PlacementPuzzle[]> {
+  const pool = await getCachedPlacementPool();
+  if (pool.length <= DRAW_SIZE) return pool;
+  const copy = [...pool];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j]!, copy[i]!];
+  }
+  return copy.slice(0, DRAW_SIZE);
 }

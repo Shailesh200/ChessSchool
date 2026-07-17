@@ -2,18 +2,58 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { normalizeCoachVoice } from "@/lib/tts/voices";
 
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
 export type PieceTheme =
-  "classic" | "marble" | "crystal" | "neon" | "forest" | "ocean" | "cute";
+  | "classic"
+  | "merida"
+  | "alpha"
+  | "marble"
+  | "crystal"
+  | "neon"
+  | "forest"
+  | "ocean"
+  | "cartoon"
+  | "fairytale"
+  | "anime"
+  | "fantasy";
 export type ColorblindMode = "none" | "deuteranopia";
 export type CoachPersonality =
   "friendly" | "strict" | "mentor" | "tactical" | "minimal";
 
+/** TTS voice — `auto` follows coach personality; otherwise a fixed Edge neural voice. */
+export type CoachVoiceId =
+  | "auto"
+  | "jenny"
+  | "aria"
+  | "emma"
+  | "michelle"
+  | "sonia"
+  | "natasha"
+  | "neerja"
+  | "guy"
+  | "davis"
+  | "roger"
+  | "brian"
+  | "ryan"
+  | "william"
+  | "tony"
+  | "steffan"
+  | "jane"
+  | "grant"
+  | "sara"
+  | "jason"
+  | "andrew";
+
 export interface SettingsState {
   sound: boolean;
   volume: number; // 0..1
+  /** Read coach / bot chat bubbles aloud (cloud TTS). */
+  coachSpeech: boolean;
+  /** Spoken voice — independent of personality wording. */
+  coachVoice: CoachVoiceId;
   haptics: boolean;
   reducedMotion: boolean;
   hints: boolean;
@@ -31,6 +71,8 @@ export interface SettingsState {
   shareAnalytics: boolean;
   targetElo: number; // 500..2500
   textScale: number; // 1 = 100%
+  /** Epoch ms when guest dismissed the enroll prompt — snooze 7 days. */
+  enrollPromptDismissedAt: number | null;
 
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
   /** Apply many settings in one update (avoids re-render / theme flicker cascades). */
@@ -48,6 +90,8 @@ type BooleanSettingKey = {
 const defaults = {
   sound: true,
   volume: 1,
+  coachSpeech: true,
+  coachVoice: "auto" as CoachVoiceId,
   haptics: true,
   reducedMotion: false,
   hints: true,
@@ -63,6 +107,7 @@ const defaults = {
   shareAnalytics: true,
   targetElo: 600,
   textScale: 1,
+  enrollPromptDismissedAt: null as number | null,
 };
 
 export const useSettings = create<SettingsState>()(
@@ -88,7 +133,7 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 10,
       skipHydration: true,
       // v1 -> v2: introduce schoolTheme; older board themes still resolve.
       // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
@@ -101,6 +146,31 @@ export const useSettings = create<SettingsState>()(
         if (version < 3) {
           if (s.sharePerformance === undefined) s.sharePerformance = true;
           if (s.shareAnalytics === undefined) s.shareAnalytics = true;
+        }
+        if (version < 4) {
+          if (s.coachSpeech === undefined) s.coachSpeech = true;
+        }
+        if (version < 5) {
+          if (!s.coachVoice) s.coachVoice = "auto";
+        }
+        if (version < 6 && s.coachVoice) {
+          s.coachVoice = normalizeCoachVoice(s.coachVoice);
+        }
+        // v6 -> v7: `cute` was ornate Fantasy; Cartoon uses kiwen-suwi silhouettes.
+        const piece = s.pieceTheme as string | undefined;
+        if (version < 7 && piece === "cute") {
+          s.pieceTheme = "fantasy";
+        }
+        // v7 -> v8: Cute renamed to Cartoon (`cartoon` id).
+        if (version < 8 && piece === "cute") {
+          s.pieceTheme = "cartoon";
+        }
+        // v8 -> v9: Barbie/Princess renamed to Fairytale.
+        if (version < 9 && (piece === "barbie" || piece === "princess")) {
+          s.pieceTheme = "fairytale";
+        }
+        if (version < 10 && s.enrollPromptDismissedAt === undefined) {
+          s.enrollPromptDismissedAt = null;
         }
         return { ...defaults, ...s } as SettingsState;
       },

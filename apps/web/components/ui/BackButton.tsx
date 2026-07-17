@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { cn } from "./cn";
+import { Icon } from "./Icon";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
@@ -32,15 +33,7 @@ export function BackButton({
         className,
       )}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="m15 18-6-6 6-6"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <Icon name="chevronLeft" size={18} />
       {label}
     </button>
   );

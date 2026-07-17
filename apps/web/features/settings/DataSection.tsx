@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { exportToFile, importAll, storageEstimateKB } from "@/core/backup/backup";
 import { audio } from "@/core/audio/audioEngine";
 import { toast } from "@/core/store/toast.store";
 
 /** Data ownership + trust panel (#72/#84/#86). */
-export function DataSection() {
+export function DataSection({ embedded = false }: { embedded?: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [storage, setStorage] = useState<number | null>(null);
   const [offlineReady, setOfflineReady] = useState(false);
@@ -28,7 +29,7 @@ export function DataSection() {
       const parsed = JSON.parse(await file.text());
       const preview = await importAll(parsed);
       if (!preview.ok) {
-        setMsg(`⚠️ ${preview.reason}`);
+        setMsg(preview.reason ?? "Import failed");
         audio.play("fail");
         return;
       }
@@ -41,7 +42,7 @@ export function DataSection() {
         location.reload();
       }
     } catch {
-      setMsg("⚠️ Could not read that file.");
+      setMsg("Could not read that file.");
       audio.play("fail");
     }
   }
@@ -59,9 +60,9 @@ export function DataSection() {
     location.reload();
   }
 
-  return (
-    <Card className="flex flex-col gap-3">
-      <p className="text-ink text-sm font-extrabold">Your data</p>
+  const body = (
+    <>
+      {!embedded && <p className="text-ink text-sm font-extrabold">Your data</p>}
 
       {/* Trust strip */}
       <div className="flex flex-wrap gap-2 text-[11px] font-bold">
@@ -69,13 +70,17 @@ export function DataSection() {
           ✓ All changes saved
         </span>
         <span
-          className={`rounded-pill px-2 py-1 ${offlineReady ? "bg-brand-50 text-brand" : "bg-surface-sunken text-ink-500"}`}
+          className={`rounded-pill inline-flex items-center gap-1 px-2 py-1 ${offlineReady ? "bg-brand-50 text-brand" : "bg-surface-sunken text-ink-500"}`}
         >
-          {offlineReady ? "📡 Offline ready" : "📡 Preparing offline…"}
+          <Icon name="wifi" size={12} />
+          {offlineReady ? "Offline ready" : "Preparing offline…"}
         </span>
         {storage != null && (
-          <span className="rounded-pill bg-surface-sunken text-ink-500 px-2 py-1">
-            💾 {storage < 1024 ? `${storage} KB` : `${(storage / 1024).toFixed(1)} MB`}{" "}
+          <span className="rounded-pill bg-surface-sunken text-ink-500 inline-flex items-center gap-1 px-2 py-1">
+            <Icon name="save" size={12} />
+            {storage < 1024
+              ? `${storage} KB`
+              : `${(storage / 1024).toFixed(1)} MB`}{" "}
             stored
           </span>
         )}
@@ -85,7 +90,12 @@ export function DataSection() {
         anytime.
       </p>
 
-      {msg && <p className="text-danger text-xs font-bold">{msg}</p>}
+      {msg && (
+        <p className="text-danger flex items-center gap-1.5 text-xs font-bold">
+          <Icon name="warning" size={14} className="shrink-0" />
+          {msg}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <Button
@@ -124,6 +134,12 @@ export function DataSection() {
       <Button variant="danger" size="sm" onClick={resetAll}>
         Reset all data
       </Button>
-    </Card>
+    </>
   );
+
+  if (embedded) {
+    return <div className="flex flex-col gap-3 py-3">{body}</div>;
+  }
+
+  return <Card className="flex flex-col gap-3">{body}</Card>;
 }

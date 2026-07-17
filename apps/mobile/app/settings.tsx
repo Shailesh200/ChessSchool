@@ -1,15 +1,25 @@
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Linking } from "react-native";
+import { useState, useMemo, useEffect } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View, Linking } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
 import { PRIVACY_URL } from "@/constants";
 import { useSettings, settings } from "@/settings";
+import { exportBackupToFile, importBackup, storageEstimateKB, validateBackup } from "@/backup";
 import { Slider } from "@/Slider";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { ConfirmDialog } from "@/ConfirmDialog";
+import { toast } from "@/toast";
+import { useAppTheme } from "@/ThemeProvider";
+import { font, radius, shadowCard, space } from "@/theme";
+import { useType } from "@/typography";
+import { COACH_VOICE_GROUPS, COACH_VOICE_OPTIONS, normalizeCoachVoice } from "@/coachVoices";
+import { speakCoachText, stopCoachSpeech } from "@/coachSpeech";
+import { Icon } from "@/Icon";
+import { coachToneIcon, emojiToIcon } from "@/iconMaps";
 
 const COACHES = [
   { value: "friendly", label: "Friendly", emoji: "😊" },
@@ -18,18 +28,44 @@ const COACHES = [
   { value: "tactical", label: "Tactical", emoji: "⚔️" },
   { value: "minimal", label: "Minimal", emoji: "🎯" },
 ];
-const track = { true: colors.brand, false: colors.surfaceSunken };
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { guest, exitGuest } = useAuth();
+  const { guest, exitGuest, user } = useAuth();
+  const { colors } = useAppTheme();
   const s = useSettings();
+  const type = useType();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
+  const track = useMemo(() => ({ true: colors.brand, false: colors.surfaceSunken }), [colors]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<unknown>(null);
+  const storageKb = storageEstimateKB();
+
+  useEffect(() => () => stopCoachSpeech(), []);
+
+  async function pickImport() {
+    const res = await DocumentPicker.getDocumentAsync({ type: "application/json", copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.[0]?.uri) return;
+    const raw = await fetch(res.assets[0].uri).then((r) => r.text());
+    const parsed = JSON.parse(raw) as unknown;
+    const preview = validateBackup(parsed);
+    if (!preview.ok) {
+      toast(preview.reason ?? "Invalid backup", { tone: "danger" });
+      return;
+    }
+    setPendingImport(parsed);
+    setImportOpen(true);
+  }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
+    <AppShell>
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton />
+        <BackButton
+          onPress={() => {
+            stopCoachSpeech();
+            router.back();
+          }}
+        />
         <Text style={styles.h1}>Settings</Text>
 
         <Text style={styles.section}>Sound & feel</Text>
@@ -58,7 +94,20 @@ export default function SettingsScreen() {
           <Row label="Colorblind board" hint="Deuteranopia-friendly palette">
             <Switch value={s.colorblind} onValueChange={(v) => settings.set("colorblind", v)} trackColor={track} />
           </Row>
+          <Divider />
+          <SliderRow label="Text size" hint={`${Math.round(s.textScale * 100)}%`} value={s.textScale} min={0.85} max={1.25} step={0.05} onChange={(v) => settings.set("textScale", v)} />
         </View>
+
+        {user?.role === "admin" && (
+          <>
+            <Text style={styles.section}>Developer</Text>
+            <View style={styles.card}>
+              <Row label="Performance diagnostics" hint="Show FPS & route timing HUD">
+                <Switch value={s.diagnostics} onValueChange={(v) => settings.set("diagnostics", v)} trackColor={track} />
+              </Row>
+            </View>
+          </>
+        )}
 
         <Text style={styles.section}>Learning & board</Text>
         <View style={styles.card}>
@@ -69,13 +118,67 @@ export default function SettingsScreen() {
           <SliderRow label="Bot difficulty" hint={`Target ELO ${s.targetElo}`} value={s.targetElo} min={300} max={2500} step={100} onChange={(v) => settings.set("targetElo", v)} />
         </View>
 
+        <Text style={styles.section}>Coach voice</Text>
+        <View style={styles.card}>
+          <Row label="Coach speech" hint="Read coach lines aloud during matches">
+            <Switch value={s.coachSpeech} onValueChange={(v) => settings.set("coachSpeech", v)} trackColor={track} />
+          </Row>
+        </View>
+
+        {s.coachSpeech && (
+          <>
+            {COACH_VOICE_GROUPS.map((group) => (
+              <View key={group.label}>
+                <Text style={styles.voiceGroup}>{group.label}</Text>
+                <View style={styles.voiceGrid}>
+                  {group.ids.map((id) => {
+                    const opt = COACH_VOICE_OPTIONS.find((v) => v.id === id)!;
+                    const on = normalizeCoachVoice(s.coachVoice) === id;
+                    return (
+                      <Pressable
+                        key={id}
+                        style={[styles.voiceCard, on && styles.voiceCardOn]}
+                        onPress={() => {
+                          stopCoachSpeech();
+                          settings.set("coachVoice", id);
+                          void speakCoachText(
+                            id === "auto"
+                              ? "I'll match your coach personality."
+                              : `Hi, I'm ${opt.title}. Ready when you are.`,
+                          );
+                        }}
+                      >
+                        <Icon name={emojiToIcon(opt.emoji)} size={22} color={on ? colors.brand : colors.ink} duotone />
+                        <Text style={[styles.voiceTitle, on && { color: colors.brand }]} numberOfLines={1}>
+                          {opt.title}
+                        </Text>
+                        <Text style={styles.voiceHint} numberOfLines={2}>
+                          {opt.hint}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+
         <Text style={styles.section}>Coach personality</Text>
         <View style={styles.coachGrid}>
           {COACHES.map((c) => {
             const on = s.coachPersonality === c.value;
             return (
-              <Pressable key={c.value} style={[styles.coachCard, on && styles.coachCardOn]} onPress={() => settings.set("coachPersonality", c.value)}>
-                <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
+              <Pressable
+                key={c.value}
+                style={[styles.coachCard, on && styles.coachCardOn]}
+                onPress={() => {
+                  stopCoachSpeech();
+                  settings.set("coachPersonality", c.value);
+                  void speakCoachText(`With a ${c.label.toLowerCase()} coach, I'll guide you this way.`);
+                }}
+              >
+                <Icon name={coachToneIcon(c.value)} size={22} color={on ? colors.brand : colors.ink} duotone />
                 <Text style={[styles.coachLabel, on && { color: colors.brand }]} numberOfLines={1}>{c.label}</Text>
               </Pressable>
             );
@@ -89,25 +192,60 @@ export default function SettingsScreen() {
             <Button label="Log in or enroll →" size="sm" onPress={() => { exitGuest(); router.push("/login"); }} />
           </View>
         ) : (
-          <View style={styles.card}>
-            <Text style={styles.rowLabel}>Account</Text>
-            <Text style={styles.rowHint}>Settings sync to your account when logged in.</Text>
-            <Pressable onPress={() => void Linking.openURL(PRIVACY_URL)} style={{ marginTop: space[2] }}>
-              <Text style={styles.privacyLink}>Privacy policy</Text>
-            </Pressable>
-          </View>
+          <>
+            <Text style={styles.section}>Your data</Text>
+            <View style={styles.card}>
+              <Text style={styles.rowLabel}>Offline ready</Text>
+              <Text style={styles.rowHint}>
+                {storageKb != null ? `~${storageKb} KB progress cached on this device.` : "Progress syncs when you're online."}
+              </Text>
+              <View style={{ flexDirection: "column", gap: space[2], marginTop: space[3] }}>
+                <Button label="Export backup" size="sm" variant="outline" onPress={() => void exportBackupToFile().then(() => toast("Backup exported", { tone: "success" })).catch(() => toast("Export failed", { tone: "danger" }))} />
+                <Button label="Import backup" size="sm" variant="outline" onPress={() => void pickImport()} />
+              </View>
+            </View>
+            <View style={styles.card}>
+              <Text style={styles.rowLabel}>Account</Text>
+              <Text style={styles.rowHint}>Settings sync to your account when logged in.</Text>
+              <Pressable onPress={() => void Linking.openURL(PRIVACY_URL)} style={{ marginTop: space[2] }}>
+                <Text style={styles.privacyLink}>Privacy policy</Text>
+              </Pressable>
+            </View>
+          </>
         )}
 
         <Text style={styles.version}>ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}</Text>
       </ScrollView>
-    </SafeAreaView>
+
+      <ConfirmDialog
+        open={importOpen}
+        title="Import backup?"
+        message="This replaces local progress, games, and settings on this device."
+        confirmLabel="Import"
+        tone="danger"
+        onCancel={() => { setImportOpen(false); setPendingImport(null); }}
+        onConfirm={() => {
+          setImportOpen(false);
+          void importBackup(pendingImport)
+            .then((r) => {
+              if (r.ok) toast("Backup imported", { tone: "success" });
+              else toast(r.reason ?? "Import failed", { tone: "danger" });
+            })
+            .catch(() => toast("Import failed", { tone: "danger" }));
+          setPendingImport(null);
+        }}
+      />
+    </AppShell>
   );
 }
 
 function Row({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+  const type = useType();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
   return (
     <View style={styles.row}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingRight: space[3] }}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowHint}>{hint}</Text>
       </View>
@@ -115,7 +253,26 @@ function Row({ label, hint, children }: { label: string; hint: string; children:
     </View>
   );
 }
-function SliderRow({ label, hint, value, min, max, step, onChange }: { label: string; hint: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
+function SliderRow({
+  label,
+  hint,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+}) {
+  const type = useType();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
   return (
     <View style={styles.sliderRow}>
       <View style={styles.rowBetween}>
@@ -128,27 +285,63 @@ function SliderRow({ label, hint, value, min, max, step, onChange }: { label: st
     </View>
   );
 }
-const Divider = () => <View style={styles.divider} />;
+function Divider() {
+  const type = useType();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
+  return <View style={styles.divider} />;
+}
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: space[5] },
-  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink, marginTop: space[3], marginBottom: space[1] },
-  section: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginTop: space[5], marginBottom: space[2] },
-  coachGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
-  coachCard: { width: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.md, paddingHorizontal: space[3], paddingVertical: space[3], borderWidth: 2, borderColor: "transparent", ...shadowCard },
-  coachCardOn: { borderColor: colors.brand },
-  coachLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], ...shadowCard },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: space[3] },
-  sliderRow: { paddingVertical: space[3] },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  rowHint: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
-  divider: { height: 1, backgroundColor: colors.hairline },
-  guestCard: { backgroundColor: colors.brand50, borderRadius: radius.card, borderWidth: 1, borderColor: colors.brand100, padding: space[4], gap: space[2], marginTop: space[4] },
-  guestTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
-  guestCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: 20 },
-  privacyLink: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-  version: { ...type.xs, fontFamily: font.medium, color: colors.ink300, textAlign: "center", marginTop: space[6], marginBottom: space[2] },
-});
+function makeStyles(type: ReturnType<typeof useType>, colors: ReturnType<typeof useAppTheme>["colors"]) {
+  return StyleSheet.create({
+    content: { padding: space[5], paddingBottom: 100 },
+    h1: { ...type.xl, fontFamily: font.bold, color: colors.ink, marginTop: space[3], marginBottom: space[1] },
+    section: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginTop: space[5], marginBottom: space[2] },
+    coachGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+    coachCard: {
+      width: "47%",
+      flexGrow: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: space[2],
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.md,
+      paddingHorizontal: space[3],
+      paddingVertical: space[3],
+      borderWidth: 2,
+      borderColor: "transparent",
+      ...shadowCard,
+    },
+    coachCardOn: { borderColor: colors.brand },
+    coachLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    voiceGroup: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginTop: space[3], marginBottom: space[2] },
+    voiceGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+    voiceCard: {
+      width: "30%",
+      minWidth: 96,
+      flexGrow: 1,
+      alignItems: "center",
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.md,
+      padding: space[2],
+      borderWidth: 2,
+      borderColor: "transparent",
+      ...shadowCard,
+    },
+    voiceCardOn: { borderColor: colors.brand, backgroundColor: colors.brand50 },
+    voiceTitle: { ...type.xs, fontFamily: font.bold, color: colors.ink, marginTop: 4, textAlign: "center" },
+    voiceHint: { ...type.xs, fontFamily: font.semibold, color: colors.ink300, fontSize: Math.max(9, Math.round(type.xs.fontSize * 0.75)), textAlign: "center", marginTop: 2 },
+    card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, paddingHorizontal: space[4], paddingVertical: space[2], ...shadowCard },
+    row: { flexDirection: "row", alignItems: "center", paddingVertical: space[3] },
+    sliderRow: { paddingVertical: space[3] },
+    rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    rowLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    rowHint: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
+    divider: { height: 1, backgroundColor: colors.hairline },
+    guestCard: { backgroundColor: colors.brand50, borderRadius: radius.card, borderWidth: 1, borderColor: colors.brand100, padding: space[4], gap: space[2], marginTop: space[4] },
+    guestTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
+    guestCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: type.sm.lineHeight },
+    privacyLink: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+    version: { ...type.xs, fontFamily: font.medium, color: colors.ink300, textAlign: "center", marginTop: space[6], marginBottom: space[2] },
+  });
+}

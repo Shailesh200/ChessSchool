@@ -1,0 +1,32 @@
+appId: com.chessschool.app
+---
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    optional: true
+    timeout: 120000
+- tapOn:
+    id: "orientation-skip"
+    optional: true
+- tapOn:
+    text: "Open academy →"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Welcome to ChessSchool!"
+    timeout: 120000
+- tapOn:
+    id: "tab-Profile"
+    optional: true
+- tapOn:
+    text: "Log out"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "Daily goal"
+    optional: true
+    timeout: 30000

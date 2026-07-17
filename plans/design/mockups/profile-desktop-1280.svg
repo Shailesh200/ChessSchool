@@ -1,0 +1,34 @@
+<!-- High-fi mockup: Profile - 1280px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" fill="none">
+  <rect width="1280" height="800" fill="#fbfaff"/>
+  <rect x="0" y="0" width="220" height="800" fill="#fff" stroke="#e7e6f2"/>
+  <!-- Hero card -->
+  <rect x="252" y="32" width="984" height="180" rx="20" fill="#fff" stroke="#e7e6f2"/>
+  <circle cx="340" cy="122" r="48" fill="#eef0ff" stroke="#5b5bd6" stroke-width="2"/>
+  <rect x="412" y="96" width="180" height="18" rx="4" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="412" y="124" width="120" height="12" rx="2" fill="#6b6982" opacity="0.5"/>
+  <rect x="412" y="148" width="200" height="10" rx="2" fill="#a9a7bd" opacity="0.4"/>
+  <rect x="1080" y="96" width="132" height="44" rx="22" fill="#eef0ff" stroke="#5b5bd6"/>
+  <!-- Stats -->
+  <rect x="252" y="232" width="220" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="276" y="256" width="80" height="10" rx="2" fill="#6b6982"/>
+  <rect x="276" y="280" width="48" height="20" rx="3" fill="#5b5bd6" opacity="0.8"/>
+  <rect x="492" y="232" width="220" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="732" y="232" width="220" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="972" y="232" width="264" height="100" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <!-- Settings list -->
+  <rect x="252" y="356" width="480" height="400" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="276" y="380" width="120" height="12" rx="2" fill="#6b6982"/>
+  <rect x="276" y="412" width="432" height="56" rx="12" fill="#fbfaff"/>
+  <rect x="276" y="480" width="432" height="56" rx="12" fill="#fbfaff"/>
+  <rect x="276" y="548" width="432" height="56" rx="12" fill="#fbfaff"/>
+  <rect x="276" y="616" width="432" height="56" rx="12" fill="#fbfaff"/>
+  <!-- Achievements -->
+  <rect x="756" y="356" width="480" height="400" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="780" y="380" width="140" height="12" rx="2" fill="#6b6982"/>
+  <rect x="780" y="412" width="100" height="100" rx="14" fill="#eef0ff"/>
+  <rect x="896" y="412" width="100" height="100" rx="14" fill="#f1f0f9"/>
+  <rect x="1012" y="412" width="100" height="100" rx="14" fill="#fff5f2" stroke="#ff7a59"/>
+  <rect x="780" y="532" width="332" height="80" rx="12" fill="#fbfaff"/>
+  <text x="640" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b6982">Profile - 1280px</text>
+</svg>

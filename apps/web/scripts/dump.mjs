@@ -10,7 +10,7 @@ import { writeFileSync, existsSync } from "node:fs";
 
 if (!existsSync("local.db")) {
   console.error(
-    "✗ local.db not found. Create it first:\n    pnpm db:fresh\n  (then optionally `pnpm db:import-puzzles <file>`), then re-run `pnpm db:dump`.",
+    "✗ local.db not found. Create it first:\n    pnpm db:fresh\n    pnpm db:import-puzzle-school && pnpm db:import-homework && pnpm db:dump\n  Or load committed seed: pnpm db:provision",
   );
   process.exit(1);
 }

@@ -1,0 +1,26 @@
+<!-- High-fi mockup: Homework puzzle - 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <rect x="0" y="0" width="390" height="52" fill="#fff"/>
+  <rect x="20" y="16" width="48" height="20" rx="4" fill="#f1f0f9"/>
+  <rect x="280" y="18" width="90" height="16" rx="8" fill="#fff5f2" stroke="#ff7a59"/>
+  <!-- Progress -->
+  <rect x="20" y="64" width="350" height="8" rx="4" fill="#f1f0f9"/>
+  <rect x="20" y="64" width="140" height="8" rx="4" fill="#5b5bd6"/>
+  <rect x="20" y="84" width="180" height="10" rx="2" fill="#6b6982" opacity="0.5"/>
+  <!-- Board -->
+  <rect x="20" y="108" width="350" height="350" rx="12" fill="#ede7f6" stroke="#e7e6f2"/>
+  <rect x="20" y="108" width="43.75" height="43.75" fill="#b9a8e6" opacity="0.55"/>
+  <rect x="107.5" y="195.25" width="43.75" height="43.75" fill="#7be0b3" opacity="0.4"/>
+  <!-- Hint + theme -->
+  <rect x="20" y="474" width="350" height="72" rx="14" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="492" width="64" height="20" rx="10" fill="#eef0ff"/>
+  <rect x="108" y="494" width="200" height="10" rx="2" fill="#1c1b2e" opacity="0.65"/>
+  <rect x="36" y="516" width="280" height="8" rx="2" fill="#a9a7bd" opacity="0.35"/>
+  <!-- Actions -->
+  <rect x="20" y="562" width="168" height="48" rx="24" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="202" y="562" width="168" height="48" rx="24" fill="#5b5bd6"/>
+  <rect x="20" y="628" width="350" height="56" rx="14" fill="#f1f0f9"/>
+  <rect x="36" y="646" width="120" height="10" rx="2" fill="#6b6982" opacity="0.45"/>
+  <text x="195" y="40" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Homework - 390px</text>
+</svg>

@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import {
   semestersForStage,
   classProgress,
   isClassGraduated,
   isClassUnlocked,
   isOptionalClass,
+  isStageGraduatedForDisplay,
   type SchoolClass,
   type Catalog,
 } from "./structure";
@@ -18,6 +21,7 @@ import { useProgression } from "@/core/store/progression.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+import { listContainer, listItem } from "@/core/motion/variants";
 
 export function CampusMap({ catalog }: { catalog: Catalog }) {
   const records = useProgression((s) => s.lessons);
@@ -57,17 +61,31 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
     .map((stage) => {
       const semesters = semestersForStage(stage.id, catalog.semesters);
       const classes = semesters.flatMap((s) => s.classes);
-      const cleared =
-        examsPassed.includes(stage.id) || (classes.length > 0 && classes.every(isDone));
-      return { stage, semesters, classes, cleared };
+      return { stage, semesters, classes };
     })
     .filter((i) => i.classes.length > 0);
-  const stages = stageInfos.map((info, idx) => ({
+  const stageInfosWithCleared = stageInfos.map((info, idx) => ({
+    ...info,
+    cleared: isStageGraduatedForDisplay(
+      idx,
+      stageInfos.map((s) => ({
+        id: s.stage.id,
+        optional: s.stage.optional,
+        classes: s.classes,
+      })),
+      records,
+      graduated,
+      examsPassed,
+    ),
+  }));
+  const stages = stageInfosWithCleared.map((info, idx) => ({
     ...info,
     unlocked:
       idx === 0 ||
-      stageInfos.slice(0, idx).every((s) => s.cleared || Boolean(s.stage.optional)),
-    prevName: idx > 0 ? stageInfos[idx - 1]!.stage.name : "",
+      stageInfosWithCleared
+        .slice(0, idx)
+        .every((s) => s.cleared || Boolean(s.stage.optional)),
+    prevName: idx > 0 ? stageInfosWithCleared[idx - 1]!.stage.name : "",
   }));
 
   return (
@@ -96,7 +114,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
             return (
               <section key={stage.id} className="opacity-70">
                 <div className="rounded-card border-hairline bg-surface-sunken/40 border border-dashed p-4 text-center">
-                  <p className="text-2xl">🔒</p>
+                  <Icon name="lock" size={28} className="text-ink-400 mx-auto" />
                   <p className="text-ink mt-1 text-sm font-extrabold">{stage.name}</p>
                   <p className="text-ink-500 text-xs font-semibold">
                     Graduate {prevName} to unlock · {classCount}{" "}
@@ -116,10 +134,11 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                   onClick={() => setExpanded((s) => new Set(s).add(stage.id))}
                   className="btn-tactile rounded-card border-gold/50 bg-gold/10 flex w-full items-center gap-2 border p-3 text-left"
                 >
-                  <span className="text-xl">{stage.emoji}</span>
+                  <ContentIcon emoji={stage.emoji} size={20} tone="gold" />
                   <span className="min-w-0 flex-1">
-                    <span className="text-ink block text-sm font-extrabold">
-                      🎓 {stage.name} — graduated
+                    <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                      <Icon name="cap" size={16} className="text-gold shrink-0" />
+                      {stage.name} — graduated
                     </span>
                     <span className="text-ink-500 block text-[11px] font-semibold">
                       {classCount} {classCount === 1 ? "class" : "classes"} · tap to
@@ -146,8 +165,8 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
           return (
             <section key={stage.id}>
               {/* Stage header — the full Elementary → Master ladder */}
-              <div className="mb-3 flex items-center gap-2">
-                <span className="text-xl">{stage.emoji}</span>
+              <div className="school-stage-header mb-3 flex items-center gap-2">
+                <ContentIcon emoji={stage.emoji} size={22} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-ink truncate text-sm font-extrabold">
@@ -204,7 +223,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                           className="btn-tactile mb-2 flex w-full items-center gap-2 text-left"
                         >
                           <span
-                            className="rounded-pill shrink-0 px-3 py-1 text-xs font-extrabold text-white"
+                            className="school-semester-badge shrink-0 px-3 py-1 text-xs font-extrabold text-white"
                             style={{ backgroundColor: sem.color }}
                           >
                             {sem.title}
@@ -233,24 +252,33 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                             onClick={toggle}
                             className="btn-tactile rounded-card border-hairline bg-surface-card/60 text-ink-500 w-full border border-dashed p-3 text-center text-xs font-bold"
                           >
-                            {future ? "🔒 " : ""}
+                            {future ? (
+                              <>
+                                <Icon name="lock" size={14} className="mr-1 inline" />
+                              </>
+                            ) : null}
                             {classes.length}{" "}
                             {classes.length === 1 ? "class" : "classes"} — tap to
                             preview
                           </button>
                         ) : (
-                          <div className="flex flex-col gap-3">
-                            {classes.slice(0, semShown[sem.id] ?? 8).map((cls, i) => (
-                              <ClassCard
-                                key={cls.id}
-                                cls={cls}
-                                color={sem.color}
-                                records={records}
-                                graduated={graduated}
-                                allClasses={catalog.allClasses}
-                                semesters={catalog.semesters}
-                                delay={i * 0.05}
-                              />
+                          <motion.div
+                            className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+                            variants={listContainer}
+                            initial="initial"
+                            animate="enter"
+                          >
+                            {classes.slice(0, semShown[sem.id] ?? 8).map((cls) => (
+                              <div key={cls.id} className="@container">
+                                <ClassCard
+                                  cls={cls}
+                                  color={sem.color}
+                                  records={records}
+                                  graduated={graduated}
+                                  allClasses={catalog.allClasses}
+                                  semesters={catalog.semesters}
+                                />
+                              </div>
                             ))}
                             {(semShown[sem.id] ?? 8) < classes.length && (
                               <button
@@ -267,7 +295,7 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                                 more classes ▾
                               </button>
                             )}
-                          </div>
+                          </motion.div>
                         )}
                       </div>
                     );
@@ -287,14 +315,15 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                   className="btn-tactile rounded-card border-gold/50 bg-gold/10 mt-4 flex w-full items-center justify-between border-2 px-4 py-3 text-left"
                 >
                   <span>
-                    <span className="text-ink block text-sm font-extrabold">
-                      📝 {stage.name} Exam
+                    <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                      <Icon name="exam" size={16} className="text-gold shrink-0" />
+                      {stage.name} Exam
                     </span>
                     <span className="text-ink-500 block text-xs font-semibold">
                       Pass to unlock {nextName} →
                     </span>
                   </span>
-                  <span className="text-xl">🎓</span>
+                  <Icon name="cap" size={18} className="text-gold shrink-0" />
                 </button>
               )}
             </section>
@@ -304,7 +333,10 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
 
       {/* End of the ladder */}
       <div className="rounded-card border-hairline bg-surface-sunken/40 border border-dashed p-4 text-center">
-        <p className="text-ink text-sm font-extrabold">🚧 More schools coming soon</p>
+        <p className="text-ink flex items-center justify-center gap-2 text-sm font-extrabold">
+          <Icon name="compass" size={18} className="text-brand shrink-0" />
+          More schools coming soon
+        </p>
         <p className="text-ink-500 mt-1 text-xs font-semibold">
           New programs are being added — keep climbing the ladder!
         </p>
@@ -320,7 +352,6 @@ function ClassCard({
   graduated,
   allClasses,
   semesters,
-  delay,
 }: {
   cls: SchoolClass;
   color: string;
@@ -328,7 +359,6 @@ function ClassCard({
   graduated: string[];
   allClasses: SchoolClass[];
   semesters: Catalog["semesters"];
-  delay: number;
 }) {
   const router = useRouter();
   const unlocked = isClassUnlocked(cls.id, records, graduated, allClasses, semesters);
@@ -352,33 +382,43 @@ function ClassCard({
 
   return (
     <motion.div
-      initial={false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", stiffness: 260, damping: 24 }}
-      className={`rounded-card bg-surface-card border p-4 [box-shadow:var(--shadow-card)] ${
-        grad ? "border-gold" : "border-hairline"
+      variants={listItem}
+      className={`school-chrome-card bg-surface-card p-4 ${
+        grad ? "border-gold" : ""
       } ${unlocked ? "" : "opacity-60"}`}
     >
       <div className="flex items-center gap-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
           style={{ backgroundColor: unlocked ? `${color}1a` : "var(--surface-sunken)" }}
         >
-          {unlocked ? cls.emoji : "🔒"}
+          {unlocked ? (
+            <ContentIcon
+              emoji={cls.emoji}
+              size={24}
+              variant="plain"
+              accentColor={color}
+            />
+          ) : (
+            <Icon name="lock" size={24} className="text-ink-400" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2 className="text-ink truncate text-base font-extrabold">{cls.title}</h2>
             {grad && (
-              <span className="shrink-0 text-sm" title="Graduated">
-                🎓
+              <span className="shrink-0" title="Graduated">
+                <Icon name="cap" size={16} className="text-gold" />
               </span>
             )}
           </div>
           <p className="text-ink-500 truncate text-xs font-semibold">{cls.blurb}</p>
         </div>
-        <span className="text-ink-500 shrink-0 text-xs font-bold">
+        <span className="text-ink-500 shrink-0 text-xs font-bold @min-[280px]:hidden">
           {done}/{total}
+        </span>
+        <span className="rounded-pill bg-surface-sunken text-ink-600 hidden shrink-0 px-2 py-0.5 text-xs font-extrabold @min-[280px]:inline">
+          {done}/{total} lessons
         </span>
       </div>
 
@@ -410,7 +450,10 @@ function ClassCard({
                 router.push(`/lesson/${cls.examId}`);
               }}
             >
-              📝 Test out
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="exam" size={14} />
+                Test out
+              </span>
             </Button>
           )}
         </div>
@@ -429,7 +472,10 @@ function ClassCard({
             router.push(`/class/${prevId}/exam`);
           }}
         >
-          🎓 Test to unlock
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="cap" size={16} />
+            Test to unlock
+          </span>
         </Button>
       )}
     </motion.div>

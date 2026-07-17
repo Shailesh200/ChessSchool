@@ -6,6 +6,7 @@ import { getApiUser } from "@/lib/auth";
 import { progressPushSchema } from "@/lib/api-schemas";
 import { parseExtraData, parseGraduatedClasses } from "@/lib/progress-merge";
 import { applyProgressPush } from "@/lib/progress-server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type * as schema from "@/db/schema";
 
@@ -74,7 +75,18 @@ export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const limited = enforceRateLimit(
+    req,
+    "progress:push",
+    { limit: 120, windowMs: 60_000 },
+    user.id,
+  );
+  if (limited) return limited;
+
   const raw = await req.json().catch(() => null);
+  if (raw === null) {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
   const parsed = progressPushSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

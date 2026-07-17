@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChessBoard } from "@/ChessBoard";
 import { Icon } from "@/Icon";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
 import { mutateProgress, useProgress } from "@/progressStore";
+import { markHomeworkActivity } from "@/homeworkRoutine";
+import { journalKindIcon } from "@/iconMaps";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Mistake = { fen: string; played: string; best: string; tag: string };
@@ -23,13 +24,6 @@ type JournalEntry = {
 };
 
 const CONF = ["😣", "😕", "😐", "🙂", "😄"];
-const KIND_EMOJI: Record<string, string> = {
-  lesson: "📖",
-  match: "♟️",
-  review: "🔍",
-  exam: "📝",
-  reflection: "🧠",
-};
 function isoDay() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -43,6 +37,10 @@ export default function JournalScreen() {
   const [confidence, setConfidence] = useState(3);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    void mutateProgress((snap) => markHomeworkActivity(snap, "reflection", isoDay()));
+  }, []);
 
   async function saveReflection() {
     const trimmed = note.trim();
@@ -77,14 +75,13 @@ export default function JournalScreen() {
   const topMistakes = Object.entries(weaknesses).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
+    <AppShell>
       <View style={styles.header}>
         <BackButton />
         <Text style={styles.h1}>Journal</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 }]}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryKicker}>Growth summary</Text>
           <View style={styles.miniRow}>
@@ -132,7 +129,7 @@ export default function JournalScreen() {
         ) : (
           entries.map((e) => (
             <View key={e.id} style={styles.entryCard}>
-              <Text style={{ fontSize: 20 }}>{KIND_EMOJI[e.kind] ?? "📔"}</Text>
+              <Icon name={journalKindIcon(e.kind)} size={20} color={colors.brand} duotone />
               <View style={{ flex: 1 }}>
                 <Text style={styles.entryTitle}>{e.title}</Text>
                 {!!e.summary && <Text style={styles.entrySummary}>{e.summary}</Text>}
@@ -154,7 +151,10 @@ export default function JournalScreen() {
           <>
             <Text style={styles.intro}>Positions you missed — study the better move.</Text>
           <Pressable style={styles.practiceBtn} onPress={() => router.push("/practice/mistakes")}>
-            <Text style={styles.practiceText}>🎯 Practice these positions →</Text>
+            <View style={styles.practiceRow}>
+              <Icon name="target" size={16} color="#fff" />
+              <Text style={styles.practiceText}>Practice these positions →</Text>
+            </View>
           </Pressable>
           {mistakes.map((m, i) => (
             <View key={i} style={styles.card}>
@@ -173,7 +173,7 @@ export default function JournalScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </AppShell>
   );
 }
 
@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   intro: { fontSize: 13, fontFamily: font.medium, color: colors.ink500, marginBottom: 12 },
   practiceBtn: { borderRadius: radius.pill, backgroundColor: colors.brand, paddingVertical: space[3], alignItems: "center", marginBottom: 12 },
+  practiceRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
   practiceText: { fontSize: 14, fontFamily: font.bold, color: "#fff" },
   card: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: 12, marginBottom: 12, ...shadowCard },
   tag: { fontSize: 14, fontFamily: font.bold, color: colors.ink, textTransform: "capitalize" },

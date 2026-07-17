@@ -19,7 +19,7 @@ export function TopBar() {
 
   if (!rehydrateReady) {
     return (
-      <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl">
+      <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
           <div className="bg-surface-sunken h-5 w-8 rounded" aria-hidden />
           <div className="rounded-pill bg-surface-sunken h-2.5 flex-1" aria-hidden />
@@ -31,7 +31,7 @@ export function TopBar() {
 
   if (authed === false) {
     return (
-      <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl">
+      <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-2.5">
           <Link href="/login" className="text-brand text-sm font-extrabold">
             Enroll to the academy to track your progress →
@@ -42,7 +42,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl">
+    <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl lg:hidden">
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
         <div className="flex items-center gap-1.5" title="Day streak">
           <Icon name="flame" size={20} className="text-accent" />

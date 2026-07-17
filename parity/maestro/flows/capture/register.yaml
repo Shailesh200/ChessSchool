@@ -1,0 +1,13 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///login"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "login-mode-register"
+- extendedWaitUntil:
+    visible:
+      text: "Enroll at ChessSchool"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

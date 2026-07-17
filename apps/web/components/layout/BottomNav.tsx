@@ -5,34 +5,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui/cn";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/Icon";
 import { haptics } from "@/core/haptics/haptics";
 import { startNav } from "@/core/store/nav.store";
-
-type Tab = { href: string; label: string; icon: IconName };
-
-const TABS: Tab[] = [
-  { href: "/", label: "Learn", icon: "learn" },
-  { href: "/play", label: "Play", icon: "play" },
-  { href: "/review", label: "Review", icon: "review" },
-  { href: "/profile", label: "Profile", icon: "profile" },
-];
+import { isNavTabActive, NAV_TABS } from "./nav-tabs";
 
 export function BottomNav() {
   const pathname = usePathname();
-  // Track the tab being navigated to so we can show a loader + lock it.
   const [pending, setPending] = useState<string | null>(null);
-  const loadingHref =
-    pending && (pending === "/" ? pathname !== "/" : !pathname.startsWith(pending))
-      ? pending
-      : null;
+  const loadingHref = pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
-    <nav className="pb-safe border-hairline bg-surface-card/85 sticky bottom-0 z-30 border-t backdrop-blur-xl">
+    <nav
+      className="pb-safe border-hairline bg-surface-card/85 sticky bottom-0 z-30 border-t backdrop-blur-xl lg:hidden"
+      aria-label="Primary"
+    >
       <ul className="mx-auto flex max-w-2xl items-stretch justify-around px-2">
-        {TABS.map((tab) => {
-          const active =
-            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+        {NAV_TABS.map((tab) => {
+          const active = isNavTabActive(pathname, tab.href);
           const loading = loadingHref === tab.href;
           return (
             <li key={tab.href} className="flex-1">

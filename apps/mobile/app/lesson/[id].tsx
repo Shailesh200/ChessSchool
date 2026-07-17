@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,7 +21,10 @@ import { ScreenLoader } from "@/ScreenLoader";
 import { PreschoolQuiz } from "@/PreschoolQuiz";
 import { ReflectSheet } from "@/ReflectSheet";
 import { applyClassGraduation, applyLessonComplete, graduateClass, isoDay, type Mistake } from "@/progression";
-import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson } from "@chess-school/progression";
+import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson, lessonsAttemptedCount, shouldShowEnrollPrompt } from "@chess-school/progression";
+import { EXAM_PASS_RATIO, isTutorialLesson, scoredStepCount } from "@/classExam";
+import { markHomeworkActivities, markHomeworkActivity } from "@/homeworkRoutine";
+import { settings } from "@/settings";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Step = {
@@ -60,8 +63,6 @@ const LESSON_TIPS: Record<string, string> = {
   promotion: "Reach the last rank to promote — usually a queen, but a knight can fork!",
   opening: "In the opening: develop your pieces, control the centre, and castle early.",
 };
-
-const EXAM_PASS_RATIO = 0.7;
 
 function findReply(fenA: string, fenB: string): { from: string; to: string } | null {
   try {
@@ -120,6 +121,7 @@ function createLessonStyles() {
       ...shadowCard,
     },
     hintText: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+    hintRow: { flexDirection: "row", alignItems: "center", gap: space[2], justifyContent: "center" },
     hintBtn: { borderRadius: radius.pill, backgroundColor: colors.brand50, paddingHorizontal: space[4], paddingVertical: space[2] },
     hintBtnText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
     turnRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2] },
@@ -171,7 +173,8 @@ export default function LessonScreen() {
   const { id, hw, daily } = useLocalSearchParams<{ id: string; hw?: string; daily?: string }>();
   const router = useRouter();
   const { guest, exitGuest } = useAuth();
-  const { hints: hintsEnabled } = useSettings();
+  const appSettings = useSettings();
+  const { hints: hintsEnabled } = appSettings;
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 470);
 
@@ -187,15 +190,21 @@ export default function LessonScreen() {
   const [nextId, setNextId] = useState<string | null>(null);
   const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
   const [resolvingNext, setResolvingNext] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
   const [observeReady, setObserveReady] = useState(true);
   const [hintLevel, setHintLevel] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [lessonsAttempted, setLessonsAttempted] = useState(0);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
   const mistakesRef = useRef<Mistake[]>([]);
   const progressSavedRef = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [lessonSound, setLessonSound] = useState(true);
+  const playSfx = useCallback((name: Parameters<typeof sfx.play>[0]) => {
+    if (lessonSound) sfx.play(name);
+  }, [lessonSound]);
 
   async function loadLesson() {
     setLoadError(false);
@@ -258,7 +267,7 @@ export default function LessonScreen() {
         setLastMove({ from: from!, to: to! });
         setDisplayFen(e.fen());
         haptics.tap();
-        sfx.play("move");
+        playSfx("move");
         if (i === step.moves!.length - 1) setObserveReady(true);
       }, 800 * (i + 1));
       timers.current.push(t);
@@ -293,14 +302,19 @@ export default function LessonScreen() {
   const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
 
   function advance() {
-    if (index + 1 >= total) finish();
-    else {
-      setIndex((i) => i + 1);
-      setPhase("playing");
-      setHintLevel(0);
-      setLastMove(null);
-      setDisplayFen(lesson!.steps[index + 1]?.fen);
+    if (advancing || resolvingNext) return;
+    setAdvancing(true);
+    if (index + 1 >= total) {
+      void finish().finally(() => setAdvancing(false));
+      return;
     }
+    setIndex((i) => i + 1);
+    setPhase("playing");
+    setHintLevel(0);
+    setLastMove(null);
+    setDisplayFen(lesson!.steps[index + 1]?.fen);
+    // Brief lock so Continue can't double-fire while the next step mounts.
+    setTimeout(() => setAdvancing(false), 450);
   }
 
   function retryExam() {
@@ -318,15 +332,48 @@ export default function LessonScreen() {
   }
 
   async function finish() {
-    const moveSteps = lesson!.steps.filter((st) => st.kind === "move").length;
-    const totalMoves = moveSteps || 1;
-    const correct = moveSteps === 0 ? 1 : Math.max(0, moveSteps - wrongRef.current);
-    const ratio = correct / totalMoves;
+    const interactive = scoredStepCount(lesson!.steps) || 1;
+    const correct = correctRef.current;
+    const ratio = correct / interactive;
 
     if (lesson!.exam && ratio < EXAM_PASS_RATIO) {
       setPhase("exam-failed");
       haptics.error();
-      sfx.play("error");
+      playSfx("error");
+      return;
+    }
+
+    // Info-only tutorials — record progress and chain to next lesson (no celebration screen).
+    if (isTutorialLesson(lesson!.steps, lesson!.exam)) {
+      setResolvingNext(true);
+      try {
+        await mutateProgress((snap) => {
+          let next = applyLessonComplete(snap, {
+            lessonId: lesson!.id,
+            correct: 1,
+            total: 1,
+            mistakes: 0,
+            xp: lesson!.xp,
+            logs: [],
+          });
+          const today = isoDay();
+          if (hw) next = markHomeworkActivity(next, hw, today);
+          else next = markHomeworkActivities(next, ["lesson", "practice"], today);
+          if (daily === "1") next = { ...next, dailyPuzzleDay: today };
+          return next;
+        });
+        invalidateLearnCache();
+        const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
+        if (!rs.complete && rs.lessonId && rs.lessonId !== id) {
+          router.replace({ pathname: "/lesson/[id]", params: { id: rs.lessonId } });
+        } else {
+          router.replace("/(tabs)/academy");
+        }
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : "Could not save progress");
+      } finally {
+        setResolvingNext(false);
+      }
       return;
     }
 
@@ -334,20 +381,17 @@ export default function LessonScreen() {
     setResolvingNext(true);
     setSaveError(null);
     haptics.success();
-    sfx.play("win");
+    playSfx("win");
     let completedClassTitle: string | null = null;
     try {
       if (!progressSavedRef.current) {
         await mutateProgress((snap) => {
-          let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total: totalMoves, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
-          if (hw) {
-            const today = isoDay();
-            const hd = { ...((next.homeworkDone as Record<string, string[]>) ?? {}) };
-            hd[today] = Array.from(new Set([...(hd[today] ?? []), hw]));
-            next = { ...next, homeworkDone: hd };
-          }
+          let next = applyLessonComplete(snap, { lessonId: lesson!.id, correct, total: interactive, mistakes: wrongRef.current, xp: lesson!.xp, logs: mistakesRef.current });
+          const today = isoDay();
+          if (hw) next = markHomeworkActivity(next, hw, today);
+          else next = markHomeworkActivities(next, ["lesson", "practice"], today);
           if (daily === "1") {
-            next = { ...next, dailyPuzzleDay: isoDay() };
+            next = { ...next, dailyPuzzleDay: today };
           }
           if (lesson!.exam && ratio >= EXAM_PASS_RATIO && lessonClass) {
             next = applyClassGraduation(next, { classId: lessonClass.id, lessonIds: lessonClass.lessonIds });
@@ -366,6 +410,10 @@ export default function LessonScreen() {
         invalidateLearnCache();
         setGraduatedTitle(completedClassTitle);
       }
+      const prog = await fetchProgress();
+      setLessonsAttempted(
+        lessonsAttemptedCount((prog?.lessons ?? {}) as Record<string, { attempts?: number }>),
+      );
       const rs = await api<{ complete: boolean; lessonId?: string }>("/api/next-lesson");
       if (!rs.complete && rs.lessonId && rs.lessonId !== id) setNextId(rs.lessonId);
     } catch (e) {
@@ -384,10 +432,10 @@ export default function LessonScreen() {
     // Show & animate the played move (correct OR wrong) with move/capture sound.
     setDisplayFen(e.fen());
     setLastMove({ from, to });
-    sfx.play(mv.captured ? "capture" : "move");
+    playSfx(mv.captured ? "capture" : "move");
     if (ok) {
       haptics.success();
-      timers.current.push(setTimeout(() => sfx.play("success"), 160));
+      timers.current.push(setTimeout(() => playSfx("success"), 160));
       correctRef.current += 1;
       setPhase("correct");
       const next = lesson!.steps[index + 1];
@@ -397,7 +445,7 @@ export default function LessonScreen() {
           setTimeout(() => {
             setLastMove(reply);
             setDisplayFen(next.fen);
-            sfx.play("move");
+            playSfx("move");
           }, 850),
         );
         timers.current.push(setTimeout(advance, 1850));
@@ -406,7 +454,7 @@ export default function LessonScreen() {
       }
     } else {
       haptics.error();
-      timers.current.push(setTimeout(() => sfx.play("error"), 160));
+      timers.current.push(setTimeout(() => playSfx("error"), 160));
       wrongRef.current += 1;
       if (step.fen) mistakesRef.current.push({ fen: step.fen, played: `${from}:${to}`, best: step.solution?.[0] ?? "", tag: step.tag ?? "tactics", at: Date.now() });
       setPhase("wrong");
@@ -423,16 +471,16 @@ export default function LessonScreen() {
   }
 
   if (phase === "exam-failed") {
-    const moveSteps = lesson.steps.filter((st) => st.kind === "move").length || 1;
-    const correct = Math.max(0, moveSteps - wrongRef.current);
-    const need = Math.ceil(moveSteps * EXAM_PASS_RATIO);
+    const interactive = scoredStepCount(lesson.steps) || 1;
+    const correct = correctRef.current;
+    const need = Math.ceil(interactive * EXAM_PASS_RATIO);
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
           <Cody expression="sad" size={140} />
           <Text style={styles.doneTitle}>Not quite yet</Text>
           <Text style={styles.doneSub}>
-            {correct}/{moveSteps} correct — you need {need} ({Math.round(EXAM_PASS_RATIO * 100)}%) to pass. Review the class and try again!
+            {correct}/{interactive} correct — you need {need} ({Math.round(EXAM_PASS_RATIO * 100)}%) to pass. Review the class and try again!
           </Text>
           <View style={styles.pills}>
             <StatPill label="Correct" value={`${correct}`} tone={colors.success} styles={styles} />
@@ -449,19 +497,28 @@ export default function LessonScreen() {
   }
 
   if (phase === "complete") {
+    const showGuestEnroll =
+      guest &&
+      shouldShowEnrollPrompt({
+        authed: false,
+        dismissedAt: appSettings.enrollPromptDismissedAt,
+        lessonsAttempted,
+      });
     return (
       <SafeAreaView style={styles.safe}>
         <Confetti count={28} />
         <View style={styles.center}>
           <Cody expression="cheer" size={140} />
-          <Text style={styles.doneTitle}>{graduatedTitle ? "Class graduated! 🎓" : lesson.exam ? "Exam complete!" : hw ? "Homework done! 🎉" : "Lesson complete!"}</Text>
+          <Text style={styles.doneTitle}>
+            {graduatedTitle ? "Class graduated!" : lesson.exam ? "Exam complete!" : hw ? "Homework done!" : "Lesson complete!"}
+          </Text>
           {graduatedTitle ? <Text style={styles.doneSub}>{graduatedTitle} is now complete.</Text> : hw && <Text style={styles.doneSub}>One step done — keep going to finish today's set.</Text>}
           <View style={styles.pills}>
             <StatPill label="XP earned" value={`+${lesson.xp}`} tone={colors.brand} styles={styles} />
             <StatPill label="Correct" value={`${correctRef.current}`} tone={colors.success} styles={styles} />
             <StatPill label="Mistakes" value={`${wrongRef.current}`} tone={wrongRef.current === 0 ? colors.success : colors.danger} styles={styles} />
           </View>
-          {guest && (
+          {showGuestEnroll && (
             <View style={styles.enrollCard}>
               <Text style={styles.enrollTitle}>Save your progress</Text>
               <Text style={styles.enrollCopy}>Enroll to keep this lesson, your streak, journal, homework, and badges across devices.</Text>
@@ -473,6 +530,12 @@ export default function LessonScreen() {
                   router.push("/login");
                 }}
               />
+              <Pressable
+                onPress={() => settings.set("enrollPromptDismissedAt", Date.now())}
+                style={{ marginTop: space[2], paddingVertical: space[1] }}
+              >
+                <Text style={[styles.enrollCopy, { color: colors.ink500 }]}>Maybe later</Text>
+              </Pressable>
             </View>
           )}
           {saveError ? (
@@ -500,7 +563,7 @@ export default function LessonScreen() {
             )}
             <View style={{ flexDirection: "row", gap: space[2], alignItems: "stretch" }}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Button label="📝 Reflect" variant="outline" size="sm" onPress={() => setReflectOpen(true)} />
+                <Button label="Reflect" variant="outline" size="sm" onPress={() => setReflectOpen(true)} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Button label="Back to campus" variant="outline" size="sm" onPress={() => router.back()} />
@@ -528,8 +591,8 @@ export default function LessonScreen() {
       ? step.failText ?? "Not quite — try again."
       : phase === "correct"
         ? step.kind === "quiz"
-          ? step.successText ?? "Correct! 🎉"
-          : step.successText ?? "Correct! 🎉"
+          ? step.successText ?? "Correct!"
+          : step.successText ?? "Correct!"
         : step.kind === "quiz"
           ? "Choose the best answer below."
           : step.coach,
@@ -573,6 +636,9 @@ export default function LessonScreen() {
         <Text style={styles.counter}>
           {index + 1}/{total}
         </Text>
+        <Pressable style={styles.circle} onPress={() => setLessonSound((v) => !v)} hitSlop={8} accessibilityLabel={lessonSound ? "Mute lesson sounds" : "Unmute lesson sounds"}>
+          <Icon name={lessonSound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
+        </Pressable>
         <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
           <Icon name="flip" size={18} color={colors.ink} />
         </Pressable>
@@ -583,7 +649,7 @@ export default function LessonScreen() {
         <Cody expression={mood} size={72} />
         <View style={styles.bubble}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            <Text style={styles.bubbleText}>{feedback}</Text>
+            <Text testID="lesson-coach" style={styles.bubbleText}>{feedback}</Text>
           </ScrollView>
         </View>
       </View>
@@ -633,15 +699,21 @@ export default function LessonScreen() {
       {/* Hint bar — board steps only */}
       {step.kind !== "quiz" && (
       <View style={styles.hintBar}>
-        <Text style={styles.hintText}>🎓 {hint}</Text>
+        <View style={styles.hintRow}>
+          <Icon name="cap" size={16} color={colors.ink500} />
+          <Text style={styles.hintText}>{hint}</Text>
+        </View>
         {hintsEnabled && solvable && (
           <Pressable
             style={styles.hintBtn}
             onPress={() => setHintLevel((h) => Math.min(2, h + 1))}
           >
-            <Text style={styles.hintBtnText}>
-              {hintLevel === 0 ? "💡 Show a hint" : hintLevel === 1 ? "💡 Show the move" : "💡 Follow the arrow"}
-            </Text>
+            <View style={styles.hintRow}>
+              <Icon name="bulb" size={14} color={colors.brand} />
+              <Text style={styles.hintBtnText}>
+                {hintLevel === 0 ? "Show a hint" : hintLevel === 1 ? "Show the move" : "Follow the arrow"}
+              </Text>
+            </View>
           </Pressable>
         )}
       </View>
@@ -650,7 +722,12 @@ export default function LessonScreen() {
       {/* Bottom CTA */}
       <View style={styles.bottom}>
         {showContinue ? (
-          <Button label={step.kind === "observe" && !observeReady ? "Watching…" : "Continue"} variant="success" onPress={() => { if (step.kind !== "observe" || observeReady) advance(); }} />
+          <Button
+            label={advancing || resolvingNext ? "Loading…" : step.kind === "observe" && !observeReady ? "Watching…" : "Continue"}
+            variant="success"
+            disabled={advancing || resolvingNext || (step.kind === "observe" && !observeReady)}
+            onPress={() => advance()}
+          />
         ) : step.kind === "quiz" ? (
           <Text style={styles.moveCue}>Tap the answer you think is right</Text>
         ) : (

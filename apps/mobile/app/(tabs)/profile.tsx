@@ -5,7 +5,9 @@ import { ACHIEVEMENTS } from "@chess-school/core";
 import { useAuth } from "@/auth";
 import { useProgress } from "@/progressStore";
 import { Cody } from "@/Cody";
+import { AnimatedNumber } from "@/AnimatedNumber";
 import { Icon, type IconName } from "@/Icon";
+import { achievementIcon } from "@/iconMaps";
 import { TopBar } from "@/TopBar";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
@@ -23,18 +25,19 @@ type Progress = {
   weaknesses: Record<string, number>;
 };
 
-const HUB: { icon: IconName; label: string; route: string; authOnly?: boolean }[] = [
+const HUB: { icon: IconName; label: string; route: string; authOnly?: boolean; adminOnly?: boolean }[] = [
   { icon: "learn", label: "Library", route: "/library", authOnly: true },
   { icon: "profile", label: "My ID", route: "/account", authOnly: true },
   { icon: "chart", label: "Report Card", route: "/dashboard", authOnly: true },
   { icon: "calendar", label: "Homework", route: "/homework", authOnly: true },
   { icon: "journal", label: "Journal", route: "/journal", authOnly: true },
+  { icon: "play", label: "Playground", route: "/playground", authOnly: true, adminOnly: true },
   { icon: "palette", label: "Themes", route: "/themes" },
   { icon: "gear", label: "Settings", route: "/settings" },
 ];
 
 export default function ProfileScreen() {
-  const { user, guest, exitGuest, logout } = useAuth();
+  const { user, guest, exitGuest } = useAuth();
   const router = useRouter();
   const { colors } = useAppTheme();
   const p = useProgress() as Progress | null;
@@ -71,8 +74,7 @@ export default function ProfileScreen() {
         badgeOn: { backgroundColor: colors.brand50 },
         badgeOff: { backgroundColor: colors.surfaceSunken },
         badgeTitle: { ...type.caption, fontFamily: font.bold, color: colors.ink },
-        logout: { alignSelf: "center", borderWidth: 1, borderColor: colors.danger, borderRadius: radius.md, paddingVertical: 13, paddingHorizontal: 44 },
-        logoutText: { color: colors.danger, fontFamily: font.bold, fontSize: 15 },
+        badgeDesc: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", lineHeight: 12 },
       }),
     [colors],
   );
@@ -85,7 +87,9 @@ export default function ProfileScreen() {
   const mastered = Object.values(p?.lessons ?? {}).filter((l) => l.mastery >= 0.9).length;
   const unlocked = new Set(p?.unlockedAchievements ?? []);
   const weakTags = Object.entries(p?.weaknesses ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const hubItems = guest ? HUB.filter((h) => !h.authOnly) : HUB;
+  const hubItems = (guest ? HUB.filter((h) => !h.authOnly) : HUB).filter(
+    (h) => !h.adminOnly || user?.role === "admin",
+  );
 
   return (
     <ThemedSafeArea edges={["top"]}>
@@ -104,6 +108,7 @@ export default function ProfileScreen() {
             <Text style={styles.enrollTitle}>Save your ChessSchool progress</Text>
             <Text style={styles.enrollCopy}>Create an account to keep lessons, ratings, journal entries, homework, and achievements across devices.</Text>
             <Pressable
+              testID="profile-enroll-cta"
               style={styles.enrollButton}
               onPress={() => {
                 exitGuest();
@@ -127,10 +132,10 @@ export default function ProfileScreen() {
         {!guest && (
           <>
             <View style={styles.stats}>
-              <Stat styles={styles} icon="flame" tint={colors.accent} value={`${p?.streak ?? 0}`} label="Day streak" />
-              <Stat styles={styles} icon="check" tint={colors.success} value={`${mastered}`} label="Lessons mastered" />
-              <Stat styles={styles} icon="target" tint={colors.brand} value={`${rating}`} label="Rating" />
-              <Stat styles={styles} icon="trophy" tint={colors.gold} value={`${unlocked.size}`} label="Badges" />
+              <Stat styles={styles} icon="flame" tint={colors.accent} value={p?.streak ?? 0} label="Day streak" />
+              <Stat styles={styles} icon="check" tint={colors.success} value={mastered} label="Lessons mastered" />
+              <Stat styles={styles} icon="target" tint={colors.brand} value={rating} label="Rating" />
+              <Stat styles={styles} icon="trophy" tint={colors.gold} value={unlocked.size} label="Badges" />
             </View>
 
             <Text style={styles.h2}>Learning profile</Text>
@@ -161,16 +166,14 @@ export default function ProfileScreen() {
                 const has = unlocked.has(a.id);
                 return (
                   <View key={a.id} style={[styles.badge, has ? styles.badgeOn : styles.badgeOff]}>
-                    <Text style={{ fontSize: 24, opacity: has ? 1 : 0.4 }}>{a.emoji}</Text>
+                    <Icon name={achievementIcon(a.id)} size={24} color={has ? colors.brand : colors.ink300} duotone />
                     <Text style={styles.badgeTitle} numberOfLines={1}>{a.title}</Text>
+                    <Text style={styles.badgeDesc} numberOfLines={2}>{a.description}</Text>
                   </View>
                 );
               })}
             </View>
 
-            <Pressable style={styles.logout} onPress={logout}>
-              <Text style={styles.logoutText}>Log out</Text>
-            </Pressable>
           </>
         )}
       </ScrollView>
@@ -188,13 +191,13 @@ function Stat({
   styles: ReturnType<typeof StyleSheet.create>;
   icon: IconName;
   tint: string;
-  value: string;
+  value: number;
   label: string;
 }) {
   return (
     <View style={styles.stat}>
       <Icon name={icon} size={18} color={tint} />
-      <Text style={styles.statValue}>{value}</Text>
+      <AnimatedNumber value={value} style={styles.statValue} />
       <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );

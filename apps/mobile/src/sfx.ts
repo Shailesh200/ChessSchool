@@ -12,7 +12,7 @@ const SOURCES = {
 } as const;
 
 type BaseSfx = keyof typeof SOURCES;
-/** Web voice names mapped to bundled WAVs until full synth export lands. */
+/** Web voice names mapped to bundled WAVs with per-voice pitch/volume tweaks. */
 export type Sfx =
   | BaseSfx
   | "fail"
@@ -29,20 +29,28 @@ export type Sfx =
   | "notify"
   | "ambience";
 
-const ALIAS: Record<Exclude<Sfx, BaseSfx>, BaseSfx> = {
-  fail: "error",
-  check: "move",
-  promotion: "success",
-  reward: "success",
-  streak: "success",
-  levelup: "win",
-  unlock: "win",
-  exam: "win",
-  graduation: "win",
-  victory: "win",
-  transition: "select",
-  notify: "select",
-  ambience: "move",
+type Voice = { base: BaseSfx; rate?: number; volumeMul?: number };
+
+const VOICE: Record<Sfx, Voice> = {
+  move: { base: "move" },
+  capture: { base: "capture" },
+  select: { base: "select" },
+  success: { base: "success" },
+  error: { base: "error" },
+  win: { base: "win" },
+  fail: { base: "error", rate: 0.82 },
+  check: { base: "move", rate: 1.38 },
+  promotion: { base: "success", rate: 1.12 },
+  reward: { base: "success", rate: 1.18 },
+  streak: { base: "success", rate: 1.28 },
+  levelup: { base: "win", rate: 0.92 },
+  unlock: { base: "win", rate: 1.05 },
+  exam: { base: "win", rate: 0.84 },
+  graduation: { base: "win", rate: 0.78 },
+  victory: { base: "win", rate: 0.72 },
+  transition: { base: "select", rate: 1.15 },
+  notify: { base: "select", rate: 1.42 },
+  ambience: { base: "move", rate: 0.68, volumeMul: 0.32 },
 };
 
 const players: Partial<Record<BaseSfx, AudioPlayer>> = {};
@@ -50,15 +58,19 @@ const players: Partial<Record<BaseSfx, AudioPlayer>> = {};
 export const sfx = {
   play(name: Sfx) {
     if (Platform.OS === "web" || !settings.get().sound) return;
-    const key = (SOURCES as Record<string, unknown>)[name] ? (name as BaseSfx) : ALIAS[name as Exclude<Sfx, BaseSfx>];
-    if (!key) return;
+    const voice = VOICE[name];
+    if (!voice) return;
     try {
-      let p = players[key];
+      let p = players[voice.base];
       if (!p) {
-        p = createAudioPlayer(SOURCES[key]);
-        players[key] = p;
+        p = createAudioPlayer(SOURCES[voice.base]);
+        players[voice.base] = p;
       }
-      p.volume = settings.get().volume;
+      const vol = settings.get().volume * (voice.volumeMul ?? 1);
+      p.volume = Math.min(1, Math.max(0, vol));
+      if (voice.rate && voice.rate !== 1 && "playbackRate" in p) {
+        (p as AudioPlayer & { playbackRate: number }).playbackRate = voice.rate;
+      }
       p.seekTo(0);
       p.play();
     } catch {

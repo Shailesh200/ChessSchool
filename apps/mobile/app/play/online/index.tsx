@@ -6,6 +6,7 @@ import { api } from "@/api";
 import { Button } from "@/Button";
 import { BackButton } from "@/BackButton";
 import { Cody } from "@/Cody";
+import { saveOnlineSeat } from "@/onlineSeat";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 /** Online lobby — create a shareable game or join one by code. */
@@ -20,6 +21,7 @@ export default function OnlineLobbyScreen() {
     setErr(null);
     try {
       const { id, seatToken } = await api<{ id: string; seatToken: string }>("/api/session", { method: "POST" });
+      await saveOnlineSeat(id, "w", seatToken);
       router.replace({ pathname: "/play/online/[id]", params: { id, color: "w", seatToken } });
     } catch {
       setErr("Couldn't create a game. Log in to play online.");
@@ -35,6 +37,7 @@ export default function OnlineLobbyScreen() {
     try {
       const s = await api<{ error?: string; claimed?: boolean; seatToken?: string }>(`/api/session/${c}?join=1`);
       if (s.error || !s.claimed || !s.seatToken) throw new Error(s.error ?? "seat unavailable");
+      await saveOnlineSeat(c, "b", s.seatToken);
       router.replace({ pathname: "/play/online/[id]", params: { id: c, color: "b", seatToken: s.seatToken } });
     } catch {
       setErr("That game code wasn't found, or the game already has two players.");
@@ -54,7 +57,7 @@ export default function OnlineLobbyScreen() {
         <Text style={styles.lead}>Play a friend on another device — create a game and share the code, or enter theirs.</Text>
 
         <View style={{ width: "100%", marginTop: space[5], gap: space[3] }}>
-          <Button label={busy === "create" ? "Creating…" : "🎮 Create a game"} variant="success" onPress={create} />
+          <Button label={busy === "create" ? "Creating…" : "Create a game"} variant="success" onPress={create} />
 
           <View style={styles.or}><View style={styles.line} /><Text style={styles.orText}>or</Text><View style={styles.line} /></View>
 

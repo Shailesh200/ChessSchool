@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ContentIcon } from "@/components/ui/ContentIcon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Mascot } from "@/components/ui/Mascot";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
@@ -66,8 +68,14 @@ export default function ReviewPage() {
             <span className="text-accent-600">{topTag}</span>.
           </p>
           <Link href={`/lesson/${suggestion.id}`}>
-            <Button className="mt-3" variant="accent">
-              {suggestion.emoji} Review {suggestion.title}
+            <Button className="mt-3 inline-flex items-center gap-2" variant="accent">
+              <ContentIcon
+                emoji={suggestion.emoji}
+                size={18}
+                variant="inline"
+                tone="accent"
+              />
+              Review {suggestion.title}
             </Button>
           </Link>
         </Card>
@@ -78,18 +86,14 @@ export default function ReviewPage() {
         {games === null ? (
           <div className="skeleton rounded-card h-24" />
         ) : games.length === 0 ? (
-          <Card className="text-center">
-            <p className="text-3xl">📋</p>
-            <p className="text-ink mt-1 text-sm font-bold">No games yet</p>
-            <p className="text-ink-500 text-xs font-semibold">
-              Play a match and it&apos;ll appear here with a full replay.
-            </p>
-            <Link href="/play">
-              <Button className="mt-3">Play a match</Button>
-            </Link>
-          </Card>
+          <EmptyState
+            illustration="review"
+            title="No games yet"
+            description="Play a match and it'll appear here with a full replay."
+            action={{ label: "Play a match", href: "/play" }}
+          />
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {games.map((g) => {
               const o = outcome(g);
               const badge = RESULT_BADGE[o]!;

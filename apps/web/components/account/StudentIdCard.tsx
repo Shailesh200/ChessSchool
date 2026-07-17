@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
 import { Icon } from "@/components/ui/Icon";
+import { resolveAvatar } from "@/components/ui/iconMaps";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/core/store/toast.store";
 
@@ -56,8 +58,8 @@ export function StudentIdCard({
           <Icon name="cap" size={22} className="text-white" />
         </div>
         <div className="mt-4 flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl font-extrabold">
-            {avatar || name.slice(0, 1).toUpperCase()}
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15 p-1">
+            <FlatAvatar id={resolveAvatar(avatar)} size={76} className="rounded-xl" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-xl font-extrabold">{name}</p>

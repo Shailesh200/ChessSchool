@@ -1,0 +1,26 @@
+<!-- High-fi mockup: Journey desktop · 1280px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" fill="none">
+  <rect width="1280" height="800" fill="#fbfaff"/>
+  <rect x="0" y="0" width="220" height="800" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="24" y="32" width="100" height="20" rx="4" fill="#5b5bd6" opacity="0.2"/>
+  <rect x="24" y="80" width="172" height="32" rx="8" fill="#eef0ff"/>
+  <!-- Main header -->
+  <rect x="252" y="32" width="300" height="20" rx="4" fill="#1c1b2e" opacity="0.8"/>
+  <rect x="252" y="60" width="200" height="12" rx="2" fill="#6b6982" opacity="0.4"/>
+  <!-- Left: path -->
+  <rect x="252" y="100" width="480" height="640" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="280" y="140" width="4" height="400" rx="2" fill="#e7e6f2"/>
+  <circle cx="282" cy="160" r="14" fill="#10b981"/>
+  <circle cx="282" cy="240" r="14" fill="#5b5bd6"/>
+  <circle cx="282" cy="320" r="14" fill="#f1f0f9" stroke="#e7e6f2"/>
+  <rect x="310" y="148" width="380" height="48" rx="10" fill="#f1f0f9"/>
+  <rect x="310" y="228" width="380" height="56" rx="10" fill="#eef0ff" stroke="#5b5bd6"/>
+  <!-- Right: lesson preview -->
+  <rect x="756" y="100" width="480" height="640" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="780" y="132" width="200" height="16" rx="3" fill="#5b5bd6" opacity="0.3"/>
+  <rect x="780" y="160" width="432" height="200" rx="12" fill="#ede7f6"/>
+  <rect x="780" y="380" width="360" height="12" rx="2" fill="#6b6982" opacity="0.5"/>
+  <rect x="780" y="404" width="280" height="10" rx="2" fill="#a9a7bd" opacity="0.4"/>
+  <rect x="780" y="440" width="160" height="44" rx="22" fill="#5b5bd6"/>
+  <text x="640" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b6982">Journey · 1280px</text>
+</svg>

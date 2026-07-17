@@ -40,7 +40,7 @@ export function LogoutButton() {
     <button
       onClick={logout}
       disabled={busy}
-      className="rounded-pill border-hairline text-ink-700 border-2 px-4 py-1.5 text-sm font-bold disabled:opacity-50"
+      className="rounded-pill border-danger/45 bg-danger/10 text-danger hover:bg-danger/15 border-2 px-4 py-1.5 text-sm font-bold disabled:opacity-50"
     >
       {busy ? "Logging out…" : "Log out"}
     </button>

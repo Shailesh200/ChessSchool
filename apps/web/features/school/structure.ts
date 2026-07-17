@@ -106,11 +106,13 @@ export function classProgress(
   cls: SchoolClass,
   records: Record<string, LessonRecord>,
 ): { done: number; total: number; pct: number } {
-  const total = cls.lessonIds.length;
-  const done = cls.lessonIds.filter(
-    (id) => (records[id]?.mastery ?? 0) >= MASTERED,
-  ).length;
-  return { done, total, pct: total === 0 ? 0 : done / total };
+  const total = cls.lessonCount ?? cls.lessonIds.length;
+  if (total === 0) return { done: 0, total: 0, pct: 0 };
+  const done =
+    cls.lessonIds.length > 0
+      ? cls.lessonIds.filter((id) => (records[id]?.mastery ?? 0) >= MASTERED).length
+      : 0;
+  return { done, total, pct: done / total };
 }
 
 export function isClassGraduated(
@@ -119,7 +121,53 @@ export function isClassGraduated(
   graduatedClasses: string[],
 ): boolean {
   if (graduatedClasses.includes(cls.id)) return true;
+  if (cls.lessonIds.length === 0) return false;
   return cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= MASTERED);
+}
+
+/** Stage cleared by exam pass or every class mastered. */
+export function isStageCleared(
+  stageId: string,
+  classes: SchoolClass[],
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  examsPassed: string[],
+): boolean {
+  return (
+    examsPassed.includes(stageId) ||
+    (classes.length > 0 &&
+      classes.every((c) => isClassGraduated(c, records, graduatedClasses)))
+  );
+}
+
+/**
+ * Optional stages (e.g. Pre-School) show as graduated once the student clears a
+ * later required school — e.g. passing Elementary graduates Pre-School on the map.
+ */
+export function isStageGraduatedForDisplay(
+  stageIdx: number,
+  stages: { id: string; optional?: boolean; classes: SchoolClass[] }[],
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  examsPassed: string[],
+): boolean {
+  const entry = stages[stageIdx];
+  if (!entry) return false;
+  if (isStageCleared(entry.id, entry.classes, records, graduatedClasses, examsPassed)) {
+    return true;
+  }
+  if (!entry.optional) return false;
+  for (let j = stageIdx + 1; j < stages.length; j++) {
+    const later = stages[j]!;
+    if (later.optional) continue;
+    if (
+      isStageCleared(later.id, later.classes, records, graduatedClasses, examsPassed)
+    ) {
+      return true;
+    }
+    break;
+  }
+  return false;
 }
 
 /** A class is unlocked if it's first, or the previous required class is graduated. Optional stages unlock internally only. */
@@ -220,6 +268,20 @@ export interface SchoolLocation {
   complete: boolean; // whole school finished
 }
 
+export function hasStartedRequiredTrack(
+  records: Record<string, LessonRecord>,
+  graduatedClasses: string[],
+  semesters: Semester[] = SEMESTERS,
+  allClasses: SchoolClass[] = ALL_CLASSES,
+): boolean {
+  for (const cls of allClasses) {
+    if (isOptionalClass(cls.id, semesters)) continue;
+    if (graduatedClasses.includes(cls.id)) return true;
+    if (classHasStarted(cls, records)) return true;
+  }
+  return false;
+}
+
 /** Where the student currently stands — powers the breadcrumb / resume card. */
 export function currentLocation(
   records: Record<string, LessonRecord>,
@@ -229,10 +291,18 @@ export function currentLocation(
 ): SchoolLocation {
   const allClasses = semesters.flatMap((s) => s.classes);
   const titleOf = (id: string) => titles[id] ?? getLesson(id)?.title ?? "Lesson";
+  const requiredStarted = hasStartedRequiredTrack(
+    records,
+    graduatedClasses,
+    semesters,
+    allClasses,
+  );
   for (const semester of semesters) {
     const stage = STAGES.find((st) => st.id === semester.stage);
-    if (stage?.optional && !semester.classes.some((c) => classHasStarted(c, records)))
-      continue;
+    const optionalStarted = semester.classes.some((c) => classHasStarted(c, records));
+    // Pre-School is optional, but brand-new students start here — skip only if they
+    // already began the required curriculum elsewhere (placement, prior guest progress).
+    if (stage?.optional && !optionalStarted && requiredStarted) continue;
     for (const cls of semester.classes) {
       if (!isClassGraduated(cls, records, graduatedClasses)) {
         const lessonId = nextLessonInClass(cls, records) ?? cls.lessonIds[0] ?? "";

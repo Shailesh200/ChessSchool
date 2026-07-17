@@ -1,0 +1,15 @@
+<!-- High-fi mockup: Dashboard desktop · 1280px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" fill="none">
+  <rect width="1280" height="800" fill="#fbfaff"/>
+  <rect x="0" y="0" width="220" height="800" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="252" y="32" width="160" height="20" rx="4" fill="#1c1b2e" opacity="0.8"/>
+  <rect x="252" y="72" width="480" height="320" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <polygon points="492,140 560,200 540,280 444,280 424,200" fill="#eef0ff" stroke="#5b5bd6" stroke-width="2"/>
+  <rect x="756" y="72" width="480" height="320" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="780" y="100" width="140" height="12" rx="2" fill="#6b6982"/>
+  <rect x="780" y="132" width="90" height="32" rx="16" fill="#eef0ff"/>
+  <rect x="878" y="132" width="110" height="32" rx="16" fill="#fff5f2" stroke="#ff7a59"/>
+  <rect x="252" y="416" width="984" height="200" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="276" y="440" width="120" height="12" rx="2" fill="#6b6982"/>
+  <text x="640" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b6982">Dashboard · 1280px</text>
+</svg>

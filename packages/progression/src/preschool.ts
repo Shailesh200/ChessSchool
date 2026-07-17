@@ -5,31 +5,22 @@ export const PRESCHOOL_STAGE_ID = "preschool";
 export const PRESCHOOL_CLASS_IDS = [
   "class-pre-board",
   "class-pre-pieces",
-  "class-pre-rules",
   "class-pre-moves",
+  "class-pre-capture",
+  "class-pre-special",
+  "class-pre-endings",
+  "class-pre-material",
+  "class-pre-game",
   "class-pre-language",
 ] as const;
 
 export const PRESCHOOL_CLASS_LESSONS: Record<(typeof PRESCHOOL_CLASS_IDS)[number], string[]> = {
   "class-pre-board": ["pre-board-intro", "pre-board-setup", "pre-square-d5", "pre-square-e4"],
   "class-pre-pieces": ["pre-pieces-roster", "pre-pieces-queen", "pre-pieces-king"],
-  "class-pre-rules": [
-    "pre-rules-blocking",
-    "pre-rules-check-intro",
-    "pre-rules-check-quiz",
-    "pre-rules-escape-intro",
-    "pre-rules-checkmate-intro",
-    "pre-rules-checkmate-quiz",
-    "pre-rules-stalemate",
-    "pre-rules-promotion",
-    "pre-rules-promotion-quiz",
-    "pre-rules-castling",
-    "pre-rules-castling-quiz",
-  ],
   "class-pre-moves": [
-    "pre-moves-e4",
     "pre-pawn-basics",
     "pre-pawn-quiz",
+    "pre-moves-e4",
     "pre-knight-basics",
     "pre-knight-quiz",
     "pre-rook-basics",
@@ -40,10 +31,31 @@ export const PRESCHOOL_CLASS_LESSONS: Record<(typeof PRESCHOOL_CLASS_IDS)[number
     "pre-queen-slide-quiz",
     "pre-king-moves",
     "pre-king-quiz",
-    "pre-moves-escape-check",
-    "pre-moves-promotion",
-    "pre-moves-castling",
   ],
+  "class-pre-capture": ["pre-capture-intro", "pre-rules-blocking"],
+  "class-pre-special": [
+    "pre-rules-promotion",
+    "pre-rules-promotion-quiz",
+    "pre-moves-promotion",
+    "pre-rules-castling",
+    "pre-rules-castling-quiz",
+    "pre-moves-castling",
+    "pre-rules-en-passant",
+    "pre-rules-en-passant-quiz",
+    "pre-moves-en-passant",
+  ],
+  "class-pre-endings": [
+    "pre-rules-check-intro",
+    "pre-rules-check-quiz",
+    "pre-rules-escape-intro",
+    "pre-moves-escape-check",
+    "pre-rules-checkmate-intro",
+    "pre-rules-checkmate-quiz",
+    "pre-rules-stalemate",
+    "pre-rules-draw",
+  ],
+  "class-pre-material": ["pre-material-intro", "pre-material-quiz"],
+  "class-pre-game": ["pre-game-goal", "pre-game-clocks"],
   "class-pre-language": [
     "pre-notation-files",
     "pre-notation-e-file",
@@ -58,7 +70,7 @@ export const PRESCHOOL_CLASS_LESSONS: Record<(typeof PRESCHOOL_CLASS_IDS)[number
   ],
 };
 
-/** Single linear path through Pre-School — board → pieces → rules → moves → language. */
+/** Single linear path through Pre-School — board → pieces → moves → … → notation. */
 export const PRESCHOOL_LESSON_ORDER = PRESCHOOL_CLASS_IDS.flatMap((id) => PRESCHOOL_CLASS_LESSONS[id]);
 
 const ALL_PRESCHOOL_LESSONS = PRESCHOOL_LESSON_ORDER;

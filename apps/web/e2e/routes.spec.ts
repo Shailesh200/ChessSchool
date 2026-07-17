@@ -45,7 +45,16 @@ test("journal renders", async ({ page }) => {
 
 test("playground renders", async ({ page }) => {
   await page.goto("/playground");
-  await expect(page.getByText(/playground|position|sandbox/i).first()).toBeVisible();
+  const freePlay = page.getByText(/Free play/i);
+  const campus = page.getByText("Daily goal");
+  await expect(freePlay.or(campus)).toBeVisible({ timeout: 10000 });
+  if (await freePlay.isVisible()) {
+    await expect(
+      page.getByRole("heading", { name: "Playground", level: 1 }),
+    ).toBeVisible();
+    return;
+  }
+  await expect(page).toHaveURL("/");
 });
 
 test("placement test entry renders", async ({ page }) => {

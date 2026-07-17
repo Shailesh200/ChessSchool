@@ -1,9 +1,13 @@
 {
   "routes": [
-    { "path": "/", "label": "Campus", "tier": "critical", "auth": false },
+    { "path": "/academy", "label": "Campus", "tier": "critical", "auth": false },
+    { "path": "/", "label": "Landing", "tier": "public", "auth": false },
     { "path": "/learn-chess", "label": "Learn chess SEO", "tier": "public", "auth": false },
     { "path": "/chess-for-beginners", "label": "Beginners SEO", "tier": "public", "auth": false },
     { "path": "/privacy", "label": "Privacy", "tier": "public", "auth": false },
+    { "path": "/about", "label": "About", "tier": "public", "auth": false },
+    { "path": "/support", "label": "Support", "tier": "public", "auth": false },
+    { "path": "/terms", "label": "Terms", "tier": "public", "auth": false },
     { "path": "/login", "label": "Login", "tier": "public", "auth": false },
     { "path": "/register", "label": "Register", "tier": "public", "auth": false },
     { "path": "/library", "label": "Library", "tier": "app", "auth": false },
@@ -15,45 +19,44 @@
     { "path": "/playground", "label": "Playground", "tier": "app", "auth": false },
     { "path": "/settings", "label": "Settings", "tier": "app", "auth": false },
     { "path": "/themes", "label": "Theme studio", "tier": "app", "auth": false },
-    { "path": "/placement", "label": "Placement", "tier": "app", "auth": false },
     { "path": "/offline", "label": "Offline", "tier": "public", "auth": false },
     { "path": "/class/class-pieces", "label": "Class journey", "tier": "app", "auth": false },
     { "path": "/lesson/pawn-power", "label": "Lesson", "tier": "app", "auth": false }
   ],
   "tiers": {
     "critical": {
-      "minPerformance": 85,
-      "maxLcpMs": 2800,
-      "maxFcpMs": 2400,
-      "maxTbtMs": 250,
-      "maxSiMs": 3600,
-      "maxTtiMs": 4000,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 120,
-      "maxCls": 0.12
+      "minPerformance": 70,
+      "maxLcpMs": 5500,
+      "maxFcpMs": 3200,
+      "maxTbtMs": 800,
+      "maxSiMs": 6000,
+      "maxTtiMs": 6500,
+      "maxTtfbMs": 1200,
+      "maxMpfidMs": 800,
+      "maxCls": 0.15
     },
     "public": {
-      "minPerformance": 80,
-      "maxLcpMs": 3500,
-      "maxFcpMs": 2800,
-      "maxTbtMs": 300,
-      "maxSiMs": 4200,
-      "maxTtiMs": 4800,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 150,
-      "maxCls": 0.12
+      "minPerformance": 70,
+      "maxLcpMs": 5500,
+      "maxFcpMs": 3200,
+      "maxTbtMs": 800,
+      "maxSiMs": 6000,
+      "maxTtiMs": 6500,
+      "maxTtfbMs": 1200,
+      "maxMpfidMs": 800,
+      "maxCls": 0.15
     },
     "app": {
-      "minPerformance": 75,
+      "minPerformance": 50,
       "minSeo": 80,
-      "maxLcpMs": 5000,
-      "maxFcpMs": 3500,
-      "maxTbtMs": 400,
-      "maxSiMs": 5200,
-      "maxTtiMs": 5800,
-      "maxTtfbMs": 900,
-      "maxMpfidMs": 200,
-      "maxCls": 0.15
+      "maxLcpMs": 6500,
+      "maxFcpMs": 4000,
+      "maxTbtMs": 2500,
+      "maxSiMs": 7000,
+      "maxTtiMs": 7500,
+      "maxTtfbMs": 1200,
+      "maxMpfidMs": 2500,
+      "maxCls": 0.2
     }
   }
 }

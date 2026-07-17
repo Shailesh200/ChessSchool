@@ -4,13 +4,11 @@
  *   node scripts/build-puzzle-set.mjs lichess_db_puzzle.csv.zst
  *   → writes data/chess-school-puzzles.csv.gz  (small, committed to the repo)
  *
- * We pick a quality-filtered, BALANCED spread across our school stages (← rating)
- * and teaching concepts (← themes), so the committed file is a few-MB dataset we
- * own — after this one-time build, `pnpm db:import-puzzles` / `db:import-homework`
- * read our file with no 300 MB download or external tools required (gzip is
- * built into Node; only the raw Lichess source needs `zstd`).
+ * Quality bar: popularity > 90, plays > 100, no duplicate PuzzleId or FEN+line,
+ * up to PER_BUCKET puzzles per (stage × concept). Scans the full dump until every
+ * bucket is full or the file ends.
  *
- * Source is Lichess (CC0): https://database.lichess.org/  — free to reuse.
+ * Source is Lichess (CC0): https://database.lichess.org/
  */
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync } from "node:fs";
@@ -19,6 +17,17 @@ import { createInterface } from "node:readline";
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  CONCEPT_GROUPS,
+  STAGE_BANDS,
+  conceptForThemes,
+  stageForRating,
+} from "@chess-school/puzzle-school";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(here, "../../..");
 
 const INPUT = process.argv[2];
 if (!INPUT) {
@@ -28,77 +37,15 @@ if (!INPUT) {
   process.exit(1);
 }
 
-const OUT = "data/chess-school-puzzles.csv.gz";
-const MIN_POPULARITY = 70;
-const MIN_PLAYS = 40;
-const PER_BUCKET = 420; // per (stage × concept); ~14k total leaves room for homework's disjoint slice
+const OUT = join(repoRoot, "data/chess-school-puzzles.csv.gz");
+/** Popularity and plays must be STRICTLY above these thresholds. */
+const MIN_POPULARITY = 90;
+const MIN_PLAYS = 100;
+const PER_BUCKET = Number(process.env.PER_BUCKET ?? 800);
+const MAX_PLY = Number(process.env.MAX_PLY ?? 12); // skip ultra-long lines
 
-const STAGE = (r) =>
-  r < 1000
-    ? "elementary"
-    : r < 1350
-      ? "middle"
-      : r < 1700
-        ? "high"
-        : r < 2100
-          ? "university"
-          : "master";
-
-const CONCEPTS = [
-  {
-    id: "mate",
-    themes: [
-      "mateIn1",
-      "mateIn2",
-      "mateIn3",
-      "backRankMate",
-      "smotheredMate",
-      "mate",
-      "hookMate",
-      "anastasiaMate",
-      "arabianMate",
-    ],
-  },
-  { id: "fork", themes: ["fork"] },
-  { id: "pin", themes: ["pin", "skewer"] },
-  { id: "discovered", themes: ["discoveredAttack", "doubleCheck"] },
-  {
-    id: "sacrifice",
-    themes: [
-      "sacrifice",
-      "attraction",
-      "deflection",
-      "clearance",
-      "interference",
-      "decoy",
-      "attackingF2F7",
-    ],
-  },
-  {
-    id: "trapped",
-    themes: ["hangingPiece", "capturingDefender", "trappedPiece", "win"],
-  },
-  {
-    id: "endgame",
-    themes: [
-      "endgame",
-      "rookEndgame",
-      "pawnEndgame",
-      "queenEndgame",
-      "bishopEndgame",
-      "knightEndgame",
-      "zugzwang",
-      "promotion",
-      "advancedPawn",
-    ],
-  },
-  {
-    id: "advantage",
-    themes: ["advantage", "crushing", "defensiveMove", "quietMove", "intermezzo"],
-  },
-];
-const conceptOf = (themes) =>
-  CONCEPTS.find((c) => c.themes.some((t) => themes.includes(t)))?.id ?? null;
+const HEADER =
+  "PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags";
 
 function lineStream(path) {
   if (!existsSync(path)) {
@@ -109,7 +56,7 @@ function lineStream(path) {
     const zstd = spawn("zstd", ["-dc", path]);
     zstd.on("error", (e) => {
       console.error(
-        `✗ Could not run zstd (${e.code || e.message}). brew install zstd / apt-get install zstd, or decompress manually.`,
+        `✗ Could not run zstd (${e.code || e.message}). Install zstd or decompress manually.`,
       );
       process.exit(1);
     });
@@ -118,14 +65,37 @@ function lineStream(path) {
   return createInterface({ input: createReadStream(path), crlfDelay: Infinity });
 }
 
-const HEADER =
-  "PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags";
-const buckets = new Map(); // `${stage}:${concept}` -> verbatim lines[]
+const buckets = new Map(); // `${stage}:${concept}` -> lines[]
+const seenIds = new Set();
+const seenPositions = new Set();
 let scanned = 0;
 let kept = 0;
-const target = CONCEPTS.length * 5 * PER_BUCKET;
+let rejected = { quality: 0, theme: 0, dup: 0, long: 0, full: 0 };
+const bucketKeys = [];
+for (const st of STAGE_BANDS) {
+  for (const g of CONCEPT_GROUPS) {
+    bucketKeys.push(`${st.id}:${g.id}`);
+  }
+}
+const target = bucketKeys.length * PER_BUCKET;
 
-console.log(`Curating from ${INPUT} … target ~${target} puzzles`);
+function bucketFull(key) {
+  const arr = buckets.get(key);
+  return arr && arr.length >= PER_BUCKET;
+}
+
+function allBucketsFull() {
+  return bucketKeys.every((k) => bucketFull(k));
+}
+
+console.log(
+  `Curating from ${INPUT}\n` +
+    `  Quality: popularity > ${MIN_POPULARITY}, plays > ${MIN_PLAYS}\n` +
+    `  Cap: ${PER_BUCKET} per bucket × ${bucketKeys.length} buckets (max ${target.toLocaleString()})\n` +
+    `  Stages: ${STAGE_BANDS.map((s) => s.id).join(", ")}\n` +
+    `  Concepts: ${CONCEPT_GROUPS.map((g) => g.id).join(", ")}`,
+);
+
 const rl = lineStream(INPUT);
 let header = true;
 for await (const line of rl) {
@@ -134,39 +104,96 @@ for await (const line of rl) {
     continue;
   }
   scanned++;
-  if (scanned % 500000 === 0)
-    process.stdout.write(`\r  scanned ${scanned.toLocaleString()} · kept ${kept}…`);
-  if (kept >= target) break;
+  if (scanned % 500000 === 0) {
+    const filled = bucketKeys.filter((k) => bucketFull(k)).length;
+    process.stdout.write(
+      `\r  scanned ${scanned.toLocaleString()} · kept ${kept.toLocaleString()} · buckets ${filled}/${bucketKeys.length} full…`,
+    );
+  }
+  if (allBucketsFull()) break;
+
   const c = line.split(",");
   if (c.length < 8) continue;
+
+  const puzzleId = c[0];
+  const fen = c[1];
+  const moves = c[2].trim();
   const rating = Number(c[3]);
   const popularity = Number(c[5]);
   const plays = Number(c[6]);
-  if (!rating || popularity < MIN_POPULARITY || plays < MIN_PLAYS) continue;
+
+  if (!rating || popularity <= MIN_POPULARITY || plays <= MIN_PLAYS) {
+    rejected.quality++;
+    continue;
+  }
+
+  const moveCount = moves.split(/\s+/).filter(Boolean).length;
+  if (moveCount > MAX_PLY) {
+    rejected.long++;
+    continue;
+  }
+
   const themes = c[7].split(" ");
-  const concept = conceptOf(themes);
-  if (!concept) continue;
-  const key = `${STAGE(rating)}:${concept}`;
+  const group = conceptForThemes(themes);
+  if (!group) {
+    rejected.theme++;
+    continue;
+  }
+
+  const stage = stageForRating(rating);
+  const key = `${stage.id}:${group.id}`;
+  if (bucketFull(key)) {
+    rejected.full++;
+    continue;
+  }
+
+  if (seenIds.has(puzzleId)) {
+    rejected.dup++;
+    continue;
+  }
+  const posKey = `${fen}|${moves}`;
+  if (seenPositions.has(posKey)) {
+    rejected.dup++;
+    continue;
+  }
+
   let arr = buckets.get(key);
   if (!arr) {
     arr = [];
     buckets.set(key, arr);
   }
-  if (arr.length >= PER_BUCKET) continue;
   arr.push(line);
+  seenIds.add(puzzleId);
+  seenPositions.add(posKey);
   kept++;
 }
+
 console.log(
-  `\nScanned ${scanned.toLocaleString()} rows, curated ${kept} across ${buckets.size} buckets.`,
+  `\nScanned ${scanned.toLocaleString()} rows · curated ${kept.toLocaleString()} across ${buckets.size} buckets.`,
+);
+console.log(
+  `  Rejected: quality ${rejected.quality.toLocaleString()}, no theme ${rejected.theme.toLocaleString()}, dup ${rejected.dup.toLocaleString()}, long line ${rejected.long.toLocaleString()}, bucket full ${rejected.full.toLocaleString()}`,
 );
 
-mkdirSync("data", { recursive: true });
+const unfilled = bucketKeys.filter((k) => !bucketFull(k));
+if (unfilled.length) {
+  console.warn(
+    `\n⚠ ${unfilled.length} buckets below ${PER_BUCKET}:`,
+    unfilled.slice(0, 8).join(", "),
+    unfilled.length > 8 ? "…" : "",
+  );
+}
+
+mkdirSync(join(repoRoot, "data"), { recursive: true });
 const rows = [HEADER, ...[...buckets.values()].flat()];
 await pipeline(
   Readable.from(rows.map((r) => r + "\n")),
   createGzip({ level: 9 }),
   createWriteStream(OUT),
 );
+
+const mb = (rows.length / 1024).toFixed(0);
 console.log(
-  `✅ Wrote ${OUT} (${kept} puzzles). Commit it, then:  pnpm db:import-puzzles  &&  pnpm db:import-homework`,
+  `✅ Wrote ${OUT} (${kept.toLocaleString()} puzzles, ~${mb}k rows uncompressed).\n` +
+    `   Next: pnpm puzzle-school adapt-csv && pnpm --filter web db:import-puzzle-school`,
 );

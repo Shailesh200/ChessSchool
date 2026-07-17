@@ -1,185 +1,109 @@
-import { ChessEngine } from "@/features/chess-engine/engine";
 import { chooseMove, eloToConfig } from "@/features/chess-engine/bot";
-import { useSettings, type CoachPersonality } from "@/core/store/settings.store";
+import { useSettings } from "@/core/store/settings.store";
 import type { BoardArrow, VerboseMove } from "@/core/types/chess";
+import { encourage as encourageFor, nudge as nudgeFor } from "./personality";
+import {
+  commentOnMatchMove,
+  matchGreeting as matchGreetingFor,
+  passPlayGreeting as passPlayGreetingFor,
+} from "./matchCommentary";
+import { buildMatchRecap, type GameRecapInput } from "./gameRecap";
+import {
+  calculationPrompt,
+  confirmMovePrompt,
+  thinkingMatchGreeting,
+} from "./thinkingPrompt";
+import {
+  shadowGreeting as shadowGreetingFor,
+  shadowMoveLine as shadowMoveLineFor,
+  shadowOffBookLine as shadowOffBookLineFor,
+} from "./shadowCoach";
 
 /**
- * Coach voice — five personalities (#25) that retint feedback tone. Pure module;
- * reads the current personality from the settings store at call time.
+ * Coach voice — personalities retint feedback tone. Match commentary blends
+ * bot tier (ELO band) with the user's coach personality from settings.
  */
 
-interface Persona {
-  praise: string[];
-  nudge: string[];
-  capture: (p: string) => string;
-  check: string;
-  mate: string;
-}
+export { applyCoachLine, personaOf } from "./personality";
+export type { CoachContext } from "./personality";
+export type { MatchMoveContext } from "./matchCommentary";
+export type { GameRecapInput } from "./gameRecap";
 
-const PERSONAS: Record<CoachPersonality, Persona> = {
-  friendly: {
-    praise: [
-      "Great instinct!",
-      "You're getting sharper.",
-      "Nice — keep it up!",
-      "That's the idea!",
-      "Ooh, I like that.",
-      "Solid move!",
-      "You're in the zone.",
-      "Smart choice.",
-      "Look at you go!",
-      "That's improving!",
-      "Confident play.",
-      "Good eye!",
-    ],
-    nudge: [
-      "Hmm, is your king safe?",
-      "Any pieces hanging?",
-      "Can you make a threat?",
-      "What's your opponent planning?",
-      "Where's your worst piece?",
-      "Take your time here.",
-      "Could you develop something?",
-      "Any checks worth a look?",
-    ],
-    capture: (p) => `Captured a ${p}! Lovely.`,
-    check: "Check! Keep the king on the run.",
-    mate: "Checkmate — brilliant finish! 👑",
-  },
-  strict: {
-    praise: [
-      "Acceptable.",
-      "Correct. Continue.",
-      "As expected.",
-      "Good. Don't relax.",
-      "Precise.",
-      "That holds.",
-      "Disciplined.",
-      "Maintain that standard.",
-      "Adequate. Push on.",
-      "No errors. Good.",
-      "Sound.",
-      "Continue calculating.",
-    ],
-    nudge: [
-      "Calculate before you move.",
-      "Check every threat first.",
-      "Is that truly best?",
-      "Account for the reply.",
-      "Loose pieces lose games.",
-      "Verify your king's safety.",
-      "Do not drift. Have a plan.",
-      "Tempo matters — don't waste it.",
-    ],
-    capture: (p) => `You won a ${p}. Now convert it.`,
-    check: "Check. Do not lose the initiative.",
-    mate: "Checkmate. Textbook. 👑",
-  },
-  mentor: {
-    praise: [
-      "Well reasoned.",
-      "You're building good habits.",
-      "I like your plan.",
-      "Steady progress.",
-      "That shows understanding.",
-      "Patient and sound.",
-      "Good structure.",
-      "Thoughtful.",
-      "You're seeing more each game.",
-      "Nicely judged.",
-      "Principled play.",
-      "That'll pay off.",
-    ],
-    nudge: [
-      "What does your opponent want?",
-      "Look one move deeper.",
-      "Improve your worst piece.",
-      "Which plan fits this position?",
-      "Trade when ahead, complicate when behind.",
-      "Where do your pieces belong?",
-      "Control the centre.",
-      "Don't rush — assess first.",
-    ],
-    capture: (p) => `A ${p} for you — material adds up over a game.`,
-    check: "Check — use the tempo wisely.",
-    mate: "Checkmate. You saw it through — well done. 👑",
-  },
-  tactical: {
-    praise: [
-      "Sharp!",
-      "Tactical eye!",
-      "Boom.",
-      "Pressure!",
-      "Aggressive — I like it.",
-      "Now you're attacking!",
-      "Punchy.",
-      "Keep swinging!",
-      "Calculated and bold.",
-      "Initiative is yours.",
-      "Relentless.",
-      "Strike!",
-    ],
-    nudge: [
-      "Any forks or pins?",
-      "Look for a tactic!",
-      "Can you sacrifice?",
-      "Loose piece to grab?",
-      "Is the king exposed?",
-      "Double attack anywhere?",
-      "Can you open lines?",
-      "Hunt for a combination.",
-    ],
-    capture: (p) => `Snagged a ${p}! Keep attacking.`,
-    check: "Check! Hunt the king.",
-    mate: "CHECKMATE! Devastating. 👑",
-  },
-  minimal: {
-    praise: ["Good.", "OK.", "Fine.", "Yes.", "Mm.", "Right.", "Sure.", "Noted."],
-    nudge: ["Think.", "Careful.", "Better square?", "Look again.", "Plan?", "Safe?"],
-    capture: (p) => `Won a ${p}.`,
-    check: "Check.",
-    mate: "Checkmate.",
-  },
-};
-
-function persona(): Persona {
-  const p = useSettings.getState().coachPersonality;
-  return PERSONAS[p] ?? PERSONAS.friendly;
-}
-
-function pick(list: string[], seed: number): string {
-  return list[Math.abs(Math.floor(seed * 97)) % list.length] ?? list[0]!;
+function personality() {
+  return useSettings.getState().coachPersonality;
 }
 
 export function encourage(seed: number): string {
-  return pick(persona().praise, seed);
+  return encourageFor(personality(), seed);
 }
 
 export function nudge(seed: number): string {
-  return pick(persona().nudge, seed);
+  return nudgeFor(personality(), seed);
+}
+
+export interface MatchCommentInput {
+  beforeFen: string;
+  move: VerboseMove;
+  botElo: number;
+  botName: string;
+  reactingToPlayer: boolean;
+  moveNumber: number;
+}
+
+/** Rich bot/coach line after a match move (tier + personality). */
+export function commentOnMove(input: MatchCommentInput): string {
+  return commentOnMatchMove({
+    ...input,
+    personality: personality(),
+  });
+}
+
+export function matchGreeting(elo: number, botName: string, resumed: boolean): string {
+  return matchGreetingFor(elo, botName, resumed, personality());
+}
+
+export function thinkingGreeting(elo: number, botName: string): string {
+  return thinkingMatchGreeting(elo, botName, personality());
+}
+
+export function calculationCoachPrompt(
+  moveNumber: number,
+  inCheck: boolean,
+  botElo: number,
+): string {
+  return calculationPrompt(personality(), botElo, moveNumber, inCheck);
+}
+
+export function confirmCoachMove(san: string): string {
+  return confirmMovePrompt(san, personality());
+}
+
+export function passPlayGreeting(): string {
+  return passPlayGreetingFor(personality());
+}
+
+export function shadowGreeting(
+  opponentName: string,
+  playerColor: "w" | "b",
+  flipped: boolean,
+): string {
+  return shadowGreetingFor(personality(), opponentName, playerColor, flipped);
+}
+
+export function shadowMoveLine(san: string, opponentName: string): string {
+  return shadowMoveLineFor(personality(), san, opponentName);
+}
+
+export function shadowOffBookLine(): string {
+  return shadowOffBookLineFor(personality());
+}
+
+export function matchRecap(input: Omit<GameRecapInput, "personality">): string {
+  return buildMatchRecap({ ...input, personality: personality() });
 }
 
 export function hintArrow(fen: string, strength = 1600): BoardArrow | null {
   const move = chooseMove(fen, eloToConfig(strength), 0.5);
   if (!move) return null;
   return { startSquare: move.from, endSquare: move.to, color: "#5b5bd6" };
-}
-
-export function commentOnMove(before: string, move: VerboseMove, seed: number): string {
-  const p = persona();
-  const engine = new ChessEngine(before);
-  if (move.san.includes("#")) return p.mate;
-  if (move.promotion)
-    return `Promotion! Your pawn becomes a ${pieceName(move.promotion)}.`;
-  if (move.captured) return p.capture(pieceName(move.captured));
-  if (move.san.includes("+")) return p.check;
-  if (engine.inCheck()) return "Careful — you were in check.";
-  return encourage(seed);
-}
-
-function pieceName(p: string): string {
-  return (
-    { p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king" }[p] ??
-    "piece"
-  );
 }

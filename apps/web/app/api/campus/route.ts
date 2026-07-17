@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { semesters, classes, lessons, lessonRecords, progress } from "@/db/schema";
+import { lessonRecords, progress } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { STAGES } from "@/content/school";
 import { isOptionalStage, orderClasses } from "@/lib/school-order";
+import { parseExtraData } from "@/lib/progress-merge";
+import { getCurriculumSkeleton } from "@/features/school/curriculum-skeleton.server";
 
 export const dynamic = "force-dynamic";
 
@@ -57,35 +59,13 @@ function computeUnlocked(
 /** Campus: stages → semesters → classes with per-class progress + unlock/graduation. */
 export async function GET(req: Request) {
   const user = await getApiUser(req);
-  const [sems, cls, les] = await Promise.all([
-    db
-      .select({
-        id: semesters.id,
-        title: semesters.title,
-        blurb: semesters.blurb,
-        color: semesters.color,
-        stage: semesters.stage,
-        sortOrder: semesters.sortOrder,
-      })
-      .from(semesters),
-    db
-      .select({
-        id: classes.id,
-        title: classes.title,
-        emoji: classes.emoji,
-        blurb: classes.blurb,
-        semesterId: classes.semesterId,
-        sortOrder: classes.sortOrder,
-        examId: classes.examId,
-      })
-      .from(classes),
-    db.select({ id: lessons.id, classId: lessons.classId }).from(lessons),
-  ]);
+  const { semesters: sems, classes: cls, lessons: les } = await getCurriculumSkeleton();
+
   const mastery: Record<string, number> = {};
   let examsPassed: string[] = [];
   if (user) {
     for (const r of await db
-      .select()
+      .select({ lessonId: lessonRecords.lessonId, mastery: lessonRecords.mastery })
       .from(lessonRecords)
       .where(eq(lessonRecords.userId, user.id)))
       mastery[r.lessonId] = r.mastery;
@@ -96,12 +76,7 @@ export async function GET(req: Request) {
         .where(eq(progress.userId, user.id))
         .limit(1)
     )[0];
-    try {
-      examsPassed =
-        (prow?.data ? (JSON.parse(prow.data).schoolExamsPassed as string[]) : []) ?? [];
-    } catch {
-      examsPassed = [];
-    }
+    examsPassed = parseExtraData(prow?.data).schoolExamsPassed ?? [];
   }
   const counts: Record<string, { done: number; total: number }> = {};
   for (const l of les) {

@@ -1,0 +1,8 @@
+appId: com.chessschool.app
+---
+- extendedWaitUntil:
+    visible:
+      text: "Welcome to ChessSchool!"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

@@ -1,0 +1,12 @@
+<!-- High-fi mockup: Enroll / login · 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <circle cx="195" cy="120" r="40" fill="#5b5bd6" opacity="0.15"/>
+  <rect x="115" y="180" width="160" height="20" rx="4" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="135" y="208" width="120" height="10" rx="2" fill="#6b6982" opacity="0.45"/>
+  <rect x="40" y="260" width="310" height="48" rx="14" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="40" y="324" width="310" height="48" rx="14" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="40" y="396" width="310" height="52" rx="26" fill="#5b5bd6"/>
+  <rect x="120" y="472" width="150" height="12" rx="2" fill="#5b5bd6" opacity="0.5"/>
+  <text x="195" y="48" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Enroll · 390px</text>
+</svg>

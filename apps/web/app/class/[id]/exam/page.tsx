@@ -3,17 +3,11 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
 import { getCatalog } from "@/features/school/catalog.server";
+import { buildClassExamSteps } from "@/features/school/classExam";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
-import type { Lesson, LessonStep } from "@/features/lessons/types";
+import type { Lesson } from "@/features/lessons/types";
 
 export const dynamic = "force-dynamic";
-
-/** Evenly sample up to `n` items across the array. */
-function sample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const step = arr.length / n;
-  return Array.from({ length: n }, (_, i) => arr[Math.floor(i * step)]!);
-}
 
 /** Generic "test out of this class" exam (#12) — built from the class's drills. */
 export default async function ClassExamPage({
@@ -32,13 +26,8 @@ export default async function ClassExamPage({
     .orderBy(asc(lessonT.sortOrder));
   const teaching = rows.filter((r) => !r.isExam);
   const lessonIds = teaching.map((r) => r.id);
-  // Test the most-recent lessons (the material just before this point), not the
-  // whole class from the start — a short, quick check.
-  const recent = teaching.slice(-2);
-  const moveSteps = (recent.length ? recent : teaching).flatMap((r) =>
-    (JSON.parse(r.steps) as LessonStep[]).filter((s) => s.kind === "move"),
-  );
-  if (moveSteps.length === 0) notFound();
+  const examSteps = buildClassExamSteps(teaching);
+  if (examSteps.length === 0) notFound();
 
   const exam: Lesson = {
     id: `exam-${id}`,
@@ -50,7 +39,7 @@ export default async function ClassExamPage({
     xp: 60,
     tag: "exam",
     exam: true,
-    steps: sample(moveSteps, 5),
+    steps: examSteps,
   };
 
   // After passing, continue to the next class's first lesson.
@@ -60,6 +49,7 @@ export default async function ClassExamPage({
 
   return (
     <LessonPlayer
+      key={`class-exam-${id}`}
       lesson={exam}
       nextLessonId={nextLessonId}
       lessonClass={{ id, title: clsRow.title, lessonIds }}

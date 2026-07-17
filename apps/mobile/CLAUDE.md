@@ -13,7 +13,7 @@ Native **React Native (Expo) app** for ChessSchool, built for **full feature + U
 - TypeScript strict. `@/*` path alias → `src/*` (see `tsconfig.json`). `app.json` has `typedRoutes` **off** (new routes broke tsc).
 
 ## 2. Backend
-The app has **no server of its own** — it calls the production Next.js API at `https://chess-school-alpha.vercel.app` (Turso-backed, 16k+ lessons). The base URL is `EXPO_PUBLIC_API_URL` (bundle-time inlined — change requires `expo start -c` / re-export). All requests go through `src/api.ts` → `api<T>(path, {method, body})`, which attaches the Bearer token and throws `ApiError(status, message)` on non-2xx. A 401 **with a token** clears it and triggers re-auth (guests, who have no token, are not bounced).
+The app has **no server of its own** — it calls the production Next.js API at `https://chess-school.in` (Turso-backed, 16k+ lessons). The base URL is `EXPO_PUBLIC_API_URL` (bundle-time inlined — change requires `expo start -c` / re-export). **Google Sign-In** needs `EXPO_PUBLIC_GOOGLE_CLIENT_ID` (same web client ID as `NEXT_PUBLIC_GOOGLE_CLIENT_ID`). All requests go through `src/api.ts` → `api<T>(path, {method, body})`, which attaches the Bearer token and throws `ApiError(status, message)` on non-2xx. A 401 **with a token** clears it and triggers re-auth (guests, who have no token, are not bounced).
 
 Auth: token-based. `/api/auth/{login,register,me,logout}` return a token; the web `getApiUser(req)` checks Bearer then cookie, so web keeps working. **Guest mode**: `auth.continueAsGuest()` sets a local guest user (no token) — browses public endpoints (campus/lessons), progress is best-effort.
 

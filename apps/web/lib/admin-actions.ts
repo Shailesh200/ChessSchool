@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { semesters, classes, lessons } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { compilePuzzleSteps, validateBank } from "@chess-school/puzzle-school";
+import { invalidateCurriculumCache } from "@/lib/curriculum-cache";
 
 async function requireAdmin(): Promise<{ ok: true } | { error: string }> {
   const user = await getCurrentUser();
@@ -16,7 +18,9 @@ async function requireAdmin(): Promise<{ ok: true } | { error: string }> {
 }
 
 function refresh() {
-  revalidatePath("/", "layout"); // refresh the ISR-cached campus/lesson pages
+  invalidateCurriculumCache();
+  revalidatePath("/academy", "layout");
+  revalidatePath("/", "layout");
   revalidatePath("/admin");
   revalidatePath("/library");
 }
@@ -269,6 +273,98 @@ export async function importContent(
   return {
     ok: true,
     message: `Imported ${classRows.length} classes and ${lessonRows.length} lessons.`,
+  };
+}
+
+const MAX_PUZZLE_JSONL = 50;
+
+/**
+ * Import Puzzle School bank records (JSONL) into an existing class.
+ * Each line is one puzzle object — validated with @chess-school/puzzle-school.
+ */
+export async function importPuzzleJsonl(
+  _prev: { error?: string; ok?: boolean; message?: string } | undefined,
+  fd: FormData,
+): Promise<{ error?: string; ok?: boolean; message?: string }> {
+  const guard = await requireAdmin();
+  if ("error" in guard) return { error: guard.error };
+
+  const classId = String(fd.get("classId") ?? "").trim();
+  const raw = String(fd.get("jsonl") ?? "").trim();
+  if (!classId) return { error: "Pick a class first." };
+  if (!raw) return { error: "Paste or upload JSONL puzzle records." };
+
+  const exists = (
+    await db.select().from(classes).where(eq(classes.id, classId)).limit(1)
+  )[0];
+  if (!exists) return { error: `Class "${classId}" not found.` };
+
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return { error: "No puzzle lines found." };
+  if (lines.length > MAX_PUZZLE_JSONL) {
+    return {
+      error: `Max ${MAX_PUZZLE_JSONL} puzzles per import (got ${lines.length}).`,
+    };
+  }
+
+  /** @type {import('@chess-school/puzzle-school').BankPuzzle[]} */
+  const puzzles = [];
+  for (const line of lines) {
+    try {
+      puzzles.push(JSON.parse(line));
+    } catch {
+      return { error: "Invalid JSON on a line — expected one puzzle object per line." };
+    }
+  }
+
+  const report = validateBank(puzzles, { command: "admin-import", failOnWarn: false });
+  if (report.summary.rejected > 0) {
+    const r = report.byOutcome.rejected[0]!;
+    return { error: `Rejected ${r.id}: ${r.reason} (${r.detail ?? ""})` };
+  }
+
+  const existing = await db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .where(eq(lessons.classId, classId));
+  const usedIds = new Set(existing.map((r) => r.id));
+  let sortOrder = existing.length;
+
+  const lessonRows = [];
+  for (const p of puzzles) {
+    const compiled = compilePuzzleSteps(p);
+    if ("error" in compiled) {
+      return { error: `Could not compile ${p.id}: ${compiled.error}` };
+    }
+    let lessonId = String(p.id ?? "");
+    if (!lessonId || usedIds.has(lessonId)) {
+      lessonId = `lesson-pz-${randomUUID().slice(0, 8)}`;
+    }
+    usedIds.add(lessonId);
+    const concept = p.concepts?.[0] ?? "import";
+    lessonRows.push({
+      id: lessonId,
+      classId,
+      title: p.coach?.setup?.slice(0, 48) || `Puzzle · ${p.rating}`,
+      subtitle: `${compiled.steps.length} move${compiled.steps.length > 1 ? "s" : ""}`,
+      emoji: "🧩",
+      tag: concept,
+      xp: 10 + compiled.steps.length * 4,
+      isExam: 0,
+      prerequisites: "[]",
+      steps: JSON.stringify(compiled.steps),
+      sortOrder: sortOrder++,
+    });
+  }
+
+  for (const l of lessonRows) await db.insert(lessons).values(l);
+  refresh();
+  return {
+    ok: true,
+    message: `Imported ${lessonRows.length} puzzle lesson${lessonRows.length === 1 ? "" : "s"} into ${exists.title}.`,
   };
 }
 

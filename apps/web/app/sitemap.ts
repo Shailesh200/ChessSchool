@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "daily", priority: 1 },
+    { url: `${siteUrl}/academy`, changeFrequency: "daily", priority: 0.95 },
     { url: `${siteUrl}/learn-chess`, changeFrequency: "weekly", priority: 0.95 },
     {
       url: `${siteUrl}/chess-for-beginners`,
@@ -28,6 +29,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/login`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${siteUrl}/placement`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${siteUrl}/about`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${siteUrl}/support`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${siteUrl}/terms`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${siteUrl}/privacy`, changeFrequency: "monthly", priority: 0.3 },
   ];
 

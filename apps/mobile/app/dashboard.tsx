@@ -7,7 +7,8 @@ import { api } from "@/api";
 import { useProgress } from "@/progressStore";
 import { graduationForecast, gameStatsFromRecent, mistakeDNA } from "@/analytics";
 import { Icon } from "@/Icon";
-import { TopBar } from "@/TopBar";
+import { emojiToIcon } from "@/iconMaps";
+import { AppShell } from "@/AppShell";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 const SKILL_AREAS = ["Openings", "Tactics", "Strategy", "Endgames", "Calculation"];
@@ -178,9 +179,8 @@ export default function DashboardScreen() {
   const findings = mistakeDNA(weaknesses, stats);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
-      <ScrollView contentContainerStyle={styles.content}>
+    <AppShell>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 }]}>
         <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={18} color={colors.ink} /></View>
           <Text style={styles.backText}>Back</Text>
@@ -204,7 +204,10 @@ export default function DashboardScreen() {
         <Text style={styles.h2}>Class grades</Text>
         <View style={styles.card}>
           {reports.length === 0 ? (
-            <Text style={styles.emptyReport}>📋 Complete a lesson to start your report card.</Text>
+            <View style={styles.titleRow}>
+              <Icon name="journal" size={16} color={colors.ink500} />
+              <Text style={styles.emptyReport}>Complete a lesson to start your report card.</Text>
+            </View>
           ) : (
             <>
               <View style={styles.reportHead}>
@@ -212,20 +215,29 @@ export default function DashboardScreen() {
                   <Text style={styles.reportKicker}>Report Card</Text>
                   <Text style={styles.gpa}>GPA {gpa.toFixed(2)} <Text style={styles.gpaSub}>/ 4.0</Text></Text>
                 </View>
-                <Text style={{ fontSize: 32 }}>🎓</Text>
+                <Icon name="cap" size={32} color={colors.brand} duotone />
               </View>
               <View style={{ gap: space[2], marginTop: space[3] }}>
                 {reports.map((r) => {
                   const tone = gradeTone(r.grade);
                   return (
                     <View key={r.id} style={styles.reportRow}>
-                      <Text style={{ fontSize: 22 }}>{r.emoji}</Text>
+                      <Icon name={emojiToIcon(r.emoji)} size={22} color={colors.brand} duotone />
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={styles.reportTitle} numberOfLines={1}>{r.title}</Text>
                         <Text style={styles.reportMeta} numberOfLines={1}>
                           {r.completed}/{r.total} done · {Math.round(r.accuracy * 100)}% accuracy{r.passed ? " · ✓ passed" : ""}
                         </Text>
-                        <Text style={styles.stars}>{[1, 2, 3].map((s) => (r.avgStars >= s - 0.4 ? "⭐" : "☆")).join("")}</Text>
+                        <View style={styles.starsRow}>
+                          {[1, 2, 3].map((s) => (
+                            <Icon
+                              key={s}
+                              name="star"
+                              size={12}
+                              color={r.avgStars >= s - 0.4 ? colors.gold : colors.ink300}
+                            />
+                          ))}
+                        </View>
                       </View>
                       <View style={[styles.grade, { backgroundColor: tone.bg }]}>
                         <Text style={[styles.gradeText, { color: tone.fg }]}>{r.grade}</Text>
@@ -242,26 +254,41 @@ export default function DashboardScreen() {
         <Text style={styles.h2}>Skill tree</Text>
         <View style={styles.card}>
           <SkillRadar data={tree.map((n) => ({ area: n.area, mastery: n.mastery }))} />
-          <View style={{ gap: space[1], marginTop: space[2] }}>
-            {tree.map((n) => (
-              <View key={n.area} style={styles.skillRow}>
-                <Text style={styles.skillArea}>{n.area}</Text>
-                <Text style={styles.skillPct}>{Math.round(n.mastery * 100)}%</Text>
-              </View>
-            ))}
+          <View style={{ gap: space[2], marginTop: space[2] }}>
+            {tree.map((n) => {
+              const pct = Math.round(n.mastery * 100);
+              const tone = pct >= 90 ? colors.gold : colors.brand;
+              return (
+                <View key={n.area}>
+                  <View style={styles.skillRow}>
+                    <Text style={styles.skillArea}>{n.area}</Text>
+                    <Text style={styles.skillPct}>{pct}%</Text>
+                  </View>
+                  <View style={styles.skillTrack}>
+                    <View style={[styles.skillFill, { width: `${pct}%`, backgroundColor: tone }]} />
+                  </View>
+                </View>
+              );
+            })}
           </View>
         </View>
 
         {/* Graduation forecast */}
-        <Text style={styles.h2}>🎓 Graduation forecast</Text>
+        <View style={styles.rowH2}>
+          <Icon name="cap" size={18} color={colors.brand} duotone />
+          <Text style={styles.h2}>Graduation forecast</Text>
+        </View>
         <View style={styles.card}>
           <View style={styles.track}>
             <View style={[styles.trackFill, { width: `${forecast.totalClasses ? (forecast.graduatedClasses / forecast.totalClasses) * 100 : 0}%`, backgroundColor: colors.gold }]} />
           </View>
-          <Text style={styles.forecastText}>
-            {forecast.graduatedClasses}/{forecast.totalClasses} classes graduated ·{" "}
-            {forecast.remaining === 0 ? "All classes complete! 🏆" : `~${forecast.estDays} active days to graduation`}
-          </Text>
+          <View style={styles.forecastRow}>
+            <Text style={styles.forecastText}>
+              {forecast.graduatedClasses}/{forecast.totalClasses} classes graduated ·{" "}
+              {forecast.remaining === 0 ? "All classes complete!" : `~${forecast.estDays} active days to graduation`}
+            </Text>
+            {forecast.remaining === 0 && <Icon name="trophy" size={16} color={colors.gold} />}
+          </View>
         </View>
 
         {/* Activity heatmap */}
@@ -275,7 +302,10 @@ export default function DashboardScreen() {
         </View>
 
         {/* Mistake DNA */}
-        <Text style={styles.h2}>🧬 Mistake DNA</Text>
+        <View style={styles.rowH2}>
+          <Icon name="dna" size={18} color={colors.brand} duotone />
+          <Text style={styles.h2}>Mistake DNA</Text>
+        </View>
         <View style={{ gap: space[2] }}>
           {findings.map((f, i) => (
             <View key={i} style={styles.dnaCard}>
@@ -288,11 +318,16 @@ export default function DashboardScreen() {
           ))}
         </View>
         <Pressable style={styles.practiceLink} onPress={() => router.push("/practice/mistakes")}>
-          <Text style={styles.practiceLinkText}>🎯 Practice mistake positions →</Text>
+          <View style={styles.titleRow}>
+            <Icon name="target" size={16} color={colors.brand} />
+            <Text style={styles.practiceLinkText}>Practice mistake positions →</Text>
+          </View>
         </Pressable>
 
-        {/* Trophy room */}
-        <Text style={styles.h2}>🏆 Trophy room</Text>
+        <View style={styles.rowH2}>
+          <Icon name="trophy" size={18} color={colors.gold} duotone />
+          <Text style={styles.h2}>Trophy room</Text>
+        </View>
         <View style={styles.card}>
           <View style={styles.trophyRow}>
             <Trophy label="Graduations" value={graduated.length} />
@@ -301,7 +336,7 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppShell>
   );
 }
 
@@ -313,6 +348,9 @@ const styles = StyleSheet.create({
   h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
   h2: { ...type.sm, fontFamily: font.bold, color: colors.ink },
   rowH2: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: space[1] },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
+  starsRow: { flexDirection: "row", gap: 2, marginTop: 2 },
+  forecastRow: { flexDirection: "row", alignItems: "center", gap: space[2], flexWrap: "wrap" },
   ratingCard: { flexDirection: "row", alignItems: "center", gap: space[4], backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
   rating: { fontSize: 36, lineHeight: 40, fontFamily: font.bold, color: colors.brand },
   ratingSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
@@ -350,4 +388,6 @@ const styles = StyleSheet.create({
   skillRow: { flexDirection: "row", justifyContent: "space-between" },
   skillArea: { ...type.xs, fontFamily: font.bold, color: colors.ink },
   skillPct: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
+  skillTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden", marginTop: 4 },
+  skillFill: { height: 8, borderRadius: radius.pill },
 });

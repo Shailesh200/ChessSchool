@@ -1,27 +1,32 @@
-/** Named opponents per ELO band — gives the vs-Bot mode personality. */
+import type { FlatAvatarId } from "@/components/ui/flatAvatars/catalog";
+import { botAvatarId, botAvatarIdForElo } from "@/components/ui/flatAvatars/catalog";
+import {
+  botProfile as coreBotProfile,
+  botLabel as coreBotLabel,
+} from "@chess-school/core";
+
+/** Named opponents per ELO band — tier logic in @chess-school/core. */
 export interface BotProfile {
   name: string;
-  emoji: string;
+  avatarId: FlatAvatarId;
   blurb: string;
 }
 
-const BOTS: (BotProfile & { max: number })[] = [
-  { max: 500, name: "Pip", emoji: "🐣", blurb: "Just learning the moves" },
-  { max: 800, name: "Cody", emoji: "🙂", blurb: "Casual beginner" },
-  { max: 1100, name: "Remi", emoji: "🎯", blurb: "Knows the basics" },
-  { max: 1500, name: "Sasha", emoji: "⚔️", blurb: "Sharp club player" },
-  { max: 1900, name: "Vera", emoji: "🧠", blurb: "Strong expert" },
-  { max: 2300, name: "Magnus Jr.", emoji: "👑", blurb: "Master strength" },
-  { max: 9999, name: "Titan", emoji: "🏆", blurb: "Grandmaster engine" },
-];
-
 export function botProfile(elo: number): BotProfile {
-  const b = BOTS.find((x) => elo <= x.max) ?? BOTS[BOTS.length - 1]!;
-  return { name: b.name, emoji: b.emoji, blurb: b.blurb };
+  const b = coreBotProfile(elo);
+  return { name: b.name, avatarId: b.avatarId as FlatAvatarId, blurb: b.blurb };
 }
 
-/** "🙂 Cody · 600" — name + ELO for player bars / titles. */
-export function botLabel(elo: number): string {
-  const b = botProfile(elo);
-  return `${b.emoji} ${b.name} · ${elo}`;
+export function botAvatarForElo(elo: number): FlatAvatarId {
+  return botAvatarIdForElo(elo);
 }
+
+export function botAvatarForName(name: string): FlatAvatarId {
+  return botAvatarId(name);
+}
+
+export function botLabel(elo: number): string {
+  return coreBotLabel(elo);
+}
+
+export { botAvatarId, botAvatarIdForElo };

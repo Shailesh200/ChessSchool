@@ -1,0 +1,17 @@
+<!-- High-fi mockup: Online match in progress · 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#1c1b2e"/>
+  <rect x="20" y="48" width="80" height="28" rx="14" fill="#fff" opacity="0.1"/>
+  <rect x="290" y="48" width="80" height="28" rx="14" fill="#fff" opacity="0.1"/>
+  <rect x="20" y="52" width="60" height="20" rx="4" fill="#fff" opacity="0.8"/>
+  <rect x="310" y="52" width="60" height="20" rx="4" fill="#fff" opacity="0.8"/>
+  <!-- Board -->
+  <rect x="20" y="96" width="350" height="350" rx="12" fill="#ede7f6"/>
+  <rect x="20" y="96" width="43.75" height="43.75" fill="#b9a8e6" opacity="0.6"/>
+  <!-- Invite bar -->
+  <rect x="20" y="460" width="350" height="44" rx="12" fill="#fff" opacity="0.12"/>
+  <rect x="36" y="472" width="200" height="20" rx="4" fill="#fff" opacity="0.25"/>
+  <rect x="280" y="468" width="74" height="28" rx="14" fill="#5b5bd6"/>
+  <rect x="20" y="520" width="350" height="48" rx="24" fill="#f43f5e" opacity="0.9"/>
+  <text x="195" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#a9a7bd">Online match · 390px</text>
+</svg>

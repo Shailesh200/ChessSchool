@@ -4,6 +4,7 @@ import { useSettings } from "@/core/store/settings.store";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useMatch } from "@/core/store/match.store";
+import { useArena } from "@/core/store/arena.store";
 import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { applyTheme, getAppTheme } from "@/core/themes/themes";
 import type { SettingsState } from "@/core/store/settings.store";
@@ -79,6 +80,7 @@ export function rehydrateAllStores(): Promise<void> {
     useProgression.persist.rehydrate(),
     useSession.persist.rehydrate(),
     useMatch.persist.rehydrate(),
+    useArena.persist.rehydrate(),
     usePlan.persist.rehydrate(),
   ]).then(() => {
     const s = useSettings.getState();

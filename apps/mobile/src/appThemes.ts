@@ -129,14 +129,27 @@ export function getAppTheme(id: string): AppThemeDef {
   return APP_THEMES.find((t) => t.id === id) ?? APP_THEMES[0]!;
 }
 
-/** High-contrast boost for accessibility. */
-export function withHighContrast(palette: AppThemeDef["colors"]): AppThemeDef["colors"] {
+/** High-contrast boost for accessibility (dark vs light aware). */
+export function withHighContrast(palette: AppThemeDef["colors"], dark = false): AppThemeDef["colors"] {
+  if (dark) {
+    return {
+      ...palette,
+      ink: "#ffffff",
+      ink700: "#f0f0f5",
+      ink500: "#d0d0dc",
+      ink300: "#b0b0c0",
+      hairline: "#a0a0b8",
+      brand: palette.brand,
+      brand600: palette.brand600,
+    };
+  }
   return {
     ...palette,
     ink: "#000000",
     ink700: "#111111",
     ink500: "#333333",
-    hairline: "#999999",
+    ink300: "#555555",
+    hairline: "#666666",
     brand: palette.brand,
     brand600: palette.brand600,
   };

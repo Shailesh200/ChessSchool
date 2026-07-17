@@ -120,3 +120,62 @@ export function analyzeMate(fen: string): MateInfo | null {
 
   return { kingSquare, attackers, covered, pattern };
 }
+
+export function matePreventionTip(pattern: MatePattern): string {
+  if (pattern === "back-rank") {
+    return "It's a back-rank mate — your own pawns trapped the king. Play a quiet pawn move (luft) earlier to give it air.";
+  }
+  if (pattern === "diagonal") {
+    return "A diagonal mate — pushing the f- or g-pawns early opened lines to your king. Keep the squares around your king defended.";
+  }
+  return "Spot the attacker's path a move earlier: make an escape square, block the check, or trade off the attacking piece.";
+}
+
+/** Last N move frames plus the position *before* the first replayed move. */
+export function lastMoveFrames(pgn: string, count = 5): Frame[] {
+  const all = replayFrames(pgn);
+  if (all.length <= 1) return all;
+  const startPly = Math.max(0, all.length - 1 - count);
+  return all.slice(startPly);
+}
+
+type VerboseHistoryMove = {
+  from: Square;
+  to: Square;
+  san: string;
+  promotion?: string;
+  captured?: string;
+};
+
+/** Build frames from live move history — avoids PGN round-trip failures in modals. */
+export function framesFromHistory(moves: VerboseHistoryMove[]): Frame[] {
+  const g = new Chess();
+  const frames: Frame[] = [
+    { ply: 0, san: null, fen: g.fen(), check: false, mate: false },
+  ];
+  moves.forEach((m, i) => {
+    g.move({ from: m.from, to: m.to, promotion: m.promotion as never });
+    frames.push({
+      ply: i + 1,
+      san: m.san,
+      fen: g.fen(),
+      from: m.from,
+      to: m.to,
+      captured: m.captured,
+      check: g.isCheck(),
+      mate: g.isCheckmate(),
+    });
+  });
+  return frames;
+}
+
+/** Last N frames from verbose history (preferred for in-app modals). */
+export function lastMoveFramesFromHistory(
+  moves: VerboseHistoryMove[],
+  count = 5,
+): Frame[] {
+  const all = framesFromHistory(moves);
+  if (all.length <= 1) return all;
+  const startPly = Math.max(0, all.length - 1 - count);
+  return all.slice(startPly);
+}

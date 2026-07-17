@@ -1,26 +1,87 @@
 name: CI
 
+# Required gate for PRs into main — core of local `pnpm verify:milestone`
+# (typecheck, lint, format, coverage, build, SEO, e2e incl. parity semantic)
+# plus puzzle-school validate and parity Maestro coverage.
+# Lighthouse / CWV runs in the separate `Lighthouse` workflow.
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
+    name: verify:milestone
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: true
+      SESSION_TOKEN_SECRET: e2e-test-session-token-secret
+      # Next + vitest coverage can spike RSS on the runner.
+      NODE_OPTIONS: --max-old-space-size=6144
+
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+
+      # Pin exact pnpm; avoid action-setup cache bugs with bare version: 10
+      - uses: pnpm/action-setup@v4.2.0
         with:
-          version: 10
+          version: 10.30.0
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter web db:fresh
-      - run: pnpm --filter web exec playwright install --with-deps chromium
-      - run: pnpm verify:milestone
-        env:
-          CI: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Puzzle-school validate
+        run: pnpm puzzle-school:validate
+
+      - name: Install Playwright Chromium (+ OS deps)
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      # Discrete steps = same gates as scripts/verify-milestone.sh (minus Lighthouse).
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm --filter web format:check
+
+      - name: Test coverage (≥90%)
+        run: bash scripts/verify-test-coverage.sh
+
+      # Required before `next build` — static pages/API routes read the curriculum DB.
+      - name: Fresh local DB
+        run: pnpm --filter web db:fresh
+
+      - name: Build
+        run: pnpm build
+
+      - name: Home JS budget
+        run: node scripts/verify-home-js-budget.mjs
+
+      - name: E2E route manifest coverage
+        run: node scripts/verify-e2e-route-coverage.mjs
+
+      - name: Web SEO baseline
+        run: bash scripts/verify-web-seo.sh
+
+      - name: Parity Maestro coverage
+        run: |
+          node scripts/generate-parity-maestro.mjs
+          node scripts/verify-parity-coverage.mjs
+
+      - name: Playwright e2e (incl. parity semantic)
+        run: pnpm e2e

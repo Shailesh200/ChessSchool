@@ -17,10 +17,12 @@ describe("eloToUci", () => {
     const low = eloToUci(100)[1]!;
     expect(low).toBe("setoption name Skill Level value 0");
   });
-  it("Skill Level scales 0→20 across 300→~1320", () => {
+  it("Skill Level stays beatable (0–6) below the UCI_Elo floor", () => {
+    // Matches web stockfish.ts: skill = clamp(round((elo - 850) / 120), 0, 6)
     expect(eloToUci(300)[1]).toBe("setoption name Skill Level value 0");
-    expect(Number(eloToUci(800)[1]!.split(" ").pop())).toBeGreaterThan(0);
-    expect(Number(eloToUci(1300)[1]!.split(" ").pop())).toBeLessThanOrEqual(20);
+    expect(eloToUci(800)[1]).toBe("setoption name Skill Level value 0");
+    expect(eloToUci(970)[1]).toBe("setoption name Skill Level value 1");
+    expect(Number(eloToUci(1300)[1]!.split(" ").pop())).toBeLessThanOrEqual(6);
   });
 });
 

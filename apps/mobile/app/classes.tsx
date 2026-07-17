@@ -1,21 +1,52 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { FetchErrorView } from "@/FetchErrorView";
 import { Icon } from "@/Icon";
-import { TopBar } from "@/TopBar";
+import { emojiToIcon } from "@/iconMaps";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
-import { colors, font, radius, shadowCard, space } from "@/theme";
+import { useAppTheme } from "@/ThemeProvider";
+import { useType } from "@/typography";
+import { font, radius, space } from "@/theme";
 
 type Sem = { id: string; title: string; stage: string };
 type Cls = { id: string; title: string; emoji: string; blurb: string; semesterId: string };
+type Section = { title: string; data: Cls[] };
 
 export default function ClassesScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const type = useType();
   const [data, setData] = useState<{ semesters: Sem[]; classes: Cls[] } | null>(null);
   const [loadError, setLoadError] = useState(false);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        center: { flex: 1, justifyContent: "center", alignItems: "center" },
+        header: { paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[2], gap: space[2] },
+        h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+        content: { paddingHorizontal: space[5], paddingBottom: 100 },
+        semTitle: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginBottom: 8, marginTop: 10 },
+        card: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          backgroundColor: colors.surfaceCard,
+          borderRadius: radius.md,
+          padding: 14,
+          marginBottom: 8,
+          borderWidth: 1,
+          borderColor: colors.hairline,
+        },
+        emoji: { width: 28, alignItems: "center" },
+        cardTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+        cardSub: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
+      }),
+    [colors, type],
+  );
 
   async function loadCatalog() {
     setLoadError(false);
@@ -31,16 +62,15 @@ export default function ClassesScreen() {
     void loadCatalog();
   }, []);
 
-  const grouped = useMemo(() => {
+  const sections = useMemo<Section[]>(() => {
     if (!data) return [];
     return data.semesters
-      .map((s) => ({ sem: s, classes: data.classes.filter((c) => c.semesterId === s.id) }))
-      .filter((g) => g.classes.length > 0);
+      .map((s) => ({ title: s.title, data: data.classes.filter((c) => c.semesterId === s.id) }))
+      .filter((g) => g.data.length > 0);
   }, [data]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
+    <AppShell>
       <View style={styles.header}>
         <BackButton />
         <Text style={styles.h1}>All classes</Text>
@@ -53,42 +83,30 @@ export default function ClassesScreen() {
           <ActivityIndicator color={colors.brand} size="large" />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
-          {grouped.map(({ sem, classes }) => (
-            <View key={sem.id} style={{ marginBottom: 18 }}>
-              <Text style={styles.semTitle}>{sem.title}</Text>
-              {classes.map((c) => (
-                <Pressable
-                  key={c.id}
-                  testID={`class-${c.id}`}
-                  style={styles.card}
-                  onPress={() => router.push({ pathname: "/class/[id]", params: { id: c.id } })}
-                >
-                  <Text style={styles.emoji}>{c.emoji}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle}>{c.title}</Text>
-                    {!!c.blurb && <Text style={styles.cardSub}>{c.blurb}</Text>}
-                  </View>
-                  <Icon name="chevronRight" size={18} color={colors.ink300} />
-                </Pressable>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={styles.content}
+          renderSectionHeader={({ section }) => <Text style={styles.semTitle}>{section.title}</Text>}
+          renderItem={({ item: c }) => (
+            <Pressable
+              testID={`class-${c.id}`}
+              style={styles.card}
+              onPress={() => router.push({ pathname: "/class/[id]", params: { id: c.id } })}
+            >
+              <View style={styles.emoji}>
+                <Icon name={emojiToIcon(c.emoji)} size={24} color={colors.brand} duotone />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{c.title}</Text>
+                {!!c.blurb && <Text style={styles.cardSub}>{c.blurb}</Text>}
+              </View>
+              <Icon name="chevronRight" size={18} color={colors.ink300} />
+            </Pressable>
+          )}
+        />
       )}
-    </SafeAreaView>
+    </AppShell>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { paddingHorizontal: 20, paddingTop: space[2], paddingBottom: space[2], gap: space[2] },
-  h1: { fontSize: 22, fontFamily: font.bold, color: colors.ink },
-  content: { paddingHorizontal: 20, paddingBottom: 30 },
-  semTitle: { fontSize: 13, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginBottom: 8 },
-  card: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.hairline },
-  emoji: { fontSize: 24 },
-  cardTitle: { fontSize: 15, fontFamily: font.bold, color: colors.ink },
-  cardSub: { fontSize: 12, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
-});

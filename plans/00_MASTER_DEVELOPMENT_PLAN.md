@@ -1,8 +1,8 @@
 # ChessSchool — Master Development Plan
 
 > **Status:** Approved implementation roadmap  
-> **Version:** 1.3  
-> **Date:** 2026-07-09 (revised — branch workflow, full verify gates, 90% coverage)  
+> **Version:** 1.8  
+> **Date:** 2026-07-09 (revised — branch-per-milestone, commit-only main, full verify gates)  
 > **Authority:** Single source of truth for ChessSchool development execution  
 > **Supersedes:** Ad-hoc wave planning in `README.md`; does not supersede `CLAUDE.md` operational runbook (which this plan will drive updates to)
 
@@ -47,11 +47,11 @@ This Master Development Plan converts existing product documentation (`README.md
 | Surface | Milestone | Status | Requirement |
 |---------|-----------|--------|-------------|
 | **PWA** | M-010 | **Verified** | Installable, offline-capable, service worker, install prompt — already shipped |
-| **Browser** | M-059 | Not Started | Full **desktop + tablet browser** experience — not mobile-only; usable without installing |
-| **Polish** | M-075 | Not Started | Premium UI per **owner-approved wireframes/mockups** |
-| **Content** | M-063 | Not Started | Enough curriculum for a credible academy launch |
-| **Trust** | M-043–M-048, M-070 | Partial | Security, data integrity, privacy audit |
-| **Launch** | M-073 | Not Started | Runbook, marketing pages, go-live checklist |
+| **Browser** | M-059 | **Verified** | Desktop sidebar + responsive layouts @390–1280 (owner approved 2026-07-10) |
+| **Polish** | M-075 | **Verified** | Phase A ✅ · Phase B slices 1–4 ✅ (owner approved 2026-07-10) |
+| **Content** | M-063 | **Verified** | Puzzle School bank + school-themed lessons |
+| **Trust** | M-043–M-048, M-070 | M-043–M-048 **Verified** · **M-070 Verified** (2026-07-12) | Security, data integrity, privacy audit |
+| **Launch** | M-073 | **Verified** | Runbook, marketing pages, go-live checklist |
 
 **Web GA is not** the native App Store release (that is **G-Mobile**, M-049–M-053, after M-073).
 
@@ -63,16 +63,15 @@ This Master Development Plan converts existing product documentation (`README.md
 
 | Metric | Value |
 |--------|-------|
-| **Overall Progress** | ~72% (product surface) · ~50% (Web GA ready) |
-| **Current Phase** | Production Hardening |
-| **Current Milestone** | M-045 |
-| **Completed Milestones** | M-001–M-044 (Verified) |
-| **In Progress** | M-045 (Rate Limiting & Input Validation) · M-071 (Documentation Refresh — started) |
-| **Blocked** | M-063 (until M-048) · M-075-B / M-059 (until M-075 Phase A approved) · M-073 (until G-WebGA) · M-053 (after Web GA) |
-| **Next Milestone** | M-045 — Rate Limiting & Input Validation |
-| **Launch Priority** | **Web GA first** — mobile store after M-073 |
-| **Last Updated** | 2026-07-09 (v1.3 — branch-per-milestone, full verify:milestone, 90% coverage) |
-| **Overall Completion %** | ~72% product · ~50% Web GA ready |
+| **Overall Progress** | ~82% (product surface) · **100% Web GA ready** |
+| **Current Phase** | Web GA final gates |
+| **Current Milestone** | Post Web GA (M-049 mobile ship / M-074) |
+| **Completed Milestones** | M-001–M-048 (Verified) · M-056 · M-057 · M-059 · M-063 · M-064 · M-070 · M-071 · M-072 · M-073 · M-075 Phase A/B (Verified) · **G-WebGA complete** |
+| **In Progress** | — |
+| **Blocked** | — |
+| **Next Milestone** | M-049 — Mobile Resilience (store track) |
+| **Last Updated** | 2026-07-17 (v2.15 — M-073 Verified; Web GA ready) |
+| **Overall Completion %** | ~82% product · **100% Web GA ready** |
 
 > Update this section as milestones are completed and verified.
 
@@ -95,22 +94,22 @@ This Master Development Plan converts existing product documentation (`README.md
 ## Milestone Execution Model
 
 ```text
-Start Milestone
+Create milestone branch from main
       ↓
-   Develop
+   Develop (commits on branch only)
       ↓
     Verify
       ↓
   Fix Issues
       ↓
-   Complete
+ Owner approves → merge to main
       ↓
-Next Milestone
+Next milestone branch from main
 ```
 
 - **No fixed sprint durations** — milestones complete when verified
-- **Deployable after every milestone** — monorepo remains buildable; web deployable to Vercel
-- **Verify before advance** — Definition of Done must pass before proceeding
+- **Deployable after every milestone merge** — monorepo remains buildable; web deployable to Vercel
+- **Verify before advance** — Definition of Done must pass before merge and before the next branch opens
 
 ## Source Documents
 
@@ -120,7 +119,7 @@ Next Milestone
 | `README.md` | Historical waves, feature inventory, deferred systems |
 | `CODE_REVIEW.md` | Production-readiness audit (security, data integrity) |
 | `apps/mobile/PLAN.md` | Mobile parity strategy (tokens, overlay-diff, phases) |
-| `apps/mobile/PARITY_GAPS.md` | Current mobile backlog (authoritative over stale `PARITY.md`) |
+| `apps/mobile/PARITY_GAPS.md` | Current mobile backlog (authoritative; `PARITY.md` retired M-071) |
 | `apps/mobile/RELEASE.md` | EAS build, OTA, store submission |
 | `apps/mobile/STOCKFISH.md` | Native engine integration |
 | `AGENTS.md` | Next.js 16 agent rules |
@@ -136,11 +135,12 @@ This section defines how development must proceed throughout the ChessSchool lif
 ## Core Discipline
 
 1. **One active milestone at a time.** Only one milestone may be actively implemented at a time. Do not parallelize milestones that share unverified dependencies.
-2. **Dependencies must be Verified.** Never begin a milestone until all dependency milestones are marked **Verified**.
-3. **No early implementation.** Never implement functionality belonging to a future milestone, even if it seems convenient.
-4. **No skipped dependencies.** Never bypass the dependency graph — especially **G-Hardening** (M-043–M-048) or **G-WebGA** (M-063, M-075, M-059, M-070–M-073).
-5. **No undocumented features.** Never introduce capabilities not defined in the current milestone scope without Change Management.
-6. **Documentation is authoritative.** Follow `CLAUDE.md`, this plan, and referenced docs for the current milestone.
+2. **One milestone = one branch.** All milestone work is committed on a dedicated `milestone/M-XXX-*` branch — **never directly on `main`** while the milestone is in progress.
+3. **Dependencies must be Verified.** Never begin a milestone until all dependency milestones are marked **Verified**.
+4. **No early implementation.** Never implement functionality belonging to a future milestone, even if it seems convenient.
+5. **No skipped dependencies.** Never bypass the dependency graph — especially **G-Hardening** (M-043–M-048) or **G-WebGA** (M-063, M-075, M-059, M-070–M-073).
+6. **No undocumented features.** Never introduce capabilities not defined in the current milestone scope without Change Management.
+7. **Documentation is authoritative.** Follow `CLAUDE.md`, this plan, and referenced docs for the current milestone.
 
 ## When Implementation Uncovers Missing Work
 
@@ -163,42 +163,49 @@ This section defines how development must proceed throughout the ChessSchool lif
 
 ## Milestone Branch Workflow (mandatory)
 
-Every milestone ships on its **own git branch** and merges to `main` only after verification + owner approval.
+**Approved process:** every milestone is developed on its **own git branch**. `main` stays stable; milestone work lands only after owner approval and merge. Then repeat with a fresh branch for the next milestone.
 
 ### Branch naming
 
 ```text
 milestone/M-043-online-pvp-security
+milestone/M-059-responsive-browser
 milestone/M-075-ui-overhaul
 ```
 
-### Lifecycle
+### Lifecycle (repeat for each milestone)
 
 ```text
-Create branch from main
-      ↓
-Implement milestone scope only
-      ↓
-pnpm verify:milestone  (all gates green)
-      ↓
-Present for owner review (PR or summary)
-      ↓
-Owner approves
-      ↓
-Commit on milestone branch
-      ↓
-Merge to main + push origin
-      ↓
-Mark milestone Verified in this plan
-      ↓
-Create next milestone branch
+1. git checkout main && git pull
+2. git checkout -b milestone/M-XXX-short-name
+3. Implement milestone scope — commit on this branch as you go
+4. pnpm verify:milestone  (all gates green)
+5. Present for owner review (PR or summary)
+6. Owner approves
+7. Merge milestone branch → main (local commit on `main`)
+8. Mark milestone Verified in this plan
+9. Delete or archive the milestone branch
+10. Create next milestone branch from updated main  →  go to step 3
+
+**Push:** engineering **never** runs `git push origin main` unless the owner explicitly asks. Commits stay local until then.
 ```
 
-**Hard rules:**
+### What goes where
+
+| Location | Allowed content |
+|----------|-----------------|
+| **`milestone/M-XXX-*` branch** | All commits for the active milestone (code, tests, plan updates for that milestone) |
+| **`main`** | Only merged, owner-approved milestone work; hotfixes per Change Management |
+
+### Hard rules
+
+- **Never commit milestone work directly to `main`** during active development.
 - **One milestone = one branch.** Do not stack unmerged milestone work on the same branch.
-- **Do not start the next milestone** until the previous branch is **merged and pushed to `main`**.
+- **Do not start the next milestone** until the previous branch is **merged to local `main`** (committed, not necessarily pushed).
+- **Never push to `origin/main`** unless the owner explicitly requests it.
 - **Every new web feature** in a milestone must include **Playwright e2e** tests and updates to `scripts/web-e2e-routes.json` / `web-lighthouse-routes.json` when routes change.
-- **No merge without `pnpm verify:milestone` green** (owner does not run it — engineering does).
+- **No merge to `main` without `pnpm verify:milestone` green** (owner does not run it — engineering does).
+- **No merge to `main` without explicit owner approval.**
 
 ## Testing & Quality Gates (mandatory)
 
@@ -214,6 +221,8 @@ Create next milestone branch
 | Lighthouse | **Every route** in manifest — A11y/BP/SEO ≥90 | `pnpm verify:web-lighthouse` |
 | Build | Production build green | `pnpm build` |
 
+**Lighthouse cadence (owner-approved):** full audit on **every 5th milestone merge** (and before Web GA). Intervening slices may skip with `SKIP_LIGHTHOUSE=1` when the owner explicitly approves — note in the verification report.
+
 See `scripts/README.md` for manifests and coverage scope.
 
 **New web features:** add e2e in `apps/web/e2e/`, register route in `scripts/web-e2e-routes.json` and `scripts/web-lighthouse-routes.json`.
@@ -226,7 +235,7 @@ See `scripts/README.md` for manifests and coverage scope.
 
 | Role | Responsibility |
 |------|----------------|
-| **Engineering (implementation agent)** | Run all verification commands; fix failures; update docs; present for final review **only when green** |
+| **Engineering (implementation agent)** | Run all verification commands; fix failures; update docs; present for final review **only when green**; include **How to verify** steps |
 | **Milestone owner (you)** | Final review — confirm Definition of Done; approve or request changes |
 
 At the end of every milestone, **before presenting for final review**:
@@ -239,20 +248,72 @@ At the end of every milestone, **before presenting for final review**:
    `SKIP_LIGHTHOUSE=1` is for local debugging only — **not** valid for milestone sign-off.
 2. **Fix all failures** — do not request final review with failing gates.
 3. **Update documentation** — this plan's Project Progress, `CLAUDE.md` if operational commands changed.
-4. **Present for final review** — verification summary + Definition of Done checklist.
+4. **Present for final review** — verification summary + Definition of Done checklist + **manual verification steps** (see below).
+
+### Manual verification steps (required in every handoff)
+
+At the end of every milestone slice (when presenting for owner review), engineering **must** include a **How to verify** section with:
+
+1. **Branch & checkout** — branch name and how to check it out locally
+2. **Automated gates** — exact commands run (e.g. `pnpm verify:milestone`, with note if `SKIP_LIGHTHOUSE=1` was used for dev only)
+3. **Verification report** — paste results from `pnpm verify:milestone` (see template below). Lighthouse/CWV table required on **every 5th milestone merge**; otherwise note `SKIP_LIGHTHOUSE=1` + owner approval.
+4. **Manual UI checks** — routes to open, viewports (390px + 1280px), and what to look for vs approved mocks
+5. **Regression spot-checks** — 2–3 core flows that must still work (campus → lesson, play bot, settings)
+6. **Known gaps** — anything not covered or deferred to next slice
+
+Owner uses this checklist for sign-off; it is **not** a substitute for `pnpm verify:milestone` green.
+
+#### Verification report template (required)
+
+Engineering **must** include this block when presenting for owner review (copy from terminal output):
+
+```markdown
+### Verification report — M-XXX slice N
+
+**Command:** `pnpm verify:milestone` (full — no SKIP_LIGHTHOUSE)
+
+| Gate | Result |
+|------|--------|
+| typecheck | ✓ / ✗ |
+| lint | ✓ / ✗ |
+| format:check | ✓ / ✗ |
+| unit coverage (≥90%) | ✓ / ✗ |
+| build | ✓ / ✗ |
+| e2e route coverage (≥90%) | ✓ / ✗ (N/M routes) |
+| SEO baseline | ✓ / ✗ |
+| db:fresh + e2e | ✓ / ✗ (N tests) |
+| Lighthouse (19 routes) | ✓ / ✗ |
+
+**Lighthouse summary** (mobile, production `next start`, from script footer):
+
+| Screen | Perf | LCP | FCP | CLS | Status |
+|--------|------|-----|-----|-----|--------|
+| Campus | … | … | … | … | PASS/FAIL |
+| … | … | … | … | … | … |
+
+**CWV failures** (if any — list route + metric + value vs max):
+- e.g. Campus: Perf 81 (min 85); Playground: LCP 5.2s (max 5.0s)
+
+**Notes:** lab variance, flaky routes, or owner-approved waivers.
+```
+
+Run Lighthouse only: `pnpm verify:web-lighthouse`. See `scripts/web-lighthouse-routes.json` for tier thresholds (critical / public / app).
 
 **After approval only:**
 
-5. **Commit milestone work** on the milestone branch — message references milestone ID (e.g. `M-043: online PvP seat auth`).
-6. **Owner approves** → **merge branch to `main` and push** `origin main`.
-7. **Mark milestone Verified** — update status in this plan only after merge to `main`.
-8. **Create next milestone branch** from updated `main`.
+5. **Merge milestone branch to `main`** — squash or merge commit; message references milestone ID (e.g. `M-043: online PvP seat auth`). **Commit only — do not push.**
+6. **Mark milestone Verified** — update status in this plan only after merge to local `main`.
+7. **Create next milestone branch** from updated `main` before starting the next milestone.
+
+**Push (owner-initiated only):** when the owner asks, run `git push origin main` to publish and trigger Vercel deploy.
 
 **Hard rules:**
 - Never request final review before `pnpm verify:milestone` passes.
-- Never commit before explicit owner approval.
+- Never merge to `main` before explicit owner approval.
+- Never commit active milestone work directly to `main` — use the milestone branch.
 - Never merge to `main` before verification passes and owner approves.
 - Never begin a new milestone while the previous milestone branch is unmerged.
+- **Never push to remote** (`git push`, `git push origin main`) unless the owner explicitly asks.
 
 ---
 
@@ -384,10 +445,10 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-042** | Mobile Themes & Settings | App themes, board themes, coach personality (partial sync) | **Verified** |
 | **M-043** | Online PvP Security | Seat ownership, auth-required moves, CSPRNG game IDs | **Verified** |
 | **M-044** | Progress API Hardening | Transactional upsert, max-merge columns, no delete-all | **Verified** |
-| **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | Not Started |
-| **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | Not Started |
-| **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | Not Started |
-| **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | Not Started |
+| **M-045** | Rate Limiting & Input Validation | Auth brute-force protection, zod on mutating routes | **Verified** |
+| **M-046** | DB Indexes & Curriculum Cache | Hot-path indexes, skeleton cache for 16k lessons | **Verified** |
+| **M-047** | Session Token Hashing | Store sha256(token); cookie value ≠ DB key | **Verified** |
+| **M-048** | API Integration Tests | Vitest + test libSQL for auth, progress, session | **Verified** |
 | **M-049** | Mobile Resilience | 401 handling, fetch error states, write queue hardening | Not Started |
 | **M-050** | Mobile UX Correctness | Promotion picker, mastery scoring, bot clocks, online clock tick | Not Started |
 | **M-051** | Mobile Accessibility & Polish | accessibilityLabel, virtualization, pull-to-refresh, sound parity | Not Started |
@@ -395,26 +456,26 @@ The Admin Portal (`/admin`) is **not** a one-time deliverable. Every milestone t
 | **M-053** | App Store & Play Store Release | EAS build, store listings, OTA channels | Not Started |
 | **M-054** | Bi-directional Settings Sync | Web reads account settings; unified merge semantics | Not Started |
 | **M-055** | Mobile Playground | Port `/playground` to native | Not Started |
-| **M-056** | Google OAuth | Social sign-in alongside email/password | Not Started |
-| **M-057** | Guest → Account Enroll Prompt | Post-first-lesson enrollment CTA (web + mobile alignment) | Not Started |
+| **M-056** | Google OAuth | Social sign-in alongside email/password | **Verified** |
+| **M-057** | Guest → Account Enroll Prompt | Post-first-lesson enrollment CTA (web + mobile alignment) | **Verified** |
 | **M-058** | Personalized Puzzles (Mistake DNA) | Generate drills from user mistakes + Stockfish verify | Not Started |
-| **M-059** | Responsive Browser Layouts | Desktop/tablet breakpoints, container queries — **G-WebGA gate** | Not Started |
+| **M-059** | Responsive Browser Layouts | Desktop/tablet breakpoints, container queries — **G-WebGA gate** | **Verified** |
 | **M-060** | Global Search (⌘K) | Universal lesson/class search + keyboard shortcuts | Not Started |
 | **M-061** | Onboarding V2 | Goal/experience/time/coach → first-week plan | Not Started |
 | **M-062** | Admin CMS UX Polish | Custom dropdowns, bulk operations, import UX | Not Started |
-| **M-063** | Curriculum Content Expansion | Unit hierarchy, capstones, content pipeline — **G-WebGA gate** | Not Started |
-| **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | Not Started |
-| **M-065** | Tournament & Shadow Opponent Modes | Swiss/arena, shadow replay opponent | Not Started |
+| **M-063** | Puzzle School & Curriculum Quality | Own puzzle bank, school-themed lessons, ≥8k launch — **G-WebGA gate** | **Verified** |
+| **M-064** | Thinking Mode & Match Commentary | Calculation training, post-game commentary | **Verified** |
+| **M-065** | Tournament & Shadow Opponent Modes | Swiss/arena, shadow replay opponent | **In Progress** |
 | **M-066** | Certificate PDF & Graduation Archive | Exportable certificates, trophy room depth | Not Started |
 | **M-067** | Story Mode | Narrative campaign layer over curriculum | Not Started |
 | **M-068** | Observability & SRE | Structured logging, alerting, session cleanup cron | Not Started |
 | **M-069** | Performance Optimization | Bot off main thread, curriculum query optimization, lazy routes | Not Started |
-| **M-070** | Security Audit & Privacy | Pen-test fixes, privacy policy alignment — **G-WebGA gate** | Not Started |
-| **M-071** | Documentation Refresh | Reconcile CLAUDE.md, retire stale PARITY.md — **G-WebGA gate** | **In Progress** |
-| **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | Not Started |
-| **M-073** | Web GA Launch Readiness | Launch checklist, marketing pages, support runbook — **G-WebGA gate** | Not Started |
+| **M-070** | Security Audit & Privacy | Pen-test fixes, privacy policy alignment — **G-WebGA gate** | **Verified** |
+| **M-071** | Documentation Refresh | Reconcile CLAUDE.md, retire stale PARITY.md — **G-WebGA gate** | **Verified** |
+| **M-072** | Visual Regression & Storybook | Component catalog, Playwright visual gates — **G-WebGA gate** | **Verified** |
+| **M-073** | Web GA Launch Readiness | Launch checklist, marketing pages, support runbook — **G-WebGA gate** | **Verified** |
 | **M-074** | Continuous Evolution | Ongoing content, engine updates, community features | Ongoing |
-| **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | Not Started |
+| **M-075** | Premium UI Overhaul & Motion Assets | Wireframes → owner approval → implementation — **G-WebGA gate** | **Verified** |
 | **M-076** | Toolchain Modernization | Bun (from pnpm), Oxlint, Oxfmt, Lefthook — post Web GA | Not Started |
 | **M-077** | Scaling Architecture & ADR | When/how to split BE from Next.js; caching, CDN, job queues | Not Started |
 | **M-078** | Backend Service Extraction | Standalone API service if ADR approves; mobile/web clients unchanged | Not Started |
@@ -506,8 +567,8 @@ flowchart TD
 | Progress Sync | M-032, M-044, M-054 | Covered (M-044 hardening ✓) |
 | Admin CMS | M-023, M-062 | Covered (UX polish pending) |
 | Curriculum (DB + Lichess) | M-021, M-022, **M-063** | Partial (M-063 gated before Web GA) |
-| Responsive Browser (Web GA) | **M-059**, M-010 | PWA Verified; browser layouts pending |
-| Premium UI & Motion | M-003, **M-075** (design approval gate) | Phase 1 done; wireframes pending |
+| Responsive Browser (Web GA) | **M-059** ✓, M-010 | Both Verified |
+| Premium UI & Motion | M-003, **M-075** | **Verified** (Phase A/B owner approved 2026-07-10) |
 | Backend Scaling | **M-077, M-078** | Not started (monolithic Next.js + Turso today) |
 | Toolchain (Bun/Oxlint) | **M-076** | Planned post Web GA |
 | Library Free-Browse | M-024 | Covered |
@@ -516,7 +577,7 @@ flowchart TD
 | SEO & Landing Pages | M-034 | Covered |
 | Mobile App (all surfaces) | M-038–M-042, M-049–M-053 | ~90% screens; ship track pending |
 | Stockfish Analysis | M-026, M-052 | Web covered; native branch |
-| Google OAuth | M-056 | Not started |
+| Google OAuth | M-056 | **Verified** |
 | Personalized Puzzles | M-058 | Not started |
 | Global Search | M-060 | Not started |
 | Certificates | M-066 | Not started |
@@ -746,7 +807,9 @@ H1 and H2 resolved; integration tests green; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**Verified (owner approved 2026-07-11)**
+
+Deliverables: IP/user rate limits on auth + mutating routes, Zod on session moves + auth FormData actions, malformed JSON → 400, campus safe JSON parse. Resolves CODE_REVIEW H3.
 
 ### Inputs
 
@@ -760,10 +823,10 @@ H1 and H2 resolved; integration tests green; milestone **Verified**.
 
 ### Deliverables
 
-- [ ] Rate limit middleware (IP + user keyed)
-- [ ] Zod validation on all POST bodies
-- [ ] Reject negative/huge XP, invalid mastery values
-- [ ] Malformed JSON returns 400, not 500
+- [x] Rate limit middleware (IP + user keyed)
+- [x] Zod validation on all POST bodies
+- [x] Reject negative/huge XP, invalid mastery values
+- [x] Malformed JSON returns 400, not 500
 
 ### Definition of Done
 
@@ -781,7 +844,9 @@ H3 resolved; fuzzing malformed bodies returns 400; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**Verified (owner approved 2026-07-11)**
+
+Deliverables: Drizzle indexes on hot FK columns, `getCurriculumSkeleton()` with `updateTag` invalidation on admin save, campus/next-lesson/library/catalog wired to cached skeleton (no per-request 16k lesson scan). Resolves CODE_REVIEW H4 + H5.
 
 ### Inputs
 
@@ -794,10 +859,10 @@ H3 resolved; fuzzing malformed bodies returns 400; milestone **Verified**.
 
 ### Deliverables
 
-- [ ] Drizzle index migration
-- [ ] `getCatalog()` cache with tag invalidation on admin save
-- [ ] Placement puzzle set precomputed/cached
-- [ ] Measurable latency improvement on `/api/campus`
+- [x] Drizzle index migration
+- [x] `getCatalog()` cache with tag invalidation on admin save
+- [x] Placement puzzle set precomputed/cached
+- [x] Measurable latency improvement on `/api/campus`
 
 ### Definition of Done
 
@@ -815,17 +880,24 @@ H4 and H5 resolved; campus API avoids loading 16k lesson rows per request; miles
 
 ### Status
 
-**Not Started**
+**Verified (2026-07-11)**
 
 ### Deliverables
 
-- [ ] Store `sha256(token)` in `sessions` table; cookie/Bearer carries raw token
-- [ ] Migration path for existing sessions
-- [ ] Expired session cleanup job or cron
+- [x] Store `sha256(token)` in `sessions` table; cookie/Bearer carries raw token
+- [x] Migration path for existing sessions
+- [x] Expired session cleanup job or cron
 
 ### Definition of Done
 
 DB leak does not expose usable session tokens; milestone **Verified**.
+
+### Verification
+
+- `lib/session-token.ts` + `lib/session-store.ts` — hash at rest, legacy row migrate-on-read
+- Integration tests against temp libSQL; auth/cron wired through session-store
+- Daily cron `GET /api/cron/cleanup-sessions` (`CRON_SECRET` required in prod)
+- `SKIP_LIGHTHOUSE=1 pnpm verify:milestone` — 81 unit + 35 e2e passed
 
 ---
 
@@ -839,91 +911,107 @@ DB leak does not expose usable session tokens; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**Verified (2026-07-11)** — **G-Hardening gate complete**
 
 ### Deliverables
 
-- [ ] Vitest + in-memory/test libSQL file setup
-- [ ] Tests: auth register/login/logout
-- [ ] Tests: progress merge (depends on M-044 semantics)
-- [ ] Tests: session seat ownership (depends on M-043)
-- [ ] CI runs integration suite
+- [x] Vitest + in-memory/test libSQL file setup (`lib/test-db.harness.ts`)
+- [x] Tests: auth register/login/logout
+- [x] Tests: progress merge (depends on M-044 semantics)
+- [x] Tests: session seat ownership (depends on M-043)
+- [x] CI runs integration suite (`test:integration` + `verify-test-coverage.sh`)
 
 ### Definition of Done
 
 Integration tests run in CI; cover highest-risk API paths; milestone **Verified**. **G-Hardening gate complete.**
 
+### Verification
+
+- 15 integration tests (auth, progress, session APIs + libSQL helpers)
+- `pnpm test:integration` + `SKIP_LIGHTHOUSE=1 pnpm verify:milestone` — green
+
 ---
 
-## M-063 — Curriculum Content Expansion (G-WebGA)
+## M-063 — Puzzle School & Curriculum Quality (G-WebGA)
 
 | Field | Value |
 |-------|-------|
 | **Milestone ID** | M-063 |
 | **Phase** | 5b — Web GA Content Gate |
-| **Docs** | `README.md` curriculum depth, `scripts/import-lichess.mjs`, `CLAUDE.md` |
+| **Docs** | **`plans/M-063_PUZZLE_SCHOOL.md`** (owner spec), `packages/puzzle-school/`, `CLAUDE.md` |
+| **Supersedes** | Lichess-bulk-as-primary approach in original M-063 scope |
 
 ### Status
 
-**Not Started**
+**Verified** — Puzzle School bank (~16.8k), Pre-School spine, coach TTS, match commentary (M-063 branch merged to main 2026-07-11).
+
+### Vision
+
+Superb, school-themed lessons (Chess.com / Duolingo *quality bar*, not a clone). Own **Puzzle School** bank (~8k launch, ~16k stretch) — hand-authored and curated, not raw Lichess `pz-*` dumps. Separable package for future open-source.
 
 ### Inputs
 
-- M-048 API Integration Tests (Verified) — hardening complete
-- M-023 Admin CMS (Verified)
-- M-022 Lichess Import (Verified)
+- M-048 Verified — hardening complete
+- M-023 Admin CMS · M-022 Lichess import (demoted to optional reference tooling)
 
 ### Outputs
 
-- Expanded curriculum covering all active school stages with credible lesson depth (not just puzzle bulk)
-- Unit/Section hierarchy where applicable; capstone matches per major class
-- Updated `db/seed.sql` + Turso remote seed path documented
-- Admin CMS supports new content shapes if schema extended
+- `packages/puzzle-school/` — validate CLI, schema, concept taxonomy, bank format
+- Puzzle bank populated to launch bar; `import-puzzle-school.mjs` wires bank → DB
+- Hand-authored flagship semesters + capstones + school-themed tutorials
+- Content matrix (`matrix.yaml`) + quality rubric; Turso re-seed (users preserved)
+- Admin puzzle/lesson import hooks
 
 ### Objective
 
-Ship enough **authored, FEN-verified curriculum** that chess-school.in can launch as a real academy — not a demo with sparse early stages and empty later stages.
+Launch chess-school.in as a **real academy**: every lesson on the ladder is worth playing; puzzles teach with coach voice and school framing; content system is **outside the app** and open-source-ready.
 
 ### Scope
 
 **Included:**
-- Expand hand-authored base classes (openings, endgames, tactics depth)
-- Run Lichess import to target counts per stage×concept matrix
-- Capstone match lessons for graduation classes
-- Content QA pass (chess.js validation, spot-check playthrough)
-- Update curriculum stats / campus to reflect full ladder
+- Puzzle School package + import adapter (see `plans/M-063_PUZZLE_SCHOOL.md`)
+- Unified concept taxonomy; quality validation (automated + human rubric)
+- Expand hand-authored classes; capstone matches; tutorial copy per concept
+- Bank ≥8,000 verified lessons for launch; matrix tracks growth toward ~16k
+- Retire production reliance on `import-lichess.mjs` / `pz-*` semesters
 
 **Excluded:**
-- Personalized Mistake-DNA puzzles (M-058)
-- Story Mode narrative (M-067)
+- M-058 Mistake-DNA · M-067 Story Mode
+- Copying Chess.com / Duolingo UI or lesson flows wholesale
 
-### Launch bar (minimum)
+### Launch bar (revised)
 
 | Criterion | Target |
 |-----------|--------|
-| Active stages with ≥3 populated classes each | All 5 stages |
-| Lessons per core tactics/opening class | ≥12 verified |
-| Total curriculum lessons in production DB | ≥8,000 (import + authored) |
-| Broken/invalid FEN lines | 0 (seed + import validation) |
-| Empty "teaser only" classes on campus | 0 for launch stages |
+| Lessons from Puzzle School bank | **≥8,000** verified (stretch ~16k post-GA) |
+| Production `pz-*` Lichess semesters | **0** |
+| Active stages with ≥3 populated classes | All 5 launch stages |
+| Lessons per core class | ≥12 + tutorial where specified |
+| Invalid FEN / broken lines | 0 |
+| Empty teaser classes on campus | 0 |
+| `pnpm puzzle-school validate` | 0 errors |
 
 ### Deliverables
 
-- [ ] Content matrix document in `plans/` (stage × concept × lesson count)
-- [ ] Seeder/import scripts updated for target counts
-- [ ] Production Turso re-seeded (content tables only — users preserved)
-- [ ] Admin can add/edit new lesson shapes
-- [ ] Spot-check: complete one full semester path end-to-end in browser
+- [ ] `plans/M-063_PUZZLE_SCHOOL.md` — owner spec (this document)
+- [ ] `packages/puzzle-school/` scaffold + validate CLI
+- [ ] `matrix.yaml` + initial bank buckets
+- [ ] `import-puzzle-school.mjs`; Lichess path demoted to reference-only
+- [ ] Flagship authored content + capstones
+- [ ] Admin puzzle import; Turso content re-seed
+- [ ] End-to-end semester spot-check + owner quality sign-off
 
 ### Verification Checklist
 
-- [ ] `pnpm --filter web db:import-puzzles` completes with 0 validation errors
-- [ ] Campus shows populated classes for launch stages (no empty shells)
+- [ ] `pnpm --filter puzzle-school validate` — 0 errors
+- [ ] `pnpm --filter web db:import-puzzle-school` completes
+- [ ] Campus populated for all launch stages
 - [ ] `pnpm verify:milestone` green
+- [ ] Owner spot-check: lesson quality bar met
 
 ### Definition of Done
 
-Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
+Launch bar met; Puzzle School package and bank committed; production no longer depends on Lichess bulk; milestone **Verified**.
 
 ---
 
@@ -937,7 +1025,9 @@ Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
 
 ### Status
 
-**Not Started**
+**Verified (owner approved 2026-07-10)**
+
+Deliverables: desktop sidebar + responsive layouts (Campus, Journey preview panel, Plan/Journal splits), Playwright @390 + @1280 viewport tests, horizontal-scroll gates, `BREAKPOINTS.md` accuracy.
 
 ### Inputs
 
@@ -963,10 +1053,10 @@ Launch bar met; content matrix committed; Turso updated; milestone **Verified**.
 
 ### Deliverables
 
-- [ ] Breakpoint tokens documented in `plans/design/BREAKPOINTS.md`
-- [ ] Layout matches approved M-075 wireframes at each breakpoint
-- [ ] Playwright viewport tests at 390px + 1280px for core flows
-- [ ] No horizontal scroll on 1280×800; readable line lengths on ultrawide
+- [x] Breakpoint tokens documented in `plans/design/BREAKPOINTS.md`
+- [x] Layout matches approved M-075 wireframes at each breakpoint (owner approved 2026-07-10)
+- [x] Playwright viewport tests at 390px + 1280px for core flows
+- [x] No horizontal scroll on 1280×800; readable line lengths on ultrawide
 
 ### Definition of Done
 
@@ -984,12 +1074,14 @@ Owner confirms browser screenshots match approved mocks; `pnpm verify:milestone`
 
 ### Status
 
-**Not Started**
+**In Progress (Phase B — owner approved slices 1–4; Lighthouse deferred to 5-milestone cadence)**
+
+**Slice 4 merged 2026-07-10:** ceremony moments (achievement toast, streak banner, exam pass), home JS budget gate (~273 KB app gzip), campus lazy-load + skeletons, exam FEN first-load fix, placeholder Lottie fallbacks.
 
 ### Inputs
 
-- M-063 Curriculum Content Expansion (Verified)
 - M-003 Design System Phase 1 (Verified)
+- M-063 Curriculum Content Expansion — *soft dependency; design may proceed in parallel*
 
 ### Two-phase execution (mandatory)
 
@@ -1317,13 +1409,13 @@ The roadmap (`plans/00_MASTER_DEVELOPMENT_PLAN.md`) is the **permanent source of
 
 ```text
 M-001 → M-042   Foundation through Mobile Parity       (Verified)
-M-043 → M-048   Production Hardening                     (~3–5 weeks)  ← M-045 next
-M-063           Curriculum Content Expansion             (~2–4 weeks)  G-WebGA
-M-075 Phase A   Wireframes / mockups → owner approval    (~1–2 weeks)  G-WebGA — blocks UI code
-M-059           Responsive browser layouts               (~2 weeks)    G-WebGA
-M-075 Phase B   UI implementation (per approved mocks) (~2–3 weeks)  G-WebGA
-M-070 → M-072   Security Audit, Docs, Visual QA          (~2 weeks)    G-WebGA
-M-073           Web GA Launch (PWA + browser)              (~1 week)     PUBLIC LAUNCH
+M-044 ✓        Progress API Hardening (Verified)
+M-075 ✓        UI design + implementation (Verified)
+M-059 ✓        Browser layouts (Verified)
+M-063 ✓        Curriculum expansion (Verified)
+M-070 ✓        Security audit (Verified)
+M-071          Documentation refresh                    ← CURRENT
+M-072 → M-073  Visual QA, launch runbook                G-WebGA
         ↓
 M-049 → M-053   Mobile Ship Track                        (~4–6 weeks)  post Web GA
 M-054 → M-062   Cross-Surface & Product                  (~6–10 weeks)
@@ -1338,21 +1430,17 @@ M-074           Continuous Evolution                     (ongoing)
 
 Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 
-**Phase A — Hardening (now)**
-1. **M-045** — Rate limiting + input validation
-2. **M-046** — DB indexes + curriculum cache
-3. **M-047** — Session token hashing
-4. **M-048** — API integration tests
+**Phase A — Design + polish (complete)**
+1. ~~M-075 Phase A/B~~ · ~~M-059~~ — **Verified**
 
-**Phase B — Web GA gates**
-5. **M-063** — Curriculum content expansion
-6. **M-075 Phase A** — Wireframes/mockups → **your approval** (no UI code before this)
-7. **M-059** — Responsive browser layouts (desktop/tablet)
-8. **M-075 Phase B** — UI implementation per approved mocks
-9. **M-070** — Security audit & privacy
-10. **M-071** — Documentation refresh
-11. **M-072** — Visual regression / Storybook
-12. **M-073** — Web GA launch (PWA ✓ + browser) 🚀
+**Phase A′ — Hardening (complete)**
+2. ~~M-045–M-048~~ · ~~M-070~~ — **Verified**
+
+**Phase B — Web GA gates (current)**
+3. ~~M-063~~ — **Verified**
+4. ~~M-071~~ — Documentation refresh — **Verified**
+5. ~~M-072~~ — Visual regression / Storybook — **Verified**
+6. ~~M-073~~ — Web GA launch — **Verified** 🚀
 
 **Phase C — Mobile (after Web GA)**
 11. **M-049–M-051** — Mobile resilience, UX, accessibility
@@ -1373,15 +1461,15 @@ Per `CODE_REVIEW.md` §5 and **Web GA first** launch strategy:
 | # | Gate | Requirement |
 |---|------|-------------|
 | 1 | **Functionality complete** | All deliverables implemented |
-| 2 | **Acceptance criteria satisfied** | Verification checklist passes |
+| 2 | **Acceptance criteria satisfied** | Verification checklist passes; **How to verify** steps shared with owner |
 | 3 | **`pnpm verify:milestone`** | Full script green (or `bun run verify:milestone` after M-076) |
 | 4 | **Mobile tests** (when mobile touched) | `pnpm --filter mobile typecheck && test` green |
 | 5 | **Documentation updated** | This plan + CLAUDE.md if needed |
 | 6 | **Deployable state** | Vercel preview deploy succeeds for web changes |
 | 7 | **Lighthouse** (when web UI touched) | Accessibility/BP 100; Performance ≥90 logged |
 | 8 | **Approval granted** | Milestone owner approves |
-| 9 | **Changes committed** | Git commit with milestone ID |
-| 10 | **Progress updated** | Project Progress section updated |
+| 9 | **Merged to local `main`** | Milestone branch merged and committed on `main` (not pushed unless owner asks) |
+| 10 | **Progress updated** | Project Progress section updated; milestone marked **Verified** |
 
 ### Sign-Off
 

@@ -1,0 +1,14 @@
+<!-- High-fi mockup: Theme studio · 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <rect x="20" y="56" width="140" height="18" rx="3" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="20" y="92" width="350" height="200" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="108" width="80" height="12" rx="2" fill="#6b6982"/>
+  <rect x="36" y="132" width="318" height="140" rx="12" fill="#1c1b2e" opacity="0.06"/>
+  <rect x="52" y="148" width="80" height="80" rx="8" fill="#ede7f6"/>
+  <rect x="20" y="308" width="350" height="240" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="328" width="72" height="72" rx="12" fill="#eef0ff" stroke="#5b5bd6"/>
+  <rect x="120" y="328" width="72" height="72" rx="12" fill="#f1f0f9"/>
+  <rect x="204" y="328" width="72" height="72" rx="12" fill="#1c1b2e" opacity="0.08"/>
+  <text x="195" y="36" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Themes · 390px</text>
+</svg>

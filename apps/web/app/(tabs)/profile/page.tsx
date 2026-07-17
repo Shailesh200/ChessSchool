@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { IconBadge, type IconTone } from "@/components/ui/IconBadge";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { useProgression, levelForXp } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
@@ -87,165 +89,241 @@ export default function ProfilePage() {
     : [];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-4">
-        <Mascot expression="happy" size={72} />
-        <div>
-          <h1 className="text-ink text-2xl font-extrabold">
-            {user?.name ?? "Guest Player"}
-          </h1>
-          {authed === true ? (
-            <p className="text-ink-500 text-sm font-semibold">
-              <span className="text-brand font-extrabold">{rank}</span> · Level {level}{" "}
-              · {mounted ? xp : 0} XP
-            </p>
-          ) : (
-            <p className="text-ink-500 text-sm font-semibold">Playing as guest</p>
-          )}
-        </div>
-      </div>
-
-      {mounted && authed === false && (
-        <Link
-          href="/login"
-          className="btn-tactile rounded-card border-brand/40 bg-brand-50 flex items-center justify-between border px-4 py-3"
-        >
-          <span className="text-brand text-sm font-extrabold">
-            Log in to unlock more features →
-          </span>
-        </Link>
-      )}
-
-      <div className="grid grid-cols-3 gap-2">
-        {hubLinks.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className="btn-tactile rounded-card border-hairline bg-surface-card flex flex-col items-center gap-1.5 border py-4 [box-shadow:var(--shadow-card)]"
-          >
-            <Icon name={l.icon} size={26} duotone className="text-brand" />
-            <span className="text-ink text-xs font-extrabold">{l.label}</span>
-          </Link>
-        ))}
-      </div>
-
-      {/* Personal data — only for logged-in users (never the previous account's). */}
-      {authed === true && (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <Stat
-              label="Day streak"
-              value={mounted ? streak : 0}
-              icon="flame"
-              tone="text-accent"
-            />
-            <Stat
-              label="Lessons mastered"
-              value={mastered}
-              icon="check"
-              tone="text-success"
-            />
-            <Stat
-              label="Rating"
-              value={mounted ? rating : 800}
-              icon="target"
-              tone="text-brand"
-            />
-            <Stat
-              label="Badges"
-              value={mounted ? unlocked.length : 0}
-              icon="trophy"
-              tone="text-gold"
-            />
-          </div>
-
-          <section>
-            <h2 className="text-ink mb-2 text-sm font-extrabold">Learning profile</h2>
-            <Card>
-              {weakTags.length === 0 ? (
+    <div className="flex flex-col gap-5 lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-4">
+            <Mascot expression="happy" size={72} />
+            <div>
+              <h1 className="text-ink text-2xl font-extrabold">
+                {user?.name ?? "Guest Player"}
+              </h1>
+              {authed === true ? (
                 <p className="text-ink-500 text-sm font-semibold">
-                  No weak spots yet — keep playing and I&apos;ll track what to review.
+                  <span className="text-brand font-extrabold">{rank}</span> · Level{" "}
+                  {level} · {mounted ? xp : 0} XP
                 </p>
               ) : (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    {weakTags.map(([tag, count]) => (
-                      <button
-                        key={tag}
-                        onClick={() => setOpenTag(openTag === tag ? null : tag)}
-                        className={`btn-tactile rounded-pill px-3 py-1 text-xs font-bold ${
-                          openTag === tag
-                            ? "bg-danger text-white"
-                            : "bg-danger/10 text-danger"
+                <p className="text-ink-500 text-sm font-semibold">Playing as guest</p>
+              )}
+            </div>
+          </div>
+
+          {mounted && authed === false && (
+            <Link
+              href="/login"
+              className="btn-tactile rounded-card border-brand/40 bg-brand-50 flex items-center justify-between border px-4 py-3"
+            >
+              <span className="text-brand text-sm font-extrabold">
+                Log in to unlock more features →
+              </span>
+            </Link>
+          )}
+
+          <div className="grid grid-cols-3 gap-2 lg:grid-cols-4">
+            {hubLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="btn-tactile rounded-card border-hairline bg-surface-card flex flex-col items-center gap-1.5 border py-4 [box-shadow:var(--shadow-card)]"
+              >
+                <IconBadge name={l.icon} size="md" tone="brand" />
+                <span className="text-ink text-xs font-extrabold">{l.label}</span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Personal data — only for logged-in users (never the previous account's). */}
+          {authed === true && (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:hidden">
+                <Stat
+                  label="Day streak"
+                  value={mounted ? streak : 0}
+                  icon="flame"
+                  tone="text-accent"
+                />
+                <Stat
+                  label="Lessons mastered"
+                  value={mastered}
+                  icon="check"
+                  tone="text-success"
+                />
+                <Stat
+                  label="Rating"
+                  value={mounted ? rating : 800}
+                  icon="target"
+                  tone="text-brand"
+                />
+                <Stat
+                  label="Badges"
+                  value={mounted ? unlocked.length : 0}
+                  icon="trophy"
+                  tone="text-gold"
+                />
+              </div>
+
+              <section>
+                <h2 className="text-ink mb-2 text-sm font-extrabold">
+                  Learning profile
+                </h2>
+                <Card>
+                  {weakTags.length === 0 ? (
+                    <p className="text-ink-500 text-sm font-semibold">
+                      No weak spots yet — keep playing and I&apos;ll track what to
+                      review.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {weakTags.map(([tag, count]) => (
+                          <button
+                            key={tag}
+                            onClick={() => setOpenTag(openTag === tag ? null : tag)}
+                            className={`btn-tactile rounded-pill px-3 py-1 text-xs font-bold ${
+                              openTag === tag
+                                ? "bg-danger text-white"
+                                : "bg-danger/10 text-danger"
+                            }`}
+                          >
+                            {tag} ×{count}
+                          </button>
+                        ))}
+                      </div>
+                      {openTag && (
+                        <div className="rounded-card bg-surface-sunken mt-3 p-3">
+                          <p className="text-ink-700 text-xs leading-snug font-semibold">
+                            <span className="text-ink font-extrabold capitalize">
+                              {openTag}:
+                            </span>{" "}
+                            {TAG_INFO[openTag] ??
+                              "Keep practising this theme to turn it into a strength."}
+                          </p>
+                          {lessonsByTag[openTag]?.length ? (
+                            <Link
+                              href={`/lesson/${lessonsByTag[openTag][0]}`}
+                              className="btn-tactile rounded-pill bg-brand mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs font-extrabold text-white"
+                            >
+                              <Icon name="target" size={14} className="shrink-0" />
+                              Practice {openTag} now →
+                            </Link>
+                          ) : (
+                            <Link
+                              href="/review"
+                              className="btn-tactile rounded-pill bg-brand mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs font-extrabold text-white"
+                            >
+                              <Icon name="search" size={14} className="shrink-0" />
+                              Review your games →
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Card>
+              </section>
+
+              <section className="lg:hidden">
+                <h2 className="text-ink mb-2 text-sm font-extrabold">Achievements</h2>
+                <div className="grid grid-cols-3 gap-3">
+                  {ACHIEVEMENTS.map((a) => {
+                    const has = mounted && unlocked.includes(a.id);
+                    return (
+                      <div
+                        key={a.id}
+                        className={`rounded-card flex flex-col items-center gap-1 border p-3 text-center ${
+                          has
+                            ? "border-gold bg-gold/10"
+                            : "border-hairline bg-surface-sunken opacity-60"
                         }`}
                       >
-                        {tag} ×{count}
-                      </button>
-                    ))}
-                  </div>
-                  {openTag && (
-                    <div className="rounded-card bg-surface-sunken mt-3 p-3">
-                      <p className="text-ink-700 text-xs leading-snug font-semibold">
-                        <span className="text-ink font-extrabold capitalize">
-                          {openTag}:
-                        </span>{" "}
-                        {TAG_INFO[openTag] ??
-                          "Keep practising this theme to turn it into a strength."}
-                      </p>
-                      {lessonsByTag[openTag]?.length ? (
-                        <Link
-                          href={`/lesson/${lessonsByTag[openTag][0]}`}
-                          className="btn-tactile rounded-pill bg-brand mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs font-extrabold text-white"
-                        >
-                          🎯 Practice {openTag} now →
-                        </Link>
-                      ) : (
-                        <Link
-                          href="/review"
-                          className="btn-tactile rounded-pill bg-brand mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs font-extrabold text-white"
-                        >
-                          🔍 Review your games →
-                        </Link>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </Card>
-          </section>
+                        <ContentIcon
+                          achievementId={a.id}
+                          size={20}
+                          className={has ? "" : "grayscale"}
+                        />
+                        <span className="text-ink text-[11px] font-extrabold">
+                          {a.title}
+                        </span>
+                        <span className="text-ink-500 text-[10px] font-semibold">
+                          {a.description}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
+          )}
+        </div>
 
-          <section>
-            <h2 className="text-ink mb-2 text-sm font-extrabold">Achievements</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {ACHIEVEMENTS.map((a) => {
-                const has = mounted && unlocked.includes(a.id);
-                return (
-                  <div
-                    key={a.id}
-                    className={`rounded-card flex flex-col items-center gap-1 border p-3 text-center ${
-                      has
-                        ? "border-gold bg-gold/10"
-                        : "border-hairline bg-surface-sunken opacity-60"
-                    }`}
-                  >
-                    <span className={`text-2xl ${has ? "" : "grayscale"}`}>
-                      {a.emoji}
-                    </span>
-                    <span className="text-ink text-[11px] font-extrabold">
-                      {a.title}
-                    </span>
-                    <span className="text-ink-500 text-[10px] font-semibold">
-                      {a.description}
-                    </span>
-                  </div>
-                );
-              })}
+        {authed === true && (
+          <aside className="hidden flex-col gap-5 lg:flex">
+            <div className="grid grid-cols-2 gap-3">
+              <Stat
+                label="Day streak"
+                value={mounted ? streak : 0}
+                icon="flame"
+                tone="text-accent"
+              />
+              <Stat
+                label="Lessons mastered"
+                value={mastered}
+                icon="check"
+                tone="text-success"
+              />
+              <Stat
+                label="Rating"
+                value={mounted ? rating : 800}
+                icon="target"
+                tone="text-brand"
+              />
+              <Stat
+                label="Badges"
+                value={mounted ? unlocked.length : 0}
+                icon="trophy"
+                tone="text-gold"
+              />
             </div>
-          </section>
-        </>
-      )}
+            <section>
+              <h2 className="text-ink mb-2 text-sm font-extrabold">Achievements</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {ACHIEVEMENTS.slice(0, 4).map((a) => {
+                  const has = mounted && unlocked.includes(a.id);
+                  return (
+                    <div
+                      key={a.id}
+                      className={`rounded-card flex flex-col items-center gap-1 border p-2 text-center ${
+                        has
+                          ? "border-gold bg-gold/10"
+                          : "border-hairline bg-surface-sunken opacity-60"
+                      }`}
+                    >
+                      <ContentIcon
+                        achievementId={a.id}
+                        size={18}
+                        className={has ? "" : "grayscale"}
+                      />
+                      <span className="text-ink text-[10px] font-extrabold">
+                        {a.title}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </aside>
+        )}
+      </div>
     </div>
   );
+}
+
+function statTone(tone: string): IconTone {
+  if (tone.includes("accent")) return "accent";
+  if (tone.includes("success")) return "success";
+  if (tone.includes("gold")) return "gold";
+  return "brand";
 }
 
 function Stat({
@@ -261,7 +339,7 @@ function Stat({
 }) {
   return (
     <Card className="flex items-center gap-3 p-4">
-      <Icon name={icon} size={24} duotone className={tone} />
+      <IconBadge name={icon} size="md" tone={statTone(tone)} />
       <div className="min-w-0">
         <AnimatedNumber
           value={value}

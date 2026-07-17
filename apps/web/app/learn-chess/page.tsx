@@ -2,13 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { NavButton } from "@/components/ui/NavButton";
 import { CurriculumLinkGrid } from "@/components/seo/CurriculumLinkGrid";
-import { FaqSection } from "@/components/seo/FaqSection";
-import { FaqJsonLd } from "@/components/seo/FaqJsonLd";
-import {
-  CURRICULUM_HIGHLIGHTS,
-  LEARN_CHESS_SECTIONS,
-  SEO_FAQ,
-} from "@/lib/seo/content";
+import { CURRICULUM_HIGHLIGHTS, LEARN_CHESS_SECTIONS } from "@/lib/seo/content";
 import { socialMeta } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -30,7 +24,6 @@ export const metadata: Metadata = {
 export default function LearnChessPage() {
   return (
     <AppShell>
-      <FaqJsonLd items={SEO_FAQ} />
       <article className="flex flex-col gap-8 pb-6">
         <header className="flex flex-col gap-3">
           <p className="text-brand text-xs font-extrabold tracking-wide uppercase">
@@ -89,15 +82,30 @@ export default function LearnChessPage() {
           </p>
         </section>
 
-        <FaqSection items={SEO_FAQ} />
+        <section aria-labelledby="faq-link-heading">
+          <h2 id="faq-link-heading" className="text-ink text-lg font-extrabold">
+            Common questions
+          </h2>
+          <p className="text-ink-600 mt-2 text-sm font-semibold">
+            Answers about pricing, multiplayer, apps, and how long it takes to learn are
+            on our{" "}
+            <Link
+              href="/#faq"
+              className="text-brand font-bold underline-offset-2 hover:underline"
+            >
+              chess school FAQ
+            </Link>
+            .
+          </p>
+        </section>
 
         <section className="rounded-card border-brand/20 bg-brand/5 border p-4 text-center">
           <p className="text-ink text-sm font-extrabold">Ready to learn chess?</p>
           <p className="text-ink-500 mt-1 text-xs font-semibold">
             Join thousands of students at the academy — free forever.
           </p>
-          <NavButton href="/" size="sm" className="mt-3">
-            Open ChessSchool →
+          <NavButton href="/academy" size="sm" className="mt-3">
+            Open the academy →
           </NavButton>
         </section>
       </article>

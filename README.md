@@ -1,14 +1,14 @@
 # 🎓 ChessSchool — Become a stronger player
 
-A **school-first** chess academy PWA. Enroll, graduate through classes and
-semesters, master openings and endgames, play adaptive bots, and review every
-game move-by-move. **Guest-only, zero login, no backend, offline-first,
-local-first.** Original brand, art, and sound.
+A **school-first** chess academy: enroll (email or Google), graduate through classes and
+semesters, master openings and endgames, play adaptive bots and online PvP, and review
+every game move-by-move. **Web PWA** at [chess-school.in](https://chess-school.in) plus a
+**companion Expo app**. Guest mode works offline-first on device; accounts sync progress
+via Turso.
 
-> Evolved from the earlier game-first build into an academy
-> experience. This is a complete, runnable slice — build, typecheck, lint, unit
-> + e2e tests, and Lighthouse are all green. Some systems are seeded to scale
-> (see **Known limitations & roadmap**).
+> **Monorepo:** `apps/web` (Next.js PWA, Vercel root) · `apps/mobile` (Expo) ·
+> `packages/*` shared logic. Roadmap: [`plans/00_MASTER_DEVELOPMENT_PLAN.md`](plans/00_MASTER_DEVELOPMENT_PLAN.md).
+> Operator runbook: [`CLAUDE.md`](CLAUDE.md).
 
 ---
 
@@ -140,46 +140,35 @@ refs (lint-enforced).
 
 ```bash
 pnpm install
-pnpm dev                 # http://localhost:3000
+pnpm dev                 # web @ http://localhost:3000 (from repo root)
 
-pnpm build && pnpm start # production
-pnpm typecheck           # strict TS
-pnpm lint                # eslint (next + react-hooks)
-pnpm test                # vitest (16 unit tests)
-pnpm e2e                 # playwright (system Chrome: channel "chrome")
-pnpm gen:icons           # regenerate PWA icons from public/icons/icon.svg
+pnpm build && pnpm start # production web
+pnpm typecheck | lint | test | e2e
+pnpm verify:milestone    # full Web GA gate script
+pnpm --filter mobile start   # Expo dev client
 ```
 
-**Install:** desktop Chrome/Edge address-bar icon or the in-app banner; Android
-Chrome → *Install app*; iOS Safari → Share → *Add to Home Screen*. Runs
-standalone and fully offline. **Deploy:** `vercel --prod` (zero config, no env).
+**Install (PWA):** Chrome/Edge install icon or in-app banner; Android *Install app*;
+iOS Safari → Share → *Add to Home Screen*. **Deploy:** Vercel Git integration on
+`main` (project root directory **`apps/web`**). Set `DATABASE_URL` +
+`DATABASE_AUTH_TOKEN` on Vercel; optional `ABLY_API_KEY`, Google OAuth vars — see
+[`CLAUDE.md`](CLAUDE.md).
 
 ---
 
-## ⚠️ Known limitations & roadmap (honest)
+## ⚠️ Roadmap & honest limits
 
-Implemented this wave: school hierarchy + campus, exams/graduation, observe-based
-lessons incl. 3 openings, hearts removal, focus-mode matches with persistence +
-resign + beforeunload, full match review with replay + checkmate analysis, 8
-board themes, install-once prompt, audio overhaul, rebrand.
+**Web GA path** (public promotion): security audit ✓ (M-070), docs (M-071), visual QA
+(M-072), launch checklist (M-073). Native App Store is **after** Web GA (M-049–M-053).
 
-**Deferred to the next wave (documented, not blocked on architecture):**
+**Mobile parity:** see [`apps/mobile/PARITY_GAPS.md`](apps/mobile/PARITY_GAPS.md) — guest
+gating, app-wide color themes, and some depth features still differ from web.
 
-1. **Study Plan system (#13)** — plan tiers (Casual→Competitive), daily routine
-   (Warmup→Lesson→Practice→Match→Review→Reflection), learning calendar + study
-   heatmap, adaptive rescheduling, performance dashboard, report cards &
-   certificates, morning-assembly screen. The data model (mastery, streak,
-   graduation, weaknesses) already supports it.
-2. **~1000-day curriculum** — 11 lessons across 5 classes are authored & verified
-   today; the engine scales to the full syllabus (French, Caro-Kann, QGD, KID,
-   London, English; pawn structures; full endgames; thinking process). This is
-   content authoring, not new code.
-3. **Stockfish WASM** in a Web Worker (analysis + stronger play); move the JS bot
-   off the main thread.
-4. **Clocks/timeout** persistence for timed games; shareable game **links** (URL
-   move serialization).
-5. **Per-theme audio/motion packs**; certificate PDF export & graduation archive.
-6. **Storybook** + visual regression; expand Playwright coverage.
+**Content:** curriculum is DB-driven with thousands of Lichess-sourced puzzles plus
+hand-authored school lessons; expansion continues via admin CMS and import scripts.
+
+Older wave notes below are **historical**; for current milestone status use the
+[master plan](plans/00_MASTER_DEVELOPMENT_PLAN.md).
 
 ---
 
@@ -383,8 +372,8 @@ anywhere (Railway/Render/Fly) — mount a volume at `/app/data`.
 | Build | ✅ | Turbopack, 36 routes, green |
 | Types | ✅ | `tsc --noEmit` clean (strict) |
 | Lint | ✅ | eslint clean (next + react-hooks + react-compiler) |
-| Unit tests | ✅ | 19 passing (engine, bot, curriculum, backup) |
-| E2E | ✅ | 9 Playwright specs incl. move→bot, journey, themes/dark-mode, dashboard |
+| Unit tests | ✅ | Vitest across web + mobile + packages (150+ web integration tests) |
+| E2E | ✅ | Playwright specs — routes, layouts, milestone features |
 | Performance | ✅ | Lighthouse **94–95** · FCP 0.8s · TBT 10–30ms · home JS ~236 KB gzip |
 | Accessibility | ✅ | Lighthouse **100**; dark mode AA-verified (contrast 6.5–15×) |
 | Best practices | ✅ | Lighthouse **100** |
@@ -393,9 +382,8 @@ anywhere (Railway/Render/Fly) — mount a volume at `/app/data`.
 | Recovery | ✅ | route + global error boundaries; export/import; reset |
 | Data ownership | ✅ | versioned JSON export/import with validation |
 
-**Known risks:** bot search runs on the main thread (smooth at default depths, Web
-Worker is the planned fix); curriculum is 15 lessons (engine scales to the full
-syllabus — authoring work); Storybook/visual-regression not yet wired.
+**Known risks:** distributed rate limiting not yet on KV/WAF (documented in M-070);
+native mobile e2e harness pending; some mobile parity gaps — see `PARITY_GAPS.md`.
 
 ## 🗺 Deferred systems roadmap (honest)
 

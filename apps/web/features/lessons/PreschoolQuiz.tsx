@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LessonStep } from "./types";
 import { formatCoachText } from "@chess-school/progression";
+import { ContentIcon } from "@/components/ui/ContentIcon";
 import { PreschoolQuizVisual } from "./PreschoolQuizVisual";
+import { shuffleQuizOptions } from "./shuffleQuizOptions";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 
@@ -13,16 +15,20 @@ const LETTERS = "ABCDEF";
 export function PreschoolQuiz({
   step,
   phase,
+  answerLabel = "Choose your answer",
   onAnswer,
 }: {
   step: LessonStep;
   phase: "playing" | "correct" | "wrong";
+  answerLabel?: string;
   onAnswer: (correct: boolean) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [shake, setShake] = useState(0);
-  const options = step.options ?? [];
-  const correctIdx = step.correct ?? 0;
+  const { options, correctIdx } = useMemo(
+    () => shuffleQuizOptions(step.options ?? [], step.correct ?? 0),
+    [step.id, step.options, step.correct],
+  );
 
   function pick(i: number) {
     if (phase === "correct" || picked !== null) return;
@@ -45,7 +51,7 @@ export function PreschoolQuiz({
   }
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-4">
+    <div className="flex w-full max-w-lg flex-col gap-4">
       <PreschoolQuizVisual
         visual={step.visual}
         visualSquare={step.visualSquare}
@@ -70,12 +76,12 @@ export function PreschoolQuiz({
       {/* Answers — start on the next line / section */}
       <div className="flex flex-col gap-2">
         <p className="text-ink-500 text-[10px] font-extrabold tracking-widest uppercase">
-          Choose your answer
+          {answerLabel}
         </p>
         <motion.div
           key={shake}
           animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : {}}
-          className="flex flex-col gap-2"
+          className="grid grid-cols-2 gap-2"
         >
           {options.map((opt, i) => {
             const selected = picked === i;
@@ -101,21 +107,21 @@ export function PreschoolQuiz({
                 transition={{ delay: i * 0.06 }}
                 disabled={phase === "correct" || (picked !== null && picked !== i)}
                 onClick={() => pick(i)}
-                className={`btn-tactile w-full rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${tone}`}
+                className={`btn-tactile h-full min-h-[4.5rem] w-full rounded-2xl border-2 px-3 py-3 text-left transition-colors ${tone}`}
               >
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
+                <div className="flex h-full flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <span className="bg-brand-50 text-brand flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold">
                       {LETTERS[i]}
                     </span>
                     {opt.emoji ? (
-                      <span className="text-xl leading-none">{opt.emoji}</span>
+                      <ContentIcon emoji={opt.emoji} size={20} variant="plain" />
                     ) : null}
                     {reveal && isCorrect && (
-                      <span className="text-success ml-auto text-lg">✓</span>
+                      <span className="text-success ml-auto text-base">✓</span>
                     )}
                   </div>
-                  <p className="text-ink pl-8 text-sm leading-snug font-extrabold">
+                  <p className="text-ink text-xs leading-snug font-extrabold sm:text-sm">
                     {opt.label}
                   </p>
                 </div>

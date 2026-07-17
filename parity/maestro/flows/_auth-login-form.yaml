@@ -1,0 +1,26 @@
+appId: com.chessschool.app
+---
+- openLink: ${LOGIN_LINK}
+- tapOn:
+    text: "Not Now"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible:
+      text: "Syncing your progress"
+    optional: true
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    optional: true
+    timeout: 60000
+- openLink: chessschool:///profile
+- waitForAnimationToEnd:
+    timeout: 2000
+- extendedWaitUntil:
+    visible:
+      text: "Day streak"
+    timeout: 60000
+- openLink: chessschool:///academy

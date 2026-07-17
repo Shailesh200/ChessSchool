@@ -67,8 +67,8 @@ export const PLAN_SPECS: Record<PlanTier, PlanSpec> = {
 /** The shared daily routine (Warmup → Lesson → … → Reflection). */
 export const ROUTINE_STEPS = [
   { id: "warmup", label: "Warmup", emoji: "🤸", href: "/playground" },
-  { id: "lesson", label: "Lesson", emoji: "📖", href: "/" },
-  { id: "practice", label: "Guided practice", emoji: "🎯", href: "/" },
+  { id: "lesson", label: "Lesson", emoji: "📖", href: "/academy" },
+  { id: "practice", label: "Guided practice", emoji: "🎯", href: "/academy" },
   { id: "match", label: "Play a match", emoji: "♟️", href: "/play" },
   { id: "review", label: "Review", emoji: "🔍", href: "/review" },
   { id: "reflection", label: "Reflection", emoji: "📝", href: "/journal" },

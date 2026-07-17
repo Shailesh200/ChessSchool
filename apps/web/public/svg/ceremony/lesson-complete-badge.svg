@@ -1,0 +1,9 @@
+<!-- Lesson complete ceremony badge — SVG fallback when Lottie disabled -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+  <circle cx="60" cy="60" r="54" fill="#5b5bd6" opacity="0.12"/>
+  <circle cx="60" cy="60" r="44" fill="#5b5bd6" opacity="0.2"/>
+  <circle cx="60" cy="60" r="36" fill="#5b5bd6"/>
+  <path d="M60 28l8 14h16l-13 10 5 16-16-11-16 11 5-16-13-10h16z" fill="#f6c343"/>
+  <path d="M44 78h32" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <path d="M48 86h24" stroke="#dfe3ff" stroke-width="2" stroke-linecap="round"/>
+</svg>

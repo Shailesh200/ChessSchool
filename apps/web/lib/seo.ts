@@ -24,6 +24,10 @@ export const HOME_TITLE = "Learn Chess Online — Free Chess School";
 export const HOME_DESCRIPTION =
   "Learn chess from scratch with ChessSchool — a free online chess academy. Structured classes, tactics puzzles, placement test, play vs bots, and live multiplayer. Start your chess journey today.";
 
+export const ACADEMY_TITLE = "Academy Campus — ChessSchool";
+export const ACADEMY_DESCRIPTION =
+  "Your chess campus — graduate through schools, semesters, and classes. Resume lessons, daily puzzles, and homework at ChessSchool.";
+
 /** Target search phrases — used in metadata and structured data. */
 export const SEO_KEYWORDS = [
   "learn chess",

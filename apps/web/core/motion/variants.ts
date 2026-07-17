@@ -26,6 +26,13 @@ export const popIn: Variants = {
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.14 } },
 };
 
+/** Ceremony sheet — slide-up 320ms per MOTION.md */
+export const sheetSlide: Variants = {
+  initial: { opacity: 0, y: 48 },
+  enter: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, y: 24, transition: { duration: 0.18 } },
+};
+
 export const listContainer: Variants = {
   enter: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
 };

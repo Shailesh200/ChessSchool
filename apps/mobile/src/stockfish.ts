@@ -18,11 +18,12 @@ type StockfishNative = {
 
 let native: StockfishNative | null = null;
 try {
-  // Optional local module — absent in Expo Go / web, so guard the require.
+  // Optional local module — absent on Android / Expo Go / web.
+  // Module uses requireOptionalNativeModule so require() itself must not throw.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const mod = require("../modules/stockfish");
-  native = (mod?.default ?? mod) as StockfishNative;
-  if (native && typeof native.sendCommand !== "function") native = null;
+  const candidate = (mod?.default ?? mod) as StockfishNative | null;
+  native = candidate && typeof candidate.sendCommand === "function" ? candidate : null;
 } catch {
   native = null;
 }
@@ -41,7 +42,8 @@ export function eloToUci(elo: number): string[] {
   if (e >= 1320) {
     return ["setoption name UCI_LimitStrength value true", `setoption name UCI_Elo value ${e}`];
   }
-  const skill = Math.max(0, Math.min(20, Math.round((e - 300) / 51))); // 300→0 … ~1320→20
+  // Match web: keep sub-1300 presets beatable (skill 0–6, not 0–20).
+  const skill = Math.max(0, Math.min(6, Math.round((e - 850) / 120)));
   return ["setoption name UCI_LimitStrength value false", `setoption name Skill Level value ${skill}`];
 }
 

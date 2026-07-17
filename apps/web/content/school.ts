@@ -22,6 +22,8 @@ export interface SchoolClass {
   blurb: string;
   /** flat lesson order (source of truth); `units` is optional display grouping */
   lessonIds: string[];
+  /** Set when `lessonIds` is omitted on the client to keep payloads small. */
+  lessonCount?: number;
   examId?: string;
   difficulty?: number; // 1..5
   units?: ContentUnit[];

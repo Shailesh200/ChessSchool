@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { ChessEngine } from "@/features/chess-engine/engine";
@@ -44,6 +44,12 @@ export interface ChessBoardProps {
   showNotation?: boolean;
   /** fill the parent container (allow non-square) instead of forcing a square */
   fill?: boolean;
+  /** piece slide duration when FEN changes (replay / review) */
+  animationDurationInMs?: number;
+  /** slide pieces on FEN change — off for step replay avoids react-chessboard glitches */
+  showAnimations?: boolean;
+  /** stable id keeps react-chessboard animation state across position updates */
+  boardId?: string;
 }
 
 export function ChessBoard({
@@ -60,15 +66,16 @@ export function ChessBoard({
   interactive = true,
   showNotation = false,
   fill = false,
+  animationDurationInMs = 220,
+  showAnimations = true,
+  boardId,
 }: ChessBoardProps) {
+  const autoBoardId = useId();
+  const resolvedBoardId = boardId ?? autoBoardId;
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
   const colors = getBoardTheme(boardTheme);
-  // "classic" → react-chessboard's polished default set; themes → custom pieces.
-  const pieces = useMemo(
-    () => (pieceTheme === "classic" ? undefined : buildPieces(pieceTheme)),
-    [pieceTheme],
-  );
+  const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{
     from: Square;
@@ -193,19 +200,22 @@ export function ChessBoard({
 
   return (
     <div
+      data-testid="chess-board"
       className={`relative overflow-hidden rounded-lg [box-shadow:var(--shadow-card)] ${
         fill ? "h-full w-full" : "aspect-square w-full"
       }`}
     >
       <Chessboard
         options={{
+          id: resolvedBoardId,
           position: fen,
           boardOrientation: orientation,
           allowDragging: interactive,
           // Default is 1px — on touch a tap jitters >1px and becomes a drag, eating
           // the click-to-move. Require real movement before a drag starts.
           dragActivationDistance: 10,
-          animationDurationInMs: 220,
+          animationDurationInMs,
+          showAnimations,
           showNotation,
           lightSquareStyle: { backgroundColor: colors.light },
           darkSquareStyle: { backgroundColor: colors.dark },

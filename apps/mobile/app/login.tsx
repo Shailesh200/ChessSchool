@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,28 +10,72 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth";
 import { PasswordField } from "@/PasswordField";
+import { Logo } from "@/Logo";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
 
+type GoogleBtnProps = {
+  disabled?: boolean;
+  onIdToken: (idToken: string) => Promise<void>;
+  onError: (message: string) => void;
+};
+
 export default function LoginScreen() {
-  const { login, register, continueAsGuest } = useAuth();
+  const { login, register, loginWithGoogle, continueAsGuest, exitGuest, guest } = useAuth();
   const { colors } = useAppTheme();
+  const params = useLocalSearchParams<{ email?: string; password?: string }>();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [GoogleBtn, setGoogleBtn] = useState<ComponentType<GoogleBtnProps> | null>(null);
+  const parityAutoLoginKey = useRef<string | null>(null);
   const isRegister = mode === "register";
+
+  useEffect(() => {
+    if (!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID?.trim()) return;
+    void import("@/GoogleSignInButton")
+      .then((mod) => setGoogleBtn(() => mod.GoogleSignInButton))
+      .catch(() => setGoogleBtn(null));
+  }, []);
+
+  // Maestro cannot reliably fill React-controlled RN inputs — parity deep-link
+  // login seeds credentials (and auto-submits) when EXPO_PUBLIC_PARITY=1.
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_PARITY !== "1") return;
+    const rawEmail = params.email;
+    const rawPassword = params.password;
+    const e = (Array.isArray(rawEmail) ? rawEmail[0] : rawEmail)?.trim() ?? "";
+    const p = (Array.isArray(rawPassword) ? rawPassword[0] : rawPassword) ?? "";
+    if (!e || !p) return;
+    const key = `${e}\0${p}`;
+    if (parityAutoLoginKey.current === key) return;
+    parityAutoLoginKey.current = key;
+    if (guest) exitGuest();
+    setMode("login");
+    setEmail(e);
+    setPassword(p);
+    setBusy(true);
+    setError(null);
+    void login(e, p)
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : "Something went wrong";
+        setError(msg);
+        parityAutoLoginKey.current = null;
+      })
+      .finally(() => setBusy(false));
+  }, [exitGuest, guest, login, params.email, params.password]);
 
   const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
-    logo: { fontSize: 22, fontFamily: font.bold, color: colors.brand, textAlign: "center", marginBottom: space[6] },
     title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
     subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
     input: {
@@ -74,6 +118,24 @@ export default function LoginScreen() {
     legal: { color: colors.brand, fontSize: 12, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },
   });
 
+  const handleGoogle = useCallback(
+    async (idToken: string) => {
+      setError(null);
+      setBusy(true);
+      try {
+        await loginWithGoogle(idToken);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Google sign-in failed";
+        setError(msg === "Google sign-in is not configured." ? "Google sign-in is not available right now." : msg);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [loginWithGoogle],
+  );
+
+  const handleGoogleError = useCallback((message: string) => setError(message), []);
+
   async function submit() {
     setError(null);
     setBusy(true);
@@ -95,7 +157,9 @@ export default function LoginScreen() {
   return (
     <ThemedSafeArea>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.center}>
-        <Text style={styles.logo}>♟️ ChessSchool</Text>
+        <View style={{ alignItems: "center", marginBottom: space[2] }}>
+          <Logo size={40} />
+        </View>
         <Text style={styles.title}>{isRegister ? "Enroll at ChessSchool" : "Welcome back"}</Text>
         <Text style={styles.subtitle}>
           {isRegister ? "Create your student account to save progress." : "Log in to continue your studies."}
@@ -112,6 +176,7 @@ export default function LoginScreen() {
           />
         )}
         <TextInput
+          testID="login-email"
           style={styles.input}
           placeholder="Email"
           placeholderTextColor={colors.ink300}
@@ -119,21 +184,28 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          autoComplete="off"
+          textContentType="oneTimeCode"
+          importantForAutofill="no"
         />
         <PasswordField
+          testID="login-password"
           placeholder="Password"
           placeholderTextColor={colors.ink300}
           value={password}
           onChangeText={setPassword}
+          autoComplete="off"
+          textContentType="oneTimeCode"
+          importantForAutofill="no"
         />
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        <Pressable style={styles.button} onPress={submit} disabled={busy}>
+        <Pressable testID="login-submit" style={styles.button} onPress={submit} disabled={busy}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{isRegister ? "Enroll" : "Log in"}</Text>}
         </Pressable>
 
-        <Pressable onPress={() => setMode(isRegister ? "login" : "register")}>
+        <Pressable testID="login-mode-register" onPress={() => setMode(isRegister ? "login" : "register")}>
           <Text style={styles.switch}>{isRegister ? "Already enrolled? Log in" : "New here? Enroll now"}</Text>
         </Pressable>
 
@@ -142,7 +214,10 @@ export default function LoginScreen() {
           <Text style={styles.or}>or</Text>
           <View style={styles.line} />
         </View>
-        <Pressable style={styles.guestButton} onPress={continueAsGuest} disabled={busy}>
+        {GoogleBtn ? (
+          <GoogleBtn disabled={busy} onIdToken={handleGoogle} onError={handleGoogleError} />
+        ) : null}
+        <Pressable style={[styles.guestButton, { marginTop: space[3] }]} onPress={continueAsGuest} disabled={busy}>
           <Text style={styles.guestText}>Continue as a guest</Text>
         </Pressable>
         <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>

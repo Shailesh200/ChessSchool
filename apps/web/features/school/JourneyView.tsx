@@ -4,12 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
+import { BackButton } from "@/components/ui/BackButton";
 import { isClassUnlocked, type SchoolClass } from "./structure";
 import { isUnlocked } from "@/features/lessons/unlock";
 import { useProgression } from "@/core/store/progression.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+import {
+  JourneyHeaderStats,
+  JourneyLessonList,
+  JourneyLessonPreview,
+  JourneyProgressSummary,
+  type JourneyNodeData,
+} from "./JourneyLessonList";
 
 type NodeStatus = "completed" | "active" | "locked" | "exam";
 type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
@@ -31,6 +41,7 @@ export function JourneyView({
   const graduated = useProgression((s) => s.graduatedClasses);
   const [shown, setShown] = useState(6);
   const [busy, setBusy] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const unlockedClass = isClassUnlocked(cls.id, records, graduated, allClasses);
   const done = lessons.filter((l) => (records[l.id]?.mastery ?? 0) >= 0.9).length;
@@ -64,6 +75,22 @@ export function JourneyView({
   // Collapsed by default — always show up to the active milestone; load more on demand.
   const visibleCount = Math.min(nodes.length, Math.max(shown, activeIndex + 1));
 
+  function isDesktopJourney() {
+    return (
+      typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+    );
+  }
+
+  function selectNode(id: string, status: NodeStatus) {
+    if (status === "locked") {
+      haptics.fire("error");
+      audio.play("fail");
+      return;
+    }
+    setSelectedId(id);
+    if (!isDesktopJourney()) go(id, status);
+  }
+
   function go(id: string, status: NodeStatus) {
     if (status === "locked") {
       haptics.fire("error");
@@ -82,41 +109,62 @@ export function JourneyView({
     nodes.find((n) => n.status === "active") ??
     nodes.find((n) => n.status === "completed");
 
+  const examNode: JourneyNodeData | null = examLesson
+    ? {
+        id: examLesson.id,
+        title: examLesson.title,
+        subtitle: "Pass to graduate",
+        emoji: "📝",
+        mastery: 0,
+        status: unlockedClass ? "exam" : "locked",
+      }
+    : null;
+
+  const activeId = nodes.find((n) => n.status === "active")?.id;
+  const allNodes = examNode ? [...nodes, examNode] : nodes;
+  const previewId = selectedId ?? activeId ?? firstActionable?.id ?? null;
+  const previewNode = allNodes.find((n) => n.id === previewId) ?? null;
+
   return (
     <div className="flex flex-col gap-5">
+      <BackButton label="Campus" fallback="/" className="self-start lg:hidden" />
       <button
-        onClick={() => router.push("/")}
-        className="text-brand self-start text-sm font-bold"
+        onClick={() => router.push("/academy")}
+        className="text-brand hidden self-start text-sm font-bold lg:inline-flex lg:items-center lg:gap-1"
       >
-        ← Campus
+        <Icon name="chevronRight" size={16} className="rotate-180" />
+        Campus
       </button>
 
       {/* Subject header */}
-      <div className="rounded-card border-hairline bg-surface-card border p-4 [box-shadow:var(--shadow-card)]">
+      <div className="rounded-card border-hairline bg-surface-card border p-4 [box-shadow:var(--shadow-card)] lg:p-5">
         <div className="flex items-center gap-3">
-          <div className="bg-brand-50 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl">
-            {cls.emoji}
+          <div className="bg-brand-50 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl lg:h-16 lg:w-16">
+            <ContentIcon emoji={cls.emoji} size={28} variant="badge" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-ink truncate text-lg font-extrabold">{cls.title}</h1>
-            <p className="text-ink-500 truncate text-xs font-semibold">{cls.blurb}</p>
+            <h1 className="text-ink truncate text-lg font-extrabold lg:text-2xl">
+              {cls.title}
+            </h1>
+            <p className="text-ink-500 truncate text-xs font-semibold lg:text-sm">
+              {cls.blurb}
+            </p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
-          <span className="rounded-pill bg-surface-sunken text-ink-700 px-2 py-1">
-            📚 {lessons.length} lessons
-          </span>
-          <span className="rounded-pill bg-surface-sunken text-ink-700 px-2 py-1">
-            ⏱️ ~{minutes} min
-          </span>
-          <span className="rounded-pill bg-surface-sunken text-ink-700 px-2 py-1">
-            ⭐ {done}/{lessons.length} mastered
-          </span>
-        </div>
+        <JourneyHeaderStats
+          lessonCount={lessons.length}
+          minutes={minutes}
+          done={done}
+        />
+        <JourneyProgressSummary
+          done={done}
+          total={lessons.length}
+          className="hidden lg:block"
+        />
         {firstActionable && (
           <Button
             block
-            className="mt-3"
+            className="mt-3 lg:mt-4 lg:max-w-xs"
             loading={busy === firstActionable.id}
             onClick={() => go(firstActionable.id, firstActionable.status)}
           >
@@ -125,53 +173,65 @@ export function JourneyView({
         )}
       </div>
 
-      {/* Milestone path */}
-      <ol className="relative mx-auto flex w-full max-w-xs flex-col items-center">
-        {nodes.slice(0, visibleCount).map((n, i) => (
-          <JourneyNode
-            key={n.id}
-            node={n}
-            index={i}
-            onClick={() => go(n.id, n.status)}
-          />
-        ))}
-        {visibleCount < nodes.length && (
-          <li className="mt-3 w-full">
-            <Button
-              variant="ghost"
-              block
-              onClick={() => {
-                setShown((s) => s + 8);
-                haptics.fire("tap");
-              }}
-            >
-              Show {Math.min(8, nodes.length - visibleCount)} more lessons ▾
-            </Button>
-          </li>
-        )}
-        {examLesson && visibleCount >= nodes.length && (
-          <JourneyNode
-            node={{
-              id: examLesson.id,
-              title: examLesson.title,
-              subtitle: "Pass to graduate",
-              emoji: "📝",
-              mastery: 0,
-              status: unlockedClass ? "exam" : "locked",
+      <div className="lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(300px,3fr)] lg:items-start lg:gap-8">
+        {/* Milestone path */}
+        <ol className="relative mx-auto flex w-full max-w-xs flex-col items-center lg:max-w-md lg:justify-self-center">
+          {nodes.slice(0, visibleCount).map((n, i) => (
+            <JourneyNode
+              key={n.id}
+              node={n}
+              index={i}
+              onClick={() => selectNode(n.id, n.status)}
+            />
+          ))}
+          {visibleCount < nodes.length && (
+            <li className="mt-3 w-full">
+              <Button
+                variant="ghost"
+                block
+                onClick={() => {
+                  setShown((s) => s + 8);
+                  haptics.fire("tap");
+                }}
+              >
+                Show {Math.min(8, nodes.length - visibleCount)} more lessons ▾
+              </Button>
+            </li>
+          )}
+          {examLesson && visibleCount >= nodes.length && examNode && (
+            <JourneyNode
+              node={examNode}
+              index={nodes.length}
+              onClick={() => selectNode(examNode.id, examNode.status)}
+              isExam
+            />
+          )}
+        </ol>
+
+        <div className="hidden flex-col gap-4 lg:flex">
+          <JourneyLessonPreview
+            node={previewNode}
+            busy={busy === previewNode?.id}
+            onStart={() => {
+              if (previewNode) go(previewNode.id, previewNode.status);
             }}
-            index={nodes.length}
-            onClick={() => go(examLesson.id, unlockedClass ? "exam" : "locked")}
-            isExam
           />
-        )}
-      </ol>
+          <JourneyLessonList
+            nodes={nodes}
+            examNode={visibleCount >= nodes.length ? examNode : null}
+            activeId={previewId ?? undefined}
+            onSelect={selectNode}
+            className="max-h-[280px]"
+          />
+        </div>
+      </div>
 
       {/* Test out (#12/#2) — appears once you're ≥50% through the class. */}
       {unlockedClass &&
         lessons.length > 0 &&
         done / lessons.length >= 0.5 &&
         done < lessons.length && (
-          <div className="mx-auto w-full max-w-xs">
+          <div className="mx-auto w-full max-w-xs lg:max-w-md">
             <Button
               variant="outline"
               block
@@ -182,7 +242,10 @@ export function JourneyView({
                 router.push(`/class/${cls.id}/exam`);
               }}
             >
-              🎓 Test out of this class
+              <span className="inline-flex items-center gap-2">
+                <Icon name="cap" size={18} className="text-gold" />
+                Test out of this class
+              </span>
             </Button>
             <p className="text-ink-500 mt-1 text-center text-[11px] font-semibold">
               You&apos;re halfway — pass the exam (≥67%) to skip straight to the next
@@ -297,11 +360,13 @@ function JourneyNode({
               opacity: node.status === "locked" ? 0.6 : 1,
             }}
           >
-            {node.status === "locked"
-              ? "🔒"
-              : node.status === "completed"
-                ? "✓"
-                : node.emoji}
+            {node.status === "locked" ? (
+              <Icon name="lock" size={20} className="text-ink-400" />
+            ) : node.status === "completed" ? (
+              <Icon name="check" size={20} className="text-gold" />
+            ) : (
+              <ContentIcon emoji={node.emoji} size={22} variant="plain" />
+            )}
           </span>
         </span>
         <span className="text-ink max-w-[9rem] truncate text-sm font-extrabold">

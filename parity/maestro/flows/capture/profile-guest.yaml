@@ -1,0 +1,9 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///profile"
+- extendedWaitUntil:
+    visible:
+      text: "Playing as guest"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

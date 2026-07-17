@@ -33,6 +33,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -45,6 +46,7 @@ next-env.d.ts
 local.db
 local.db-shm
 local.db-wal
+curriculum-import-report.json
 
 # Lichess puzzle import source (large external data — never commit)
 lichess_db_puzzle.csv
@@ -65,5 +67,11 @@ android/
 
 # expo web export + parity harness output (build artifacts)
 apps/mobile/dist/
+parity/reports/
+reports/lighthouse/
 parity-shots/
 apps/web/parity-shots/
+apps/web/storybook-static/
+
+*storybook.log
+parity/maestro/flows/undefined.png

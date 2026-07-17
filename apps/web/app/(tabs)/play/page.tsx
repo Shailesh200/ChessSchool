@@ -9,7 +9,7 @@ export default function PlayPage() {
   const mounted = useMounted();
   const active = useMatch((s) => s.active);
 
-  if (mounted && active && !active.finished) {
+  if (mounted && active) {
     return <MatchView active={active} />;
   }
 

@@ -13,32 +13,57 @@ export function Button({
   variant = "primary",
   size = "lg",
   block = true,
+  disabled = false,
   style,
+  testID,
 }: {
   label: string;
   onPress: () => void;
-  variant?: "primary" | "accent" | "success" | "outline";
+  variant?: "primary" | "accent" | "success" | "outline" | "danger";
   size?: "sm" | "lg";
   block?: boolean;
+  disabled?: boolean;
   style?: ViewStyle;
+  testID?: string;
 }) {
   const [pressed, setPressed] = useState(false);
   const outline = variant === "outline";
-  const bg = outline ? colors.surfaceCard : variant === "accent" ? colors.accent : variant === "success" ? colors.success : colors.brand;
-  const edge = outline ? colors.hairline : variant === "accent" ? colors.accent600 : variant === "success" ? colors.success600 : colors.brand700;
-  const fg = outline ? colors.ink : "#fff";
+  const bg = disabled
+    ? colors.surfaceSunken
+    : outline
+      ? colors.surfaceCard
+      : variant === "danger"
+        ? colors.danger
+        : variant === "accent"
+          ? colors.accent
+          : variant === "success"
+            ? colors.success
+            : colors.brand;
+  const edge = outline
+    ? colors.hairline
+    : variant === "danger"
+      ? "#b91c1c"
+      : variant === "accent"
+        ? colors.accent600
+        : variant === "success"
+          ? colors.success600
+          : colors.brand700;
+  const fg = disabled ? colors.ink300 : outline ? colors.ink : "#fff";
   const padV = size === "lg" ? 14 : 9;
   const labelType = size === "lg" ? type.sm : type.xs;
 
   return (
     <Pressable
+      testID={testID}
+      disabled={disabled}
       onPress={() => {
+        if (disabled) return;
         haptics.tap();
         onPress();
       }}
-      onPressIn={() => setPressed(true)}
+      onPressIn={() => !disabled && setPressed(true)}
       onPressOut={() => setPressed(false)}
-      style={[block && { alignSelf: "stretch" }, style]}
+      style={[block && { alignSelf: "stretch" }, style, disabled && { opacity: 0.55 }]}
     >
       <View
         style={{

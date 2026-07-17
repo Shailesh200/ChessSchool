@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 type Action = (
   prev: { error?: string } | undefined,
@@ -19,6 +21,9 @@ export function AuthForm({
   action: Action;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const searchParams = useSearchParams();
+  const next =
+    searchParams.get("next") ?? (mode === "register" ? "/onboarding" : "/welcome");
   const isRegister = mode === "register";
 
   return (
@@ -34,6 +39,14 @@ export function AuthForm({
               ? "Create your student account to save progress and earn your ID."
               : "Log in to continue your studies."}
           </p>
+        </div>
+
+        <GoogleSignInButton next={next} />
+
+        <div className="my-1 flex items-center gap-3">
+          <div className="bg-hairline h-px flex-1" />
+          <span className="text-ink-400 text-xs font-bold">or</span>
+          <div className="bg-hairline h-px flex-1" />
         </div>
 
         <form action={formAction} className="flex flex-col gap-3">
@@ -67,7 +80,7 @@ export function AuthForm({
           </Link>
         </p>
         <p className="text-ink-300 mt-2 text-center text-xs font-semibold">
-          <Link href="/">Continue as guest →</Link>
+          <Link href="/academy">Continue as guest →</Link>
         </p>
       </div>
     </div>

@@ -1,19 +1,27 @@
 import type { CSSProperties } from "react";
-import { defaultPieces } from "react-chessboard";
 
 /**
- * Piece themes (#3) — proper Staunton chess SHAPES, finished differently per set:
- *  - classic : react-chessboard's default Staunton set (the original)
- *  - marble  : polished 3D marble (the headline 3D-shaded set)
- *  - crystal : icy faceted glass
- *  - neon    : glowing outline-only pieces
- *  - forest  : carved wood
- *  - ocean   : glassy sea-glass
- *  - blossom : soft pastel (id kept as "cute" for saved settings)
+ * Piece sets — every theme uses a distinct silhouette family.
+ * Asset sets: Lichess SVGs in `public/pieces/{set}/`.
+ * Marble 3D: our custom sculpted Staunton with marble shading.
  */
 const BASE = "M13 35h19c1.3 0 2.4 1 2.6 2.3l.3 2.2H10.1l.3-2.2C10.6 36 11.7 35 13 35z";
 
 type PieceType = "k" | "q" | "r" | "b" | "n" | "p";
+
+/** Bundled Lichess piece shape libraries — each is a visibly different design. */
+export type AssetSet =
+  | "cburnett"
+  | "merida"
+  | "alpha"
+  | "spatial"
+  | "pixel"
+  | "dubrovny"
+  | "chessnut"
+  | "fantasy"
+  | "kiwen-suwi"
+  | "fairytale"
+  | "anime";
 
 const SHAPES: Record<PieceType, string> = {
   p:
@@ -44,14 +52,16 @@ const QUEEN_BALLS: [number, number][] = [
   [32.8, 18.6],
 ];
 
-type Finish = "marble" | "glass" | "wood" | "gloss";
-
 export interface PieceTheme {
   id: string;
   name: string;
+  /** Shape family label shown in Theme Studio. */
+  family: string;
   emoji: string;
-  style: "default" | "neon" | "sculpted";
-  finish?: Finish;
+  shapeSet: AssetSet | "staunton";
+  style: "asset" | "sculpted";
+  /** Optional CSS filter on asset pieces (e.g. neon glow on pixel set). */
+  filter?: string;
   white: { fill: string; stroke: string };
   black: { fill: string; stroke: string };
 }
@@ -60,63 +70,123 @@ export const PIECE_THEMES: PieceTheme[] = [
   {
     id: "classic",
     name: "Classic",
+    family: "Cburnett",
     emoji: "♟️",
-    style: "default",
+    shapeSet: "cburnett",
+    style: "asset",
     white: { fill: "#f4ecd8", stroke: "#3a2f20" },
     black: { fill: "#3a3a3c", stroke: "#101012" },
   },
   {
+    id: "merida",
+    name: "Merida",
+    family: "Merida",
+    emoji: "🏰",
+    shapeSet: "merida",
+    style: "asset",
+    white: { fill: "#f4ecd8", stroke: "#3a2f20" },
+    black: { fill: "#1f1a17", stroke: "#101012" },
+  },
+  {
+    id: "alpha",
+    name: "Alpha",
+    family: "Alpha",
+    emoji: "◇",
+    shapeSet: "alpha",
+    style: "asset",
+    white: { fill: "#f9f9f9", stroke: "#101010" },
+    black: { fill: "#101010", stroke: "#f9f9f9" },
+  },
+  {
     id: "marble",
     name: "Marble 3D",
+    family: "Sculpted",
     emoji: "🏛️",
+    shapeSet: "staunton",
     style: "sculpted",
-    finish: "marble",
     white: { fill: "#f1ece1", stroke: "#9a8f78" },
     black: { fill: "#34373d", stroke: "#15171b" },
   },
   {
     id: "crystal",
-    name: "Crystal",
+    name: "Spatial",
+    family: "Isometric",
     emoji: "💎",
-    style: "sculpted",
-    finish: "glass",
-    white: { fill: "#eef4fb", stroke: "#5b7bb0" },
-    black: { fill: "#3f5d86", stroke: "#1b2740" },
+    shapeSet: "spatial",
+    style: "asset",
+    white: { fill: "#f8fbff", stroke: "#4a7ab5" },
+    black: { fill: "#2a4f7a", stroke: "#0f1f33" },
   },
   {
     id: "neon",
-    name: "Neon",
+    name: "Arcade",
+    family: "Pixel",
     emoji: "✨",
-    style: "neon",
-    white: { fill: "#0c1622", stroke: "#39e6b0" },
-    black: { fill: "#0c1622", stroke: "#3ad6ff" },
+    shapeSet: "pixel",
+    style: "asset",
+    filter: "drop-shadow(0 0 2px #5dffb8) drop-shadow(0 0 5px #5ec8ff) saturate(1.35)",
+    white: { fill: "#0a1628", stroke: "#5dffb8" },
+    black: { fill: "#0a1628", stroke: "#5ec8ff" },
   },
   {
     id: "forest",
-    name: "Forest",
+    name: "Heritage",
+    family: "Dubrovny",
     emoji: "🌲",
-    style: "sculpted",
-    finish: "wood",
-    white: { fill: "#e3cda0", stroke: "#7c5a2e" },
-    black: { fill: "#3f5e32", stroke: "#1f2f18" },
+    shapeSet: "dubrovny",
+    style: "asset",
+    white: { fill: "#f0dcc0", stroke: "#8b5e34" },
+    black: { fill: "#4a3220", stroke: "#1a1008" },
   },
   {
     id: "ocean",
-    name: "Ocean",
+    name: "Bold",
+    family: "Chessnut",
     emoji: "🌊",
-    style: "sculpted",
-    finish: "glass",
-    white: { fill: "#d6eef9", stroke: "#3a8fb5" },
-    black: { fill: "#1f6f8c", stroke: "#0b2f3e" },
+    shapeSet: "chessnut",
+    style: "asset",
+    white: { fill: "#eef2f6", stroke: "#64748b" },
+    black: { fill: "#334155", stroke: "#0f172a" },
   },
   {
-    id: "cute",
-    name: "Blossom",
-    emoji: "🌸",
-    style: "sculpted",
-    finish: "gloss",
-    white: { fill: "#ffd9ec", stroke: "#d76aa3" },
-    black: { fill: "#b48ee8", stroke: "#6f43b0" },
+    id: "cartoon",
+    name: "Cartoon",
+    family: "Kiwen Suwi",
+    emoji: "🎨",
+    shapeSet: "kiwen-suwi",
+    style: "asset",
+    white: { fill: "#fff8f0", stroke: "#b45309" },
+    black: { fill: "#292524", stroke: "#0c0a09" },
+  },
+  {
+    id: "fairytale",
+    name: "Fairytale",
+    family: "Storybook",
+    emoji: "🏰",
+    shapeSet: "fairytale",
+    style: "asset",
+    white: { fill: "#FAF5E8", stroke: "#333333" },
+    black: { fill: "#5A5A66", stroke: "#333333" },
+  },
+  {
+    id: "anime",
+    name: "Anime",
+    family: "Shonen",
+    emoji: "🎌",
+    shapeSet: "anime",
+    style: "asset",
+    white: { fill: "#fde0c8", stroke: "#1a0f28" },
+    black: { fill: "#1e4a7a", stroke: "#f8fafc" },
+  },
+  {
+    id: "fantasy",
+    name: "Fantasy",
+    family: "Ornate",
+    emoji: "🎴",
+    shapeSet: "fantasy",
+    style: "asset",
+    white: { fill: "#fff8f0", stroke: "#b45309" },
+    black: { fill: "#292524", stroke: "#0c0a09" },
   },
 ];
 
@@ -136,63 +206,72 @@ function shade(hex: string, amt: number): string {
 type RenderFn = (props?: { svgStyle?: CSSProperties }) => React.JSX.Element;
 type Pal = { fill: string; stroke: string };
 
-// Finish controls how 3D / glossy the sculpted set looks.
-const FINISH: Record<
-  Finish,
-  { top: number; bottom: number; gloss: number; fillOpacity: number }
-> = {
-  marble: { top: 0.34, bottom: -0.22, gloss: 0.5, fillOpacity: 1 },
-  glass: { top: 0.46, bottom: -0.18, gloss: 0.72, fillOpacity: 0.9 },
-  wood: { top: 0.24, bottom: -0.3, gloss: 0.28, fillOpacity: 1 },
-  gloss: { top: 0.42, bottom: -0.2, gloss: 0.62, fillOpacity: 1 },
-};
+function AssetPiece({
+  set,
+  code,
+  filter,
+  svgStyle,
+}: {
+  set: AssetSet;
+  code: string;
+  filter?: string;
+  svgStyle?: CSSProperties;
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- bundled SVG assets
+    <img
+      src={`/pieces/${set}/${code}.svg`}
+      alt=""
+      draggable={false}
+      width="100%"
+      height="100%"
+      style={{
+        display: "block",
+        objectFit: "contain",
+        filter,
+        ...svgStyle,
+      }}
+    />
+  );
+}
 
-/** Sculpted (3D-shaded) or neon (outline) Staunton piece. */
-function SilhouettePiece({
+/** Custom 3D-shaded Staunton — only used by Marble 3D. */
+function MarblePiece({
   type,
   pal,
   gid,
-  neon,
-  finish = "marble",
   svgStyle,
 }: {
   type: PieceType;
   pal: Pal;
   gid: string;
-  neon: boolean;
-  finish?: Finish;
   svgStyle?: CSSProperties;
 }) {
-  const f = FINISH[finish];
-  const fill = neon ? "none" : `url(#${gid})`;
-  const sw = neon ? 2.6 : 1.1;
-  const filter = neon
-    ? `drop-shadow(0 0 2.5px ${pal.stroke}) drop-shadow(0 0 1px ${pal.stroke})`
-    : "drop-shadow(0 1.7px 1.1px rgba(0,0,0,0.34))";
+  const fill = `url(#${gid})`;
   return (
-    <svg viewBox="0 0 45 45" width="100%" height="100%" style={{ ...svgStyle, filter }}>
-      {!neon && (
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="0.25" y2="1">
-            <stop offset="0%" stopColor={shade(pal.fill, f.top)} />
-            <stop offset="50%" stopColor={pal.fill} />
-            <stop offset="100%" stopColor={shade(pal.fill, f.bottom)} />
-          </linearGradient>
-          <linearGradient id={`${gid}-g`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={`rgba(255,255,255,${f.gloss})`} />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-        </defs>
-      )}
-      {!neon && (
-        <ellipse cx="22.5" cy="39.6" rx="12" ry="2.1" fill="rgba(0,0,0,0.16)" />
-      )}
+    <svg
+      viewBox="0 0 45 45"
+      width="100%"
+      height="100%"
+      style={{ ...svgStyle, filter: "drop-shadow(0 1.7px 1.1px rgba(0,0,0,0.34))" }}
+    >
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0.25" y2="1">
+          <stop offset="0%" stopColor={shade(pal.fill, 0.34)} />
+          <stop offset="50%" stopColor={pal.fill} />
+          <stop offset="100%" stopColor={shade(pal.fill, -0.22)} />
+        </linearGradient>
+        <linearGradient id={`${gid}-g`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="22.5" cy="39.6" rx="12" ry="2.1" fill="rgba(0,0,0,0.16)" />
       <path
         d={SHAPES[type]}
         fill={fill}
-        fillOpacity={neon ? undefined : f.fillOpacity}
         stroke={pal.stroke}
-        strokeWidth={sw}
+        strokeWidth={1.1}
         strokeLinejoin="round"
         strokeLinecap="round"
       />
@@ -205,7 +284,7 @@ function SilhouettePiece({
             r="2.4"
             fill={fill}
             stroke={pal.stroke}
-            strokeWidth={sw}
+            strokeWidth={1.1}
           />
         ))}
       {type === "k" && (
@@ -213,7 +292,7 @@ function SilhouettePiece({
           d="M21.4 4h2.2v2h2v2.1h-2v2h-2.2v-2h-2V6h2z"
           fill={fill}
           stroke={pal.stroke}
-          strokeWidth={Math.min(sw, 1.6)}
+          strokeWidth={1.6}
           strokeLinejoin="round"
         />
       )}
@@ -224,37 +303,23 @@ function SilhouettePiece({
           r="1.9"
           fill={fill}
           stroke={pal.stroke}
-          strokeWidth={Math.min(sw, 1.6)}
+          strokeWidth={1.6}
         />
       )}
-      {/* specular highlight gives the 3D read */}
-      {!neon && (
-        <ellipse
-          cx="19"
-          cy="15"
-          rx="3.4"
-          ry="6.4"
-          fill={`url(#${gid}-g)`}
-          opacity={0.7}
-          transform="rotate(-12 19 15)"
-        />
-      )}
-      {/* faint rim light along the top for glass/gloss finishes */}
-      {!neon && (finish === "glass" || finish === "gloss") && (
-        <path
-          d={SHAPES[type]}
-          fill="none"
-          stroke="rgba(255,255,255,0.5)"
-          strokeWidth="0.6"
-          strokeLinejoin="round"
-          opacity={0.6}
-        />
-      )}
+      <ellipse
+        cx="19"
+        cy="15"
+        rx="3.4"
+        ry="6.4"
+        fill={`url(#${gid}-g)`}
+        opacity={0.7}
+        transform="rotate(-12 19 15)"
+      />
     </svg>
   );
 }
 
-function renderPiece(
+function renderMarble(
   theme: PieceTheme,
   type: PieceType,
   color: "w" | "b",
@@ -262,16 +327,7 @@ function renderPiece(
   svgStyle?: CSSProperties,
 ) {
   const pal = color === "w" ? theme.white : theme.black;
-  return (
-    <SilhouettePiece
-      type={type}
-      pal={pal}
-      gid={gid}
-      neon={theme.style === "neon"}
-      finish={theme.finish}
-      svgStyle={svgStyle}
-    />
-  );
+  return <MarblePiece type={type} pal={pal} gid={gid} svgStyle={svgStyle} />;
 }
 
 /** Build a react-chessboard `pieces` map for the given theme id. */
@@ -280,10 +336,22 @@ export function buildPieces(themeId: string): Record<string, RenderFn> {
   const out: Record<string, RenderFn> = {};
   for (const color of ["w", "b"] as const) {
     for (const P of ["K", "Q", "R", "B", "N", "P"] as const) {
+      const code = `${color}${P}`;
       const type = P.toLowerCase() as PieceType;
-      const gid = `pc-${themeId}-${color}${P}`;
-      out[`${color}${P}`] = ({ svgStyle } = {}) =>
-        renderPiece(theme, type, color, gid, svgStyle);
+      const gid = `pc-${themeId}-${code}`;
+      if (theme.style === "asset") {
+        out[code] = ({ svgStyle } = {}) => (
+          <AssetPiece
+            set={theme.shapeSet as AssetSet}
+            code={code}
+            filter={theme.filter}
+            svgStyle={svgStyle}
+          />
+        );
+      } else {
+        out[code] = ({ svgStyle } = {}) =>
+          renderMarble(theme, type, color, gid, svgStyle);
+      }
     }
   }
   return out;
@@ -298,23 +366,17 @@ export function PiecePreview({
   size?: number;
 }) {
   const theme = getPieceTheme(themeId);
-  if (theme.style === "default") {
-    const d = (code: string, k: string) => (
-      <div key={k} style={{ width: size, height: size }}>
-        {defaultPieces[code]?.()}
-      </div>
-    );
-    return (
-      <div className="flex items-center justify-center">
-        {d("wK", "k")}
-        {d("bQ", "q")}
-        {d("wN", "n")}
-      </div>
-    );
-  }
   const one = (type: PieceType, color: "w" | "b", k: string) => (
     <div key={k} style={{ width: size, height: size }}>
-      {renderPiece(theme, type, color, `prev-${themeId}-${k}`)}
+      {theme.style === "asset" ? (
+        <AssetPiece
+          set={theme.shapeSet as AssetSet}
+          code={`${color}${type.toUpperCase()}`}
+          filter={theme.filter}
+        />
+      ) : (
+        renderMarble(theme, type, color, `prev-${themeId}-${k}`)
+      )}
     </div>
   );
   return (

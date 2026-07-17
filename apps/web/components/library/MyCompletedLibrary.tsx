@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { ContentIcon } from "@/components/ui/ContentIcon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useProgression } from "@/core/store/progression.store";
 import { useMounted } from "@/core/hooks/useMounted";
 
@@ -36,31 +38,26 @@ export function MyCompletedLibrary({ lessons }: { lessons: LibLesson[] }) {
       </p>
 
       {done.length === 0 ? (
-        <div className="rounded-card border-hairline bg-surface-sunken/50 mt-6 border border-dashed p-6 text-center">
-          <p className="text-ink-500 text-sm font-bold">
-            📚 No completed lessons yet — finish lessons in the campus and they&apos;ll
-            collect here.
-          </p>
-          <Link
-            href="/"
-            className="rounded-pill bg-brand mt-3 inline-block px-4 py-2 text-sm font-bold text-white"
-          >
-            Go to campus →
-          </Link>
-        </div>
+        <EmptyState
+          illustration="library"
+          title="No completed lessons yet"
+          description="Finish lessons on campus and they'll collect here for easy review."
+          action={{ label: "Go to campus", href: "/academy" }}
+          className="mt-6"
+        />
       ) : (
         <div className="mt-5 flex flex-col gap-5">
           {[...byClass.entries()].map(([className, items]) => (
             <section key={className}>
               <h2 className="text-ink mb-2 text-sm font-extrabold">{className}</h2>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((l) => (
                   <Link
                     key={l.id}
                     href={`/library/lesson/${l.id}`}
                     className="btn-tactile rounded-card border-hairline bg-surface-card flex items-center gap-3 border p-3 [box-shadow:var(--shadow-card)]"
                   >
-                    <span className="text-2xl">{l.emoji}</span>
+                    <ContentIcon emoji={l.emoji} size={22} tone="gold" />
                     <p className="text-ink min-w-0 flex-1 truncate text-sm font-extrabold">
                       {l.title}
                     </p>

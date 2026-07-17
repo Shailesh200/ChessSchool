@@ -21,8 +21,15 @@ pnpm --filter web format:check
 echo "→ test coverage (≥${MIN_COVERAGE_PERCENT:-90}%)"
 bash scripts/verify-test-coverage.sh
 
+# Seed before build — Next prerenders catalog/campus routes against the DB.
+echo "→ pnpm --filter web db:fresh"
+pnpm --filter web db:fresh
+
 echo "→ pnpm build"
 pnpm build
+
+echo "→ Home JS budget (≤${HOME_JS_BUDGET_KB:-280} KB gzip)"
+node scripts/verify-home-js-budget.mjs
 
 echo "→ E2E route manifest coverage"
 node scripts/verify-e2e-route-coverage.mjs
@@ -30,12 +37,15 @@ node scripts/verify-e2e-route-coverage.mjs
 echo "→ Web SEO baseline"
 bash scripts/verify-web-seo.sh
 
-echo "→ pnpm --filter web db:fresh"
-pnpm --filter web db:fresh
+echo "→ Parity route / Maestro coverage"
+node scripts/generate-parity-maestro.mjs
+node scripts/verify-parity-coverage.mjs
 
 echo "→ pnpm e2e"
 pnpm e2e
 
+# Lighthouse also runs in GitHub Actions workflow `.github/workflows/lighthouse.yml`
+# (separate from main CI). Skip locally with SKIP_LIGHTHOUSE=1.
 if [[ "${SKIP_LIGHTHOUSE:-}" == "1" ]]; then
   echo "→ Lighthouse skipped (SKIP_LIGHTHOUSE=1)"
 else

@@ -1,0 +1,29 @@
+<!-- High-fi mockup: Theme studio - 1280px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" fill="none">
+  <rect width="1280" height="800" fill="#fbfaff"/>
+  <rect x="0" y="0" width="220" height="800" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="252" y="32" width="160" height="20" rx="4" fill="#1c1b2e" opacity="0.85"/>
+  <!-- Live preview -->
+  <rect x="252" y="72" width="560" height="696" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="276" y="96" width="120" height="12" rx="2" fill="#6b6982"/>
+  <rect x="276" y="124" width="512" height="512" rx="12" fill="#1c1b2e" opacity="0.06"/>
+  <rect x="340" y="188" width="384" height="384" rx="8" fill="#ede7f6"/>
+  <rect x="340" y="188" width="48" height="48" fill="#b9a8e6" opacity="0.6"/>
+  <rect x="276" y="656" width="200" height="12" rx="2" fill="#a9a7bd" opacity="0.5"/>
+  <rect x="276" y="684" width="120" height="36" rx="18" fill="#5b5bd6"/>
+  <!-- Controls -->
+  <rect x="836" y="72" width="400" height="696" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="860" y="96" width="100" height="12" rx="2" fill="#6b6982"/>
+  <rect x="860" y="124" width="352" height="48" rx="12" fill="#f1f0f9"/>
+  <rect x="860" y="188" width="140" height="12" rx="2" fill="#6b6982"/>
+  <rect x="860" y="216" width="80" height="80" rx="12" fill="#eef0ff" stroke="#5b5bd6" stroke-width="2"/>
+  <rect x="952" y="216" width="80" height="80" rx="12" fill="#f1f0f9"/>
+  <rect x="1044" y="216" width="80" height="80" rx="12" fill="#1c1b2e" opacity="0.08"/>
+  <rect x="1136" y="216" width="76" height="80" rx="12" fill="#fff5f2" stroke="#ff7a59"/>
+  <rect x="860" y="320" width="140" height="12" rx="2" fill="#6b6982"/>
+  <rect x="860" y="348" width="352" height="12" rx="6" fill="#f1f0f9"/>
+  <rect x="860" y="348" width="220" height="12" rx="6" fill="#5b5bd6"/>
+  <rect x="860" y="380" width="352" height="12" rx="6" fill="#f1f0f9"/>
+  <rect x="860" y="380" width="160" height="12" rx="6" fill="#5b5bd6" opacity="0.5"/>
+  <text x="640" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b6982">Themes - 1280px</text>
+</svg>

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { mergeProgressSnapshots } from "@chess-school/progression";
+import type { ArenaRunRecord } from "@/features/play/arena";
 
 export interface MistakeEntry {
   fen: string;
@@ -50,6 +51,8 @@ export interface ProgressionState {
   dailyPuzzleDay: string | null;
   /** sign-up placement test completed (enrolled users only) */
   placementDone: boolean;
+  /** Completed local arena runs (newest first). */
+  arenaHistory: ArenaRunRecord[];
 
   reset: () => void;
   logMistake: (m: MistakeEntry) => void;
@@ -70,6 +73,7 @@ export interface ProgressionState {
   graduateClass: (classId: string) => void;
   markDailyPuzzleDone: () => void;
   markPlacementDone: () => void;
+  completeArenaRun: (record: ArenaRunRecord) => void;
   /** merge a server snapshot into local state (taking the better of each) — guest→account carry-up */
   mergeSnapshot: (snap: ProgressSnapshot) => void;
   /** replace local state with the server snapshot — the account is the source of truth */
@@ -158,6 +162,7 @@ const defaults = {
   mistakeLog: [] as MistakeEntry[],
   dailyPuzzleDay: null as string | null,
   placementDone: false,
+  arenaHistory: [] as ArenaRunRecord[],
 };
 
 export const useProgression = create<ProgressionState>()(
@@ -259,6 +264,11 @@ export const useProgression = create<ProgressionState>()(
 
       markPlacementDone: () => set({ placementDone: true }),
 
+      completeArenaRun: (record) =>
+        set((s) => ({
+          arenaHistory: [record, ...s.arenaHistory].slice(0, 12),
+        })),
+
       mergeSnapshot: (snap) =>
         set((s) => {
           const merged = progressSnapshot(s);
@@ -297,7 +307,7 @@ export const useProgression = create<ProgressionState>()(
     {
       name: "chessschool.progression",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       skipHydration: true,
       // v1 -> v2: the heart/lives system was removed. Drop hearts fields and
       // seed the new graduatedClasses array. All XP/streak/mastery is preserved.
@@ -309,6 +319,9 @@ export const useProgression = create<ProgressionState>()(
           delete state.maxHearts;
           delete state.heartsUpdatedAt;
           if (!Array.isArray(state.graduatedClasses)) state.graduatedClasses = [];
+        }
+        if (version < 3 && !Array.isArray(state.arenaHistory)) {
+          state.arenaHistory = [];
         }
         return state as ProgressionState;
       },

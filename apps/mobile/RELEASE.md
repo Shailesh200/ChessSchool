@@ -17,6 +17,39 @@ Android-first guide for EAS Build, EAS Update (OTA), and Google Play Store submi
 4. **Google Play Console** — developer account verified ($25).
 5. **Privacy policy live** — `https://chess-school.in/privacy`
 6. **Production API** — `https://chess-school.in` (set in `eas.json` for all release profiles).
+7. **Google Sign-In (native)** — see [Google OAuth setup](#google-oauth-setup-native) below and **`docs/ENV.md`** for the full variable checklist (Vercel + EAS + local `.env`).
+
+---
+
+## Google OAuth setup (native)
+
+The web client ID (`EXPO_PUBLIC_GOOGLE_CLIENT_ID`) is **not** valid as an Android/iOS client. Using it causes **Access blocked: Authorization error**.
+
+In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (same project as web):
+
+### Android OAuth client (required for the native account picker)
+- Application type: **Android**
+- Package name: `com.chessschool.app`
+- SHA-1 for **local Gradle release APKs** (current `android/app` debug keystore used for release signing):
+  `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
+- SHA-1 for **EAS preview/production** Android builds (Expo keystore `tsgLua-5VY`):
+  `82:BD:4A:17:CD:02:F0:68:E6:FB:98:B4:F6:7A:08:8D:33:A2:E4:A8`
+  Add this as a **second** Android OAuth client (same package `com.chessschool.app`, this SHA-1) — Google Cloud does not merge fingerprints onto one client.
+- The app uses **`@react-native-google-signin/google-signin`** (in-app account picker, not an external browser).
+- In the app / EAS env you still set **`EXPO_PUBLIC_GOOGLE_CLIENT_ID`** to the **Web** client ID (needed for the ID token). Creating the Android client in Google Cloud with package + SHA-1 is what authorizes the APK — you do **not** paste the Android client ID over the Web client ID.
+
+### iOS OAuth client (when shipping iOS)
+- Application type: **iOS**
+- Bundle ID: `com.chessschool.app`
+- Copy the **iOS client ID** → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+- Add the plugin option `iosUrlScheme` (reversed iOS client ID) if you ship an iOS build.
+
+### Server (Vercel)
+Ensure `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` includes the **Web** client (token `aud`). Optionally add `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` for extra audiences. See `apps/web/.env.example` and `docs/ENV.md`.
+
+Putting the **Web** client ID into `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` breaks sign-in — those must be platform-native clients when used.
+
+Rebuild the native app after changing Google OAuth env vars or adding the Google Sign-In plugin (`eas build` / local Gradle). OTA JS updates are not enough.
 
 ---
 
@@ -159,6 +192,8 @@ Fill in Play Console while verification completes:
 |-------|-----|
 | `No Next.js` / monorepo build fails on Vercel | Web only — mobile uses EAS, not Vercel |
 | EAS build can't resolve `@chess-school/core` | Run build from `apps/mobile`; pnpm workspace is auto-detected |
+| EAS Gradle / KSP failure (`IncompatibleClassChangeError`, kotlin metadata) | Do **not** set `expo-build-properties.android.kotlinVersion` — let Expo SDK 54 pick the toolchain. Keep `gradleCommand` + `GRADLE_OPTS` with configure-on-demand off |
+| Preview APK instant crash on open | Pin Expo SDK-compatible natives (`expo-speech@~14` for SDK 54). Rebuild after `expo install` — stale wrong ABI builds crash at module load |
 | OTA not applying | Run `eas update:configure`; production build must use `channel: production` |
 | Updates disabled in dev | Expected — OTA only runs in release builds |
 | Play rejection: missing deletion | Account screen → Delete account |

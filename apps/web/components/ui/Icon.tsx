@@ -37,7 +37,52 @@ export type IconName =
   | "dna"
   | "compass"
   | "eye"
-  | "eyeOff";
+  | "eyeOff"
+  | "chevronLeft"
+  | "chevronDown"
+  | "redo"
+  | "skipBack"
+  | "skipForward"
+  | "pause"
+  | "playFill"
+  | "pawn"
+  | "handshake"
+  | "message"
+  | "users"
+  | "robot"
+  | "crown"
+  | "brain"
+  | "sword"
+  | "seedling"
+  | "volume"
+  | "volumeOff"
+  | "warning"
+  | "wifi"
+  | "save"
+  | "exam"
+  | "moon"
+  | "book"
+  | "search"
+  | "medal"
+  | "gem"
+  | "fork"
+  | "pin"
+  | "puzzle"
+  | "link"
+  | "rocket"
+  | "plug"
+  | "knight"
+  | "rook"
+  | "bishop"
+  | "queen"
+  | "map"
+  | "tree"
+  | "wave"
+  | "celebrate"
+  | "building"
+  | "scroll"
+  | "backpack"
+  | "heart";
 
 const S = {
   strokeWidth: 2,
@@ -45,7 +90,7 @@ const S = {
   strokeLinejoin: "round",
   fill: "none",
 } as const;
-const duo = { fill: "currentColor", opacity: 0.16 };
+const duo = { fill: "currentColor", opacity: 0.28 };
 
 const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
   learn: (d) => (
@@ -244,6 +289,375 @@ const ICONS: Record<IconName, (duotone: boolean) => React.ReactNode> = {
     <>
       <path
         d="M3 3l18 18M10.5 10.5a3 3 0 0 0 4.24 4.24M9.9 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18.2 18.2 0 0 1-4.12 5.12M6.12 6.12A18.5 18.5 0 0 0 2 12s3.5 7 10 7a10.7 10.7 0 0 0 4.9-1.2"
+        {...S}
+      />
+    </>
+  ),
+  chevronLeft: () => <path d="M15 18l-6-6 6-6" {...S} />,
+  chevronDown: () => <path d="M6 9l6 6 6-6" {...S} />,
+  redo: () => <path d="M4 9h9a5 5 0 0 1 0 10h-4M20 9l-4-4M20 9l-4 4" {...S} />,
+  skipBack: () => (
+    <>
+      <path d="M6 7v10" {...S} />
+      <path d="M18 7v10" {...S} />
+      <path d="M18 12H10l4-4M10 12l4 4" {...S} />
+    </>
+  ),
+  skipForward: () => (
+    <>
+      <path d="M6 7v10" {...S} />
+      <path d="M18 7v10" {...S} />
+      <path d="M6 12H14l-4-4M14 12l-4 4" {...S} />
+    </>
+  ),
+  pause: () => (
+    <>
+      <path d="M9 7v10" {...S} />
+      <path d="M15 7v10" {...S} />
+    </>
+  ),
+  playFill: (d) => (
+    <>
+      {d && <circle cx="12" cy="12" r="9" {...duo} />}
+      <circle cx="12" cy="12" r="9" {...S} />
+      <path d="M10 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none" />
+    </>
+  ),
+  pawn: (d) => (
+    <>
+      {d && (
+        <path
+          d="M12 5.5c1.6 0 2.8 1.2 2.8 2.7 0 .9-.4 1.7-1 2.2 1.8 1 3 3.1 3.3 6.1H7.9c.3-3 1.5-5.1 3.3-6.1-.6-.5-1-1.3-1-2.2 0-1.5 1.2-2.7 2.8-2.7z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M12 5.5c1.6 0 2.8 1.2 2.8 2.7 0 .9-.4 1.7-1 2.2 1.8 1 3 3.1 3.3 6.1H7.9c.3-3 1.5-5.1 3.3-6.1-.6-.5-1-1.3-1-2.2 0-1.5 1.2-2.7 2.8-2.7z"
+        {...S}
+      />
+      <path d="M8.5 18.5h7" {...S} />
+    </>
+  ),
+  handshake: (d) => (
+    <>
+      {d && <path d="M4 12.5 8 8.5l3 3 5-5 4 4v5.5H8.5L4 15.5z" {...duo} />}
+      <path d="M4 12.5 8 8.5l3 3 5-5 4 4v5.5H8.5L4 15.5z" {...S} />
+    </>
+  ),
+  message: (d) => (
+    <>
+      {d && <path d="M5 6.5h14v9H9l-4 3.5V6.5z" {...duo} />}
+      <path
+        d="M5 6.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9.5L5 18V6.5z"
+        {...S}
+      />
+      <path d="M8.5 10h7M8.5 12.5h4.5" {...S} />
+    </>
+  ),
+  users: (d) => (
+    <>
+      {d && <circle cx="9" cy="9.5" r="3" {...duo} />}
+      <circle cx="9" cy="9.5" r="2.5" {...S} />
+      <path d="M3.5 19c.8-2.8 2.8-4.5 5.5-4.5s4.7 1.7 5.5 4.5" {...S} />
+      <circle cx="16.5" cy="10" r="2" {...S} />
+      <path d="M14.5 19c.5-1.8 1.8-3 3.5-3s3 1.2 3.5 3" {...S} />
+    </>
+  ),
+  robot: (d) => (
+    <>
+      {d && <rect x="6" y="7" width="12" height="11" rx="3" {...duo} />}
+      <rect x="6" y="7" width="12" height="11" rx="3" {...S} />
+      <path d="M12 4v3M9 4h6" {...S} />
+      <circle cx="10" cy="12.5" r="1" fill="currentColor" />
+      <circle cx="14" cy="12.5" r="1" fill="currentColor" />
+      <path d="M10 16h4" {...S} />
+    </>
+  ),
+  crown: (d) => (
+    <>
+      {d && <path d="M5 17h14l-2-9-3.5 4L12 7l-1.5 5L7 8z" {...duo} />}
+      <path d="M5 17h14l-2-9-3.5 4L12 7l-1.5 5L7 8z" {...S} />
+      <path d="M5 17v2h14v-2" {...S} />
+    </>
+  ),
+  brain: (d) => (
+    <>
+      {d && (
+        <path
+          d="M9 5.5a3 3 0 0 0-2.2 5.2 3.5 3.5 0 0 0 .7 6.8H15a3.5 3.5 0 0 0 .7-6.8A3 3 0 0 0 15 5.5c-.8 0-1.5.3-2 .8-.5-.5-1.2-.8-2-.8-.8 0-1.5.3-2 .8-.5-.5-1.2-.8-2-.8z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M9 5.5a3 3 0 0 0-2.2 5.2 3.5 3.5 0 0 0 .7 6.8H15a3.5 3.5 0 0 0 .7-6.8A3 3 0 0 0 15 5.5c-.8 0-1.5.3-2 .8-.5-.5-1.2-.8-2-.8-.8 0-1.5.3-2 .8-.5-.5-1.2-.8-2-.8z"
+        {...S}
+      />
+      <path d="M12 8v8M9.5 11h5M9.5 14h5" {...S} />
+    </>
+  ),
+  sword: (d) => (
+    <>
+      {d && <path d="m14 4 6 6-8 8-3-3z" {...duo} />}
+      <path d="m14 4 6 6-8 8-3-3z" {...S} />
+      <path d="m7 17-3 3M16 6l2-2" {...S} />
+    </>
+  ),
+  seedling: (d) => (
+    <>
+      {d && (
+        <path
+          d="M12 20V10M12 10C12 6 16 4 18 4c0 4-2 6-6 6zM12 10C12 6 8 4 6 4c0 4 2 6 6 6z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M12 20V10M12 10C12 6 16 4 18 4c0 4-2 6-6 6zM12 10C12 6 8 4 6 4c0 4 2 6 6 6z"
+        {...S}
+      />
+    </>
+  ),
+  volume: (d) => (
+    <>
+      {d && <path d="M8 9H5v6h3l5 4V5z" {...duo} />}
+      <path d="M8 9H5v6h3l5 4V5z" {...S} />
+      <path d="M17 9.5a4 4 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10" {...S} />
+    </>
+  ),
+  volumeOff: () => (
+    <>
+      <path d="M8 9H5v6h3l5 4V5z" {...S} />
+      <path d="m18 9-6 6M12 9l6 6" {...S} />
+    </>
+  ),
+  warning: (d) => (
+    <>
+      {d && <path d="M12 4 3.5 19h17z" {...duo} />}
+      <path d="M12 4 3.5 19h17z" {...S} />
+      <path d="M12 10v4M12 17h.01" {...S} />
+    </>
+  ),
+  wifi: (d) => (
+    <>
+      {d && <circle cx="12" cy="18" r="1.2" fill="currentColor" />}
+      <path
+        d="M8.5 14.5a6 6 0 0 1 7 0M5.5 11.5a10 10 0 0 1 13 0M2.5 8.5a14 14 0 0 1 19 0"
+        {...S}
+      />
+      <circle cx="12" cy="18" r="1.2" fill="currentColor" />
+    </>
+  ),
+  save: (d) => (
+    <>
+      {d && <ellipse cx="12" cy="18" rx="7" ry="2" {...duo} />}
+      <ellipse cx="12" cy="18" rx="7" ry="2" {...S} />
+      <path d="M5 6.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9H5z" {...S} />
+      <path d="M8 4.5h8v4H8z" {...S} />
+    </>
+  ),
+  exam: (d) => (
+    <>
+      {d && <rect x="6" y="4" width="12" height="16" rx="2" {...duo} />}
+      <rect x="6" y="4" width="12" height="16" rx="2" {...S} />
+      <path d="M9 9h6M9 12.5h6M9 16h4" {...S} />
+      <path d="m15.5 15.5 2 2 3.5-4" {...S} />
+    </>
+  ),
+  moon: (d) => (
+    <>
+      {d && <path d="M18 5.5a7.5 7.5 0 1 0 2 10.5A6.5 6.5 0 1 1 18 5.5z" {...duo} />}
+      <path d="M18 5.5a7.5 7.5 0 1 0 2 10.5A6.5 6.5 0 1 1 18 5.5z" {...S} />
+    </>
+  ),
+  book: (d) => (
+    <>
+      {d && <path d="M5 4.5h7a3 3 0 0 1 3 3V19H8a3 3 0 0 0-3 3V4.5z" {...duo} />}
+      <path d="M5 4.5h7a3 3 0 0 1 3 3V19H8a3 3 0 0 0-3 3V4.5z" {...S} />
+      <path d="M12 7.5h7V22H12a3 3 0 0 1-3-3V7.5z" {...S} />
+    </>
+  ),
+  search: (d) => (
+    <>
+      {d && <circle cx="11" cy="11" r="6" {...duo} />}
+      <circle cx="11" cy="11" r="6" {...S} />
+      <path d="m16.5 16.5 4.5 4.5" {...S} />
+    </>
+  ),
+  medal: (d) => (
+    <>
+      {d && <circle cx="12" cy="14" r="5" {...duo} />}
+      <circle cx="12" cy="14" r="5" {...S} />
+      <path d="M9.5 6 12 9l2.5-3M8 6H6l2 4M16 6h2l-2 4" {...S} />
+      <path d="M12 12v3" {...S} />
+    </>
+  ),
+  gem: (d) => (
+    <>
+      {d && <path d="M12 3 20 9v6l-8 6-8-6V9z" {...duo} />}
+      <path d="M12 3 20 9v6l-8 6-8-6V9z" {...S} />
+      <path d="M4 9h16M12 3v18" {...S} />
+    </>
+  ),
+  fork: () => (
+    <>
+      <path d="M6 4v8M18 4v8M6 8h12" {...S} />
+      <path d="M6 12v8M18 12v8" {...S} />
+    </>
+  ),
+  pin: (d) => (
+    <>
+      {d && (
+        <path
+          d="M12 3c-2.2 0-4 1.8-4 4 0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z"
+          {...duo}
+        />
+      )}
+      <path d="M12 3c-2.2 0-4 1.8-4 4 0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z" {...S} />
+      <circle cx="12" cy="7" r="1.5" {...S} />
+    </>
+  ),
+  puzzle: (d) => (
+    <>
+      {d && (
+        <path
+          d="M8 4h3a2 2 0 0 0 4 0h3v3a2 2 0 0 0 0 4v3h-3a2 2 0 0 0-4 0H8v-3a2 2 0 0 0 0-4z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M8 4h3a2 2 0 0 0 4 0h3v3a2 2 0 0 0 0 4v3h-3a2 2 0 0 0-4 0H8v-3a2 2 0 0 0 0-4z"
+        {...S}
+      />
+    </>
+  ),
+  link: () => (
+    <>
+      <path d="M10 8a4 4 0 0 1 5.7 0l2 2a4 4 0 0 1 0 5.7l-1 1" {...S} />
+      <path d="M14 16a4 4 0 0 1-5.7 0l-2-2a4 4 0 0 1 0-5.7l1-1" {...S} />
+    </>
+  ),
+  rocket: (d) => (
+    <>
+      {d && <path d="M12 3c-2 4-4 6-4 9a4 4 0 0 0 8 0c0-3-2-5-4-9z" {...duo} />}
+      <path d="M12 3c-2 4-4 6-4 9a4 4 0 0 0 8 0c0-3-2-5-4-9z" {...S} />
+      <path d="M10 20h4M11 16l-1 4M13 16l1 4" {...S} />
+      <circle cx="12" cy="11" r="1.5" fill="currentColor" />
+    </>
+  ),
+  plug: (d) => (
+    <>
+      {d && <path d="M8 7v4a4 4 0 0 0 8 0V7" {...duo} />}
+      <path d="M8 7V5a4 4 0 0 1 8 0v2M8 7v4a4 4 0 0 0 8 0V7" {...S} />
+      <path d="M12 15v4M9 19h6" {...S} />
+    </>
+  ),
+  knight: (d) => (
+    <>
+      {d && (
+        <path
+          d="M8 19h8M10 19c0-5 1-7.5 4-9.5 1.2-.7 2-2 2-3.5a2.5 2.5 0 0 0-5 0c0 1.2.5 2.2 1.5 3"
+          {...duo}
+        />
+      )}
+      <path
+        d="M8 19h8M10 19c0-5 1-7.5 4-9.5 1.2-.7 2-2 2-3.5a2.5 2.5 0 0 0-5 0c0 1.2.5 2.2 1.5 3"
+        {...S}
+      />
+      <path d="M15 6.5h2.5L16 9" {...S} />
+    </>
+  ),
+  rook: (d) => (
+    <>
+      {d && <path d="M8 8h8v11H8z" {...duo} />}
+      <path d="M8 5h8M9 5V3h6v2M8 8h8v11H8z" {...S} />
+      <path d="M10 14h4" {...S} />
+    </>
+  ),
+  bishop: (d) => (
+    <>
+      {d && (
+        <path
+          d="M12 4c-2.2 0-3.5 1.8-3.5 3.5S12 13 12 13s3.5-2.5 3.5-5.5S14.2 4 12 4z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M12 4c-2.2 0-3.5 1.8-3.5 3.5S12 13 12 13s3.5-2.5 3.5-5.5S14.2 4 12 4zM9 19h6"
+        {...S}
+      />
+      <path d="M10 16h4" {...S} />
+    </>
+  ),
+  queen: (d) => (
+    <>
+      {d && <path d="M6 8l2 4 4-5 4 5 2-4 2 9H4l2-9z" {...duo} />}
+      <path d="M6 8l2 4 4-5 4 5 2-4 2 9H4l2-9z" {...S} />
+      <circle cx="9" cy="7.5" r="0.8" fill="currentColor" />
+      <circle cx="12" cy="5.5" r="0.8" fill="currentColor" />
+      <circle cx="15" cy="7.5" r="0.8" fill="currentColor" />
+    </>
+  ),
+  map: (d) => (
+    <>
+      {d && <path d="M4 6l6-2 8 2v12l-8-2-6 2V6z" {...duo} />}
+      <path d="M4 6l6-2 8 2v12l-8-2-6 2V6z" {...S} />
+      <path d="M10 4v12M18 8v12" {...S} />
+    </>
+  ),
+  tree: (d) => (
+    <>
+      {d && <path d="M12 20V12M12 12 8 6h8l-4 6z" {...duo} />}
+      <path d="M12 20V12M12 12 8 6h8l-4 6z" {...S} />
+      <path d="M9 20h6" {...S} />
+    </>
+  ),
+  wave: (d) => (
+    <>
+      {d && <path d="M6 12c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0" {...duo} />}
+      <path d="M4 14V8.5a1.5 1.5 0 0 1 3 0V14M7 8.5V6.5a1.5 1.5 0 0 1 3 0v5" {...S} />
+      <path d="M6 12c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0" {...S} />
+    </>
+  ),
+  celebrate: (d) => (
+    <>
+      {d && <path d="M12 3v8l3-2 1 6-4-2-4 2 1-6 3 2V3z" {...duo} />}
+      <path d="M12 3v8l3-2 1 6-4-2-4 2 1-6 3 2V3z" {...S} />
+      <path d="M5 5l2 2M19 5l-2 2M6 18l1.5-1.5M18 18l-1.5-1.5" {...S} />
+    </>
+  ),
+  building: (d) => (
+    <>
+      {d && <path d="M5 20V6l7-3 7 3v14H5z" {...duo} />}
+      <path d="M5 20V6l7-3 7 3v14H5z" {...S} />
+      <path d="M9 10h2M9 14h2M13 10h2M13 14h2" {...S} />
+      <path d="M12 20v-4h-2v4" {...S} />
+    </>
+  ),
+  scroll: (d) => (
+    <>
+      {d && (
+        <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 0-2 2V5z" {...duo} />
+      )}
+      <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 0-2 2V5z" {...S} />
+      <path d="M9 9h6M9 12.5h6" {...S} />
+    </>
+  ),
+  backpack: (d) => (
+    <>
+      {d && <path d="M8 8V6a4 4 0 0 1 8 0v2l2 4v8H6l2-12z" {...duo} />}
+      <path d="M8 8V6a4 4 0 0 1 8 0v2M6 12h12v8H6z" {...S} />
+      <path d="M10 8h4" {...S} />
+    </>
+  ),
+  heart: (d) => (
+    <>
+      {d && (
+        <path
+          d="M12 20s-6.5-4.2-8.5-8.2C1.8 8.5 3.5 5.5 6.5 5.5c1.7 0 3.2 1 3.5 2.5.3-1.5 1.8-2.5 3.5-2.5 3 0 4.7 3 3 6.3C18.5 15.8 12 20 12 20z"
+          {...duo}
+        />
+      )}
+      <path
+        d="M12 20s-6.5-4.2-8.5-8.2C1.8 8.5 3.5 5.5 6.5 5.5c1.7 0 3.2 1 3.5 2.5.3-1.5 1.8-2.5 3.5-2.5 3 0 4.7 3 3 6.3C18.5 15.8 12 20 12 20z"
         {...S}
       />
     </>

@@ -1,0 +1,21 @@
+<!-- High-fi mockup: Placement test - 390px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#fbfaff"/>
+  <rect x="20" y="48" width="200" height="20" rx="4" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="20" y="76" width="280" height="12" rx="2" fill="#6b6982" opacity="0.45"/>
+  <!-- Step indicator -->
+  <rect x="20" y="108" width="350" height="8" rx="4" fill="#f1f0f9"/>
+  <rect x="20" y="108" width="87" height="8" rx="4" fill="#5b5bd6"/>
+  <rect x="20" y="128" width="80" height="10" rx="2" fill="#a9a7bd"/>
+  <!-- Question card -->
+  <rect x="20" y="156" width="350" height="420" rx="20" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="36" y="176" width="120" height="12" rx="2" fill="#6b6982"/>
+  <rect x="36" y="204" width="318" height="280" rx="12" fill="#ede7f6"/>
+  <rect x="36" y="204" width="39.75" height="39.75" fill="#b9a8e6" opacity="0.5"/>
+  <rect x="36" y="500" width="318" height="56" rx="14" fill="#eef0ff" stroke="#5b5bd6"/>
+  <rect x="36" y="568" width="318" height="56" rx="14" fill="#fbfaff" stroke="#e7e6f2"/>
+  <!-- CTA -->
+  <rect x="20" y="600" width="350" height="52" rx="26" fill="#5b5bd6"/>
+  <rect x="120" y="668" width="150" height="12" rx="2" fill="#a9a7bd" opacity="0.4"/>
+  <text x="195" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b6982">Placement - 390px</text>
+</svg>

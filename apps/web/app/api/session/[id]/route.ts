@@ -7,6 +7,8 @@ import { getApiUser } from "@/lib/auth";
 import { publishSession } from "@/lib/ably-server";
 import { seatColorForUser } from "@/lib/game-session";
 import { formatSeatToken, verifySeatToken } from "@/lib/session-secret";
+import { sessionPostSchema } from "@/lib/api-schemas";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -83,20 +85,23 @@ export async function POST(
   const seat = seatColorForUser(s, user.id);
   if (!seat) return NextResponse.json({ error: "not a participant" }, { status: 403 });
 
-  let body: {
-    action: "move" | "resign" | "timeout";
-    color?: "w" | "b";
-    seat?: "w" | "b";
-    seatToken?: string;
-    from?: string;
-    to?: string;
-    promotion?: string;
-  };
-  try {
-    body = (await req.json()) as typeof body;
-  } catch {
+  const limited = enforceRateLimit(
+    req,
+    "session:move",
+    { limit: 180, windowMs: 60_000 },
+    user.id,
+  );
+  if (limited) return limited;
+
+  const raw = await req.json().catch(() => null);
+  if (raw === null) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
+  const parsed = sessionPostSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid body" }, { status: 400 });
+  }
+  const body = parsed.data;
 
   if (!verifySeatToken(id, seat, user.id, body.seatToken)) {
     return NextResponse.json({ error: "invalid seat" }, { status: 403 });
@@ -111,14 +116,38 @@ export async function POST(
   }
 
   if (body.action === "timeout") {
-    const flagged = body.color ?? body.seat;
-    if (flagged !== "w" && flagged !== "b") {
-      return NextResponse.json({ error: "invalid timeout" }, { status: 400 });
+    const now = Date.now();
+    let whiteMs = s.whiteMs;
+    let blackMs = s.blackMs;
+    if (s.status === "active" && s.timeControlMin > 0) {
+      const elapsed = Math.max(0, now - s.updatedAt);
+      if (s.turn === "w") whiteMs = Math.max(0, whiteMs - elapsed);
+      else blackMs = Math.max(0, blackMs - elapsed);
     }
+    const wTimedOut = whiteMs <= 0;
+    const bTimedOut = blackMs <= 0;
+    if (!wTimedOut && !bTimedOut) {
+      return NextResponse.json({ error: "clock still running" }, { status: 409 });
+    }
+    // Derive the timed-out seat from server clocks — never trust client `color`.
+    const flagged: "w" | "b" =
+      wTimedOut && !bTimedOut
+        ? "w"
+        : bTimedOut && !wTimedOut
+          ? "b"
+          : s.turn === "b"
+            ? "b"
+            : "w";
     const winner = flagged === "w" ? "b" : "w";
     await db
       .update(gameSessions)
-      .set({ status: "over", result: `time:${winner}`, updatedAt: Date.now() })
+      .set({
+        status: "over",
+        result: `time:${winner}`,
+        whiteMs,
+        blackMs,
+        updatedAt: now,
+      })
       .where(eq(gameSessions.id, id));
     return respond(id);
   }
@@ -161,9 +190,9 @@ export async function POST(
   let applied;
   try {
     applied = g.move({
-      from: body.from!,
-      to: body.to!,
-      promotion: (body.promotion as "q") ?? "q",
+      from: body.from,
+      to: body.to,
+      promotion: body.promotion ?? "q",
     });
   } catch {
     applied = null;

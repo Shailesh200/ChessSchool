@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { Mascot } from "@/components/ui/Mascot";
 import { Confetti } from "@/components/ui/Confetti";
 import { useProgression } from "@/core/store/progression.store";
@@ -98,7 +99,7 @@ export function PlacementTest({
       });
       audio.play("graduation");
       startNav();
-      router.push("/");
+      router.push("/academy");
     };
 
     return (
@@ -156,12 +157,20 @@ export function PlacementTest({
         </motion.div>
       </div>
       <div className="px-4 pt-2 pb-6 text-center">
-        <p className="text-ink text-sm font-bold">
-          {feedback === "correct"
-            ? "✅ Correct!"
-            : feedback === "wrong"
-              ? "❌ Not the best move"
-              : "Your move."}
+        <p className="text-ink inline-flex items-center justify-center gap-1.5 text-sm font-bold">
+          {feedback === "correct" ? (
+            <>
+              <Icon name="check" size={16} className="text-success shrink-0" />
+              Correct!
+            </>
+          ) : feedback === "wrong" ? (
+            <>
+              <Icon name="close" size={16} className="text-danger shrink-0" />
+              Not the best move
+            </>
+          ) : (
+            "Your move."
+          )}
         </p>
       </div>
     </div>

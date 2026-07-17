@@ -17,23 +17,68 @@ import { AnimatedSplash } from "@/AnimatedSplash";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
 import { NetworkBanner } from "@/NetworkBanner";
+import { Toaster } from "@/Toaster";
 import { UpdateBanner } from "@/UpdateBanner";
+import { Diagnostics } from "@/Diagnostics";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
+const ACADEMY = "/(tabs)/academy" as const;
+
 function Gate() {
-  const { user, loading, needsOnboarding } = useAuth();
+  const { user, guest, loading, needsOnboarding, orientationDone, enterGuestBrowse } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
-    const onLogin = segments[0] === "login";
-    const onOnboarding = segments[0] === "onboarding";
-    if (!user && !onLogin) router.replace("/login");
-    else if (user && needsOnboarding && !onOnboarding) router.replace("/onboarding");
-    else if (user && !needsOnboarding && (onLogin || onOnboarding)) router.replace("/(tabs)");
-  }, [user, loading, needsOnboarding, segments]);
+    const root = segments[0] as string | undefined;
+    const onOrientation = root === undefined || root === "index";
+    const onLogin = root === "login";
+    const onOnboarding = root === "onboarding";
+
+    const onWelcome = root === "welcome";
+
+    if (user && !guest) {
+      if (needsOnboarding && !onOnboarding) router.replace("/onboarding");
+      else if (!needsOnboarding && onWelcome) return;
+      else if (!needsOnboarding && (onLogin || onOrientation)) router.replace("/welcome");
+      return;
+    }
+
+    const onParityAuth = root === "parity-auth";
+    if (onParityAuth) return;
+
+    // Parity deep-links arrive before orientation completes — enter guest and continue.
+    // Never call this once a real session exists (account / signed-in captures).
+    if (
+      process.env.EXPO_PUBLIC_PARITY === "1" &&
+      !orientationDone &&
+      !onOrientation &&
+      !(user && !guest)
+    ) {
+      enterGuestBrowse();
+    }
+
+    if (guest && user) {
+      // Guests must reach /login to enroll (My ID → login) — do not bounce them away.
+      if (onLogin) return;
+      if (onOrientation || onOnboarding) router.replace(ACADEMY);
+      return;
+    }
+
+    if (!orientationDone) {
+      if (!onOrientation) router.replace("/");
+      return;
+    }
+
+    if (onLogin) return;
+
+    if (onOrientation) {
+      enterGuestBrowse();
+      router.replace(ACADEMY);
+    }
+  }, [user, guest, loading, needsOnboarding, orientationDone, segments, router, enterGuestBrowse]);
 
   if (loading) {
     return <ScreenLoader variant="fullscreen" label="Opening the academy…" />;
@@ -48,6 +93,7 @@ function ThemedStatusBar() {
 
 export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
+  const [fontsTimedOut, setFontsTimedOut] = useState(false);
   const [fontsLoaded] = useFonts({
     Fredoka_400Regular,
     Fredoka_500Medium,
@@ -56,12 +102,19 @@ export default function RootLayout() {
   });
 
   const finishSplash = useCallback(() => setShowSplash(false), []);
+  const ready = fontsLoaded || fontsTimedOut;
 
   useEffect(() => {
-    if (fontsLoaded) void SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    // Release APKs can hang forever on font CDN misses — fail open so the app boots.
+    const t = setTimeout(() => setFontsTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) {
     return null;
   }
 
@@ -81,6 +134,8 @@ export default function RootLayout() {
           <ThemedStatusBar />
           <NetworkBanner />
           <UpdateBanner />
+          <Toaster />
+          <Diagnostics />
           <AuthProvider>
             <ErrorBoundary>
               <Gate />

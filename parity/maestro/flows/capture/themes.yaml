@@ -1,0 +1,9 @@
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///themes"
+- extendedWaitUntil:
+    visible:
+      text: "Theme Studio"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 800

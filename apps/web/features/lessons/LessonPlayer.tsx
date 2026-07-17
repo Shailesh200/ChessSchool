@@ -7,8 +7,8 @@ import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { Mascot, type Expression } from "@/components/ui/Mascot";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { Confetti } from "@/components/ui/Confetti";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
@@ -18,16 +18,43 @@ import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { startNav } from "@/core/store/nav.store";
 import { checkLessonAchievements } from "@/features/progression/achievements";
+import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { getClass, classByExamId, nextLessonAfter } from "@/features/school/structure";
+import { isTutorialLesson, scoredStepCount } from "@/features/school/classExam";
+import {
+  applyCoachLine,
+  quizUiLabels,
+  type CoachContext,
+} from "@/features/coaching/personality";
+import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
+import { prefetchCoachText } from "@/core/audio/coachSpeech";
+import { EnrollPrompt, EnrollPromptBanner } from "@/components/auth/EnrollPrompt";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
+import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import {
   deriveTutorialVisuals,
   formatCoachText,
   isPreschoolLesson,
+  lessonsAttemptedCount,
+  shouldAutoOpenEnrollPrompt,
+  shouldShowEnrollPrompt,
 } from "@chess-school/progression";
 import { PreschoolQuiz } from "./PreschoolQuiz";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
+
+const PROMO_NAMES: Record<string, string> = {
+  q: "queen",
+  r: "rook",
+  b: "bishop",
+  n: "knight",
+};
+
+type LessonCeremony =
+  | { variant: "graduation"; title: string; badge: string }
+  | { variant: "exam"; title: string; badge: string; subtitle: string }
+  | null;
 
 type Phase = "playing" | "correct" | "wrong" | "complete";
 
@@ -87,13 +114,12 @@ export function LessonPlayer({
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("playing");
-  const [displayFen, setDisplayFen] = useState<string | undefined>(
-    lesson.steps[0]?.fen,
-  );
+  const step = lesson.steps[index] as LessonStep | undefined;
+  /** Overrides `step.fen` mid-step (moves, observe playback); undefined → use step FEN. */
+  const [displayFen, setDisplayFen] = useState<string | undefined>(undefined);
   const [correctCount, setCorrectCount] = useState(0);
-  const [prevIndex, setPrevIndex] = useState(0);
   const [observeDone, setObserveDone] = useState(false);
-  const [graduatedTitle, setGraduatedTitle] = useState<string | null>(null);
+  const [ceremony, setCeremony] = useState<LessonCeremony>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(0);
   const [movedTo, setMovedTo] = useState<Square | null>(null);
@@ -105,8 +131,8 @@ export function LessonPlayer({
 
   const progression = useProgression();
   const sound = useSettings((s) => s.sound);
+  const coachPersonality = useSettings((s) => s.coachPersonality);
   const toggleSetting = useSettings((s) => s.toggle);
-  const step = lesson.steps[index] as LessonStep | undefined;
   const total = lesson.steps.length;
 
   useEffect(() => {
@@ -116,17 +142,6 @@ export function LessonPlayer({
       exam: lesson.exam,
     });
   }, [lesson.id, lesson.tag, lesson.exam]);
-
-  // Reset per-step state during render when the step changes.
-  if (index !== prevIndex) {
-    setPrevIndex(index);
-    setDisplayFen(step?.fen);
-    setObserveDone(false);
-    setPromoted(null);
-    setHintLevel(0);
-    setMovedTo(null);
-    setOppMove(null);
-  }
 
   // Auto-play "observe" steps move-by-move.
   useEffect(() => {
@@ -155,6 +170,66 @@ export function LessonPlayer({
     };
   }, [index, step]);
 
+  const coachSeed = step ? `${lesson.id}:${step.id}:${index}` : lesson.id;
+  const rawFeedback = step
+    ? formatCoachText(
+        phase === "correct"
+          ? promoted
+            ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
+            : step.kind === "quiz"
+              ? ""
+              : (step.successText ?? "Nice work!")
+          : phase === "wrong"
+            ? step.kind === "quiz"
+              ? (step.failText ?? "")
+              : (step.failText ?? "Not quite — try again!")
+            : step.kind === "quiz"
+              ? ""
+              : step.coach,
+      )
+    : "";
+  const coachContext: CoachContext = !step
+    ? "lesson"
+    : phase === "correct"
+      ? step.kind === "quiz"
+        ? "quiz-success"
+        : "success"
+      : phase === "wrong"
+        ? step.kind === "quiz"
+          ? "quiz-wrong"
+          : "wrong"
+        : step.kind === "quiz"
+          ? "quiz"
+          : "lesson";
+  const feedbackText = applyCoachLine(
+    rawFeedback,
+    coachPersonality,
+    coachContext,
+    coachSeed,
+  );
+  useCoachSpeech(feedbackText, coachContext, phase !== "complete" && !!step, true);
+
+  // Warm TTS for the next step while the student works on the current one.
+  useEffect(() => {
+    if (phase === "complete") return;
+    const next = lesson.steps[index + 1];
+    if (!next) return;
+    const nextRaw = next.kind === "quiz" ? "" : formatCoachText(next.coach ?? "");
+    if (!nextRaw.trim()) return;
+    const nextLine = applyCoachLine(
+      nextRaw,
+      coachPersonality,
+      next.kind === "quiz" ? "quiz" : "lesson",
+      `${lesson.id}:${next.id}:${index + 1}`,
+    );
+    void prefetchCoachText(nextLine);
+  }, [index, lesson.id, lesson.steps, phase, coachPersonality]);
+
+  useEffect(() => {
+    if (phase === "complete" || !feedbackText.trim()) return;
+    void prefetchCoachText(feedbackText);
+  }, [feedbackText, phase]);
+
   if (!step) return null;
 
   const expression: Expression =
@@ -171,6 +246,12 @@ export function LessonPlayer({
   function advance() {
     if (index + 1 >= total) finish();
     else {
+      setDisplayFen(undefined);
+      setObserveDone(false);
+      setPromoted(null);
+      setHintLevel(0);
+      setMovedTo(null);
+      setOppMove(null);
       setIndex((i) => i + 1);
       setPhase("playing");
     }
@@ -191,7 +272,7 @@ export function LessonPlayer({
   function finish() {
     // Tutorials (no puzzles to solve) just mark done and flow to the next lesson —
     // no "lesson complete" celebration screen.
-    const isTutorial = !lesson.steps.some((s) => s.kind === "move");
+    const isTutorial = isTutorialLesson(lesson.steps, lesson.exam);
     if (isTutorial) {
       progression.recordLesson(lesson.id, 1, 1); // counts as completed
       progression.awardXp(lesson.xp);
@@ -210,7 +291,7 @@ export function LessonPlayer({
       return;
     }
     setPhase("complete");
-    const interactive = lesson.steps.filter((s) => s.kind === "move").length || 1;
+    const interactive = scoredStepCount(lesson.steps) || 1;
     const correct = correctRef.current; // fresh count (state may lag the auto-advance)
     setFinalMistakes(wrongRef.current);
     const ratio = correct / interactive;
@@ -234,13 +315,18 @@ export function LessonPlayer({
       perfect: wrongRef.current === 0 && correct === interactive,
       xp: st.xp,
       streak: st.streak,
-    }).forEach((id) => progression.unlockAchievement(id));
+    }).forEach((id) => unlockAndCelebrate(id));
 
     // School exam: passing unlocks the next school (no class to graduate).
     if (schoolExam) {
       if (ratio >= 0.67) {
         progression.passSchoolExam(schoolExam.stage);
-        setGraduatedTitle(`${schoolExam.nextName} unlocked!`);
+        setCeremony({
+          variant: "exam",
+          title: `${schoolExam.nextName} unlocked!`,
+          subtitle: "You passed the school exam!",
+          badge: "School exam passed",
+        });
         audio.play("graduation");
       } else {
         audio.play("fail");
@@ -264,7 +350,11 @@ export function LessonPlayer({
     if (lesson.exam && ratio >= 0.67 && cls) {
       cls.lessonIds.forEach((id) => progression.recordLesson(id, 1, 1));
       progression.graduateClass(cls.id);
-      setGraduatedTitle(cls.title);
+      setCeremony({
+        variant: "graduation",
+        title: cls.title,
+        badge: "Class graduated",
+      });
       audio.play("graduation");
       return;
     }
@@ -277,7 +367,11 @@ export function LessonPlayer({
         cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= 0.9);
       if (allMastered) {
         progression.graduateClass(cls.id);
-        setGraduatedTitle(cls.title);
+        setCeremony({
+          variant: "graduation",
+          title: cls.title,
+          badge: "Class graduated",
+        });
         audio.play("graduation");
         return;
       }
@@ -351,32 +445,19 @@ export function LessonPlayer({
   }
 
   function handleQuizAnswer(ok: boolean) {
-    if (ok) setPhase("correct");
-    else {
+    if (ok) {
+      correctRef.current += 1;
+      setCorrectCount(correctRef.current);
+      setPhase("correct");
+    } else {
+      wrongRef.current += 1;
       setPhase("wrong");
       timers.current.push(window.setTimeout(() => setPhase("playing"), 900));
     }
   }
 
-  const PROMO_NAMES: Record<string, string> = {
-    q: "queen",
-    r: "rook",
-    b: "bishop",
-    n: "knight",
-  };
-  const feedbackText = formatCoachText(
-    phase === "correct"
-      ? promoted
-        ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}! A powerful new piece.`
-        : step.kind === "quiz"
-          ? (step.successText ?? "Correct! ✓")
-          : (step.successText ?? "Nice work!")
-      : phase === "wrong"
-        ? (step.failText ?? "Not quite — try again!")
-        : step.kind === "quiz"
-          ? "Choose the best answer below."
-          : step.coach,
-  );
+  const quizLabels =
+    step.kind === "quiz" ? quizUiLabels(coachPersonality, coachSeed) : null;
 
   if (phase === "complete") {
     return (
@@ -384,10 +465,10 @@ export function LessonPlayer({
         lesson={lesson}
         correct={correctCount}
         mistakes={finalMistakes}
-        graduatedTitle={graduatedTitle}
+        ceremony={ceremony}
         nextLessonId={nextLessonId}
         homeworkStep={homeworkStep}
-        onDone={() => router.push("/")}
+        onDone={() => router.push("/academy")}
       />
     );
   }
@@ -443,12 +524,12 @@ export function LessonPlayer({
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col">
-      <div className="pt-safe bg-surface/90 sticky top-0 z-20 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center gap-3">
+      <div className="pt-safe bg-surface/90 sticky top-0 z-20 px-4 py-3 backdrop-blur lg:px-8">
+        <div className="mx-auto flex max-w-xl items-center gap-3 lg:max-w-6xl">
           <button
             onClick={() => {
               startNav();
-              router.push("/");
+              router.push("/academy");
             }}
             aria-label="Back to campus"
             className="btn-tactile border-hairline bg-surface-card text-ink-700 hover:text-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
@@ -482,24 +563,29 @@ export function LessonPlayer({
             aria-pressed={sound}
             className="btn-tactile border-hairline bg-surface-card text-ink-700 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
           >
-            {sound ? "🔊" : "🔇"}
+            {sound ? (
+              <Icon name="volume" size={18} />
+            ) : (
+              <Icon name="volumeOff" size={18} />
+            )}
           </button>
         </div>
       </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4">
-        <div className="flex min-h-[4.75rem] shrink-0 items-start gap-2">
+      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,560px)_minmax(280px,1fr)] lg:items-start lg:gap-8 lg:px-8 lg:py-6">
+        {/* Coach panel — above board on mobile, right column on desktop */}
+        <div className="order-1 flex min-h-[4.75rem] shrink-0 items-start gap-2 lg:sticky lg:top-24 lg:order-2 lg:min-h-0 lg:flex-col">
           <Mascot
             expression={expression}
             size={88}
             float={false}
-            className="mt-1 shrink-0"
+            className="mt-1 shrink-0 lg:mx-auto"
           />
           <motion.div
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border-hairline bg-surface-card text-ink relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)]"
+            className="border-hairline bg-surface-card text-ink relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)] lg:w-full lg:rounded-2xl"
           >
             <p className="whitespace-pre-wrap">{feedbackText}</p>
             {lesson.exam && (
@@ -508,94 +594,114 @@ export function LessonPlayer({
               </span>
             )}
           </motion.div>
-        </div>
-
-        {step.kind === "quiz" ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
-            <PreschoolQuiz
-              key={index}
-              step={step}
-              phase={phase}
-              onAnswer={handleQuizAnswer}
-            />
-          </div>
-        ) : (
-          step.fen && (
-            <div className="flex min-h-0 flex-1 items-center justify-center">
-              {/* Viewport-based size = never re-measured, so the board cannot
-                  resize/flicker when the feedback footer or coach text changes. */}
-              <div
-                className="relative"
-                style={{ width: "min(92vw, calc(100dvh - 15rem))", maxWidth: 460 }}
-              >
-                <ChessBoard
-                  key={index}
-                  fen={displayFen ?? step.fen}
-                  orientation={step.orientation ?? "white"}
-                  onMove={handleMove}
-                  showNotation={preschool}
-                  arrows={boardArrows}
-                  highlight={boardHighlight}
-                  highlightFiles={boardHighlightFiles}
-                  highlightRanks={boardHighlightRanks}
-                  lastMove={oppMove}
-                  successSquare={phase === "correct" ? movedTo : null}
-                  checkSquare={phase === "wrong" ? movedTo : null}
-                  interactive={step.kind === "move" && phase === "playing"}
-                />
-              </div>
+          {step.kind !== "quiz" && (
+            <div className="rounded-card border-hairline bg-surface-card/70 hidden w-full items-start gap-2 border px-3 py-2 lg:flex">
+              <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
+              <p className="text-ink-500 text-[11px] leading-snug font-semibold">
+                {LESSON_TIPS[step.tag ?? ""] ??
+                  LESSON_TIPS[lesson.tag] ??
+                  "Take your time and calculate before you move."}
+              </p>
             </div>
-          )
-        )}
-
-        {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
-        <div className="flex h-10 items-center justify-between gap-2">
-          {toMove ? (
-            <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
-              <span
-                className={`border-ink-300 inline-block h-4 w-4 rounded-full border ${
-                  toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
-                }`}
-              />
-              {toMove === "w" ? "White" : "Black"} to move
-            </span>
-          ) : (
-            <span />
           )}
-          {isObserving ? (
-            <p className="text-brand text-center text-sm font-bold">
-              ▶ Watching the example…
-            </p>
-          ) : solvable && !lesson.exam ? (
-            <button
-              onClick={() => {
-                setHintLevel((h) => Math.min(h + 1, 2));
-                audio.play("notify");
-                haptics.fire("tap");
-              }}
-              disabled={hintLevel >= 2}
-              className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
-            >
-              {hintLevel === 0
-                ? "💡 Show a hint"
-                : hintLevel === 1
-                  ? "💡 Show the move"
-                  : "💡 Follow the arrow"}
-            </button>
-          ) : null}
         </div>
 
-        {/* Fills the space below the board + reinforces the concept */}
-        {step.kind !== "quiz" && (
-          <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2">
-            <span className="text-base leading-none">🎓</span>
-            <p className="text-ink-500 text-[11px] leading-snug font-semibold">
-              {LESSON_TIPS[step.tag ?? ""] ??
-                LESSON_TIPS[lesson.tag] ??
-                "Take your time and calculate before you move."}
-            </p>
+        {/* Board + controls */}
+        <div className="order-2 flex min-h-0 flex-1 flex-col gap-4 lg:order-1 lg:min-h-[520px]">
+          {step.kind === "quiz" ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
+              <PreschoolQuiz
+                key={index}
+                step={step}
+                phase={phase}
+                answerLabel={quizLabels?.answers}
+                onAnswer={handleQuizAnswer}
+              />
+            </div>
+          ) : (
+            step.fen && (
+              <div className="flex min-h-0 flex-1 items-center justify-center">
+                {/* Viewport-based size = never re-measured, so the board cannot
+                  resize/flicker when the feedback footer or coach text changes. */}
+                <div
+                  className="relative lg:mx-auto"
+                  style={{
+                    width: "min(92vw, calc(100dvh - 15rem))",
+                    maxWidth: 520,
+                  }}
+                >
+                  <ChessBoard
+                    key={index}
+                    boardId={`lesson-${lesson.id}`}
+                    fen={displayFen ?? step.fen}
+                    orientation={step.orientation ?? "white"}
+                    onMove={handleMove}
+                    showNotation={preschool}
+                    arrows={boardArrows}
+                    highlight={boardHighlight}
+                    highlightFiles={boardHighlightFiles}
+                    highlightRanks={boardHighlightRanks}
+                    lastMove={oppMove}
+                    successSquare={phase === "correct" ? movedTo : null}
+                    checkSquare={phase === "wrong" ? movedTo : null}
+                    interactive={step.kind === "move" && phase === "playing"}
+                  />
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
+          <div className="flex h-10 items-center justify-between gap-2">
+            {toMove ? (
+              <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
+                <span
+                  className={`border-ink-300 inline-block h-4 w-4 rounded-full border ${
+                    toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
+                  }`}
+                />
+                {toMove === "w" ? "White" : "Black"} to move
+              </span>
+            ) : (
+              <span />
+            )}
+            {isObserving ? (
+              <p className="text-brand flex items-center justify-center gap-1.5 text-center text-sm font-bold">
+                <Icon name="playFill" size={14} />
+                Watching the example…
+              </p>
+            ) : solvable && !lesson.exam ? (
+              <button
+                onClick={() => {
+                  setHintLevel((h) => Math.min(h + 1, 2));
+                  audio.play("notify");
+                  haptics.fire("tap");
+                }}
+                disabled={hintLevel >= 2}
+                className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
+              >
+                <Icon name="bulb" size={14} className="text-brand shrink-0" />
+                {hintLevel === 0
+                  ? "Show a hint"
+                  : hintLevel === 1
+                    ? "Show the move"
+                    : "Follow the arrow"}
+              </button>
+            ) : null}
           </div>
-        )}
+
+          {/* Fills the space below the board + reinforces the concept */}
+          {step.kind !== "quiz" && (
+            <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2 lg:hidden">
+              <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
+              <p className="text-ink-500 text-[11px] leading-snug font-semibold">
+                {LESSON_TIPS[step.tag ?? ""] ??
+                  LESSON_TIPS[lesson.tag] ??
+                  "Take your time and calculate before you move."}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <FeedbackBar
@@ -655,7 +761,7 @@ function LessonComplete({
   lesson,
   correct,
   mistakes,
-  graduatedTitle,
+  ceremony,
   nextLessonId,
   homeworkStep,
   onDone,
@@ -663,7 +769,7 @@ function LessonComplete({
   lesson: Lesson;
   correct: number;
   mistakes: number;
-  graduatedTitle: string | null;
+  ceremony: LessonCeremony;
   nextLessonId?: string | null;
   homeworkStep?: string;
   onDone: () => void;
@@ -672,6 +778,23 @@ function LessonComplete({
   const [busy, setBusy] = useState<string | null>(null);
   const router = useRouter();
   const authed = useSession((s) => s.authed);
+  const lessons = useProgression((s) => s.lessons);
+  const dismissedAt = useSettings((s) => s.enrollPromptDismissedAt);
+  const lessonsAttempted = lessonsAttemptedCount(lessons);
+  const showEnroll = shouldShowEnrollPrompt({
+    authed,
+    dismissedAt,
+    lessonsAttempted,
+  });
+  // Ceremony mounts once after a lesson — open the sheet from initial state
+  // (avoids setState-in-effect). Backdrop close only hides for this screen.
+  const [enrollOpen, setEnrollOpen] = useState(() =>
+    shouldAutoOpenEnrollPrompt({
+      authed,
+      dismissedAt,
+      lessonsAttempted,
+    }),
+  );
   const homeworkDoneCount = usePlan((s) => s.routineDone.length);
   const isHomework = !!homeworkStep;
   const allHomeworkDone = homeworkDoneCount >= ROUTINE_STEPS.length;
@@ -690,152 +813,127 @@ function LessonComplete({
     if (action) action();
     else router.push(href);
   };
+
+  const variant = ceremony?.variant ?? (lesson.exam ? "exam" : "lesson");
+  const headline =
+    ceremony?.title ??
+    (isHomework
+      ? allHomeworkDone
+        ? "All homework done for today!"
+        : "Homework done!"
+      : lesson.exam
+        ? "Exam complete!"
+        : "Lesson complete!");
+  const subtitle =
+    ceremony?.variant === "exam"
+      ? ceremony.subtitle
+      : ceremony?.variant === "graduation"
+        ? "You've mastered this class. The next one is unlocked!"
+        : isHomework
+          ? allHomeworkDone
+            ? "You've completed every routine today — see you tomorrow!"
+            : "Nice work. Head back to finish the rest of today's homework."
+          : undefined;
+
   return (
-    <div className="bg-surface relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden px-6 text-center">
-      <Confetti count={graduatedTitle ? 40 : 28} />
-      <motion.div
-        initial={{ scale: 0, rotate: -10 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 18 }}
+    <div className="bg-surface min-h-dvh">
+      <CeremonyOverlay
+        open
+        variant={variant}
+        title={headline}
+        subtitle={subtitle}
+        badge={ceremony?.badge}
       >
-        <Mascot expression="cheer" size={140} />
-      </motion.div>
-      {graduatedTitle ? (
-        <>
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-pill bg-gold/20 text-warning px-4 py-1 text-xs font-extrabold tracking-wide uppercase"
-          >
-            🎓 Class graduated
-          </motion.div>
-          <h1 className="text-ink text-3xl font-extrabold">{graduatedTitle}</h1>
-          <p className="text-ink-500 text-sm font-semibold">
-            You&apos;ve mastered this class. The next one is unlocked!
-          </p>
-        </>
-      ) : isHomework ? (
-        <>
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-ink text-3xl font-extrabold"
-          >
-            {allHomeworkDone ? "All homework done for today! 🎉" : "Homework done! ✅"}
-          </motion.h1>
-          <p className="text-ink-500 text-sm font-semibold">
-            {allHomeworkDone
-              ? "You've completed every routine today — see you tomorrow!"
-              : "Nice work. Head back to finish the rest of today's homework."}
-          </p>
-        </>
-      ) : (
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-ink text-3xl font-extrabold"
-        >
-          {lesson.exam ? "Exam complete!" : "Lesson complete!"}
-        </motion.h1>
-      )}
-      <div className="flex gap-3">
-        <StatPill label="XP earned" value={`+${lesson.xp}`} tone="text-brand" />
-        <StatPill label="Correct" value={`${correct}`} tone="text-success" />
-        <StatPill
-          label="Mistakes"
-          value={`${mistakes}`}
-          tone={mistakes === 0 ? "text-success" : "text-danger"}
-        />
-      </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
+            <StatPill label="XP earned" value={lesson.xp} tone="text-brand" animate />
+            <StatPill label="Correct" value={`${correct}`} tone="text-success" />
+            <StatPill
+              label="Mistakes"
+              value={`${mistakes}`}
+              tone={mistakes === 0 ? "text-success" : "text-danger"}
+            />
+          </div>
 
-      {/* Guest → enroll prompt (#2): progress is saved locally and follows you up. */}
-      {authed === false && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-card border-brand-100 bg-brand-50 w-full max-w-xs border p-4 text-center"
-        >
-          <p className="text-ink text-sm font-extrabold">📌 Save your progress</p>
-          <p className="text-ink-500 mt-1 text-xs font-semibold">
-            Enroll free to keep your XP and continue on any device — everything
-            you&apos;ve done so far comes with you.
-          </p>
-          <Button
-            size="sm"
-            block
-            className="mt-3"
-            loading={busy === "enroll"}
-            onClick={() => go("enroll", "/register")}
-          >
-            Enroll free
-          </Button>
-        </motion.div>
-      )}
-
-      <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-2">
-        {isHomework ? (
-          allHomeworkDone ? (
-            <Button
-              size="lg"
-              block
-              loading={busy === "home"}
-              onClick={() => go("home", "/", onDone)}
-            >
-              Back to academy →
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              block
-              loading={busy === "hw"}
-              onClick={() => go("hw", "/plan")}
-            >
-              Continue your homework →
-            </Button>
-          )
-        ) : nextId ? (
-          <Button
-            size="lg"
-            block
-            loading={busy === "next"}
-            onClick={() => go("next", `/lesson/${nextId}`)}
-          >
-            Continue learning →
-          </Button>
-        ) : (
-          <Button
-            size="lg"
-            block
-            loading={busy === "home"}
-            onClick={() => go("home", "/", onDone)}
-          >
-            Back to campus
-          </Button>
-        )}
-        <div className="flex w-full gap-2">
-          <Button variant="ghost" block onClick={() => setReflectOpen(true)}>
-            📝 Reflect
-          </Button>
-          {!isHomework && nextId && (
-            <Button
-              variant="ghost"
-              block
-              loading={busy === "home"}
-              onClick={() => go("home", "/", onDone)}
-            >
-              Back to campus
-            </Button>
+          {showEnroll && (
+            <EnrollPromptBanner
+              next={nextId ? `/lesson/${nextId}` : "/academy"}
+              className="w-full"
+            />
           )}
+
+          <EnrollPrompt
+            open={enrollOpen}
+            onClose={() => setEnrollOpen(false)}
+            next={nextId ? `/lesson/${nextId}` : "/academy"}
+          />
+
+          <div className="flex w-full flex-col items-center gap-2">
+            {isHomework ? (
+              allHomeworkDone ? (
+                <Button
+                  size="lg"
+                  block
+                  loading={busy === "home"}
+                  onClick={() => go("home", "/", onDone)}
+                >
+                  Back to academy →
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  block
+                  loading={busy === "hw"}
+                  onClick={() => go("hw", "/plan")}
+                >
+                  Continue your homework →
+                </Button>
+              )
+            ) : nextId ? (
+              <Button
+                size="lg"
+                block
+                loading={busy === "next"}
+                onClick={() => go("next", `/lesson/${nextId}`)}
+              >
+                Continue learning →
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                block
+                loading={busy === "home"}
+                onClick={() => go("home", "/", onDone)}
+              >
+                Back to campus
+              </Button>
+            )}
+            <div className="flex w-full gap-2">
+              <Button variant="ghost" block onClick={() => setReflectOpen(true)}>
+                Reflect
+              </Button>
+              {!isHomework && nextId && (
+                <Button
+                  variant="ghost"
+                  block
+                  loading={busy === "home"}
+                  onClick={() => go("home", "/", onDone)}
+                >
+                  Back to campus
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </CeremonyOverlay>
       <ReflectSheet
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}
         kind={lesson.exam ? "exam" : "lesson"}
         title={lesson.title}
         summary={
-          graduatedTitle
-            ? `Graduated ${graduatedTitle}. Scored ${correct} correct.`
+          ceremony
+            ? `${ceremony.variant === "exam" ? "Passed exam" : "Graduated"} ${ceremony.title}. Scored ${correct} correct.`
             : `Completed “${lesson.title}” with ${correct} correct.`
         }
         refId={lesson.id}
@@ -848,14 +946,22 @@ function StatPill({
   label,
   value,
   tone,
+  animate,
 }: {
   label: string;
-  value: string;
+  value: string | number;
   tone: string;
+  animate?: boolean;
 }) {
   return (
     <div className="rounded-card border-hairline bg-surface-card border px-5 py-3">
-      <div className={`text-2xl font-extrabold ${tone}`}>{value}</div>
+      <div className={`text-2xl font-extrabold ${tone}`}>
+        {animate && typeof value === "number" ? (
+          <AnimatedNumber value={value} prefix="+" />
+        ) : (
+          value
+        )}
+      </div>
       <div className="text-ink-500 text-xs font-semibold">{label}</div>
     </div>
   );

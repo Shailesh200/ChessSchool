@@ -1,20 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
+import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
 import { API_URL, api } from "@/api";
 import { mutateProgress } from "@/progressStore";
-import { prependRecentGame } from "@/progression";
+import { prependRecentGame, isoDay } from "@/progression";
+import { markHomeworkActivity } from "@/homeworkRoutine";
+import { saveOnlineSeat, loadOnlineSeat } from "@/onlineSeat";
 import { buildSyncGame, winnerFromPlayerResult } from "@/gameHistory";
 import { clock, onlineOutcome } from "@/chess-utils";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+
+const JOIN_WINDOW_MS = 3 * 60 * 1000;
+const WEB_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://chess-school.in";
 
 type Session = {
   id: string;
@@ -42,24 +48,41 @@ function liveClocks(s: Session): { w: number; b: number } {
 export default function OnlineGameScreen() {
   const { id, color, seatToken } = useLocalSearchParams<{ id: string; color?: string; seatToken?: string }>();
   const sid = String(id);
-  const myColor: "w" | "b" = color === "b" ? "b" : "w";
-  const token = typeof seatToken === "string" ? seatToken : "";
   const router = useRouter();
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 460);
 
+  const [seat, setSeat] = useState<{ color: "w" | "b"; token: string } | null>(null);
+  const myColor: "w" | "b" = seat?.color ?? (color === "b" ? "b" : "w");
+  const token = seat?.token ?? (typeof seatToken === "string" ? seatToken : "");
+
   const [state, setState] = useState<Session | null>(null);
   const [clocks, setClocks] = useState({ w: 0, b: 0 });
   const [reflectOpen, setReflectOpen] = useState(false);
+  const [resignOpen, setResignOpen] = useState(false);
   const overRef = useRef(false);
   const prevStatus = useRef<string>("");
   const movesRef = useRef<string[]>([]);
   const sessionStartRef = useRef(Date.now());
+  const waitingSinceRef = useRef(Date.now());
   const lastMoveKeyRef = useRef("");
   const savedRef = useRef(false);
   const ablyRef = useRef(false);
   const stateRef = useRef<Session | null>(null);
   stateRef.current = state;
+
+  useEffect(() => {
+    void (async () => {
+      if (typeof seatToken === "string" && seatToken) {
+        const c: "w" | "b" = color === "b" ? "b" : "w";
+        await saveOnlineSeat(sid, c, seatToken);
+        setSeat({ color: c, token: seatToken });
+        return;
+      }
+      const saved = await loadOnlineSeat(sid);
+      if (saved) setSeat({ color: saved.color, token: saved.seatToken });
+    })();
+  }, [sid, seatToken, color]);
 
   function rememberMove(s: Session) {
     if (!s.lastFrom || !s.lastTo) return;
@@ -71,6 +94,7 @@ export default function OnlineGameScreen() {
 
   function applyState(s: Session) {
     rememberMove(s);
+    if (s.status === "waiting" && !state) waitingSinceRef.current = Date.now();
     setState(s);
     setClocks(liveClocks(s));
     overRef.current = s.status === "over";
@@ -167,20 +191,11 @@ export default function OnlineGameScreen() {
     } catch { /* poll/ably reconciles */ }
   }
 
-  async function resign() {
-    Alert.alert("Resign?", "Your opponent will win.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Resign",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const s = await api<Session>(`/api/session/${sid}`, { method: "POST", body: { action: "resign", color: myColor, seatToken: token } });
-            if (!s.error) applyState(s);
-          } catch { /* ignore */ }
-        },
-      },
-    ]);
+  async function confirmResign() {
+    try {
+      const s = await api<Session>(`/api/session/${sid}`, { method: "POST", body: { action: "resign", color: myColor, seatToken: token } });
+      if (!s.error) applyState(s);
+    } catch { /* ignore */ }
   }
 
   useEffect(() => {
@@ -202,11 +217,18 @@ export default function OnlineGameScreen() {
       winner,
       playerResult: playerRes,
     });
-    void mutateProgress((snap) => ({
-      ...snap,
-      recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game),
-    }));
+    void mutateProgress((snap) => {
+      let next = { ...snap, recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game) };
+      return markHomeworkActivity(next, "match", isoDay());
+    });
   }, [myColor, state, sid]);
+
+  async function shareInvite() {
+    const url = `${WEB_BASE}/play/online/${sid}`;
+    try {
+      await Share.share({ message: `Join my ChessSchool game!\nCode: ${sid}\n${url}`, title: "ChessSchool invite" });
+    } catch { /* cancelled */ }
+  }
 
   if (!state) {
     return <SafeAreaView style={styles.safe}><View style={styles.center}><Text style={styles.muted}>Connecting…</Text></View></SafeAreaView>;
@@ -220,9 +242,14 @@ export default function OnlineGameScreen() {
   const oppName = myColor === "w" ? "Black" : "White";
   const outcome = state.status === "over" ? onlineOutcome(state.result, myColor) : null;
 
+  const joinExpired = state.status === "waiting" && !state.blackJoined && Date.now() - waitingSinceRef.current > JOIN_WINDOW_MS;
+
   let banner: string;
   let bannerTone: string = colors.ink500;
-  if (state.status === "waiting") banner = `Share code “${sid}” — waiting for opponent…`;
+  if (joinExpired) {
+    banner = "Invite expired — no opponent joined in 3 minutes.";
+    bannerTone = colors.danger;
+  } else if (state.status === "waiting") banner = `Share code “${sid}” — waiting for opponent…`;
   else if (state.status === "over") {
     banner = outcome === "draw" ? "Draw" : outcome === "win" ? "You won! 🏆" : "You lost";
     bannerTone = outcome === "win" ? colors.success600 : colors.ink500;
@@ -236,12 +263,17 @@ export default function OnlineGameScreen() {
         </Pressable>
         <Text style={styles.title}>Online · {sid}</Text>
         {state.status === "active" && (
-          <Pressable onPress={resign} hitSlop={8}><Text style={styles.resign}>Resign</Text></Pressable>
+          <Pressable onPress={() => setResignOpen(true)} hitSlop={8}><Text style={styles.resign}>Resign</Text></Pressable>
         )}
       </View>
 
       <View style={[styles.bannerBox, { borderColor: bannerTone }]}>
         <Text style={[styles.banner, { color: bannerTone }]}>{banner}</Text>
+        {state.status === "waiting" && !joinExpired && (
+          <Pressable style={styles.shareBtn} onPress={() => void shareInvite()}>
+            <Text style={styles.shareText}>Share invite →</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={[styles.playerBar, state.status === "active" && state.turn !== myColor && styles.playerBarActive]}>
@@ -284,6 +316,19 @@ export default function OnlineGameScreen() {
         summary={banner}
         refId={sid}
       />
+
+      <ConfirmDialog
+        open={resignOpen}
+        title="Resign?"
+        message="Your opponent will win."
+        confirmLabel="Resign"
+        tone="danger"
+        onCancel={() => setResignOpen(false)}
+        onConfirm={() => {
+          setResignOpen(false);
+          void confirmResign();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -299,6 +344,8 @@ const styles = StyleSheet.create({
   resign: { ...type.sm, fontFamily: font.bold, color: colors.danger },
   bannerBox: { marginHorizontal: space[4], marginTop: space[3], borderRadius: radius.pill, borderWidth: 1.5, paddingVertical: space[2], alignItems: "center" },
   banner: { ...type.base, fontFamily: font.bold },
+  shareBtn: { marginTop: space[2], paddingHorizontal: space[3], paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.brand50 },
+  shareText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
   playerBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: space[4], marginTop: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.md, paddingHorizontal: space[4], paddingVertical: space[2], borderWidth: 1, borderColor: "transparent" },
   playerBarActive: { borderColor: colors.brand100, backgroundColor: colors.brand50, ...shadowCard },
   pName: { ...type.sm, fontFamily: font.bold, color: colors.ink },

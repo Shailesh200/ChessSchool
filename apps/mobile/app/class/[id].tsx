@@ -1,29 +1,107 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Circle, G } from "react-native-svg";
 import { api } from "@/api";
 import { Button } from "@/Button";
 import { FetchErrorView } from "@/FetchErrorView";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
+import { Icon } from "@/Icon";
+import { emojiToIcon } from "@/iconMaps";
 import { haptics } from "@/haptics";
+import { isLessonUnlocked } from "@/lessonUnlock";
 import { fetchProgress, lessonRecordsFromCache, progressStore } from "@/progressStore";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { ScreenLoader } from "@/ScreenLoader";
+import { useSettings } from "@/settings";
+import { useAppTheme, type ThemeColors } from "@/ThemeProvider";
+import { font, radius, shadowCard, space, type } from "@/theme";
 
-type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
-type ClassData = { class: { id: string; title: string; emoji: string; blurb: string; examId: string | null }; lessons: LessonLite[]; exam: { id: string; title: string } | null };
+type LessonLite = {
+  id: string;
+  title: string;
+  subtitle: string;
+  emoji: string;
+  prerequisites?: string[];
+};
+type ClassData = {
+  class: { id: string; title: string; emoji: string; blurb: string; examId: string | null };
+  lessons: LessonLite[];
+  exam: { id: string; title: string } | null;
+  unlocked?: boolean;
+};
 type NodeStatus = "completed" | "active" | "locked" | "exam";
 type JNode = { id: string; title: string; subtitle: string; emoji: string; mastery: number; status: NodeStatus };
 
-function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onPress: () => void }) {
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    content: { padding: space[5], gap: space[5], paddingBottom: 40 },
+    back: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+    lockBanner: {
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: colors.warning,
+      backgroundColor: colors.surfaceCard,
+      padding: space[4],
+    },
+    lockTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    lockSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
+    showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
+    showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+    header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },
+    headerRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
+    emojiTile: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.brand50, justifyContent: "center", alignItems: "center" },
+    title: { ...type.lg, fontFamily: font.bold, color: colors.ink },
+    blurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
+    chipRow: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1] },
+    chip: { ...type.caption, fontFamily: font.bold, color: colors.ink700, overflow: "hidden" },
+    path: { width: "100%", maxWidth: 320, alignSelf: "center", alignItems: "center" },
+    connector: { width: 6, height: 24, borderRadius: radius.pill, backgroundColor: colors.hairline, marginVertical: 4 },
+    halo: { position: "absolute", width: 76, height: 76, borderRadius: 38, backgroundColor: "rgba(91,91,214,0.22)" },
+    nodeCircle: { position: "absolute", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", borderBottomWidth: 3, borderBottomColor: "rgba(0,0,0,0.12)" },
+    nodeTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink, maxWidth: 150 },
+    nodeSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, maxWidth: 150 },
+  });
+}
+
+function JourneyNode({
+  node,
+  index,
+  onPress,
+  styles,
+  colors,
+}: {
+  node: JNode;
+  index: number;
+  onPress: () => void;
+  styles: ReturnType<typeof makeStyles>;
+  colors: ThemeColors;
+}) {
+  const { reducedMotion } = useSettings();
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (node.status !== "active" || reducedMotion) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [node.status, pulse, reducedMotion]);
+
   const offset = index % 2 === 0 ? 0 : index % 4 === 1 ? 48 : -48;
   const r = 30;
   const circ = 2 * Math.PI * r;
   const isExam = node.status === "exam";
   const ring = node.status === "completed" ? colors.gold : isExam ? colors.warning : colors.brand;
   const prog = node.status === "locked" ? 0 : node.status === "completed" ? 1 : Math.max(node.mastery, 0.06);
-  const bg = node.status === "locked" ? colors.surfaceSunken : isExam ? "#fff7e6" : "#fff";
+  const bg = node.status === "locked" ? colors.surfaceSunken : isExam ? colors.brand50 : colors.surfaceCard;
   const locked = node.status === "locked";
 
   return (
@@ -31,7 +109,17 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
       {index > 0 && <View style={styles.connector} />}
       <Pressable onPress={onPress} style={{ alignItems: "center", gap: 4, transform: [{ translateX: offset }], opacity: locked ? 0.6 : 1 }}>
         <View style={{ width: 76, height: 76, justifyContent: "center", alignItems: "center" }}>
-          {node.status === "active" && <View style={styles.halo} />}
+          {node.status === "active" && (
+            <Animated.View
+              style={[
+                styles.halo,
+                {
+                  opacity: reducedMotion ? 0.35 : pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.55] }),
+                  transform: [{ scale: reducedMotion ? 1 : pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }],
+                },
+              ]}
+            />
+          )}
           <Svg width={76} height={76} style={{ position: "absolute" }}>
             <G rotation={-90} origin="38, 38">
               <Circle cx={38} cy={38} r={r} fill="none" stroke={colors.surfaceSunken} strokeWidth={6} />
@@ -39,7 +127,13 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
             </G>
           </Svg>
           <View style={[styles.nodeCircle, { backgroundColor: bg }]}>
-            <Text style={{ fontSize: 20 }}>{locked ? "🔒" : node.status === "completed" ? "✓" : node.emoji}</Text>
+            {locked ? (
+              <Icon name="lock" size={20} color={colors.ink500} />
+            ) : node.status === "completed" ? (
+              <Icon name="check" size={20} color={colors.gold} />
+            ) : (
+              <Icon name={emojiToIcon(node.emoji)} size={20} color={colors.brand} duotone />
+            )}
           </View>
         </View>
         <Text style={styles.nodeTitle} numberOfLines={1}>{node.title}</Text>
@@ -52,6 +146,8 @@ function JourneyNode({ node, index, onPress }: { node: JNode; index: number; onP
 export default function ClassJourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors: theme } = useAppTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [data, setData] = useState<ClassData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [records, setRecords] = useState<Record<string, { mastery: number }>>({});
@@ -93,18 +189,32 @@ export default function ClassJourneyScreen() {
     };
   }, []);
 
+  const classUnlocked = data?.unlocked !== false;
+
   const { nodes, done, activeIndex, minutes } = useMemo(() => {
     const lessons = data?.lessons ?? [];
     const masteryOf = (lid: string) => records[lid]?.mastery ?? 0;
     const doneN = lessons.filter((l) => masteryOf(l.id) >= 0.9).length;
-    const active = lessons.findIndex((l) => masteryOf(l.id) < 0.9);
+    let active = -1;
+    let foundActive = false;
     const ns: JNode[] = lessons.map((l, i) => {
       const m = masteryOf(l.id);
-      const status: NodeStatus = m >= 0.9 ? "completed" : i === active ? "active" : "locked";
-      return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status };
+      const prereqOk = isLessonUnlocked(l.id, l.prerequisites ?? [], records);
+      if (!classUnlocked || !prereqOk) {
+        return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "locked" as const };
+      }
+      if (m >= 0.9) {
+        return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "completed" as const };
+      }
+      if (!foundActive) {
+        foundActive = true;
+        active = i;
+        return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "active" as const };
+      }
+      return { id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji, mastery: m, status: "locked" as const };
     });
     return { nodes: ns, done: doneN, activeIndex: active, minutes: (lessons.length + (data?.exam ? 1 : 0)) * 3 };
-  }, [data, records]);
+  }, [data, records, classUnlocked]);
 
   if (loadError) {
     return (
@@ -117,7 +227,7 @@ export default function ClassJourneyScreen() {
   if (!data) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}><ActivityIndicator color={colors.brand} size="large" /></View>
+        <ScreenLoader variant="fullscreen" label="Loading class…" />
       </SafeAreaView>
     );
   }
@@ -125,7 +235,7 @@ export default function ClassJourneyScreen() {
   const cls = data.class;
   const total = data.lessons.length;
   const firstActionable = nodes.find((n) => n.status === "active") ?? nodes.find((n) => n.status === "completed");
-  const canTestOut = total > 0 && done / total >= 0.5 && done < total;
+  const canTestOut = classUnlocked && total > 0 && done / total >= 0.5 && done < total;
   const visibleCount = Math.min(nodes.length, Math.max(shown, activeIndex + 1));
   const go = (lid: string, status: NodeStatus) => {
     if (status === "locked") { haptics.error(); return; }
@@ -134,28 +244,44 @@ export default function ClassJourneyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
-      <ScrollView contentContainerStyle={styles.content}>
+    <AppShell>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 }]}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={styles.back}>← Campus</Text>
         </Pressable>
 
-        {/* Subject header */}
+        {!classUnlocked && (
+          <View style={styles.lockBanner}>
+            <Text style={styles.lockTitle}>Class locked</Text>
+            <Text style={styles.lockSub}>Graduate the previous class on Campus to unlock this journey.</Text>
+          </View>
+        )}
+
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <View style={styles.emojiTile}><Text style={{ fontSize: 28 }}>{cls.emoji}</Text></View>
+            <View style={styles.emojiTile}>
+              <Icon name={emojiToIcon(cls.emoji)} size={28} color={theme.brand} duotone />
+            </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.title} numberOfLines={1}>{cls.title}</Text>
+              <Text testID="class-title" style={styles.title} numberOfLines={1}>{cls.title}</Text>
               <Text style={styles.blurb} numberOfLines={1}>{cls.blurb}</Text>
             </View>
           </View>
           <View style={styles.chips}>
-            <Text style={styles.chip}>📚 {total} lessons</Text>
-            <Text style={styles.chip}>⏱️ ~{minutes} min</Text>
-            <Text style={styles.chip}>⭐ {done}/{total} mastered</Text>
+            <View style={styles.chipRow}>
+              <Icon name="book" size={12} color={theme.ink700} />
+              <Text style={styles.chip}>{total} lessons</Text>
+            </View>
+            <View style={styles.chipRow}>
+              <Icon name="calendar" size={12} color={theme.ink700} />
+              <Text style={styles.chip}>~{minutes} min</Text>
+            </View>
+            <View style={styles.chipRow}>
+              <Icon name="star" size={12} color={theme.ink700} />
+              <Text style={styles.chip}>{done}/{total} mastered</Text>
+            </View>
           </View>
-          {firstActionable && (
+          {classUnlocked && firstActionable && (
             <View style={{ marginTop: space[3] }}>
               <Button label={done > 0 ? "Continue journey" : "Start journey"} onPress={() => go(firstActionable.id, firstActionable.status)} />
             </View>
@@ -167,47 +293,26 @@ export default function ClassJourneyScreen() {
           )}
         </View>
 
-        {/* Milestone path */}
         <View style={styles.path}>
           {nodes.slice(0, visibleCount).map((n, i) => (
-            <JourneyNode key={n.id} node={n} index={i} onPress={() => go(n.id, n.status)} />
+            <JourneyNode key={n.id} node={n} index={i} styles={styles} colors={theme} onPress={() => go(n.id, n.status)} />
           ))}
           {visibleCount < nodes.length && (
             <Pressable style={styles.showMore} onPress={() => setShown((s) => s + 8)}>
               <Text style={styles.showMoreText}>Show {Math.min(8, nodes.length - visibleCount)} more lessons ▾</Text>
             </Pressable>
           )}
-          {data.exam && visibleCount >= nodes.length && (
+          {data.exam && visibleCount >= nodes.length && classUnlocked && (
             <JourneyNode
               node={{ id: data.exam.id, title: data.exam.title, subtitle: "Pass to graduate", emoji: "📝", mastery: 0, status: "exam" }}
               index={nodes.length}
+              styles={styles}
+              colors={theme}
               onPress={() => go(data.exam!.id, "exam")}
             />
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppShell>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  content: { padding: space[5], gap: space[5], paddingBottom: 40 },
-  back: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-  showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
-  showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-  header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
-  emojiTile: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.brand50, justifyContent: "center", alignItems: "center" },
-  title: { ...type.lg, fontFamily: font.bold, color: colors.ink },
-  blurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
-  chip: { ...type.caption, fontFamily: font.bold, color: colors.ink700, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1], overflow: "hidden" },
-  path: { width: "100%", maxWidth: 320, alignSelf: "center", alignItems: "center" },
-  connector: { width: 6, height: 24, borderRadius: radius.pill, backgroundColor: colors.hairline, marginVertical: 4 },
-  halo: { position: "absolute", width: 76, height: 76, borderRadius: 38, backgroundColor: "rgba(91,91,214,0.22)" },
-  nodeCircle: { position: "absolute", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", borderBottomWidth: 3, borderBottomColor: "rgba(0,0,0,0.12)" },
-  nodeTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink, maxWidth: 150 },
-  nodeSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, maxWidth: 150 },
-});

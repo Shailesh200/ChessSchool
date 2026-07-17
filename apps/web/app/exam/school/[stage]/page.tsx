@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
+import { Icon } from "@/components/ui/Icon";
 import { STAGES } from "@/content/school";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
@@ -35,7 +36,7 @@ export default function SchoolExamPage({
   if (!steps.length) {
     return (
       <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-        <p className="text-2xl">📝</p>
+        <Icon name="journal" size={40} className="text-brand" duotone />
         <p className="text-ink-500 text-sm font-bold">
           No exam is available for this school yet.
         </p>
@@ -58,6 +59,7 @@ export default function SchoolExamPage({
 
   return (
     <LessonPlayer
+      key={`school-exam-${stage}`}
       lesson={lesson}
       nextLessonId={null}
       schoolExam={{ stage, nextName }}

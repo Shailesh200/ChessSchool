@@ -1,0 +1,27 @@
+<!-- High-fi mockup: Homework puzzle - 1280px -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" fill="none">
+  <rect width="1280" height="800" fill="#fbfaff"/>
+  <rect x="0" y="0" width="220" height="800" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="252" y="32" width="160" height="20" rx="4" fill="#1c1b2e" opacity="0.85"/>
+  <rect x="1100" y="32" width="148" height="32" rx="16" fill="#fff5f2" stroke="#ff7a59"/>
+  <!-- Board -->
+  <rect x="252" y="80" width="560" height="560" rx="16" fill="#ede7f6" stroke="#e7e6f2"/>
+  <rect x="252" y="80" width="70" height="70" fill="#b9a8e6" opacity="0.55"/>
+  <rect x="392" y="220" width="70" height="70" fill="#7be0b3" opacity="0.35"/>
+  <!-- Side panel -->
+  <rect x="836" y="80" width="400" height="688" rx="16" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="860" y="104" width="120" height="12" rx="2" fill="#6b6982"/>
+  <rect x="860" y="132" width="352" height="12" rx="6" fill="#f1f0f9"/>
+  <rect x="860" y="132" width="200" height="12" rx="6" fill="#5b5bd6"/>
+  <rect x="860" y="164" width="200" height="10" rx="2" fill="#a9a7bd" opacity="0.4"/>
+  <rect x="860" y="200" width="352" height="100" rx="12" fill="#fbfaff"/>
+  <rect x="880" y="220" width="72" height="24" rx="12" fill="#eef0ff"/>
+  <rect x="960" y="224" width="220" height="10" rx="2" fill="#1c1b2e" opacity="0.65"/>
+  <rect x="860" y="324" width="352" height="160" rx="12" fill="#fbfaff"/>
+  <rect x="880" y="344" width="280" height="8" rx="2" fill="#6b6982" opacity="0.3"/>
+  <rect x="880" y="364" width="240" height="8" rx="2" fill="#6b6982" opacity="0.3"/>
+  <rect x="860" y="508" width="168" height="48" rx="24" fill="#fff" stroke="#e7e6f2"/>
+  <rect x="1044" y="508" width="168" height="48" rx="24" fill="#5b5bd6"/>
+  <rect x="860" y="576" width="352" height="80" rx="12" fill="#f1f0f9"/>
+  <text x="640" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b6982">Homework - 1280px</text>
+</svg>

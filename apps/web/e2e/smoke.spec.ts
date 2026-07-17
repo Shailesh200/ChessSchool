@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("campus map renders resume card, semesters and classes", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/academy");
   await expect(page.getByText("Daily goal")).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Your place in school" }),
@@ -13,18 +13,24 @@ test("campus map renders resume card, semesters and classes", async ({ page }) =
 test("class journey shows the milestone path", async ({ page }) => {
   await page.goto("/class/class-pieces");
   await expect(page.getByRole("heading", { name: "Piece Movement" })).toBeVisible();
-  await expect(page.getByText(/lessons/).first()).toBeVisible();
-  await expect(page.getByText("The Battlefield")).toBeVisible();
+  await expect(page.getByText(/\d+ lessons/).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "The Battlefield" }).first(),
+  ).toBeVisible();
 });
 
 test("theme studio shows app + board themes with live preview", async ({ page }) => {
   await page.goto("/themes");
-  await expect(page.getByText("Theme Studio")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Theme Studio" })).toBeVisible();
   await expect(page.getByText("Live preview")).toBeVisible();
-  await expect(page.getByText("App theme")).toBeVisible();
-  await expect(page.getByText("Board themes")).toBeVisible();
-  // switching to Midnight applies a dark surface
-  await page.getByText("🌙 Midnight").click();
+  await expect(page.getByRole("heading", { name: "App theme" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Board themes" })).toBeVisible();
+  // App theme and school theme both include "Midnight" — target App theme row only.
+  await page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "App theme" }) })
+    .getByRole("button", { name: /Midnight/i })
+    .click();
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", "midnight");
 });
 
@@ -37,7 +43,8 @@ test("dashboard shows skill tree and mistake DNA", async ({ page }) => {
 test("settings renders (data tools are logged-in only)", async ({ page }) => {
   await page.goto("/settings");
   // Guests see the settings page but NOT the personal data export/import section.
-  await expect(page.getByText("Sound & Feel")).toBeVisible();
+  await expect(page.locator("#settings-sound")).toBeVisible();
+  await expect(page.getByText("Sound effects")).toBeVisible();
   await expect(page.getByRole("button", { name: /Export backup/ })).toHaveCount(0);
 });
 

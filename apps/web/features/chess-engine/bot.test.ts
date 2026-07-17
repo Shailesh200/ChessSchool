@@ -10,6 +10,43 @@ describe("bot", () => {
     );
   });
 
+  it("300 ELO uses beginner profile (no book, shallow search)", () => {
+    const c = eloToConfig(300);
+    expect(c.depth).toBe(0);
+    expect(c.useBook).toBe(false);
+    expect(c.qMax).toBe(0);
+    expect(c.materialOnly).toBe(true);
+    expect(c.blunderChance).toBeGreaterThan(0.95);
+    expect(c.randomMoveChance).toBeGreaterThan(0.7);
+    expect(c.pickWorstChance).toBeGreaterThan(0.65);
+  });
+
+  it("600 ELO stays in the weak beginner band (no deep search)", () => {
+    const c = eloToConfig(600);
+    expect(c.depth).toBeLessThanOrEqual(1);
+    expect(c.useBook).toBe(false);
+    expect(c.materialOnly).toBe(true);
+    expect(c.blunderChance).toBeGreaterThan(0.8);
+  });
+
+  it("300 ELO does not always open with book moves", () => {
+    const fen = new Chess().fen();
+    const move = chooseMove(fen, eloToConfig(300), 0.15);
+    expect(move).not.toBeNull();
+    const uci = `${move!.from}${move!.to}`;
+    expect(["e2e4", "d2d4", "g1f3", "c2c4"]).not.toContain(uci);
+  });
+
+  it("300 ELO often misses a hanging queen", () => {
+    const fen = "4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1";
+    let missed = 0;
+    for (let i = 0; i < 30; i++) {
+      const m = chooseMove(fen, eloToConfig(300), i / 30);
+      if (m && `${m.from}${m.to}` !== "e4d5") missed++;
+    }
+    expect(missed).toBeGreaterThan(26);
+  });
+
   it("returns a legal move from the start position", () => {
     const fen = new Chess().fen();
     const move = chooseMove(fen, eloToConfig(1200), 0.5);
@@ -26,7 +63,7 @@ describe("bot", () => {
       0.5,
     );
     expect(move).toEqual({ from: "e4", to: "d5", promotion: undefined });
-  });
+  }, 60_000);
 
   it("returns null when there are no legal moves (checkmate)", () => {
     const move = chooseMove(

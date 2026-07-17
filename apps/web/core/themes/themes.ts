@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Theme Academy — board + school themes applied instantly via CSS variables and
- * data attributes on <html>. Board colors are consumed by the chessboard; school
- * themes retint surfaces/accents (see globals.css `html[data-school-theme=...]`).
+ * Theme Academy — board, app, and school themes via CSS variables + data attributes
+ * on <html>. App theme owns surfaces/ink; school theme layers brand, accent, and
+ * campus chrome (--school-* tokens) without overriding app surfaces.
  */
 
 export interface BoardTheme {
@@ -165,13 +165,35 @@ export interface SchoolTheme {
   id: string;
   name: string;
   emoji: string;
+  /** Short label for Theme Studio — what changes beyond brand color. */
+  chrome: string;
 }
 
 export const SCHOOL_THEMES: SchoolTheme[] = [
-  { id: "elementary", name: "Elementary", emoji: "🎒" },
-  { id: "highschool", name: "High School", emoji: "📐" },
-  { id: "university", name: "University", emoji: "🏛️" },
-  { id: "graduation", name: "Graduation", emoji: "🎓" },
+  {
+    id: "elementary",
+    name: "Elementary",
+    emoji: "🎒",
+    chrome: "Playful corners · soft campus glow",
+  },
+  {
+    id: "highschool",
+    name: "High School",
+    emoji: "📐",
+    chrome: "Sharp cards · ruled header",
+  },
+  {
+    id: "university",
+    name: "University",
+    emoji: "🏛️",
+    chrome: "Classic campus · subtle crest",
+  },
+  {
+    id: "graduation",
+    name: "Graduation",
+    emoji: "🎓",
+    chrome: "Ceremonial radius · gold accents",
+  },
 ];
 
 export function getBoardTheme(id: string): BoardTheme {

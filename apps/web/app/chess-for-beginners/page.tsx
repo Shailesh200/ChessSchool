@@ -1,9 +1,8 @@
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { NavButton } from "@/components/ui/NavButton";
 import { CurriculumLinkGrid } from "@/components/seo/CurriculumLinkGrid";
-import { FaqSection } from "@/components/seo/FaqSection";
-import { FaqJsonLd } from "@/components/seo/FaqJsonLd";
-import { BEGINNER_FAQ, BEGINNER_INTRO } from "@/lib/seo/content";
+import { BEGINNER_INTRO } from "@/lib/seo/content";
 import { socialMeta } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -25,7 +24,6 @@ export const metadata: Metadata = {
 export default function ChessForBeginnersPage() {
   return (
     <AppShell>
-      <FaqJsonLd items={BEGINNER_FAQ} />
       <article className="flex flex-col gap-8 pb-6">
         <header className="flex flex-col gap-3">
           <p className="text-brand text-xs font-extrabold tracking-wide uppercase">
@@ -61,16 +59,28 @@ export default function ChessForBeginnersPage() {
                 emoji: "♞",
               },
               {
-                href: "/class/class-pre-rules",
-                title: "Chess Rules",
-                description: "Check, checkmate, stalemate, promotion, castling.",
-                emoji: "📜",
-              },
-              {
                 href: "/class/class-pre-moves",
                 title: "Piece Moves",
-                description: "Hands-on puzzles for every piece type.",
+                description: "Hands-on practice for every piece type.",
                 emoji: "♟️",
+              },
+              {
+                href: "/class/class-pre-capture",
+                title: "Capture & Blocking",
+                description: "Taking pieces and blocked paths.",
+                emoji: "⚔️",
+              },
+              {
+                href: "/class/class-pre-special",
+                title: "Special Moves",
+                description: "Promotion, castling, and en passant.",
+                emoji: "✨",
+              },
+              {
+                href: "/class/class-pre-endings",
+                title: "How Games End",
+                description: "Check, checkmate, stalemate, and draws.",
+                emoji: "🏁",
               },
               {
                 href: "/class/class-pre-language",
@@ -95,7 +105,21 @@ export default function ChessForBeginnersPage() {
           </NavButton>
         </section>
 
-        <FaqSection title="Beginner FAQ" items={BEGINNER_FAQ} />
+        <section aria-labelledby="beginner-faq-heading">
+          <h2 id="beginner-faq-heading" className="text-ink text-lg font-extrabold">
+            Beginner questions
+          </h2>
+          <p className="text-ink-600 mt-2 text-sm font-semibold">
+            See the full{" "}
+            <Link
+              href="/#faq"
+              className="text-brand font-bold underline-offset-2 hover:underline"
+            >
+              FAQ on the home page
+            </Link>{" "}
+            — including how long basics take and whether ChessSchool is free.
+          </p>
+        </section>
       </article>
     </AppShell>
   );

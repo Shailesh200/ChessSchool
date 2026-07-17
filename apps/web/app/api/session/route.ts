@@ -5,6 +5,7 @@ import { gameSessions } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { createGameSessionId } from "@/lib/game-session";
 import { formatSeatToken } from "@/lib/session-secret";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,14 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
+
+  const limited = enforceRateLimit(
+    req,
+    "session:create",
+    { limit: 30, windowMs: 60_000 },
+    user.id,
+  );
+  if (limited) return limited;
 
   const g = new Chess();
   const id = await createGameSessionId();

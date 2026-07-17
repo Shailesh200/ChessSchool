@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
 import { settings } from "@/settings";
+import { saveOnboardingToServer } from "@/profile";
+import { mutateProgress } from "@/progressStore";
 import { Button } from "@/Button";
 import { haptics } from "@/haptics";
+import { Icon } from "@/Icon";
+import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
+import { AVATAR_OPTIONS, emojiToIcon } from "@/iconMaps";
+import type { FlatAvatarId } from "@/flatAvatars/catalog";
 import { colors, font, radius, space, type } from "@/theme";
 
 type Opt = { value: string; label: string; emoji: string };
@@ -40,7 +46,6 @@ const THEME: Opt[] = [
   { value: "forest", label: "Forest", emoji: "🌲" },
   { value: "midnight", label: "Midnight", emoji: "🌙" },
 ];
-const AVATARS = ["🦊", "🦁", "🐼", "🦉", "🐯", "🐺", "🐲", "🦄", "♞", "♛", "🎓", "🐴"];
 // Each onboarding theme maps to a distinct board theme so the choice visibly applies.
 const THEME_MAP: Record<string, import("@/settings").BoardTheme> = { default: "classic", blue: "midnight", forest: "tournament", midnight: "neon" };
 
@@ -55,7 +60,11 @@ export default function OnboardingScreen() {
   const [time, setTime] = useState("");
   const [coach, setCoach] = useState("");
   const [theme, setTheme] = useState("");
-  const [avatar, setAvatar] = useState("");
+  const [avatar, setAvatar] = useState<FlatAvatarId | "">("");
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+
+  const displayAvatar: FlatAvatarId = avatar || "ava-knight";
 
   const STEPS = [
     { title: `Welcome, ${first}!`, sub: "Let's tailor your studies. What's your main goal?", opts: GOALS, value: goal, set: setGoal },
@@ -69,23 +78,52 @@ export default function OnboardingScreen() {
   const current = STEPS[step];
   const canNext = isAvatar ? !!avatar : !!current?.value;
 
-  function finish() {
+  async function finish() {
+    if (finishing) return;
+    setFinishing(true);
+    setFinishError(null);
     settings.set("goal", goal);
     settings.set("targetElo", Number(elo) || 600);
     settings.set("planTier", (time || "standard") as never);
     settings.set("coachPersonality", coach || "friendly");
     settings.set("appTheme", theme || "default");
-    settings.set("avatar", avatar || "🎓");
-    haptics.success();
-    finishOnboarding();
-    router.replace("/(tabs)");
+    settings.set("avatar", displayAvatar);
+    try {
+      await saveOnboardingToServer(goal, displayAvatar);
+      await mutateProgress((snap) => ({ ...snap, settings: settings.get() }));
+      haptics.success();
+      finishOnboarding();
+      router.replace("/account");
+    } catch (e) {
+      setFinishError(e instanceof Error ? e.message : "Could not complete enrollment.");
+      setFinishing(false);
+    }
+  }
+
+  if (finishing) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.finishCenter]} edges={["top", "bottom"]}>
+        <FlatAvatar id={displayAvatar} size={72} />
+        <Text style={styles.finishTitle}>Welcome to ChessSchool, {first}!</Text>
+        <Text style={styles.finishSub}>Issuing your Student ID…</Text>
+        <ActivityIndicator color={colors.brand} style={{ marginTop: space[4] }} />
+        {finishError && (
+          <>
+            <Text style={styles.finishError}>{finishError}</Text>
+            <Button label="Try again" variant="outline" onPress={() => { setFinishing(false); void finish(); }} />
+          </>
+        )}
+      </SafeAreaView>
+    );
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.welcome}>
-          <View style={styles.avatarCircle}><Text style={{ fontSize: 30 }}>{avatar || "🎓"}</Text></View>
+          <View style={styles.avatarCircle}>
+            <FlatAvatar id={displayAvatar} size={48} />
+          </View>
           <Text style={styles.welcomeText}>Welcome to ChessSchool, {first}!</Text>
         </View>
 
@@ -97,16 +135,19 @@ export default function OnboardingScreen() {
         <Text style={styles.title}>{isAvatar ? "Pick your avatar" : current!.title}</Text>
         <Text style={styles.sub}>{isAvatar ? "It appears on your Student ID." : current!.sub}</Text>
         {!isAvatar && step === 1 && elo === "600" && (
-          <Text style={styles.preschoolTip}>
-            🧸 We'll recommend optional Pre-School first — board, pieces & notation. Skip anytime.
-          </Text>
+          <View style={styles.preschoolTip}>
+            <Icon name="seedling" size={16} color={colors.brand} duotone />
+            <Text style={styles.preschoolTipText}>
+              We&apos;ll recommend optional Pre-School first — board, pieces & notation. Skip anytime.
+            </Text>
+          </View>
         )}
 
         {isAvatar ? (
           <View style={styles.avatarGrid}>
-            {AVATARS.map((a) => (
+            {AVATAR_OPTIONS.map((a) => (
               <Pressable key={a} style={[styles.avatarCell, avatar === a && styles.selOn]} onPress={() => { setAvatar(a); haptics.select(); }}>
-                <Text style={{ fontSize: 28 }}>{a}</Text>
+                <FlatAvatar id={a} size={40} />
               </Pressable>
             ))}
           </View>
@@ -116,7 +157,7 @@ export default function OnboardingScreen() {
               const on = current!.value === o.value;
               return (
                 <Pressable key={o.value} style={[styles.opt, on && styles.selOn]} onPress={() => { current!.set(o.value); haptics.select(); }}>
-                  <Text style={{ fontSize: 24 }}>{o.emoji}</Text>
+                  <Icon name={emojiToIcon(o.emoji)} size={24} color={on ? colors.brand : colors.ink} duotone />
                   <Text style={styles.optLabel}>{o.label}</Text>
                 </Pressable>
               );
@@ -132,7 +173,7 @@ export default function OnboardingScreen() {
           </View>
         )}
         <View style={{ flex: 2 }}>
-          <Button label={isAvatar ? "Enroll 🎓" : "Continue"} onPress={() => (canNext ? (isAvatar ? finish() : setStep((s) => s + 1)) : undefined)} />
+          <Button label={isAvatar ? "Enroll" : "Continue"} onPress={() => (canNext ? (isAvatar ? finish() : setStep((s) => s + 1)) : undefined)} />
         </View>
       </View>
     </SafeAreaView>
@@ -151,7 +192,8 @@ const styles = StyleSheet.create({
   stepCount: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
   title: { ...type["2xl"], fontFamily: font.bold, color: colors.ink },
   sub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1], marginBottom: space[4] },
-  preschoolTip: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: -space[2], marginBottom: space[4], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceSunken, padding: space[3] },
+  preschoolTip: { flexDirection: "row", alignItems: "flex-start", gap: space[2], ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: -space[2], marginBottom: space[4], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceSunken, padding: space[3] },
+  preschoolTipText: { flex: 1, ...type.xs, fontFamily: font.semibold, color: colors.ink500 },
   optGrid: { gap: space[2] },
   opt: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4] },
   optLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
@@ -159,4 +201,8 @@ const styles = StyleSheet.create({
   avatarGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[3], justifyContent: "center" },
   avatarCell: { width: 64, height: 64, borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, justifyContent: "center", alignItems: "center" },
   footer: { flexDirection: "row", gap: space[3], padding: space[4], borderTopWidth: 1, borderTopColor: colors.hairline },
+  finishCenter: { justifyContent: "center", alignItems: "center", padding: space[6], gap: space[2] },
+  finishTitle: { ...type["2xl"], fontFamily: font.bold, color: colors.ink, textAlign: "center", marginTop: space[3] },
+  finishSub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
+  finishError: { ...type.sm, fontFamily: font.semibold, color: colors.danger, textAlign: "center", marginTop: space[3] },
 });

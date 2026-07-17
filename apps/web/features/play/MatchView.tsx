@@ -6,8 +6,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
-import { commentOnMove } from "@/features/coaching/coach";
+import {
+  commentOnMove,
+  matchGreeting,
+  passPlayGreeting,
+  matchRecap,
+  calculationCoachPrompt,
+  confirmCoachMove,
+  thinkingGreeting,
+  shadowGreeting,
+  shadowMoveLine,
+  shadowOffBookLine,
+} from "@/features/coaching/coach";
+import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
+import { BotAvatar } from "@/features/play/BotAvatar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Confetti } from "@/components/ui/Confetti";
@@ -18,13 +31,18 @@ import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useMatch, type ActiveMatch } from "@/core/store/match.store";
+import { useArena } from "@/core/store/arena.store";
+import type { ArenaRunRecord } from "@/features/play/arena";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { trackEvent } from "@/core/analytics/track";
 import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
+import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
+import { MatchMateReviewModal } from "@/features/play/MatchMateReviewModal";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
-import type { MoveInput, Square } from "@/core/types/chess";
+import { opponentMoves } from "@/features/play/shadow";
+import type { MoveInput, Square, VerboseMove } from "@/core/types/chess";
 
 function engineFromPgn(pgn: string): ChessEngine {
   if (!pgn.trim()) return new ChessEngine();
@@ -51,14 +69,23 @@ function framesFromPgn(pgn: string): string[] {
   return frames;
 }
 
+/** Largest square board side (px) — keeps play usable on wide desktop viewports. */
+const BOARD_MAX_PX = 520;
+
 export function MatchView({ active }: { active: ActiveMatch }) {
   const router = useRouter();
   const sync = useMatch((s) => s.sync);
   const persistClocks = useMatch((s) => s.setClocks);
-  const markFinished = useMatch((s) => s.markFinished);
+  const setEndSnapshot = useMatch((s) => s.setEndSnapshot);
+  const dismissMateReview = useMatch((s) => s.dismissMateReview);
   const clear = useMatch((s) => s.clear);
   const progression = useProgression();
 
+  const snap = active.endSnapshot;
+  const restoredMateHistory = useMemo(
+    () => (snap?.mateReviewPending ? engineFromPgn(active.pgn).history() : []),
+    [snap?.mateReviewPending, active.pgn],
+  );
   const engineRef = useRef<ChessEngine>(engineFromPgn(active.pgn));
   const [fen, setFen] = useState(active.fen);
   const [pgn, setPgn] = useState(active.pgn);
@@ -69,23 +96,54 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       : null,
   );
   const [flip, setFlip] = useState(active.mode === "pass");
-  const [coach, setCoach] = useState(
-    active.pgn
-      ? "Welcome back — your game is right where you left it."
-      : active.mode === "bot"
-        ? `${botProfile(active.targetElo).emoji} ${botProfile(active.targetElo).name}: Hi! I'm rated ${active.targetElo}. Good luck!`
-        : "Your move. Good luck!",
-  );
+  const [coach, setCoach] = useState(() => {
+    if (active.pgn) return matchGreeting(0, "Coach", true);
+    if (active.mode === "shadow" && active.shadow) {
+      return shadowGreeting(
+        active.shadow.opponentName,
+        active.shadow.playerColor,
+        active.shadow.flipped ?? false,
+      );
+    }
+    if (active.mode === "bot") {
+      const b = botProfile(active.targetElo);
+      if (active.thinkingMode) return thinkingGreeting(active.targetElo, b.name);
+      return matchGreeting(active.targetElo, b.name, false);
+    }
+    return passPlayGreeting();
+  });
+  const [shadowOffBook, setShadowOffBook] = useState(false);
+  const [pendingMove, setPendingMove] = useState<MoveInput | null>(null);
+  const [pendingSan, setPendingSan] = useState<string | null>(null);
   const [over, setOver] = useState<null | {
     text: string;
     win: boolean;
     gameId: string;
     ratingDelta: number;
     newRating: number;
-  }>(null);
+    reason: EndReason;
+  }>(() =>
+    snap
+      ? {
+          text: snap.text,
+          win: snap.win,
+          gameId: active.id,
+          ratingDelta: snap.ratingDelta,
+          newRating: snap.newRating,
+          reason: snap.reason,
+        }
+      : null,
+  );
   const [copied, setCopied] = useState(false);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
+  const [mateReviewOpen, setMateReviewOpen] = useState(
+    snap?.mateReviewPending ?? false,
+  );
+  const [mateReviewHistory, setMateReviewHistory] =
+    useState<VerboseMove[]>(restoredMateHistory);
+  const [finalPgn, setFinalPgn] = useState(snap?.mateReviewPending ? active.pgn : "");
+  const [arenaRunDone, setArenaRunDone] = useState<ArenaRunRecord | null>(null);
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const [boardBox, boardSize] = useSquareSize();
@@ -94,9 +152,24 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [clock, setClock] = useState({ w: active.whiteMs, b: active.blackMs });
 
   const isBot = active.mode === "bot";
+  const isShadow = active.mode === "shadow";
+  const arena = active.arena;
+  const isArena = Boolean(arena);
+  const shadow = active.shadow;
+  const autoOpponent = isBot || isShadow;
   const bot = botProfile(active.targetElo);
-  const botName = `${bot.emoji} ${bot.name}`;
-  const playerColor: "w" | "b" = "w";
+  const botName = bot.name;
+  const playerColor = shadow?.playerColor ?? "w";
+  const shadowLineRef = useRef(opponentMoves(shadow?.shadowPgn ?? "", playerColor));
+  const thinkingGame = Boolean(active.thinkingMode) && isBot;
+
+  // Coach narrates the match (move commentary, greetings, recap) when coach speech is on.
+  useCoachSpeech(coach, "match", true, true);
+
+  const showCalculationPrompt = useCallback(() => {
+    const e = engineRef.current;
+    setCoach(calculationCoachPrompt(e.history().length, e.inCheck(), active.targetElo));
+  }, [active.targetElo]);
 
   const persist = useCallback(
     (from?: string, to?: string) => {
@@ -104,45 +177,51 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       persistClocks(clockRef.current.w, clockRef.current.b);
       sync({ fen: e.fen(), pgn: e.pgn(), from, to });
     },
-    [sync],
+    [sync, persistClocks],
   );
+
+  const leaveMatch = useCallback(() => {
+    clear();
+  }, [clear]);
 
   const finalize = useCallback(
     async (reason: EndReason, winner: "w" | "b" | null) => {
       const e = engineRef.current;
+      const history = e.history();
+      const pgnText = e.pgn();
       const result = winner === "w" ? "1-0" : winner === "b" ? "0-1" : "1/2-1/2";
       const game: SavedGame = {
         id: active.id,
-        mode: active.mode,
-        pgn: e.pgn(),
+        mode: isShadow ? "shadow" : active.mode,
+        pgn: pgnText,
         fen: e.fen(),
-        whiteName: isBot ? "You" : "White",
-        blackName: isBot ? `${bot.name} (${active.targetElo})` : "Black",
+        whiteName: isShadow
+          ? playerColor === "w"
+            ? "You"
+            : shadow!.opponentName
+          : isBot
+            ? "You"
+            : "White",
+        blackName: isShadow
+          ? playerColor === "b"
+            ? "You"
+            : shadow!.opponentName
+          : isBot
+            ? `${bot.name} (${active.targetElo})`
+            : "Black",
         createdAt: active.createdAt,
         updatedAt: Date.now(),
         turn: e.turn(),
         result,
         endReason: reason,
         winner,
-        moveCount: e.history().length,
+        moveCount: history.length,
         elo: isBot ? active.targetElo : null,
         durationMs: Date.now() - active.createdAt,
       };
-      await saveGame(game);
-      markFinished();
-      usePlan.getState().markActivity("match", isoDay());
-      trackEvent("game_end", {
-        mode: active.mode,
-        result,
-        reason,
-        bot: isBot,
-        targetElo: isBot ? active.targetElo : null,
-        moveCount: game.moveCount,
-      });
-      const playerWon = isBot && winner === playerColor;
-      // Update the player's ELO from this bot game + unlock rating/win achievements.
+      const playerWon = (isBot || isShadow) && winner === playerColor;
       const ratingBefore = useProgression.getState().rating;
-      if (isBot) {
+      if (isBot && !isArena) {
         const score = winner === null ? 0.5 : playerWon ? 1 : 0;
         progression.updateRating(active.targetElo, score);
         const st = useProgression.getState();
@@ -151,11 +230,19 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           wins: st.botWins,
           botElo: active.targetElo,
           rating: st.rating,
-        }).forEach((id) => progression.unlockAchievement(id));
+        }).forEach((id) => unlockAndCelebrate(id));
+      }
+      if (isArena && arena) {
+        const score = winner === null ? 0.5 : playerWon ? 1 : 0;
+        useArena.getState().recordResult(arena.opponentId, score, active.id);
+        const record = useArena.getState().completeIfDone();
+        if (record) setArenaRunDone(record);
       }
       const ratingAfter = useProgression.getState().rating;
-      if (playerWon) {
+      if (playerWon && !isArena) {
         progression.awardXp(40);
+        audio.play("victory");
+      } else if (playerWon && isArena) {
         audio.play("victory");
       } else if (winner === null) {
         audio.play("notify");
@@ -170,11 +257,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             : "You resigned"
           : reason === "timeout"
             ? winner === playerColor || !isBot
-              ? `${sideName} wins on time ⏱️`
+              ? `${sideName} wins on time`
               : "You lost on time"
             : reason === "checkmate"
               ? playerWon
-                ? "Checkmate — you win! 🏆"
+                ? "Checkmate — you win!"
                 : isBot
                   ? "Checkmate — bot wins"
                   : `Checkmate — ${sideName} wins`
@@ -185,10 +272,107 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         gameId: active.id,
         ratingDelta: ratingAfter - ratingBefore,
         newRating: ratingAfter,
+        reason,
+      });
+      if (isBot) {
+        setCoach(
+          matchRecap({
+            history,
+            botElo: active.targetElo,
+            botName: bot.name,
+            playerColor,
+            playerWon,
+            reason,
+          }),
+        );
+      }
+      setEndSnapshot({
+        text,
+        win: playerWon,
+        ratingDelta: ratingAfter - ratingBefore,
+        newRating: ratingAfter,
+        reason,
+        mateReviewPending: reason === "checkmate",
+      });
+      if (reason === "checkmate") {
+        setFinalPgn(pgnText);
+        setMateReviewHistory(history);
+        setMateReviewOpen(true);
+      }
+      await saveGame(game);
+      usePlan.getState().markActivity("match", isoDay());
+      trackEvent("game_end", {
+        mode: isArena ? "arena" : isShadow ? "shadow" : active.mode,
+        result,
+        reason,
+        bot: isBot,
+        targetElo: isBot ? active.targetElo : null,
+        moveCount: game.moveCount,
       });
     },
-    [active, isBot, markFinished, progression],
+    [
+      active,
+      isBot,
+      isArena,
+      isShadow,
+      arena,
+      playerColor,
+      shadow,
+      progression,
+      bot.name,
+      setEndSnapshot,
+    ],
   );
+
+  /** Restore game-over UI when PGN already ended but snapshot missing (older sessions). */
+  useEffect(() => {
+    if (over || active.endSnapshot) return;
+    const e = engineRef.current;
+    if (!e.isGameOver()) return;
+    const status = e.status();
+    const winner = status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    const playerWon = isBot && winner === playerColor;
+    const reason: EndReason =
+      status === "checkmate"
+        ? "checkmate"
+        : status === "stalemate"
+          ? "stalemate"
+          : status === "insufficient"
+            ? "insufficient"
+            : "draw";
+    const sideName = winner === "w" ? "White" : "Black";
+    const text =
+      reason === "checkmate"
+        ? playerWon
+          ? "Checkmate — you win!"
+          : isBot
+            ? "Checkmate — bot wins"
+            : `Checkmate — ${sideName} wins`
+        : "Draw";
+    const rating = useProgression.getState().rating;
+    const payload = {
+      text,
+      win: playerWon,
+      gameId: active.id,
+      ratingDelta: 0,
+      newRating: rating,
+      reason,
+    };
+    setOver(payload);
+    setEndSnapshot({
+      text,
+      win: playerWon,
+      ratingDelta: 0,
+      newRating: rating,
+      reason,
+      mateReviewPending: reason === "checkmate",
+    });
+    if (reason === "checkmate") {
+      setFinalPgn(e.pgn());
+      setMateReviewHistory(e.history());
+      setMateReviewOpen(true);
+    }
+  }, [active.endSnapshot, active.id, isBot, over, playerColor, setEndSnapshot]);
 
   const checkOver = useCallback((): boolean => {
     const e = engineRef.current;
@@ -213,10 +397,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     const e = engineRef.current;
     if (e.isGameOver()) return;
     setThinking(true);
+    const elo = isShadow ? Math.max(active.targetElo, 1200) : active.targetElo;
     // Search runs in a Web Worker (no UI freeze), overlapped with a ≥1s beat.
     const before = e.fen();
     Promise.all([
-      getBotMove(e.fen(), eloToConfig(active.targetElo), Math.random()),
+      getBotMove(e.fen(), eloToConfig(elo), Math.random()),
       new Promise((r) => window.setTimeout(r, 1000)),
     ]).then(([move]) => {
       if (move) {
@@ -228,19 +413,166 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           audio.play(applied.captured ? "capture" : "move");
           if (e.inCheck()) audio.play("check");
           // The bot reacts to its own move (the bubble shows who's speaking).
-          setCoach(commentOnMove(before, applied, Math.random()));
+          setCoach(
+            commentOnMove({
+              beforeFen: before,
+              move: applied,
+              botElo: active.targetElo,
+              botName: bot.name,
+              reactingToPlayer: false,
+              moveNumber: e.history().length,
+            }),
+          );
           persist(move.from, move.to);
         }
       }
       setThinking(false);
       checkOver();
     });
-  }, [active.targetElo, persist, checkOver, botName]);
+  }, [active.targetElo, isShadow, persist, checkOver, bot.name]);
 
-  // Resume: if it's the bot's turn on mount (e.g. after refresh), let it move.
+  const shadowFallbackToBot = useCallback(() => {
+    setShadowOffBook(true);
+    setCoach(shadowOffBookLine());
+    const e = engineRef.current;
+    if (!e.isGameOver() && e.turn() !== playerColor) botMove();
+    else setThinking(false);
+  }, [playerColor, botMove]);
+
+  const shadowMove = useCallback(() => {
+    if (!shadow || shadowOffBook) return;
+    const e = engineRef.current;
+    if (e.isGameOver() || e.turn() === playerColor) return;
+    setThinking(true);
+    const oppIdx = e.history().filter((m) => m.color !== playerColor).length;
+    const move = shadowLineRef.current[oppIdx];
+    window.setTimeout(() => {
+      if (!move) {
+        shadowFallbackToBot();
+        return;
+      }
+      const applied = e.move(move);
+      if (!applied) {
+        shadowFallbackToBot();
+        return;
+      }
+      setLastMove({ from: move.from, to: move.to });
+      setFen(e.fen());
+      setPgn(e.pgn());
+      audio.play(applied.captured ? "capture" : "move");
+      if (e.inCheck()) audio.play("check");
+      setCoach(shadowMoveLine(applied.san, shadow.opponentName));
+      persist(move.from, move.to);
+      setThinking(false);
+      checkOver();
+    }, 650);
+  }, [shadow, shadowOffBook, playerColor, persist, checkOver, shadowFallbackToBot]);
+
+  const runOpponentTurn = useCallback(() => {
+    if (isShadow && shadowOffBook) botMove();
+    else if (isShadow) shadowMove();
+    else if (isBot) botMove();
+  }, [isShadow, isBot, shadowOffBook, botMove, shadowMove]);
+
+  const commitMove = useCallback(
+    (move: MoveInput): boolean => {
+      const e = engineRef.current;
+      const before = e.fen();
+      const applied = e.move(move);
+      if (!applied) return false;
+      setLastMove({ from: move.from, to: move.to });
+      setFen(e.fen());
+      setPgn(e.pgn());
+      audio.play(applied.captured ? "capture" : "move");
+      if (applied.promotion) audio.play("promotion");
+      if (e.inCheck()) audio.play("check");
+      haptics.fire("tap");
+      persist(move.from, move.to);
+      if (isBot) {
+        setCoach(
+          commentOnMove({
+            beforeFen: before,
+            move: applied,
+            botElo: active.targetElo,
+            botName: bot.name,
+            reactingToPlayer: true,
+            moveNumber: e.history().length,
+          }),
+        );
+      }
+      if (!checkOver() && autoOpponent && engineRef.current.turn() !== playerColor)
+        runOpponentTurn();
+      return true;
+    },
+    [
+      isBot,
+      autoOpponent,
+      shadowOffBook,
+      persist,
+      checkOver,
+      runOpponentTurn,
+      active.targetElo,
+      bot.name,
+      playerColor,
+    ],
+  );
+
+  // Thinking game: coach calculation prompt when it's the player's turn.
+  useEffect(() => {
+    if (!thinkingGame || over || !isBot || thinking || pendingMove) return;
+    const e = engineRef.current;
+    if (e.isGameOver() || e.turn() !== playerColor) return;
+    showCalculationPrompt();
+  }, [
+    fen,
+    thinkingGame,
+    over,
+    isBot,
+    thinking,
+    pendingMove,
+    playerColor,
+    showCalculationPrompt,
+  ]);
+
+  const handleMove = useCallback(
+    (move: MoveInput): boolean => {
+      const e = engineRef.current;
+      if (thinking || e.isGameOver()) return false;
+      if (autoOpponent && e.turn() !== playerColor) return false;
+
+      if (thinkingGame && isBot) {
+        const trial = new ChessEngine(e.fen());
+        const preview = trial.move(move);
+        if (!preview) return false;
+        setPendingMove(move);
+        setPendingSan(preview.san);
+        setCoach(confirmCoachMove(preview.san));
+        return false;
+      }
+
+      return commitMove(move);
+    },
+    [thinking, thinkingGame, isBot, commitMove],
+  );
+
+  const confirmPending = useCallback(() => {
+    if (!pendingMove) return;
+    if (commitMove(pendingMove)) {
+      setPendingMove(null);
+      setPendingSan(null);
+    }
+  }, [pendingMove, commitMove]);
+
+  const cancelPending = useCallback(() => {
+    setPendingMove(null);
+    setPendingSan(null);
+    showCalculationPrompt();
+  }, [showCalculationPrompt]);
+
+  // Resume: if it's the opponent's turn on mount (e.g. after refresh), let them move.
   useEffect(() => {
     const e = engineRef.current;
-    if (isBot && !e.isGameOver() && e.turn() !== playerColor) botMove();
+    if (!e.isGameOver() && e.turn() !== playerColor && autoOpponent) runOpponentTurn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -277,35 +609,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     return () => window.clearInterval(id);
   }, [hasClock, over, finalize]);
 
-  const handleMove = useCallback(
-    (move: MoveInput): boolean => {
-      const e = engineRef.current;
-      if (thinking || e.isGameOver()) return false;
-      if (isBot && e.turn() !== playerColor) return false;
-      const before = e.fen();
-      const applied = e.move(move);
-      if (!applied) return false;
-      setLastMove({ from: move.from, to: move.to });
-      setFen(e.fen());
-      setPgn(e.pgn());
-      audio.play(applied.captured ? "capture" : "move");
-      if (applied.promotion) audio.play("promotion");
-      if (e.inCheck()) audio.play("check");
-      haptics.fire("tap");
-      persist(move.from, move.to);
-      if (isBot) setCoach(commentOnMove(before, applied, Math.random()));
-      if (!checkOver() && isBot) botMove();
-      return true;
-    },
-    [thinking, isBot, persist, checkOver, botMove],
-  );
-
   function doResign() {
     setResignOpen(false);
     if (over) return;
     const e = engineRef.current;
     // In pass-and-play the side to move resigns; vs bot the player (white) resigns.
-    const loser = isBot ? playerColor : e.turn();
+    const loser = autoOpponent ? playerColor : e.turn();
     const winner: "w" | "b" = loser === "w" ? "b" : "w";
     void finalize("resign", winner);
   }
@@ -334,9 +643,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const view = useMemo(() => new ChessEngine(fen), [fen]);
   const orientation: "white" | "black" = isBot
     ? "white"
-    : flip && view.turn() === "b"
-      ? "black"
-      : "white";
+    : isShadow
+      ? playerColor === "w"
+        ? "white"
+        : "black"
+      : flip && view.turn() === "b"
+        ? "black"
+        : "white";
   const checkSquare = view.inCheck() ? view.kingSquare(view.turn()) : null;
   const mat = useMemo(() => materialAdvantage(fen), [fen]);
   const turn = view.turn();
@@ -356,14 +669,29 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   }
   const viewing = viewPly !== null;
   const displayFen = viewing && frames[viewPly] ? frames[viewPly] : fen;
+  const boardPx = boardSize ? Math.min(boardSize, BOARD_MAX_PX) : 0;
+  const stagedMove =
+    pendingMove && !viewing ? { from: pendingMove.from, to: pendingMove.to } : lastMove;
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col">
       {/* top action bar */}
       <div className="pt-safe border-hairline bg-surface/90 sticky top-0 z-20 border-b px-3 py-2 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
-          <span className="text-ink text-sm font-extrabold">
-            {isBot ? `vs ${botName} · ${active.targetElo}` : "vs Human"}
+          <span className="text-ink flex items-center gap-2 text-sm font-extrabold">
+            {isArena
+              ? `Arena · vs ${arena?.opponentName ?? "bot"}`
+              : isShadow
+                ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
+                : isBot
+                  ? `vs ${botName} · ${active.targetElo}`
+                  : "vs Human"}
+            {thinkingGame && (
+              <span className="bg-brand-50 text-brand-700 rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
+                <Icon name="brain" size={12} />
+                Thinking
+              </span>
+            )}
           </span>
           <div className="flex items-center gap-1.5">
             <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
@@ -378,11 +706,12 @@ export function MatchView({ active }: { active: ActiveMatch }) {
               <Button
                 size="sm"
                 onClick={() => {
-                  clear();
+                  leaveMatch();
                   audio.play("transition");
+                  if (isArena) router.push("/play/arena");
                 }}
               >
-                New game
+                {isArena ? "Arena" : "New game"}
               </Button>
             ) : (
               <Button size="sm" variant="danger" onClick={() => setResignOpen(true)}>
@@ -396,7 +725,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* opponent bar (clock + captured material) */}
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <PlayerBar
-          name={isBot ? `${botName} · ${active.targetElo}` : "Black"}
+          name={
+            isShadow
+              ? playerColor === "b"
+                ? "You"
+                : (shadow?.opponentName ?? "Shadow")
+              : isBot
+                ? `${botName} · ${active.targetElo}`
+                : "Black"
+          }
           advantage={topAdv}
           ms={hasClock ? topClock : null}
           active={hasClock && !over && turn === "b"}
@@ -406,32 +743,45 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* Conversation bubble (top) — the bot / coach speaking. Uses the space above the board. */}
       <div className="mx-auto w-full max-w-xl px-3 pt-2">
         <div className="flex items-start gap-2">
-          <div className="bg-brand-50 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg">
-            {isBot ? bot.emoji : "💬"}
+          <div className="bg-brand-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+            {autoOpponent ? (
+              isShadow ? (
+                <Icon name="users" size={22} duotone />
+              ) : (
+                <BotAvatar elo={active.targetElo} size={44} />
+              )
+            ) : (
+              <Icon name="message" size={22} duotone />
+            )}
           </div>
           <div className="border-hairline bg-surface-card text-ink min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
             <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
-              {isBot ? bot.name : "Coach"}
+              {isShadow ? "Shadow" : isBot ? bot.name : "Coach"}
             </span>
             <span className="line-clamp-2">{thinking ? "Thinking…" : coach}</span>
           </div>
         </div>
       </div>
 
-      {/* board spans the largest square that fits the remaining height/width */}
+      {/* board — capped square; container max-w-xl matches coach/clocks row */}
       <div
         ref={boardBox}
-        className="flex min-h-0 flex-1 items-center justify-center px-3 py-2"
+        className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col items-center justify-center px-3 py-2"
       >
         <div
-          className="relative"
-          style={{ width: boardSize || undefined, height: boardSize || undefined }}
+          className="relative max-w-full shrink-0"
+          style={{
+            width: boardPx || undefined,
+            height: boardPx || undefined,
+            maxWidth: BOARD_MAX_PX,
+            maxHeight: BOARD_MAX_PX,
+          }}
         >
           <ChessBoard
             fen={displayFen}
             orientation={orientation}
             onMove={handleMove}
-            lastMove={lastMove}
+            lastMove={stagedMove}
             checkSquare={checkSquare}
             interactive={!over && !thinking && !viewing}
           />
@@ -449,13 +799,30 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   animate={{ scale: 1, y: 0 }}
                   className="rounded-card bg-surface-card px-8 py-6 text-center [box-shadow:var(--shadow-pop)]"
                 >
-                  <div className="text-3xl">
-                    {over.win ? "🏆" : over.text.startsWith("Draw") ? "🤝" : "♟️"}
+                  <div className="flex justify-center">
+                    <Icon
+                      name={
+                        over.win
+                          ? "trophy"
+                          : over.text.startsWith("Draw")
+                            ? "handshake"
+                            : "pawn"
+                      }
+                      size={32}
+                      duotone
+                      className="text-brand"
+                    />
                   </div>
                   <div className="text-ink mt-1 text-2xl font-extrabold">
                     {over.text}
                   </div>
-                  {isBot && over.ratingDelta !== 0 && (
+                  {arenaRunDone && (
+                    <div className="rounded-pill bg-brand-50 text-brand-700 mt-3 inline-flex items-center gap-2 px-4 py-1.5 text-sm font-extrabold">
+                      Arena complete · #{arenaRunDone.placement} · +
+                      {arenaRunDone.xpEarned} XP
+                    </div>
+                  )}
+                  {isBot && !isArena && over.ratingDelta !== 0 && (
                     <div className="rounded-pill bg-surface-sunken mt-3 inline-flex items-center gap-2 px-4 py-1.5">
                       <span className="text-ink-500 text-xs font-bold">Rating</span>
                       <span
@@ -470,19 +837,36 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                     </div>
                   )}
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {over.reason === "checkmate" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const e = engineRef.current;
+                          setMateReviewHistory(e.history());
+                          setFinalPgn(e.pgn());
+                          setMateReviewOpen(true);
+                        }}
+                      >
+                        How it happened
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setReflectOpen(true)}
                     >
-                      📝 Reflect
+                      <span className="inline-flex items-center gap-1.5">
+                        <Icon name="journal" size={16} />
+                        Reflect
+                      </span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
                         const g = over.gameId;
-                        clear();
+                        leaveMatch();
                         router.push(`/review/${g}`);
                       }}
                     >
@@ -492,17 +876,27 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                       <Button
                         size="sm"
                         onClick={() => {
-                          clear();
+                          leaveMatch();
                           router.push("/plan");
                         }}
                       >
                         Back to homework
                       </Button>
+                    ) : isArena ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          leaveMatch();
+                          router.push("/play/arena");
+                        }}
+                      >
+                        {arenaRunDone ? "Arena home" : "Next round"}
+                      </Button>
                     ) : (
                       <Button
                         size="sm"
                         onClick={() => {
-                          clear();
+                          leaveMatch();
                           audio.play("transition");
                         }}
                       >
@@ -512,7 +906,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   </div>
                   <button
                     onClick={() => {
-                      clear();
+                      leaveMatch();
                       router.push(active.fromHomework ? "/plan" : "/");
                     }}
                     className="text-ink-500 mt-3 text-xs font-bold underline-offset-2 hover:underline"
@@ -526,10 +920,28 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         </div>
       </div>
 
+      {pendingMove && pendingSan && !over && (
+        <div className="mx-auto w-full max-w-xl px-3 pb-2">
+          <div className="border-hairline bg-surface-card rounded-2xl border p-3 [box-shadow:var(--shadow-card)] lg:mx-auto lg:max-w-md">
+            <p className="text-ink-500 text-center text-xs font-semibold">
+              Staged move: <span className="text-ink font-extrabold">{pendingSan}</span>
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" variant="outline" block onClick={cancelPending}>
+                Rethink
+              </Button>
+              <Button size="sm" block onClick={confirmPending}>
+                Play {pendingSan}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* player bar (clock + captured material) */}
       <div className="mx-auto w-full max-w-xl px-3">
         <PlayerBar
-          name={isBot ? "You" : "White"}
+          name={isShadow || isBot ? "You" : "White"}
           advantage={bottomAdv}
           ms={hasClock ? bottomClock : null}
           active={hasClock && !over && turn === "w"}
@@ -542,7 +954,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           label="Previous move"
           onClick={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
         >
-          <span className="text-base font-extrabold">⏪</span>
+          <Icon name="skipBack" size={18} />
         </IconBtn>
         <span className="text-ink-500 min-w-24 text-center text-xs font-bold">
           {viewing ? `move ${viewPly}/${frames.length - 1}` : "● live"}
@@ -557,15 +969,32 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             })
           }
         >
-          <span className="text-base font-extrabold">⏩</span>
+          <Icon name="skipForward" size={18} />
         </IconBtn>
       </div>
+
+      <MatchMateReviewModal
+        open={mateReviewOpen}
+        pgn={finalPgn || pgn}
+        history={mateReviewHistory}
+        orientation={orientation}
+        onClose={() => {
+          setMateReviewOpen(false);
+          dismissMateReview();
+        }}
+      />
 
       <ReflectSheet
         open={reflectOpen}
         onClose={() => setReflectOpen(false)}
         kind="match"
-        title={isBot ? `Match vs ${bot.name} (${active.targetElo})` : "vs Human match"}
+        title={
+          isShadow
+            ? `Shadow vs ${shadow?.opponentName ?? "opponent"}`
+            : isBot
+              ? `Match vs ${bot.name} (${active.targetElo})`
+              : "vs Human match"
+        }
         summary={over?.text ?? "Match complete."}
         refId={active.id}
       />

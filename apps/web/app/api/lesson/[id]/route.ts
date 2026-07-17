@@ -2,14 +2,9 @@ import { NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { classes, lessons, homeworkLessons } from "@/db/schema";
+import { buildClassExamSteps } from "@/features/school/classExam";
 
 export const dynamic = "force-dynamic";
-
-function sample<T>(arr: T[], n: number): T[] {
-  if (arr.length <= n) return arr;
-  const step = arr.length / n;
-  return Array.from({ length: n }, (_, i) => arr[Math.floor(i * step)]!);
-}
 
 function parseSteps(raw: string) {
   try {
@@ -80,12 +75,8 @@ export async function GET(
       .where(eq(lessons.classId, classId))
       .orderBy(asc(lessons.sortOrder));
     const teaching = rows.filter((r) => !r.isExam);
-    const recent = teaching.slice(-2);
-    const moveSteps = (recent.length ? recent : teaching).flatMap((r) => {
-      const parsed = parseSteps(r.steps);
-      return parsed ? parsed.filter((s: { kind: string }) => s.kind === "move") : [];
-    });
-    if (moveSteps.length === 0)
+    const examSteps = buildClassExamSteps(teaching);
+    if (examSteps.length === 0)
       return NextResponse.json({ error: "not found" }, { status: 404 });
 
     return NextResponse.json({
@@ -97,7 +88,7 @@ export async function GET(
       xp: 60,
       classId,
       exam: true,
-      steps: sample(moveSteps, 5),
+      steps: examSteps,
     });
   }
 

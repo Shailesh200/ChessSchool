@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
 import { settings, useSettings } from "@/settings";
 import { useProgress, mutateProgress } from "@/progressStore";
 import { isoDay } from "@/progression";
-import { TopBar } from "@/TopBar";
+import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
 import { Slider } from "@/Slider";
+import { Icon } from "@/Icon";
+import { emojiToIcon } from "@/iconMaps";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
@@ -71,9 +72,8 @@ export default function PlanScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <TopBar />
-      <ScrollView contentContainerStyle={styles.content}>
+    <AppShell>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 }]}>
         <View style={styles.header}>
           <BackButton />
           <Text style={styles.h1}>Homework</Text>
@@ -82,15 +82,24 @@ export default function PlanScreen() {
         {/* Today's goal */}
         <View style={styles.card}>
           <View style={styles.rowBetween}>
-            <Text style={styles.goalTitle}>🎯 Today's goal</Text>
+            <View style={styles.titleRow}>
+              <Icon name="target" size={18} color={colors.brand} duotone />
+              <Text style={styles.goalTitle}>Today&apos;s goal</Text>
+            </View>
             <Text style={styles.muted}>{todayXp}/{goal} XP</Text>
           </View>
           <View style={[styles.track, { marginTop: space[2] }]}>
             <View style={[styles.fill, { backgroundColor: colors.gold, width: `${Math.min(100, (todayXp / goal) * 100)}%` }]} />
           </View>
           <View style={styles.chipsRow}>
-            <Text style={[styles.chip, { backgroundColor: "rgba(255,122,89,0.1)", color: colors.accent600 }]}>🔥 {p.streak}-day streak</Text>
-            <Text style={styles.chip}>{todayXp >= goal ? "Goal reached — well done! 🎉" : `${goal - todayXp} XP to go`}</Text>
+            <View style={[styles.chip, styles.chipRow, { backgroundColor: "rgba(255,122,89,0.1)" }]}>
+              <Icon name="flame" size={14} color={colors.accent600} />
+              <Text style={[styles.chipText, { color: colors.accent600 }]}>{p.streak}-day streak</Text>
+            </View>
+            <View style={[styles.chip, styles.chipRow]}>
+              {todayXp >= goal && <Icon name="celebrate" size={14} color={colors.success600} />}
+              <Text style={styles.chipText}>{todayXp >= goal ? "Goal reached — well done!" : `${goal - todayXp} XP to go`}</Text>
+            </View>
           </View>
         </View>
 
@@ -103,7 +112,7 @@ export default function PlanScreen() {
               const on = s.planTier === tier;
               return (
                 <Pressable key={tier} testID={`pace-${tier}`} style={[styles.pace, on && styles.selOn]} onPress={() => setTier(tier)}>
-                  <Text style={{ fontSize: 20 }}>{spec.emoji}</Text>
+                  <Icon name={emojiToIcon(spec.emoji)} size={20} color={on ? colors.brand : colors.ink} duotone />
                   <Text style={styles.paceLabel}>{spec.label}</Text>
                   <Text style={styles.paceMin}>{spec.minutes}/day</Text>
                 </Pressable>
@@ -143,11 +152,17 @@ export default function PlanScreen() {
         <View>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Today's homework</Text>
-            <Text style={styles.muted}>{doneToday.length}/{ROUTINE.length} · 🔥 {p.homeworkStreak}d</Text>
+            <View style={styles.titleRow}>
+              <Icon name="flame" size={14} color={colors.accent600} />
+              <Text style={styles.muted}>{doneToday.length}/{ROUTINE.length} · {p.homeworkStreak}d</Text>
+            </View>
           </View>
           {allDone && (
             <View style={styles.doneBanner}>
-              <Text style={styles.doneBannerText}>🎉 All done for today — come back tomorrow for a fresh set!</Text>
+              <View style={styles.titleRow}>
+                <Icon name="celebrate" size={18} color={colors.success600} />
+                <Text style={styles.doneBannerText}>All done for today — come back tomorrow for a fresh set!</Text>
+              </View>
             </View>
           )}
           <View style={styles.card}>
@@ -158,7 +173,7 @@ export default function PlanScreen() {
               return (
                 <View key={step.id} testID={`routine-${step.id}`} style={[styles.routineRow, i > 0 && styles.routineDivider]}>
                   <View style={[styles.checkbox, checked && styles.checkboxOn]}>{checked && <Text style={styles.checkmark}>✓</Text>}</View>
-                  <Text style={{ fontSize: 18 }}>{step.emoji}</Text>
+                  <Icon name={emojiToIcon(step.emoji)} size={18} color={colors.brand} duotone />
                   <Text style={[styles.routineLabel, checked && styles.routineLabelDone]} numberOfLines={1}>{label}</Text>
                   <Pressable style={[styles.goBtn, checked && styles.goBtnDone]} onPress={() => openRoutine(step.id)} hitSlop={6}>
                     <Text style={[styles.goText, checked && { color: colors.ink500 }]}>{checked ? "Redo" : "Go →"}</Text>
@@ -174,7 +189,7 @@ export default function PlanScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppShell>
   );
 }
 
@@ -192,6 +207,9 @@ const styles = StyleSheet.create({
   fill: { height: 10, borderRadius: radius.pill },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
   chip: { ...type.xs, fontFamily: font.bold, color: colors.ink700, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1], overflow: "hidden" },
+  chipRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  chipText: { ...type.xs, fontFamily: font.bold, color: colors.ink700 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
   paceGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   pace: { width: "48.5%", backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[3], borderWidth: 1, borderColor: colors.hairline, ...shadowCard },
   selOn: { borderColor: colors.brand, borderWidth: 2 },
