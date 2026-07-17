@@ -99,6 +99,17 @@ Install the APK from the Expo build page on a physical Android device.
 
 ### 2. Production AAB (Play Store)
 
+**Prefer local** (no EAS cloud queue — needs Docker/Colima + Android toolchain):
+
+```bash
+cd apps/mobile
+colima start   # if Docker daemon is not running
+pnpm build:android:prod:local
+# → apps/mobile/dist/chessschool-release.aab
+```
+
+**Cloud** (free tier often waits hours in queue):
+
 ```bash
 cd apps/mobile
 pnpm build:android:prod
@@ -110,13 +121,25 @@ pnpm build:android:prod
 
 ### 3. Submit to Play Console
 
+**One-time:** add a Google Play **service account JSON** in Expo credentials (`eas credentials` → Android → Google Service Account), with Play Console API access to the app. Until that exists, use manual upload.
+
 **Internal testing track** (recommended first):
 
 ```bash
+# After a cloud EAS build:
 pnpm submit:android:internal
+
+# After a local AAB (interactive — needs Play service account on Expo):
+pnpm submit:android:internal:local
 ```
 
-Or upload the `.aab` manually: Play Console → Release → Testing → Internal testing.
+**Manual upload** (works without Expo Play credentials):
+
+1. Open [Play Console](https://play.google.com/console) → ChessSchool (`com.chessschool.app`)
+2. Fill listing from [`store-assets/play-store/LISTING.md`](store-assets/play-store/LISTING.md)
+3. Release → Testing → Internal testing → Create release
+4. Upload `apps/mobile/dist/chessschool-release.aab`
+5. Roll out to internal testers
 
 **Production track** (after internal QA passes):
 
@@ -124,6 +147,7 @@ Or upload the `.aab` manually: Play Console → Release → Testing → Internal
 pnpm submit:android:store
 ```
 
+Or promote the internal release in Play Console → Production.
 ---
 
 ## OTA updates (EAS Update)
@@ -156,7 +180,8 @@ Users see **“Update ready — tap to restart”** at the top of the app after 
 
 ## Google Play Store listing (Phase 2)
 
-Fill in Play Console while verification completes:
+Copy + Data safety answers: [`store-assets/play-store/LISTING.md`](store-assets/play-store/LISTING.md)  
+Device smoke checklist: [`store-assets/play-store/SMOKE_QA.md`](store-assets/play-store/SMOKE_QA.md)
 
 | Field | Value |
 |-------|-------|
@@ -168,11 +193,11 @@ Fill in Play Console while verification completes:
 | Target audience | 13+ (accounts + online play) |
 | Data safety | Email, name, gameplay progress; encrypted in transit; deletion available |
 
-**Assets needed:**
+**Assets (ready in `store-assets/play-store/`):**
 
-- App icon 512×512 (from `assets/icon.png`)
-- Feature graphic 1024×500
-- Phone screenshots × 4–8 (1080×1920): Learn, lesson, play, profile
+- App icon 512×512 — `icon-512.png`
+- Feature graphic 1024×500 — `feature-graphic-1024x500.png`
+- Phone screenshots × 6 — `screenshots/01-academy.png` … `06-profile.png`
 
 **Review notes:** Provide a test account email/password for Google reviewers.
 

@@ -15,13 +15,15 @@
     "doctor": "npx expo-doctor",
     "release:check": "pnpm typecheck && pnpm test && pnpm doctor",
     "build:android:apk": "bash scripts/build-android-apk.sh",
-    "build:android:preview": "pnpm exec eas build --platform android --profile preview --non-interactive",
-    "build:android:prod": "pnpm exec eas build --platform android --profile production --non-interactive",
-    "submit:android:internal": "pnpm exec eas submit --platform android --profile production --non-interactive",
-    "submit:android:store": "pnpm exec eas submit --platform android --profile play-store --non-interactive",
-    "update:preview": "pnpm exec eas update --channel preview",
-    "update:production": "pnpm exec eas update --channel production",
-    "eas:init": "pnpm exec eas init && pnpm exec eas update:configure"
+    "build:android:preview": "npx eas-cli build --platform android --profile preview --non-interactive",
+    "build:android:prod": "npx eas-cli build --platform android --profile production --non-interactive",
+    "build:android:prod:local": "mkdir -p dist && EAS_BUILD_NO_EXPO_GO_WARNING=true npx eas-cli build --platform android --profile production --local --non-interactive --output dist/chessschool-release.aab",
+    "submit:android:internal": "npx eas-cli submit --platform android --profile production --non-interactive --latest",
+    "submit:android:internal:local": "npx eas-cli submit --platform android --profile production --path dist/chessschool-release.aab",
+    "submit:android:store": "npx eas-cli submit --platform android --profile play-store --non-interactive --latest",
+    "update:preview": "npx eas-cli update --channel preview",
+    "update:production": "npx eas-cli update --channel production",
+    "eas:init": "npx eas-cli init && npx eas-cli update:configure"
   },
   "dependencies": {
     "@chess-school/core": "workspace:*",
@@ -33,7 +35,7 @@
     "@react-navigation/bottom-tabs": "^7.18.8",
     "ably": "^2.23.0",
     "babel-preset-expo": "~54.0.11",
-    "expo": "~54.0.0",
+    "expo": "~54.0.36",
     "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
     "expo-auth-session": "^7.0.11",
@@ -52,7 +54,7 @@
     "expo-speech": "^14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.0",
-    "expo-updates": "~29.0.18",
+    "expo-updates": "~29.0.19",
     "expo-web-browser": "^15.0.11",
     "lottie-react-native": "~7.3.8",
     "react": "19.1.0",
@@ -71,7 +73,9 @@
   },
   "expo": {
     "install": {
-      "exclude": ["@react-navigation/bottom-tabs"]
+      "exclude": [
+        "@react-navigation/bottom-tabs"
+      ]
     }
   }
 }
