@@ -21,7 +21,7 @@ import { NetworkBanner } from "@/NetworkBanner";
 import { Toaster } from "@/Toaster";
 import { UpdateBanner } from "@/UpdateBanner";
 import { Diagnostics } from "@/Diagnostics";
-import { Sentry } from "@/sentry";
+import { wrapRoot } from "@/sentry";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -172,4 +172,4 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default wrapRoot(RootLayout);
