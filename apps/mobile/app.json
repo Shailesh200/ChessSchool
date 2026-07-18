@@ -29,7 +29,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 22,
+      "versionCode": 23,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5b5bd6"
