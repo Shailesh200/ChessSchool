@@ -7,7 +7,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useMounted } from "@/core/hooks/useMounted";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import {
   usePlan,
@@ -26,7 +25,6 @@ import { Icon } from "@/components/ui/Icon";
 
 export function PlanClient({ catalog }: { catalog: Catalog }) {
   const router = useRouter();
-  const mounted = useMounted();
   const plan = usePlan();
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
@@ -62,18 +60,9 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
 
   // Keep the daily XP goal in sync with the chosen plan.
   useEffect(() => {
-    if (!mounted) return;
     plan.ensureDay(isoDay());
     setDailyGoalXp(planGoalXp(plan));
-  }, [mounted, plan.tier, plan.customGoalXp]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!mounted) {
-    return (
-      <AppShell>
-        <div className="skeleton rounded-card h-96" />
-      </AppShell>
-    );
-  }
+  }, [plan.tier, plan.customGoalXp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const daysAway = lastActiveDay ? daysBetween(lastActiveDay, isoDay()) : 0;
   const routineDone = plan.routineDone.length;

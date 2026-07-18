@@ -6,7 +6,6 @@ import { ChessBoard } from "@/features/board/ChessBoard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useSettings, type PieceTheme } from "@/core/store/settings.store";
-import { useMounted } from "@/core/hooks/useMounted";
 import {
   BOARD_THEMES,
   SELECTABLE_BOARD_THEMES,
@@ -40,21 +39,12 @@ function MiniBoard({ themeId, size = 8 }: { themeId: string; size?: number }) {
 }
 
 export default function ThemesPage() {
-  const mounted = useMounted();
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
   const schoolTheme = useSettings((s) => s.schoolTheme);
   const appTheme = useSettings((s) => s.appTheme);
   const set = useSettings((s) => s.set);
   const [previewOpen, setPreviewOpen] = useState(false);
-
-  if (!mounted) {
-    return (
-      <AppShell>
-        <div className="skeleton rounded-card h-96" />
-      </AppShell>
-    );
-  }
 
   return (
     <AppShell>

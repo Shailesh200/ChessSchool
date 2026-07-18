@@ -178,7 +178,7 @@ export function MatchChooser() {
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_440px] lg:items-start lg:gap-8">
       <motion.div
         variants={listContainer}
-        initial="initial"
+        initial={false}
         animate="enter"
         className="flex flex-col gap-4"
       >

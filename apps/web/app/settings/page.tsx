@@ -5,7 +5,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettings, type CoachPersonality } from "@/core/store/settings.store";
 import { Select } from "@/components/ui/Select";
-import { useMounted } from "@/core/hooks/useMounted";
 import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
 import { audio } from "@/core/audio/audioEngine";
@@ -40,20 +39,11 @@ function Row({
 }
 
 export default function SettingsPage() {
-  const mounted = useMounted();
   const s = useSettings();
   const isAdmin = useSession((st) => st.isAdmin);
   const authed = useSession((st) => st.authed);
   const user = useSession((st) => st.user);
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("sound");
-
-  if (!mounted) {
-    return (
-      <AppShell>
-        <div className="skeleton rounded-card h-96" />
-      </AppShell>
-    );
-  }
 
   const showAdvanced = isAdmin;
   const showData = authed === true;

@@ -15,7 +15,6 @@ import { ReportCard } from "@/components/dashboard/ReportCard";
 import { MistakeReview } from "@/components/dashboard/MistakeReview";
 import type { ReportClass } from "@/features/dashboard/reportCard";
 import { useProgression } from "@/core/store/progression.store";
-import { useMounted } from "@/core/hooks/useMounted";
 import { listGames, type SavedGame } from "@/core/db/db";
 import { ACHIEVEMENTS } from "@/features/progression/achievements";
 import {
@@ -41,7 +40,6 @@ const SEV: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const mounted = useMounted();
   const records = useProgression((s) => s.lessons);
   const weaknesses = useProgression((s) => s.weaknesses);
   const graduated = useProgression((s) => s.graduatedClasses);
@@ -69,14 +67,6 @@ export default function DashboardPage() {
       .then((d) => setReportClasses(d?.classes ?? []))
       .catch(() => void 0);
   }, []);
-
-  if (!mounted) {
-    return (
-      <AppShell>
-        <div className="skeleton rounded-card h-96" />
-      </AppShell>
-    );
-  }
 
   const lessonList = curr
     ? Object.entries(curr.lessonsByTag).flatMap(([tag, ids]) =>
