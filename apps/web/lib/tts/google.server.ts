@@ -47,7 +47,7 @@ export async function synthesizeGoogleSpeech(
   const client = getJwt();
   if (!client) return null;
 
-  const voice = TTS_VOICES[personality]?.google ?? TTS_VOICES.friendly.google;
+  const voice = TTS_VOICES[personality]?.google ?? TTS_VOICES.sarcastic.google;
   const token = await client.getAccessToken();
   if (!token) return null;
 

@@ -1,22 +1,39 @@
 import "server-only";
 import { synthesizeEdgeSpeech } from "./edge.server";
 import { googleTtsConfigured, synthesizeGoogleSpeech } from "./google.server";
-import type { CoachPersonality, CoachVoiceId } from "@/core/store/settings.store";
+import {
+  elevenLabsConfigured,
+  synthesizeElevenLabsSpeech,
+} from "./elevenlabs.server";
+import type { CoachVoiceId } from "@/core/store/settings.store";
+import {
+  normalizeCoachCharacter,
+  type CoachCharacterId,
+} from "@/features/coaching/characters";
+import { plainSpeechText } from "@/features/coaching/speechStyle";
 
-/** Cloud TTS is always available via Edge; Google is optional when billing is enabled. */
+/** Cloud TTS is always available via Edge; ElevenLabs / Google when configured. */
 export function ttsConfigured(): boolean {
   return true;
 }
 
 export async function synthesizeCoachSpeech(
   text: string,
-  personality: CoachPersonality,
+  characterOrPersonality: CoachCharacterId | string,
   voiceId: CoachVoiceId = "auto",
 ): Promise<Buffer | null> {
+  const character = normalizeCoachCharacter(characterOrPersonality);
+  const plain = plainSpeechText(text);
+
+  if (elevenLabsConfigured()) {
+    const eleven = await synthesizeElevenLabsSpeech(plain, character);
+    if (eleven) return eleven;
+  }
+
   if (process.env.TTS_PROVIDER === "google" && googleTtsConfigured()) {
-    const google = await synthesizeGoogleSpeech(text, personality);
+    const google = await synthesizeGoogleSpeech(plain, character);
     if (google) return google;
   }
 
-  return synthesizeEdgeSpeech(text, personality, voiceId);
+  return synthesizeEdgeSpeech(plain, character, voiceId);
 }

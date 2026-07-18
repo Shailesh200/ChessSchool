@@ -23,8 +23,8 @@ function move(overrides: Partial<VerboseMove> & Pick<VerboseMove, "san">): Verbo
 
 describe("matchCommentary", () => {
   it("varies greetings by bot tier", () => {
-    const pip = matchGreeting(450, "Pip", false, "friendly");
-    const titan = matchGreeting(2500, "Titan", false, "friendly");
+    const pip = matchGreeting(450, "Pip", false, "genz");
+    const titan = matchGreeting(2500, "Titan", false, "genz");
     expect(pip).toMatch(/Pip/i);
     expect(titan).toMatch(/Titan/i);
     expect(pip).not.toBe(titan);
@@ -44,7 +44,7 @@ describe("matchCommentary", () => {
       move: capture,
       botElo: 800,
       botName: "Cody",
-      personality: "friendly",
+      personality: "genz",
       reactingToPlayer: true,
       moveNumber: 5,
     });
@@ -53,11 +53,11 @@ describe("matchCommentary", () => {
       move: capture,
       botElo: 800,
       botName: "Cody",
-      personality: "friendly",
+      personality: "genz",
       reactingToPlayer: false,
       moveNumber: 5,
     });
-    expect(player).toMatch(/you/i);
+    expect(player).toMatch(/grab|took|you|pawn/i);
     expect(bot).toMatch(/Cody|your/i);
     expect(player).not.toBe(bot);
   });
@@ -69,7 +69,7 @@ describe("matchCommentary", () => {
       move: mate,
       botElo: 1500,
       botName: "Sasha",
-      personality: "tactical",
+      personality: "egoistic",
       reactingToPlayer: false,
       moveNumber: 40,
     });
@@ -78,23 +78,23 @@ describe("matchCommentary", () => {
   });
 
   it("pass-and-play greeting follows personality", () => {
-    expect(passPlayGreeting("minimal")).toMatch(/pass|play|board|move/i);
-    expect(passPlayGreeting("friendly")).toMatch(/fun|board|human/i);
+    expect(passPlayGreeting("sassy")).toMatch(/pass|play|board|move/i);
+    expect(passPlayGreeting("genz")).toMatch(/player|human|fun|board|device|pass/i);
   });
 });
 
 describe("botVoice matrix", () => {
   it("same bot + different coach personalities produce different greetings", () => {
-    const friendly = buildMatchGreeting(900, "Remi", "friendly", false);
-    const strict = buildMatchGreeting(900, "Remi", "strict", false);
-    expect(friendly).toMatch(/Remi/i);
-    expect(strict).toMatch(/Remi/i);
-    expect(friendly).not.toBe(strict);
+    const genz = buildMatchGreeting(900, "Remi", "genz", false);
+    const sarcastic = buildMatchGreeting(900, "Remi", "sarcastic", false);
+    expect(genz).toMatch(/Remi/i);
+    expect(sarcastic).toMatch(/Remi/i);
+    expect(genz).not.toBe(sarcastic);
   });
 
   it("same personality + different bots produce different greetings", () => {
-    const pip = buildMatchGreeting(500, "Pip", "mentor", false);
-    const titan = buildMatchGreeting(2500, "Titan", "mentor", false);
+    const pip = buildMatchGreeting(500, "Pip", "anxious_nerd", false);
+    const titan = buildMatchGreeting(2500, "Titan", "anxious_nerd", false);
     expect(pip).toMatch(/Pip/i);
     expect(titan).toMatch(/Titan/i);
     expect(pip).not.toBe(titan);
@@ -116,26 +116,26 @@ describe("botVoice matrix", () => {
       moveNumber: 20,
       move: capture,
     };
-    const friendly = buildMoveComment(
-      { ...ctx, personality: "friendly" },
+    const genz = buildMoveComment({ ...ctx, personality: "genz" }, "capture_pawn");
+    const sarcastic = buildMoveComment(
+      { ...ctx, personality: "sarcastic" },
       "capture_pawn",
     );
-    const strict = buildMoveComment({ ...ctx, personality: "strict" }, "capture_pawn");
-    expect(friendly).toMatch(/Vera/i);
-    expect(strict).toMatch(/Vera/i);
-    expect(friendly).not.toBe(strict);
+    expect(genz).toMatch(/Vera/i);
+    expect(sarcastic).toMatch(/Vera/i);
+    expect(genz).not.toBe(sarcastic);
   });
 
   it("recap epilogue references the bot by name", () => {
-    const win = buildRecapEpilogue("Magnus Jr.", "tactical", "master", true, 42);
-    const loss = buildRecapEpilogue("Magnus Jr.", "tactical", "master", false, 42);
+    const win = buildRecapEpilogue("Magnus Jr.", "egoistic", "master", true, 42);
+    const loss = buildRecapEpilogue("Magnus Jr.", "egoistic", "master", false, 42);
     expect(win).toMatch(/Magnus Jr\./i);
     expect(loss).toMatch(/Magnus Jr\./i);
     expect(win).not.toBe(loss);
   });
 
   it("thinking greeting blends bot and coach voice", () => {
-    const line = buildThinkingGreeting(1200, "Sasha", "strict");
+    const line = buildThinkingGreeting(1200, "Sasha", "sarcastic");
     expect(line).toMatch(/Sasha/i);
     expect(line.length).toBeGreaterThan(20);
   });

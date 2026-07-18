@@ -94,123 +94,147 @@ export function buildMatchRecap(input: GameRecapInput): string {
 
   const pools: Record<string, Record<CoachPersonality, string[]>> = {
     "checkmate win": {
-      friendly: [
-        `Great win vs ${botName}! ${statLine} Replay the mating attack.`,
+      genz: [
+        `Great win vs ${botName}! ${statLine} Replay the mate.`,
         `You beat ${botName}! ${checkLine || statLine}`,
       ],
-      strict: [
+      sarcastic: [
         `Victory vs ${botName}. ${statLine} Note what forced mate.`,
         `Win. ${checkLine || statLine}`,
       ],
-      mentor: [
-        `Well played against ${botName}. ${statLine} Study the final combination.`,
-        `You earned this vs ${botName}. ${checkLine || "Calculate those finishing lines again."}`,
+      anxious_nerd: [
+        `Well played vs ${botName}. ${statLine} Study the finish.`,
+        `You earned this vs ${botName}. ${checkLine || "Calc those lines again."}`,
       ],
-      tactical: [
+      egoistic: [
         `Crushed ${botName}! ${statLine} ${checkLine}`,
         `Attacking win vs ${botName} — ${statLine}`,
       ],
-      minimal: [`Beat ${botName}.`, `Win vs ${botName}.`],
+      sassy: [
+        `Beat ${botName}. ${statLine}`,
+        `Win vs ${botName}. ${checkLine || statLine}`,
+      ],
     },
     "checkmate loss": {
-      friendly: [
-        `${botName} got you this time. ${statLine} Use the mate review to learn.`,
+      genz: [
+        `${botName} got you. ${statLine} Use the review.`,
         `Tough loss to ${botName}. ${checkLine || statLine}`,
       ],
-      strict: [
-        `Loss to ${botName}. ${statLine} Find the defensive mistake.`,
+      sarcastic: [
+        `Loss to ${botName}. ${statLine} Find the mistake.`,
         `Defeat. ${checkLine || "King safety failed."}`,
       ],
-      mentor: [
-        `Loss vs ${botName} — ${statLine} Replay where the attack started.`,
+      anxious_nerd: [
+        `Loss vs ${botName} — ${statLine} Replay the attack.`,
         `${botName} outcalculated you. ${checkLine || statLine}`,
       ],
-      tactical: [
-        `${botName} finished the attack. ${statLine} Hunt the missed tactic.`,
+      egoistic: [
+        `${botName} finished the attack. ${statLine} Hunt the tactic.`,
         `Got mated by ${botName}. ${checkLine || statLine}`,
       ],
-      minimal: [`Lost to ${botName}.`, `Defeat.`],
+      sassy: [
+        `${botName} got you. ${statLine}`,
+        `Loss to ${botName}. ${checkLine || statLine}`,
+      ],
     },
     draw: {
-      friendly: [
+      genz: [
         `Draw with ${botName} — ${statLine}`,
         `Split the point vs ${botName}. ${statLine}`,
       ],
-      strict: [`Draw vs ${botName}. ${statLine}`, `Half point. ${statLine}`],
-      mentor: [
-        `Draw against ${botName}. ${statLine} What plan would you try next time?`,
+      sarcastic: [`Draw vs ${botName}. ${statLine}`, `Half point. ${statLine}`],
+      anxious_nerd: [
+        `Draw vs ${botName}. ${statLine} Plan for next time?`,
         `Shared result. ${statLine}`,
       ],
-      tactical: [
+      egoistic: [
         `Hard-fought draw vs ${botName}. ${statLine}`,
         `Stale battle — ${statLine}`,
       ],
-      minimal: ["Draw.", `Draw vs ${botName}.`],
+      sassy: [
+        `Draw vs ${botName}. ${statLine}`,
+        `Split vs ${botName}. Could've won. ${statLine}`,
+      ],
     },
     "flag win": {
-      friendly: [
+      genz: [
         `You won on time vs ${botName}! ${statLine}`,
         `Clock win — ${statLine}`,
       ],
-      strict: [
+      sarcastic: [
         `Flag fall — win. ${statLine}`,
-        `Won on time. Manage the clock better next game too.`,
+        `Won on time. Manage the clock better too.`,
       ],
-      mentor: [
-        `Time trouble win vs ${botName}. ${statLine} Practice faster decisions.`,
+      anxious_nerd: [
+        `Time trouble win vs ${botName}. ${statLine}`,
         `Flag win. ${statLine}`,
       ],
-      tactical: [`${botName} flagged — ${statLine}`, `Speed kill vs ${botName}.`],
-      minimal: ["Won on time.", "Flag win."],
+      egoistic: [`${botName} flagged — ${statLine}`, `Speed kill vs ${botName}.`],
+      sassy: [
+        `Won on time vs ${botName}. ${statLine}`,
+        `Flag win — ${statLine}`,
+      ],
     },
     "flag loss": {
-      friendly: [
+      genz: [
         `Ran out of time vs ${botName}. ${statLine}`,
-        `Clock got you — try a longer control.`,
+        `Clock got you — try longer control.`,
       ],
-      strict: [`Lost on time. ${statLine}`, `Flagged. Budget time in the middlegame.`],
-      mentor: [
-        `Time loss vs ${botName}. ${statLine} Use increment or longer clocks while learning.`,
+      sarcastic: [`Lost on time. ${statLine}`, `Flagged. Budget middlegame time.`],
+      anxious_nerd: [
+        `Time loss vs ${botName}. ${statLine}`,
         `Flag loss. ${statLine}`,
       ],
-      tactical: [`${botName} won on time. ${statLine}`, `Too slow — ${statLine}`],
-      minimal: ["Lost on time.", "Flagged."],
+      egoistic: [`${botName} won on time. ${statLine}`, `Too slow — ${statLine}`],
+      sassy: [
+        `Ran out of time vs ${botName}. ${statLine}`,
+        `Flagged. ${statLine}`,
+      ],
     },
     "resign win": {
-      friendly: [
+      genz: [
         `${botName} resigned — ${statLine}`,
-        `Win — opponent resigned. ${statLine}`,
+        `Win — they resigned. ${statLine}`,
       ],
-      strict: [`Resignation win. ${statLine}`, `Point earned. ${statLine}`],
-      mentor: [
-        `${botName} resigned. ${statLine} You had a winning plan.`,
+      sarcastic: [`Resignation win. ${statLine}`, `Point earned. ${statLine}`],
+      anxious_nerd: [
+        `${botName} resigned. ${statLine} Winning plan.`,
         `Resign win. ${statLine}`,
       ],
-      tactical: [
+      egoistic: [
         `${botName} quit — you had them. ${statLine}`,
         `Resignation. ${statLine}`,
       ],
-      minimal: ["Opponent resigned.", "Win."],
+      sassy: [
+        `${botName} resigned. ${statLine}`,
+        `Win — they quit. ${statLine}`,
+      ],
     },
     "resign loss": {
-      friendly: [
-        `You resigned vs ${botName}. ${statLine} Review if you could fight on.`,
+      genz: [
+        `You resigned vs ${botName}. ${statLine}`,
         `Resigned — ${statLine}`,
       ],
-      strict: [
-        `Resignation. ${statLine} Only resign when truly lost.`,
+      sarcastic: [
+        `Resignation. ${statLine}`,
         `You resigned. ${statLine}`,
       ],
-      mentor: [
-        `Resigned vs ${botName}. ${statLine} Replay the turning point.`,
+      anxious_nerd: [
+        `Resigned vs ${botName}. ${statLine}`,
         `Resign loss. ${statLine}`,
       ],
-      tactical: [`You resigned to ${botName}. ${statLine}`, `Resignation. ${statLine}`],
-      minimal: ["You resigned.", "Loss."],
+      egoistic: [`You resigned to ${botName}. ${statLine}`, `Resignation. ${statLine}`],
+      sassy: [
+        `Resigned vs ${botName}. ${statLine}`,
+        `Resigned — ${statLine}`,
+      ],
     },
   };
 
-  const base = pick(pools[outcome]?.[personality] ?? pools.draw.friendly, seed);
+  const base = pick(
+    pools[outcome]?.[personality] ?? pools.draw.sarcastic ?? pools.draw.anxious_nerd!,
+    seed,
+  );
   const tail = buildRecapEpilogue(botName, personality, tier, playerWon, seed);
   return applyCoachLine(`${base}${tail}`.trim(), personality, "match");
 }

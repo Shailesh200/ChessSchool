@@ -454,7 +454,7 @@ function composeLesson(
   }
 
   const step = nextStep(facts, forPlayer);
-  if (step && (personality !== "minimal" || tier === "novice" || tier === "casual")) {
+  if (step && (personality !== "sassy" || tier === "novice" || tier === "casual")) {
     lines.push(step);
   }
 

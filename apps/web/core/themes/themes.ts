@@ -200,19 +200,45 @@ export function getBoardTheme(id: string): BoardTheme {
   return BOARD_THEMES[id] ?? BOARD_THEMES.classic!;
 }
 
+/** Deuteranopia-safe board (blue / slate — matches mobile + globals.css). */
+export const COLORBLIND_BOARD: BoardTheme = {
+  id: "deuteranopia",
+  name: "Colorblind",
+  light: "#e8eef7",
+  dark: "#9bb8d3",
+  move: "#5aa9e6",
+};
+
+export const COLORBLIND_HIGHLIGHT = "#f2c14e";
+
+export function resolveBoardTheme(
+  boardThemeId: string,
+  colorblind: "none" | "deuteranopia" | boolean = "none",
+): BoardTheme {
+  const on = colorblind === true || colorblind === "deuteranopia";
+  return on ? COLORBLIND_BOARD : getBoardTheme(boardThemeId);
+}
+
 export function applyTheme(
   boardThemeId: string,
   schoolThemeId: string,
   appThemeId = "default",
+  colorblind: "none" | "deuteranopia" | boolean = "none",
 ): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  const board = getBoardTheme(boardThemeId);
-  root.dataset.boardTheme = board.id;
+  const board = resolveBoardTheme(boardThemeId, colorblind);
+  root.dataset.boardTheme = board.id === "deuteranopia" ? boardThemeId : board.id;
   root.dataset.schoolTheme = schoolThemeId;
   root.dataset.appTheme = appThemeId;
   root.style.colorScheme = getAppTheme(appThemeId).dark ? "dark" : "light";
   root.style.setProperty("--board-light", board.light);
   root.style.setProperty("--board-dark", board.dark);
   root.style.setProperty("--board-move", board.move);
+  root.style.setProperty(
+    "--board-highlight",
+    colorblind === true || colorblind === "deuteranopia"
+      ? COLORBLIND_HIGHLIGHT
+      : board.move,
+  );
 }

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Ash - Sarcastic">
+  <!-- Cool slate ring -->
+  <circle cx="48" cy="48" r="46" fill="#F1F5F9"/>
+  <circle cx="48" cy="48" r="46" fill="none" stroke="#64748B" stroke-width="3"/>
+  <!-- Shirt -->
+  <ellipse cx="48" cy="82" rx="22" ry="12" fill="#334155"/>
+  <rect x="36" y="68" width="24" height="16" rx="4" fill="#334155"/>
+  <!-- Crop / neat short hair -->
+  <ellipse cx="48" cy="28" rx="24" ry="14" fill="#0F172A"/>
+  <path d="M26 40 Q48 22 70 40 L66 36 Q48 26 30 36 Z" fill="#0F172A"/>
+  <!-- Face -->
+  <circle cx="48" cy="46" r="22" fill="#FED7AA"/>
+  <!-- Half-lidded / deadpan eyes -->
+  <path d="M32 42 H44" stroke="#1E293B" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M52 42 H64" stroke="#1E293B" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="38" cy="46" rx="3.2" ry="2.6" fill="#1E293B"/>
+  <ellipse cx="58" cy="46" rx="3.2" ry="2.6" fill="#1E293B"/>
+  <!-- Firm / flat mouth -->
+  <path d="M42 56 L54 56" stroke="#431407" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Tiny one-sided lift (smirk micro) -->
+  <path d="M54 56 Q57 54 58 52" stroke="#431407" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <!-- Light stubble -->
+  <ellipse cx="48" cy="60" rx="12" ry="8" fill="#0F172A" opacity="0.18"/>
+</svg>

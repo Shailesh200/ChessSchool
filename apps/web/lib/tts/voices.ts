@@ -1,4 +1,5 @@
 import type { CoachPersonality, CoachVoiceId } from "@/core/store/settings.store";
+import { COACH_CHARACTERS } from "@/features/coaching/characters";
 
 export interface EdgeVoiceProfile {
   name: string;
@@ -186,50 +187,50 @@ export const COACH_VOICE_OPTIONS: {
   },
 ];
 
-/** Personality → voice profiles when coach voice is `auto`. */
+/** Character → Edge/Google profiles when ElevenLabs unavailable / voice is `auto`. */
 export const TTS_VOICES: Record<CoachPersonality, TtsVoiceProfile> = {
-  friendly: {
-    edge: { name: "en-US-EmmaNeural", rate: 1.0, pitch: "+2Hz" },
-    google: {
-      name: "en-US-Neural2-F",
-      languageCode: "en-US",
-      speakingRate: 1.0,
-      pitch: 2.0,
-    },
-  },
-  strict: {
-    edge: { name: "en-GB-RyanNeural", rate: 0.92, pitch: "-4Hz" },
-    google: {
-      name: "en-GB-Neural2-B",
-      languageCode: "en-GB",
-      speakingRate: 0.9,
-      pitch: -3.0,
-    },
-  },
-  mentor: {
-    edge: { name: "en-US-BrianNeural", rate: 0.94, pitch: "-3Hz" },
+  anxious_nerd: {
+    edge: { name: COACH_CHARACTERS.anxious_nerd.edgeVoiceFallback, rate: 1.0, pitch: "+0Hz" },
     google: {
       name: "en-US-Neural2-J",
       languageCode: "en-US",
-      speakingRate: 0.92,
-      pitch: -2.0,
+      speakingRate: 0.95,
+      pitch: -1.0,
     },
   },
-  tactical: {
-    edge: { name: "en-AU-NatashaNeural", rate: 1.06, pitch: "+4Hz" },
+  genz: {
+    edge: { name: COACH_CHARACTERS.genz.edgeVoiceFallback, rate: 1.05, pitch: "+2Hz" },
     google: {
-      name: "en-US-Neural2-A",
+      name: "en-US-Neural2-F",
       languageCode: "en-US",
-      speakingRate: 1.08,
-      pitch: 3.0,
+      speakingRate: 1.05,
+      pitch: 2.0,
     },
   },
-  minimal: {
-    edge: { name: "en-IE-EmilyNeural", rate: 1.1, pitch: "+0Hz" },
+  sassy: {
+    edge: { name: COACH_CHARACTERS.sassy.edgeVoiceFallback, rate: 1.02, pitch: "+1Hz" },
     google: {
       name: "en-US-Neural2-C",
       languageCode: "en-US",
-      speakingRate: 1.12,
+      speakingRate: 1.02,
+      pitch: 1.0,
+    },
+  },
+  sarcastic: {
+    edge: { name: COACH_CHARACTERS.sarcastic.edgeVoiceFallback, rate: 0.95, pitch: "-2Hz" },
+    google: {
+      name: "en-US-Neural2-D",
+      languageCode: "en-US",
+      speakingRate: 0.95,
+      pitch: -2.0,
+    },
+  },
+  egoistic: {
+    edge: { name: COACH_CHARACTERS.egoistic.edgeVoiceFallback, rate: 1.0, pitch: "+0Hz" },
+    google: {
+      name: "en-US-Neural2-A",
+      languageCode: "en-US",
+      speakingRate: 1.0,
       pitch: 0,
     },
   },
@@ -247,8 +248,8 @@ export function resolveEdgeVoice(
   const id = normalizeCoachVoice(voiceId);
   const base =
     id !== "auto"
-      ? (COACH_VOICE_OPTIONS.find((o) => o.id === id)?.edge ?? TTS_VOICES.friendly.edge)
-      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES.friendly.edge);
+      ? (COACH_VOICE_OPTIONS.find((o) => o.id === id)?.edge ?? TTS_VOICES.sarcastic.edge)
+      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES.sarcastic.edge);
   return {
     ...base,
     rate: Math.min(2.5, base.rate * COACH_SPEECH_RATE_MULTIPLIER),

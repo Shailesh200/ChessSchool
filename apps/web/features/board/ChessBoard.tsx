@@ -7,7 +7,7 @@ import { ChessEngine } from "@/features/chess-engine/engine";
 import { CHESS_FILES } from "@chess-school/progression";
 import type { BoardArrow, MoveInput, PieceSymbol, Square } from "@/core/types/chess";
 import { useSettings } from "@/core/store/settings.store";
-import { getBoardTheme } from "@/core/themes/themes";
+import { COLORBLIND_HIGHLIGHT, resolveBoardTheme } from "@/core/themes/themes";
 import { buildPieces } from "./pieceThemes";
 
 const PROMO_GLYPHS: Record<"w" | "b", Record<"q" | "r" | "b" | "n", string>> = {
@@ -95,7 +95,9 @@ export function ChessBoard({
   const boardTheme = useSettings((s) => s.boardTheme);
   const pieceTheme = useSettings((s) => s.pieceTheme);
   const reducedMotion = useSettings((s) => s.reducedMotion);
-  const colors = getBoardTheme(boardTheme);
+  const colorblind = useSettings((s) => s.colorblind);
+  const cb = colorblind !== "none";
+  const colors = resolveBoardTheme(boardTheme, colorblind);
   const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
   // In-app Reduce motion → instant snaps. OS prefers-reduced-motion must NOT
   // disable the library — CSS excludes [data-piece] from the transition nuke.
@@ -196,47 +198,54 @@ export function ChessBoard({
         }
       }
     }
+    const moveTint = cb ? "rgba(90,169,230,0.45)" : "rgba(123, 224, 179, 0.45)";
+    const lastTint = cb ? "rgba(242,193,78,0.55)" : "rgba(255, 224, 138, 0.55)";
+    const hintRing = cb ? "rgba(90,169,230,0.75)" : "rgba(91,91,214,0.7)";
+    const hintDot = cb ? "rgba(90,169,230,0.55)" : "rgba(91,91,214,0.45)";
+    const captureRing = cb ? "rgba(242,193,78,0.65)" : "rgba(244,63,94,0.55)";
+    const checkRing = cb ? "rgba(90,169,230,0.9)" : "rgba(244,63,94,0.85)";
+    const successBg = cb ? "rgba(90,169,230,0.45)" : "rgba(34,197,94,0.5)";
+    const successRing = cb ? COLORBLIND_HIGHLIGHT : "rgba(34,197,94,0.9)";
+
     if (paintLastMove) {
-      styles[paintLastMove.from] = { background: "rgba(255, 224, 138, 0.55)" };
-      styles[paintLastMove.to] = { background: "rgba(255, 224, 138, 0.55)" };
+      styles[paintLastMove.from] = { background: lastTint };
+      styles[paintLastMove.to] = { background: lastTint };
     }
     for (const sq of highlight) {
       styles[sq] = {
-        boxShadow: "inset 0 0 0 4px rgba(91,91,214,0.7)",
+        boxShadow: `inset 0 0 0 4px ${hintRing}`,
         borderRadius: "8px",
       };
     }
     if (selected) {
-      styles[selected] = { background: "rgba(123, 224, 179, 0.45)" };
+      styles[selected] = { background: moveTint };
     }
     for (const t of dotTargets) {
       styles[t] = {
         ...(styles[t] ?? {}),
-        background:
-          "radial-gradient(circle, rgba(91,91,214,0.45) 22%, transparent 24%)",
+        background: `radial-gradient(circle, ${hintDot} 22%, transparent 24%)`,
       };
     }
     // Capturable pieces: a ring around the square so you can see the target.
     for (const t of captureTargets) {
       styles[t] = {
         ...(styles[t] ?? {}),
-        background:
-          "radial-gradient(circle, transparent 0%, transparent 78%, rgba(244,63,94,0.55) 80%)",
+        background: `radial-gradient(circle, transparent 0%, transparent 78%, ${captureRing} 80%)`,
         borderRadius: "8px",
       };
     }
     if (checkSquare) {
       styles[checkSquare] = {
         ...(styles[checkSquare] ?? {}),
-        boxShadow: "inset 0 0 0 4px rgba(244,63,94,0.85)",
+        boxShadow: `inset 0 0 0 4px ${checkRing}`,
         borderRadius: "8px",
       };
     }
     if (successSquare) {
       styles[successSquare] = {
         ...(styles[successSquare] ?? {}),
-        background: "rgba(34,197,94,0.5)",
-        boxShadow: "inset 0 0 0 4px rgba(34,197,94,0.9)",
+        background: successBg,
+        boxShadow: `inset 0 0 0 4px ${successRing}`,
         borderRadius: "8px",
       };
     }
@@ -251,6 +260,7 @@ export function ChessBoard({
     captureTargets,
     checkSquare,
     successSquare,
+    cb,
   ]);
 
   const lightSquareStyle = useMemo(

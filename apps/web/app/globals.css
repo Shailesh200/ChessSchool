@@ -477,3 +477,243 @@ html[data-school-theme="graduation"] {
     font-size: 16px;
   }
 }
+
+/* Coach character avatars — CSS motion kit (no Lottie) */
+.coach-avatar {
+  --coach-accent: #94a3b8;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.coach-avatar__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+.coach-avatar__img {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  object-fit: cover;
+  display: block;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.18);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-avatar__img,
+  .coach-avatar__ring {
+    animation: none !important;
+  }
+}
+@keyframes coach-idle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes coach-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes coach-speak-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+@keyframes coach-speak-ring {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.2;
+    border-color: var(--coach-accent);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.95;
+    border-color: var(--coach-accent);
+  }
+}
+@keyframes coach-celebrate {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1);
+  }
+  25% {
+    transform: translateY(-8px) rotate(-5deg) scale(1.06);
+  }
+  50% {
+    transform: translateY(-2px) rotate(4deg) scale(1.04);
+  }
+  75% {
+    transform: translateY(-6px) rotate(-2deg) scale(1.06);
+  }
+}
+@keyframes coach-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px) rotate(-3deg);
+  }
+  40% {
+    transform: translateX(6px) rotate(3deg);
+  }
+  60% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+  80% {
+    transform: translateX(4px) rotate(2deg);
+  }
+}
+@keyframes coach-nod {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30% {
+    transform: translateY(5px) rotate(2deg);
+  }
+  55% {
+    transform: translateY(-2px);
+  }
+  75% {
+    transform: translateY(3px);
+  }
+}
+@keyframes coach-think {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  40% {
+    transform: translateY(-3px) rotate(-7deg);
+  }
+  70% {
+    transform: translateY(-3px) rotate(-5deg);
+  }
+}
+@keyframes coach-nervous {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-2px, 1px) scale(0.98);
+  }
+  50% {
+    transform: translate(2px, -1px) scale(1.01);
+  }
+  75% {
+    transform: translate(-1px, 1px) scale(0.99);
+  }
+}
+@keyframes coach-hype {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-12px) scale(1.08);
+  }
+  55% {
+    transform: translateY(0) scale(0.96);
+  }
+  70% {
+    transform: translateY(-5px) scale(1.04);
+  }
+}
+@keyframes coach-smug {
+  0%,
+  100% {
+    transform: rotate(0) scale(1);
+  }
+  50% {
+    transform: rotate(7deg) scale(1.03);
+  }
+}
+@keyframes coach-deadpan {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    filter: grayscale(0.1);
+  }
+  40% {
+    transform: translateY(2px);
+    filter: grayscale(0.35);
+  }
+}
+@keyframes coach-alpha {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1.1);
+    filter: brightness(1.12);
+  }
+  55% {
+    transform: scale(0.97);
+  }
+}
+.coach-avatar--idle .coach-avatar__img {
+  animation: coach-idle-float 2.8s ease-in-out infinite;
+}
+.coach-avatar--breathe .coach-avatar__img {
+  animation: coach-breathe 3.2s ease-in-out infinite;
+}
+.coach-avatar--speak .coach-avatar__img {
+  animation: coach-speak-pulse 0.85s ease-in-out infinite;
+}
+.coach-avatar--speak .coach-avatar__ring {
+  animation: coach-speak-ring 0.85s ease-in-out infinite;
+}
+.coach-avatar--celebrate .coach-avatar__img {
+  animation: coach-celebrate 0.9s ease-in-out infinite;
+}
+.coach-avatar--nod .coach-avatar__img {
+  animation: coach-nod 0.7s ease-in-out infinite;
+}
+.coach-avatar--miss .coach-avatar__img,
+.coach-avatar--shake .coach-avatar__img {
+  animation: coach-shake 0.55s ease-in-out infinite;
+}
+.coach-avatar--think .coach-avatar__img {
+  animation: coach-think 2.2s ease-in-out infinite;
+}
+.coach-avatar--nervous .coach-avatar__img {
+  animation: coach-nervous 0.45s ease-in-out infinite;
+}
+.coach-avatar--hype .coach-avatar__img {
+  animation: coach-hype 0.85s ease-in-out infinite;
+}
+.coach-avatar--smug .coach-avatar__img {
+  animation: coach-smug 1.8s ease-in-out infinite;
+}
+.coach-avatar--deadpan .coach-avatar__img {
+  animation: coach-deadpan 2.4s ease-in-out infinite;
+}
+.coach-avatar--alpha .coach-avatar__img {
+  animation: coach-alpha 1.1s ease-in-out infinite;
+}

@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { normalizePieceThemeId, normalizeBoardThemeId } from "@chess-school/progression";
 import { type PieceThemeId } from "./pieceThemes";
 import { normalizeCoachVoice } from "./coachVoices";
+import { normalizeCoachCharacter, type CoachCharacterId } from "./coachCharacters";
 
 export type BoardTheme =
   | "classic"
@@ -32,7 +33,8 @@ export type Settings = {
   customGoalXp: number;
   schedule: "daily" | "weekdays" | "weekends";
   avatar: string;
-  coachPersonality: string;
+  coachPersonality: CoachCharacterId;
+  coachCharacter: CoachCharacterId;
   coachSpeech: boolean;
   coachVoice: string;
   goal: string;
@@ -60,7 +62,8 @@ const DEFAULTS: Settings = {
   customGoalXp: 60,
   schedule: "daily",
   avatar: "ava-knight",
-  coachPersonality: "friendly",
+  coachPersonality: "sarcastic",
+  coachCharacter: "sarcastic",
   coachSpeech: true,
   coachVoice: "auto",
   goal: "",
@@ -79,11 +82,16 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
   const pieceTheme = (next as { pieceTheme?: string }).pieceTheme;
   const boardTheme = (next as { boardTheme?: string }).boardTheme;
   const schoolTheme = (next as { schoolTheme?: string }).schoolTheme;
+  const character = normalizeCoachCharacter(
+    next.coachCharacter ?? next.coachPersonality ?? "sarcastic",
+  );
   return {
     ...next,
     boardTheme: boardTheme !== undefined ? (normalizeBoardThemeId(boardTheme) as BoardTheme) : next.boardTheme,
     pieceTheme: pieceTheme !== undefined ? (normalizePieceThemeId(pieceTheme) as PieceThemeId) : next.pieceTheme,
     coachVoice: next.coachVoice !== undefined ? normalizeCoachVoice(next.coachVoice) : next.coachVoice,
+    coachCharacter: character,
+    coachPersonality: character,
     schoolTheme: schoolTheme && ["elementary", "highschool", "university", "graduation"].includes(schoolTheme)
       ? schoolTheme
       : next.schoolTheme ?? "university",
@@ -159,7 +167,13 @@ export const settings = {
     emit();
   },
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    state = { ...state, [key]: value };
+    const patch = { [key]: value } as Partial<Settings>;
+    if (key === "coachCharacter" || key === "coachPersonality") {
+      const c = normalizeCoachCharacter(value);
+      patch.coachCharacter = c;
+      patch.coachPersonality = c;
+    }
+    state = { ...state, ...patch };
     persist();
     emit();
     void pushToAccount();

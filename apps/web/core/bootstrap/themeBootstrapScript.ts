@@ -28,6 +28,8 @@ var bt=s.boardTheme||"classic";
 var st=s.schoolTheme||"university";
 var at=s.appTheme||"default";
 var b=board[bt]||board.classic;
+var cb=s.colorblind&&s.colorblind!=="none";
+if(cb)b=board.slate;
 root.dataset.boardTheme=bt;
 root.dataset.schoolTheme=st;
 root.dataset.appTheme=at;
@@ -35,7 +37,10 @@ root.style.colorScheme=darkApp[at]?"dark":"light";
 root.style.setProperty("--board-light",b.l);
 root.style.setProperty("--board-dark",b.d);
 root.style.setProperty("--board-move",b.m);
-if(s.colorblind&&s.colorblind!=="none")root.dataset.cb=s.colorblind;
+if(cb){
+root.dataset.cb=s.colorblind;
+root.style.setProperty("--board-highlight","#f2c14e");
+}
 if(s.reducedMotion)root.dataset.rm="1";
 if(s.highContrast)root.dataset.contrast="high";
 if(s.textScale&&s.textScale!==1)root.style.fontSize=Math.round(s.textScale*100)+"%";

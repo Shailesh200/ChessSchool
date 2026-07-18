@@ -1,5 +1,6 @@
 import type { VerboseMove } from "@chess-school/core";
 import { commentOnMatchMove, matchGreeting, type CoachPersonality } from "./coaching/matchCommentary";
+import { normalizeCoachCharacter } from "./coachCharacters";
 
 export type { CoachPersonality };
 
@@ -25,6 +26,5 @@ export function coachGreeting(
 }
 
 export function normalizeCoachPersonality(id: string | undefined): CoachPersonality {
-  if (id === "strict" || id === "mentor" || id === "tactical" || id === "minimal") return id;
-  return "friendly";
+  return normalizeCoachCharacter(id);
 }

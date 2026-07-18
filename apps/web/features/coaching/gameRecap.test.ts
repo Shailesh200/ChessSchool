@@ -18,7 +18,7 @@ describe("buildMatchRecap", () => {
   it("mentions the bot on a win", () => {
     const line = buildMatchRecap({
       history: [move("e4"), move("e5", "b"), move("Qh5#")],
-      personality: "friendly",
+      personality: "genz",
       botElo: 600,
       botName: "Cody",
       playerColor: "w",
@@ -33,25 +33,25 @@ describe("buildMatchRecap", () => {
     const history = Array.from({ length: 24 }, (_, i) =>
       move(i % 2 === 0 ? "e4" : "e5", i % 2 === 0 ? "w" : "b"),
     );
-    const friendly = buildMatchRecap({
+    const genz = buildMatchRecap({
       history,
-      personality: "friendly",
+      personality: "genz",
       botElo: 2000,
       botName: "Vera",
       playerColor: "w",
       playerWon: false,
       reason: "checkmate",
     });
-    const minimal = buildMatchRecap({
+    const sassy = buildMatchRecap({
       history,
-      personality: "minimal",
+      personality: "sassy",
       botElo: 2000,
       botName: "Vera",
       playerColor: "w",
       playerWon: false,
       reason: "checkmate",
     });
-    expect(friendly).not.toBe(minimal);
-    expect(minimal.length).toBeLessThan(friendly.length);
+    expect(genz).not.toBe(sassy);
+    expect(sassy.length).toBeLessThan(genz.length);
   });
 });

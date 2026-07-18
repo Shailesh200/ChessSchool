@@ -20,7 +20,7 @@ import {
 } from "@/features/coaching/coach";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { botProfile } from "@/features/play/bots";
-import { BotAvatar } from "@/features/play/BotAvatar";
+import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Confetti } from "@/components/ui/Confetti";
@@ -177,6 +177,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const playerColor = shadow?.playerColor ?? "w";
   const shadowLineRef = useRef(opponentMoves(shadow?.shadowPgn ?? "", playerColor));
   const thinkingGame = Boolean(active.thinkingMode) && isBot;
+
+  const coachCharacter = useSettings((s) => s.coachCharacter);
 
   // Coach narrates the match (move commentary, greetings, recap) when coach speech is on.
   useCoachSpeech(coach, "match", true, true);
@@ -774,20 +776,22 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       {/* Fixed-height coach slot so bubble text changes don't resize/jump the board. */}
       <div className="mx-auto w-full max-w-xl shrink-0 px-3 pt-2">
         <div className="flex h-[4.75rem] items-start gap-2">
-          <div className="bg-brand-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
-            {autoOpponent ? (
-              isShadow ? (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+            {isShadow ? (
+              <div className="bg-brand-50 flex h-12 w-12 items-center justify-center rounded-full">
                 <Icon name="users" size={22} duotone />
-              ) : (
-                <BotAvatar elo={active.targetElo} size={44} />
-              )
+              </div>
             ) : (
-              <Icon name="message" size={22} duotone />
+              <CoachAvatar
+                character={coachCharacter}
+                state={thinking ? "think" : "idle"}
+                size={48}
+              />
             )}
           </div>
           <div className="border-hairline bg-surface-card text-ink flex h-full min-w-0 flex-1 flex-col justify-center overflow-hidden rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
             <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
-              {isShadow ? "Shadow" : isBot ? bot.name : "Coach"}
+              {isShadow ? "Shadow" : "Coach"}
             </span>
             <AnimatePresence mode="wait" initial={false}>
               <motion.span

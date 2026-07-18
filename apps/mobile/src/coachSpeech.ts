@@ -3,7 +3,11 @@ import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { API_URL, getToken } from "./api";
 import { normalizeCoachVoice, type CoachVoiceId } from "./coachVoices";
 import { settings } from "./settings";
-import type { CoachPersonality } from "./matchCoach";
+import { normalizeCoachCharacter, type CoachCharacterId } from "./coachCharacters";
+
+function plainSpeechText(text: string): string {
+  return text.replace(/\[[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
+}
 
 type SpeechModule = typeof import("expo-speech");
 /** Lazy — dev clients built before expo-speech was added lack the native module. */
@@ -29,8 +33,8 @@ const audioCache = new Map<string, string>();
 let currentPlayer: AudioPlayer | null = null;
 let speakGen = 0;
 
-function cacheKey(text: string, personality: CoachPersonality, voice: CoachVoiceId): string {
-  return `${personality}|${voice}|${text}`;
+function cacheKey(text: string, character: CoachCharacterId, voice: CoachVoiceId): string {
+  return `${character}|${voice}|${text}`;
 }
 
 function stopCurrent() {
@@ -52,11 +56,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 async function fetchCloudAudio(
   text: string,
-  personality: CoachPersonality,
+  character: CoachCharacterId,
   voice: CoachVoiceId,
 ): Promise<string | null> {
   const resolved = normalizeCoachVoice(voice);
-  const key = cacheKey(text, personality, resolved);
+  const key = cacheKey(text, character, resolved);
   const hit = audioCache.get(key);
   if (hit) return hit;
 
@@ -67,7 +71,12 @@ async function fetchCloudAudio(
   const res = await fetch(`${API_URL}/api/tts`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ text, personality, voice: resolved }),
+    body: JSON.stringify({
+      text,
+      character,
+      personality: character,
+      voice: resolved,
+    }),
   });
   if (!res.ok) return null;
 
@@ -121,9 +130,10 @@ export async function prefetchCoachText(text: string): Promise<void> {
   const line = text.trim();
   if (!line || line === "Thinking…") return;
   const voice = normalizeCoachVoice(s.coachVoice);
-  const key = cacheKey(line, normalizePersonality(s.coachPersonality), voice);
+  const character = normalizeCoachCharacter(s.coachCharacter ?? s.coachPersonality);
+  const key = cacheKey(line, character, voice);
   if (audioCache.has(key)) return;
-  await fetchCloudAudio(line, normalizePersonality(s.coachPersonality), voice);
+  await fetchCloudAudio(line, character, voice);
 }
 
 /** Locale/pitch hints so OS TTS isn't identical when cloud `/api/tts` is unreachable. */
@@ -169,21 +179,17 @@ export async function speakCoachText(text: string): Promise<void> {
   stopCoachSpeech();
   const gen = speakGen;
   const voice = normalizeCoachVoice(s.coachVoice);
-  const personality = normalizePersonality(s.coachPersonality);
-  const uri = await fetchCloudAudio(line, personality, voice);
+  const character = normalizeCoachCharacter(s.coachCharacter ?? s.coachPersonality);
+  const uri = await fetchCloudAudio(line, character, voice);
   if (gen !== speakGen) return;
   // Re-check mute after fetch — mute mid-request must stay silent.
   const after = settings.get();
   if (!after.sound || !after.coachSpeech) return;
   if (!uri) {
     // Cloud TTS carries personality→Edge voice (same as web). Local OS TTS varies by locale.
-    await speakLocalFallback(line, gen, voice);
+    await speakLocalFallback(plainSpeechText(line), gen, voice);
     return;
   }
   await playUri(uri, after.volume, gen);
 }
 
-function normalizePersonality(id: string): CoachPersonality {
-  if (id === "strict" || id === "mentor" || id === "tactical" || id === "minimal") return id;
-  return "friendly";
-}

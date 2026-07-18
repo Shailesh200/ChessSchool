@@ -12,6 +12,12 @@ import {
   type CoachPersonality,
   type CoachVoiceId,
 } from "@/core/store/settings.store";
+import {
+  coachCharacterOf,
+  normalizeCoachCharacter,
+  type CoachCharacterId,
+} from "@/features/coaching/characters";
+import { plainSpeechText } from "@/features/coaching/speechStyle";
 
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
@@ -23,14 +29,20 @@ export function coachTextAlreadyQueued(text: string): boolean {
   return lastQueuedCoachText === text.trim();
 }
 
+function activeCharacter(settings = useSettings.getState()): CoachCharacterId {
+  return normalizeCoachCharacter(
+    settings.coachCharacter ?? settings.coachPersonality,
+  );
+}
+
 function cacheKey(
   text: string,
-  personality: CoachPersonality,
+  character: CoachCharacterId,
   voice: CoachVoiceId,
 ): string {
   const resolved = normalizeCoachVoice(voice);
-  const edge = resolveEdgeVoice(personality, resolved);
-  return `${edge.name}|${edge.rate}|${edge.pitch}|${personality}|${resolved}|${text}`;
+  const edge = resolveEdgeVoice(character, resolved);
+  return `el:${character}|${edge.name}|${edge.rate}|${character}|${resolved}|${text}`;
 }
 
 function stopCurrent() {
@@ -66,7 +78,7 @@ function speakWithBrowser(text: string, volume: number, gen: number): Promise<vo
   window.speechSynthesis.cancel();
   if (gen !== speakGen) return Promise.resolve();
 
-  const utter = new SpeechSynthesisUtterance(text);
+  const utter = new SpeechSynthesisUtterance(plainSpeechText(text));
   utter.volume = Math.min(1, Math.max(0, volume));
   utter.rate = COACH_SPEECH_RATE_MULTIPLIER;
   return new Promise((resolve) => {
@@ -78,11 +90,11 @@ function speakWithBrowser(text: string, volume: number, gen: number): Promise<vo
 
 async function fetchCloudAudio(
   text: string,
-  personality: CoachPersonality,
+  character: CoachCharacterId,
   voice: CoachVoiceId,
 ): Promise<string | null> {
   const resolved = normalizeCoachVoice(voice);
-  const key = cacheKey(text, personality, resolved);
+  const key = cacheKey(text, character, resolved);
   const hit = audioCache.get(key);
   if (hit) return hit;
 
@@ -90,7 +102,7 @@ async function fetchCloudAudio(
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, personality, voice: resolved }),
+    body: JSON.stringify({ text, character, personality: character, voice: resolved }),
   });
   if (!res.ok) return null;
 
@@ -117,10 +129,11 @@ export async function prefetchCoachText(text: string): Promise<void> {
   if (!line || line === "Thinking…") return;
 
   const voice = normalizeCoachVoice(settings.coachVoice);
-  const key = cacheKey(line, settings.coachPersonality, voice);
+  const character = activeCharacter(settings);
+  const key = cacheKey(line, character, voice);
   if (audioCache.has(key)) return;
 
-  await fetchCloudAudio(line, settings.coachPersonality, voice);
+  await fetchCloudAudio(line, character, voice);
 }
 
 /** Stop any in-flight coach speech (e.g. on unmount or voice switch). */
@@ -141,7 +154,8 @@ export async function speakCoachText(text: string): Promise<void> {
   if (!line || line === "Thinking…") return;
 
   const voice = normalizeCoachVoice(settings.coachVoice);
-  const key = cacheKey(line, settings.coachPersonality, voice);
+  const character = activeCharacter(settings);
+  const key = cacheKey(line, character, voice);
   const cached = audioCache.get(key);
 
   lastQueuedCoachText = line;
@@ -153,7 +167,7 @@ export async function speakCoachText(text: string): Promise<void> {
     return;
   }
 
-  const url = await fetchCloudAudio(line, settings.coachPersonality, voice);
+  const url = await fetchCloudAudio(line, character, voice);
   if (gen !== speakGen) return;
   // Re-check mute after the network round-trip — mute mid-fetch must stay silent.
   const after = useSettings.getState();
@@ -174,15 +188,38 @@ export async function previewCoachVoice(
   const settings = useSettings.getState();
   if (!settings.sound) return;
 
-  const line = (sample ?? voicePreviewText(voice, settings.coachPersonality)).trim();
+  const character = activeCharacter(settings);
+  const line = (sample ?? voicePreviewText(voice, character)).trim();
   if (!line) return;
 
   stopCoachSpeech();
   const gen = speakGen;
   const resolved = normalizeCoachVoice(voice);
-  const url = await fetchCloudAudio(line, settings.coachPersonality, resolved);
+  const url = await fetchCloudAudio(line, character, resolved);
   if (gen !== speakGen) return;
 
+  if (url) {
+    await playUrl(url, settings.volume, gen);
+    return;
+  }
+  await speakWithBrowser(line, settings.volume, gen);
+}
+
+/** Preview the active (or given) coach character sample line. */
+export async function previewCoachCharacter(
+  characterId?: CoachCharacterId,
+): Promise<void> {
+  const settings = useSettings.getState();
+  if (!settings.sound) return;
+
+  const character = normalizeCoachCharacter(
+    characterId ?? activeCharacter(settings),
+  );
+  const line = coachCharacterOf(character).previewLine;
+  stopCoachSpeech();
+  const gen = speakGen;
+  const url = await fetchCloudAudio(line, character, "auto");
+  if (gen !== speakGen) return;
   if (url) {
     await playUrl(url, settings.volume, gen);
     return;
@@ -203,7 +240,7 @@ export async function speakCoachLine(
 
   const text = applyCoachLine(
     raw,
-    personality ?? settings.coachPersonality,
+    personality ?? activeCharacter(settings),
     context,
   ).trim();
   await speakCoachText(text);

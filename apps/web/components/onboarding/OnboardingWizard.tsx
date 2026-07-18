@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { ContentIcon } from "@/components/ui/ContentIcon";
 import { Icon } from "@/components/ui/Icon";
 import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
+import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import { AVATAR_OPTIONS, resolveAvatar } from "@/components/ui/iconMaps";
+import type { CoachCharacterId } from "@/features/coaching/characters";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Confetti } from "@/components/ui/Confetti";
 import { useSettings } from "@/core/store/settings.store";
@@ -40,15 +42,11 @@ const TIME: Opt[] = [
   { value: "competitive", label: "90+ min/day", emoji: "🏆" },
 ];
 const COACH: Opt[] = [
-  {
-    value: "friendly",
-    label: "Friendly teacher",
-    emoji: "😊",
-    avatar: "coach-friendly",
-  },
-  { value: "strict", label: "Strict grandmaster", emoji: "🎩", avatar: "coach-strict" },
-  { value: "mentor", label: "Mentor", emoji: "🧑‍🏫", avatar: "coach-mentor" },
-  { value: "tactical", label: "Tactical", emoji: "⚔️", avatar: "coach-tactical" },
+  { value: "anxious_nerd", label: "Otto · Anxious / Nerd", emoji: "🤓" },
+  { value: "genz", label: "Kira · GenZ", emoji: "✨" },
+  { value: "sassy", label: "Skye · Sassy", emoji: "💅" },
+  { value: "sarcastic", label: "Ash · Sarcastic", emoji: "😏" },
+  { value: "egoistic", label: "Rex · Alpha", emoji: "🦁" },
 ];
 const THEME: Opt[] = [
   { value: "default", label: "Classic", emoji: "🎓" },
@@ -122,7 +120,7 @@ export function OnboardingWizard({ name }: { name: string }) {
   async function finish() {
     setFinishing(true);
     setSetting("targetElo", Number(elo) || 800);
-    setSetting("coachPersonality", coach as never);
+    setSetting("coachCharacter", coach as never);
     setSetting("appTheme", theme || "default");
     setTier((time || "standard") as never);
     audio.play("graduation");
@@ -230,11 +228,11 @@ export function OnboardingWizard({ name }: { name: string }) {
                         : "border-hairline bg-surface-card"
                     }`}
                   >
-                    {current!.kind === "coach" && o.avatar ? (
-                      <FlatAvatar
-                        id={o.avatar}
+                    {current!.kind === "coach" ? (
+                      <CoachAvatar
+                        character={o.value as CoachCharacterId}
+                        state={current!.value === o.value ? "idle" : "breathe"}
                         size={56}
-                        selected={current!.value === o.value}
                       />
                     ) : (
                       <ContentIcon

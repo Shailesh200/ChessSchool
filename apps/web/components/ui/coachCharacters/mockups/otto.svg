@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Otto - Anxious Nerd">
+  <!-- Soft lavender ring -->
+  <circle cx="48" cy="48" r="46" fill="#EEF2FF"/>
+  <circle cx="48" cy="48" r="46" fill="none" stroke="#818CF8" stroke-width="3"/>
+  <!-- Shirt -->
+  <ellipse cx="48" cy="82" rx="22" ry="12" fill="#6366F1"/>
+  <rect x="36" y="68" width="24" height="16" rx="4" fill="#6366F1"/>
+  <!-- Messy hair -->
+  <path d="M26 40 Q34 12 48 18 Q60 10 72 36 Q64 24 48 28 Q34 32 26 40 Z" fill="#4B5563"/>
+  <path d="M30 34 L34 18 L40 30" fill="#4B5563"/>
+  <path d="M56 28 L62 14 L66 30" fill="#4B5563"/>
+  <!-- Face -->
+  <circle cx="48" cy="46" r="22" fill="#FFE4C7"/>
+  <!-- Worried brows -->
+  <path d="M30 38 Q38 34 44 38" stroke="#334155" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M52 38 Q58 34 66 38" stroke="#334155" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Glasses -->
+  <circle cx="38" cy="44" r="9" fill="none" stroke="#334155" stroke-width="2"/>
+  <circle cx="58" cy="44" r="9" fill="none" stroke="#334155" stroke-width="2"/>
+  <path d="M47 44 H49" stroke="#334155" stroke-width="2"/>
+  <circle cx="38" cy="44" r="3" fill="#1E293B"/>
+  <circle cx="58" cy="44" r="3" fill="#1E293B"/>
+  <!-- Nervous mouth -->
+  <path d="M42 56 Q48 52 54 56" stroke="#431407" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <!-- Blush -->
+  <circle cx="32" cy="52" r="3" fill="#FCA5A5" opacity="0.45"/>
+  <circle cx="64" cy="52" r="3" fill="#FCA5A5" opacity="0.45"/>
+</svg>

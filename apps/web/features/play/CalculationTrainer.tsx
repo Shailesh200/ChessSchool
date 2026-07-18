@@ -15,8 +15,10 @@ import {
   hintArrow,
 } from "@/features/coaching/coach";
 import { applyCoachLine } from "@/features/coaching/personality";
+import type { CoachCharacterId } from "@/features/coaching/characters";
+import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
+import type { CoachAvatarState } from "@/features/coaching/characters";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
-import type { CoachPersonality } from "@/core/store/settings.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useProgression } from "@/core/store/progression.store";
 import { audio } from "@/core/audio/audioEngine";
@@ -29,15 +31,15 @@ import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 type Phase = "loading" | "calc" | "correct" | "wrong" | "revealed";
 
 export function CalculationTrainer() {
-  const personality = useSettings((s) => s.coachPersonality);
+  const character = useSettings((s) => s.coachCharacter);
   const rating = useProgression((s) => s.rating);
   const [offset, setOffset] = useState(0);
 
   return (
     <CalculationTrainerSession
-      key={`${offset}:${personality}:${rating}`}
+      key={`${offset}:${character}:${rating}`}
       offset={offset}
-      personality={personality}
+      character={character}
       rating={rating}
       onNext={() => setOffset((n) => n + 1)}
     />
@@ -46,12 +48,12 @@ export function CalculationTrainer() {
 
 function CalculationTrainerSession({
   offset,
-  personality,
+  character,
   rating,
   onNext,
 }: {
   offset: number;
-  personality: CoachPersonality;
+  character: CoachCharacterId;
   rating: number;
   onNext: () => void;
 }) {
@@ -76,7 +78,7 @@ function CalculationTrainerSession({
         const p = data.puzzle;
         setPuzzle(p);
         const engine = new ChessEngine(p.fen);
-        const intro = applyCoachLine(p.coach, personality, "lesson");
+        const intro = applyCoachLine(p.coach, character, "lesson");
         const prompt = calculationCoachPrompt(0, engine.inCheck(), rating);
         setCoach(`${intro} ${prompt}`.trim());
         setPhase("calc");
@@ -91,7 +93,7 @@ function CalculationTrainerSession({
     return () => {
       cancelled = true;
     };
-  }, [offset, personality, rating]);
+  }, [offset, character, rating]);
 
   useCoachSpeech(coach, "lesson", phase === "calc" && !pendingMove, true);
 
@@ -125,19 +127,19 @@ function CalculationTrainerSession({
 
       setAttempted(true);
       if (moveMatchesSolution(move, puzzle.allSolutions)) {
-        setCoach(applyCoachLine(puzzle.successText, personality, "success"));
+        setCoach(applyCoachLine(puzzle.successText, character, "success"));
         setPhase("correct");
         audio.play(applied.captured ? "capture" : "success");
         haptics.fire("success");
         return;
       }
 
-      setCoach(applyCoachLine(puzzle.failText, personality, "wrong"));
+      setCoach(applyCoachLine(puzzle.failText, character, "wrong"));
       setPhase("wrong");
       audio.play("fail");
       haptics.fire("error");
     },
-    [puzzle, personality],
+    [puzzle, character],
   );
 
   const handleMove = useCallback(
@@ -177,12 +179,12 @@ function CalculationTrainerSession({
     setCoach(
       applyCoachLine(
         "Here's the idea — study the line, then try another.",
-        personality,
+        character,
         "lesson",
       ),
     );
     audio.play("notify");
-  }, [puzzle, personality]);
+  }, [puzzle, character]);
 
   const tryAgain = useCallback(() => {
     if (!puzzle) return;
@@ -214,13 +216,30 @@ function CalculationTrainerSession({
           </p>
         )}
 
-        <div className="border-hairline bg-surface-card text-ink min-h-[3.5rem] rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
-          <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
-            Coach
-          </span>
-          <span className="line-clamp-3">
-            {phase === "loading" ? "Loading position…" : coach}
-          </span>
+        <div className="flex items-start gap-2">
+          <CoachAvatar
+            character={character}
+            state={
+              (
+                {
+                  correct: "success",
+                  wrong: "miss",
+                  calc: "think",
+                  revealed: "idle",
+                  loading: "breathe",
+                } as Record<Phase, CoachAvatarState>
+              )[phase]
+            }
+            size={48}
+          />
+          <div className="border-hairline bg-surface-card text-ink min-h-[3.5rem] min-w-0 flex-1 rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
+            <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
+              Coach
+            </span>
+            <span className="line-clamp-3">
+              {phase === "loading" ? "Loading position…" : coach}
+            </span>
+          </div>
         </div>
 
         <div className="relative mx-auto w-full max-w-[min(100%,520px)]">

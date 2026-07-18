@@ -53,6 +53,10 @@ lichess_db_puzzle.csv
 lichess_db_puzzle.csv.zst
 *.csv.zst
 
+# TTS synthesis cache (ElevenLabs / local)
+.cache/
+apps/web/.cache/
+
 # test + build artifacts
 test-results/
 *.tsbuildinfo

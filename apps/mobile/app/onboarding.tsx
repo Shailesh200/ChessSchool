@@ -35,10 +35,11 @@ const TIME: Opt[] = [
   { value: "competitive", label: "90+ min/day", emoji: "🏆" },
 ];
 const COACH: Opt[] = [
-  { value: "friendly", label: "Friendly teacher", emoji: "😊" },
-  { value: "strict", label: "Strict grandmaster", emoji: "🎩" },
-  { value: "mentor", label: "Mentor", emoji: "🧑‍🏫" },
-  { value: "tactical", label: "Tactical", emoji: "⚔️" },
+  { value: "anxious_nerd", label: "Otto · Anxious / Nerd", emoji: "🤓" },
+  { value: "genz", label: "Kira · GenZ", emoji: "✨" },
+  { value: "sassy", label: "Skye · Sassy", emoji: "💅" },
+  { value: "sarcastic", label: "Ash · Sarcastic", emoji: "😏" },
+  { value: "egoistic", label: "Rex · Alpha", emoji: "🦁" },
 ];
 const THEME: Opt[] = [
   { value: "default", label: "Classic", emoji: "🎓" },
@@ -85,7 +86,7 @@ export default function OnboardingScreen() {
     settings.set("goal", goal);
     settings.set("targetElo", Number(elo) || 600);
     settings.set("planTier", (time || "standard") as never);
-    settings.set("coachPersonality", coach || "friendly");
+    settings.set("coachCharacter", (coach || "sarcastic") as never);
     settings.set("appTheme", theme || "default");
     settings.set("avatar", displayAvatar);
     try {

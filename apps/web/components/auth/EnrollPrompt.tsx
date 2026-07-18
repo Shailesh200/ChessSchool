@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
+import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import { useSettings } from "@/core/store/settings.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
@@ -22,6 +22,7 @@ export function EnrollPrompt({
 }) {
   const router = useRouter();
   const setSetting = useSettings((s) => s.set);
+  const coachCharacter = useSettings((s) => s.coachCharacter);
 
   function enroll() {
     haptics.fire("success");
@@ -40,7 +41,7 @@ export function EnrollPrompt({
   return (
     <Sheet open={open} onClose={onClose} title="Save your progress">
       <div className="flex flex-col items-center gap-4 text-center">
-        <FlatAvatar id="coach-friendly" size={72} />
+        <CoachAvatar character={coachCharacter} size={72} state="idle" />
         <p className="text-ink-600 text-sm leading-relaxed font-semibold">
           You&apos;re making real progress! Enroll free to keep your XP, streak, and
           class unlocks on every device — everything you&apos;ve done so far comes with

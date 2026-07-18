@@ -7,7 +7,7 @@ import {
   type MoveCommentKind,
 } from "./botVoice";
 
-export type CoachPersonality = "friendly" | "strict" | "mentor" | "tactical" | "minimal";
+export type CoachPersonality = "genz" | "sarcastic" | "anxious_nerd" | "egoistic" | "sassy";
 
 export type BotTier =
   | "novice"

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Rex - Egoistic Alpha">
+  <!-- Bold amber / gold ring -->
+  <circle cx="48" cy="48" r="46" fill="#FFFBEB"/>
+  <circle cx="48" cy="48" r="46" fill="none" stroke="#D97706" stroke-width="3"/>
+  <!-- Shirt -->
+  <ellipse cx="48" cy="82" rx="22" ry="12" fill="#B45309"/>
+  <rect x="36" y="68" width="24" height="16" rx="4" fill="#B45309"/>
+  <!-- Spiky confident hair -->
+  <path d="M30 40 L36 14 L46 28 L54 12 L64 30 L70 16 L72 40 L62 34 L48 42 L36 34 Z" fill="#171717"/>
+  <!-- Face -->
+  <circle cx="48" cy="46" r="22" fill="#E8B89D"/>
+  <!-- Focused strong eyes -->
+  <ellipse cx="38" cy="44" rx="3.8" ry="2.8" fill="#1E293B"/>
+  <ellipse cx="58" cy="44" rx="3.8" ry="2.8" fill="#1E293B"/>
+  <path d="M32 38 L44 40" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M52 40 L64 38" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+  <!-- Confident grin -->
+  <path d="M38 54 Q48 62 58 54" stroke="#431407" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <!-- Full beard -->
+  <path d="M34 52 Q48 70 62 52 Q58 64 48 66 Q38 64 34 52" fill="#171717" opacity="0.92"/>
+  <!-- Chin highlight on beard -->
+  <ellipse cx="48" cy="60" rx="6" ry="3" fill="#374151" opacity="0.35"/>
+</svg>

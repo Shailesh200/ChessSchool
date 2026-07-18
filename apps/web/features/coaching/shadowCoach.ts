@@ -7,95 +7,110 @@ function pick(list: string[], seed: number): string {
 }
 
 const GREETING: Record<CoachPersonality, { sameSeat: string[]; flipped: string[] }> = {
-  friendly: {
+  genz: {
     sameSeat: [
-      "Shadow rematch vs {name} — try a fresh idea on the same line.",
-      "Same opponent, new choices — what would you play differently vs {name}?",
+      "Shadow rematch vs {name}. Fresh idea time.",
+      "Same opponent, new choices. What changes vs {name}?",
     ],
     flipped: [
-      "You're in {name}'s chair now — can you hold against your old attack?",
-      "Defend the other side — stop the line you played last time.",
+      "You're in {name}'s chair. Hold the attack.",
+      "Defend the other side. Stop your old line.",
     ],
   },
-  strict: {
+  sarcastic: {
     sameSeat: [
-      "Shadow line vs {name}. Improve on your previous game.",
+      "Shadow line vs {name}. Improve on last game.",
       "Replay {name}'s moves. Find a better reply.",
     ],
     flipped: [
-      "Opposite seat. Defend vs your prior aggression.",
-      "You played the attack last time — prove you can stop it.",
+      "Opposite seat. Defend your prior aggression.",
+      "You played the attack. Prove you can stop it.",
     ],
   },
-  mentor: {
+  anxious_nerd: {
     sameSeat: [
-      "Rematch vs {name}: compare each reply to what you played before.",
-      "Same shadow line — where could your plan have been sharper?",
+      "Rematch vs {name}. Compare each reply.",
+      "Same shadow line. Where could you sharpen?",
     ],
     flipped: [
-      "Swap seats: feel {name}'s problems from the defending side.",
-      "Your old moves will chase you — calculate defensive resources.",
+      "Swap seats. Feel {name}'s problems defending.",
+      "Your old moves chase you. Calculate resources.",
     ],
   },
-  tactical: {
+  egoistic: {
     sameSeat: [
-      "Shadow hunt vs {name} — spot where the old line cracks.",
-      "Same book from {name}. Punish a lazy reply.",
+      "Shadow hunt vs {name}. Spot where it cracks.",
+      "Same book from {name}. Punish lazy replies.",
     ],
     flipped: [
-      "Your past attack returns — find the block or counter.",
+      "Your past attack returns. Block or counter.",
       "Defend vs your own tricks. Calculate forcing lines.",
     ],
   },
-  minimal: {
-    sameSeat: ["Shadow vs {name}.", "Same line — new move."],
-    flipped: ["Defend.", "Other side."],
+  sassy: {
+    sameSeat: [
+      "Shadow rematch vs {name}. Better move. Impress me.",
+      "Replay {name}'s moves. Do something smarter.",
+    ],
+    flipped: [
+      "You're in {name}'s chair. Defend like you mean it.",
+      "Other side now. Stop the attack you played.",
+    ],
   },
 };
 
 const SHADOW_MOVE: Record<CoachPersonality, string[]> = {
-  friendly: ["{name} plays {san} — just like last time.", "Shadow: {san}. Your turn!"],
-  strict: ["{san}. Book move from {name}.", "Shadow {san}. Answer."],
-  mentor: [
-    "Recorded {san} from {name} — what's your plan against it?",
+  genz: ["{name} plays {san} — just like last time.", "Shadow: {san}. Your turn!"],
+  sarcastic: ["{san}. Book move from {name}.", "Shadow {san}. Answer."],
+  anxious_nerd: [
+    "Recorded {san} from {name}. What's your plan?",
     "{name} replays {san}.",
   ],
-  tactical: ["{san} from the tape. Look for a tactic.", "Shadow {san} — any shots?"],
-  minimal: ["{san}.", "Shadow {san}."],
+  egoistic: ["{san} from the tape. Any shots?", "Shadow {san} — any tactics?"],
+  sassy: [
+    "{name} plays {san} — déjà vu. Your turn.",
+    "Shadow {san}. Don't autopilot the reply.",
+  ],
 };
 
 const OFF_BOOK: Record<CoachPersonality, string[]> = {
-  friendly: [
-    "You left the book — shadow can't follow. Keep playing your idea!",
-    "New territory! The shadow stops here; finish the game on your own.",
+  genz: [
+    "You left the book. Shadow can't follow.",
+    "New territory! Shadow stops here.",
   ],
-  strict: [
-    "Off book. Shadow halts — no more recorded moves.",
-    "Deviation. You're on your own from here.",
+  sarcastic: [
+    "Off book. Shadow halts — no more tape.",
+    "Deviation. You're on your own now.",
   ],
-  mentor: [
-    "You branched off the saved game — good experiment. No more shadow moves.",
-    "Off the replay line. Calculate freely from here.",
+  anxious_nerd: [
+    "You branched off the saved game. No more shadow.",
+    "Off the replay line. Calculate freely.",
   ],
-  tactical: [
-    "Off book — hunt for tactics without the shadow crutch.",
+  egoistic: [
+    "Off book — hunt tactics without the crutch.",
     "New line! Shadow can't keep up.",
   ],
-  minimal: ["Off book.", "Solo from here."],
+  sassy: [
+    "Off book — shadow can't follow. You're alone.",
+    "New line. Shadow stops here. Finish it.",
+  ],
 };
 
 const PLAYER_MOVE: Record<CoachPersonality, string[]> = {
-  friendly: [
-    "Nice — you're steering away from the old game.",
-    "Interesting — let's see if shadow can keep up.",
+  genz: [
+    "Nice — steering away from the old game.",
+    "Interesting — can shadow keep up?",
   ],
-  strict: ["Deviation noted.", "Not the same line as before."],
-  mentor: [
-    "A new idea — compare it mentally to your previous try.",
+  sarcastic: ["Deviation noted.", "Not the same line as before."],
+  anxious_nerd: [
+    "A new idea — compare to your previous try.",
     "Different path — evaluate the shadow reply.",
   ],
-  tactical: ["New line — scan for tactics.", "Fresh move — any forcing follow-up?"],
-  minimal: ["New.", "Different."],
+  egoistic: ["New line — scan for tactics.", "Fresh move — any forcing follow-up?"],
+  sassy: [
+    "New move — steering away from the old game.",
+    "Different path. Shadow might not keep up.",
+  ],
 };
 
 export function shadowGreeting(

@@ -3,20 +3,18 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Toggle } from "@/components/ui/Toggle";
-import { useSettings, type CoachPersonality } from "@/core/store/settings.store";
-import { Select } from "@/components/ui/Select";
+import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
 import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
-import { FlatAvatar } from "@/components/ui/flatAvatars/FlatAvatar";
-import { COACH_AVATAR } from "@/components/ui/iconMaps";
-import { CoachVoicePicker } from "@/features/settings/CoachVoicePicker";
+import { CoachCharacterPicker } from "@/features/settings/CoachCharacterPicker";
 import {
   SettingsNav,
   SettingsPanel,
   type SettingsSectionId,
 } from "@/features/settings/SettingsLayout";
+import type { CoachCharacterId } from "@/features/coaching/characters";
 
 function Row({
   label,
@@ -96,7 +94,10 @@ export default function SettingsPage() {
                   aria-label="Volume"
                 />
               </Row>
-              <Row label="Coach voice" hint="Read chat bubbles aloud">
+              <Row
+                label="Coach speech"
+                hint="Read coach lines aloud in lessons and matches"
+              >
                 <Toggle
                   checked={s.coachSpeech}
                   onChange={(v) => {
@@ -107,22 +108,19 @@ export default function SettingsPage() {
                     }
                     s.set("coachSpeech", v);
                   }}
-                  label="Coach voice"
+                  label="Coach speech"
                 />
               </Row>
-              {s.coachSpeech && (
-                <div className="border-hairline -mx-1 border-t py-4">
-                  <p className="text-ink text-sm font-extrabold">Speaking voice</p>
-                  <p className="text-ink-500 mt-0.5 mb-3 text-xs font-semibold">
-                    Tap a face to hear a preview — each voice has its own character.
-                  </p>
-                  <CoachVoicePicker
-                    value={s.coachVoice}
-                    personality={s.coachPersonality}
-                    onChange={(voice) => s.set("coachVoice", voice)}
-                  />
-                </div>
-              )}
+              <div className="border-hairline -mx-1 border-t py-4">
+                <p className="text-ink text-sm font-extrabold">Coach character</p>
+                <p className="text-ink-500 mt-0.5 mb-3 text-xs font-semibold">
+                  One coach for lessons and matches — tap to preview their voice.
+                </p>
+                <CoachCharacterPicker
+                  value={s.coachCharacter}
+                  onChange={(id) => s.set("coachCharacter", id as CoachCharacterId)}
+                />
+              </div>
               <Row label="Haptics" hint="Vibration on supported devices">
                 <Toggle
                   checked={s.haptics}
@@ -183,29 +181,6 @@ export default function SettingsPage() {
                   className="w-32 accent-[var(--brand-500)]"
                   aria-label="Bot difficulty"
                 />
-              </Row>
-              <Row
-                label="Coach personality"
-                hint="Friendly = warm & funny · Strict = sarcastic · Mentor = wise hints · Tactical = hype · Minimal = deadpan wit"
-              >
-                <div className="flex items-center gap-2">
-                  <FlatAvatar
-                    id={COACH_AVATAR[s.coachPersonality] ?? "coach-friendly"}
-                    size={48}
-                  />
-                  <Select
-                    className="w-40 shrink-0"
-                    options={[
-                      { id: "friendly", title: "Friendly" },
-                      { id: "strict", title: "Strict" },
-                      { id: "mentor", title: "Mentor" },
-                      { id: "tactical", title: "Tactical" },
-                      { id: "minimal", title: "Minimal" },
-                    ]}
-                    value={s.coachPersonality}
-                    onChange={(v) => s.set("coachPersonality", v as CoachPersonality)}
-                  />
-                </div>
               </Row>
             </SettingsPanel>
 

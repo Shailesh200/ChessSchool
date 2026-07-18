@@ -7,14 +7,15 @@ import { ChessBoard } from "@/ChessBoard";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
 import { BotAvatar } from "@/BotAvatar";
+import { CoachAvatar } from "@/CoachAvatar";
 import { api } from "@/api";
-import { Cody } from "@/Cody";
 import { ScreenLoader } from "@/ScreenLoader";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { useProgress } from "@/progressStore";
 import { useSettings } from "@/settings";
 import { botProfile } from "@/bots";
+import { applyCoachLine } from "@/coaching/personality";
 import { commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
 import { stopCoachSpeech } from "@/coachSpeech";
@@ -48,8 +49,8 @@ function AssistedFullGame() {
   const { colors } = useAppTheme();
   const boardSize = Math.min(width - 24, 440);
   const rating = (useProgress()?.rating as number | undefined) ?? 800;
-  const { coachPersonality } = useSettings();
-  const personality = normalizeCoachPersonality(coachPersonality);
+  const { coachCharacter, coachPersonality } = useSettings();
+  const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
   const bot = botProfile(rating);
   const engineRef = useRef(new ChessEngine(START_FEN));
   const [fen, setFen] = useState(START_FEN);
@@ -163,9 +164,16 @@ function AssistedFullGame() {
           </View>
         </View>
       </View>
-      <View style={styles.bubble}>
-        <Text style={styles.label}>Coach</Text>
-        <Text style={styles.text}>{phase === "bot-thinking" ? "Bot is thinking…" : coach}</Text>
+      <View style={[styles.bubble, { flexDirection: "row", alignItems: "flex-start", gap: space[3] }]}>
+        <CoachAvatar
+          character={personality}
+          state={phase === "bot-thinking" ? "think" : "speak"}
+          size={48}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Coach</Text>
+          <Text style={styles.text}>{phase === "bot-thinking" ? "Bot is thinking…" : coach}</Text>
+        </View>
       </View>
       <View style={styles.board}>
         <ChessBoard fen={fen} size={boardSize} onMove={handleMove} interactive={phase === "your-turn"} lastMove={lastMove} checkSquare={checkSquare} showNotation />
@@ -199,11 +207,13 @@ function AssistedPuzzle() {
   const { colors } = useAppTheme();
   const boardSize = Math.min(width - 24, 440);
   const rating = (useProgress()?.rating as number | undefined) ?? 800;
+  const { coachCharacter, coachPersonality } = useSettings();
+  const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [coach, setCoach] = useState("");
-  const [phase, setPhase] = useState<"calc" | "done">("calc");
+  const [phase, setPhase] = useState<"calc" | "done" | "miss">("calc");
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
 
   useEffect(() => {
@@ -213,7 +223,9 @@ function AssistedPuzzle() {
       .then((d) => {
         const p = d.puzzle;
         setPuzzle(p);
-        setCoach(`${p.coach} Find the best move.`);
+        setCoach(
+          applyCoachLine(`${p.coach} Find the best move.`, personality, "lesson", p.lessonId),
+        );
         setLoading(false);
       })
       .catch(() => {
@@ -221,7 +233,9 @@ function AssistedPuzzle() {
         setCoach("Could not load a puzzle.");
         setLoading(false);
       });
-  }, [offset, rating]);
+  }, [offset, rating, personality]);
+
+  useCoachSpeech(coach, !loading && Boolean(puzzle));
 
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface },
@@ -242,7 +256,7 @@ function AssistedPuzzle() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Cody expression="sad" size={100} />
+          <CoachAvatar character={personality} state="miss" size={100} />
           <Text style={{ ...type.base, fontFamily: font.bold, color: colors.ink, marginTop: space[3] }}>{coach}</Text>
           <View style={{ marginTop: space[4], width: 200 }}>
             <Button label="Try again" onPress={() => { stopCoachSpeech(); setOffset((n) => n + 1); }} />
@@ -253,7 +267,7 @@ function AssistedPuzzle() {
   }
 
   function onMove(from: string, to: string): boolean {
-    if (phase !== "calc") return false;
+    if (phase !== "calc" && phase !== "miss") return false;
     const key = `${from}:${to}`;
     const ok = puzzle!.allSolutions.includes(key);
     const engine = new ChessEngine(puzzle!.fen);
@@ -262,12 +276,13 @@ function AssistedPuzzle() {
     if (ok) {
       haptics.success();
       sfx.play("success");
-      setCoach(puzzle!.successText);
+      setCoach(applyCoachLine(puzzle!.successText, personality, "success", key));
       setPhase("done");
     } else {
       haptics.error();
       sfx.play("error");
-      setCoach(puzzle!.failText);
+      setCoach(applyCoachLine(puzzle!.failText, personality, "wrong", key));
+      setPhase("miss");
     }
     return true;
   }
@@ -278,12 +293,19 @@ function AssistedPuzzle() {
         <BackButton label="Play" />
         <Text style={{ ...type.lg, fontFamily: font.bold, color: colors.ink }}>Assisted puzzle drill</Text>
       </View>
-      <View style={styles.bubble}>
-        <Text style={{ ...type.caption, fontFamily: font.bold, color: colors.ink500 }}>COACH</Text>
-        <Text style={{ ...type.sm, fontFamily: font.semibold, color: colors.ink, marginTop: 4 }}>{coach}</Text>
+      <View style={[styles.bubble, { flexDirection: "row", alignItems: "flex-start", gap: space[3] }]}>
+        <CoachAvatar
+          character={personality}
+          state={phase === "done" ? "success" : phase === "miss" ? "miss" : "think"}
+          size={48}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={{ ...type.caption, fontFamily: font.bold, color: colors.ink500 }}>COACH</Text>
+          <Text style={{ ...type.sm, fontFamily: font.semibold, color: colors.ink, marginTop: 4 }}>{coach}</Text>
+        </View>
       </View>
       <View style={{ alignItems: "center", marginTop: space[2] }}>
-        <ChessBoard fen={puzzle.fen} size={boardSize} orientation={puzzle.orientation} onMove={onMove} interactive={phase === "calc"} lastMove={lastMove} showNotation />
+        <ChessBoard fen={puzzle.fen} size={boardSize} orientation={puzzle.orientation} onMove={onMove} interactive={phase === "calc" || phase === "miss"} lastMove={lastMove} showNotation />
       </View>
       {phase === "done" && (
         <View style={{ marginHorizontal: space[4] }}>

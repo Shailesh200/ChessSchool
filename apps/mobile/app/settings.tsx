@@ -16,18 +16,13 @@ import { toast } from "@/toast";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, shadowCard, space } from "@/theme";
 import { useType } from "@/typography";
-import { COACH_VOICE_GROUPS, COACH_VOICE_OPTIONS, normalizeCoachVoice } from "@/coachVoices";
 import { speakCoachText, stopCoachSpeech } from "@/coachSpeech";
-import { Icon } from "@/Icon";
-import { coachToneIcon, emojiToIcon } from "@/iconMaps";
-
-const COACHES = [
-  { value: "friendly", label: "Friendly", emoji: "😊" },
-  { value: "strict", label: "Strict", emoji: "🎩" },
-  { value: "mentor", label: "Mentor", emoji: "🧑‍🏫" },
-  { value: "tactical", label: "Tactical", emoji: "⚔️" },
-  { value: "minimal", label: "Minimal", emoji: "🎯" },
-];
+import { CoachAvatar } from "@/CoachAvatar";
+import {
+  COACH_CHARACTER_LIST,
+  type CoachCharacterId,
+  coachCharacterOf,
+} from "@/coachCharacters";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -118,68 +113,34 @@ export default function SettingsScreen() {
           <SliderRow label="Bot difficulty" hint={`Target ELO ${s.targetElo}`} value={s.targetElo} min={300} max={2500} step={100} onChange={(v) => settings.set("targetElo", v)} />
         </View>
 
-        <Text style={styles.section}>Coach voice</Text>
+        <Text style={styles.section}>Coach</Text>
         <View style={styles.card}>
-          <Row label="Coach speech" hint="Read coach lines aloud during matches">
+          <Row label="Coach speech" hint="Read coach lines aloud in lessons and matches">
             <Switch value={s.coachSpeech} onValueChange={(v) => settings.set("coachSpeech", v)} trackColor={track} />
           </Row>
         </View>
 
-        {s.coachSpeech && (
-          <>
-            {COACH_VOICE_GROUPS.map((group) => (
-              <View key={group.label}>
-                <Text style={styles.voiceGroup}>{group.label}</Text>
-                <View style={styles.voiceGrid}>
-                  {group.ids.map((id) => {
-                    const opt = COACH_VOICE_OPTIONS.find((v) => v.id === id)!;
-                    const on = normalizeCoachVoice(s.coachVoice) === id;
-                    return (
-                      <Pressable
-                        key={id}
-                        style={[styles.voiceCard, on && styles.voiceCardOn]}
-                        onPress={() => {
-                          stopCoachSpeech();
-                          settings.set("coachVoice", id);
-                          void speakCoachText(
-                            id === "auto"
-                              ? "I'll match your coach personality."
-                              : `Hi, I'm ${opt.title}. Ready when you are.`,
-                          );
-                        }}
-                      >
-                        <Icon name={emojiToIcon(opt.emoji)} size={22} color={on ? colors.brand : colors.ink} duotone />
-                        <Text style={[styles.voiceTitle, on && { color: colors.brand }]} numberOfLines={1}>
-                          {opt.title}
-                        </Text>
-                        <Text style={styles.voiceHint} numberOfLines={2}>
-                          {opt.hint}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-          </>
-        )}
-
-        <Text style={styles.section}>Coach personality</Text>
+        <Text style={styles.voiceGroup}>Coach character</Text>
         <View style={styles.coachGrid}>
-          {COACHES.map((c) => {
-            const on = s.coachPersonality === c.value;
+          {COACH_CHARACTER_LIST.map((c) => {
+            const on = s.coachCharacter === c.id;
             return (
               <Pressable
-                key={c.value}
+                key={c.id}
                 style={[styles.coachCard, on && styles.coachCardOn]}
                 onPress={() => {
                   stopCoachSpeech();
-                  settings.set("coachPersonality", c.value);
-                  void speakCoachText(`With a ${c.label.toLowerCase()} coach, I'll guide you this way.`);
+                  settings.set("coachCharacter", c.id as CoachCharacterId);
+                  void speakCoachText(coachCharacterOf(c.id).previewLine);
                 }}
               >
-                <Icon name={coachToneIcon(c.value)} size={22} color={on ? colors.brand : colors.ink} duotone />
-                <Text style={[styles.coachLabel, on && { color: colors.brand }]} numberOfLines={1}>{c.label}</Text>
+                <CoachAvatar character={c.id} state={on ? "idle" : "breathe"} size={44} />
+                <Text style={[styles.coachLabel, on && { color: colors.brand }]} numberOfLines={1}>
+                  {c.name}
+                </Text>
+                <Text style={styles.voiceHint} numberOfLines={1}>
+                  {c.theme}
+                </Text>
               </Pressable>
             );
           })}

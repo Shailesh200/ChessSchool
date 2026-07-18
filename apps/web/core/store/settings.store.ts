@@ -3,6 +3,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { normalizeCoachVoice } from "@/lib/tts/voices";
+import {
+  type CoachCharacterId,
+  normalizeCoachCharacter,
+} from "@/features/coaching/characters";
 
 export type BoardTheme = string; // see core/themes/themes.ts BOARD_THEMES
 export type SchoolTheme = string; // see core/themes/themes.ts SCHOOL_THEMES
@@ -20,10 +24,12 @@ export type PieceTheme =
   | "anime"
   | "fantasy";
 export type ColorblindMode = "none" | "deuteranopia";
-export type CoachPersonality =
-  "friendly" | "strict" | "mentor" | "tactical" | "minimal";
 
-/** TTS voice — `auto` follows coach personality; otherwise a fixed Edge neural voice. */
+/** @deprecated Use CoachCharacterId from features/coaching/characters */
+export type CoachPersonality = CoachCharacterId;
+export type { CoachCharacterId };
+
+/** TTS voice — legacy Edge picker; character voices use ElevenLabs. Kept for migrate/fallback. */
 export type CoachVoiceId =
   | "auto"
   | "jenny"
@@ -52,7 +58,7 @@ export interface SettingsState {
   volume: number; // 0..1
   /** Read coach / bot chat bubbles aloud (cloud TTS). */
   coachSpeech: boolean;
-  /** Spoken voice — independent of personality wording. */
+  /** @deprecated Character selects the voice; kept for Edge fallback / migrate. */
   coachVoice: CoachVoiceId;
   haptics: boolean;
   reducedMotion: boolean;
@@ -63,7 +69,13 @@ export interface SettingsState {
   schoolTheme: SchoolTheme;
   appTheme: string; // global surface palette — see core/themes/themes.ts APP_THEMES
   pieceTheme: PieceTheme;
-  coachPersonality: CoachPersonality;
+  /** Named coach character (voice + phrases + avatar). */
+  coachCharacter: CoachCharacterId;
+  /**
+   * Legacy alias — mirrors coachCharacter for older sync clients.
+   * Prefer coachCharacter in new code.
+   */
+  coachPersonality: CoachCharacterId;
   diagnostics: boolean;
   /** Share Core Web Vitals with ChessSchool (anonymous RUM). */
   sharePerformance: boolean;
@@ -101,7 +113,8 @@ const defaults = {
   schoolTheme: "university" as SchoolTheme,
   appTheme: "default",
   pieceTheme: "classic" as PieceTheme,
-  coachPersonality: "friendly" as CoachPersonality,
+  coachCharacter: "sarcastic" as CoachCharacterId,
+  coachPersonality: "sarcastic" as CoachCharacterId,
   diagnostics: false,
   sharePerformance: true,
   shareAnalytics: true,
@@ -110,15 +123,34 @@ const defaults = {
   enrollPromptDismissedAt: null as number | null,
 };
 
+function syncCoachFields(
+  patch: Partial<SettingsState>,
+): Partial<SettingsState> {
+  if (patch.coachCharacter !== undefined) {
+    const c = normalizeCoachCharacter(patch.coachCharacter);
+    return { ...patch, coachCharacter: c, coachPersonality: c };
+  }
+  if (patch.coachPersonality !== undefined) {
+    const c = normalizeCoachCharacter(patch.coachPersonality);
+    return { ...patch, coachCharacter: c, coachPersonality: c };
+  }
+  return patch;
+}
+
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
       ...defaults,
-      set: (key, value) => set({ [key]: value } as Partial<SettingsState>),
+      set: (key, value) =>
+        set((s) => {
+          const patch = syncCoachFields({ [key]: value } as Partial<SettingsState>);
+          return { ...s, ...patch };
+        }),
       applyPatch: (patch) =>
         set((s) => {
+          const synced = syncCoachFields(patch);
           const next: Partial<SettingsState> = {};
-          for (const [key, value] of Object.entries(patch) as [
+          for (const [key, value] of Object.entries(synced) as [
             keyof SettingsState,
             SettingsState[keyof SettingsState],
           ][]) {
@@ -133,12 +165,13 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 10,
+      version: 11,
       skipHydration: true,
-      // v1 -> v2: introduce schoolTheme; older board themes still resolve.
-      // v2 -> v3: anonymous RUM + product analytics opt-out toggles.
       migrate: (persisted, version) => {
-        const s = (persisted ?? {}) as Partial<SettingsState>;
+        const s = (persisted ?? {}) as Partial<SettingsState> & {
+          coachPersonality?: string;
+          coachCharacter?: string;
+        };
         if (version < 2) {
           if (!s.schoolTheme) s.schoolTheme = "university";
           if (!s.boardTheme) s.boardTheme = "classic";
@@ -156,21 +189,32 @@ export const useSettings = create<SettingsState>()(
         if (version < 6 && s.coachVoice) {
           s.coachVoice = normalizeCoachVoice(s.coachVoice);
         }
-        // v6 -> v7: `cute` was ornate Fantasy; Cartoon uses kiwen-suwi silhouettes.
         const piece = s.pieceTheme as string | undefined;
         if (version < 7 && piece === "cute") {
           s.pieceTheme = "fantasy";
         }
-        // v7 -> v8: Cute renamed to Cartoon (`cartoon` id).
         if (version < 8 && piece === "cute") {
           s.pieceTheme = "cartoon";
         }
-        // v8 -> v9: Barbie/Princess renamed to Fairytale.
         if (version < 9 && (piece === "barbie" || piece === "princess")) {
           s.pieceTheme = "fairytale";
         }
         if (version < 10 && s.enrollPromptDismissedAt === undefined) {
           s.enrollPromptDismissedAt = null;
+        }
+        // v10 -> v11: named coach characters
+        if (version < 11) {
+          const from =
+            s.coachCharacter ?? s.coachPersonality ?? defaults.coachCharacter;
+          const c = normalizeCoachCharacter(from);
+          s.coachCharacter = c;
+          s.coachPersonality = c;
+        } else {
+          const c = normalizeCoachCharacter(
+            s.coachCharacter ?? s.coachPersonality ?? defaults.coachCharacter,
+          );
+          s.coachCharacter = c;
+          s.coachPersonality = c;
         }
         return { ...defaults, ...s } as SettingsState;
       },

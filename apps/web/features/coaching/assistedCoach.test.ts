@@ -20,7 +20,7 @@ describe("assistedCoach", () => {
       moveNumber: 1,
       playerRating: 900,
       botName: "Remi",
-      personality: "friendly",
+      personality: "genz",
     });
     expect(line.toLowerCase()).toMatch(/pawn/);
     expect(line.toLowerCase()).toMatch(/centre|center/);
@@ -42,7 +42,7 @@ describe("assistedCoach", () => {
       afterFen: "rnbqkbnr/1ppppppp/8/p7/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
       botName: "Remi",
       playerRating: 900,
-      personality: "friendly",
+      personality: "genz",
       moveNumber: 2,
     });
     expect(line).not.toMatch(/reply:/i);
@@ -69,7 +69,7 @@ describe("assistedCoach", () => {
       moveNumber: 4,
       playerRating: 600,
       botName: "Remi",
-      personality: "mentor",
+      personality: "anxious_nerd",
     });
     expect(line.length).toBeGreaterThan(40);
     expect(line).not.toMatch(/reply/i);

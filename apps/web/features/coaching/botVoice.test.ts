@@ -21,8 +21,8 @@ function move(overrides: Partial<VerboseMove> & Pick<VerboseMove, "san">): Verbo
 
 describe("botVoice", () => {
   it("greets each bot with distinct copy", () => {
-    const pip = buildMatchGreeting(450, "Pip", "friendly", false);
-    const titan = buildMatchGreeting(2500, "Titan", "friendly", false);
+    const pip = buildMatchGreeting(450, "Pip", "genz", false);
+    const titan = buildMatchGreeting(2500, "Titan", "genz", false);
     expect(pip).toMatch(/Pip/i);
     expect(titan).toMatch(/Titan/i);
     expect(pip).not.toBe(titan);
@@ -44,27 +44,27 @@ describe("botVoice", () => {
       moveNumber: 12,
       move: capture,
     };
-    const friendly = buildMoveComment(
-      { ...ctx, personality: "friendly" },
+    const genz = buildMoveComment({ ...ctx, personality: "genz" }, "capture_pawn");
+    const sarcastic = buildMoveComment(
+      { ...ctx, personality: "sarcastic" },
       "capture_pawn",
     );
-    const strict = buildMoveComment({ ...ctx, personality: "strict" }, "capture_pawn");
-    expect(friendly).toMatch(/Cody/i);
-    expect(strict).toMatch(/Cody/i);
-    expect(friendly).not.toBe(strict);
+    expect(genz).toMatch(/Cody/i);
+    expect(sarcastic).toMatch(/Cody/i);
+    expect(genz).not.toBe(sarcastic);
   });
 
   it("recap epilogue names the bot", () => {
-    const line = buildRecapEpilogue("Remi", "mentor", "club", true, 7);
+    const line = buildRecapEpilogue("Remi", "anxious_nerd", "club", true, 7);
     expect(line).toMatch(/Remi/i);
   });
 
   it("thinking greeting references the opponent", () => {
-    const line = buildThinkingGreeting(1100, "Sasha", "tactical");
+    const line = buildThinkingGreeting(1100, "Sasha", "egoistic");
     expect(line).toMatch(/Sasha/i);
   });
 
   it("pass-and-play greetings differ by personality", () => {
-    expect(passPlayGreeting("friendly")).not.toBe(passPlayGreeting("minimal"));
+    expect(passPlayGreeting("genz")).not.toBe(passPlayGreeting("sassy"));
   });
 });

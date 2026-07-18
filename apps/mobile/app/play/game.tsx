@@ -33,6 +33,7 @@ import { botProfile } from "@/bots";
 import { MateReviewModal } from "@/MateReviewModal";
 import { KingFallCeremony } from "@/KingFallCeremony";
 import { BotAvatar } from "@/BotAvatar";
+import { CoachAvatar } from "@/CoachAvatar";
 import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
@@ -99,8 +100,8 @@ export default function GameScreen() {
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
   const bot = botProfile(elo);
-  const { avatar, coachPersonality, sound } = useSettings();
-  const personality = normalizeCoachPersonality(coachPersonality);
+  const { avatar, coachCharacter, coachPersonality, sound } = useSettings();
+  const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 24, 440);
   const engineRef = useRef(new ChessEngine());
@@ -353,9 +354,9 @@ export default function GameScreen() {
 
       {bubbleText && (
         <View style={styles.coach}>
-          <BotAvatar elo={elo} size={48} />
+          <CoachAvatar character={personality} state={thinking ? "think" : "idle"} size={48} />
           <View style={styles.bubble}>
-            <Text style={styles.bubbleLabel}>{bot.name}</Text>
+            <Text style={styles.bubbleLabel}>Coach</Text>
             <Text style={styles.bubbleText}>{bubbleText}</Text>
           </View>
         </View>

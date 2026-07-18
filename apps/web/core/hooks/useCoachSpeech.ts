@@ -23,7 +23,7 @@ export function useCoachSpeech(
 ) {
   const coachSpeech = useSettings((s) => s.coachSpeech);
   const sound = useSettings((s) => s.sound);
-  const personality = useSettings((s) => s.coachPersonality);
+  const personality = useSettings((s) => s.coachCharacter);
   const lastSpoken = useRef("");
 
   // Mute / coach-voice off must cut in-flight TTS immediately.

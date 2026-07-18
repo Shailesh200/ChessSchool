@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Skye - Sassy">
+  <!-- Teal / mint ring -->
+  <circle cx="48" cy="48" r="46" fill="#ECFDF5"/>
+  <circle cx="48" cy="48" r="46" fill="none" stroke="#10B981" stroke-width="3"/>
+  <!-- Shirt -->
+  <ellipse cx="48" cy="82" rx="22" ry="12" fill="#059669"/>
+  <rect x="36" y="68" width="24" height="16" rx="4" fill="#059669"/>
+  <!-- Side-part sleek hair -->
+  <path d="M26 42 Q24 16 52 14 Q74 18 72 48 Q66 32 50 28 Q32 30 26 42 Z" fill="#78350F"/>
+  <path d="M58 20 Q70 28 72 50 Q70 40 60 34 Z" fill="#78350F"/>
+  <!-- Face -->
+  <circle cx="48" cy="46" r="22" fill="#FFEDD5"/>
+  <!-- Focused eyes + lash vibe -->
+  <ellipse cx="38" cy="44" rx="3.6" ry="2.4" fill="#1E293B"/>
+  <ellipse cx="58" cy="44" rx="3.6" ry="2.4" fill="#1E293B"/>
+  <path d="M33 40 Q38 38 43 40" stroke="#1E293B" stroke-width="1.4" fill="none"/>
+  <path d="M53 40 Q58 38 63 40" stroke="#1E293B" stroke-width="1.4" fill="none"/>
+  <!-- Side smirk -->
+  <path d="M40 55 Q50 61 58 52" stroke="#431407" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- Gold earring -->
+  <circle cx="70" cy="50" r="2.4" fill="#FBBF24"/>
+  <circle cx="70" cy="54.5" r="1.4" fill="#F59E0B"/>
+  <!-- Subtle blush -->
+  <circle cx="33" cy="52" r="3" fill="#FB7185" opacity="0.35"/>
+</svg>

@@ -59,7 +59,7 @@ export function applyDocumentSettings(
   root.style.fontSize = `${Math.round(s.textScale * 100)}%`;
   if (s.highContrast) root.dataset.contrast = "high";
   else delete root.dataset.contrast;
-  applyTheme(s.boardTheme, s.schoolTheme, s.appTheme);
+  applyTheme(s.boardTheme, s.schoolTheme, s.appTheme, s.colorblind);
   let meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) {
     meta = document.createElement("meta");

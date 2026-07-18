@@ -19,6 +19,7 @@ import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
 import { botProfile } from "@/features/play/bots";
 import { BotAvatar } from "@/features/play/BotAvatar";
+import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import {
   explainAssistedBotReply,
   explainAssistedPlayerMove,
@@ -51,14 +52,22 @@ function CoachBubble({
   children: ReactNode;
   loading?: boolean;
 }) {
+  const character = useSettings((s) => s.coachCharacter);
   return (
-    <div className="border-hairline bg-surface-card text-ink flex h-[5.5rem] flex-col justify-center overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
-      <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
-        Coach
-      </span>
-      <span className="line-clamp-3 leading-relaxed">
-        {loading ? "Loading position…" : children}
-      </span>
+    <div className="border-hairline bg-surface-card text-ink flex h-[5.5rem] items-center gap-3 overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
+      <CoachAvatar
+        character={character}
+        state={loading ? "think" : "idle"}
+        size={48}
+      />
+      <div className="min-w-0 flex-1">
+        <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
+          Coach
+        </span>
+        <span className="line-clamp-3 leading-relaxed">
+          {loading ? "Loading position…" : children}
+        </span>
+      </div>
     </div>
   );
 }

@@ -30,7 +30,7 @@ export type { MatchMoveContext } from "./matchCommentary";
 export type { GameRecapInput } from "./gameRecap";
 
 function personality() {
-  return useSettings.getState().coachPersonality;
+  return useSettings.getState().coachCharacter;
 }
 
 export function encourage(seed: number): string {

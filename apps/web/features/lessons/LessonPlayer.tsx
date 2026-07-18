@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
-import { Mascot, type Expression } from "@/components/ui/Mascot";
+import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
+import type { CoachAvatarState } from "@/features/coaching/characters";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -131,7 +132,7 @@ export function LessonPlayer({
 
   const progression = useProgression();
   const sound = useSettings((s) => s.sound);
-  const coachPersonality = useSettings((s) => s.coachPersonality);
+  const coachCharacter = useSettings((s) => s.coachCharacter);
   const toggleSetting = useSettings((s) => s.toggle);
   const total = lesson.steps.length;
 
@@ -203,7 +204,7 @@ export function LessonPlayer({
           : "lesson";
   const feedbackText = applyCoachLine(
     rawFeedback,
-    coachPersonality,
+    coachCharacter,
     coachContext,
     coachSeed,
   );
@@ -218,12 +219,12 @@ export function LessonPlayer({
     if (!nextRaw.trim()) return;
     const nextLine = applyCoachLine(
       nextRaw,
-      coachPersonality,
+      coachCharacter,
       next.kind === "quiz" ? "quiz" : "lesson",
       `${lesson.id}:${next.id}:${index + 1}`,
     );
     void prefetchCoachText(nextLine);
-  }, [index, lesson.id, lesson.steps, phase, coachPersonality]);
+  }, [index, lesson.id, lesson.steps, phase, coachCharacter]);
 
   useEffect(() => {
     if (phase === "complete" || !feedbackText.trim()) return;
@@ -232,16 +233,14 @@ export function LessonPlayer({
 
   if (!step) return null;
 
-  const expression: Expression =
+  const avatarState: CoachAvatarState =
     phase === "correct"
-      ? "cheer"
+      ? "success"
       : phase === "wrong"
-        ? "sad"
-        : step.kind === "move"
+        ? "miss"
+        : step.kind === "move" || step.kind === "quiz"
           ? "think"
-          : step.kind === "quiz"
-            ? "think"
-            : "happy";
+          : "idle";
 
   function advance() {
     if (index + 1 >= total) finish();
@@ -457,7 +456,7 @@ export function LessonPlayer({
   }
 
   const quizLabels =
-    step.kind === "quiz" ? quizUiLabels(coachPersonality, coachSeed) : null;
+    step.kind === "quiz" ? quizUiLabels(coachCharacter, coachSeed) : null;
 
   if (phase === "complete") {
     return (
@@ -575,10 +574,10 @@ export function LessonPlayer({
       <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,560px)_minmax(280px,1fr)] lg:items-start lg:gap-8 lg:px-8 lg:py-6">
         {/* Coach panel — above board on mobile, right column on desktop */}
         <div className="order-1 flex min-h-[4.75rem] shrink-0 items-start gap-2 lg:sticky lg:top-24 lg:order-2 lg:min-h-0 lg:flex-col">
-          <Mascot
-            expression={expression}
+          <CoachAvatar
+            character={coachCharacter}
+            state={avatarState}
             size={88}
-            float={false}
             className="mt-1 shrink-0 lg:mx-auto"
           />
           <motion.div

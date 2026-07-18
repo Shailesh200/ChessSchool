@@ -1,22 +1,18 @@
 import type { CoachPersonality, CoachVoiceId } from "@/core/store/settings.store";
+import { COACH_CHARACTERS } from "@/features/coaching/characters";
 import { COACH_VOICE_GROUPS, normalizeCoachVoice } from "./voices";
 
-/** Coach-personality sample — used when voice is `auto`. */
+/** Character sample — used when voice is `auto`. */
 const PERSONALITY_PREVIEW: Record<CoachPersonality, string> = {
-  friendly:
-    "Hi! I'm your coach — we'll work through puzzles together, and I'll celebrate every good idea you find.",
-  strict:
-    "I'm your coach. Strong moves get a nod; hanging pieces get a lecture. Let's improve properly.",
-  mentor:
-    "Think of me as the patient voice in your corner — we'll study each idea until it feels natural.",
-  tactical:
-    "I'm here for the fireworks — spot the tactic, calculate the whole line, then strike with confidence.",
-  minimal: "Coach. I talk when it counts. Make good moves.",
+  anxious_nerd: COACH_CHARACTERS.anxious_nerd.previewLine,
+  genz: COACH_CHARACTERS.genz.previewLine,
+  sassy: COACH_CHARACTERS.sassy.previewLine,
+  sarcastic: COACH_CHARACTERS.sarcastic.previewLine,
+  egoistic: COACH_CHARACTERS.egoistic.previewLine,
 };
 
 /** Per-voice samples — coach tiles sound like in-game coaching; narrators like match storytelling. */
 const VOICE_PREVIEW: Partial<Record<CoachVoiceId, string>> = {
-  // Coaches
   emma: "Hey — lovely spot on that knight fork! Keep that same energy on the next puzzle.",
   aria: "Yes! That's exactly the kind of bright, sharp idea I love to see — you're on fire today!",
   jane: "Nice one. The bishop found a gorgeous diagonal — that's the clarity we're building toward.",
@@ -28,7 +24,6 @@ const VOICE_PREVIEW: Partial<Record<CoachVoiceId, string>> = {
     "Brilliant — you sniffed out the trick straight away! Love that fighting spirit, mate.",
   neerja:
     "Wonderful work — you trusted your calculation, and it paid off beautifully. Keep going.",
-  // Narrators
   brian:
     "The king wandered into the open, and slowly, inevitability began to close in around him.",
   guy: "White played e4. The centre became a battlefield, and Black had to answer with purpose.",
@@ -48,7 +43,6 @@ function isNarratorVoice(id: CoachVoiceId): boolean {
   return NARRATOR_IDS.has(id);
 }
 
-/** Short label for UI — coach vs narrator preview style. */
 export function voicePreviewKind(
   id: CoachVoiceId,
 ): "coach" | "narrator" | "personality" {
@@ -57,12 +51,11 @@ export function voicePreviewKind(
   return isNarratorVoice(canonical) ? "narrator" : "coach";
 }
 
-/** Sample line spoken when previewing a voice in Settings. */
 export function voicePreviewText(
   voiceId: CoachVoiceId,
   personality: CoachPersonality,
 ): string {
   const id = normalizeCoachVoice(voiceId);
-  if (id === "auto") return PERSONALITY_PREVIEW[personality];
-  return VOICE_PREVIEW[id] ?? PERSONALITY_PREVIEW[personality];
+  if (id === "auto") return PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
+  return VOICE_PREVIEW[id] ?? PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
 }

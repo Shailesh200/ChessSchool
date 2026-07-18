@@ -2,7 +2,7 @@ import type { VerboseMove } from "@chess-school/core";
 import type { BotTier } from "./matchCommentary";
 import { tierForElo } from "./matchCommentary";
 
-export type CoachPersonality = "friendly" | "strict" | "mentor" | "tactical" | "minimal";
+export type CoachPersonality = "genz" | "sarcastic" | "anxious_nerd" | "egoistic" | "sassy";
 
 export type BotCharacterId =
   "pip" | "cody" | "remi" | "sasha" | "vera" | "magnus" | "titan";
@@ -113,243 +113,414 @@ function templates(
   const b = "{botName}";
   const p = "{piece}";
   const tables: Record<CoachPersonality, Partial<Record<MoveCommentKind, string[]>>> = {
-    friendly: {
+    genz: {
       mate: reacting
-        ? [
-            `You just mated ${b}! That finish had real style — save the line and show someone.`,
-            `Checkmate against ${b}! I don't care that they're ${"{flavor}"} — you still had to find it.`,
-          ]
+        ? [`You mated ${b}! Lowkey iconic finish. W.`, `Checkmate on ${b}! Save that line.`]
         : [
-            `${b} got you with mate. ${b} is ${"{note}"}, but that attack was still well built — let's replay it.`,
-            `Mate from ${b}. Ouch — but hey, every strong player has eaten one of these.`,
+            `${b} got the mate. Run it back.`,
+            `Mate from ${b}. Every player eats one.`,
           ],
       check: reacting
-        ? [
-            `You checked ${b}! Watch the reply — ${"{note}"} opponents still bite back.`,
-            `Check! ${b} has to scramble now. Keep the pressure polite but persistent.`,
-          ]
+        ? [`You checked ${b}! Keep the pressure.`, `Check! ${b} has to scramble.`]
         : [
-            `${b} checked you. Breathe, find the safest king square, and don't panic-move.`,
-            `Check from ${b} — they're ${"{note}"}, but checks still hurt if you shrug.`,
+            `${b} checked you. Breathe. Find the safe square.`,
+            `Check from ${b}. Still bites if you shrug.`,
           ],
       capture_queen: reacting
-        ? [
-            `You took ${b}'s queen! That's the kind of swing that makes ${b} rethink their life choices.`,
-            `Queen grab from you — ${b} (${"{flavor}"}) just felt the room get colder.`,
-          ]
+        ? [`You took ${b}'s queen! Vibe shift.`, `Queen grab — ${b} is rethinking everything.`]
         : [
-            `${b} snagged your queen. Painful, but instructive — where did she lose her guards?`,
-            `${b} won your queen. Even a ${"{flavor}"} opponent can punish a loose major piece.`,
+            `${b} snagged your queen. Where did she lose guards?`,
+            `${b} won your queen. Loose majors get punished.`,
           ],
       capture_rook: reacting
-        ? [
-            `You won ${b}'s rook — open files are ${b}'s nightmare and your playground.`,
-            `Rook capture! ${b} will miss that on the back rank.`,
-          ]
+        ? [`You ate ${b}'s rook. Open files yours.`, `Rook capture! ${b} feels that.`]
         : [
-            `${b} took your rook. File discipline matters — even vs ${"{note}"} play.`,
-            `Your rook falls to ${b}. Ask what square you wish it still guarded.`,
+            `${b} took your rook. File discipline matters.`,
+            `Your rook falls to ${b}. What was it guarding?`,
           ],
       capture_minor: reacting
-        ? [
-            `You picked off ${b}'s ${p} — small wins stack up, especially against ${"{flavor}"} ${b}.`,
-            `Nice — ${b}'s ${p} is gone. Keep improving while they're off balance.`,
-          ]
+        ? [`You picked off ${b}'s ${p}. Keep cooking.`, `Nice — ${b}'s ${p} is gone.`]
         : [
-            `${b} captured your ${p}. Scan for tactics before you grab material back.`,
-            `${b} wins the ${p}. Not the end of the world, but don't donate another.`,
+            `${b} captured your ${p}. Scan before grabbing back.`,
+            `${b} wins the ${p}. Don't donate another.`,
           ],
       capture_pawn: reacting
-        ? [
-            `You took ${b}'s pawn — ${b} is ${"{note}"}, but that still shifts the balance.`,
-            `Pawn grab! Little bites add up against ${b}.`,
-          ]
+        ? [`You took ${b}'s pawn. Little bites add up.`, `Pawn grab! Balance shifts on ${b}.`]
         : [
-            `${b} ate your pawn. Respect the structure even when ${b} plays ${"{flavor}"} chess.`,
-            `Pawn loss to ${b}. Fix the weakness before the next exchange.`,
+            `${b} ate that. Main character energy rn.`,
+            `${b} ate your pawn. Patch the weakness.`,
           ],
       castle: reacting
-        ? [
-            `You castled against ${b} — good! Kings belong in houses, not parking lots.`,
-            `Castle! ${b} will have to work harder now that your king has backup.`,
-          ]
+        ? [`You castled vs ${b}. King in the house.`, `Castle! ${b} works harder now.`]
         : [
-            `${b} castled. Standard safety — now the real argument starts.`,
-            `${b} tucked the king away. Plan against the pawns, not the fear.`,
+            `${b} castled. Standard safety. Fight starts now.`,
+            `${b} tucked the king. Plan the pawns.`,
           ],
       promote: [
-        `${b} promoted a pawn — passed pawns vs ${"{note}"} ${b} are still passed pawns. Stop the next one.`,
-        `Promotion from ${b}! That ${p} became royalty; your king is not amused.`,
+        `${b} promoted. Stop the next passed pawn.`,
+        `Promotion from ${b}! That ${p} went royal.`,
       ],
       en_passant: [
-        `${b} just en passant'd you — ${b} knows the rulebook. Annoying, but legal.`,
-        `En passant from ${b}! File that under "chess is weird" and answer carefully.`,
+        `${b} en passant'd you. Annoying but legal.`,
+        `En passant from ${b}. Chess is weird.`,
       ],
       develop: reacting
-        ? [
-            `You're developing against ${b} — love it. Pieces before ego.`,
-            `Piece out vs ${b}! ${b} is ${"{flavor}"}, but development still wins games.`,
-          ]
+        ? [`You're developing vs ${b}. Pieces before ego.`, `Piece out! Tempo still wins.`]
         : [
-            `${b} developed a piece. Mirror the energy — don't fall behind in tempo.`,
-            `${b} gets a knight or bishop into the game. Find your equivalent.`,
+            `${b} developed. Mirror the energy.`,
+            `${b} gets a piece out. Match it.`,
           ],
       center: reacting
-        ? [
-            `You fought for the centre vs ${b} — that's how adults argue on a chess board.`,
-            `Central pawn from you! ${b} can't ignore that forever.`,
-          ]
+        ? [`You fought for the centre vs ${b}.`, `Central pawn! ${b} can't ignore it.`]
         : [
-            `${b} claimed central space. Contest it or regret it five moves later.`,
-            `${b} stakes the middle — ${"{note}"} or not, space matters.`,
+            `${b} claimed the middle. Contest it.`,
+            `${b} stakes the centre. Space matters.`,
           ],
       escape_check: [
-        `${b} slipped out of check. The attack pauses; decide if you reload or regroup.`,
-        `${b} found a king square. Your initiative isn't gone — just delayed.`,
+        `${b} slipped out of check. Reload or regroup?`,
+        `${b} found a king square. Initiative delayed.`,
       ],
       quiet_opening: [
-        `Quiet move in the opening vs ${b}. ${b} is ${"{note}"} — small ideas still matter.`,
-        `Subtle play against ${b}. Settle your pieces before the storm.`,
+        `Quiet opening vs ${b}. Small ideas still hit.`,
+        `Subtle vs ${b}. Settle pieces first.`,
       ],
       quiet_middlegame: [
-        `Middlegame maneuver vs ${b}. Ask what plan beats a ${"{flavor}"} opponent here.`,
-        `${b} plays a waiting move — probe for loose pieces before they probe you.`,
+        `Middlegame vs ${b}. Probe loose pieces.`,
+        `${b} waits. Find a plan before they do.`,
       ],
       quiet_endgame: [
-        `Endgame precision against ${b}. Pawns get loud when pieces disappear.`,
-        `${b} in the endgame — technique time. ${"{note}"} doesn't mean sloppy.`,
+        `Endgame vs ${b}. Pawns get loud here.`,
+        `${b} in the endgame. Technique time.`,
       ],
     },
-    strict: {
+    sarcastic: {
       mate: reacting
-        ? [
-            `You mated ${b}. Good. Don't gloat — note which square ${b} left undefended.`,
-            `Checkmate vs ${b}. Finally — ${b} is ${"{note}"}, not immortal.`,
-          ]
+        ? [`You mated ${b}. Note which square was naked.`, `Checkmate vs ${b}. ${b} isn't immortal.`]
         : [
-            `${b} mated you. ${b} is ${"{flavor}"}, but your king safety was still embarrassing.`,
-            `Mate from ${b}. Review the line until you can explain every check.`,
+            `${b} mated you. King safety was a choice.`,
+            `They hung nothing. You hung everything. Fascinating.`,
           ],
       check: reacting
-        ? [
-            `You checked ${b}. Answer their reply with calculation, not hope.`,
-            `Check. ${b} must defend — don't waste the tempo.`,
-          ]
+        ? [`You checked ${b}. Hope is not a plan.`, `Check. ${b} must defend. Don't waste tempo.`]
         : [
-            `${b} checks you. No drama — find the best square and move on.`,
+            `${b} checks you. Best square. Move on.`,
             `In check from ${b}. Accuracy beats pride.`,
           ],
       capture_queen: reacting
-        ? [`You took ${b}'s queen. About time — ${b} hangs pieces when distracted.`]
-        : [`${b} wins your queen. That was not "unlucky"; it was loose.`],
+        ? [`You took ${b}'s queen. About time.`, `Queen from ${b} is yours. Don't give it back.`]
+        : [
+            `${b} wins your queen. That was loose.`,
+            `${b} snagged your queen. Majors need babysitters.`,
+          ],
       capture_rook: reacting
-        ? [`Rook from ${b}'s side of the board is now yours. Convert.`]
-        : [`${b} captures your rook. File control isn't decorative.`],
+        ? [`Rook from ${b} is yours. Convert.`, `You win ${b}'s rook. Files matter.`]
+        : [
+            `${b} captures your rook. File control isn't decorative.`,
+            `Your rook falls to ${b}. What was it guarding?`,
+          ],
       capture_minor: reacting
-        ? [`You win ${b}'s ${p}. Don't return it with a worse move.`]
-        : [`${b} takes your ${p}. Calculate the recapture properly.`],
+        ? [`You win ${b}'s ${p}. Still theft.`, `${b}'s ${p} is gone. Don't return it.`]
+        : [
+            `${b} takes your ${p}. Actually calculate the recapture.`,
+            `${b} wins your ${p}. Loose pieces lose games.`,
+          ],
       capture_pawn: reacting
-        ? [`Pawn from ${b} is yours. Fine — now make the next move count.`]
-        : [`${b} grabs a pawn. Structural damage is still damage.`],
+        ? [`Pawn from ${b} is yours. Make it count.`, `You grabbed ${b}'s pawn. Structural damage.`]
+        : [
+            `${b} grabs a pawn. Structural damage still hurts.`,
+            `${b} ate your pawn. Respect the structure.`,
+          ],
       castle: reacting
-        ? [`You castled vs ${b}. Acceptable king safety — proceed.`]
-        : [`${b} castled. Predictable and correct. Punish the pawns instead.`],
+        ? [`You castled vs ${b}. Acceptable king safety.`, `Castle against ${b}. Revolutionary safety.`]
+        : [
+            `${b} castled. Predictable and correct. Punish pawns.`,
+            `${b} tucked the king. Boring. Effective.`,
+          ],
+      promote: [
+        `${b} promoted. Passed pawns don't care about ratings.`,
+        `Promotion from ${b}. That ${p} became royalty.`,
+      ],
+      en_passant: [
+        `${b} en passant'd you. Legal, weird, your problem.`,
+        `En passant from ${b}. Chess rules are a prank.`,
+      ],
+      develop: reacting
+        ? [`You develop vs ${b}. Pieces before ego.`, `Piece out against ${b}. Still a thing.`]
+        : [
+            `${b} developed. Mirror or fall behind.`,
+            `${b} gets a piece out. Find yours.`,
+          ],
+      center: reacting
+        ? [`You fought for the centre vs ${b}.`, `Central pawn. ${b} noticed. Pretend they didn't.`]
+        : [
+            `${b} claimed central space. Contest it.`,
+            `${b} stakes the middle. Space matters.`,
+          ],
+      escape_check: [
+        `${b} slipped out of check. Attack took a break.`,
+        `${b} found a king square. Initiative delayed.`,
+      ],
       quiet_opening: [
-        `Quiet vs ${b}. Don't confuse silence with safety.`,
-        `${b} waits — find a plan that isn't hope.`,
+        `Quiet vs ${b}. Silence isn't safety.`,
+        `${b} waits. Hope is not a plan.`,
       ],
       quiet_middlegame: [
-        `Middlegame vs ${b}. Loose pieces lose to ${"{flavor}"} opponents too.`,
-        `No fireworks — yet. Improve your worst piece.`,
+        `Middlegame vs ${b}. Improve your worst piece.`,
+        `No fireworks yet. Thrilling advice.`,
       ],
       quiet_endgame: [
-        `Endgame vs ${b}. One slip and ${b} will act smug about it.`,
+        `Endgame vs ${b}. One slip and they're smug.`,
         `Technique against ${b}. Kings forward.`,
       ],
     },
-    mentor: {
+    anxious_nerd: {
       mate: reacting
-        ? [
-            `You delivered mate against ${b} — replay the forcing moves and name each check.`,
-            `Checkmate vs ${b}. Notice how the attack restricted squares before the finish.`,
-          ]
+        ? [`You mated ${b}! Replay the forcing moves.`, `Checkmate vs ${b}! I checked twice.`]
         : [
-            `${b} mated you. Study where your king lost shelter — ${b} is ${"{note}"}, but the pattern is universal.`,
-            `Mate from ${b}. Between us, the idea started earlier than the final move.`,
+            `${b} mated you. Study where shelter broke.`,
+            `Mate from ${b}. The idea started earlier.`,
           ],
       check: reacting
-        ? [
-            `You checked ${b} — good tempo. What is their best defense?`,
-            `Check vs ${b}. Use the moment to improve, not just to poke.`,
-          ]
+        ? [`You checked ${b}. Good tempo. What's their defense?`, `Check vs ${b}. Improve, don't just poke.`]
         : [
-            `${b} checks you. Ask which escape square keeps the most options.`,
-            `In check from ${b}. Calm squares beat fast squares.`,
+            `${b} checks you. Which escape keeps options?`,
+            `In check from ${b}. Calm squares beat fast.`,
           ],
       capture_queen: reacting
-        ? [`Winning ${b}'s queen is material — now teach yourself the conversion plan.`]
-        : [`Losing the queen to ${b}. Major pieces need minor-piece backup.`],
+        ? [`You won ${b}'s queen! Walk through the conversion.`, `Queen from ${b} is yours. We're fine. Probably.`]
+        : [
+            `Oh no — ${b} took your queen. We can fix this.`,
+            `Losing the queen to ${b}. Where did she lose guards?`,
+          ],
+      capture_rook: reacting
+        ? [`You took ${b}'s rook! Open files. We're okay.`, `Rook capture vs ${b}. Verify the reply.`]
+        : [
+            `Oh no they took your rook. We can fix this.`,
+            `${b} wins your rook. Deep breath. File discipline.`,
+          ],
+      capture_minor: reacting
+        ? [`You picked off ${b}'s ${p}. I double-checked. Solid.`, `${b}'s ${p} is gone. Keep improving.`]
+        : [
+            `Oh no — ${b} captured your ${p}. Scan for tactics.`,
+            `${b} wins the ${p}. Don't donate another.`,
+          ],
+      capture_pawn: reacting
+        ? [`You took ${b}'s pawn. Little bite. Verified.`, `Pawn from ${b} is yours. Stay with me.`]
+        : [
+            `Oh no they took something. We can fix this.`,
+            `${b} ate your pawn. Structure still matters.`,
+          ],
+      castle: reacting
+        ? [`You castled vs ${b}! I can unclench a little.`, `Castle against ${b}. Kings belong tucked.`]
+        : [
+            `${b} castled. Plan against pawns, not panic.`,
+            `${b} tucked the king. Calculate your development.`,
+          ],
+      promote: [
+        `Oh no — ${b} promoted. Stop the next one.`,
+        `Promotion from ${b}! Plan the blockade.`,
+      ],
+      en_passant: [
+        `${b} en passant'd you. Legal — I checked mentally.`,
+        `En passant from ${b}. Weird rule, real threat.`,
+      ],
+      develop: reacting
+        ? [`You're developing vs ${b}. Pieces before random pushes.`, `Piece out! Development still wins.`]
+        : [
+            `${b} developed. Mirror tempo — falling behind scares me.`,
+            `${b} gets a piece out. Find yours.`,
+          ],
+      center: reacting
+        ? [`You fought for the centre vs ${b}. Good habit.`, `Central pawn from you. ${b} can't ignore it.`]
+        : [
+            `${b} claimed the middle. Contest it or regret it.`,
+            `${b} stakes the centre. Space matters.`,
+          ],
+      escape_check: [
+        `${b} slipped out of check. Reload or regroup?`,
+        `${b} found a king square. Not gone. Breathe.`,
+      ],
       quiet_opening: [
-        `Opening against ${b}: develop with purpose — ${b} punishes random pawn pushes.`,
-        `Quiet start vs ${b}. What is your best piece doing?`,
+        `Quiet opening vs ${b}. Develop with purpose.`,
+        `Subtle start. What's your best piece doing?`,
       ],
       quiet_middlegame: [
-        `Middlegame vs ${b}. Trade when ahead; improve when equal.`,
-        `${b} plays slowly — find the weakness that isn't obvious.`,
+        `Middlegame vs ${b}. Trade ahead, improve when equal.`,
+        `${b} plays slowly. Find the hidden weakness.`,
       ],
       quiet_endgame: [
-        `Endgame vs ${b}. Activate your king before ${b} activates theirs.`,
-        `Few pieces left against ${b}. Precision is the whole lesson.`,
+        `Endgame vs ${b}. Activate your king first.`,
+        `Few pieces left. One slip still hurts.`,
       ],
     },
-    tactical: {
+    egoistic: {
       mate: reacting
-        ? [
-            `You crushed ${b} with mate! That line would work on stronger bots too — remember it.`,
-            `CHECKMATE vs ${b}! Devastating — ${b} never got a counterpunch.`,
-          ]
+        ? [`You mated ${b}! Remember that line.`, `CHECKMATE vs ${b}! No counterpunch.`]
         : [
-            `${b} finished you with mate. ${b} is ${"{flavor}"}, but that attack had teeth — steal the pattern.`,
-            `Mate from ${b}. The king was a target long before the hash mark.`,
+            `${b} finished you with mate. Steal the pattern.`,
+            `Mate from ${b}. King doomed long before the mark.`,
           ],
       check: reacting
-        ? [
-            `You checked ${b}! Keep the king uncomfortable.`,
-            `Check! ${b} is ${"{note}"} — pressure anyway.`,
-          ]
+        ? [`You checked ${b}! Keep that king uncomfortable.`, `Check! Pressure anyway. You're built for this.`]
         : [
-            `${b} checks you. Hunt the counterattack if it's there.`,
-            `Check from ${b}. Don't go passive unless you must.`,
+            `${b} checks you. Hunt the counterattack.`,
+            `They scored. Answer harder.`,
           ],
       capture_queen: reacting
-        ? [`Queen hunt successful — ${b}'s king is lonely now.`]
-        : [`${b} wins your queen. Ouch — find counterplay or die slowly.`],
+        ? [`Queen hunt successful — ${b}'s king stands alone.`, `You took ${b}'s queen. Finish it.`]
+        : [
+            `${b} wins your queen. Counterplay or die slowly.`,
+            `${b} snagged your queen. Loose pieces lose.`,
+          ],
+      capture_rook: reacting
+        ? [`You took ${b}'s rook. Dominate the file.`, `Rook from ${b} is yours. Convert.`]
+        : [
+            `They scored. Answer harder.`,
+            `Your rook falls to ${b}. File control isn't optional.`,
+          ],
+      capture_minor: reacting
+        ? [`You win ${b}'s ${p}. Stack the pressure.`, `${b}'s ${p} is gone. Keep going.`]
+        : [
+            `${b} captures your ${p}. Strike back.`,
+            `${b} wins the ${p}. Still in this fight.`,
+          ],
+      capture_pawn: reacting
+        ? [`You grabbed ${b}'s pawn. Stack every point.`, `Pawn from ${b} is yours. Take it.`]
+        : [
+            `They scored. Answer harder.`,
+            `Pawn loss to ${b}. Tactics, not hope.`,
+          ],
+      castle: reacting
+        ? [`You castled vs ${b}. King safe — win the middle.`, `Castle! ${b} works harder now.`]
+        : [
+            `${b} castled. Attack the pawns, not fear.`,
+            `${b} tucked the king. Punish something else.`,
+          ],
+      promote: [
+        `${b} promoted. Stop the next one.`,
+        `Promotion from ${b}! Your king needs a plan.`,
+      ],
+      en_passant: [
+        `${b} en passant'd you. Answer like a champion.`,
+        `En passant from ${b}. Weird move, real threat.`,
+      ],
+      develop: reacting
+        ? [`You develop vs ${b}. Tempo is power.`, `Piece out! Winners develop first.`]
+        : [
+            `${b} developed. Match or beat their tempo.`,
+            `${b} gets a piece out. Lagging loses.`,
+          ],
+      center: reacting
+        ? [`You fought for the centre vs ${b}. Champion chess.`, `Central pawn from you. ${b} can't ignore you.`]
+        : [
+            `${b} claimed the middle. Contest it.`,
+            `${b} stakes the centre. Take some back.`,
+          ],
+      escape_check: [
+        `${b} slipped out of check. Reload the attack.`,
+        `${b} found a king square. Hit again.`,
+      ],
+      quiet_opening: [
+        `Quiet vs ${b}. Set the trap.`,
+        `Opening maneuver. Every tempo counts.`,
+      ],
       quiet_middlegame: [
-        `Middlegame vs ${b} — tactics are loading behind the quiet move.`,
-        `${b} plays calm; don't blink — combinations hide in calm waters.`,
+        `Middlegame vs ${b}. Tactics loading behind calm.`,
+        `${b} plays calm. Don't blink.`,
+      ],
+      quiet_endgame: [
+        `Endgame vs ${b}. Technique wins titles.`,
+        `Few pieces left. One slip loses.`,
       ],
     },
-    minimal: {
+    sassy: {
       mate: reacting
-        ? [`You mated ${b}. Game over.`, `Mate vs ${b}. Correct.`]
-        : [`${b} mated you. Unfortunate.`, `Mate from ${b}.`],
+        ? [`You mated ${b}. Game over. As it should be.`, `Checkmate vs ${b}. Correct. Fine.`]
+        : [
+            `${b} mated you. Embarrassing. Fix the king.`,
+            `Mate from ${b}. Your defense still folded.`,
+          ],
       check: reacting
-        ? [`You checked ${b}.`, `Check vs ${b}.`]
-        : [`${b} checks you.`, `In check.`],
+        ? [`You checked ${b}! Make them sweat.`, `Check vs ${b}. Keep that king uncomfortable.`]
+        : [
+            `${b} checks you. No panic moves, darling.`,
+            `In check from ${b}. Calm square. Probably fine.`,
+          ],
+      capture_queen: reacting
+        ? [`You took ${b}'s queen! ${b} got humbled.`, `Queen grab — ${b} donated like a gift shop.`]
+        : [
+            `They took free stuff. Embarrassing. Fix it.`,
+            `${b} wins your queen. Majors need guards.`,
+          ],
+      capture_rook: reacting
+        ? [`You ate ${b}'s rook. Your playground now.`, `Rook from ${b} is yours. Don't give it back.`]
+        : [
+            `They took free stuff. Embarrassing. Fix it.`,
+            `Your rook falls to ${b}. What was it doing?`,
+          ],
+      capture_minor: reacting
+        ? [`You picked off ${b}'s ${p}. Still counts.`, `${b}'s ${p} is gone. Keep pressing.`]
+        : [
+            `${b} captured your ${p}. Loose piece energy.`,
+            `${b} wins the ${p}. Don't donate another.`,
+          ],
       capture_pawn: reacting
-        ? [`You took ${b}'s pawn.`, `Pawn from ${b} is yours.`]
-        : [`${b} took your pawn.`, `Pawn loss.`],
-      quiet_opening: [`Quiet vs ${b}.`, `Opening continues.`],
-      quiet_middlegame: [`Middlegame vs ${b}.`, `Still playing.`],
-      quiet_endgame: [`Endgame vs ${b}.`, `Few pieces.`],
+        ? [`You took ${b}'s pawn. Little bite. Satisfying.`, `Pawn from ${b} is yours. Stack the shade.`]
+        : [
+            `They took free stuff. Embarrassing. Fix it.`,
+            `Pawn loss to ${b}. Patch the hole.`,
+          ],
+      castle: reacting
+        ? [`You castled vs ${b}. King tucked — be annoying.`, `Castle! ${b} works harder now.`]
+        : [
+            `${b} castled. Boring safety. Attack something else.`,
+            `${b} tucked the king. Plan the pawns.`,
+          ],
+      promote: [
+        `${b} promoted. Stop the next passed pawn.`,
+        `Promotion from ${b}! That ${p} went royal.`,
+      ],
+      en_passant: [
+        `${b} en passant'd you. Legal, petty, effective.`,
+        `En passant from ${b}. Chess is weird. Deal.`,
+      ],
+      develop: reacting
+        ? [`You're developing vs ${b}. Pieces out first.`, `Piece out! Tempo still wins.`]
+        : [
+            `${b} developed. Match the energy.`,
+            `${b} gets a piece out. Don't stall.`,
+          ],
+      center: reacting
+        ? [`You fought for the centre vs ${b}. Bully the middle.`, `Central pawn from you. ${b} can't ignore it.`]
+        : [
+            `${b} claimed the middle. Contest it.`,
+            `${b} stakes the centre. Take some back.`,
+          ],
+      escape_check: [
+        `${b} slipped out of check. Reload or regroup.`,
+        `${b} found a king square. Initiative delayed.`,
+      ],
+      quiet_opening: [
+        `Quiet vs ${b}. Small ideas still matter.`,
+        `Opening continues. Probe for hangs.`,
+      ],
+      quiet_middlegame: [
+        `Middlegame vs ${b}. Waiting moves hide traps.`,
+        `${b} plays calm. Find loose pieces.`,
+      ],
+      quiet_endgame: [
+        `Endgame vs ${b}. Pawns get loud. Be precise.`,
+        `Few pieces left. Technique still wins.`,
+      ],
     },
   };
 
+  const table = tables[personality] ?? tables.sarcastic;
   const pool =
-    tables[personality][kind] ??
-    tables.friendly[kind] ??
-    tables[personality].quiet_middlegame ??
-    tables.friendly.quiet_middlegame!;
+    table[kind] ??
+    tables.sarcastic[kind] ??
+    table.quiet_middlegame ??
+    tables.sarcastic.quiet_middlegame!;
   return pool;
 }
 
@@ -383,62 +554,66 @@ export function buildMatchGreeting(
 
   if (resumed) {
     const resume: Record<CoachPersonality, string[]> = {
-      friendly: [
-        `Welcome back — your game with ${botName} is waiting right where you left it. No judgment, just chess.`,
-        `Good to see you again! ${botName} (${elo}) is still ${char.coachNote}; let's finish this properly.`,
+      genz: [
+        `Back vs ${botName}. Finish what you started.`,
+        `Welcome back — ${botName} waits. Close it out.`,
       ],
-      strict: [
-        `Resumed vs ${botName}. Same position — ${char.flavor} opponents don't get easier because you paused.`,
-        `Back against ${botName}. Continue with discipline; the board forgot nothing.`,
+      sarcastic: [
+        `Resumed vs ${botName}. Board forgot nothing.`,
+        `Back against ${botName}. Neither should you.`,
       ],
-      mentor: [
-        `Welcome back to your game with ${botName}. Scan the position before you touch a piece.`,
-        `We paused mid-fight with ${botName} (${elo}). What's the plan from here?`,
+      anxious_nerd: [
+        `Welcome back to ${botName}. Scan before you touch.`,
+        `Paused mid-fight with ${botName}. Okay. Plan?`,
       ],
-      tactical: [
-        `Back in the arena vs ${botName} — finish what you started.`,
-        `Resumed against ${botName}. The attack can pick up where it left off.`,
+      egoistic: [
+        `Back vs ${botName}. Finish it. No mercy.`,
+        `Resumed against ${botName}. Pick up the attack.`,
       ],
-      minimal: [`Resumed vs ${botName}.`, `Continue against ${botName}.`],
+      sassy: [
+        `Resumed vs ${botName}. Don't waste my time.`,
+        `Back vs ${botName}. Better moves this time.`,
+      ],
     };
     return pick(resume[personality], seed);
   }
 
   const open: Record<CoachPersonality, string[]> = {
-    friendly: [
-      `Today's opponent is ${botName} at ${elo} — ${char.coachNote}, but cheerful about it. Have fun and calculate when it counts.`,
-      `You're facing ${botName} (${elo}). I'll narrate; ${botName} will try their best. Spoiler: that's part of the charm.`,
-      `Match vs ${botName}! They're rated ${elo} and ${char.coachNote}. Play bold, play kind, play smart.`,
+    genz: [
+      `Yo. Lock in. ${botName} at ${elo}. Let's cook.`,
+      `Vs ${botName} (${elo}). Hype on. Calc when it counts.`,
+      `Match vs ${botName}! Rated ${elo}. Play bold.`,
     ],
-    strict: [
-      `Opponent: ${botName}, ${elo}. ${char.coachNote}. I expect you to take them seriously anyway.`,
-      `${botName} · ${elo}. A ${char.flavor} bot — mistakes happen on both sides; ensure they're not all yours.`,
-      `You're playing ${botName} today (${elo}). Don't underestimate ${char.flavor} opponents — boredom is how pawns die.`,
+    sarcastic: [
+      `Bold of you to show up. ${botName}, ${elo}. Let's begin.`,
+      `${botName} · ${elo}. Take them seriously anyway.`,
+      `Vs ${botName} (${elo}). Stay awake. Pawns die bored.`,
     ],
-    mentor: [
-      `Training game vs ${botName} (${elo}). ${botName} is ${char.coachNote} — perfect for practicing real habits, not just tricks.`,
-      `I'll coach you through a match with ${botName} at ${elo}. Watch what ${char.flavor} play rewards and what it punishes.`,
-      `Between us, ${botName} is ${char.coachNote}. Use this game to test one idea: development, safety, or calculation.`,
+    anxious_nerd: [
+      `Okay. Stay with me. ${botName} at ${elo}. Play safe.`,
+      `Training vs ${botName} (${elo}). Breathe. One idea.`,
+      `I'll coach you through ${botName}. Watch and breathe.`,
     ],
-    tactical: [
-      `Sharp duel vs ${botName} (${elo})! ${char.flavor} on the surface — still hunt tactics every move.`,
-      `${botName} at ${elo}. ${char.coachNote}, but if you leave a piece loose, they'll act like a grandmaster about it.`,
-      `Attack training vs ${botName}. Rated ${elo}; dangerous enough if you drift.`,
+    egoistic: [
+      `Obviously you picked right. ${botName}, ${elo}. Play.`,
+      `Sharp duel vs ${botName} (${elo}). Hunt tactics.`,
+      `${botName} at ${elo}. Loose pieces get punished.`,
     ],
-    minimal: [
-      `Vs ${botName}, ${elo}. ${char.coachNote}. Play.`,
-      `${botName} · ${elo}. Try not to bore me.`,
+    sassy: [
+      `Welcome, baby. Vs ${botName}, ${elo}. Don't hang stuff.`,
+      `${botName} · ${elo}. Impress me or don't.`,
+      `Vs ${botName}. Try not to bore me.`,
     ],
   };
 
   const tierExtra: Record<BotTier, string> = {
-    novice: `First steps territory — both of you will miss things; that's the point.`,
-    casual: `Casual band — ideas matter more than memorized theory.`,
-    developing: `Developing strength — punish hangs, but expect the occasional trap back.`,
-    club: `Club level — ${botName} will notice loose pieces faster than you expect.`,
-    expert: `Expert territory — small slips vs ${botName} become long lectures.`,
-    master: `Master band — treat ${botName} like they'll punish everything.`,
-    elite: `Elite opponent — ${botName} doesn't do "friendly inaccuracies."`,
+    novice: `First steps — both miss things.`,
+    casual: `Casual band — ideas beat memorized theory.`,
+    developing: `Developing — punish hangs, watch traps.`,
+    club: `Club level — ${botName} spots loose pieces fast.`,
+    expert: `Expert — small slips become lectures.`,
+    master: `Master band — ${botName} punishes everything.`,
+    elite: `Elite — ${botName} doesn't do friendly inaccuracies.`,
   };
 
   const base = pick(open[personality], seed);
@@ -449,48 +624,53 @@ export function buildMatchGreeting(
 export function buildRecapEpilogue(
   botName: string,
   personality: CoachPersonality,
-  tier: BotTier,
+  _tier: BotTier,
   playerWon: boolean,
   seed: number,
 ): string {
-  const char = botCharacter(botName);
   const won: Record<CoachPersonality, string[]> = {
-    friendly: [
-      ` Beating ${botName} at this level is worth a smile — save the game and show a friend.`,
-      ` Nice work against ${botName}; ${char.flavor} opponents teach different lessons when they lose.`,
+    genz: [
+      ` Beating ${botName}? W — save the game.`,
+      ` Nice vs ${botName}. Different lessons when they lose.`,
     ],
-    strict: [
-      ` Victory vs ${botName}. Adequate — now play someone harder before you get sentimental.`,
-      ` You beat ${botName}. Don't confuse ${char.coachNote} play with your ceiling.`,
+    sarcastic: [
+      ` Victory vs ${botName}. Adequate. Play someone harder.`,
+      ` You beat ${botName}. Don't confuse luck with ceiling.`,
     ],
-    mentor: [
-      ` Strong result vs ${botName}. Write down one move you'd play again without hesitation.`,
-      ` Win against ${botName} — notice what you did before the tactic appeared.`,
+    anxious_nerd: [
+      ` Strong result vs ${botName}. Write one move down.`,
+      ` Win against ${botName}. Notice what came before tactics.`,
     ],
-    tactical: [
-      ` You took down ${botName}! Keep that attacking energy for the next rating band.`,
-      ` Win vs ${botName} — the finish mattered as much as the opening.`,
+    egoistic: [
+      ` You took down ${botName}! Next rating band.`,
+      ` Win vs ${botName}. Champions finish.`,
     ],
-    minimal: [` Beat ${botName}.`, ` Win.`],
+    sassy: [
+      ` Beat ${botName}. As you should.`,
+      ` Win vs ${botName}. Don't get cocky.`,
+    ],
   };
   const lost: Record<CoachPersonality, string[]> = {
-    friendly: [
-      ` ${botName} got you this time — ${char.coachNote}, but the rematch is already calling your name.`,
-      ` Loss to ${botName}. Replay with curiosity, not shame.`,
+    genz: [
+      ` ${botName} got you. Rematch energy calling.`,
+      ` Loss to ${botName}. Replay with curiosity.`,
     ],
-    strict: [
-      ` ${botName} won. Figure out which habit ${char.flavor} play exploited.`,
-      ` Defeat vs ${botName}. Review until the mistake feels boring.`,
+    sarcastic: [
+      ` ${botName} won. Find which habit they exploited.`,
+      ` Defeat vs ${botName}. Review until it's boring.`,
     ],
-    mentor: [
-      ` Loss to ${botName}. Study one moment where the plan changed — that's your homework.`,
-      ` ${botName} outplayed you today. Between us, the idea started earlier than you felt it.`,
+    anxious_nerd: [
+      ` Loss to ${botName}. Study one turning point.`,
+      ` ${botName} outplayed you. Deep breath.`,
     ],
-    tactical: [
-      ` ${botName} survived your attack and turned it around — find the missed tactic.`,
-      ` Tough loss to ${botName}. Counterattack next time with better calculation.`,
+    egoistic: [
+      ` ${botName} turned it — find the missed tactic.`,
+      ` Tough loss to ${botName}. Counterattack harder.`,
     ],
-    minimal: [` Lost to ${botName}.`, ` Defeat.`],
+    sassy: [
+      ` Lost to ${botName}. Fix it in review.`,
+      ` Defeat vs ${botName}. Learn or don't bother.`,
+    ],
   };
   return pick(playerWon ? won[personality] : lost[personality], seed);
 }
@@ -501,26 +681,28 @@ export function buildThinkingGreeting(
   botName: string,
   personality: CoachPersonality,
 ): string {
-  const char = botCharacter(botName);
   const seed = hash(`think:${botName}:${elo}:${personality}`);
   const pools: Record<CoachPersonality, string[]> = {
-    friendly: [
-      `Thinking duel vs ${botName} (${elo}) — no clock, just honest calculation. I'll nudge; ${botName} will wait politely.`,
-      `Calculation training with ${botName}. They're ${char.coachNote}; perfect for practicing "see it before you play it."`,
+    genz: [
+      `Thinking duel vs ${botName} (${elo}). Honest calc. Let's cook.`,
+      `Calc training with ${botName}. See it before you play.`,
     ],
-    strict: [
-      `Calculation mode vs ${botName}, ${elo}. Confirm every move. ${char.flavor} bots still punish fantasy.`,
-      `Thinking match vs ${botName}. No clock doesn't mean no standards.`,
+    sarcastic: [
+      `Calculation mode vs ${botName}, ${elo}. Confirm every move.`,
+      `Thinking match vs ${botName}. No clock, still standards.`,
     ],
-    mentor: [
-      `Slow chess vs ${botName} (${elo}). Picture the whole line, then confirm — that's the habit we're building.`,
-      `Training calc against ${botName}. ${char.coachNote} — use the time to name candidate moves out loud.`,
+    anxious_nerd: [
+      `Slow chess vs ${botName} (${elo}). Picture the line. Breathe.`,
+      `Calc training vs ${botName}. Name moves out loud.`,
     ],
-    tactical: [
-      `Sharp calculation duel vs ${botName} (${elo}). See the tactic to the end, then commit.`,
-      `Thinking game vs ${botName}. ${char.flavor} on the label, sharp in the tactics — calculate anyway.`,
+    egoistic: [
+      `Sharp calc duel vs ${botName} (${elo}). See it to the end.`,
+      `Thinking game vs ${botName}. Calculate like a champion.`,
     ],
-    minimal: [`Think vs ${botName}, ${elo}.`, `Calc mode · ${botName}.`],
+    sassy: [
+      `Think vs ${botName}, ${elo}. Use your brain.`,
+      `Calc mode · ${botName}. No autopilot. Impress me.`,
+    ],
   };
   return pick(pools[personality], seed);
 }
@@ -528,23 +710,26 @@ export function buildThinkingGreeting(
 export function passPlayGreeting(personality: CoachPersonality): string {
   const seed = hash(`pass:${personality}`);
   const pools: Record<CoachPersonality, string[]> = {
-    friendly: [
-      "Pass and play — two humans, one board, zero bots judging your pawn moves. Have fun out there.",
-      "Two players, one device. Explain your ideas to each other between moves — it's secretly good coaching.",
+    genz: [
+      "Pass and play — two humans, one board. Have fun.",
+      "Two players, one device. Talk through ideas.",
     ],
-    strict: [
-      "Pass and play. Play seriously; the person across from you will punish autopilot just like a bot would.",
-      "Face to face. No takebacks, no excuses — calculate like someone respectable is watching.",
+    sarcastic: [
+      "Pass and play. Autopilot gets punished here too.",
+      "Face to face. Calculate like someone's watching.",
     ],
-    mentor: [
-      "Pass and play — treat it like a lesson you teach each other. Ask 'why' after interesting moves.",
-      "Two-player mode: practice saying your plan out loud before you touch a piece.",
+    anxious_nerd: [
+      "Pass and play — say your plan before you move.",
+      "Two-player mode. Ask why after big moves.",
     ],
-    tactical: [
-      "Pass and play — sharp eyes win brawls. If you see a tactic, say it before you play it.",
-      "Human vs human on one board. Attack with calculation, not with hope.",
+    egoistic: [
+      "Pass and play — sharp eyes win brawls.",
+      "Human vs human. Attack with calculation, not hope.",
     ],
-    minimal: ["Pass and play. Move.", "Two players. One board."],
+    sassy: [
+      "Pass and play. Move. Don't embarrass yourselves.",
+      "Two players. One board. Entertain me.",
+    ],
   };
   return pick(pools[personality], seed);
 }

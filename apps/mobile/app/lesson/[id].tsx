@@ -4,10 +4,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
-import { Cody, type CodyExpression } from "@/Cody";
 import { Button } from "@/Button";
 import { Icon } from "@/Icon";
 import { Confetti } from "@/Confetti";
+import { CoachAvatar } from "@/CoachAvatar";
+import type { CoachAvatarState } from "@/coachCharacters";
+import { applyCoachLine } from "@/coaching/personality";
+import { useCoachSpeech } from "@/useCoachSpeech";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { api } from "@/api";
@@ -275,6 +278,40 @@ export default function LessonScreen() {
     });
   }, [index, step]);
 
+  const coachCharacter = appSettings.coachCharacter;
+  const speakEnabled =
+    Boolean(step) &&
+    phase !== "complete" &&
+    phase !== "exam-failed" &&
+    !loadError &&
+    !loading;
+  const speechLine = (() => {
+    if (!lesson || !step) return "";
+    const ctx =
+      phase === "correct"
+        ? step.kind === "quiz"
+          ? "quiz-success"
+          : "success"
+        : phase === "wrong"
+          ? step.kind === "quiz"
+            ? "quiz-wrong"
+            : "wrong"
+          : step.kind === "quiz"
+            ? "quiz"
+            : "lesson";
+    const raw = formatCoachText(
+      phase === "wrong"
+        ? step.failText ?? "Not quite — try again."
+        : phase === "correct"
+          ? step.successText ?? "Correct!"
+          : step.kind === "quiz"
+            ? ""
+            : step.coach,
+    );
+    return applyCoachLine(raw, coachCharacter, ctx, `${lesson.id}:${step.id}:${index}`);
+  })();
+  useCoachSpeech(speechLine, speakEnabled);
+
   if (loadError) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -471,6 +508,8 @@ export default function LessonScreen() {
     return true;
   }
 
+  const feedback = speechLine;
+
   if (phase === "exam-failed") {
     const interactive = scoredStepCount(lesson.steps) || 1;
     const correct = correctRef.current;
@@ -478,7 +517,7 @@ export default function LessonScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Cody expression="sad" size={140} />
+          <CoachAvatar character={coachCharacter} state="miss" size={140} />
           <Text style={styles.doneTitle}>Not quite yet</Text>
           <Text style={styles.doneSub}>
             {correct}/{interactive} correct — you need {need} ({Math.round(EXAM_PASS_RATIO * 100)}%) to pass. Review the class and try again!
@@ -509,7 +548,7 @@ export default function LessonScreen() {
       <SafeAreaView style={styles.safe}>
         <Confetti count={28} />
         <View style={styles.center}>
-          <Cody expression="cheer" size={140} />
+          <CoachAvatar character={coachCharacter} state="success" size={140} />
           <Text style={styles.doneTitle}>
             {graduatedTitle ? "Class graduated!" : lesson.exam ? "Exam complete!" : hw ? "Homework done!" : "Lesson complete!"}
           </Text>
@@ -584,20 +623,15 @@ export default function LessonScreen() {
     );
   }
 
-  const mood: CodyExpression =
-    phase === "correct" ? "cheer" : phase === "wrong" ? "sad" : step.kind === "move" || step.kind === "quiz" ? "think" : "happy";
+  const avatarState: CoachAvatarState =
+    phase === "correct"
+      ? "success"
+      : phase === "wrong"
+        ? "miss"
+        : step.kind === "move" || step.kind === "quiz"
+          ? "think"
+          : "idle";
   const showContinue = step.kind === "info" || step.kind === "observe" || (step.kind === "quiz" && phase === "correct");
-  const feedback = formatCoachText(
-    phase === "wrong"
-      ? step.failText ?? "Not quite — try again."
-      : phase === "correct"
-        ? step.kind === "quiz"
-          ? step.successText ?? "Correct!"
-          : step.successText ?? "Correct!"
-        : step.kind === "quiz"
-          ? "Choose the best answer below."
-          : step.coach,
-  );
   const tagTip = step.tag ? LESSON_TIPS[step.tag] : undefined;
   const hint = step.hint ?? tagTip ?? "Take your time and calculate before you move.";
   const solvable = step.kind === "move" && phase === "playing" && !lesson.exam;
@@ -647,7 +681,7 @@ export default function LessonScreen() {
 
       {/* Coach */}
       <View style={styles.coach}>
-        <Cody expression={mood} size={72} />
+        <CoachAvatar character={coachCharacter} state={avatarState} size={72} />
         <View style={styles.bubble}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             <Text testID="lesson-coach" style={styles.bubbleText}>{feedback}</Text>
