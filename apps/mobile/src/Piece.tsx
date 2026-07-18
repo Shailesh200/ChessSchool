@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { Image, Platform, View } from "react-native";
-import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop, SvgXml } from "react-native-svg";
+import { View } from "react-native";
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from "react-native-svg";
 import {
   getPieceTheme,
   QUEEN_BALLS,
@@ -9,8 +9,7 @@ import {
   type PieceThemeId,
   type PieceType,
 } from "./pieceThemes";
-import { getPieceSvg } from "./pieceSvgContent";
-import { scopePieceSvg } from "./pieceSvgScope";
+import { getPieceDrawing, type PieceOp } from "./pieceSvgPaths";
 
 export type { PieceThemeId };
 export { PIECE_THEMES, getPieceTheme } from "./pieceThemes";
@@ -26,11 +25,54 @@ function shade(hex: string, amt: number): string {
   return `#${ch.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
+function renderOp(op: PieceOp, key: number) {
+  if (op.t === "path") {
+    return (
+      <Path
+        key={key}
+        d={op.d}
+        fill={op.fill ?? "none"}
+        fillOpacity={op.fo}
+        fillRule={op.fr === "evenodd" || op.fr === "evenOdd" ? "evenodd" : "nonzero"}
+        stroke={op.stroke}
+        strokeWidth={op.sw}
+        strokeLinejoin={(op.lj as "round" | "miter" | "bevel") ?? "round"}
+        strokeLinecap={(op.lc as "round" | "butt" | "square") ?? "round"}
+      />
+    );
+  }
+  if (op.t === "circle") {
+    return (
+      <Circle
+        key={key}
+        cx={op.cx}
+        cy={op.cy}
+        r={op.r}
+        fill={op.fill ?? "none"}
+        stroke={op.stroke}
+        strokeWidth={op.sw}
+      />
+    );
+  }
+  return (
+    <Ellipse
+      key={key}
+      cx={op.cx}
+      cy={op.cy}
+      rx={op.rx}
+      ry={op.ry}
+      fill={op.fill ?? "none"}
+      stroke={op.stroke}
+      strokeWidth={op.sw}
+    />
+  );
+}
+
+/** Asset themes → Path/Circle ops (SvgXml / SVG data-URIs are blank on native RN). */
 function AssetPiece({
   set,
   code,
   size,
-  scope,
   filter,
 }: {
   set: AssetSet;
@@ -39,31 +81,14 @@ function AssetPiece({
   scope: string;
   filter?: string;
 }) {
-  const raw = getPieceSvg(set, code);
-  if (!raw) return <View style={{ width: size, height: size }} />;
-  const xml = scopePieceSvg(raw, scope);
-
-  // Native RN Image cannot decode SVG data-URIs (blank board). Web can.
-  // SvgXml on native; Image only on web. Gradient sets may look flatter under
-  // SvgXml until generate:pieces inlines xlink:href — still better than invisible.
-  if (Platform.OS === "web") {
-    const webFilter =
-      filter === "neon"
-        ? "drop-shadow(0 0 2px #5dffb8) drop-shadow(0 0 5px #5ec8ff) saturate(1.35)"
-        : undefined;
-    const uri = `data:image/svg+xml;utf8,${encodeURIComponent(xml)}`;
-    return (
-      <Image
-        source={{ uri }}
-        style={{ width: size, height: size, ...(webFilter ? { filter: webFilter } : {}) } as object}
-        resizeMode="contain"
-      />
-    );
-  }
+  const drawing = getPieceDrawing(set, code);
+  if (!drawing?.ops.length) return <View style={{ width: size, height: size }} />;
 
   return (
     <View style={{ width: size, height: size, opacity: filter === "neon" ? 0.95 : 1 }}>
-      <SvgXml xml={xml} width={size} height={size} />
+      <Svg viewBox={drawing.viewBox} width={size} height={size}>
+        {drawing.ops.map((op, i) => renderOp(op, i))}
+      </Svg>
     </View>
   );
 }
