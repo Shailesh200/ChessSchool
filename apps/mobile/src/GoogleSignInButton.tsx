@@ -86,7 +86,9 @@ function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
     try {
       ensureConfigured();
       if (Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        // Do not open Play Store from login — on Internal testing that surfaces the
+        // "com.chessschool.app (unreviewed)" install sheet instead of a helpful error.
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false });
       }
       const response = await GoogleSignin.signIn();
       if (!isSuccessResponse(response)) {
@@ -107,7 +109,7 @@ function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
         }
         if (e.code === statusCodes.IN_PROGRESS) return;
         if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          onError("Google Play Services is required for sign-in.");
+          onError("Update Google Play Services in the Play Store, then try again.");
           return;
         }
       }

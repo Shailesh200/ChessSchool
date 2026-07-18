@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,7 +16,8 @@ import { PasswordField } from "@/PasswordField";
 import { Logo } from "@/Logo";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
-import { font, radius, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { font, radius, space } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
 
@@ -29,6 +30,7 @@ type GoogleBtnProps = {
 export default function LoginScreen() {
   const { login, register, loginWithGoogle, continueAsGuest, exitGuest, guest } = useAuth();
   const { colors } = useAppTheme();
+  const type = useType();
   const params = useLocalSearchParams<{ email?: string; password?: string }>();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
@@ -39,6 +41,8 @@ export default function LoginScreen() {
   const [GoogleBtn, setGoogleBtn] = useState<ComponentType<GoogleBtnProps> | null>(null);
   const parityAutoLoginKey = useRef<string | null>(null);
   const isRegister = mode === "register";
+
+  const styles = useMemo(() => makeStyles(colors, type), [colors, type]);
 
   useEffect(() => {
     if (!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID?.trim()) return;
@@ -73,50 +77,6 @@ export default function LoginScreen() {
       })
       .finally(() => setBusy(false));
   }, [exitGuest, guest, login, params.email, params.password]);
-
-  const styles = StyleSheet.create({
-    center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
-    title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
-    subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
-    input: {
-      height: 52,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      backgroundColor: colors.surfaceCard,
-      paddingHorizontal: 14,
-      fontSize: 16,
-      fontFamily: font.medium,
-      color: colors.ink,
-      marginBottom: space[3],
-    },
-    error: { color: colors.danger, fontFamily: font.semibold, marginBottom: 10, textAlign: "center" },
-    button: {
-      height: 54,
-      borderRadius: radius.md,
-      backgroundColor: colors.brand,
-      justifyContent: "center",
-      alignItems: "center",
-      marginTop: 4,
-    },
-    buttonText: { color: "#fff", fontSize: 17, fontFamily: font.bold },
-    switch: { color: colors.brand, fontFamily: font.semibold, textAlign: "center", marginTop: space[4] },
-    divider: { flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[5], marginBottom: space[3] },
-    line: { flex: 1, height: 1, backgroundColor: colors.hairline },
-    or: { color: colors.ink300, fontFamily: font.bold, fontSize: 13 },
-    guestButton: {
-      height: 50,
-      borderRadius: radius.md,
-      borderWidth: 1.5,
-      borderColor: colors.brand,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: colors.surfaceCard,
-    },
-    guestText: { color: colors.brand, fontSize: 16, fontFamily: font.bold },
-    guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
-    legal: { color: colors.brand, fontSize: 12, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },
-  });
 
   const handleGoogle = useCallback(
     async (idToken: string) => {
@@ -162,7 +122,7 @@ export default function LoginScreen() {
         </View>
         <Text style={styles.title}>{isRegister ? "Enroll at ChessSchool" : "Welcome back"}</Text>
         <Text style={styles.subtitle}>
-          {isRegister ? "Create your student account to save progress." : "Log in to continue your studies."}
+          {isRegister ? "Create your student account to save progress and earn your ID." : "Log in to continue your studies."}
         </Text>
 
         {isRegister && (
@@ -227,4 +187,50 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
     </ThemedSafeArea>
   );
+}
+
+function makeStyles(colors: ReturnType<typeof useAppTheme>["colors"], type: ReturnType<typeof useType>) {
+  return StyleSheet.create({
+    center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
+    title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
+    subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
+    input: {
+      height: 52,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      backgroundColor: colors.surfaceCard,
+      paddingHorizontal: 14,
+      fontSize: 16,
+      fontFamily: font.medium,
+      color: colors.ink,
+      marginBottom: space[3],
+    },
+    error: { color: colors.danger, fontFamily: font.semibold, marginBottom: 10, textAlign: "center" },
+    button: {
+      height: 54,
+      borderRadius: radius.md,
+      backgroundColor: colors.brand,
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: 4,
+    },
+    buttonText: { color: "#fff", fontSize: 17, fontFamily: font.bold },
+    switch: { color: colors.brand, fontFamily: font.semibold, textAlign: "center", marginTop: space[4] },
+    divider: { flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[5], marginBottom: space[3] },
+    line: { flex: 1, height: 1, backgroundColor: colors.hairline },
+    or: { color: colors.ink300, fontFamily: font.bold, fontSize: 13 },
+    guestButton: {
+      height: 50,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: colors.brand,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.surfaceCard,
+    },
+    guestText: { color: colors.brand, fontSize: 16, fontFamily: font.bold },
+    guestHint: { color: colors.ink500, fontSize: 12, fontFamily: font.medium, textAlign: "center", marginTop: 10 },
+    legal: { color: colors.brand, fontSize: 12, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },
+  });
 }

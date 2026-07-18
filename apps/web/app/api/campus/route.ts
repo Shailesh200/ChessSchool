@@ -5,7 +5,7 @@ import { lessonRecords, progress } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { STAGES } from "@/content/school";
 import { isOptionalStage, orderClasses } from "@/lib/school-order";
-import { parseExtraData } from "@/lib/progress-merge";
+import { parseExtraData, parseGraduatedClasses } from "@/lib/progress-merge";
 import { getCurriculumSkeleton } from "@/features/school/curriculum-skeleton.server";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +63,7 @@ export async function GET(req: Request) {
 
   const mastery: Record<string, number> = {};
   let examsPassed: string[] = [];
+  let graduatedClasses: string[] = [];
   if (user) {
     for (const r of await db
       .select({ lessonId: lessonRecords.lessonId, mastery: lessonRecords.mastery })
@@ -71,12 +72,13 @@ export async function GET(req: Request) {
       mastery[r.lessonId] = r.mastery;
     const prow = (
       await db
-        .select({ data: progress.data })
+        .select({ data: progress.data, graduatedClasses: progress.graduatedClasses })
         .from(progress)
         .where(eq(progress.userId, user.id))
         .limit(1)
     )[0];
     examsPassed = parseExtraData(prow?.data).schoolExamsPassed ?? [];
+    graduatedClasses = parseGraduatedClasses(prow?.graduatedClasses);
   }
   const counts: Record<string, { done: number; total: number }> = {};
   for (const l of les) {
@@ -85,7 +87,9 @@ export async function GET(req: Request) {
     if ((mastery[l.id] ?? 0) >= 0.9) c.done++;
   }
   const semById = new Map(sems.map((s) => [s.id, s]));
+  /** Match web client: explicit graduation OR full lesson mastery. */
   const classDone = (id: string) => {
+    if (graduatedClasses.includes(id)) return true;
     const c = counts[id];
     return !!c && c.total > 0 && c.done >= c.total;
   };

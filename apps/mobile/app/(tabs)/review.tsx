@@ -11,14 +11,16 @@ import { emojiToIcon } from "@/iconMaps";
 import { Button } from "@/Button";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
+import { useType } from "@/typography";
 import { movesFromSyncGame, normalizeSyncGame, playerResultOf } from "@/progression";
-import { font, radius, shadowCard, space, type } from "@/theme";
+import { font, radius, shadowCard, space } from "@/theme";
 
 type RecommendLesson = { id: string; title: string; emoji: string; tag: string };
 
 export default function ReviewScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const type = useType();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -41,7 +43,7 @@ export default function ReviewScreen() {
         title: { ...type.sm, fontFamily: font.bold, color: colors.ink },
         sub: { ...type.xs, fontFamily: font.medium, color: colors.ink500, marginTop: 1 },
       }),
-    [colors],
+    [colors, type],
   );
 
   const progress = useProgress();

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { classes, lessons, lessonRecords } from "@/db/schema";
+import { classes, lessons, lessonRecords, progress } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { STAGES } from "@/content/school";
 import { isOptionalStage, orderClasses } from "@/lib/school-order";
-import { parseExtraData } from "@/lib/progress-merge";
+import { parseGraduatedClasses } from "@/lib/progress-merge";
 import { getCurriculumSkeleton } from "@/features/school/curriculum-skeleton.server";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +103,15 @@ export async function GET(
       .where(eq(lessonRecords.userId, user.id)))
       mastery[r.lessonId] = r.mastery;
 
+    const prow = (
+      await db
+        .select({ graduatedClasses: progress.graduatedClasses })
+        .from(progress)
+        .where(eq(progress.userId, user.id))
+        .limit(1)
+    )[0];
+    const graduatedClasses = parseGraduatedClasses(prow?.graduatedClasses);
+
     const counts: Record<string, { done: number; total: number }> = {};
     for (const l of les) {
       const c = (counts[l.classId] ??= { done: 0, total: 0 });
@@ -111,6 +120,7 @@ export async function GET(
     }
     const semById = new Map(sems.map((s) => [s.id, s]));
     const classDone = (cid: string) => {
+      if (graduatedClasses.includes(cid)) return true;
       const c = counts[cid];
       return !!c && c.total > 0 && c.done >= c.total;
     };

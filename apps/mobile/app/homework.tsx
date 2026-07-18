@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "@/api";
@@ -11,7 +11,8 @@ import { Button } from "@/Button";
 import { Slider } from "@/Slider";
 import { Icon } from "@/Icon";
 import { emojiToIcon } from "@/iconMaps";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { colors, font, radius, shadowCard, space } from "@/theme";
 
 type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
 const PLAN_SPECS: Record<PlanTier, { label: string; minutes: string; lessonsPerDay: number; goalXp: number; blurb: string; emoji: string }> = {
@@ -41,6 +42,8 @@ type Hw = { id: string; title: string; tag: string };
 export default function PlanScreen() {
   const router = useRouter();
   const s = useSettings();
+  const type = useType();
+  const styles = useMemo(() => makeStyles(type), [type]);
   const prog = useProgress();
   const p = {
     today: ((prog?.activityDays as Record<string, number>) ?? {})[isoDay()] ?? 0,
@@ -193,44 +196,46 @@ export default function PlanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: space[5], gap: space[5], paddingBottom: 40 },
-  header: { gap: space[2] },
-  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
-  h2: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginBottom: space[2] },
-  card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  goalTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  muted: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
-  track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
-  fill: { height: 10, borderRadius: radius.pill },
-  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
-  chip: { ...type.xs, fontFamily: font.bold, color: colors.ink700, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1], overflow: "hidden" },
-  chipRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  chipText: { ...type.xs, fontFamily: font.bold, color: colors.ink700 },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
-  paceGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
-  pace: { width: "48.5%", backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[3], borderWidth: 1, borderColor: colors.hairline, ...shadowCard },
-  selOn: { borderColor: colors.brand, borderWidth: 2 },
-  paceLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginTop: space[1] },
-  paceMin: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
-  paceBlurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[2] },
-  pills: { flexDirection: "row", gap: space[2] },
-  pill: { flex: 1, paddingVertical: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, alignItems: "center" },
-  pillOn: { backgroundColor: colors.brand },
-  pillText: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
-  pillTextOn: { color: "#fff" },
-  routineRow: { flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3] },
-  routineDivider: { borderTopWidth: 1, borderTopColor: colors.hairline },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.ink300, justifyContent: "center", alignItems: "center" },
-  checkboxOn: { backgroundColor: colors.success, borderColor: colors.success },
-  checkmark: { color: "#fff", fontSize: 13, fontFamily: font.bold },
-  routineLabel: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
-  routineLabelDone: { color: colors.ink500, textDecorationLine: "line-through" },
-  goBtn: { borderRadius: radius.pill, backgroundColor: colors.brand, paddingHorizontal: space[3], paddingVertical: 6 },
-  goBtnDone: { backgroundColor: colors.surfaceSunken },
-  goText: { ...type.xs, fontFamily: font.bold, color: "#fff" },
-  doneBanner: { backgroundColor: "#e7f7ef", borderRadius: radius.card, padding: space[3], marginTop: space[2], borderWidth: 1, borderColor: "rgba(12,155,110,0.3)" },
-  doneBannerText: { ...type.sm, fontFamily: font.bold, color: colors.success600, textAlign: "center" },
-});
+function makeStyles(type: ReturnType<typeof useType>) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface },
+    content: { padding: space[5], gap: space[5], paddingBottom: 40 },
+    header: { gap: space[2] },
+    h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+    h2: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginBottom: space[2] },
+    card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
+    rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    goalTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    muted: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
+    track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
+    fill: { height: 10, borderRadius: radius.pill },
+    chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[3] },
+    chip: { ...type.xs, fontFamily: font.bold, color: colors.ink700, backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: space[1], overflow: "hidden" },
+    chipRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+    chipText: { ...type.xs, fontFamily: font.bold, color: colors.ink700 },
+    titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
+    paceGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+    pace: { width: "48.5%", backgroundColor: colors.surfaceCard, borderRadius: radius.md, padding: space[3], borderWidth: 1, borderColor: colors.hairline, ...shadowCard },
+    selOn: { borderColor: colors.brand, borderWidth: 2 },
+    paceLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink, marginTop: space[1] },
+    paceMin: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
+    paceBlurb: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[2] },
+    pills: { flexDirection: "row", gap: space[2] },
+    pill: { flex: 1, paddingVertical: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, alignItems: "center" },
+    pillOn: { backgroundColor: colors.brand },
+    pillText: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
+    pillTextOn: { color: "#fff" },
+    routineRow: { flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3] },
+    routineDivider: { borderTopWidth: 1, borderTopColor: colors.hairline },
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.ink300, justifyContent: "center", alignItems: "center" },
+    checkboxOn: { backgroundColor: colors.success, borderColor: colors.success },
+    checkmark: { color: "#fff", fontSize: 13, fontFamily: font.bold },
+    routineLabel: { flex: 1, ...type.sm, fontFamily: font.bold, color: colors.ink },
+    routineLabelDone: { color: colors.ink500, textDecorationLine: "line-through" },
+    goBtn: { borderRadius: radius.pill, backgroundColor: colors.brand, paddingHorizontal: space[3], paddingVertical: 6 },
+    goBtnDone: { backgroundColor: colors.surfaceSunken },
+    goText: { ...type.xs, fontFamily: font.bold, color: "#fff" },
+    doneBanner: { backgroundColor: "#e7f7ef", borderRadius: radius.card, padding: space[3], marginTop: space[2], borderWidth: 1, borderColor: "rgba(12,155,110,0.3)" },
+    doneBannerText: { ...type.sm, fontFamily: font.bold, color: colors.success600, textAlign: "center" },
+  });
+}

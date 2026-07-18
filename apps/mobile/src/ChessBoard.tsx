@@ -137,7 +137,14 @@ export function ChessBoard({
         }
       : baseBoard;
   const lastTone = lastMoveTone(colorblind ? "slate" : boardTheme, MOVE);
-  const selectedTint = hexToRgba(MOVE, 0.38);
+  const selectedTint = hexToRgba(colorblind ? "#f2c14e" : MOVE, 0.38);
+  const borderW = highContrast ? 5 : 4;
+  // Colorblind: blue/amber flashes (web --board-move / --board-highlight). Else green/rose.
+  const checkBorder = colorblind ? "rgba(90,169,230,0.9)" : "rgba(244,63,94,0.85)";
+  const successBg = colorblind ? "rgba(90,169,230,0.45)" : "rgba(34,197,94,0.5)";
+  const successBorder = colorblind ? "#5aa9e6" : "rgba(34,197,94,0.9)";
+  const captureBorder = colorblind ? "rgba(242,193,78,0.85)" : "rgba(244,63,94,0.65)";
+  const hintDot = colorblind ? "rgba(90,169,230,0.55)" : "rgba(91,91,214,0.5)";
   const cell = size / 8;
   const engineRef = useRef(new ChessEngine(fen));
   useEffect(() => {
@@ -335,9 +342,14 @@ export function ChessBoard({
                 style={[
                   { width: cell, height: cell, backgroundColor: isLight ? LIGHT : DARK },
                   styles.sq,
-                  isHL && styles.highlight,
-                  isCheck && styles.check,
-                  isSuccess && styles.success,
+                  isHL && [styles.highlight, { borderWidth: borderW, borderColor: colorblind ? "#f2c14e" : "rgba(91,91,214,0.7)" }],
+                  isCheck && { borderWidth: borderW, borderColor: checkBorder, borderRadius: 8 },
+                  isSuccess && {
+                    backgroundColor: successBg,
+                    borderWidth: borderW,
+                    borderColor: successBorder,
+                    borderRadius: 8,
+                  },
                 ]}
               >
                 {tint ? <View style={[styles.fileRankOverlay, { backgroundColor: tint }]} /> : null}
@@ -349,8 +361,10 @@ export function ChessBoard({
                   <Text style={[styles.coord, styles.coordFile, { color: coordColor }]}>{file}</Text>
                 )}
                 {isLast && <View style={[styles.lastMoveOverlay, { backgroundColor: lastTone.fill, borderColor: lastTone.border }]} />}
-                {captures.has(sq) && <View style={styles.captureBorder} />}
-                {dots.has(sq) && <View style={styles.dot} />}
+                {captures.has(sq) && (
+                  <View style={[styles.captureBorder, { borderWidth: borderW, borderColor: captureBorder }]} />
+                )}
+                {dots.has(sq) && <View style={[styles.dot, { backgroundColor: hintDot }]} />}
                 {piece && !hidden && <Piece type={piece.type} color={piece.color} size={cell * 0.86} gid={`p${sq}`} themeId={pieceTheme} />}
               </View>
             );
@@ -437,11 +451,9 @@ const styles = StyleSheet.create({
   coordRank: { top: 2, left: 3 },
   coordFile: { right: 3, bottom: 1 },
   lastMoveOverlay: { ...StyleSheet.absoluteFillObject, borderWidth: 3, borderRadius: 8 },
-  highlight: { borderWidth: 4, borderColor: "rgba(91,91,214,0.7)", borderRadius: 8 },
-  check: { borderWidth: 4, borderColor: "rgba(244,63,94,0.85)", borderRadius: 8 },
-  success: { backgroundColor: "rgba(34,197,94,0.5)", borderWidth: 4, borderColor: "rgba(34,197,94,0.9)", borderRadius: 8 },
-  dot: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "rgba(91,91,214,0.5)" },
-  captureBorder: { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: "rgba(244,63,94,0.65)", borderRadius: 8 },
+  highlight: { borderRadius: 8 },
+  dot: { position: "absolute", width: 12, height: 12, borderRadius: 6 },
+  captureBorder: { ...StyleSheet.absoluteFillObject, borderRadius: 8 },
   movingPiece: { position: "absolute", zIndex: 12, justifyContent: "center", alignItems: "center" },
   ghost: { position: "absolute", justifyContent: "center", alignItems: "center", zIndex: 10 },
   promoOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 20, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(28,27,46,0.45)" },

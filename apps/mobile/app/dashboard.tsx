@@ -9,7 +9,8 @@ import { graduationForecast, gameStatsFromRecent, mistakeDNA } from "@/analytics
 import { Icon } from "@/Icon";
 import { emojiToIcon } from "@/iconMaps";
 import { AppShell } from "@/AppShell";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { colors, font, radius, shadowCard, space } from "@/theme";
 
 const SKILL_AREAS = ["Openings", "Tactics", "Strategy", "Endgames", "Calculation"];
 const TAG_AREA: Record<string, string> = {
@@ -132,7 +133,15 @@ function overallGpa(reports: ClassReport[]): number {
   return graded.reduce((a, r) => a + (r.avgStars / 3) * 4, 0) / graded.length;
 }
 
-function Trophy({ label, value }: { label: string; value: number }) {
+function Trophy({
+  label,
+  value,
+  styles,
+}: {
+  label: string;
+  value: number;
+  styles: ReturnType<typeof makeStyles>;
+}) {
   return (
     <View style={styles.trophy}>
       <Text style={styles.trophyValue}>{value}</Text>
@@ -143,6 +152,8 @@ function Trophy({ label, value }: { label: string; value: number }) {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const type = useType();
+  const styles = useMemo(() => makeStyles(type), [type]);
   const p = useProgress() as Progress | null;
   const [byTag, setByTag] = useState<Record<string, string[]>>({});
   const [reportClasses, setReportClasses] = useState<ReportClass[]>([]);
@@ -330,9 +341,9 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.card}>
           <View style={styles.trophyRow}>
-            <Trophy label="Graduations" value={graduated.length} />
-            <Trophy label="Badges" value={unlocked.length} />
-            <Trophy label="Wins" value={stats.wins} />
+            <Trophy label="Graduations" value={graduated.length} styles={styles} />
+            <Trophy label="Badges" value={unlocked.length} styles={styles} />
+            <Trophy label="Wins" value={stats.wins} styles={styles} />
           </View>
         </View>
       </ScrollView>
@@ -340,54 +351,56 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: space[5], gap: space[4], paddingBottom: 40 },
-  back: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1.5], ...shadowCard },
-  backText: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
-  h2: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  rowH2: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: space[1] },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
-  starsRow: { flexDirection: "row", gap: 2, marginTop: 2 },
-  forecastRow: { flexDirection: "row", alignItems: "center", gap: space[2], flexWrap: "wrap" },
-  ratingCard: { flexDirection: "row", alignItems: "center", gap: space[4], backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
-  rating: { fontSize: 36, lineHeight: 40, fontFamily: font.bold, color: colors.brand },
-  ratingSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
-  identity: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  pill: { alignSelf: "flex-start", backgroundColor: colors.brand50, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1], marginTop: space[1] },
-  pillText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
-  statsLine: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
-  track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
-  trackFill: { height: 10, borderRadius: radius.pill },
-  forecastText: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[2] },
-  dnaCard: { flexDirection: "row", gap: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[3], ...shadowCard },
-  dnaSeverity: { ...type.caption, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", alignSelf: "flex-start", backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: 2 },
-  dnaHigh: { backgroundColor: "rgba(244,63,94,0.15)", color: colors.danger },
-  dnaMed: { backgroundColor: "rgba(245,158,11,0.15)", color: colors.warning },
-  dnaLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  dnaRec: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
-  practiceLink: { alignSelf: "flex-start", marginTop: -space[2] },
-  practiceLinkText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-  trophyRow: { flexDirection: "row", gap: space[2] },
-  trophy: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3] },
-  trophyValue: { ...type.xl, fontFamily: font.bold, color: colors.ink },
-  trophyLabel: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
-  card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
-  emptyReport: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", paddingVertical: space[3] },
-  reportHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderStyle: "dashed", borderColor: colors.hairline, paddingBottom: space[2] },
-  reportKicker: { ...type.caption, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", letterSpacing: 0.5 },
-  gpa: { ...type["2xl"], fontFamily: font.bold, color: colors.ink },
-  gpaSub: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
-  reportRow: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: "rgba(255,255,255,0.6)", padding: space[2.5] },
-  reportTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
-  reportMeta: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
-  stars: { fontSize: 11, lineHeight: 14, marginTop: 2 },
-  grade: { borderRadius: radius.md, paddingHorizontal: space[2.5], paddingVertical: space[1] },
-  gradeText: { ...type.base, fontFamily: font.bold },
-  skillRow: { flexDirection: "row", justifyContent: "space-between" },
-  skillArea: { ...type.xs, fontFamily: font.bold, color: colors.ink },
-  skillPct: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
-  skillTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden", marginTop: 4 },
-  skillFill: { height: 8, borderRadius: radius.pill },
-});
+function makeStyles(type: ReturnType<typeof useType>) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface },
+    content: { padding: space[5], gap: space[4], paddingBottom: 40 },
+    back: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, backgroundColor: colors.surfaceCard, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1.5], ...shadowCard },
+    backText: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    h1: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+    h2: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    rowH2: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: space[1] },
+    titleRow: { flexDirection: "row", alignItems: "center", gap: space[2] },
+    starsRow: { flexDirection: "row", gap: 2, marginTop: 2 },
+    forecastRow: { flexDirection: "row", alignItems: "center", gap: space[2], flexWrap: "wrap" },
+    ratingCard: { flexDirection: "row", alignItems: "center", gap: space[4], backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
+    rating: { fontSize: 36, lineHeight: 40, fontFamily: font.bold, color: colors.brand },
+    ratingSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
+    identity: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    pill: { alignSelf: "flex-start", backgroundColor: colors.brand50, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1], marginTop: space[1] },
+    pillText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
+    statsLine: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
+    track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
+    trackFill: { height: 10, borderRadius: radius.pill },
+    forecastText: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[2] },
+    dnaCard: { flexDirection: "row", gap: space[2], backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[3], ...shadowCard },
+    dnaSeverity: { ...type.caption, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", alignSelf: "flex-start", backgroundColor: colors.surfaceSunken, borderRadius: radius.pill, paddingHorizontal: space[2], paddingVertical: 2 },
+    dnaHigh: { backgroundColor: "rgba(244,63,94,0.15)", color: colors.danger },
+    dnaMed: { backgroundColor: "rgba(245,158,11,0.15)", color: colors.warning },
+    dnaLabel: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    dnaRec: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+    practiceLink: { alignSelf: "flex-start", marginTop: -space[2] },
+    practiceLinkText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
+    trophyRow: { flexDirection: "row", gap: space[2] },
+    trophy: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSunken, borderRadius: radius.card, paddingVertical: space[3] },
+    trophyValue: { ...type.xl, fontFamily: font.bold, color: colors.ink },
+    trophyLabel: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
+    card: { backgroundColor: colors.surfaceCard, borderRadius: radius.card, padding: space[4], ...shadowCard },
+    emptyReport: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", paddingVertical: space[3] },
+    reportHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderStyle: "dashed", borderColor: colors.hairline, paddingBottom: space[2] },
+    reportKicker: { ...type.caption, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", letterSpacing: 0.5 },
+    gpa: { ...type["2xl"], fontFamily: font.bold, color: colors.ink },
+    gpaSub: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
+    reportRow: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: "rgba(255,255,255,0.6)", padding: space[2.5] },
+    reportTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
+    reportMeta: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
+    stars: { fontSize: 11, lineHeight: 14, marginTop: 2 },
+    grade: { borderRadius: radius.md, paddingHorizontal: space[2.5], paddingVertical: space[1] },
+    gradeText: { ...type.base, fontFamily: font.bold },
+    skillRow: { flexDirection: "row", justifyContent: "space-between" },
+    skillArea: { ...type.xs, fontFamily: font.bold, color: colors.ink },
+    skillPct: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
+    skillTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden", marginTop: 4 },
+    skillFill: { height: 8, borderRadius: radius.pill },
+  });
+}

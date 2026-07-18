@@ -15,7 +15,8 @@ import { emojiToIcon } from "@/iconMaps";
 import { useSettings, settings } from "@/settings";
 import { canResumeAnyMatch, getActiveMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
 import { useAppTheme } from "@/ThemeProvider";
-import { font, radius, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { font, radius, space } from "@/theme";
 
 const ELOS = [...BOT_ELO_PRESETS];
 const TIMES = [
@@ -82,7 +83,8 @@ const ASSISTED_VARIANTS: { id: AssistedVariant; title: string; subtitle: string 
 
 export default function PlaySetupScreen() {
   const { colors } = useAppTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const type = useType();
+  const styles = useMemo(() => makeStyles(colors, type), [colors, type]);
   const router = useRouter();
   const { guest } = useAuth();
   const { targetElo } = useSettings();
@@ -451,7 +453,7 @@ export default function PlaySetupScreen() {
   );
 }
 
-function makeStyles(colors: Record<string, string>) {
+function makeStyles(colors: Record<string, string>, type: ReturnType<typeof useType>) {
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   content: { padding: space[5], gap: space[4], paddingBottom: 40 },

@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Cody } from "./Cody";
 import { Button } from "./Button";
-import { colors, font, space, type } from "./theme";
+import { useType } from "./typography";
+import { colors, font, space } from "./theme";
 
 export function FetchErrorView({
   title = "Couldn't load",
@@ -16,6 +18,9 @@ export function FetchErrorView({
   onBack?: () => void;
   backLabel?: string;
 }) {
+  const type = useType();
+  const styles = useMemo(() => makeStyles(type), [type]);
+
   return (
     <View style={styles.center}>
       <Cody expression="sad" size={120} />
@@ -29,9 +34,11 @@ export function FetchErrorView({
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: space[6], gap: space[3] },
-  title: { ...type.lg, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
-  message: { ...type.base, fontFamily: font.regular, color: colors.ink500, textAlign: "center", maxWidth: 320 },
-  actions: { marginTop: space[4], width: 260, gap: space[2] },
-});
+function makeStyles(type: ReturnType<typeof useType>) {
+  return StyleSheet.create({
+    center: { flex: 1, justifyContent: "center", alignItems: "center", padding: space[6], gap: space[3] },
+    title: { ...type.lg, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
+    message: { ...type.base, fontFamily: font.regular, color: colors.ink500, textAlign: "center", maxWidth: 320 },
+    actions: { marginTop: space[4], width: 260, gap: space[2] },
+  });
+}

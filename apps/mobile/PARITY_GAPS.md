@@ -32,7 +32,7 @@ Legend: ✅ done · 🟡 partial · ❌ open
 | --- | --- | --- |
 | Cross-surface full game history (Dexie PGN ↔ mobile `recentGames`) | ✅ | Shared `SyncGame` + API; mobile caches `recentGames` locally; web Dexie syncs on pull |
 | Native assisted / arena / shadow play modes | ✅ | `play/shadow.tsx`, `shadow-game.tsx`, `arena.tsx`, `assisted.tsx` + `AssistedPlayView` |
-| Google OAuth client IDs (Android/iOS) | 🟡 | Env templates: `docs/ENV.md`, `.env.example`; fill values in Google Cloud + Vercel + EAS |
+| Google OAuth client IDs (Android/iOS) | 🟡 | Env templates filled; register Play App Signing SHA-1 + iOS client in Google Cloud when shipping |
 | Online seat-token security (web) | ✅ | Shared API uses `createGameSessionId` + `verifySeatToken` |
 
 ### P1 — user-visible feature gaps
@@ -42,12 +42,12 @@ Legend: ✅ done · 🟡 partial · ❌ open
 | Guest gating (TopBar, profile, settings, play online) | ✅ | Enroll CTAs + auth-only hub links |
 | App themes + dark mode (`ThemeProvider`) | ✅ | 6 app themes + school themes |
 | `graduateClass` on lesson/exam pass | ✅ | Lessons, exams, placement |
-| Class journey unlock chain (graduation gates next class) | 🟡 | In-class journey works; cross-class chain lighter than web |
+| Class journey unlock chain (graduation gates next class) | ✅ | `/api/campus` + `/api/class/[id]` honor `graduatedClasses`; placement invalidates Learn cache |
 | Bot match resume (persist in-progress) | ✅ | `matchStore` + resume card on Play tab |
 | Coach TTS + live commentary | ✅ | Cloud `/api/tts` + `expo-speech` offline fallback |
 | Settings bi-directional sync (`data.settings`) | ✅ | Pull on `fetchProgress`; push on `settings.set` |
-| `textScale` applied globally | 🟡 | `useType()` in shell (TopBar, BottomNav, settings); tab screens adopt incrementally |
-| Accessibility toggles (`highContrast`/`colorblind`/`hints`) | 🟡 | Stored; hints wired to board; contrast/colorblind partial |
+| `textScale` applied globally | ✅ | `useType()` on shell + Learn/journey/lesson/play/profile/review/homework/dashboard/login/account/CampusMap/Button |
+| Accessibility toggles (`highContrast`/`colorblind`/`hints`) | ✅ | ThemeProvider HC/CB chrome; board overlays + flashes respect CB/HC; hints wired |
 | Piece theme id `cute` ↔ `blossom` alias | ✅ | `normalizePieceThemeId` in progression package |
 
 ### P2 — polish / feel
@@ -67,7 +67,7 @@ Legend: ✅ done · 🟡 partial · ❌ open
 | Achievement descriptions on profile | ✅ | |
 | Distinct SFX recipes (not aliases) | ✅ | Per-voice pitch/volume in `sfx.ts` |
 | Route transitions / NavProgress | ✅ | `NavProgress` in `AppShell` |
-| Campus card spring + haptics breadth | 🟡 | Haptics on class CTA; spring animation deferred |
+| Campus card spring + haptics breadth | ✅ | Spring-in cards; open/test/exam/locked SFX + haptics (no double-tap) |
 | Theme-derived board overlay colors | ✅ | `ChessBoard` uses theme `move` color |
 | Red/green move flash on wrong/right | ✅ | `successSquare` / `checkSquare` in lessons |
 | SkillRadar legend / bar polish | ✅ | Progress bars under radar on dashboard |
@@ -81,7 +81,7 @@ Legend: ✅ done · 🟡 partial · ❌ open
 | Volume default 0.8 vs 1 | ✅ | Mobile default now `1` |
 | Logo component (web SVG mark) | ✅ | `src/Logo.tsx` |
 | Button disabled-state micro-interactions | ✅ | `Button` `disabled` prop |
-| Copy / micro-label parity pass | ❌ | |
+| Copy / micro-label parity pass | ✅ | Login register subtitle, graduated resume, journey test-out match web |
 
 **Historical sections A–B below:** treat unchecked bullets as **stale** unless they appear in §0.4 as ❌/🟡.
 

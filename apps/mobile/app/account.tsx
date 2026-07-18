@@ -15,7 +15,8 @@ import { BackButton } from "@/BackButton";
 import { ScreenLoader } from "@/ScreenLoader";
 import { RatingBadge } from "@/RatingBadge";
 import { useAppTheme } from "@/ThemeProvider";
-import { font, radius, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { font, radius, space } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
 
@@ -23,6 +24,7 @@ export default function AccountScreen() {
   const router = useRouter();
   const { user, guest, loading: authLoading, logout, deleteAccount, exitGuest } = useAuth();
   const { colors } = useAppTheme();
+  const type = useType();
   const p = useProgress();
   const { avatar } = useSettings();
   const [deleting, setDeleting] = useState(false);
@@ -67,7 +69,7 @@ export default function AccountScreen() {
         statValue: { ...type.lg, fontFamily: font.bold, color: colors.ink },
         statLabel: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 2 },
       }),
-    [colors],
+    [colors, type],
   );
 
   const xp = (p?.xp as number | undefined) ?? 0;

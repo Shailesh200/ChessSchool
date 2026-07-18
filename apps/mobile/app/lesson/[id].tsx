@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,7 +25,8 @@ import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson, lessonsAttem
 import { EXAM_PASS_RATIO, isTutorialLesson, scoredStepCount } from "@/classExam";
 import { markHomeworkActivities, markHomeworkActivity } from "@/homeworkRoutine";
 import { settings } from "@/settings";
-import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { colors, font, radius, shadowCard, space } from "@/theme";
 
 type Step = {
   id: string;
@@ -80,7 +81,7 @@ function findReply(fenA: string, fenB: string): { from: string; to: string } | n
   return null;
 }
 
-function createLessonStyles() {
+function makeStyles(type: ReturnType<typeof useType>) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface },
     center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
@@ -167,14 +168,14 @@ function createLessonStyles() {
   });
 }
 
-const styles = createLessonStyles();
-
 export default function LessonScreen() {
   const { id, hw, daily } = useLocalSearchParams<{ id: string; hw?: string; daily?: string }>();
   const router = useRouter();
   const { guest, exitGuest } = useAuth();
   const appSettings = useSettings();
   const { hints: hintsEnabled } = appSettings;
+  const type = useType();
+  const styles = useMemo(() => makeStyles(type), [type]);
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 470);
 
@@ -738,7 +739,7 @@ export default function LessonScreen() {
   );
 }
 
-function StatPill({ label, value, tone, styles }: { label: string; value: string; tone: string; styles: ReturnType<typeof StyleSheet.create> }) {
+function StatPill({ label, value, tone, styles }: { label: string; value: string; tone: string; styles: ReturnType<typeof makeStyles> }) {
   return (
     <View style={styles.pill}>
       <Text style={[styles.pillValue, { color: tone }]}>{value}</Text>

@@ -1,18 +1,23 @@
-import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 import { emojiToIcon } from "./iconMaps";
 import { haptics } from "./haptics";
+import { sfx } from "./sfx";
 import { useAppTheme, type ThemeColors } from "./ThemeProvider";
-import { font, radius, space, type } from "./theme";
+import { useSettings } from "./settings";
+import { useType } from "./typography";
+import { font, radius, space } from "./theme";
 
 export type CampusClass = { id: string; title: string; emoji: string; blurb: string; done: number; total: number; graduated: boolean; unlocked: boolean; examId?: string | null };
 export type CampusSemester = { id: string; title: string; color: string; blurb: string; classes: CampusClass[] };
 export type CampusStage = { id: string; name: string; emoji: string; blurb: string; optional?: boolean; semesters: CampusSemester[]; doneClasses: number; totalClasses: number; locked: boolean; cleared: boolean };
 
-function makeStyles(colors: ThemeColors) {
+type TypeScale = ReturnType<typeof useType>;
+
+function makeStyles(colors: ThemeColors, type: TypeScale) {
   return StyleSheet.create({
     chev: { fontSize: 16, color: colors.ink500, marginLeft: "auto", fontFamily: font.bold },
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden", marginTop: space[3] },
@@ -66,9 +71,50 @@ function ProgressBar({ value, max, tone, styles }: { value: number; max: number;
   );
 }
 
+function SpringIn({ index, reducedMotion, children }: { index: number; reducedMotion: boolean; children: ReactNode }) {
+  const opacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reducedMotion ? 0 : 14)).current;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+    opacity.setValue(0);
+    translateY.setValue(14);
+    const delay = Math.min(index, 5) * 60;
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 280,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateY, {
+        toValue: 0,
+        delay,
+        stiffness: 260,
+        damping: 24,
+        mass: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, opacity, reducedMotion, translateY]);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 function ClassCard({
   cls,
   color,
+  index,
+  reducedMotion,
   onOpen,
   onTestToUnlock,
   onTestOut,
@@ -77,6 +123,8 @@ function ClassCard({
 }: {
   cls: CampusClass;
   color: string;
+  index: number;
+  reducedMotion: boolean;
   onOpen: () => void;
   onTestToUnlock?: () => void;
   onTestOut?: () => void;
@@ -84,53 +132,90 @@ function ClassCard({
   colors: ThemeColors;
 }) {
   return (
-    <View style={[styles.classCard, { borderColor: cls.graduated ? colors.gold : colors.hairline }, !cls.unlocked && { opacity: 0.6 }]}>
-      <View style={styles.classRow}>
-        <View style={[styles.tile, { backgroundColor: cls.unlocked ? color + "1a" : colors.surfaceSunken }]}>
-          <Icon name={cls.unlocked ? emojiToIcon(cls.emoji) : "lock"} size={22} color={cls.unlocked ? colors.brand : colors.ink500} duotone />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text style={styles.classTitle} numberOfLines={1}>{cls.title}</Text>
-            {cls.graduated && <Icon name="cap" size={13} color={colors.gold} />}
+    <SpringIn index={index} reducedMotion={reducedMotion}>
+      <View style={[styles.classCard, { borderColor: cls.graduated ? colors.gold : colors.hairline }, !cls.unlocked && { opacity: 0.6 }]}>
+        <View style={styles.classRow}>
+          <View style={[styles.tile, { backgroundColor: cls.unlocked ? color + "1a" : colors.surfaceSunken }]}>
+            <Icon name={cls.unlocked ? emojiToIcon(cls.emoji) : "lock"} size={22} color={cls.unlocked ? colors.brand : colors.ink500} duotone />
           </View>
-          <Text style={styles.classBlurb} numberOfLines={1}>{cls.blurb}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.classTitle} numberOfLines={1}>{cls.title}</Text>
+              {cls.graduated && <Icon name="cap" size={13} color={colors.gold} />}
+            </View>
+            <Text style={styles.classBlurb} numberOfLines={1}>{cls.blurb}</Text>
+          </View>
+          <Text style={styles.count}>{cls.done}/{cls.total}</Text>
         </View>
-        <Text style={styles.count}>{cls.done}/{cls.total}</Text>
-      </View>
-      <ProgressBar value={cls.done} max={cls.total} tone={cls.graduated ? colors.gold : colors.brand} styles={styles} />
-      {cls.unlocked && (
-        <View style={{ marginTop: space[3] }}>
-          <Button
-            testID={`class-${cls.id}`}
-            label={cls.graduated ? "Review class" : cls.done > 0 ? "Continue" : "Start class"}
-            variant={cls.graduated ? "outline" : "primary"}
-            size="sm"
+        <ProgressBar value={cls.done} max={cls.total} tone={cls.graduated ? colors.gold : colors.brand} styles={styles} />
+        {cls.unlocked && (
+          <View style={{ marginTop: space[3] }}>
+            <Button
+              testID={`class-${cls.id}`}
+              label={cls.graduated ? "Review class" : cls.done > 0 ? "Continue" : "Start class"}
+              variant={cls.graduated ? "outline" : "primary"}
+              size="sm"
+              haptic={false}
+              onPress={() => {
+                haptics.tap();
+                sfx.play("transition");
+                onOpen();
+              }}
+            />
+          </View>
+        )}
+        {cls.unlocked && cls.examId && !cls.graduated && onTestOut && (
+          <View style={{ marginTop: space[2] }}>
+            <Button
+              label="Test out"
+              variant="outline"
+              size="sm"
+              haptic={false}
+              onPress={() => {
+                haptics.tap();
+                sfx.play("exam");
+                onTestOut();
+              }}
+            />
+          </View>
+        )}
+        {!cls.unlocked && onTestToUnlock && (
+          <View style={{ marginTop: space[3] }}>
+            <Button
+              label="Test to unlock"
+              variant="outline"
+              size="sm"
+              haptic={false}
+              onPress={() => {
+                haptics.tap();
+                sfx.play("transition");
+                onTestToUnlock();
+              }}
+            />
+          </View>
+        )}
+        {!cls.unlocked && !onTestToUnlock && (
+          <Pressable
+            style={{ marginTop: space[3], paddingVertical: space[2], alignItems: "center" }}
             onPress={() => {
-              haptics.tap();
-              onOpen();
+              haptics.error();
+              sfx.play("fail");
             }}
-          />
-        </View>
-      )}
-      {cls.unlocked && cls.examId && !cls.graduated && onTestOut && (
-        <View style={{ marginTop: space[2] }}>
-          <Button label="Test out" variant="outline" size="sm" onPress={onTestOut} />
-        </View>
-      )}
-      {!cls.unlocked && onTestToUnlock && (
-        <View style={{ marginTop: space[3] }}>
-          <Button label="Test to unlock" variant="outline" size="sm" onPress={onTestToUnlock} />
-        </View>
-      )}
-    </View>
+          >
+            <Text style={styles.classBlurb}>Locked — graduate the previous class</Text>
+          </Pressable>
+        )}
+      </View>
+    </SpringIn>
   );
 }
 
 export function CampusMap({ stages }: { stages: CampusStage[] }) {
   const router = useRouter();
   const { colors } = useAppTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const type = useType();
+  const { reducedMotion } = useSettings();
+  const styles = useMemo(() => makeStyles(colors, type), [colors, type]);
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
 
@@ -219,6 +304,9 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
             <View style={{ gap: space[5] }}>
               {stage.semesters.map((sem) => {
                 const o = isOpen(sem.id);
+                const visible = sem.classes
+                  .slice(0, shownOf(sem.id))
+                  .filter((cls) => showCompleted || !pastIds.has(cls.id));
                 return (
                   <View key={sem.id}>
                     <Pressable style={styles.semHeader} onPress={() => toggle(sem.id)}>
@@ -228,14 +316,13 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
                     </Pressable>
                     {o ? (
                       <View style={{ gap: space[3] }}>
-                        {sem.classes
-                          .slice(0, shownOf(sem.id))
-                          .filter((cls) => showCompleted || !pastIds.has(cls.id))
-                          .map((cls) => (
+                        {visible.map((cls, cardIdx) => (
                           <ClassCard
                             key={cls.id}
                             cls={cls}
                             color={sem.color}
+                            index={cardIdx}
+                            reducedMotion={reducedMotion}
                             styles={styles}
                             colors={colors}
                             onOpen={() => router.push({ pathname: "/class/[id]", params: { id: cls.id } })}
@@ -267,7 +354,14 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
             </View>
 
             {!stage.cleared && !stage.optional && nextName && (
-              <Pressable style={styles.examBtn} onPress={() => router.push({ pathname: "/exam/school/[stage]", params: { stage: stage.id } })}>
+              <Pressable
+                style={styles.examBtn}
+                onPress={() => {
+                  haptics.tap();
+                  sfx.play("exam");
+                  router.push({ pathname: "/exam/school/[stage]", params: { stage: stage.id } });
+                }}
+              >
                 <View style={{ flex: 1 }}>
                   <View style={styles.examTitleRow}>
                     <Icon name="journal" size={16} color={colors.ink} />

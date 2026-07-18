@@ -11,8 +11,9 @@ import { achievementIcon } from "@/iconMaps";
 import { TopBar } from "@/TopBar";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
+import { useType } from "@/typography";
 import { levelForXp, rankForClasses } from "@/progress-utils";
-import { font, radius, shadowCard, space, type } from "@/theme";
+import { font, radius, shadowCard, space } from "@/theme";
 
 type Lesson = { mastery: number };
 type Progress = {
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
   const { user, guest, exitGuest } = useAuth();
   const router = useRouter();
   const { colors } = useAppTheme();
+  const type = useType();
   const p = useProgress() as Progress | null;
 
   const styles = useMemo(
@@ -76,7 +78,7 @@ export default function ProfileScreen() {
         badgeTitle: { ...type.caption, fontFamily: font.bold, color: colors.ink },
         badgeDesc: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, textAlign: "center", lineHeight: 12 },
       }),
-    [colors],
+    [colors, type],
   );
 
   const xp = p?.xp ?? 0;

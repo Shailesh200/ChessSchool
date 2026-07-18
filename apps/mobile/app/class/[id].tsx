@@ -15,7 +15,8 @@ import { fetchProgress, lessonRecordsFromCache, progressStore } from "@/progress
 import { ScreenLoader } from "@/ScreenLoader";
 import { useSettings } from "@/settings";
 import { useAppTheme, type ThemeColors } from "@/ThemeProvider";
-import { font, radius, shadowCard, space, type } from "@/theme";
+import { useType } from "@/typography";
+import { font, radius, shadowCard, space } from "@/theme";
 
 type LessonLite = {
   id: string;
@@ -33,7 +34,7 @@ type ClassData = {
 type NodeStatus = "completed" | "active" | "locked" | "exam";
 type JNode = { id: string; title: string; subtitle: string; emoji: string; mastery: number; status: NodeStatus };
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles(colors: ThemeColors, type: ReturnType<typeof useType>) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -147,7 +148,8 @@ export default function ClassJourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors: theme } = useAppTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const type = useType();
+  const styles = useMemo(() => makeStyles(theme, type), [theme, type]);
   const [data, setData] = useState<ClassData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [records, setRecords] = useState<Record<string, { mastery: number }>>({});
@@ -288,7 +290,7 @@ export default function ClassJourneyScreen() {
           )}
           {canTestOut && (
             <View style={{ marginTop: space[2] }}>
-              <Button label="Test out of this class →" variant="outline" onPress={() => router.push({ pathname: "/class/[id]/exam", params: { id } })} />
+              <Button label="Test out of this class" variant="outline" onPress={() => router.push({ pathname: "/class/[id]/exam", params: { id } })} />
             </View>
           )}
         </View>

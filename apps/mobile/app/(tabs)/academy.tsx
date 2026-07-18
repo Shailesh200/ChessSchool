@@ -12,13 +12,14 @@ import { FetchErrorView } from "@/FetchErrorView";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { LearnScreenSkeleton } from "@/Shimmer";
 import { useAppTheme } from "@/ThemeProvider";
+import { useType } from "@/typography";
 import { useProgress } from "@/progressStore";
 import { useLearnData } from "@/useLearnData";
 import { useSettings } from "@/settings";
 import { dueLessonIds, isDailyPuzzleDone, isoDay, needsPlacementTest, shouldRecommendPreschool } from "@/progression";
 import { allRoutineDoneToday, routineDoneToday, ROUTINE_STEP_IDS } from "@/homeworkRoutine";
 import { getActiveBotMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
-import { font, radius, space, type } from "@/theme";
+import { font, radius, space } from "@/theme";
 
 type Progress = {
   xp: number;
@@ -35,6 +36,7 @@ export default function AcademyScreen() {
   const { guest } = useAuth();
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
+  const type = useType();
   const p = useProgress() as Progress | null;
   const { targetElo } = useSettings();
   const { data, initialLoading, pullRefreshing, error, refresh } = useLearnData();
@@ -127,7 +129,7 @@ export default function AcademyScreen() {
           paddingVertical: space[3],
         },
       }),
-    [colors, isDark],
+    [colors, isDark, type],
   );
 
   const goal = p?.dailyGoalXp ?? 50;
@@ -245,7 +247,7 @@ export default function AcademyScreen() {
                   <Icon name="trophy" size={18} color={colors.gold} duotone />
                   <Text style={styles.cardTitle}>You&apos;ve graduated!</Text>
                 </View>
-                <Text style={styles.cardSub}>Replay a class or sharpen up with a match.</Text>
+                <Text style={styles.cardSub}>Replay classes or sharpen up with a match.</Text>
                 <View style={{ marginTop: space[3], flexDirection: "row", gap: space[2] }}>
                   <Button label="Review a class" size="sm" onPress={() => router.push("/classes")} />
                   <Button label="Play a match" size="sm" variant="outline" onPress={() => router.push("/(tabs)/play")} />

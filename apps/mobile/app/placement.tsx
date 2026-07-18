@@ -10,6 +10,7 @@ import { BackButton } from "@/BackButton";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
 import { graduateClass } from "@/progression";
+import { invalidateLearnCache } from "@/useLearnData";
 import { placementStageIndex } from "@/classExam";
 import { settings } from "@/settings";
 import { haptics } from "@/haptics";
@@ -103,6 +104,7 @@ export default function PlacementScreen() {
         for (const cid of classIds) next = graduateClass(next, cid);
         return next;
       });
+      invalidateLearnCache();
       router.replace("/(tabs)/academy");
     } catch {
       setSavingPlacement(false);

@@ -16,7 +16,7 @@ Android-first guide for EAS Build, EAS Update (OTA), and Google Play Store submi
 
 4. **Google Play Console** — developer account verified ($25).
 5. **Privacy policy live** — `https://chess-school.in/privacy`
-6. **Production API** — `https://chess-school.in` (set in `eas.json` for all release profiles).
+6. **Production API** — `https://www.chess-school.in` (set in `eas.json` for preview/production; avoid apex — it 308s to www).
 7. **Google Sign-In (native)** — see [Google OAuth setup](#google-oauth-setup-native) below and **`docs/ENV.md`** for the full variable checklist (Vercel + EAS + local `.env`).
 
 ---
@@ -35,6 +35,7 @@ In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (sa
 - SHA-1 for **EAS preview/production** Android builds (Expo keystore `tsgLua-5VY`):
   `82:BD:4A:17:CD:02:F0:68:E6:FB:98:B4:F6:7A:08:8D:33:A2:E4:A8`
   Add this as a **second** Android OAuth client (same package `com.chessschool.app`, this SHA-1) — Google Cloud does not merge fingerprints onto one client.
+- If Play App Signing is on (default for Play uploads), also add a third Android OAuth client with the **App signing key** SHA-1 from Play Console → Setup → App signing (not only the upload/EAS key).
 - The app uses **`@react-native-google-signin/google-signin`** (in-app account picker, not an external browser).
 - In the app / EAS env you still set **`EXPO_PUBLIC_GOOGLE_CLIENT_ID`** to the **Web** client ID (needed for the ID token). Creating the Android client in Google Cloud with package + SHA-1 is what authorizes the APK — you do **not** paste the Android client ID over the Web client ID.
 

@@ -2,10 +2,15 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
-const PRODUCTION = "https://chess-school.in";
+/** Canonical host — apex 308-redirects to www; prefer www to avoid redirect races on Android. */
+const PRODUCTION = "https://www.chess-school.in";
 
 function normalizeUrl(raw: string): string {
   const trimmed = raw.trim().replace(/\/+$/, "");
+  // Prefer www so production builds never depend on apex→www 308 behaviour.
+  if (/^https?:\/\/chess-school\.in(?:\/|$)/i.test(trimmed)) {
+    return trimmed.replace(/^(https?:\/\/)chess-school\.in/i, "$1www.chess-school.in");
+  }
   return /^https?:\/\//.test(trimmed) ? trimmed : `http://${trimmed}`;
 }
 
@@ -59,7 +64,8 @@ function resolveApiUrl(): string {
 export const API_URL = resolveApiUrl();
 
 const TOKEN_KEY = "chessschool.token";
-const REQUEST_TIMEOUT_MS = 15_000;
+/** Cold Turso/Vercel starts for /api/campus often take 12–20s — 15s was aborting Learn. */
+const REQUEST_TIMEOUT_MS = 45_000;
 const isWeb = Platform.OS === "web";
 
 function requestSignal(ms: number): AbortSignal {
@@ -143,7 +149,9 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   try {
     return await fetchOnce<T>(path, { ...opts, token });
   } catch (e) {
-    const retryable = e instanceof TypeError || (e instanceof Error && e.name === "TimeoutError");
+    const retryable =
+      e instanceof TypeError ||
+      (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError"));
     if (!retryable) throw e;
     return fetchOnce<T>(path, { ...opts, token });
   }

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
-import { colors, font, radius, type } from "./theme";
+import { font, radius } from "./theme";
 import { haptics } from "./haptics";
+import { useAppTheme } from "./ThemeProvider";
+import { useType } from "./typography";
 
 /**
  * Tactile 3D button matching web's --shadow-button (a solid darker bottom edge
@@ -16,6 +18,7 @@ export function Button({
   disabled = false,
   style,
   testID,
+  haptic = true,
 }: {
   label: string;
   onPress: () => void;
@@ -25,7 +28,11 @@ export function Button({
   disabled?: boolean;
   style?: ViewStyle;
   testID?: string;
+  /** Set false when the caller already fires a haptic/SFX for this action. */
+  haptic?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const type = useType();
   const [pressed, setPressed] = useState(false);
   const outline = variant === "outline";
   const bg = disabled
@@ -58,7 +65,7 @@ export function Button({
       disabled={disabled}
       onPress={() => {
         if (disabled) return;
-        haptics.tap();
+        if (haptic) haptics.tap();
         onPress();
       }}
       onPressIn={() => !disabled && setPressed(true)}

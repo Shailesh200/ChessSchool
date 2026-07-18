@@ -41,7 +41,7 @@ SESSION_TOKEN_SECRET=dev-session-token-secret-at-least-32-chars
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `EXPO_PUBLIC_API_URL` | Yes | API base (usually `https://chess-school.in`) |
+| `EXPO_PUBLIC_API_URL` | Yes | API base (`https://www.chess-school.in` — prefer www over apex) |
 | `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | OAuth | Same Google client ID as web for Sign-In |
 
 Bundle-time inlined — changing values requires a new native build or OTA-compatible rebuild (`expo start -c` locally).
