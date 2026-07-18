@@ -209,17 +209,6 @@ button,
 .animate-bob {
   animation: dc-bob 4s ease-in-out infinite;
 }
-@keyframes route-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.animate-route-in {
-  animation: route-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -243,7 +232,6 @@ button,
   animation: sheet-up 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-route-in,
   .animate-fade-in,
   .animate-sheet-up {
     animation: none;
@@ -268,20 +256,18 @@ button,
 }
 
 /* Respect reduced motion globally.
-   Chess piece slides are spatial feedback (where a piece went), not decoration —
-   keep those transforms so moves stay readable. In-app "Reduce motion" still
-   disables them via ChessBoard `showAnimations={false}`. */
+   Exclude [data-piece] from the transition nuke — react-chessboard slides pieces
+   via inline `transition: transform …`, and a universal `transition-duration:
+   0.001ms !important` makes every move look like a teleport.
+   In-app "Reduce motion" still disables slides via ChessBoard showAnimations. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *:not([data-piece]),
+  *:not([data-piece])::before,
+  *:not([data-piece])::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
-  }
-  [data-testid="chess-board"] [data-piece] {
-    transition-duration: 0.22s !important;
   }
 }
 

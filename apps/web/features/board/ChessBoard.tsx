@@ -26,6 +26,13 @@ const BOARD_STYLE: CSSProperties = {
   backfaceVisibility: "hidden",
 };
 
+/** Default prop arrays — `= []` in the param list would allocate every render and
+ *  churn react-chessboard `options`, which can cancel in-flight piece slides. */
+const EMPTY_ARROWS: BoardArrow[] = [];
+const EMPTY_HIGHLIGHT: Square[] = [];
+const EMPTY_FILES: string[] = [];
+const EMPTY_RANKS: number[] = [];
+
 // react-chessboard touches the DOM; load client-only to avoid hydration drift.
 const Chessboard = dynamic(() => import("react-chessboard").then((m) => m.Chessboard), {
   ssr: false,
@@ -68,16 +75,16 @@ export function ChessBoard({
   orientation = "white",
   onMove,
   lastMove,
-  arrows = [],
-  highlight = [],
-  highlightFiles = [],
-  highlightRanks = [],
+  arrows = EMPTY_ARROWS,
+  highlight = EMPTY_HIGHLIGHT,
+  highlightFiles = EMPTY_FILES,
+  highlightRanks = EMPTY_RANKS,
   checkSquare,
   successSquare,
   interactive = true,
   showNotation = false,
   fill = false,
-  animationDurationInMs = 220,
+  animationDurationInMs = 280,
   showAnimations,
   boardId,
 }: ChessBoardProps) {
@@ -90,8 +97,8 @@ export function ChessBoard({
   const reducedMotion = useSettings((s) => s.reducedMotion);
   const colors = getBoardTheme(boardTheme);
   const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
-  // In-app Reduce motion → instant snaps. OS prefers-reduced-motion is handled in
-  // CSS (piece slides kept as functional feedback).
+  // In-app Reduce motion → instant snaps. OS prefers-reduced-motion must NOT
+  // disable the library — CSS excludes [data-piece] from the transition nuke.
   const animationsOn = showAnimations ?? !reducedMotion;
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{
