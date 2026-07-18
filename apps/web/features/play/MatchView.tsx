@@ -34,6 +34,7 @@ import { useMatch, type ActiveMatch } from "@/core/store/match.store";
 import { useArena } from "@/core/store/arena.store";
 import type { ArenaRunRecord } from "@/features/play/arena";
 import { useProgression, isoDay } from "@/core/store/progression.store";
+import { useSettings } from "@/core/store/settings.store";
 import { trackEvent } from "@/core/analytics/track";
 import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
@@ -74,6 +75,8 @@ const BOARD_MAX_PX = 520;
 
 export function MatchView({ active }: { active: ActiveMatch }) {
   const router = useRouter();
+  const sound = useSettings((s) => s.sound);
+  const toggleSetting = useSettings((s) => s.toggle);
   const sync = useMatch((s) => s.sync);
   const persistClocks = useMatch((s) => s.setClocks);
   const setEndSnapshot = useMatch((s) => s.setEndSnapshot);
@@ -694,6 +697,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             )}
           </span>
           <div className="flex items-center gap-1.5">
+            <IconBtn
+              label={sound ? "Mute sounds" : "Unmute sounds"}
+              onClick={() => {
+                audio.unlock();
+                toggleSetting("sound");
+                if (!sound) audio.play("notify");
+              }}
+            >
+              <Icon name={sound ? "volume" : "volumeOff"} size={18} />
+            </IconBtn>
             <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
               <Icon name="flip" size={18} />
             </IconBtn>
@@ -740,9 +753,9 @@ export function MatchView({ active }: { active: ActiveMatch }) {
         />
       </div>
 
-      {/* Conversation bubble (top) — the bot / coach speaking. Uses the space above the board. */}
-      <div className="mx-auto w-full max-w-xl px-3 pt-2">
-        <div className="flex items-start gap-2">
+      {/* Fixed-height coach slot so bubble text changes don't resize/jump the board. */}
+      <div className="mx-auto w-full max-w-xl shrink-0 px-3 pt-2">
+        <div className="flex h-[4.75rem] items-start gap-2">
           <div className="bg-brand-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
             {autoOpponent ? (
               isShadow ? (
@@ -754,7 +767,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
               <Icon name="message" size={22} duotone />
             )}
           </div>
-          <div className="border-hairline bg-surface-card text-ink min-h-[3rem] flex-1 rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
+          <div className="border-hairline bg-surface-card text-ink flex h-full min-w-0 flex-1 flex-col justify-center overflow-hidden rounded-2xl rounded-tl-sm border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
             <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
               {isShadow ? "Shadow" : isBot ? bot.name : "Coach"}
             </span>
@@ -907,11 +920,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   <button
                     onClick={() => {
                       leaveMatch();
-                      router.push(active.fromHomework ? "/plan" : "/");
+                      router.push(active.fromHomework ? "/plan" : "/academy");
                     }}
                     className="text-ink-500 mt-3 text-xs font-bold underline-offset-2 hover:underline"
                   >
-                    {active.fromHomework ? "← Back to homework" : "← Back to campus"}
+                    {active.fromHomework ? "← Back to homework" : "← Back to academy"}
                   </button>
                 </motion.div>
               </motion.div>

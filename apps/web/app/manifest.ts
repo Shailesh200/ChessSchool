@@ -6,8 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "ChessSchool",
     description:
       "A school-first chess academy: graduate through classes, master openings and endgames, play adaptive bots, and review every game. Offline-first PWA with accounts.",
-    id: "/",
-    start_url: "/",
+    id: "/academy",
+    start_url: "/academy",
     scope: "/",
     display: "standalone",
     orientation: "any",

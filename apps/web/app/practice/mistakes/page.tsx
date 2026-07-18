@@ -42,7 +42,7 @@ export default function PracticeMistakesPage() {
           As you play lessons, the spots you get wrong are saved here so you can
           re-solve them correctly.
         </p>
-        <Link href="/" className="text-brand text-sm font-extrabold">
+        <Link href="/academy" className="text-brand text-sm font-extrabold">
           ← Back to academy
         </Link>
       </div>

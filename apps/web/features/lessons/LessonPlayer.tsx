@@ -287,7 +287,7 @@ export function LessonPlayer({
       const nextId =
         nextLessonId !== undefined ? nextLessonId : nextLessonAfter(lesson.id);
       startNav();
-      router.push(nextId ? `/lesson/${nextId}` : "/");
+      router.push(nextId ? `/lesson/${nextId}` : "/academy");
       return;
     }
     setPhase("complete");
@@ -531,7 +531,7 @@ export function LessonPlayer({
               startNav();
               router.push("/academy");
             }}
-            aria-label="Back to campus"
+            aria-label="Back to academy"
             className="btn-tactile border-hairline bg-surface-card text-ink-700 hover:text-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -875,7 +875,7 @@ function LessonComplete({
                   size="lg"
                   block
                   loading={busy === "home"}
-                  onClick={() => go("home", "/", onDone)}
+                  onClick={() => go("home", "/academy", onDone)}
                 >
                   Back to academy →
                 </Button>
@@ -903,9 +903,9 @@ function LessonComplete({
                 size="lg"
                 block
                 loading={busy === "home"}
-                onClick={() => go("home", "/", onDone)}
+                onClick={() => go("home", "/academy", onDone)}
               >
-                Back to campus
+                Back to academy
               </Button>
             )}
             <div className="flex w-full gap-2">
@@ -917,9 +917,9 @@ function LessonComplete({
                   variant="ghost"
                   block
                   loading={busy === "home"}
-                  onClick={() => go("home", "/", onDone)}
+                  onClick={() => go("home", "/academy", onDone)}
                 >
-                  Back to campus
+                  Back to academy
                 </Button>
               )}
             </div>

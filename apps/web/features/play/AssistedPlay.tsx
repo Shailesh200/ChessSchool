@@ -52,11 +52,11 @@ function CoachBubble({
   loading?: boolean;
 }) {
   return (
-    <div className="border-hairline bg-surface-card text-ink min-h-[3.5rem] rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
+    <div className="border-hairline bg-surface-card text-ink flex h-[5.5rem] flex-col justify-center overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
       <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
         Coach
       </span>
-      <span className="line-clamp-4 leading-relaxed">
+      <span className="line-clamp-3 leading-relaxed">
         {loading ? "Loading position…" : children}
       </span>
     </div>
@@ -71,6 +71,8 @@ type AssistedVariant = "full" | "puzzle";
 
 export function AssistedPlay({ variant }: { variant: AssistedVariant }) {
   const personality = useSettings((s) => s.coachPersonality);
+  const sound = useSettings((s) => s.sound);
+  const toggleSetting = useSettings((s) => s.toggle);
   const rating = useProgression((s) => s.rating);
   const title = variant === "full" ? "Assisted full game" : "Assisted puzzle drill";
   const subtitle =
@@ -90,6 +92,19 @@ export function AssistedPlay({ variant }: { variant: AssistedVariant }) {
                 {subtitle.replace("{rating}", String(rating))}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                audio.unlock();
+                toggleSetting("sound");
+                if (!sound) audio.play("notify");
+              }}
+              aria-label={sound ? "Mute sounds" : "Unmute sounds"}
+              aria-pressed={sound}
+              className="btn-tactile border-hairline bg-surface-card text-ink-700 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
+            >
+              <Icon name={sound ? "volume" : "volumeOff"} size={18} />
+            </button>
           </div>
         </header>
 

@@ -196,7 +196,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
 
         {authedResolved === true && daily?.lessonId && (
           <Link
-            href={dailyDone ? "#" : `/lesson/${daily.lessonId}?daily=1`}
+            href={dailyDone ? "#" : `/homework/${daily.lessonId}?daily=1`}
             className={`btn-tactile rounded-card flex items-center justify-between border px-4 py-3 ${
               dailyDone
                 ? "border-success/40 bg-success/10"

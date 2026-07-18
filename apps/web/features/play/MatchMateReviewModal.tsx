@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -24,6 +23,8 @@ const PAUSE_MS = 700;
 const STEP_MS = ANIM_MS + PAUSE_MS;
 /** Hold the opening frame before the first move slides. */
 const INITIAL_MS = PAUSE_MS;
+/** Reserved height so the mating-net card doesn't shove the board when it appears. */
+const MATE_CARD_SLOT = "min-h-[9.5rem]";
 
 type HistoryMove = {
   from: Square;
@@ -52,15 +53,13 @@ export function MatchMateReviewModal({
   const sessionKey = `${pgn}|${history?.length ?? 0}`;
 
   return createPortal(
-    <AnimatePresence>
-      <MateReviewSession
-        key={sessionKey}
-        pgn={pgn}
-        history={history}
-        orientation={orientation}
-        onClose={onClose}
-      />
-    </AnimatePresence>,
+    <MateReviewSession
+      key={sessionKey}
+      pgn={pgn}
+      history={history}
+      orientation={orientation}
+      onClose={onClose}
+    />,
     document.body,
   );
 }
@@ -84,6 +83,7 @@ function MateReviewSession({
   const [idx, setIdx] = useState(0);
   const [overlayRevealed, setOverlayRevealed] = useState(false);
   const [skipAnim, setSkipAnim] = useState(false);
+  const [boardReady, setBoardReady] = useState(false);
   const timerRef = useRef<number | null>(null);
 
   const safeIdx = steps.length ? Math.min(idx, steps.length - 1) : 0;
@@ -92,7 +92,15 @@ function MateReviewSession({
   const atMateEnd = atEnd && Boolean(frame?.mate);
   const showMateOverlay = atMateEnd && overlayRevealed;
 
+  // Wait one frame after mount so the sheet isn't mid-opacity/composite when
+  // react-chessboard starts sliding pieces (that combo flickers on WebKit).
   useEffect(() => {
+    const id = window.requestAnimationFrame(() => setBoardReady(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    if (!boardReady) return;
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -117,7 +125,7 @@ function MateReviewSession({
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
       timerRef.current = null;
     };
-  }, [steps]);
+  }, [steps, boardReady]);
 
   useEffect(() => {
     if (!atMateEnd) return;
@@ -155,34 +163,30 @@ function MateReviewSession({
     setSkipAnim(true);
     const end = Math.max(0, steps.length - 1);
     setIdx(end);
-    window.setTimeout(() => setSkipAnim(false), 0);
     if (steps[end]?.mate) setOverlayRevealed(true);
+    // Keep snaps off for two frames so react-chessboard applies the jump
+    // without a mid-flight slide, then re-enable for any later interactions.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setSkipAnim(false));
+    });
   }
 
   if (!frame) return null;
 
   return (
-    <motion.div
-      key="mate-review"
-      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-6">
       <button
         type="button"
         aria-label="Close review"
-        className="bg-ink/50 absolute inset-0 backdrop-blur-sm"
+        className="bg-ink/50 absolute inset-0 animate-fade-in backdrop-blur-sm"
         onClick={onClose}
       />
-      <motion.div
+      {/* No opacity animation on the sheet — parent opacity + piece transforms flicker. */}
+      <div
         role="dialog"
         aria-modal="true"
         aria-label="Checkmate review"
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 24, opacity: 0 }}
-        className="border-hairline bg-surface-card relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border p-5 sm:rounded-3xl sm:[box-shadow:var(--shadow-pop)] lg:max-w-2xl"
+        className="border-hairline bg-surface-card animate-sheet-up relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border p-5 sm:rounded-3xl sm:[box-shadow:var(--shadow-pop)] lg:max-w-2xl"
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
@@ -205,24 +209,29 @@ function MateReviewSession({
           </button>
         </div>
 
-        <div className="mx-auto w-full max-w-[320px]">
-          <ChessBoard
-            boardId="mate-review-board"
-            fen={frame.fen}
-            orientation={orientation}
-            interactive={false}
-            showNotation
-            showAnimations={!skipAnim}
-            animationDurationInMs={ANIM_MS}
-            lastMove={
-              safeIdx > 0 && frame.from && frame.to
-                ? { from: frame.from, to: frame.to }
-                : null
-            }
-            arrows={arrows}
-            highlight={highlight}
-            checkSquare={mate ? mate.kingSquare : null}
-          />
+        {/* Isolated compositor layer — never put this under an opacity tween. */}
+        <div className="mx-auto w-full max-w-[320px] [transform:translateZ(0)]">
+          {boardReady ? (
+            <ChessBoard
+              boardId="mate-review-board"
+              fen={frame.fen}
+              orientation={orientation}
+              interactive={false}
+              showNotation
+              showAnimations={!skipAnim}
+              animationDurationInMs={ANIM_MS}
+              lastMove={
+                safeIdx > 0 && frame.from && frame.to
+                  ? { from: frame.from, to: frame.to }
+                  : null
+              }
+              arrows={arrows}
+              highlight={highlight}
+              checkSquare={mate ? mate.kingSquare : null}
+            />
+          ) : (
+            <div className="skeleton rounded-card aspect-square w-full" aria-hidden />
+          )}
         </div>
 
         <p className="text-ink mt-3 text-center text-sm font-extrabold">
@@ -258,12 +267,8 @@ function MateReviewSession({
           ))}
         </div>
 
-        {mate && showMateOverlay && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4"
-          >
+        <div className={`mt-4 ${MATE_CARD_SLOT}`}>
+          {mate && showMateOverlay ? (
             <Card className="border-danger/40 bg-danger/5">
               <p className="text-danger text-sm font-extrabold">The mating net</p>
               <ul className="text-ink-700 mt-2 space-y-1 text-xs font-semibold">
@@ -280,14 +285,14 @@ function MateReviewSession({
                 {matePreventionTip(mate.pattern)}
               </p>
             </Card>
-          </motion.div>
-        )}
+          ) : null}
+        </div>
 
         <Button block className="mt-4" onClick={atEnd ? onClose : skipToEnd}>
           {atEnd ? "Continue" : "Skip to result"}
         </Button>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 

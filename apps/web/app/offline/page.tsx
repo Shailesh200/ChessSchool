@@ -13,7 +13,7 @@ export default function OfflinePage() {
         No connection — but ChessSchool works offline! Your classes and games are right
         here.
       </p>
-      <Link href="/">
+      <Link href="/academy">
         <Button size="lg">Keep learning</Button>
       </Link>
     </div>

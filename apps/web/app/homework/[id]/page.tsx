@@ -13,10 +13,10 @@ export default async function HomeworkLessonPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ hw?: string }>;
+  searchParams: Promise<{ hw?: string; daily?: string }>;
 }) {
   const { id } = await params;
-  const { hw } = await searchParams;
+  const { hw, daily } = await searchParams;
   const row = (
     await db.select().from(homeworkLessons).where(eq(homeworkLessons.id, id)).limit(1)
   )[0];
@@ -37,6 +37,11 @@ export default async function HomeworkLessonPage({
 
   // Completing it checks off the routine step it was launched from (defaults to its type).
   return (
-    <LessonPlayer lesson={lesson} nextLessonId={null} homeworkStep={hw ?? row.type} />
+    <LessonPlayer
+      lesson={lesson}
+      nextLessonId={null}
+      homeworkStep={hw ?? row.type}
+      dailyPuzzle={daily === "1"}
+    />
   );
 }

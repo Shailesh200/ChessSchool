@@ -97,7 +97,7 @@ export default function JournalPage() {
                 <p className="text-ink-500 text-xs font-semibold">
                   Finish a lesson or match and tap “Reflect” to start journaling.
                 </p>
-                <Link href="/">
+                <Link href="/academy">
                   <Button className="mt-3">Go learn</Button>
                 </Link>
               </Card>
