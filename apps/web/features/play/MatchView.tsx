@@ -148,13 +148,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [mateReviewHistory, setMateReviewHistory] =
     useState<VerboseMove[]>(restoredMateHistory);
   const [finalPgn, setFinalPgn] = useState(snap?.mateReviewPending ? active.pgn : "");
-  /** Loser's king color while the fall ceremony plays (then How it happened). */
-  const [kingFallLoser, setKingFallLoser] = useState<"w" | "b" | null>(null);
+  /** Loser's king on its square while the fall ceremony plays (then How it happened). */
+  const [kingFall, setKingFall] = useState<{
+    color: "w" | "b";
+    square: Square;
+  } | null>(null);
   const [arenaRunDone, setArenaRunDone] = useState<ArenaRunRecord | null>(null);
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
 
   const finishKingFall = useCallback(() => {
-    setKingFallLoser(null);
+    setKingFall(null);
     setMateReviewOpen(true);
   }, []);
 
@@ -309,8 +312,11 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       if (reason === "checkmate") {
         setFinalPgn(pgnText);
         setMateReviewHistory(history);
-        // King fall (theme silhouette) → then How it happened after 1500ms.
-        setKingFallLoser(winner === "w" ? "b" : winner === "b" ? "w" : "b");
+        // Tip the mated king on its square → then How it happened after 1500ms.
+        const loser: "w" | "b" = winner === "w" ? "b" : "w";
+        const sq = e.kingSquare(loser);
+        if (sq) setKingFall({ color: loser, square: sq });
+        else setMateReviewOpen(true);
       }
       await saveGame(game);
       usePlan.getState().markActivity("match", isoDay());
@@ -820,16 +826,18 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             onMove={handleMove}
             lastMove={stagedMove}
             checkSquare={checkSquare}
-            interactive={!over && !thinking && !viewing && !kingFallLoser}
+            interactive={!over && !thinking && !viewing && !kingFall}
             showAnimations
           />
           <KingFallCeremony
-            open={kingFallLoser !== null}
-            loserColor={kingFallLoser ?? "b"}
+            open={kingFall !== null}
+            square={kingFall?.square ?? null}
+            orientation={orientation}
+            loserColor={kingFall?.color ?? "b"}
             onComplete={finishKingFall}
           />
           <AnimatePresence>
-            {over && !kingFallLoser && !mateReviewOpen && (
+            {over && !kingFall && !mateReviewOpen && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

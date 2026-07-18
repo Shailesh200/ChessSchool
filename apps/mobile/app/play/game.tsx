@@ -117,9 +117,9 @@ export default function GameScreen() {
   const [flipped, setFlipped] = useState(false);
   const [coachText, setCoachText] = useState("");
   const [mateReviewOpen, setMateReviewOpen] = useState(false);
-  const [kingFallLoser, setKingFallLoser] = useState<"w" | "b" | null>(null);
+  const [kingFall, setKingFall] = useState<{ color: "w" | "b"; square: string } | null>(null);
   const finishKingFall = useCallback(() => {
-    setKingFallLoser(null);
+    setKingFall(null);
     setMateReviewOpen(true);
   }, []);
   const [mateReviewHistory, setMateReviewHistory] = useState<VerboseMove[]>([]);
@@ -238,8 +238,11 @@ export default function GameScreen() {
       youWon ? haptics.success() : haptics.error();
       youWon ? sfx.play("win") : sfx.play("error");
       setMateReviewHistory(e.history());
-      // Loser is the side to move (mated). King fall → How it happened after 1500ms.
-      setKingFallLoser(e.turn());
+      // Tip the mated king on its square → How it happened after 1500ms.
+      const loser = e.turn();
+      const sq = e.kingSquare(loser);
+      if (sq) setKingFall({ color: loser, square: sq });
+      else setMateReviewOpen(true);
       void endGame(mv, youWon ? "win" : "loss", youWon ? "Checkmate — you win! 🏆" : `Checkmate — ${bot.name} wins`, youWon, "checkmate");
     } else {
       void endGame(mv, "draw", status === "stalemate" ? "Stalemate — draw" : "Draw", false, endReasonFromStatus(status));
@@ -374,13 +377,16 @@ export default function GameScreen() {
               size={boardSize}
               orientation={flipped ? "black" : "white"}
               onMove={handleMove}
-              interactive={!over && !thinking && !viewing && !kingFallLoser}
+              interactive={!over && !thinking && !viewing && !kingFall}
               lastMove={viewing ? null : lastMove}
               checkSquare={checkSquare}
             />
             <KingFallCeremony
-              open={kingFallLoser !== null}
-              loserColor={kingFallLoser ?? "b"}
+              open={kingFall !== null}
+              square={kingFall?.square ?? null}
+              orientation={flipped ? "black" : "white"}
+              loserColor={kingFall?.color ?? "b"}
+              boardSize={boardSize}
               onComplete={finishKingFall}
             />
           </View>
@@ -406,7 +412,7 @@ export default function GameScreen() {
       </View>
 
       <GameOverOverlay
-        visible={!!over && !mateReviewOpen && !kingFallLoser}
+        visible={!!over && !mateReviewOpen && !kingFall}
         title={over?.title ?? ""}
         subtitle={over?.subtitle}
         win={over?.win}

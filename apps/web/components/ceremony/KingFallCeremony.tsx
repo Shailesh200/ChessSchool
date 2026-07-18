@@ -3,7 +3,9 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getPieceTheme } from "@/features/board/pieceThemes";
+import { getBoardTheme } from "@/core/themes/themes";
 import { useSettings } from "@/core/store/settings.store";
+import type { Square } from "@/core/types/chess";
 
 const FALL_MS = 1500;
 
@@ -13,73 +15,105 @@ export function kingSilhouetteSrc(pieceThemeId: string, color: "w" | "b"): strin
   if (theme.style === "asset" && theme.shapeSet !== "staunton") {
     return `/pieces/${theme.shapeSet}/${color}K.svg`;
   }
-  // Marble / sculpted — fall back to Classic Staunton silhouette.
   return `/pieces/cburnett/${color}K.svg`;
 }
 
+/** Board-cell percent rect for a square given orientation. */
+export function squareCellStyle(
+  square: Square,
+  orientation: "white" | "black",
+): { left: string; top: string; width: string; height: string } {
+  const file = square.charCodeAt(0) - 97; // a=0
+  const rank = Number(square[1]) - 1; // 1=0
+  const col = orientation === "white" ? file : 7 - file;
+  const row = orientation === "white" ? 7 - rank : rank;
+  return {
+    left: `${col * 12.5}%`,
+    top: `${row * 12.5}%`,
+    width: "12.5%",
+    height: "12.5%",
+  };
+}
+
+function isLightSquare(square: Square): boolean {
+  const file = square.charCodeAt(0) - 97;
+  const rank = Number(square[1]) - 1;
+  return (file + rank) % 2 === 1;
+}
+
 /**
- * Checkmate beat: loser's king falls (theme silhouette), then caller opens
- * “How it happened” after {@link FALL_MS}.
+ * Checkmate beat: loser's king tips over **on its board square**, then caller
+ * opens “How it happened” after {@link FALL_MS}.
  */
 export function KingFallCeremony({
   open,
+  square,
+  orientation,
   loserColor,
   onComplete,
   durationMs = FALL_MS,
 }: {
   open: boolean;
+  square: Square | null;
+  orientation: "white" | "black";
   loserColor: "w" | "b";
   onComplete: () => void;
   durationMs?: number;
 }) {
   const pieceTheme = useSettings((s) => s.pieceTheme);
+  const boardThemeId = useSettings((s) => s.boardTheme);
   const reducedMotion = useSettings((s) => s.reducedMotion);
   const src = kingSilhouetteSrc(pieceTheme, loserColor);
-  const tip = loserColor === "w" ? 78 : -78;
+  const tip = loserColor === "w" ? 72 : -72;
+  const board = getBoardTheme(boardThemeId);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !square) return;
     const ms = reducedMotion ? 200 : durationMs;
     const t = window.setTimeout(onComplete, ms);
     return () => window.clearTimeout(t);
-  }, [open, durationMs, onComplete, reducedMotion]);
+  }, [open, square, durationMs, onComplete, reducedMotion]);
+
+  if (!square) return null;
+
+  const cell = squareCellStyle(square, orientation);
+  const cover = isLightSquare(square) ? board.light : board.dark;
 
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          aria-hidden
-        >
-          <div className="bg-ink/35 absolute inset-0 rounded-[inherit] backdrop-blur-[1px]" />
-          {reducedMotion ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt=""
-              className="relative h-[28%] w-[28%] object-contain opacity-40"
-              draggable={false}
-            />
-          ) : (
-            <motion.img
-              key={`${src}-${loserColor}`}
-              src={src}
-              alt=""
-              draggable={false}
-              className="relative h-[30%] w-[30%] object-contain drop-shadow-lg"
-              initial={{ y: 0, rotate: 0, opacity: 1, scale: 1.15 }}
-              animate={{ y: "42%", rotate: tip, opacity: 0.2, scale: 0.92 }}
-              transition={{
-                duration: durationMs / 1000,
-                ease: [0.55, 0.02, 0.75, 0.35],
-              }}
-            />
-          )}
-        </motion.div>
+        <div className="pointer-events-none absolute inset-0 z-20" aria-hidden>
+          {/* Cover the live king on that cell, then tip the silhouette in-place. */}
+          <div
+            className="absolute flex items-center justify-center overflow-visible"
+            style={{ ...cell, backgroundColor: cover }}
+          >
+            {reducedMotion ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt=""
+                className="h-[88%] w-[88%] object-contain opacity-40"
+                draggable={false}
+              />
+            ) : (
+              <motion.img
+                key={`${src}-${square}`}
+                src={src}
+                alt=""
+                draggable={false}
+                className="h-[88%] w-[88%] object-contain"
+                style={{ transformOrigin: "50% 82%" }}
+                initial={{ rotate: 0, y: 0, opacity: 1 }}
+                animate={{ rotate: tip, y: "8%", opacity: 0.55 }}
+                transition={{
+                  duration: durationMs / 1000,
+                  ease: [0.45, 0.05, 0.55, 0.95],
+                }}
+              />
+            )}
+          </div>
+        </div>
       )}
     </AnimatePresence>
   );
