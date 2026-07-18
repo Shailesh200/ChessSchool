@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { Piece } from "./Piece";
 import { BOARD_THEMES, useSettings } from "./settings";
 
-const FALL_MS = 1500;
+const CRUSH_MS = 1500;
 
 function squareCell(
   square: string,
@@ -25,8 +26,8 @@ function isLightSquare(square: string): boolean {
 }
 
 /**
- * Checkmate beat: loser's king tips over on its board square, then caller
- * opens “How it happened” after {@link FALL_MS}.
+ * Checkmate beat: crush the mated king on its board square (squash + cracks),
+ * then caller opens “How it happened” after {@link CRUSH_MS}.
  */
 export function KingFallCeremony({
   open,
@@ -35,7 +36,7 @@ export function KingFallCeremony({
   loserColor,
   boardSize,
   onComplete,
-  durationMs = FALL_MS,
+  durationMs = CRUSH_MS,
 }: {
   open: boolean;
   square: string | null;
@@ -58,7 +59,7 @@ export function KingFallCeremony({
     Animated.timing(progress, {
       toValue: 1,
       duration: durationMs,
-      easing: Easing.bezier(0.45, 0.05, 0.55, 0.95),
+      easing: Easing.bezier(0.22, 0.8, 0.35, 1),
       useNativeDriver: true,
     }).start();
     const t = setTimeout(onComplete, durationMs);
@@ -72,9 +73,27 @@ export function KingFallCeremony({
 
   if (!open || !square || !cell) return null;
 
-  const tip = loserColor === "w" ? 72 : -72;
   const cover = isLightSquare(square) ? colors.light : colors.dark;
   const pieceSize = cell.size * 0.88;
+  const crack = loserColor === "w" ? "rgba(30,28,40,0.8)" : "rgba(250,248,255,0.75)";
+
+  // Squash into the square, then settle low — reads as crushed / broken.
+  const scaleX = progress.interpolate({
+    inputRange: [0, 0.28, 1],
+    outputRange: [1, 1.22, 1.28],
+  });
+  const scaleY = progress.interpolate({
+    inputRange: [0, 0.28, 1],
+    outputRange: [1, 0.62, 0.42],
+  });
+  const opacity = progress.interpolate({
+    inputRange: [0, 0.35, 1],
+    outputRange: [1, 1, 0.45],
+  });
+  const crackOpacity = progress.interpolate({
+    inputRange: [0, 0.22, 0.4, 1],
+    outputRange: [0, 0, 1, 0.75],
+  });
 
   return (
     <View style={styles.layer} pointerEvents="none">
@@ -92,37 +111,43 @@ export function KingFallCeremony({
       >
         <Animated.View
           style={{
-            opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] }),
-            transform: [
-              {
-                translateY: progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, cell.size * 0.08],
-                }),
-              },
-              {
-                rotate: progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0deg", `${tip}deg`],
-                }),
-              },
-            ],
+            opacity,
+            transform: [{ scaleX }, { scaleY }],
           }}
         >
           <Piece
             type="k"
             color={loserColor}
             size={pieceSize}
-            gid="king-fall"
+            gid="king-crush"
             themeId={pieceTheme}
           />
+        </Animated.View>
+        <Animated.View
+          style={[StyleSheet.absoluteFillObject, { opacity: crackOpacity }]}
+          pointerEvents="none"
+        >
+          <Svg width="100%" height="100%" viewBox="0 0 100 100">
+            <Path
+              d="M48 8 L42 38 L55 52 L38 72 L50 94"
+              fill="none"
+              stroke={crack}
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <Path d="M42 38 L22 48" fill="none" stroke={crack} strokeWidth={1.8} strokeLinecap="round" />
+            <Path d="M55 52 L78 44" fill="none" stroke={crack} strokeWidth={1.8} strokeLinecap="round" />
+            <Path d="M38 72 L18 78" fill="none" stroke={crack} strokeWidth={1.6} strokeLinecap="round" />
+          </Svg>
         </Animated.View>
       </View>
     </View>
   );
 }
 
-export const KING_FALL_MS = FALL_MS;
+export const KING_FALL_MS = CRUSH_MS;
+export const KING_CRUSH_MS = CRUSH_MS;
 
 const styles = StyleSheet.create({
   layer: {
