@@ -65,7 +65,12 @@ export default function OrientationScreen() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (!loading && orientationDone) router.replace("/(tabs)/academy");
+    if (loading || !orientationDone) return;
+    try {
+      router.replace("/(tabs)/academy");
+    } catch {
+      /* Gate also routes — ignore if navigator is not ready yet */
+    }
   }, [loading, orientationDone, router]);
 
   const current = STEPS[step]!;

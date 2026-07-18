@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Component, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import LottieView from "lottie-react-native";
 import { colors, font } from "./theme";
 
@@ -7,13 +7,64 @@ const TOTAL_MS = 2800;
 
 type Props = { onFinish: () => void };
 
-/** Branded splash: Lottie logo bounce + Fredoka tagline lines slide in. */
+/** Catch Lottie native failures so splash still finishes into the app. */
+class SplashVisualBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, _info: ErrorInfo) {
+    if (__DEV__) console.warn("[AnimatedSplash] visual failed", error);
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function SplashMark() {
+  return (
+    <Image
+      source={require("../assets/splash-icon.png")}
+      style={styles.logo}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
+  );
+}
+
+function SplashLottie({ play, onFail }: { play: boolean; onFail: () => void }) {
+  const lottieRef = useRef<LottieView>(null);
+
+  useEffect(() => {
+    if (play) lottieRef.current?.play();
+  }, [play]);
+
+  return (
+    <LottieView
+      ref={lottieRef}
+      source={require("../assets/lottie/splash-logo.json")}
+      autoPlay={false}
+      loop={false}
+      style={styles.logo}
+      onAnimationFailure={() => onFail()}
+    />
+  );
+}
+
+/** Branded splash: Lottie logo (fail-open to static mark) + tagline. */
 export function AnimatedSplash({ onFinish }: Props) {
   const line1Y = useRef(new Animated.Value(18)).current;
   const line1O = useRef(new Animated.Value(0)).current;
   const line2Y = useRef(new Animated.Value(18)).current;
   const line2O = useRef(new Animated.Value(0)).current;
-  const lottieRef = useRef<LottieView>(null);
+  const [playLottie, setPlayLottie] = useState(false);
+  const [lottieFailed, setLottieFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,18 +81,38 @@ export function AnimatedSplash({ onFinish }: Props) {
         return;
       }
 
-      lottieRef.current?.play();
+      setPlayLottie(true);
 
       Animated.sequence([
         Animated.delay(520),
         Animated.parallel([
-          Animated.timing(line1O, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(line1Y, { toValue: 0, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(line1O, {
+            toValue: 1,
+            duration: 420,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(line1Y, {
+            toValue: 0,
+            duration: 420,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
         ]),
         Animated.delay(120),
         Animated.parallel([
-          Animated.timing(line2O, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(line2Y, { toValue: 0, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(line2O, {
+            toValue: 1,
+            duration: 420,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(line2Y, {
+            toValue: 0,
+            duration: 420,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
         ]),
       ]).start();
 
@@ -57,17 +128,21 @@ export function AnimatedSplash({ onFinish }: Props) {
   return (
     <View style={styles.root}>
       <View style={styles.stack}>
-        <LottieView
-          ref={lottieRef}
-          source={require("../assets/lottie/splash-logo.json")}
-          autoPlay={false}
-          loop={false}
-          style={styles.logo}
-        />
-        <Animated.Text style={[styles.line1, { opacity: line1O, transform: [{ translateY: line1Y }] }]}>
+        <SplashVisualBoundary fallback={<SplashMark />}>
+          {lottieFailed ? (
+            <SplashMark />
+          ) : (
+            <SplashLottie play={playLottie} onFail={() => setLottieFailed(true)} />
+          )}
+        </SplashVisualBoundary>
+        <Animated.Text
+          style={[styles.line1, { opacity: line1O, transform: [{ translateY: line1Y }] }]}
+        >
           Learn chess properly.
         </Animated.Text>
-        <Animated.Text style={[styles.line2, { opacity: line2O, transform: [{ translateY: line2Y }] }]}>
+        <Animated.Text
+          style={[styles.line2, { opacity: line2O, transform: [{ translateY: line2Y }] }]}
+        >
           Graduate your game.
         </Animated.Text>
       </View>

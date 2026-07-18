@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { ScreenLoader } from "@/ScreenLoader";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -29,61 +29,81 @@ function Gate() {
   const { user, guest, loading, needsOnboarding, orientationDone, enterGuestBrowse } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const nav = useRootNavigationState();
 
   useEffect(() => {
-    if (loading) return;
-    const root = segments[0] as string | undefined;
-    const onOrientation = root === undefined || root === "index";
-    const onLogin = root === "login";
-    const onOnboarding = root === "onboarding";
+    // Never navigate until the root navigator is mounted — otherwise expo-router
+    // throws "Attempted to navigate before mounting the Root Layout" (uncaught).
+    if (loading || !nav?.key) return;
 
-    const onWelcome = root === "welcome";
+    try {
+      const root = segments[0] as string | undefined;
+      const onOrientation = root === undefined || root === "index";
+      const onLogin = root === "login";
+      const onOnboarding = root === "onboarding";
+      const onWelcome = root === "welcome";
 
-    if (user && !guest) {
-      if (needsOnboarding && !onOnboarding) router.replace("/onboarding");
-      else if (!needsOnboarding && onWelcome) return;
-      else if (!needsOnboarding && (onLogin || onOrientation)) router.replace("/welcome");
-      return;
-    }
+      if (user && !guest) {
+        if (needsOnboarding && !onOnboarding) router.replace("/onboarding");
+        else if (!needsOnboarding && onWelcome) return;
+        else if (!needsOnboarding && (onLogin || onOrientation)) router.replace("/welcome");
+        return;
+      }
 
-    const onParityAuth = root === "parity-auth";
-    if (onParityAuth) return;
+      const onParityAuth = root === "parity-auth";
+      if (onParityAuth) return;
 
-    // Parity deep-links arrive before orientation completes — enter guest and continue.
-    // Never call this once a real session exists (account / signed-in captures).
-    if (
-      process.env.EXPO_PUBLIC_PARITY === "1" &&
-      !orientationDone &&
-      !onOrientation &&
-      !(user && !guest)
-    ) {
-      enterGuestBrowse();
-    }
+      // Parity deep-links arrive before orientation completes — enter guest and continue.
+      // Never call this once a real session exists (account / signed-in captures).
+      if (
+        process.env.EXPO_PUBLIC_PARITY === "1" &&
+        !orientationDone &&
+        !onOrientation &&
+        !(user && !guest)
+      ) {
+        enterGuestBrowse();
+      }
 
-    if (guest && user) {
-      // Guests must reach /login to enroll (My ID → login) — do not bounce them away.
+      if (guest && user) {
+        // Guests must reach /login to enroll (My ID → login) — do not bounce them away.
+        if (onLogin) return;
+        if (onOrientation || onOnboarding) router.replace(ACADEMY);
+        return;
+      }
+
+      if (!orientationDone) {
+        if (!onOrientation) router.replace("/");
+        return;
+      }
+
       if (onLogin) return;
-      if (onOrientation || onOnboarding) router.replace(ACADEMY);
-      return;
+
+      if (onOrientation) {
+        enterGuestBrowse();
+        router.replace(ACADEMY);
+      }
+    } catch {
+      /* fail open — stay on the current route */
     }
+  }, [
+    user,
+    guest,
+    loading,
+    needsOnboarding,
+    orientationDone,
+    segments,
+    router,
+    enterGuestBrowse,
+    nav?.key,
+  ]);
 
-    if (!orientationDone) {
-      if (!onOrientation) router.replace("/");
-      return;
-    }
-
-    if (onLogin) return;
-
-    if (onOrientation) {
-      enterGuestBrowse();
-      router.replace(ACADEMY);
-    }
-  }, [user, guest, loading, needsOnboarding, orientationDone, segments, router, enterGuestBrowse]);
-
-  if (loading) {
-    return <ScreenLoader variant="fullscreen" label="Opening the academy…" />;
-  }
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Always mount Stack so navigation is ready while auth resolves.
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      {loading ? <ScreenLoader variant="fullscreen" label="Opening the academy…" /> : null}
+    </>
+  );
 }
 
 function ThemedStatusBar() {
@@ -121,29 +141,31 @@ export default function RootLayout() {
   if (showSplash) {
     return (
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <AnimatedSplash onFinish={finishSplash} />
+        <ErrorBoundary>
+          <StatusBar style="dark" />
+          <AnimatedSplash onFinish={finishSplash} />
+        </ErrorBoundary>
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <NetworkProvider>
-          <ThemedStatusBar />
-          <NetworkBanner />
-          <UpdateBanner />
-          <Toaster />
-          <AuthProvider>
-            {/* Diagnostics uses useAuth — must stay inside AuthProvider. */}
-            <ErrorBoundary>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <NetworkProvider>
+            <ThemedStatusBar />
+            <NetworkBanner />
+            <UpdateBanner />
+            <Toaster />
+            <AuthProvider>
+              {/* Diagnostics uses useAuth — must stay inside AuthProvider. */}
               <Diagnostics />
               <Gate />
-            </ErrorBoundary>
-          </AuthProvider>
-        </NetworkProvider>
-      </ThemeProvider>
+            </AuthProvider>
+          </NetworkProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }
