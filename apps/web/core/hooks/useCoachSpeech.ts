@@ -26,6 +26,14 @@ export function useCoachSpeech(
   const personality = useSettings((s) => s.coachPersonality);
   const lastSpoken = useRef("");
 
+  // Mute / coach-voice off must cut in-flight TTS immediately.
+  useEffect(() => {
+    if (!enabled || !sound || !coachSpeech) {
+      stopCoachSpeech();
+      lastSpoken.current = "";
+    }
+  }, [enabled, sound, coachSpeech]);
+
   useLayoutEffect(() => {
     if (!enabled || !sound || !coachSpeech) return;
     const line = text.trim();

@@ -155,12 +155,15 @@ export async function speakCoachText(text: string): Promise<void> {
 
   const url = await fetchCloudAudio(line, settings.coachPersonality, voice);
   if (gen !== speakGen) return;
+  // Re-check mute after the network round-trip — mute mid-fetch must stay silent.
+  const after = useSettings.getState();
+  if (!after.sound || !after.coachSpeech) return;
 
   if (url) {
-    await playUrl(url, settings.volume, gen);
+    await playUrl(url, after.volume, gen);
     return;
   }
-  await speakWithBrowser(line, settings.volume, gen);
+  await speakWithBrowser(line, after.volume, gen);
 }
 
 /** Preview a voice from Settings (sample line). Stops any prior preview first. */

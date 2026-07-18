@@ -72,6 +72,11 @@ export default function SettingsPage() {
                 <Toggle
                   checked={s.sound}
                   onChange={(v) => {
+                    if (!v) {
+                      void import("@/core/audio/coachSpeech").then((m) =>
+                        m.stopCoachSpeech(),
+                      );
+                    }
                     s.set("sound", v);
                     if (v) audio.play("select");
                   }}
@@ -94,7 +99,14 @@ export default function SettingsPage() {
               <Row label="Coach voice" hint="Read chat bubbles aloud">
                 <Toggle
                   checked={s.coachSpeech}
-                  onChange={(v) => s.set("coachSpeech", v)}
+                  onChange={(v) => {
+                    if (!v) {
+                      void import("@/core/audio/coachSpeech").then((m) =>
+                        m.stopCoachSpeech(),
+                      );
+                    }
+                    s.set("coachSpeech", v);
+                  }}
                   label="Coach voice"
                 />
               </Row>

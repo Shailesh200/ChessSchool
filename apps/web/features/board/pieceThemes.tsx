@@ -229,8 +229,8 @@ const AssetPiece = memo(function AssetPiece({
         height: "100%",
         filter,
         ...svgStyle,
-        // Promote a clean GPU layer; keep filter off the transforming ancestor.
-        transform: "translateZ(0)",
+        // Do NOT set transform here — react-chessboard slides the [data-piece]
+        // parent via transform; a child translateZ can cancel the slide on WebKit.
         WebkitBackfaceVisibility: "hidden",
         backfaceVisibility: "hidden",
       }}
@@ -275,7 +275,6 @@ const MarblePiece = memo(function MarblePiece({
       style={{
         ...svgStyle,
         filter: "drop-shadow(0 1.7px 1.1px rgba(0,0,0,0.34))",
-        transform: "translateZ(0)",
         WebkitBackfaceVisibility: "hidden",
         backfaceVisibility: "hidden",
         pointerEvents: "none",

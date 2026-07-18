@@ -172,12 +172,15 @@ export async function speakCoachText(text: string): Promise<void> {
   const personality = normalizePersonality(s.coachPersonality);
   const uri = await fetchCloudAudio(line, personality, voice);
   if (gen !== speakGen) return;
+  // Re-check mute after fetch — mute mid-request must stay silent.
+  const after = settings.get();
+  if (!after.sound || !after.coachSpeech) return;
   if (!uri) {
     // Cloud TTS carries personality→Edge voice (same as web). Local OS TTS varies by locale.
     await speakLocalFallback(line, gen, voice);
     return;
   }
-  await playUri(uri, s.volume, gen);
+  await playUri(uri, after.volume, gen);
 }
 
 function normalizePersonality(id: string): CoachPersonality {

@@ -292,10 +292,13 @@ html[data-cb="deuteranopia"] {
   --board-highlight: #f2c14e;
 }
 
-/* Manual "reduce motion" toggle (independent of OS setting). */
-html[data-rm="1"] *,
-html[data-rm="1"] *::before,
-html[data-rm="1"] *::after {
+/* Manual "reduce motion" toggle (independent of OS setting).
+   Keep [data-piece] exempt — ChessBoard already disables slides via
+   showAnimations=false when reducedMotion is on; nuking piece transitions
+   globally also breaks slides if the dataset ever lags the setting. */
+html[data-rm="1"] *:not([data-piece]),
+html[data-rm="1"] *:not([data-piece])::before,
+html[data-rm="1"] *:not([data-piece])::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;

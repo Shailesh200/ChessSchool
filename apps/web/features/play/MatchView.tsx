@@ -41,6 +41,8 @@ import { checkMatchAchievements } from "@/features/progression/achievements";
 import { unlockAndCelebrate } from "@/features/progression/celebrate";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { MatchMateReviewModal } from "@/features/play/MatchMateReviewModal";
+import { KingFallCeremony } from "@/components/ceremony/KingFallCeremony";
+import { stopCoachSpeech } from "@/core/audio/coachSpeech";
 import { saveGame, type EndReason, type SavedGame } from "@/core/db/db";
 import { opponentMoves } from "@/features/play/shadow";
 import type { MoveInput, Square, VerboseMove } from "@/core/types/chess";
@@ -146,8 +148,15 @@ export function MatchView({ active }: { active: ActiveMatch }) {
   const [mateReviewHistory, setMateReviewHistory] =
     useState<VerboseMove[]>(restoredMateHistory);
   const [finalPgn, setFinalPgn] = useState(snap?.mateReviewPending ? active.pgn : "");
+  /** Loser's king color while the fall ceremony plays (then How it happened). */
+  const [kingFallLoser, setKingFallLoser] = useState<"w" | "b" | null>(null);
   const [arenaRunDone, setArenaRunDone] = useState<ArenaRunRecord | null>(null);
   const [viewPly, setViewPly] = useState<number | null>(null); // null = live; else viewing history
+
+  const finishKingFall = useCallback(() => {
+    setKingFallLoser(null);
+    setMateReviewOpen(true);
+  }, []);
 
   const [boardBox, boardSize] = useSquareSize();
   const hasClock = active.timeControlMin > 0;
@@ -300,7 +309,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       if (reason === "checkmate") {
         setFinalPgn(pgnText);
         setMateReviewHistory(history);
-        setMateReviewOpen(true);
+        // King fall (theme silhouette) → then How it happened after 1500ms.
+        setKingFallLoser(winner === "w" ? "b" : winner === "b" ? "w" : "b");
       }
       await saveGame(game);
       usePlan.getState().markActivity("match", isoDay());
@@ -373,6 +383,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     if (reason === "checkmate") {
       setFinalPgn(e.pgn());
       setMateReviewHistory(e.history());
+      // Restored sessions skip the fall beat and open review directly.
       setMateReviewOpen(true);
     }
   }, [active.endSnapshot, active.id, isBot, over, playerColor, setEndSnapshot]);
@@ -701,6 +712,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
               label={sound ? "Mute sounds" : "Unmute sounds"}
               onClick={() => {
                 audio.unlock();
+                if (sound) stopCoachSpeech();
                 toggleSetting("sound");
                 if (!sound) audio.play("notify");
               }}
@@ -771,7 +783,18 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
               {isShadow ? "Shadow" : isBot ? bot.name : "Coach"}
             </span>
-            <span className="line-clamp-2">{thinking ? "Thinking…" : coach}</span>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={thinking ? "__thinking__" : coach}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.18 }}
+                className="line-clamp-2 block"
+              >
+                {thinking ? "Thinking…" : coach}
+              </motion.span>
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -791,15 +814,22 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           }}
         >
           <ChessBoard
+            boardId="match-board"
             fen={displayFen}
             orientation={orientation}
             onMove={handleMove}
             lastMove={stagedMove}
             checkSquare={checkSquare}
-            interactive={!over && !thinking && !viewing}
+            interactive={!over && !thinking && !viewing && !kingFallLoser}
+            showAnimations
+          />
+          <KingFallCeremony
+            open={kingFallLoser !== null}
+            loserColor={kingFallLoser ?? "b"}
+            onComplete={finishKingFall}
           />
           <AnimatePresence>
-            {over && (
+            {over && !kingFallLoser && !mateReviewOpen && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

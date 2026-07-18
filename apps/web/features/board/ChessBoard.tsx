@@ -100,6 +100,14 @@ export function ChessBoard({
   // In-app Reduce motion → instant snaps. OS prefers-reduced-motion must NOT
   // disable the library — CSS excludes [data-piece] from the transition nuke.
   const animationsOn = showAnimations ?? !reducedMotion;
+  // Defer last-move highlights until the slide finishes so squareStyles churn
+  // doesn't fight react-chessboard's transform animation.
+  const [paintLastMove, setPaintLastMove] = useState(lastMove);
+  useEffect(() => {
+    const delay = animationsOn && lastMove ? animationDurationInMs : 0;
+    const t = window.setTimeout(() => setPaintLastMove(lastMove ?? null), delay);
+    return () => window.clearTimeout(t);
+  }, [lastMove, fen, animationsOn, animationDurationInMs]);
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{
     from: Square;
@@ -188,9 +196,9 @@ export function ChessBoard({
         }
       }
     }
-    if (lastMove) {
-      styles[lastMove.from] = { background: "rgba(255, 224, 138, 0.55)" };
-      styles[lastMove.to] = { background: "rgba(255, 224, 138, 0.55)" };
+    if (paintLastMove) {
+      styles[paintLastMove.from] = { background: "rgba(255, 224, 138, 0.55)" };
+      styles[paintLastMove.to] = { background: "rgba(255, 224, 138, 0.55)" };
     }
     for (const sq of highlight) {
       styles[sq] = {
@@ -234,7 +242,7 @@ export function ChessBoard({
     }
     return styles;
   }, [
-    lastMove,
+    paintLastMove,
     highlight,
     highlightFiles,
     highlightRanks,

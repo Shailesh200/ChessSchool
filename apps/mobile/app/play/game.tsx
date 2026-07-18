@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -31,11 +31,13 @@ import {
 import { completeArenaIfDone, hydrateArenaStore, recordArenaResult } from "@/arenaStore";
 import { botProfile } from "@/bots";
 import { MateReviewModal } from "@/MateReviewModal";
+import { KingFallCeremony } from "@/KingFallCeremony";
 import { BotAvatar } from "@/BotAvatar";
 import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
+import { stopCoachSpeech } from "@/coachSpeech";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type OverState = {
@@ -115,6 +117,11 @@ export default function GameScreen() {
   const [flipped, setFlipped] = useState(false);
   const [coachText, setCoachText] = useState("");
   const [mateReviewOpen, setMateReviewOpen] = useState(false);
+  const [kingFallLoser, setKingFallLoser] = useState<"w" | "b" | null>(null);
+  const finishKingFall = useCallback(() => {
+    setKingFallLoser(null);
+    setMateReviewOpen(true);
+  }, []);
   const [mateReviewHistory, setMateReviewHistory] = useState<VerboseMove[]>([]);
   const [clockSeed, setClockSeed] = useState({ w: timeMs, b: timeMs });
   const flaggedRef = useRef(false);
@@ -231,7 +238,8 @@ export default function GameScreen() {
       youWon ? haptics.success() : haptics.error();
       youWon ? sfx.play("win") : sfx.play("error");
       setMateReviewHistory(e.history());
-      setMateReviewOpen(true);
+      // Loser is the side to move (mated). King fall → How it happened after 1500ms.
+      setKingFallLoser(e.turn());
       void endGame(mv, youWon ? "win" : "loss", youWon ? "Checkmate — you win! 🏆" : `Checkmate — ${bot.name} wins`, youWon, "checkmate");
     } else {
       void endGame(mv, "draw", status === "stalemate" ? "Stalemate — draw" : "Draw", false, endReasonFromStatus(status));
@@ -317,7 +325,10 @@ export default function GameScreen() {
         <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
         <Pressable
           style={styles.circle}
-          onPress={() => settings.set("sound", !sound)}
+          onPress={() => {
+            if (sound) stopCoachSpeech();
+            settings.set("sound", !sound);
+          }}
           hitSlop={8}
           accessibilityLabel={sound ? "Mute sound" : "Unmute sound"}
         >
@@ -357,15 +368,22 @@ export default function GameScreen() {
         />
 
         <View style={{ alignItems: "center", marginVertical: space[2] }}>
-          <ChessBoard
-            fen={shownFen}
-            size={boardSize}
-            orientation={flipped ? "black" : "white"}
-            onMove={handleMove}
-            interactive={!over && !thinking && !viewing}
-            lastMove={viewing ? null : lastMove}
-            checkSquare={checkSquare}
-          />
+          <View style={{ width: boardSize, height: boardSize }}>
+            <ChessBoard
+              fen={shownFen}
+              size={boardSize}
+              orientation={flipped ? "black" : "white"}
+              onMove={handleMove}
+              interactive={!over && !thinking && !viewing && !kingFallLoser}
+              lastMove={viewing ? null : lastMove}
+              checkSquare={checkSquare}
+            />
+            <KingFallCeremony
+              open={kingFallLoser !== null}
+              loserColor={kingFallLoser ?? "b"}
+              onComplete={finishKingFall}
+            />
+          </View>
         </View>
 
         <PlayerBar
@@ -388,7 +406,7 @@ export default function GameScreen() {
       </View>
 
       <GameOverOverlay
-        visible={!!over && !mateReviewOpen}
+        visible={!!over && !mateReviewOpen && !kingFallLoser}
         title={over?.title ?? ""}
         subtitle={over?.subtitle}
         win={over?.win}
