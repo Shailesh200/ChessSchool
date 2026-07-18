@@ -25,13 +25,18 @@ function shade(hex: string, amt: number): string {
   return `#${ch.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** SVG default fill is black when omitted; RN must not coerce that to "none". */
+function svgFill(fill: string | undefined): string {
+  return fill === undefined ? "#000" : fill;
+}
+
 function renderOp(op: PieceOp, key: number) {
   if (op.t === "path") {
     return (
       <Path
         key={key}
         d={op.d}
-        fill={op.fill ?? "none"}
+        fill={svgFill(op.fill)}
         fillOpacity={op.fo}
         fillRule={op.fr === "evenodd" || op.fr === "evenOdd" ? "evenodd" : "nonzero"}
         stroke={op.stroke}
@@ -48,7 +53,7 @@ function renderOp(op: PieceOp, key: number) {
         cx={op.cx}
         cy={op.cy}
         r={op.r}
-        fill={op.fill ?? "none"}
+        fill={svgFill(op.fill)}
         stroke={op.stroke}
         strokeWidth={op.sw}
       />
@@ -61,7 +66,7 @@ function renderOp(op: PieceOp, key: number) {
       cy={op.cy}
       rx={op.rx}
       ry={op.ry}
-      fill={op.fill ?? "none"}
+      fill={svgFill(op.fill)}
       stroke={op.stroke}
       strokeWidth={op.sw}
     />

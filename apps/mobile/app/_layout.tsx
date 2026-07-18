@@ -1,3 +1,4 @@
+import "@/sentry";
 import { useCallback, useEffect, useState } from "react";
 import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { ScreenLoader } from "@/ScreenLoader";
@@ -20,6 +21,7 @@ import { NetworkBanner } from "@/NetworkBanner";
 import { Toaster } from "@/Toaster";
 import { UpdateBanner } from "@/UpdateBanner";
 import { Diagnostics } from "@/Diagnostics";
+import { Sentry } from "@/sentry";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -111,7 +113,7 @@ function ThemedStatusBar() {
   return <StatusBar style={isDark ? "light" : "dark"} />;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const [fontsTimedOut, setFontsTimedOut] = useState(false);
   const [fontsLoaded] = useFonts({
@@ -169,3 +171,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

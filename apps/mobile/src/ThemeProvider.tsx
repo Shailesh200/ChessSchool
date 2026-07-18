@@ -2,7 +2,17 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSettings } from "./settings";
 import { getAppTheme, withHighContrast, COLORBLIND } from "./appThemes";
 import { getSchoolTheme } from "./schoolThemes";
-import { colors as baseColors, radius, space, type, font, shadowCard } from "./theme";
+import {
+  colors as baseColors,
+  radius,
+  space,
+  type,
+  font,
+  shadowCard,
+  shadowElev1,
+  shadowElev3,
+  buttonHeight,
+} from "./theme";
 
 export type ThemeColors = Record<string, string>;
 
@@ -93,4 +103,14 @@ export function useScaledType(): ScaledType {
 
 export { useScaledType as useType };
 
-export { baseColors as colors, radius, space, type, font, shadowCard };
+export {
+  baseColors as colors,
+  radius,
+  space,
+  type,
+  font,
+  shadowCard,
+  shadowElev1,
+  shadowElev3,
+  buttonHeight,
+};

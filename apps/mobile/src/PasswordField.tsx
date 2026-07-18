@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from "react-native";
 import { Icon } from "@/Icon";
 import { useAppTheme } from "@/ThemeProvider";
-import { font, radius } from "@/theme";
+import { buttonHeight, font, radius, space } from "@/theme";
 
 type Props = Omit<TextInputProps, "secureTextEntry"> & {
   containerStyle?: object;
@@ -18,12 +18,12 @@ export function PasswordField({ containerStyle, style, ...rest }: Props) {
       StyleSheet.create({
         wrap: { position: "relative", marginBottom: 12 },
         input: {
-          height: 52,
-          borderRadius: radius.md,
-          borderWidth: 1,
+          height: buttonHeight.md,
+          borderRadius: radius.pill,
+          borderWidth: 1.5,
           borderColor: colors.hairline,
           backgroundColor: colors.surfaceCard,
-          paddingHorizontal: 14,
+          paddingHorizontal: space[5],
           paddingRight: 48,
           fontSize: 16,
           fontFamily: font.medium,
@@ -31,7 +31,7 @@ export function PasswordField({ containerStyle, style, ...rest }: Props) {
         },
         eye: {
           position: "absolute",
-          right: 14,
+          right: space[4],
           top: 0,
           bottom: 0,
           justifyContent: "center",

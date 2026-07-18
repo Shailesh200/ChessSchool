@@ -19,7 +19,7 @@ import { useSettings } from "@/settings";
 import { dueLessonIds, isDailyPuzzleDone, isoDay, needsPlacementTest, shouldRecommendPreschool } from "@/progression";
 import { allRoutineDoneToday, routineDoneToday, ROUTINE_STEP_IDS } from "@/homeworkRoutine";
 import { getActiveBotMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
-import { font, radius, space } from "@/theme";
+import { font, radius, shadowCard, space } from "@/theme";
 
 type Progress = {
   xp: number;
@@ -77,12 +77,10 @@ export default function AcademyScreen() {
         card: {
           backgroundColor: colors.surfaceCard,
           borderRadius: radius.card,
-          padding: space[4],
-          shadowColor: "#1c1b2e",
-          shadowOpacity: 0.08,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
+          borderWidth: 1,
+          borderColor: colors.hairline,
+          padding: space[5],
+          ...shadowCard,
         },
         breadcrumb: { flexDirection: "row", flexWrap: "wrap", alignItems: "center" },
         crumb: { ...type.caption, fontFamily: font.bold, color: colors.ink500 },
@@ -93,8 +91,8 @@ export default function AcademyScreen() {
         rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
         goalTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
         muted: { ...type.xs, fontFamily: font.bold, color: colors.ink500 },
-        track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, marginTop: space[2], overflow: "hidden" },
-        fill: { height: 10, borderRadius: radius.pill },
+        track: { height: 12, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, marginTop: space[2], overflow: "hidden" },
+        fill: { height: 12, borderRadius: radius.pill },
         homework: {
           flexDirection: "row",
           alignItems: "center",
@@ -181,6 +179,23 @@ export default function AcademyScreen() {
                 : "Graduate through classes. Become a stronger player."}
             </Text>
           </View>
+          <Pressable
+            onPress={() => router.push("/search")}
+            accessibilityLabel="Search"
+            hitSlop={8}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.pill,
+              borderWidth: 1,
+              borderColor: colors.hairline,
+              backgroundColor: colors.surfaceCard,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="search" size={20} color={colors.ink500} />
+          </Pressable>
         </View>
 
         {error && !data ? (
@@ -313,6 +328,19 @@ export default function AcademyScreen() {
                   </Text>
                 </View>
                 {!dailyDone && <Text style={styles.homeworkCta}>Play →</Text>}
+              </Pressable>
+            )}
+
+            {!guest && (
+              <Pressable style={styles.dailyCard} onPress={() => router.push("/practice/mistakes")}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.cardTitleRow}>
+                    <Icon name="dna" size={18} color={colors.brand} duotone />
+                    <Text style={styles.homeworkTitle}>Puzzles for you</Text>
+                  </View>
+                  <Text style={styles.homeworkSub}>Re-solve positions from your own mistakes</Text>
+                </View>
+                <Text style={styles.homeworkCta}>Practice →</Text>
               </Pressable>
             )}
 

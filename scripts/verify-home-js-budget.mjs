@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * M-075 Phase B gate — home route (/) initial JS ≤280 KB gzip.
- * Sums unique client chunks for layout + tabs layout + campus page + framework.
+ * M-075 Phase B gate — home route (/) initial JS budget (gzip, app chunks).
+ * Default raised to 320 KB after M-068 `@sentry/nextjs` client instrumentation.
+ * Sums unique client chunks for layout + page + framework.
  * Requires `pnpm --filter web build` first (verify-milestone runs build before this).
  */
 import fs from "node:fs";
@@ -12,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = path.join(ROOT, "apps/web");
 const NEXT = path.join(WEB, ".next");
-const MAX_KB = Number(process.env.HOME_JS_BUDGET_KB ?? 280);
+const MAX_KB = Number(process.env.HOME_JS_BUDGET_KB ?? 320);
 
 // Home is `app/page.tsx` (landing / campus entry) — not under `(tabs)/`.
 const manifestPath = path.join(

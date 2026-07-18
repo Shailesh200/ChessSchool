@@ -82,13 +82,14 @@ function MateReviewSession({
   );
 
   const [idx, setIdx] = useState(0);
-  const [showMateExtras, setShowMateExtras] = useState(false);
+  const [showMateExtras, setShowMateExtras] = useState(
+    () => steps.length === 1 && Boolean(steps[0]?.mate),
+  );
 
   const timerRef = useRef<number | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
   const stepsRef = useRef(steps);
-  stepsRef.current = steps;
 
   const safeIdx = steps.length ? Math.min(idx, steps.length - 1) : 0;
   const frame = steps[safeIdx];
@@ -117,7 +118,7 @@ function MateReviewSession({
   const lastMove = useMemo(() => {
     if (!(safeIdx > 0 && frame?.from && frame?.to)) return null;
     return { from: frame.from, to: frame.to };
-  }, [safeIdx, frame?.from, frame?.to]);
+  }, [safeIdx, frame]);
 
   function clearTimer() {
     if (timerRef.current !== null) {
@@ -134,68 +135,64 @@ function MateReviewSession({
   const restartLoopRef = useRef<() => void>(() => {});
   const advanceRef = useRef<() => void>(() => {});
 
-  restartLoopRef.current = () => {
-    if (cancelledRef.current) return;
-    setShowMateExtras(false);
-    idxRef.current = 0;
-    setIdx(0);
-    schedule(() => advanceRef.current(), INITIAL_MS);
-  };
-
-  advanceRef.current = () => {
-    if (cancelledRef.current) return;
-    const list = stepsRef.current;
-    if (list.length <= 1) return;
-
-    const current = idxRef.current;
-    if (current >= list.length - 1) {
-      setShowMateExtras(true);
-      schedule(() => restartLoopRef.current(), LOOP_HOLD_MS);
-      return;
-    }
-
-    const next = current + 1;
-    idxRef.current = next;
-    if (list[next]?.san) audio.play("move");
-    setIdx(next);
-
-    if (next >= list.length - 1) {
-      setShowMateExtras(Boolean(list[next]?.mate));
-      schedule(() => restartLoopRef.current(), LOOP_HOLD_MS);
-    } else {
-      schedule(() => advanceRef.current(), STEP_MS);
-    }
-  };
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
 
   useEffect(() => {
     cancelledRef.current = false;
+
+    const restartLoop = () => {
+      if (cancelledRef.current) return;
+      setShowMateExtras(false);
+      idxRef.current = 0;
+      setIdx(0);
+      schedule(() => advance(), INITIAL_MS);
+    };
+
+    const advance = () => {
+      if (cancelledRef.current) return;
+      const list = stepsRef.current;
+      if (list.length <= 1) return;
+
+      const current = idxRef.current;
+      if (current >= list.length - 1) {
+        setShowMateExtras(true);
+        schedule(() => restartLoop(), LOOP_HOLD_MS);
+        return;
+      }
+
+      const next = current + 1;
+      idxRef.current = next;
+      if (list[next]?.san) audio.play("move");
+      setIdx(next);
+
+      if (next >= list.length - 1) {
+        setShowMateExtras(Boolean(list[next]?.mate));
+        schedule(() => restartLoop(), LOOP_HOLD_MS);
+      } else {
+        schedule(() => advance(), STEP_MS);
+      }
+    };
+
+    restartLoopRef.current = restartLoop;
+    advanceRef.current = advance;
+
     clearTimer();
-    idxRef.current = 0;
-    setIdx(0);
-    setShowMateExtras(false);
 
-    if (steps.length === 0) {
+    if (steps.length === 0 || steps.length === 1) {
       return () => {
         cancelledRef.current = true;
         clearTimer();
       };
     }
 
-    if (steps.length === 1) {
-      setShowMateExtras(Boolean(steps[0]?.mate));
-      return () => {
-        cancelledRef.current = true;
-        clearTimer();
-      };
-    }
-
-    schedule(() => advanceRef.current(), INITIAL_MS);
+    schedule(() => advance(), INITIAL_MS);
 
     return () => {
       cancelledRef.current = true;
       clearTimer();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- restart only when step frames change
   }, [steps]);
 
   useEffect(() => {

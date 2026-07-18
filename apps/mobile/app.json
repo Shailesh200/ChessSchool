@@ -29,7 +29,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 14,
+      "versionCode": 20,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5b5bd6"
@@ -75,7 +75,16 @@
         }
       ],
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://us.sentry.io/",
+          "organization": "shailesh-jha",
+          "project": "chessschool-mobile",
+          "note": "Use SENTRY_AUTH_TOKEN env for source maps; local builds set SENTRY_DISABLE_AUTO_UPLOAD=true"
+        }
+      ]
     ],
     "extra": {
       "router": {},

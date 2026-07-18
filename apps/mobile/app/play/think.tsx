@@ -160,6 +160,7 @@ export default function LessonTrainerScreen() {
           onMove={onMove}
           interactive={phase === "calc" && !pending}
           lastMove={lastMove}
+          showNotation
         />
       </View>
 

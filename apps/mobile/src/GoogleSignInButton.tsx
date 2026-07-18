@@ -112,8 +112,22 @@ function GoogleSignInButtonInner({ disabled, onIdToken, onError }: Props) {
           onError("Update Google Play Services in the Play Store, then try again.");
           return;
         }
+        // DEVELOPER_ERROR (10) — Android OAuth client / SHA-1 mismatch in Google Cloud.
+        if (e.code === "10" || String(e.code) === "DEVELOPER_ERROR" || /DEVELOPER_ERROR/i.test(e.message ?? "")) {
+          onError(
+            "Google Sign-In is misconfigured for this build. Add the Play App Signing SHA-1 for package com.chessschool.app in Google Cloud (see RELEASE.md).",
+          );
+          return;
+        }
       }
-      onError(e instanceof Error ? e.message : "Google sign-in failed.");
+      const raw = e instanceof Error ? e.message : "Google sign-in failed.";
+      if (/DEVELOPER_ERROR/i.test(raw)) {
+        onError(
+          "Google Sign-In is misconfigured for this build. Add the Play App Signing SHA-1 for package com.chessschool.app in Google Cloud (see RELEASE.md).",
+        );
+        return;
+      }
+      onError(raw);
     } finally {
       setBusy(false);
     }

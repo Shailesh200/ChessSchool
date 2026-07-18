@@ -23,6 +23,8 @@
         "EXPO_PUBLIC_API_URL": "https://www.chess-school.in",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-ued7hs0q3qceermfductglsdr1mh8bb0.apps.googleusercontent.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://a62090a588184a824dc46f220cebeb59@o4511756220694528.ingest.us.sentry.io/4511756232228864",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Xmx4096m"
       },
       "android": {
@@ -39,6 +41,8 @@
         "EXPO_PUBLIC_API_URL": "https://www.chess-school.in",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-ued7hs0q3qceermfductglsdr1mh8bb0.apps.googleusercontent.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://a62090a588184a824dc46f220cebeb59@o4511756220694528.ingest.us.sentry.io/4511756232228864",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Xmx4096m",
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
       },

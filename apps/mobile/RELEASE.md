@@ -75,6 +75,8 @@ cd apps/mobile
 pnpm release:check    # typecheck + unit tests + expo-doctor
 ```
 
+**Device feel (audio / haptics / Google / pieces):** complete [`DEVICE_CHECKLIST.md`](DEVICE_CHECKLIST.md) on a physical Android (Internal testing) before promoting a build.
+
 Manual QA on a **preview APK** (not dev client):
 
 - [ ] Login / register / guest mode
@@ -84,6 +86,7 @@ Manual QA on a **preview APK** (not dev client):
 - [ ] Account → Delete account (use a throwaway test account)
 - [ ] Offline banner appears when airplane mode on
 - [ ] No internal API URLs or debug text in UI
+- [ ] [`DEVICE_CHECKLIST.md`](DEVICE_CHECKLIST.md) signed off for this versionCode
 
 ---
 

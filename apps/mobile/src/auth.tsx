@@ -92,11 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null);
   }, []);
 
+  /** Browse as guest without wiping local progress (matches web “Continue as guest”). */
   const continueAsGuest = () => {
-    void clearGuestProgress();
     void clearToken();
-    progressStore.clear();
-    settings.reset();
     setNeedsOnboarding(false);
     setGuest(true);
     setUser(GUEST_USER);

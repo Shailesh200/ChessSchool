@@ -50,16 +50,16 @@ export default function ThemesScreen() {
           width: "30%",
           flexGrow: 1,
           backgroundColor: colors.surfaceCard,
-          borderRadius: radius.md,
-          padding: space[2],
+          borderRadius: radius.card,
+          padding: space[3],
           alignItems: "center",
           gap: space[2],
-          borderWidth: 2,
-          borderColor: "transparent",
+          borderWidth: 1,
+          borderColor: colors.hairline,
           ...shadowCard,
         },
         cardWide: { width: "47%" },
-        cardOn: { borderColor: colors.brand },
+        cardOn: { borderWidth: 2, borderColor: colors.brand },
         swatch: { flexDirection: "row", width: "100%", height: 44, borderRadius: radius.sm, overflow: "hidden" },
         appSwatch: { width: "100%", height: 44, borderRadius: radius.sm, overflow: "hidden", flexDirection: "row" },
         pieceWrap: {
@@ -107,7 +107,7 @@ export default function ThemesScreen() {
         </View>
 
         <View style={styles.previewWrap}>
-          <ChessBoard fen={PREVIEW_FEN} size={preview} interactive={false} lastMove={{ from: "c4", to: "c5" }} />
+          <ChessBoard fen={PREVIEW_FEN} size={preview} interactive={false} showNotation lastMove={{ from: "c4", to: "c5" }} />
         </View>
 
         <Text style={styles.section}>App theme</Text>
@@ -211,7 +211,7 @@ export default function ThemesScreen() {
               {boardName} board · {pieceName} pieces
             </Text>
             <View style={{ alignItems: "center", marginVertical: space[3] }}>
-              <ChessBoard fen={PREVIEW_FEN} size={preview} interactive={false} lastMove={{ from: "c4", to: "c5" }} />
+              <ChessBoard fen={PREVIEW_FEN} size={preview} interactive={false} showNotation lastMove={{ from: "c4", to: "c5" }} />
             </View>
             <Button label="Close" variant="outline" onPress={() => setPreviewOpen(false)} />
           </Pressable>

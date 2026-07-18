@@ -1,6 +1,8 @@
-# PWA ↔ iOS parity E2E
+# PWA ↔ native parity E2E
 
-Side-by-side verification of **mobile web (PWA @ 393×852)** vs **native iOS Simulator** for layout, copy, navigation, fonts, and colors.
+Side-by-side verification of **mobile web (PWA @ 393×852)** vs **native iOS Simulator or Android emulator/device** for layout, copy, navigation, fonts, and colors.
+
+**Done bar:** ≤8% default / ≤4% strict pixel mismatch (`scripts/parity-routes.json`). Mid-fix screens may use 0.12–0.16 until overlay-fixed.
 
 ## Quick start (local)
 
@@ -17,30 +19,39 @@ Side-by-side verification of **mobile web (PWA @ 393×852)** vs **native iOS Sim
 
 4. **Root deps** — `pnpm install`
 
-### Run full parity suite
+### Run full parity suite (iOS)
 
 ```bash
 pnpm parity:ios
 ```
 
-This will:
+### Run full parity suite (Android)
+
+```bash
+# Emulator or USB device with adb + Maestro; install once: npx expo run:android
+pnpm parity:android
+# Physical device: set PARITY_METRO_HOST to your LAN IP (emulator default 10.0.2.2)
+```
+
+Both orchestrators:
 
 1. Start web @ `:3210` (if not already running)
 2. Seed the parity fixture account (`parity@chess-school.local` / `ParityPass1!`)
 3. Start Metro (if needed)
 4. Guest screens run first (one cold boot), then signed-in screens (one API login via Maestro):
    - Capture **PWA** screenshot (Playwright, mobile viewport)
-   - Capture **native** screenshot (Maestro deep links + `simctl` screenshot)
+   - Capture **native** screenshot (Maestro deep links + `simctl` / `adb screencap`)
    - Pixel-diff + side-by-side composite
-5. Write HTML report → **`parity/reports/index.html`** (all 18 rows)
+5. Write HTML report → **`parity/reports/index.html`** (iOS) or **`parity/reports-android/`** (Android)
 
 ### Run a single screen
 
 ```bash
 PARITY_SCREEN=settings pnpm parity:compare
+PARITY_PLATFORM=android PARITY_SCREEN=academy pnpm parity:compare
 ```
 
-(Requires web + Metro + sim already running.)
+(Requires web + Metro + sim/device already running.)
 
 ### Semantic-only (fast, no simulator)
 
@@ -65,13 +76,14 @@ Add a screen: edit the JSON → `pnpm parity:generate` → extend `apps/web/e2e/
 
 ## CI
 
-[`.github/workflows/parity-ios.yml`](../.github/workflows/parity-ios.yml):
+[`.github/workflows/parity-ios.yml`](../.github/workflows/parity-ios.yml) + [`.github/workflows/parity-android.yml`](../.github/workflows/parity-android.yml):
 
 | Job | Runner | When | Blocks merge |
 |-----|--------|------|--------------|
-| `parity-semantic` | Ubuntu | PR + push | Yes |
-| `parity-ios` | macOS | PR + push | Yes |
+| `parity-semantic` | Ubuntu | PR + push | Yes (fails on copy/structure regressions) |
+| `parity-ios` | macOS | schedule / `workflow_dispatch` | Fails the job when drift > `thresholdRatio` |
 | `parity-ios-prod` | macOS | Nightly cron | No (artifact only) |
+| `parity-android-scripts` | Ubuntu | PR/push (parity paths) + dispatch | Yes — scripts, coverage, threshold honesty |
 
 Set GitHub secrets for nightly prod: `PARITY_EMAIL`, `PARITY_PASSWORD`.
 
@@ -96,8 +108,9 @@ After a run, open `parity/reports/index.html`:
 ```bash
 pnpm parity:generate   # Regenerate Maestro flows from manifest
 pnpm parity:seed       # Upsert fixture account on running API
-pnpm parity:compare    # Screenshot + diff (web + sim must be up)
-pnpm parity:ios        # Full local orchestrator
+pnpm parity:compare    # Screenshot + diff (web + device must be up)
+pnpm parity:ios        # Full local orchestrator (iOS Simulator)
+pnpm parity:android    # Full local orchestrator (Android adb)
 pnpm parity:semantic   # Playwright semantic matrix (PWA only)
 pnpm verify:parity     # Manifest ↔ Maestro ↔ Playwright coverage
 ```

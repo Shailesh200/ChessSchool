@@ -31,6 +31,10 @@ const NavProgress = dynamic(
   () => import("@/components/ui/NavProgress").then((m) => m.NavProgress),
   { ssr: false },
 );
+const CommandPaletteHost = dynamic(
+  () => import("@/components/search/CommandPalette").then((m) => m.CommandPaletteHost),
+  { ssr: false },
+);
 
 /**
  * App-wide side-effect coordinator: keeps device subsystems (audio, haptics,
@@ -117,6 +121,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       {children}
       <ProgressSync />
       <NavProgress />
+      <CommandPaletteHost />
       <Toaster />
       <Diagnostics />
     </>

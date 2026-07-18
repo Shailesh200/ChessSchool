@@ -10,7 +10,8 @@ export default function NotFound() {
         <p className="text-brand text-xs font-extrabold tracking-wide uppercase">404</p>
         <h1 className="text-ink mt-1 text-2xl font-extrabold">Page not found</h1>
         <p className="text-ink-500 mx-auto mt-2 max-w-sm text-sm font-semibold">
-          That lesson or link isn&apos;t here. Your progress is safe — head back to the academy.
+          That lesson or link isn&apos;t here. Your progress is safe — head back to the
+          academy.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">

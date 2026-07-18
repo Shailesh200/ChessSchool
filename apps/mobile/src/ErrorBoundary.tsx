@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "./Button";
 import { Cody } from "./Cody";
+import { Sentry } from "./sentry";
 import { colors, font, space, type } from "./theme";
 
 type Props = { children: React.ReactNode; onReset?: () => void };
@@ -16,6 +17,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
+    Sentry.captureException(error);
     if (__DEV__) console.error("[ErrorBoundary]", error);
   }
 

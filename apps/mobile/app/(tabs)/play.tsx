@@ -16,7 +16,7 @@ import { useSettings, settings } from "@/settings";
 import { canResumeAnyMatch, getActiveMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
 import { useAppTheme } from "@/ThemeProvider";
 import { useType } from "@/typography";
-import { font, radius, space } from "@/theme";
+import { font, radius, shadowCard, space } from "@/theme";
 
 const ELOS = [...BOT_ELO_PRESETS];
 const TIMES = [
@@ -481,12 +481,10 @@ function makeStyles(colors: Record<string, string>, type: ReturnType<typeof useT
   card: {
     backgroundColor: colors.surfaceCard,
     borderRadius: radius.card,
-    padding: space[4],
-    shadowColor: "#1c1b2e",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    padding: space[5],
+    ...shadowCard,
   },
   resumeCard: {
     backgroundColor: colors.brand50,

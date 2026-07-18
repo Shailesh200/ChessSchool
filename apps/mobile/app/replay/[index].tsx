@@ -132,6 +132,7 @@ export default function ReplayScreen() {
             fen={frame.fen}
             size={boardSize}
             interactive={false}
+            showNotation
             lastMove={frame.from && frame.to ? { from: frame.from, to: frame.to } : null}
             arrows={arrows}
             highlights={mate?.covered.map((c) => c.square)}

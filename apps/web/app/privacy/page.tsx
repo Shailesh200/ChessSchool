@@ -96,6 +96,21 @@ export default function PrivacyPage() {
                 first-party analytics and performance sharing in Settings; we honour Do
                 Not Track in the browser when set.
               </li>
+              <li>
+                <strong>Error monitoring:</strong> when configured, we send crash and
+                error reports to{" "}
+                <a
+                  href="https://sentry.io/privacy/"
+                  className="text-brand-500 font-bold underline"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Sentry
+                </a>{" "}
+                so we can fix bugs. Reports may include stack traces, page URLs, and
+                browser/device metadata. We do not enable session replay and we do not
+                send default personally identifiable information with these reports.
+              </li>
             </ul>
           </section>
 

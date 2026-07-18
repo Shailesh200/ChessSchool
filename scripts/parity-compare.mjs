@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * PWA (mweb) vs iOS native parity harness.
- * Captures Playwright screenshots + Maestro sim screenshots, diffs, writes HTML report.
+ * PWA (mweb) vs native parity harness (iOS Simulator or Android emulator/device).
+ * Captures Playwright screenshots + Maestro native screenshots, diffs, writes HTML report.
  *
- * Prereqs: web server @ PARITY_BASE_URL, Metro + dev build on booted iOS sim, Maestro CLI.
+ * Prereqs: web @ PARITY_BASE_URL, Metro + dev build, Maestro CLI.
+ * Platform: PARITY_PLATFORM=ios (default) | android
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -25,6 +26,7 @@ const ONLY = process.env.PARITY_SCREEN?.split(",").map((s) => s.trim()).filter(B
 const MAESTRO_FLOWS = path.join(ROOT, "parity", "maestro", "flows");
 const METRO_PORT = process.env.PARITY_METRO_PORT || "8081";
 const APP_ID = "com.chessschool.app";
+const PLATFORM = process.env.PARITY_PLATFORM === "android" ? "android" : "ios";
 
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -174,9 +176,14 @@ function captureNative(screen, { nativeAuthed, parityToken }) {
   } catch (e) {
     navError = e instanceof Error ? e.message : String(e);
   }
-  execSync(`xcrun simctl io booted screenshot "${screenshot}"`, { stdio: "pipe" });
-  if (!fs.existsSync(screenshot)) {
-    throw new Error(`simctl screenshot missing: ${screenshot}`);
+  if (PLATFORM === "android") {
+    const png = execSync("adb exec-out screencap -p", { maxBuffer: 32 * 1024 * 1024 });
+    fs.writeFileSync(screenshot, png);
+  } else {
+    execSync(`xcrun simctl io booted screenshot "${screenshot}"`, { stdio: "pipe" });
+  }
+  if (!fs.existsSync(screenshot) || fs.statSync(screenshot).size < 100) {
+    throw new Error(`${PLATFORM} screenshot missing/empty: ${screenshot}`);
   }
   return { path: screenshot, navError };
 }
@@ -194,8 +201,8 @@ th,td{padding:12px 14px;border-bottom:1px solid #e7e6f2;text-align:left;vertical
 img{max-width:360px;border-radius:8px;border:1px solid #e7e6f2}
 code{background:#f1f0f9;padding:2px 6px;border-radius:6px}
 </style></head><body>
-<h1>PWA ↔ iOS parity report</h1>
-<p class="meta">Env: <code>${ENV}</code> · Base: <code>${BASE}</code> · Viewport: ${width}×${height} · ${new Date().toISOString()}</p>
+<h1>PWA ↔ ${PLATFORM === "android" ? "Android" : "iOS"} parity report</h1>
+<p class="meta">Env: <code>${ENV}</code> · Platform: <code>${PLATFORM}</code> · Base: <code>${BASE}</code> · Viewport: ${width}×${height} · ${new Date().toISOString()}</p>
 <table><thead><tr><th>Screen</th><th>Visual</th><th>Drift</th><th>Side-by-side</th><th>Notes</th></tr></thead><tbody>
 ${results
   .map(
@@ -266,11 +273,20 @@ function relaunchDevClient() {
   } catch {
     /* ignore */
   }
-  execSync(`xcrun simctl terminate booted ${APP_ID} 2>/dev/null || true`, { stdio: "pipe" });
-  execSync(
-    `xcrun simctl launch booted ${APP_ID} "exp+chess-school://expo-development-client/?url=http://localhost:${METRO_PORT}"`,
-    { stdio: "pipe", env: metroEnv() },
-  );
+  if (PLATFORM === "android") {
+    const metroHost = process.env.PARITY_METRO_HOST || "10.0.2.2";
+    execSync(`adb shell am force-stop ${APP_ID} 2>/dev/null || true`, { stdio: "pipe" });
+    execSync(
+      `adb shell am start -a android.intent.action.VIEW -d "exp+chess-school://expo-development-client/?url=http://${metroHost}:${METRO_PORT}" ${APP_ID}/.MainActivity`,
+      { stdio: "pipe", env: metroEnv() },
+    );
+  } else {
+    execSync(`xcrun simctl terminate booted ${APP_ID} 2>/dev/null || true`, { stdio: "pipe" });
+    execSync(
+      `xcrun simctl launch booted ${APP_ID} "exp+chess-school://expo-development-client/?url=http://localhost:${METRO_PORT}"`,
+      { stdio: "pipe", env: metroEnv() },
+    );
+  }
   execSync("sleep 30", { stdio: "pipe" });
 }
 
@@ -293,10 +309,24 @@ async function main() {
   if (needsColdBoot && guestScreens.length > 0) {
     console.log("\n══ Cold boot (guest session) ══");
     if (process.env.PARITY_FRESH === "1") {
-      execSync(`xcrun simctl uninstall booted ${APP_ID} 2>/dev/null || true`, { stdio: "pipe" });
-      console.error("✗ PARITY_FRESH=1 requires dev client reinstall — run: cd apps/mobile && EXPO_PUBLIC_API_URL=" + BASE + " npx expo run:ios");
+      if (PLATFORM === "android") {
+        execSync(`adb uninstall ${APP_ID} 2>/dev/null || true`, { stdio: "pipe" });
+        console.error(
+          "✗ PARITY_FRESH=1 requires dev client reinstall — run: cd apps/mobile && EXPO_PUBLIC_API_URL=" +
+            BASE +
+            " npx expo run:android",
+        );
+      } else {
+        execSync(`xcrun simctl uninstall booted ${APP_ID} 2>/dev/null || true`, { stdio: "pipe" });
+        console.error(
+          "✗ PARITY_FRESH=1 requires dev client reinstall — run: cd apps/mobile && EXPO_PUBLIC_API_URL=" +
+            BASE +
+            " npx expo run:ios",
+        );
+      }
       process.exit(1);
     }
+    console.log(`Platform: ${PLATFORM}`);
     relaunchDevClient();
     runMaestro(path.join(MAESTRO_FLOWS, "_cold-boot.yaml"));
   }

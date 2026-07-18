@@ -1,0 +1,63 @@
+name: Parity Android
+
+# Validates the Android capture path (scripts + Maestro coverage). Full visual
+# overlay against an emulator runs locally: `pnpm parity:android`.
+# Semantic matrix (PR-blocking) lives in parity-ios.yml.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/parity-android.sh"
+      - "scripts/parity-compare.mjs"
+      - "scripts/parity-routes.json"
+      - "parity/**"
+      - ".github/workflows/parity-android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/parity-android.sh"
+      - "scripts/parity-compare.mjs"
+      - "scripts/parity-routes.json"
+      - "parity/**"
+      - ".github/workflows/parity-android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: parity-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity-android-scripts:
+    name: Android parity scripts + coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Syntax-check Android orchestrator
+        run: bash -n scripts/parity-android.sh
+      - name: Compare supports PARITY_PLATFORM=android
+        run: |
+          grep -q 'PARITY_PLATFORM' scripts/parity-compare.mjs
+          grep -q 'adb exec-out screencap' scripts/parity-compare.mjs
+          grep -q '"parity:android"' package.json
+      - run: node scripts/generate-parity-maestro.mjs
+      - run: node scripts/verify-parity-coverage.mjs
+      - name: Thresholds enforce honest gates
+        run: |
+          node -e "
+          const m = require('./scripts/parity-routes.json');
+          if (m.thresholds.default > 0.08) throw new Error('default threshold must be ≤0.08');
+          if (m.thresholds.strict > 0.04) throw new Error('strict threshold must be ≤0.04');
+          const loose = m.screens.filter(s => typeof s.thresholdRatio === 'number' && s.thresholdRatio > 0.2);
+          if (loose.length) throw new Error('screens still above 20% drift allowance: ' + loose.map(s => s.id).join(','));
+          "

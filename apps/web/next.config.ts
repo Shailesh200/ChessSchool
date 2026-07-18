@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -38,7 +39,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://*.ably.io wss://*.ably.io https://*.turso.io https://vitals.vercel-insights.com https://va.vercel-scripts.com",
+              "connect-src 'self' https://*.ably.io wss://*.ably.io https://*.turso.io https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
@@ -51,4 +52,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "shailesh-jha",
+  project: "chessschool-web",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  tunnelRoute: "/sentry-tunnel",
+  silent: !process.env.CI,
+  // Keep the home JS budget closer to pre-Sentry size.
+  disableLogger: true,
+  automaticVercelMonitors: false,
+});

@@ -5,5 +5,6 @@ declare const process: {
     EXPO_PUBLIC_GOOGLE_CLIENT_ID?: string;
     EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?: string;
     EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?: string;
+    EXPO_PUBLIC_SENTRY_DSN?: string;
   } & Record<string, string | undefined>;
 };

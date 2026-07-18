@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -10,14 +9,15 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/auth";
+import { Button } from "@/Button";
 import { PasswordField } from "@/PasswordField";
 import { Logo } from "@/Logo";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
 import { useAppTheme } from "@/ThemeProvider";
 import { useType } from "@/typography";
-import { font, radius, space } from "@/theme";
+import { buttonHeight, font, radius, space } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
 
@@ -29,6 +29,7 @@ type GoogleBtnProps = {
 
 export default function LoginScreen() {
   const { login, register, loginWithGoogle, continueAsGuest, exitGuest, guest } = useAuth();
+  const router = useRouter();
   const { colors } = useAppTheme();
   const type = useType();
   const params = useLocalSearchParams<{ email?: string; password?: string }>();
@@ -161,9 +162,14 @@ export default function LoginScreen() {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        <Pressable testID="login-submit" style={styles.button} onPress={submit} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{isRegister ? "Enroll" : "Log in"}</Text>}
-        </Pressable>
+        <Button
+          testID="login-submit"
+          label={isRegister ? "Enroll" : "Log in"}
+          onPress={() => void submit()}
+          disabled={busy}
+          loading={busy}
+          size="lg"
+        />
 
         <Pressable testID="login-mode-register" onPress={() => setMode(isRegister ? "login" : "register")}>
           <Text style={styles.switch}>{isRegister ? "Already enrolled? Log in" : "New here? Enroll now"}</Text>
@@ -177,7 +183,14 @@ export default function LoginScreen() {
         {GoogleBtn ? (
           <GoogleBtn disabled={busy} onIdToken={handleGoogle} onError={handleGoogleError} />
         ) : null}
-        <Pressable style={[styles.guestButton, { marginTop: space[3] }]} onPress={continueAsGuest} disabled={busy}>
+        <Pressable
+          style={[styles.guestButton, { marginTop: space[3] }]}
+          onPress={() => {
+            continueAsGuest();
+            router.replace("/(tabs)/academy");
+          }}
+          disabled={busy}
+        >
           <Text style={styles.guestText}>Continue as a guest</Text>
         </Pressable>
         <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>
@@ -195,35 +208,26 @@ function makeStyles(colors: ReturnType<typeof useAppTheme>["colors"], type: Retu
     title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
     subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
     input: {
-      height: 52,
-      borderRadius: radius.md,
-      borderWidth: 1,
+      height: buttonHeight.md,
+      borderRadius: radius.pill,
+      borderWidth: 1.5,
       borderColor: colors.hairline,
       backgroundColor: colors.surfaceCard,
-      paddingHorizontal: 14,
+      paddingHorizontal: space[5],
       fontSize: 16,
       fontFamily: font.medium,
       color: colors.ink,
       marginBottom: space[3],
     },
     error: { color: colors.danger, fontFamily: font.semibold, marginBottom: 10, textAlign: "center" },
-    button: {
-      height: 54,
-      borderRadius: radius.md,
-      backgroundColor: colors.brand,
-      justifyContent: "center",
-      alignItems: "center",
-      marginTop: 4,
-    },
-    buttonText: { color: "#fff", fontSize: 17, fontFamily: font.bold },
-    switch: { color: colors.brand, fontFamily: font.semibold, textAlign: "center", marginTop: space[4] },
+    switch: { color: colors.brand, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },
     divider: { flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[5], marginBottom: space[3] },
     line: { flex: 1, height: 1, backgroundColor: colors.hairline },
     or: { color: colors.ink300, fontFamily: font.bold, fontSize: 13 },
     guestButton: {
-      height: 50,
-      borderRadius: radius.md,
-      borderWidth: 1.5,
+      height: buttonHeight.md,
+      borderRadius: radius.pill,
+      borderWidth: 2,
       borderColor: colors.brand,
       justifyContent: "center",
       alignItems: "center",

@@ -168,7 +168,7 @@ function AssistedFullGame() {
         <Text style={styles.text}>{phase === "bot-thinking" ? "Bot is thinking…" : coach}</Text>
       </View>
       <View style={styles.board}>
-        <ChessBoard fen={fen} size={boardSize} onMove={handleMove} interactive={phase === "your-turn"} lastMove={lastMove} checkSquare={checkSquare} />
+        <ChessBoard fen={fen} size={boardSize} onMove={handleMove} interactive={phase === "your-turn"} lastMove={lastMove} checkSquare={checkSquare} showNotation />
       </View>
       <View style={[styles.row, { flexWrap: "wrap" }]}>
         {(phase === "review-player" || phase === "review-bot") && (
@@ -283,7 +283,7 @@ function AssistedPuzzle() {
         <Text style={{ ...type.sm, fontFamily: font.semibold, color: colors.ink, marginTop: 4 }}>{coach}</Text>
       </View>
       <View style={{ alignItems: "center", marginTop: space[2] }}>
-        <ChessBoard fen={puzzle.fen} size={boardSize} orientation={puzzle.orientation} onMove={onMove} interactive={phase === "calc"} lastMove={lastMove} />
+        <ChessBoard fen={puzzle.fen} size={boardSize} orientation={puzzle.orientation} onMove={onMove} interactive={phase === "calc"} lastMove={lastMove} showNotation />
       </View>
       {phase === "done" && (
         <View style={{ marginHorizontal: space[4] }}>

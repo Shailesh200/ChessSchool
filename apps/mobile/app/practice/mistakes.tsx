@@ -74,10 +74,10 @@ export default function MistakePracticeScreen() {
   if (mistakes.length === 0) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.header}><BackButton /><Text style={styles.h1}>Mistake practice</Text></View>
+        <View style={styles.header}><BackButton /><Text style={styles.h1}>Puzzles for you</Text></View>
         <View style={styles.center}>
           <Cody expression="cheer" size={128} />
-          <Text style={styles.doneTitle}>No mistakes to practise yet</Text>
+          <Text style={styles.doneTitle}>No puzzles for you yet</Text>
           <Text style={styles.muted}>Play lessons and matches. I’ll turn your missed positions into drills here.</Text>
           <View style={{ width: 220, marginTop: space[4] }}>
             <Button label="Back to academy" onPress={() => router.back()} />
@@ -115,7 +115,7 @@ export default function MistakePracticeScreen() {
       <View style={styles.header}>
         <BackButton />
         <View style={{ flex: 1 }}>
-          <Text style={styles.h1}>Mistake practice</Text>
+          <Text style={styles.h1}>Puzzles for you</Text>
           <Text style={styles.muted}>{index + 1}/{mistakes.length} · {item.tag}</Text>
         </View>
       </View>

@@ -235,6 +235,24 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           </Link>
         )}
 
+        {authedResolved === true && (
+          <Link
+            href="/practice/mistakes"
+            className="btn-tactile rounded-card border-brand/30 bg-brand/5 flex items-center justify-between border px-4 py-3"
+          >
+            <span>
+              <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                <Icon name="dna" size={16} className="text-brand shrink-0" />
+                Puzzles for you
+              </span>
+              <span className="text-ink-500 block text-xs font-semibold">
+                Re-solve positions from your own mistakes
+              </span>
+            </span>
+            <span className="text-brand text-sm font-bold">Practice →</span>
+          </Link>
+        )}
+
         {/* Today's homework prompt (logged-in) */}
         {authedResolved === true &&
           (homeworkDone < ROUTINE_STEPS.length ? (

@@ -1,6 +1,14 @@
 # Web → Mobile Parity Gaps
 
-> **Status (Jul 2026):** **P1 + P2 parity complete** for student-facing flows. **Visual/semantic matrix: 18/18** (`parity/reports/`, `pnpm parity:semantic` + iOS compare). Remaining ops: **Google OAuth client IDs** (env templates in `docs/ENV.md`).
+> **Status (Jul 2026):** **Feature / P1 parity mostly complete.** **Visual P2 is ongoing** — prior “18/18 PASS” used loose `thresholdRatio` (up to 28–34% drift). Done bar = **≤8% default / ≤4% strict** overlay drift ([`PLAN.md`](PLAN.md) §A) + device checklist ([`DEVICE_CHECKLIST.md`](DEVICE_CHECKLIST.md)). Ops: Google OAuth SHA-1 / iOS client IDs.
+
+**Visual drift targets** (`scripts/parity-routes.json`):
+
+| Tier | Max pixel mismatch | When |
+| --- | --- | --- |
+| Default (done) | **0.08** (8%) | Screen marked visually done |
+| Strict | **0.04** (4%) | Chrome / auth / themes |
+| In progress | 0.12–0.16 | Mid-fix; must keep falling |
 
 **Recently closed (P1 completion batch):**
 - `AppShell` + `BottomNav` on stack routes; match screens use immersive focus (no chrome)
@@ -13,8 +21,8 @@
 - Practice mistakes played-vs-best arrows
 
 **Source of truth:** `apps/web` (the production Next.js PWA). **Target:** `apps/mobile` (Expo React Native).
-**Method:** direct code audit of current source (not runtime).
-**Goal:** a single backlog of every place the app diverges from web — features, logic, UI/CSS/alignment, animation, sound, colors/themes, guest-gating, and button/modal handlers.
+**Method:** token/primitive contract → per-screen Tailwind→StyleSheet → `pnpm parity:compare` / `parity:ios` / `parity:android` overlay. See [`docs/PARITY_E2E.md`](../../docs/PARITY_E2E.md).
+**Goal:** visually indistinguishable at a glance + behaviorally identical (pixel-perfect is asymptotic — Fredoka/RN shadows allow ~1–4% noise).
 
 > **Note:** Sections below retain historical audit detail. For current shipped state, see `apps/mobile/PLAN.md` §D and **§0.4** below.
 
@@ -50,10 +58,15 @@ Legend: ✅ done · 🟡 partial · ❌ open
 | Accessibility toggles (`highContrast`/`colorblind`/`hints`) | ✅ | ThemeProvider HC/CB chrome; board overlays + flashes respect CB/HC; hints wired |
 | Piece theme id `cute` ↔ `blossom` alias | ✅ | `normalizePieceThemeId` in progression package |
 
-### P2 — polish / feel
+### P2 — polish / feel (visual bar: ≤8% overlay)
 
 | Item | Status | Notes |
 | --- | --- | --- |
+| Design tokens 1:1 with web `@theme` | 🟡 | `theme.ts` aligned; school chrome gradients still thinner than CSS |
+| Button / Card / Sheet recipes | 🟡 | Pill + fixed heights + elev shadows toward web |
+| Academy / Campus overlay ≤8% | 🟡 | Priority screen — tighten `thresholdRatio` as drift falls |
+| Lesson player overlay ≤8% | 🟡 | Priority screen |
+| Class journey / Play / Auth / Themes ≤8% | 🟡 | Wave 1 after Academy + Lesson |
 | `AppShell` + bottom nav on stack routes | ✅ | settings, dashboard, class, library, homework, journal, themes, classes, stage |
 | Theme Studio full-screen preview modal | ✅ | `themes.tsx` Modal |
 | `AnimatedNumber` (TopBar, profile stats) | ✅ | |
@@ -72,6 +85,28 @@ Legend: ✅ done · 🟡 partial · ❌ open
 | Red/green move flash on wrong/right | ✅ | `successSquare` / `checkSquare` in lessons |
 | SkillRadar legend / bar polish | ✅ | Progress bars under radar on dashboard |
 | List virtualization (long catalogs) | ✅ | `SectionList` on library + all-classes |
+| Android parity capture in harness | ✅ | `pnpm parity:android` + `PARITY_PLATFORM=android` in compare; CI `workflow_dispatch` |
+| Device checklist (audio/haptics/Google) | ✅ | [`DEVICE_CHECKLIST.md`](DEVICE_CHECKLIST.md) linked from [`RELEASE.md`](RELEASE.md) |
+| Board notation / drag ghost | ✅ | `showNotation` on themes/assisted/think/replay; ghost 1.04× @ 0.92 |
+
+**Wave-1 overlay (2026-07-18):** tokens + Button/Card/Sheet; Academy/Campus/Play/Login/Journey/Themes chrome recipes; thresholds lowered toward 0.10/0.12 (target still ≤0.08 after measured runs).
+
+**CI verified (2026-07-18):** `parity:semantic` 18/18 PASS · `verify:parity` OK · Android script/threshold gate PASS · AAB **versionCode 16** at `apps/mobile/dist/chessschool-release.aab`.
+
+### Single-phase ship batch (2026-07-18) — in progress / landed
+
+| ID | Item | Status |
+| --- | --- | --- |
+| M-47 | Classic black pawn fill (`svgFill` default `#000`) + piece drawing tests | ✅ |
+| M-02 | Continue as guest non-destructive + navigate academy | ✅ |
+| M-01 | Google `DEVELOPER_ERROR` human message | ✅ |
+| M-03/M-34 | MateReview ScrollView, dual CTA, loop timings | ✅ |
+| M-04/M-33 | GameOverOverlay How it happened + rating Δ≠0 | ✅ |
+| M-05 | In-match mute on bot game | ✅ |
+| M-13/M-31 | Move anim 280ms; bot think 1000ms | ✅ |
+| M-068 | Sentry web + mobile SDK (`@sentry/react-native`), DSN in eas.json/.env | ✅ |
+| M-058 | “Puzzles for you” → practice/mistakes (web + mobile) | ✅ MVP |
+| M-060 | `/api/search` + ⌘K CommandPalette + mobile `/search` | ✅ MVP |
 
 ### P3 — minor
 

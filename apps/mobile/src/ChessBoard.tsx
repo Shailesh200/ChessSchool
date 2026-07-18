@@ -13,7 +13,7 @@ type PromotionPiece = "q" | "r" | "b" | "n";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const DRAG_ACTIVATION_DISTANCE = 10;
-const MOVE_ANIMATION_MS = 220;
+const MOVE_ANIMATION_MS = 280;
 const MOVE_EASING = Easing.inOut(Easing.cubic);
 function hexToRgba(hex: string, alpha: number) {
   const value = hex.replace("#", "");
@@ -392,8 +392,20 @@ export function ChessBoard({
 
       {/* Floating dragged piece (follows the finger) */}
       {dragPiece && dragXY && (
-        <View pointerEvents="none" style={[styles.ghost, { left: dragXY.x - cell * 0.5, top: dragXY.y - cell * 0.5, width: cell, height: cell }]}>
-          <Piece type={dragPiece.type} color={dragPiece.color} size={cell * 0.86} gid="drag" themeId={pieceTheme} />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.ghost,
+            {
+              left: dragXY.x - cell * 0.52,
+              top: dragXY.y - cell * 0.52,
+              width: cell * 1.04,
+              height: cell * 1.04,
+              opacity: 0.92,
+            },
+          ]}
+        >
+          <Piece type={dragPiece.type} color={dragPiece.color} size={cell * 0.9} gid="drag" themeId={pieceTheme} />
         </View>
       )}
 

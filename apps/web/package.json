@@ -47,6 +47,7 @@
     "@chess-school/progression": "workspace:*",
     "@chess-school/puzzle-school": "workspace:*",
     "@libsql/client": "^0.17.4",
+    "@sentry/nextjs": "^10.66.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "ably": "^2.23.0",

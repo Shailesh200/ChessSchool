@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { ChessEngine } from "@/features/chess-engine/engine";
@@ -113,10 +113,13 @@ export function ChessBoard({
   const onMoveRef = useRef(onMove);
   const interactiveRef = useRef(interactive);
   const selectedRef = useRef(selected);
-  fenRef.current = fen;
-  onMoveRef.current = onMove;
-  interactiveRef.current = interactive;
-  selectedRef.current = selected;
+
+  useEffect(() => {
+    fenRef.current = fen;
+    onMoveRef.current = onMove;
+    interactiveRef.current = interactive;
+    selectedRef.current = selected;
+  }, [fen, onMove, interactive, selected]);
 
   // Drop stale selection when the position changes from outside (bot / opponent).
   const [fenEpoch, setFenEpoch] = useState(fen);
@@ -319,7 +322,7 @@ export function ChessBoard({
   return (
     <div
       data-testid="chess-board"
-      className={`relative rounded-lg [transform:translateZ(0)] [box-shadow:var(--shadow-card)] ${
+      className={`relative [transform:translateZ(0)] rounded-lg [box-shadow:var(--shadow-card)] ${
         fill ? "h-full w-full" : "aspect-square w-full"
       }`}
     >

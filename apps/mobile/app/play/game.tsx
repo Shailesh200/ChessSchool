@@ -16,7 +16,7 @@ import { stockfishAvailable, nativeBestMove } from "@/stockfish";
 import { applyMatchEnd, prependRecentGame, isoDay, type EndReason } from "@/progression";
 import { markHomeworkActivity } from "@/homeworkRoutine";
 import { buildSyncGame, winnerFromPlayerResult, endReasonFromStatus } from "@/gameHistory";
-import { useSettings } from "@/settings";
+import { settings, useSettings } from "@/settings";
 import { parseTimeControl, useChessClock } from "@/useChessClock";
 import {
   canResumeBotMatch,
@@ -97,7 +97,7 @@ export default function GameScreen() {
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
   const bot = botProfile(elo);
-  const { avatar, coachPersonality } = useSettings();
+  const { avatar, coachPersonality, sound } = useSettings();
   const personality = normalizeCoachPersonality(coachPersonality);
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 24, 440);
@@ -301,7 +301,7 @@ export default function GameScreen() {
       }
       setThinking(false);
       checkOver();
-    }, 350);
+    }, 1000);
     return true;
   }
 
@@ -315,6 +315,14 @@ export default function GameScreen() {
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
+        <Pressable
+          style={styles.circle}
+          onPress={() => settings.set("sound", !sound)}
+          hitSlop={8}
+          accessibilityLabel={sound ? "Mute sound" : "Unmute sound"}
+        >
+          <Icon name={sound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
+        </Pressable>
         <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}><Icon name="flip" size={18} color={colors.ink} /></Pressable>
         <Pressable
           style={styles.resign}
@@ -386,10 +394,21 @@ export default function GameScreen() {
         win={over?.win}
         ratingDelta={over?.ratingDelta}
         newRating={over?.newRating}
+        onHowItHappened={
+          over?.title.toLowerCase().includes("checkmate") && mateReviewHistory.length > 0
+            ? () => setMateReviewOpen(true)
+            : undefined
+        }
         onReflect={() => setReflectOpen(true)}
-        onReview={() => router.push({ pathname: "/replay/[index]", params: { index: "0" } })}
+        onReview={() =>
+          router.push({
+            pathname: "/replay/[index]",
+            params: { index: "0", gameId: over?.gameId ?? "" },
+          })
+        }
         onNewGame={reset}
-        onExit={() => router.back()}
+        onExit={() => router.replace("/(tabs)/academy")}
+        exitLabel="← Back to academy"
       />
 
       <MateReviewModal

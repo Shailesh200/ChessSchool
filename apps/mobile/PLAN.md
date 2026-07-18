@@ -26,17 +26,22 @@ change → web safe); mobile imports the same functions and applies them to its 
 - **Device-only (you confirm):** audio (🎧) and animation/motion (🎬) can't be seen in static screenshots. I'll ship a per-release **device checklist** for these.
 - **Logic:** unit-test `packages/progression` so web + app provably compute the same outputs.
 
-## D. Phased execution (status 2026-07-12)
+## D. Phased execution (status 2026-07-18)
 - **P0 — Content:** ✅ DB-driven curriculum + Lichess import on prod
 - **P1 — Shared progression:** ✅ `packages/progression` wired on mobile
-- **P2 — Visual parity:** 🟡 ongoing — overlay diff per screen
-- **P3 — Board/Play:** 🟡 clocks, promotion, themes largely done; polish remains
-- **P4 — Lesson depth:** 🟡 hints, animations, enroll prompt (M-057 web)
-- **P5 — Feel:** 🟡 Cody motion, audio parity
+- **P2 — Visual parity:** 🟡 **ongoing** — tokens/primitives + wave-1 screen chrome (2026-07-18); Android harness `pnpm parity:android`; done = ≤8% / ≤4% strict after measured overlays
+- **P3 — Board/Play:** 🟡 Path-based pieces shipped; notation + animation polish remain
+- **P4 — Lesson depth:** ✅ hints, enroll prompt, success/check flashes
+- **P5 — Feel:** 🟡 Cody/SFX mostly done; device checklist for haptics/audio
 - **P6 — Missing screens:** ✅ core routes + profile/onboarding API sync; library depth varies
 - **P7 — Online PvP:** ✅ foundation + seat auth; Ably when `ABLY_API_KEY` set on server
 - **P8 — Auth parity:** ✅ Google Sign-In UI, server onboarding, real Student ID
 - **Store release:** M-053 after Web GA (M-073)
+
+### Visual verification bar
+- Overlay: `pnpm parity:compare` / `parity:ios` / `parity:android` → `parity/reports/index.html`
+- Pass when screen drift ≤ **8%** (default) or ≤ **4%** (strict); lower `thresholdRatio` in `scripts/parity-routes.json` as each screen lands
+- Non-visual: [`DEVICE_CHECKLIST.md`](DEVICE_CHECKLIST.md)
 
 ## E. Deploy safety (P0 detail)
 Prod = `main` @ repo root (old structure). The monorepo migration would break the Vercel build unless Root

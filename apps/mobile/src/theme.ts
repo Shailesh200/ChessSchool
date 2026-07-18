@@ -1,5 +1,5 @@
 // Design tokens ported 1:1 from the web app's @theme (app/globals.css) so the
-// mobile UI matches web colors, radii, and the Fredoka typeface.
+// mobile UI matches web colors, radii, elevation, and the Fredoka typeface.
 
 export const colors = {
   brand50: "#eef0ff",
@@ -11,9 +11,15 @@ export const colors = {
   accent400: "#ff9a76",
   accent: "#ff7a59",
   accent600: "#f2613f",
+  success400: "#34d399",
   success: "#10b981",
-  success600: "#0c9b6e",
+  /** Web --success-600 */
+  success600: "#059669",
+  danger400: "#fb7185",
   danger: "#f43f5e",
+  /** Web danger button edge */
+  danger700: "#be123c",
+  warning400: "#fbbf24",
   warning: "#f59e0b",
   gold: "#f6c343",
   ink: "#1c1b2e",
@@ -26,6 +32,7 @@ export const colors = {
   hairline: "#e7e6f2",
 } as const;
 
+/** rem → px at 16px root: sm=8, md=14, lg/card=20, xl=28, pill=999 */
 export const radius = { sm: 8, md: 14, card: 20, xl: 28, pill: 999 } as const;
 
 // Web's Tailwind spacing scale (4px base) — px-4 = 16, gap-5 = 20, etc.
@@ -51,10 +58,32 @@ export const font = {
   bold: "Fredoka_700Bold",
 } as const;
 
+/** Web --elev-2 / --shadow-card */
 export const shadowCard = {
   shadowColor: "#1c1b2e",
-  shadowOpacity: 0.08,
-  shadowRadius: 12,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 2,
+  shadowOpacity: 0.12,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 3,
 } as const;
+
+/** Web --elev-1 */
+export const shadowElev1 = {
+  shadowColor: "#1c1b2e",
+  shadowOpacity: 0.06,
+  shadowRadius: 2,
+  shadowOffset: { width: 0, height: 1 },
+  elevation: 1,
+} as const;
+
+/** Web --elev-3 */
+export const shadowElev3 = {
+  shadowColor: "#1c1b2e",
+  shadowOpacity: 0.16,
+  shadowRadius: 24,
+  shadowOffset: { width: 0, height: 10 },
+  elevation: 6,
+} as const;
+
+/** Web button heights: sm h-11=44, md h-12=48, lg h-14=56 */
+export const buttonHeight = { sm: 44, md: 48, lg: 56 } as const;

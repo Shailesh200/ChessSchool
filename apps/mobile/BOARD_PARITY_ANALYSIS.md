@@ -36,13 +36,13 @@ Mobile had a custom React Native board. It had piece slide animation and drag/ta
 | Success | green fill + inset ring | absent | `successSquare` prop added and wired for lessons |
 | Board surface | rounded + shadow card | rounded only | shadow added |
 | Check in games | king square highlighted | absent | wired in bot/pass/online |
-| Coordinates | optional `showNotation` | absent | still pending |
+| Coordinates | optional `showNotation` | absent | wired — themes, assisted, think, replay, preschool lessons |
 | Web full-board library animation | library animates position updates | custom destination-piece animation | acceptable first pass; deeper parity would need a board animation layer |
+| Drag ghost | slightly larger / translucent | solid 1:1 cell | tuned (~1.04×, 0.92 opacity) |
 
 ## Remaining board-specific work
 
-1. Add optional coordinate notation (`a-h`, `1-8`) for review/play parity.
-2. Consider a fuller position-diff animation layer if the current destination-piece slide still feels unlike `react-chessboard` in recordings.
-3. Tune ghost drag size/opacity after manual simulator verification.
-4. Wire `successSquare` / `checkSquare` into placement, school exam, and practice if we want the same success/error flash there too.
-5. Add a web recording once Playwright ffmpeg/browser assets are installed locally.
+1. Consider a fuller position-diff animation layer if the destination-piece slide still feels unlike `react-chessboard` in device recordings.
+2. Wire `successSquare` / `checkSquare` into placement, school exam, and practice if we want the same success/error flash there too.
+3. Add a web recording once Playwright ffmpeg/browser assets are installed locally.
+4. Device checklist for audio/haptics — [`DEVICE_CHECKLIST.md`](DEVICE_CHECKLIST.md).

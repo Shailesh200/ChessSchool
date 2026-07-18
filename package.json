@@ -24,6 +24,7 @@
     "parity:seed": "node scripts/parity-seed.mjs",
     "parity:compare": "node scripts/parity-compare.mjs",
     "parity:ios": "bash scripts/parity-ios.sh",
+    "parity:android": "bash scripts/parity-android.sh",
     "parity:semantic": "pnpm --filter web exec playwright test e2e/parity-matrix.spec.ts",
     "verify:coverage": "bash scripts/verify-test-coverage.sh",
     "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs",

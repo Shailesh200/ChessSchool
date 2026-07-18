@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -13,12 +13,30 @@ import { startNav } from "@/core/store/nav.store";
 import { useProgression, levelForXp, xpProgress } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
+import { openCommandPalette } from "@/components/search/CommandPalette";
 import { isNavTabActive, NAV_TABS } from "./nav-tabs";
+
+function subscribeModKey() {
+  return () => {};
+}
+
+function getModKeySnapshot(): string {
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform) ? "⌘" : "Ctrl";
+}
+
+function getModKeyServerSnapshot(): string {
+  return "⌘";
+}
 
 /** Desktop sidebar — visible from `lg` breakpoint per BREAKPOINTS.md. */
 export function SidebarNav() {
   const pathname = usePathname();
   const [pending, setPending] = useState<string | null>(null);
+  const modKey = useSyncExternalStore(
+    subscribeModKey,
+    getModKeySnapshot,
+    getModKeyServerSnapshot,
+  );
   const rehydrateReady = useRehydrateReady();
   const authed = useSession((s) => s.authed);
   const xp = useProgression((s) => s.xp);
@@ -38,6 +56,21 @@ export function SidebarNav() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4" aria-label="Main">
+        <button
+          type="button"
+          onClick={() => {
+            haptics.fire("select");
+            openCommandPalette();
+          }}
+          className="border-hairline bg-surface-sunken text-ink-500 hover:text-ink mb-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-bold transition-colors"
+          aria-label="Open search"
+        >
+          <Icon name="search" size={18} className="shrink-0" />
+          <span className="flex-1">Search</span>
+          <kbd className="text-ink-300 text-[10px] font-bold tabular-nums">
+            {modKey}K
+          </kbd>
+        </button>
         {NAV_TABS.map((tab) => {
           const active = isNavTabActive(pathname, tab.href);
           const loading = loadingHref === tab.href;

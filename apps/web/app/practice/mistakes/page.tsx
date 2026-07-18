@@ -36,7 +36,7 @@ export default function PracticeMistakesPage() {
         <Mascot expression="happy" size={96} />
         <p className="text-ink inline-flex items-center justify-center gap-2 text-lg font-extrabold">
           <Icon name="sparkle" size={22} className="text-brand shrink-0" />
-          No mistakes to practise yet
+          No puzzles for you yet
         </p>
         <p className="text-ink-500 max-w-xs text-sm font-semibold">
           As you play lessons, the spots you get wrong are saved here so you can
@@ -63,7 +63,7 @@ export default function PracticeMistakesPage() {
   const lesson: Lesson = {
     id: "practice-mistakes",
     unit: "practice",
-    title: "Practice your mistakes",
+    title: "Puzzles for you",
     subtitle: "Positions you got wrong, replayed",
     emoji: "🎯",
     prerequisites: [],

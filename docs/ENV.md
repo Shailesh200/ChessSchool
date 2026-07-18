@@ -18,6 +18,11 @@ Launch go-live steps: [`plans/M-073_WEB_GA_LAUNCH.md`](../plans/M-073_WEB_GA_LAU
 | `ABLY_API_KEY` | Optional | Realtime PvP push; without it → polling fallback |
 | `GOOGLE_TTS_CREDENTIALS` | Optional | JSON for Google Cloud TTS |
 | `TTS_PROVIDER` | Optional | Set `google` to use Cloud TTS; default Edge Read Aloud |
+| `NEXT_PUBLIC_SENTRY_DSN` | Optional | Sentry DSN for browser + fallback for server |
+| `SENTRY_DSN` | Optional | Server/edge Sentry DSN (falls back to `NEXT_PUBLIC_SENTRY_DSN`) |
+| `SENTRY_AUTH_TOKEN` | Optional | Build-time auth token for source map upload (`withSentryConfig`) |
+
+Sentry sampling: `tracesSampleRate` 0.05 in production (1.0 in development), `sendDefaultPii: false`, no session replay. Tunnel route: `/sentry-tunnel`. Org `shailesh-jha` / project `chessschool-web`.
 
 ### Google OAuth redirect
 
@@ -43,6 +48,7 @@ SESSION_TOKEN_SECRET=dev-session-token-secret-at-least-32-chars
 |----------|----------|---------|
 | `EXPO_PUBLIC_API_URL` | Yes | API base (`https://www.chess-school.in` — prefer www over apex) |
 | `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | OAuth | Same Google client ID as web for Sign-In |
+| `EXPO_PUBLIC_SENTRY_DSN` | Optional | Mobile Sentry DSN (`@sentry/react-native`). Set in `eas.json` `env` for local/prod builds (and `.env` for Metro). Org `shailesh-jha` / project `chessschool-mobile`. Source-map upload needs `SENTRY_AUTH_TOKEN` (not in git); local builds use `SENTRY_DISABLE_AUTO_UPLOAD=true` |
 
 Bundle-time inlined — changing values requires a new native build or OTA-compatible rebuild (`expo start -c` locally).
 

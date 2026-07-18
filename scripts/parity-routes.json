@@ -18,7 +18,7 @@
       "id": "academy",
       "label": "Campus / Academy",
       "auth": "guest",
-      "thresholdRatio": 0.28,
+      "thresholdRatio": 0.1,
       "web": { "path": "/academy", "readyText": "Start learning" },
       "native": { "steps": [], "readyText": "Welcome to ChessSchool!" },
       "semantic": ["Start learning", "Daily goal", "Welcome to ChessSchool!"]
@@ -27,7 +27,7 @@
       "id": "class-journey",
       "label": "Class journey",
       "auth": "guest",
-      "thresholdRatio": 0.15,
+      "thresholdRatio": 0.1,
       "web": { "path": "/class/class-pieces", "readyText": "Piece Movement" },
       "native": {
         "steps": [{ "openUrl": "/academy" }, { "waitMs": 3000 }, { "openUrl": "/class/class-pieces" }, { "waitMs": 15000 }],
@@ -40,7 +40,7 @@
       "id": "lesson",
       "label": "Lesson player",
       "auth": "guest",
-      "thresholdRatio": 0.3,
+      "thresholdRatio": 0.1,
       "web": { "path": "/lesson/pawn-power", "readyText": "Push your e-pawn" },
       "native": {
         "steps": [{ "openUrl": "/academy" }, { "waitMs": 3000 }, { "openUrl": "/lesson/pawn-power" }, { "waitMs": 15000 }],
@@ -53,7 +53,7 @@
       "id": "play",
       "label": "Play chooser",
       "auth": "guest",
-      "thresholdRatio": 0.14,
+      "thresholdRatio": 0.1,
       "web": { "path": "/play", "readyText": "New match" },
       "native": {
         "steps": [{ "openUrl": "/play" }],
@@ -65,6 +65,7 @@
       "id": "review",
       "label": "Review tab",
       "auth": "guest",
+      "thresholdRatio": 0.12,
       "web": { "path": "/review", "readyText": "Review" },
       "native": { "steps": [{ "openUrl": "/review" }], "readyText": "Review" },
       "semantic": ["Review", "Match history"]
@@ -73,7 +74,7 @@
       "id": "profile-guest",
       "label": "Profile (guest)",
       "auth": "guest",
-      "thresholdRatio": 0.095,
+      "thresholdRatio": 0.08,
       "web": { "path": "/profile", "readyText": "Playing as guest" },
       "native": { "steps": [{ "openUrl": "/profile" }], "readyText": "Playing as guest" },
       "semantic": ["Playing as guest", "Log in to unlock"]
@@ -82,7 +83,7 @@
       "id": "settings",
       "label": "Settings",
       "auth": "guest",
-      "thresholdRatio": 0.14,
+      "thresholdRatio": 0.12,
       "web": { "path": "/settings", "readyText": "Sound effects" },
       "native": {
         "steps": [{ "openUrl": "/settings" }],
@@ -94,7 +95,7 @@
       "id": "themes",
       "label": "Theme studio",
       "auth": "guest",
-      "thresholdRatio": 0.34,
+      "thresholdRatio": 0.12,
       "web": { "path": "/themes", "readyText": "Theme Studio" },
       "native": {
         "steps": [{ "openUrl": "/themes" }],
@@ -106,7 +107,7 @@
       "id": "login",
       "label": "Login",
       "auth": "guest",
-      "thresholdRatio": 0.24,
+      "thresholdRatio": 0.1,
       "web": { "path": "/login", "readyText": "Welcome back" },
       "native": {
         "steps": [{ "openUrl": "/profile" }, { "tapTestId": "profile-enroll-cta" }],
@@ -118,7 +119,7 @@
       "id": "register",
       "label": "Register / enroll",
       "auth": "guest",
-      "thresholdRatio": 0.24,
+      "thresholdRatio": 0.12,
       "web": { "path": "/register", "readyText": "Enroll at ChessSchool" },
       "native": {
         "steps": [
@@ -134,7 +135,7 @@
       "id": "dashboard",
       "label": "Report card / dashboard",
       "auth": "user",
-      "thresholdRatio": 0.18,
+      "thresholdRatio": 0.14,
       "web": { "path": "/dashboard", "readyText": "Skill tree" },
       "native": {
         "steps": [{ "openUrl": "/dashboard" }],
@@ -146,7 +147,7 @@
       "id": "journal",
       "label": "Journal",
       "auth": "user",
-      "thresholdRatio": 0.18,
+      "thresholdRatio": 0.14,
       "web": { "path": "/journal", "readyText": "Learning Journal" },
       "native": {
         "steps": [{ "openUrl": "/journal" }],
@@ -158,7 +159,7 @@
       "id": "homework",
       "label": "Homework / study plan",
       "auth": "user",
-      "thresholdRatio": 0.18,
+      "thresholdRatio": 0.14,
       "web": { "path": "/plan", "readyText": "Homework" },
       "native": {
         "steps": [{ "openUrl": "/homework" }],
@@ -170,7 +171,7 @@
       "id": "library",
       "label": "Lesson library",
       "auth": "user",
-      "thresholdRatio": 0.18,
+      "thresholdRatio": 0.14,
       "web": { "path": "/library", "readyText": "Your Library" },
       "native": {
         "steps": [{ "openUrl": "/library" }],
@@ -182,21 +183,20 @@
       "id": "account",
       "label": "Student ID / account",
       "auth": "user",
-      "thresholdRatio": 0.28,
+      "thresholdRatio": 0.16,
       "web": { "path": "/account", "readyText": "My account" },
       "native": {
         "steps": [{ "openUrl": "/account" }, { "waitMs": 3000 }],
         "readyTestId": "account-title",
         "readyText": "Account"
       },
-      "semantic": ["My account", "Student ID"],
-      "thresholdRatio": 0.32
+      "semantic": ["My account", "Student ID"]
     },
     {
       "id": "profile-auth",
       "label": "Profile (signed in)",
       "auth": "user",
-      "thresholdRatio": 0.18,
+      "thresholdRatio": 0.14,
       "web": { "path": "/profile", "readyText": "Achievements" },
       "native": {
         "steps": [{ "openUrl": "/profile" }, { "waitMs": 2000 }],
@@ -208,7 +208,7 @@
       "id": "classes",
       "label": "All classes catalog",
       "auth": "user",
-      "thresholdRatio": 0.18,
+      "thresholdRatio": 0.14,
       "web": { "path": "/library", "readyText": "Your Library" },
       "native": {
         "steps": [{ "openUrl": "/classes" }],

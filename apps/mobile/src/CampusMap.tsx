@@ -3,13 +3,14 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-nativ
 import { useRouter } from "expo-router";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
+import { ProgressBar } from "./ProgressBar";
 import { emojiToIcon } from "./iconMaps";
 import { haptics } from "./haptics";
 import { sfx } from "./sfx";
 import { useAppTheme, type ThemeColors } from "./ThemeProvider";
 import { useSettings } from "./settings";
 import { useType } from "./typography";
-import { font, radius, space } from "./theme";
+import { font, radius, shadowCard, space } from "./theme";
 
 export type CampusClass = { id: string; title: string; emoji: string; blurb: string; done: number; total: number; graduated: boolean; unlocked: boolean; examId?: string | null };
 export type CampusSemester = { id: string; title: string; color: string; blurb: string; classes: CampusClass[] };
@@ -20,9 +21,7 @@ type TypeScale = ReturnType<typeof useType>;
 function makeStyles(colors: ThemeColors, type: TypeScale) {
   return StyleSheet.create({
     chev: { fontSize: 16, color: colors.ink500, marginLeft: "auto", fontFamily: font.bold },
-    track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden", marginTop: space[3] },
-    fill: { height: 10, borderRadius: radius.pill },
-    classCard: { borderRadius: radius.card, borderWidth: 1, backgroundColor: colors.surfaceCard, padding: space[4], shadowColor: "#1c1b2e", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+    classCard: { borderRadius: radius.card, borderWidth: 1, backgroundColor: colors.surfaceCard, padding: space[5], ...shadowCard },
     classRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
     tile: { width: 48, height: 48, borderRadius: 16, justifyContent: "center", alignItems: "center" },
     classTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
@@ -60,15 +59,6 @@ function makeStyles(colors: ThemeColors, type: TypeScale) {
 
 function Chevron({ open, styles }: { open: boolean; styles: ReturnType<typeof makeStyles> }) {
   return <Text style={[styles.chev, open && { transform: [{ rotate: "180deg" }] }]}>⌄</Text>;
-}
-
-function ProgressBar({ value, max, tone, styles }: { value: number; max: number; tone: string; styles: ReturnType<typeof makeStyles> }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  return (
-    <View style={styles.track}>
-      <View style={[styles.fill, { width: `${pct}%`, backgroundColor: tone }]} />
-    </View>
-  );
 }
 
 function SpringIn({ index, reducedMotion, children }: { index: number; reducedMotion: boolean; children: ReactNode }) {
@@ -147,7 +137,7 @@ function ClassCard({
           </View>
           <Text style={styles.count}>{cls.done}/{cls.total}</Text>
         </View>
-        <ProgressBar value={cls.done} max={cls.total} tone={cls.graduated ? colors.gold : colors.brand} styles={styles} />
+        <ProgressBar value={cls.done} max={cls.total} tone={cls.graduated ? "gold" : "brand"} />
         {cls.unlocked && (
           <View style={{ marginTop: space[3] }}>
             <Button

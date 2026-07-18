@@ -51,7 +51,7 @@ function makeStyles(colors: ThemeColors, type: ReturnType<typeof useType>) {
     lockSub: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
     showMore: { width: "100%", marginTop: space[3], paddingVertical: space[3], alignItems: "center" },
     showMoreText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-    header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[4], ...shadowCard },
+    header: { borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surfaceCard, padding: space[5], ...shadowCard },
     headerRow: { flexDirection: "row", alignItems: "center", gap: space[3] },
     emojiTile: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.brand50, justifyContent: "center", alignItems: "center" },
     title: { ...type.lg, fontFamily: font.bold, color: colors.ink },
