@@ -125,5 +125,14 @@ describe("getAdminAnalytics", () => {
     expect(analytics.activity.totalXp).toBe(120);
     expect(analytics.topLessons[0]?.title).toBe("Fork basics");
     expect(analytics.events.find((e) => e.name === "lesson_complete")?.count).toBe(1);
+    expect(analytics.signupsByDay).toHaveLength(30);
+    expect(analytics.eventsByDay).toHaveLength(30);
+    expect(analytics.activityByDay).toHaveLength(30);
+    expect(analytics.funnel.some((f) => f.step === "lesson_complete" && f.count === 1)).toBe(
+      true,
+    );
+    expect(analytics.recentUsers.some((u) => u.email === "a@test.com")).toBe(true);
+    expect(analytics.topLearners[0]?.xp).toBe(120);
+    expect(analytics.recentEvents[0]?.name).toBe("lesson_complete");
   });
 });
