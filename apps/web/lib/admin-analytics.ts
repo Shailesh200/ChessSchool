@@ -1,4 +1,4 @@
-import { count, desc, eq, gte, sql, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, ne, sql, sum } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { db as defaultDb } from "@/db";
 import * as schema from "@/db/schema";
@@ -12,6 +12,13 @@ import {
   progress,
   users,
 } from "@/db/schema";
+import {
+  FEATURE_INSIGHTS,
+  routeArea,
+  routeAreaLabel,
+  routePattern,
+  type RouteArea,
+} from "@/lib/analytics/routePattern";
 
 type Db = LibSQLDatabase<typeof schema>;
 
@@ -107,6 +114,45 @@ export type AdminAnalytics = {
     streak: number;
     lessonsTouched: number;
   }[];
+  pages: {
+    views30d: number;
+    views7d: number;
+    sessions30d: number;
+    users30d: number;
+    avgPagesPerSession: number;
+    authedViews30d: number;
+    guestViews30d: number;
+    bounceRatePct: number;
+    byDay: { day: string; count: number }[];
+    byArea: { area: string; label: string; views: number }[];
+    topRoutes: {
+      route: string;
+      area: string;
+      views: number;
+      sessions: number;
+      users: number;
+    }[];
+    topReferrers: { referrer: string; views: number }[];
+    entryRoutes: { route: string; entries: number }[];
+    exitRoutes: { route: string; exits: number }[];
+  };
+  insights: {
+    features: {
+      event: string;
+      label: string;
+      count30d: number;
+      uniqueUsers30d: number;
+      countAll: number;
+    }[];
+    authByProvider: {
+      name: string;
+      provider: string;
+      count: number;
+    }[];
+    playModes: { mode: string; count: number }[];
+    lessonCompletionRate: number | null;
+    enrollCtaToSignup: number | null;
+  };
 };
 
 function sinceMs(days: number): number {
@@ -183,12 +229,21 @@ export async function getAdminAnalytics(
     eventRows,
     signupRows,
     eventDayRows,
+    pageViewDayRows,
     activityDayRows,
     topRows,
     recentEventRows,
     recentUserRows,
     topLearnerRows,
     [xpRow],
+    [pageStats30],
+    [pageStats7],
+    topRouteRows,
+    topReferrerRows,
+    pageViewSample,
+    events30Rows,
+    authProviderRows,
+    gameEndModeRows,
   ] = await Promise.all([
     conn.select({ n: count() }).from(users),
     conn.select({ n: count() }).from(users).where(eq(users.role, "student")),
@@ -273,7 +328,25 @@ export async function getAdminAnalytics(
         count: count(),
       })
       .from(analyticsEvents)
-      .where(gte(analyticsEvents.createdAt, d30))
+      .where(
+        and(
+          gte(analyticsEvents.createdAt, d30),
+          ne(analyticsEvents.name, "page_view"),
+        ),
+      )
+      .groupBy(sql`date(${analyticsEvents.createdAt} / 1000, 'unixepoch')`),
+    conn
+      .select({
+        day: sql<string>`date(${analyticsEvents.createdAt} / 1000, 'unixepoch')`,
+        count: count(),
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "page_view"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
       .groupBy(sql`date(${analyticsEvents.createdAt} / 1000, 'unixepoch')`),
     conn
       .select({
@@ -352,6 +425,123 @@ export async function getAdminAnalytics(
         avgStreak: sql<number>`coalesce(avg(${progress.streak}), 0)`,
       })
       .from(progress),
+    conn
+      .select({
+        views: count(),
+        sessions: sql<number>`count(distinct ${analyticsEvents.sessionId})`,
+        users: sql<number>`count(distinct ${analyticsEvents.userId})`,
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "page_view"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      ),
+    conn
+      .select({
+        views: count(),
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "page_view"),
+          gte(analyticsEvents.createdAt, d7),
+        ),
+      ),
+    conn
+      .select({
+        route: sql<string>`coalesce(json_extract(${analyticsEvents.props}, '$.route'), ${analyticsEvents.pathname}, '/')`,
+        views: count(),
+        sessions: sql<number>`count(distinct ${analyticsEvents.sessionId})`,
+        users: sql<number>`count(distinct ${analyticsEvents.userId})`,
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "page_view"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
+      .groupBy(
+        sql`coalesce(json_extract(${analyticsEvents.props}, '$.route'), ${analyticsEvents.pathname}, '/')`,
+      )
+      .orderBy(desc(count()))
+      .limit(50),
+    conn
+      .select({
+        referrer: sql<string>`coalesce(json_extract(${analyticsEvents.props}, '$.referrer'), 'direct')`,
+        views: count(),
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "page_view"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
+      .groupBy(
+        sql`coalesce(json_extract(${analyticsEvents.props}, '$.referrer'), 'direct')`,
+      )
+      .orderBy(desc(count()))
+      .limit(20),
+    conn
+      .select({
+        sessionId: analyticsEvents.sessionId,
+        pathname: analyticsEvents.pathname,
+        props: analyticsEvents.props,
+        createdAt: analyticsEvents.createdAt,
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "page_view"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
+      .orderBy(desc(analyticsEvents.createdAt))
+      .limit(8000),
+    conn
+      .select({
+        name: analyticsEvents.name,
+        count: count(),
+        uniqueUsers: sql<number>`count(distinct ${analyticsEvents.userId})`,
+      })
+      .from(analyticsEvents)
+      .where(gte(analyticsEvents.createdAt, d30))
+      .groupBy(analyticsEvents.name),
+    conn
+      .select({
+        name: analyticsEvents.name,
+        provider: sql<string>`coalesce(json_extract(${analyticsEvents.props}, '$.provider'), 'unknown')`,
+        count: count(),
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          inArray(analyticsEvents.name, ["signup", "login"]),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
+      .groupBy(
+        analyticsEvents.name,
+        sql`coalesce(json_extract(${analyticsEvents.props}, '$.provider'), 'unknown')`,
+      )
+      .orderBy(desc(count())),
+    conn
+      .select({
+        mode: sql<string>`coalesce(json_extract(${analyticsEvents.props}, '$.mode'), 'unknown')`,
+        count: count(),
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "game_end"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
+      .groupBy(sql`coalesce(json_extract(${analyticsEvents.props}, '$.mode'), 'unknown')`)
+      .orderBy(desc(count())),
   ]);
 
   const events = eventRows.map((r) => ({
@@ -369,6 +559,146 @@ export async function getAdminAnalytics(
       prev == null || prev === 0 ? null : Math.round((c / prev) * 1000) / 10;
     return { step, count: c, conversionFromPrev };
   });
+
+  const views30 = Number(pageStats30?.views ?? 0);
+  const sessions30 = Number(pageStats30?.sessions ?? 0);
+
+  // Normalize any raw pathnames that predate route props.
+  const topRoutes = topRouteRows.map((r) => {
+    const raw = r.route || "/";
+    const route = raw.startsWith("/") ? routePattern(raw) : raw;
+    return {
+      route,
+      area: routeArea(route),
+      views: Number(r.views),
+      sessions: Number(r.sessions),
+      users: Number(r.users),
+    };
+  });
+  // Merge duplicate normalized routes
+  const routeMerge = new Map<string, (typeof topRoutes)[number]>();
+  for (const row of topRoutes) {
+    const prev = routeMerge.get(row.route);
+    if (!prev) routeMerge.set(row.route, { ...row });
+    else {
+      prev.views += row.views;
+      prev.sessions += row.sessions;
+      prev.users += row.users;
+    }
+  }
+
+  type SessionRoute = { route: string; at: number; authed: boolean };
+  const firstBySession = new Map<string, SessionRoute>();
+  const lastBySession = new Map<string, SessionRoute>();
+  const viewsBySession = new Map<string, number>();
+  let authedViews = 0;
+  let guestViews = 0;
+  const areaCounts = new Map<RouteArea, number>();
+
+  for (const row of pageViewSample) {
+    const sid = row.sessionId || `anon:${row.createdAt}`;
+    let route = "/";
+    let authed = false;
+    let areaFromProps: RouteArea | null = null;
+    try {
+      const props = JSON.parse(row.props || "{}") as {
+        route?: string;
+        area?: RouteArea;
+        authed?: boolean;
+      };
+      route = props.route || routePattern(row.pathname || "/");
+      if (props.area) areaFromProps = props.area;
+      authed = props.authed === true;
+    } catch {
+      route = routePattern(row.pathname || "/");
+    }
+    if (!route.startsWith("/")) route = `/${route}`;
+    route = routePattern(route);
+    const area = areaFromProps ?? routeArea(route);
+    areaCounts.set(area, (areaCounts.get(area) ?? 0) + 1);
+    if (authed) authedViews += 1;
+    else guestViews += 1;
+
+    const at = Number(row.createdAt);
+    viewsBySession.set(sid, (viewsBySession.get(sid) ?? 0) + 1);
+    const hit = { route, at, authed };
+    const first = firstBySession.get(sid);
+    if (!first || at < first.at) firstBySession.set(sid, hit);
+    const last = lastBySession.get(sid);
+    if (!last || at > last.at) lastBySession.set(sid, hit);
+  }
+
+  const entryCounts = new Map<string, number>();
+  for (const { route } of firstBySession.values()) {
+    entryCounts.set(route, (entryCounts.get(route) ?? 0) + 1);
+  }
+  const entryRoutes = [...entryCounts.entries()]
+    .map(([route, entries]) => ({ route, entries }))
+    .sort((a, b) => b.entries - a.entries)
+    .slice(0, 20);
+
+  const exitCounts = new Map<string, number>();
+  for (const { route } of lastBySession.values()) {
+    exitCounts.set(route, (exitCounts.get(route) ?? 0) + 1);
+  }
+  const exitRoutes = [...exitCounts.entries()]
+    .map(([route, exits]) => ({ route, exits }))
+    .sort((a, b) => b.exits - a.exits)
+    .slice(0, 20);
+
+  const sampledSessions = viewsBySession.size;
+  const singlePageSessions = [...viewsBySession.values()].filter(
+    (n) => n === 1,
+  ).length;
+  const bounceRatePct =
+    sampledSessions === 0
+      ? 0
+      : Math.round((singlePageSessions / sampledSessions) * 1000) / 10;
+
+  // Prefer SQL totals when sample covers less than full 30d traffic.
+  const sampleViews = pageViewSample.length;
+  const authedViews30d =
+    sampleViews === 0
+      ? 0
+      : Math.round((authedViews / sampleViews) * views30);
+  const guestViews30d = Math.max(0, views30 - authedViews30d);
+
+  const byArea = [...areaCounts.entries()]
+    .map(([area, views]) => ({
+      area,
+      label: routeAreaLabel(area),
+      views:
+        sampleViews === 0 ? 0 : Math.round((views / sampleViews) * views30),
+    }))
+    .sort((a, b) => b.views - a.views);
+
+  const events30Map = new Map(
+    events30Rows.map((r) => [
+      r.name,
+      { count: Number(r.count), uniqueUsers: Number(r.uniqueUsers) },
+    ]),
+  );
+  const features = FEATURE_INSIGHTS.map((f) => ({
+    event: f.event,
+    label: f.label,
+    count30d: events30Map.get(f.event)?.count ?? 0,
+    uniqueUsers30d: events30Map.get(f.event)?.uniqueUsers ?? 0,
+    countAll: eventCountByName.get(f.event) ?? 0,
+  }));
+
+  const starts30 = events30Map.get("lesson_start")?.count ?? 0;
+  const completes30 = events30Map.get("lesson_complete")?.count ?? 0;
+  const lessonCompletionRate =
+    starts30 === 0
+      ? null
+      : Math.round((completes30 / starts30) * 1000) / 10;
+
+  const enrollCta = events30Map.get("enroll_cta_click")?.count ?? 0;
+  const signups30 = events30Map.get("signup")?.count ?? 0;
+  const enrollCtaToSignup =
+    enrollCta === 0
+      ? null
+      : Math.round((signups30 / enrollCta) * 1000) / 10;
 
   return {
     generatedAt: now,
@@ -461,5 +791,45 @@ export async function getAdminAnalytics(
       streak: Number(r.streak),
       lessonsTouched: Number(r.lessonsTouched),
     })),
+    pages: {
+      views30d: views30,
+      views7d: Number(pageStats7?.views ?? 0),
+      sessions30d: sessions30,
+      users30d: Number(pageStats30?.users ?? 0),
+      avgPagesPerSession:
+        sessions30 === 0 ? 0 : Math.round((views30 / sessions30) * 10) / 10,
+      authedViews30d,
+      guestViews30d,
+      bounceRatePct,
+      byDay: fillDaySeries(
+        30,
+        pageViewDayRows.map((r) => ({ day: r.day, count: Number(r.count) })),
+        now,
+      ),
+      byArea,
+      topRoutes: [...routeMerge.values()]
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 50),
+      topReferrers: topReferrerRows.map((r) => ({
+        referrer: r.referrer || "direct",
+        views: Number(r.views),
+      })),
+      entryRoutes,
+      exitRoutes,
+    },
+    insights: {
+      features,
+      authByProvider: authProviderRows.map((r) => ({
+        name: r.name,
+        provider: r.provider || "unknown",
+        count: Number(r.count),
+      })),
+      playModes: gameEndModeRows.map((r) => ({
+        mode: r.mode || "unknown",
+        count: Number(r.count),
+      })),
+      lessonCompletionRate,
+      enrollCtaToSignup,
+    },
   };
 }

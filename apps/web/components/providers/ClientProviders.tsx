@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useSettings } from "@/core/store/settings.store";
 import { usePwa, type BeforeInstallPromptEvent } from "@/core/pwa/usePwa";
 import { registerServiceWorker } from "@/core/pwa/registerServiceWorker";
@@ -14,6 +14,7 @@ import {
 } from "@/core/bootstrap/storeBootstrap";
 import { trackEvent } from "@/core/analytics/track";
 import { ProgressSync } from "@/components/providers/ProgressSync";
+import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { initVitalsReporting } from "@/core/vitals/reportVitals";
 
 // Not needed at first paint — keep them out of the initial bundle.
@@ -119,6 +120,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      <Suspense fallback={null}>
+        <PageViewTracker />
+      </Suspense>
       <ProgressSync />
       <NavProgress />
       <CommandPaletteHost />

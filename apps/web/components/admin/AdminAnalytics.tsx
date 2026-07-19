@@ -16,10 +16,12 @@ import type { AdminAnalytics as Analytics } from "@/lib/admin-analytics";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/components/ui/cn";
 
-type Tab = "overview" | "events" | "lessons" | "users";
+type Tab = "overview" | "pages" | "insights" | "events" | "lessons" | "users";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "pages", label: "Pages" },
+  { id: "insights", label: "Insights" },
   { id: "events", label: "Events" },
   { id: "lessons", label: "Lessons" },
   { id: "users", label: "Users" },
@@ -129,6 +131,34 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
       })),
     [data.events],
   );
+  const pageViewsChart = useMemo(
+    () => data.pages.byDay.map((d) => ({ ...d, label: shortDay(d.day) })),
+    [data.pages.byDay],
+  );
+  const topRouteBars = useMemo(
+    () =>
+      data.pages.topRoutes.slice(0, 12).map((r) => ({
+        name: r.route,
+        views: r.views,
+      })),
+    [data.pages.topRoutes],
+  );
+  const areaBars = useMemo(
+    () =>
+      data.pages.byArea.map((a) => ({
+        name: a.label,
+        views: a.views,
+      })),
+    [data.pages.byArea],
+  );
+  const playModeBars = useMemo(
+    () =>
+      data.insights.playModes.slice(0, 10).map((m) => ({
+        name: m.mode,
+        count: m.count,
+      })),
+    [data.insights.playModes],
+  );
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="admin-analytics-heading">
@@ -166,8 +196,12 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Users" value={data.users.total} hint={`${data.users.students} students`} />
+        <Stat
+          label="Page views 7d"
+          value={data.pages.views7d}
+          hint={`${fmt(data.pages.views30d)} in 30d`}
+        />
         <Stat label="Active 7d" value={data.activity.activeLast7d} hint="Lesson activity" />
-        <Stat label="Active 30d" value={data.activity.activeLast30d} />
         <Stat
           label="Signups 30d"
           value={data.users.signedUpLast30d}
@@ -196,6 +230,17 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                 theme={theme}
               />
             </ChartCard>
+            <ChartCard title="Page views · 30 days">
+              <LineArea
+                data={pageViewsChart}
+                dataKey="count"
+                color={theme.accent}
+                theme={theme}
+              />
+            </ChartCard>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
             <ChartCard title="Active learners · 30 days">
               <LineArea
                 data={activityChart}
@@ -206,9 +251,6 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                 theme={theme}
               />
             </ChartCard>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2">
             <Card className="flex flex-col gap-3 overflow-hidden p-0">
               <div className="border-hairline border-b px-4 py-3">
                 <h3 className="text-ink text-sm font-extrabold">Activation funnel</h3>
@@ -225,26 +267,369 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                 ])}
               />
             </Card>
+          </div>
 
-            <Card className="flex flex-col gap-3 overflow-hidden p-0">
+          <Card className="flex flex-col gap-3 overflow-hidden p-0">
+            <div className="border-hairline border-b px-4 py-3">
+              <h3 className="text-ink text-sm font-extrabold">Snapshot</h3>
+            </div>
+            <DataTable
+              columns={["Metric", "Value"]}
+              rows={[
+                ["Page views 30d", fmt(data.pages.views30d)],
+                ["Sessions 30d", fmt(data.pages.sessions30d)],
+                ["Pages / session", String(data.pages.avgPagesPerSession)],
+                ["Google linked", fmt(data.users.withGoogle)],
+                ["Password accounts", fmt(data.users.withPassword)],
+                ["Onboarded", fmt(data.users.onboarded)],
+                ["With progress", fmt(data.users.withProgress)],
+                ["Total XP", fmt(data.activity.totalXp)],
+                ["Avg streak", String(data.activity.avgStreak)],
+                ["PvP games", fmt(data.games.total)],
+                ["Games finished", fmt(data.games.over)],
+                ["Waiting / active", `${data.games.waiting} / ${data.games.active}`],
+              ]}
+            />
+          </Card>
+        </div>
+      )}
+
+      {tab === "pages" && (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat label="Views 30d" value={data.pages.views30d} />
+            <Stat label="Views 7d" value={data.pages.views7d} />
+            <Stat label="Sessions 30d" value={data.pages.sessions30d} />
+            <Stat label="Visitors 30d" value={data.pages.users30d} hint="Authed users" />
+            <Stat
+              label="Pages / session"
+              value={data.pages.avgPagesPerSession}
+              hint="30-day average"
+            />
+            <Stat
+              label="Bounce rate"
+              value={data.pages.bounceRatePct}
+              hint="1-page sessions %"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+            <Stat
+              label="Authed views"
+              value={data.pages.authedViews30d}
+              hint="Logged-in · 30d"
+            />
+            <Stat
+              label="Guest views"
+              value={data.pages.guestViews30d}
+              hint="Anonymous · 30d"
+            />
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <ChartCard title="Page views · 30 days">
+              <LineArea
+                data={pageViewsChart}
+                dataKey="count"
+                color={theme.brand}
+                theme={theme}
+              />
+            </ChartCard>
+            <ChartCard title="Views by product area">
+              {areaBars.length === 0 ? (
+                <Empty>No page views yet.</Empty>
+              ) : (
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={areaBars} layout="vertical" margin={{ left: 8, right: 8 }}>
+                      <CartesianGrid
+                        stroke={theme.hairline}
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        axisLine={{ stroke: theme.hairline }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={88}
+                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: theme.surfaceSunken, opacity: 0.7 }}
+                        content={<ChartTooltip theme={theme} />}
+                      />
+                      <Bar
+                        dataKey="views"
+                        fill={theme.success}
+                        radius={[0, 6, 6, 0]}
+                        activeBar={{ fill: theme.brandSoft }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <ChartCard title="Top routes">
+              {topRouteBars.length === 0 ? (
+                <Empty>No page views yet.</Empty>
+              ) : (
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={topRouteBars}
+                      layout="vertical"
+                      margin={{ left: 8, right: 8 }}
+                    >
+                      <CartesianGrid
+                        stroke={theme.hairline}
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        axisLine={{ stroke: theme.hairline }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={120}
+                        tick={{ fontSize: 9, fill: theme.inkMuted, fontFamily: theme.font }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: theme.surfaceSunken, opacity: 0.7 }}
+                        content={<ChartTooltip theme={theme} />}
+                      />
+                      <Bar
+                        dataKey="views"
+                        fill={theme.accent}
+                        radius={[0, 6, 6, 0]}
+                        activeBar={{ fill: theme.brandSoft }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
+            <Card className="overflow-hidden p-0">
               <div className="border-hairline border-b px-4 py-3">
-                <h3 className="text-ink text-sm font-extrabold">Snapshot</h3>
+                <h3 className="text-ink text-sm font-extrabold">Areas</h3>
+                <p className="text-ink-500 text-[11px] font-semibold">
+                  Home · Learn · Play · Progress · Account · Auth · Marketing
+                </p>
               </div>
               <DataTable
-                columns={["Metric", "Value"]}
-                rows={[
-                  ["Google linked", fmt(data.users.withGoogle)],
-                  ["Password accounts", fmt(data.users.withPassword)],
-                  ["Onboarded", fmt(data.users.onboarded)],
-                  ["With progress", fmt(data.users.withProgress)],
-                  ["Total XP", fmt(data.activity.totalXp)],
-                  ["Avg streak", String(data.activity.avgStreak)],
-                  ["PvP games", fmt(data.games.total)],
-                  ["Games finished", fmt(data.games.over)],
-                  ["Waiting / active", `${data.games.waiting} / ${data.games.active}`],
-                ]}
+                columns={["Area", "Views"]}
+                rows={data.pages.byArea.map((a) => [a.label, fmt(a.views)])}
+                empty="No area data yet."
               />
             </Card>
+          </div>
+
+          <Card className="overflow-hidden p-0">
+            <div className="border-hairline border-b px-4 py-3">
+              <h3 className="text-ink text-sm font-extrabold">All routes</h3>
+              <p className="text-ink-500 text-[11px] font-semibold">
+                Dynamic IDs collapsed · last 30 days · up to 50 routes
+              </p>
+            </div>
+            <DataTable
+              columns={["Route", "Area", "Views", "Sessions", "Users"]}
+              rows={data.pages.topRoutes.map((r) => [
+                r.route,
+                r.area,
+                fmt(r.views),
+                fmt(r.sessions),
+                fmt(r.users),
+              ])}
+              empty="No page views yet. Browse the site with analytics enabled."
+              mono
+            />
+          </Card>
+
+          <div className="grid gap-3 lg:grid-cols-3">
+            <Card className="overflow-hidden p-0">
+              <div className="border-hairline border-b px-4 py-3">
+                <h3 className="text-ink text-sm font-extrabold">Entry pages</h3>
+                <p className="text-ink-500 text-[11px] font-semibold">
+                  First page in session
+                </p>
+              </div>
+              <DataTable
+                columns={["Route", "Entries"]}
+                rows={data.pages.entryRoutes.map((r) => [r.route, fmt(r.entries)])}
+                empty="Not enough session data yet."
+                mono
+              />
+            </Card>
+            <Card className="overflow-hidden p-0">
+              <div className="border-hairline border-b px-4 py-3">
+                <h3 className="text-ink text-sm font-extrabold">Exit pages</h3>
+                <p className="text-ink-500 text-[11px] font-semibold">
+                  Last page in session
+                </p>
+              </div>
+              <DataTable
+                columns={["Route", "Exits"]}
+                rows={data.pages.exitRoutes.map((r) => [r.route, fmt(r.exits)])}
+                empty="Not enough session data yet."
+                mono
+              />
+            </Card>
+            <Card className="overflow-hidden p-0">
+              <div className="border-hairline border-b px-4 py-3">
+                <h3 className="text-ink text-sm font-extrabold">Referrers</h3>
+                <p className="text-ink-500 text-[11px] font-semibold">
+                  document.referrer host
+                </p>
+              </div>
+              <DataTable
+                columns={["Referrer", "Views"]}
+                rows={data.pages.topReferrers.map((r) => [r.referrer, fmt(r.views)])}
+                empty="No referrer data yet."
+                mono
+              />
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {tab === "insights" && (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Stat
+              label="Lesson complete %"
+              value={data.insights.lessonCompletionRate ?? 0}
+              hint={
+                data.insights.lessonCompletionRate == null
+                  ? "No starts yet"
+                  : "complete / start · 30d"
+              }
+            />
+            <Stat
+              label="Enroll → signup %"
+              value={data.insights.enrollCtaToSignup ?? 0}
+              hint={
+                data.insights.enrollCtaToSignup == null
+                  ? "No CTA clicks"
+                  : "signups / CTA · 30d"
+              }
+            />
+            <Stat
+              label="Bot games"
+              value={
+                data.insights.features.find((f) => f.event === "bot_game_start")
+                  ?.count30d ?? 0
+              }
+              hint="Started · 30d"
+            />
+            <Stat
+              label="Online games"
+              value={
+                (data.insights.features.find((f) => f.event === "online_game_create")
+                  ?.count30d ?? 0) +
+                (data.insights.features.find((f) => f.event === "online_game_join")
+                  ?.count30d ?? 0)
+              }
+              hint="Create + join · 30d"
+            />
+          </div>
+
+          <Card className="overflow-hidden p-0">
+            <div className="border-hairline border-b px-4 py-3">
+              <h3 className="text-ink text-sm font-extrabold">Feature adoption</h3>
+              <p className="text-ink-500 text-[11px] font-semibold">
+                Every product event · last 30 days vs all time
+              </p>
+            </div>
+            <DataTable
+              columns={["Feature", "30d", "Users 30d", "All time"]}
+              rows={data.insights.features.map((f) => [
+                f.label,
+                fmt(f.count30d),
+                fmt(f.uniqueUsers30d),
+                fmt(f.countAll),
+              ])}
+              empty="No events yet."
+            />
+          </Card>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <Card className="overflow-hidden p-0">
+              <div className="border-hairline border-b px-4 py-3">
+                <h3 className="text-ink text-sm font-extrabold">Auth by provider</h3>
+                <p className="text-ink-500 text-[11px] font-semibold">
+                  Signup + login · last 30 days
+                </p>
+              </div>
+              <DataTable
+                columns={["Event", "Provider", "Count"]}
+                rows={data.insights.authByProvider.map((r) => [
+                  r.name,
+                  r.provider,
+                  fmt(r.count),
+                ])}
+                empty="No auth events in this window."
+              />
+            </Card>
+            <ChartCard title="Games finished by mode · 30d">
+              {playModeBars.length === 0 ? (
+                <Empty>No finished games yet.</Empty>
+              ) : (
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={playModeBars}
+                      layout="vertical"
+                      margin={{ left: 8, right: 8 }}
+                    >
+                      <CartesianGrid
+                        stroke={theme.hairline}
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        axisLine={{ stroke: theme.hairline }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={80}
+                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: theme.surfaceSunken, opacity: 0.7 }}
+                        content={<ChartTooltip theme={theme} />}
+                      />
+                      <Bar
+                        dataKey="count"
+                        fill={theme.gold}
+                        radius={[0, 6, 6, 0]}
+                        activeBar={{ fill: theme.brandSoft }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
           </div>
         </div>
       )}

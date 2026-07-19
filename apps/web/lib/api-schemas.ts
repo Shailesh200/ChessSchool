@@ -73,6 +73,7 @@ export const vitalsBatchSchema = z.object({
 
 export const analyticsEventSchema = z.object({
   name: z.enum([
+    "page_view",
     "lesson_complete",
     "lesson_start",
     "placement_complete",
@@ -99,7 +100,7 @@ export const analyticsEventSchema = z.object({
 });
 
 export const analyticsBatchSchema = z.object({
-  events: z.array(analyticsEventSchema).min(1).max(20),
+  events: z.array(analyticsEventSchema).min(1).max(40),
 });
 
 const chessSquare = z.string().regex(/^[a-h][1-8]$/);

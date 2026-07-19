@@ -3,6 +3,7 @@
 import { useSettings } from "@/core/store/settings.store";
 
 export type AnalyticsEventName =
+  | "page_view"
   | "lesson_complete"
   | "lesson_start"
   | "placement_complete"

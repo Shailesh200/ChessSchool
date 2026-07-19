@@ -56,7 +56,7 @@ export function AdminPanel({
 }) {
   return (
     <div className="bg-surface min-h-dvh px-5 py-8">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <div className="flex items-center justify-between">
           <Logo />
           <Link

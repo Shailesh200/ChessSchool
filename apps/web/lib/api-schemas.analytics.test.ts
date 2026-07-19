@@ -35,12 +35,26 @@ describe("analyticsBatchSchema", () => {
       "enroll_cta_click",
       "coach_character_select",
       "journal_reflection",
+      "page_view",
     ] as const) {
       expect(
         analyticsBatchSchema.safeParse({ events: [{ name }] }).success,
         name,
       ).toBe(true);
     }
+  });
+
+  it("accepts page_view with route props", () => {
+    const parsed = analyticsBatchSchema.safeParse({
+      events: [
+        {
+          name: "page_view",
+          pathname: "/lesson/pawn-power",
+          props: { route: "/lesson/:id", referrer: "direct", authed: false },
+        },
+      ],
+    });
+    expect(parsed.success).toBe(true);
   });
 
   it("rejects unknown event names", () => {
