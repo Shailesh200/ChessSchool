@@ -25,6 +25,7 @@ import {
 import { startArenaMatch } from "@/matchStore";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, shadowCard, space, type } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
 
 export default function ArenaScreen() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function ArenaScreen() {
   const [run, setRun] = useState(getArenaRun());
 
   useEffect(() => {
+    trackEvent("feature_open", { feature: "arena" });
     void hydrateArenaStore().then(() => setRun(getArenaRun()));
     return subscribeArenaStore(() => setRun(getArenaRun()));
   }, []);

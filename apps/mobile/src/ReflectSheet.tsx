@@ -5,6 +5,7 @@ import { mutateProgress } from "./progressStore";
 import { haptics } from "./haptics";
 import { sfx } from "./sfx";
 import { colors, font, radius, shadowCard, space, type } from "./theme";
+import { trackEvent } from "@/productAnalytics/track";
 
 export type JournalKind = "lesson" | "match" | "review" | "exam" | "reflection";
 
@@ -62,6 +63,7 @@ export function ReflectSheet({
       ...snap,
       journalEntries: [entry, ...((snap.journalEntries as JournalEntry[] | undefined) ?? [])].slice(0, 100),
     }));
+    trackEvent("journal_reflection", { kind, confidence, hasNote: note.trim() ? 1 : 0 });
     setSaved(true);
     haptics.success();
     sfx.play("success");

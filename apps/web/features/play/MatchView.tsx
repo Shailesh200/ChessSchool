@@ -36,6 +36,11 @@ import type { ArenaRunRecord } from "@/features/play/arena";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
 import { trackEvent } from "@/core/analytics/track";
+import {
+  outcomeFromWinner,
+  passOutcome,
+  trackMatchEnd,
+} from "@/lib/analytics/matchEvents";
 import { usePlan } from "@/core/store/plan.store";
 import { checkMatchAchievements } from "@/features/progression/achievements";
 import { unlockAndCelebrate } from "@/features/progression/celebrate";
@@ -100,7 +105,8 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       ? { from: active.lastFrom, to: active.lastTo }
       : null,
   );
-  const [flip, setFlip] = useState(active.mode === "pass");
+  // Pass (same-device): auto-rotate off by default; user can enable via Flip.
+  const [flip, setFlip] = useState(false);
   const [coach, setCoach] = useState(() => {
     if (active.pgn) return matchGreeting(0, "Coach", true);
     if (active.mode === "shadow" && active.shadow) {
@@ -322,13 +328,48 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       }
       await saveGame(game);
       usePlan.getState().markActivity("match", isoDay());
+      const channel = isArena
+        ? "arena"
+        : isShadow
+          ? "shadow"
+          : active.mode === "pass"
+            ? "pass"
+            : "bot";
+      const outcome =
+        active.mode === "pass"
+          ? passOutcome(winner)
+          : outcomeFromWinner(winner, playerColor);
+      const endBase = {
+        channel: channel as "bot" | "pass" | "shadow" | "arena",
+        opponent: (active.mode === "pass" || isShadow
+          ? "human"
+          : "bot") as "bot" | "human",
+        humanKind:
+          active.mode === "pass" || isShadow
+            ? ("same_device" as const)
+            : undefined,
+        targetElo: isBot ? active.targetElo : null,
+        timeMin: active.timeControlMin,
+        fromHomework: Boolean(active.fromHomework),
+        outcome,
+        result: result as "1-0" | "0-1" | "1/2-1/2",
+        reason,
+        moveCount: game.moveCount,
+        durationMs: game.durationMs,
+      };
+      trackMatchEnd(endBase);
       trackEvent("game_end", {
-        mode: isArena ? "arena" : isShadow ? "shadow" : active.mode,
+        mode: channel,
+        channel,
+        opponent: endBase.opponent,
+        humanKind: endBase.humanKind,
+        outcome,
         result,
         reason,
         bot: isBot,
         targetElo: isBot ? active.targetElo : null,
         moveCount: game.moveCount,
+        durationMs: game.durationMs,
       });
     },
     [
@@ -727,7 +768,16 @@ export function MatchView({ active }: { active: ActiveMatch }) {
             >
               <Icon name={sound ? "volume" : "volumeOff"} size={18} />
             </IconBtn>
-            <IconBtn label="Flip board" onClick={() => setFlip((f) => !f)}>
+            <IconBtn
+              label={
+                active.mode === "pass"
+                  ? flip
+                    ? "Turn off auto-flip"
+                    : "Auto-flip with turn"
+                  : "Flip board"
+              }
+              onClick={() => setFlip((f) => !f)}
+            >
               <Icon name="flip" size={18} />
             </IconBtn>
             {!isBot && (

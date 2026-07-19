@@ -1,6 +1,8 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { ShadowConfig } from "./shadow";
+import { trackEvent } from "@/productAnalytics/track";
+import { trackMatchStart } from "@/productAnalytics/matchEvents";
 
 const KEY = "chessschool.activematch";
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -115,6 +117,17 @@ function baseMatch(mode: MatchMode, targetElo: number, timeControlMin: number): 
 
 export function startBotMatch(targetElo: number, timeControlMin: number): ActiveMatch {
   active = baseMatch("bot", targetElo, timeControlMin);
+  trackEvent("bot_game_start", {
+    targetElo,
+    timeMin: timeControlMin,
+    arena: false,
+  });
+  trackMatchStart({
+    channel: "bot",
+    opponent: "bot",
+    targetElo,
+    timeMin: timeControlMin,
+  });
   void persist();
   emit();
   return active;
@@ -122,6 +135,13 @@ export function startBotMatch(targetElo: number, timeControlMin: number): Active
 
 export function startShadowMatch(shadow: ShadowConfig, timeControlMin = 0): ActiveMatch {
   active = { ...baseMatch("shadow", 1200, timeControlMin), shadow };
+  trackMatchStart({
+    channel: "shadow",
+    opponent: "human",
+    humanKind: "same_device",
+    variant: shadow.flipped ? "flipped" : "replay",
+    timeMin: timeControlMin,
+  });
   void persist();
   emit();
   return active;
@@ -129,6 +149,17 @@ export function startShadowMatch(shadow: ShadowConfig, timeControlMin = 0): Acti
 
 export function startArenaMatch(arena: ArenaMeta, opponentElo: number, timeControlMin = 0): ActiveMatch {
   active = { ...baseMatch("arena", opponentElo, timeControlMin), arena };
+  trackEvent("bot_game_start", {
+    targetElo: opponentElo,
+    timeMin: timeControlMin,
+    arena: true,
+  });
+  trackMatchStart({
+    channel: "arena",
+    opponent: "bot",
+    targetElo: arena.bandElo ?? opponentElo,
+    timeMin: timeControlMin,
+  });
   void persist();
   emit();
   return active;

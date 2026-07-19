@@ -23,6 +23,7 @@ import {
   type CoachCharacterId,
   coachCharacterOf,
 } from "@/coachCharacters";
+import { trackEvent } from "@/productAnalytics/track";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -131,6 +132,7 @@ export default function SettingsScreen() {
                 onPress={() => {
                   stopCoachSpeech();
                   settings.set("coachCharacter", c.id as CoachCharacterId);
+                  trackEvent("coach_character_select", { character: c.id });
                   void speakCoachText(coachCharacterOf(c.id).previewLine);
                 }}
               >
@@ -163,6 +165,21 @@ export default function SettingsScreen() {
               <View style={{ flexDirection: "column", gap: space[2], marginTop: space[3] }}>
                 <Button label="Export backup" size="sm" variant="outline" onPress={() => void exportBackupToFile().then(() => toast("Backup exported", { tone: "success" })).catch(() => toast("Export failed", { tone: "danger" }))} />
                 <Button label="Import backup" size="sm" variant="outline" onPress={() => void pickImport()} />
+              </View>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>Share usage analytics</Text>
+                  <Text style={styles.rowHint}>
+                    Page views and match/feature events help improve ChessSchool. No ads.
+                  </Text>
+                </View>
+                <Switch
+                  value={s.shareAnalytics}
+                  onValueChange={(v) => settings.set("shareAnalytics", v)}
+                  trackColor={track}
+                />
               </View>
             </View>
             <View style={styles.card}>

@@ -45,6 +45,8 @@ export type Settings = {
   enrollPromptDismissedAt: number | null;
   diagnostics: boolean;
   textScale: number;
+  /** Opt-in product analytics (page views, matches, features). Default on. */
+  shareAnalytics: boolean;
 };
 
 const KEY = "chessschool.settings";
@@ -74,6 +76,7 @@ const DEFAULTS: Settings = {
   enrollPromptDismissedAt: null,
   diagnostics: false,
   textScale: 1,
+  shareAnalytics: true,
 };
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
@@ -95,6 +98,8 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
     schoolTheme: schoolTheme && ["elementary", "highschool", "university", "graduation"].includes(schoolTheme)
       ? schoolTheme
       : next.schoolTheme ?? "university",
+    shareAnalytics:
+      next.shareAnalytics === undefined ? undefined : Boolean(next.shareAnalytics),
   } as Partial<Settings>;
 }
 

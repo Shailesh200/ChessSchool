@@ -13,6 +13,8 @@ import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { useProgress } from "@/progressStore";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
+import { trackMatchStart } from "@/productAnalytics/matchEvents";
 
 type Puzzle = {
   lessonId: string;
@@ -61,6 +63,14 @@ export default function LessonTrainerScreen() {
         setPuzzle(p);
         setCoach(`${p.coach} Find the best move for ${p.orientation === "black" ? "Black" : "White"}.`);
         setLoading(false);
+        const puzzleId = `${p.lessonId}:${p.title}`;
+        trackEvent("feature_open", { feature: "think", puzzleId });
+        trackMatchStart({
+          channel: "think",
+          opponent: "bot",
+          variant: "puzzle",
+          targetElo: rating,
+        });
       })
       .catch(() => {
         if (cancelled) return;
@@ -91,10 +101,18 @@ export default function LessonTrainerScreen() {
         setPhase("done");
         haptics.success();
         sfx.play("success");
+        trackEvent("think_puzzle_result", {
+          outcome: "win",
+          puzzleId: `${puzzle.lessonId}:${puzzle.title}`,
+        });
       } else {
         setCoach(puzzle.failText);
         haptics.error();
         sfx.play("error");
+        trackEvent("think_puzzle_result", {
+          outcome: "loss",
+          puzzleId: `${puzzle.lessonId}:${puzzle.title}`,
+        });
         setTimeout(() => {
           setDisplayFen(null);
           setLastMove(null);

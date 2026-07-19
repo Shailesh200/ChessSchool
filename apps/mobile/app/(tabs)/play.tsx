@@ -17,6 +17,8 @@ import { canResumeAnyMatch, getActiveMatch, hydrateMatchStore, subscribeMatchSto
 import { useAppTheme } from "@/ThemeProvider";
 import { useType } from "@/typography";
 import { font, radius, shadowCard, space } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
+import { trackMatchStart } from "@/productAnalytics/matchEvents";
 
 const ELOS = [...BOT_ELO_PRESETS];
 const TIMES = [
@@ -130,6 +132,10 @@ export default function PlaySetupScreen() {
     guardEnrolled(() => {
       haptics.success();
       sfx.play("select");
+      trackEvent("feature_open", {
+        feature: trainingMode === "lesson" ? "think" : trainingMode,
+        variant: trainingMode === "assisted" ? assistedVariant : undefined,
+      });
       if (trainingMode === "shadow") router.push("/play/shadow");
       else if (trainingMode === "arena") router.push("/play/arena");
       else if (trainingMode === "assisted")
@@ -145,6 +151,13 @@ export default function PlaySetupScreen() {
       try {
         const { id, seatToken } = await api<{ id: string; seatToken: string }>("/api/session", {
           method: "POST",
+        });
+        trackEvent("online_game_create", { sessionId: id });
+        trackMatchStart({
+          channel: "online",
+          opponent: "human",
+          humanKind: "share_link",
+          color: "w",
         });
         router.push({
           pathname: "/play/online/[id]",

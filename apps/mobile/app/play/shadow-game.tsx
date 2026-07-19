@@ -23,6 +23,12 @@ import {
 } from "@/matchStore";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, shadowCard, space, type } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
+import {
+  outcomeFromWinner,
+  scoreFromWinner,
+  trackMatchEnd,
+} from "@/productAnalytics/matchEvents";
 
 export default function ShadowGameScreen() {
   const router = useRouter();
@@ -144,6 +150,30 @@ export default function ShadowGameScreen() {
       /* guest */
     }
     setMatchEndSnapshot({ title, win, ratingDelta: 0, newRating: 0, gameId: gameIdRef.current });
+    const winner = win ? playerColor : playerColor === "w" ? "b" : "w";
+    const outcome =
+      endReason === "draw" || endReason === "stalemate"
+        ? "draw"
+        : outcomeFromWinner(winner, playerColor);
+    trackMatchEnd({
+      channel: "shadow",
+      opponent: "human",
+      humanKind: "same_device",
+      outcome,
+      result: scoreFromWinner(endReason === "draw" ? null : winner),
+      reason: endReason,
+      moveCount: game.moveCount,
+      durationMs: game.durationMs,
+    });
+    trackEvent("game_end", {
+      mode: "shadow",
+      channel: "shadow",
+      opponent: "human",
+      outcome,
+      result: scoreFromWinner(endReason === "draw" ? null : winner),
+      reason: endReason,
+      moveCount: game.moveCount,
+    });
     finishBotMatch();
     setOver({ title, win, gameId: gameIdRef.current });
   }

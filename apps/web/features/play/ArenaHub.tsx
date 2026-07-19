@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
@@ -20,6 +21,7 @@ import {
 import { startNav } from "@/core/store/nav.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
+import { trackEvent } from "@/core/analytics/track";
 
 function startArenaGame(
   start: ReturnType<typeof useMatch.getState>["start"],
@@ -48,6 +50,10 @@ export function ArenaHub() {
   const nextOpponent = useArena((s) => s.nextOpponent);
   const abandon = useArena((s) => s.abandon);
   const history = useProgression((s) => s.arenaHistory);
+
+  useEffect(() => {
+    trackEvent("feature_open", { feature: "arena" });
+  }, []);
 
   const runInProgress = active && !isArenaComplete(active);
   const standings = active ? arenaStandings(active) : null;

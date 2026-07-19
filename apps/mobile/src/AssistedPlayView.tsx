@@ -21,6 +21,13 @@ import { useCoachSpeech } from "@/useCoachSpeech";
 import { stopCoachSpeech } from "@/coachSpeech";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, shadowCard, space, type } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
+import {
+  outcomeFromWinner,
+  scoreFromWinner,
+  trackMatchEnd,
+  trackMatchStart,
+} from "@/productAnalytics/matchEvents";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -39,6 +46,10 @@ type Puzzle = {
 type TurnPhase = "your-turn" | "review-player" | "bot-thinking" | "review-bot";
 
 export function AssistedPlayView({ variant }: { variant: "full" | "puzzle" }) {
+  useEffect(() => {
+    trackEvent("feature_open", { feature: "assisted", variant });
+  }, [variant]);
+
   if (variant === "puzzle") return <AssistedPuzzle />;
   return <AssistedFullGame />;
 }
@@ -53,11 +64,40 @@ function AssistedFullGame() {
   const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
   const bot = botProfile(rating);
   const engineRef = useRef(new ChessEngine(START_FEN));
+  const endedRef = useRef(false);
   const [fen, setFen] = useState(START_FEN);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [coach, setCoach] = useState(`Coached bot match at ~${rating}. Make a move — I'll explain it.`);
   const [phase, setPhase] = useState<TurnPhase>("your-turn");
   const [autoAdvance, setAutoAdvance] = useState(false);
+
+  useEffect(() => {
+    trackMatchStart({
+      channel: "assisted",
+      opponent: "bot",
+      targetElo: rating,
+      variant: "full",
+    });
+  }, [rating]);
+
+  const recordEndIfOver = useCallback(() => {
+    const e = engineRef.current;
+    if (!e.isGameOver() || endedRef.current) return;
+    endedRef.current = true;
+    const status = e.status();
+    const winner =
+      status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    trackMatchEnd({
+      channel: "assisted",
+      opponent: "bot",
+      targetElo: rating,
+      variant: "full",
+      outcome: outcomeFromWinner(winner, "w"),
+      result: scoreFromWinner(winner),
+      reason: status === "playing" ? "draw" : status,
+      moveCount: e.history().length,
+    });
+  }, [rating]);
 
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface },
@@ -96,6 +136,7 @@ function AssistedFullGame() {
             }),
           );
           setPhase("review-bot");
+          if (e.isGameOver()) recordEndIfOver();
         } else {
           setPhase("your-turn");
         }
@@ -104,7 +145,7 @@ function AssistedFullGame() {
       setPhase("your-turn");
       setCoach("Your turn — calculate checks, captures, and threats.");
     }
-  }, [bot.name, fen, personality, phase, rating]);
+  }, [bot.name, fen, personality, phase, rating, recordEndIfOver]);
 
   useEffect(() => {
     if (!autoAdvance) return;
@@ -136,6 +177,7 @@ function AssistedFullGame() {
       }),
     );
     setPhase("review-player");
+    if (e.isGameOver()) recordEndIfOver();
     return true;
   }
 
@@ -227,6 +269,12 @@ function AssistedPuzzle() {
           applyCoachLine(`${p.coach} Find the best move.`, personality, "lesson", p.lessonId),
         );
         setLoading(false);
+        trackMatchStart({
+          channel: "assisted",
+          opponent: "bot",
+          variant: "puzzle",
+          targetElo: rating,
+        });
       })
       .catch(() => {
         setPuzzle(null);
@@ -278,11 +326,21 @@ function AssistedPuzzle() {
       sfx.play("success");
       setCoach(applyCoachLine(puzzle!.successText, personality, "success", key));
       setPhase("done");
+      trackEvent("think_puzzle_result", {
+        outcome: "win",
+        puzzleId: `${puzzle!.lessonId}`,
+        source: "assisted",
+      });
     } else {
       haptics.error();
       sfx.play("error");
       setCoach(applyCoachLine(puzzle!.failText, personality, "wrong", key));
       setPhase("miss");
+      trackEvent("think_puzzle_result", {
+        outcome: "loss",
+        puzzleId: `${puzzle!.lessonId}`,
+        source: "assisted",
+      });
     }
     return true;
   }

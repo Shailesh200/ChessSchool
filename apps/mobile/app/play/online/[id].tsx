@@ -18,6 +18,12 @@ import { clock, onlineOutcome } from "@/chess-utils";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
+import {
+  outcomeFromWinner,
+  scoreFromWinner,
+  trackMatchEnd,
+} from "@/productAnalytics/matchEvents";
 
 const JOIN_WINDOW_MS = 3 * 60 * 1000;
 const WEB_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://www.chess-school.in";
@@ -220,6 +226,35 @@ export default function OnlineGameScreen() {
     void mutateProgress((snap) => {
       let next = { ...snap, recentGames: prependRecentGame((snap.recentGames as unknown[]) ?? [], game) };
       return markHomeworkActivity(next, "match", isoDay());
+    });
+    const outcome =
+      playerRes === "draw"
+        ? "draw"
+        : outcomeFromWinner(winner, myColor);
+    const score = scoreFromWinner(winner);
+    const reason = game.endReason ?? "checkmate";
+    trackMatchEnd({
+      channel: "online",
+      opponent: "human",
+      humanKind: "share_link",
+      color: myColor,
+      outcome,
+      result: score,
+      reason,
+      moveCount: game.moveCount,
+      durationMs: game.durationMs,
+    });
+    trackEvent("game_end", {
+      mode: "online",
+      channel: "online",
+      opponent: "human",
+      humanKind: "share_link",
+      outcome,
+      result: score,
+      reason,
+      moveCount: game.moveCount,
+      durationMs: game.durationMs,
+      color: myColor,
     });
   }, [myColor, state, sid]);
 

@@ -8,6 +8,8 @@ import { BackButton } from "@/BackButton";
 import { Cody } from "@/Cody";
 import { saveOnlineSeat } from "@/onlineSeat";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
+import { trackMatchStart } from "@/productAnalytics/matchEvents";
 
 /** Online lobby — create a shareable game or join one by code. */
 export default function OnlineLobbyScreen() {
@@ -22,6 +24,13 @@ export default function OnlineLobbyScreen() {
     try {
       const { id, seatToken } = await api<{ id: string; seatToken: string }>("/api/session", { method: "POST" });
       await saveOnlineSeat(id, "w", seatToken);
+      trackEvent("online_game_create", { sessionId: id });
+      trackMatchStart({
+        channel: "online",
+        opponent: "human",
+        humanKind: "share_link",
+        color: "w",
+      });
       router.replace({ pathname: "/play/online/[id]", params: { id, color: "w", seatToken } });
     } catch {
       setErr("Couldn't create a game. Log in to play online.");
@@ -38,6 +47,13 @@ export default function OnlineLobbyScreen() {
       const s = await api<{ error?: string; claimed?: boolean; seatToken?: string }>(`/api/session/${c}?join=1`);
       if (s.error || !s.claimed || !s.seatToken) throw new Error(s.error ?? "seat unavailable");
       await saveOnlineSeat(c, "b", s.seatToken);
+      trackEvent("online_game_join", { sessionId: c, color: "b" });
+      trackMatchStart({
+        channel: "online",
+        opponent: "human",
+        humanKind: "share_link",
+        color: "b",
+      });
       router.replace({ pathname: "/play/online/[id]", params: { id: c, color: "b", seatToken: s.seatToken } });
     } catch {
       setErr("That game code wasn't found, or the game already has two players.");

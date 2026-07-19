@@ -33,6 +33,8 @@ import { botProfile } from "@/bots";
 import { MateReviewModal } from "@/MateReviewModal";
 import { KingFallCeremony } from "@/KingFallCeremony";
 import { BotAvatar } from "@/BotAvatar";
+import { trackEvent } from "@/productAnalytics/track";
+import { scoreFromWinner, trackMatchEnd } from "@/productAnalytics/matchEvents";
 import { CoachAvatar } from "@/CoachAvatar";
 import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { resolveAvatar } from "@/iconMaps";
@@ -226,6 +228,32 @@ export default function GameScreen() {
       void hydrateArenaStore().then(() => completeArenaIfDone());
     }
     setOver({ title, win, ratingDelta, newRating, gameId: gameIdRef.current, subtitle: result === "draw" ? "Draw" : undefined });
+    const channel = active?.arena ? "arena" : "bot";
+    const outcome = result === "draw" ? "draw" : result;
+    const score = scoreFromWinner(winner);
+    trackMatchEnd({
+      channel,
+      opponent: "bot",
+      targetElo: elo,
+      timeMin: timeControlMin,
+      outcome,
+      result: score,
+      reason: endReason ?? (result === "draw" ? "draw" : "checkmate"),
+      moveCount: game.moveCount,
+      durationMs: game.durationMs,
+    });
+    trackEvent("game_end", {
+      mode: channel,
+      channel,
+      opponent: "bot",
+      outcome,
+      result: score,
+      reason: endReason,
+      bot: true,
+      targetElo: elo,
+      moveCount: game.moveCount,
+      durationMs: game.durationMs,
+    });
     finishBotMatch();
   }
 

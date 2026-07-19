@@ -21,6 +21,7 @@ import { NetworkBanner } from "@/NetworkBanner";
 import { Toaster } from "@/Toaster";
 import { UpdateBanner } from "@/UpdateBanner";
 import { Diagnostics } from "@/Diagnostics";
+import { PageViewTracker } from "@/productAnalytics/PageViewTracker";
 import { wrapRoot } from "@/sentry";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -163,6 +164,7 @@ function RootLayout() {
             <AuthProvider>
               {/* Diagnostics uses useAuth — must stay inside AuthProvider. */}
               <Diagnostics />
+              <PageViewTracker />
               <Gate />
             </AuthProvider>
           </NetworkProvider>

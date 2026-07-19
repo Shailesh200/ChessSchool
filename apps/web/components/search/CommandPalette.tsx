@@ -44,6 +44,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    trackEvent("search_open");
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open]);

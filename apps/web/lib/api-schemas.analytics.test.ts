@@ -36,6 +36,11 @@ describe("analyticsBatchSchema", () => {
       "coach_character_select",
       "journal_reflection",
       "page_view",
+      "match_start",
+      "match_end",
+      "feature_open",
+      "think_puzzle_result",
+      "search_open",
     ] as const) {
       expect(
         analyticsBatchSchema.safeParse({ events: [{ name }] }).success,

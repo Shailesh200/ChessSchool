@@ -16,6 +16,7 @@ import { Icon } from "@/Icon";
 import { useAppTheme } from "@/ThemeProvider";
 import { useType } from "@/typography";
 import { font, radius, shadowCard, space } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
 
 type SearchResult = {
   id: string;
@@ -113,6 +114,10 @@ export default function SearchScreen() {
   );
 
   useEffect(() => {
+    trackEvent("search_open");
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const q = query.trim();
@@ -169,10 +174,18 @@ export default function SearchScreen() {
             <Text style={styles.empty}>No matches</Text>
           )
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <Pressable
             style={styles.row}
-            onPress={() => router.push(hrefToRoute(item.href) as never)}
+            onPress={() => {
+              trackEvent("search_result_open", {
+                query: query.trim().slice(0, 64),
+                resultType: item.type,
+                href: item.href,
+                rank: index,
+              });
+              router.push(hrefToRoute(item.href) as never);
+            }}
           >
             <View style={styles.glyph}>
               <Text style={styles.glyphText}>{item.emoji ?? (item.type === "action" ? "→" : "♟")}</Text>

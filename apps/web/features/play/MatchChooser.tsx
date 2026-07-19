@@ -20,6 +20,8 @@ import { audio } from "@/core/audio/audioEngine";
 import { toast } from "@/core/store/toast.store";
 import { listItem, listContainer } from "@/core/motion/variants";
 import { MatchPreviewPanel } from "./MatchPreviewPanel";
+import { trackMatchStart } from "@/lib/analytics/matchEvents";
+import { trackEvent } from "@/core/analytics/track";
 
 const ELO_PRESETS = [300, 600, 900, 1200, 1600, 2000];
 const TIME_PRESETS = [
@@ -130,6 +132,10 @@ export function MatchChooser() {
     guardEnrolled(() => {
       haptics.fire("success");
       audio.play("select");
+      trackEvent("feature_open", {
+        feature: trainingMode === "lesson" ? "think" : trainingMode,
+        variant: trainingMode === "assisted" ? assistedVariant : undefined,
+      });
       startNav();
       const route =
         trainingMode === "assisted"
@@ -158,6 +164,12 @@ export function MatchChooser() {
         const { id, seatToken } = (await r.json()) as { id: string; seatToken: string };
         localStorage.setItem(`chessschool.online.${id}`, "w");
         localStorage.setItem(`chessschool.online.${id}.token`, seatToken);
+        trackMatchStart({
+          channel: "online",
+          opponent: "human",
+          humanKind: "share_link",
+          color: "w",
+        });
         startNav();
         router.push(`/play/online/${id}`);
       } catch {

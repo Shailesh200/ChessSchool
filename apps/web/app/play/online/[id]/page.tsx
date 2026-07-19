@@ -15,6 +15,12 @@ import { toast } from "@/core/store/toast.store";
 import { audio } from "@/core/audio/audioEngine";
 import { saveGame, type EndReason } from "@/core/db/db";
 import type { MoveInput } from "@/core/types/chess";
+import { trackEvent } from "@/core/analytics/track";
+import {
+  outcomeFromWinner,
+  trackMatchEnd,
+  trackMatchStart,
+} from "@/lib/analytics/matchEvents";
 
 interface SessionState {
   id: string;
@@ -125,6 +131,12 @@ export default function OnlineSessionPage({
             localStorage.setItem(tokenKey, s.seatToken);
             setSeatToken(s.seatToken);
           }
+          trackMatchStart({
+            channel: "online",
+            opponent: "human",
+            humanKind: "share_link",
+            color: "b",
+          });
         }
         setSession(s);
       })
@@ -267,6 +279,9 @@ export default function OnlineSessionPage({
     } catch {
       /* ignore */
     }
+    const result =
+      winner === "w" ? "1-0" : winner === "b" ? "0-1" : ("1/2-1/2" as const);
+    const durationMs = session.updatedAt - session.createdAt;
     void saveGame({
       id: session.id,
       mode: "online",
@@ -277,12 +292,36 @@ export default function OnlineSessionPage({
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
       turn: session.turn,
-      result: winner === "w" ? "1-0" : winner === "b" ? "0-1" : "1/2-1/2",
+      result,
       endReason,
       winner,
       moveCount,
       elo: null,
-      durationMs: session.updatedAt - session.createdAt,
+      durationMs,
+    });
+    const outcome = outcomeFromWinner(winner, color);
+    trackMatchEnd({
+      channel: "online",
+      opponent: "human",
+      humanKind: "share_link",
+      color,
+      outcome,
+      result,
+      reason: endReason,
+      moveCount,
+      durationMs,
+    });
+    trackEvent("game_end", {
+      mode: "online",
+      channel: "online",
+      opponent: "human",
+      humanKind: "share_link",
+      outcome,
+      result,
+      reason: endReason,
+      moveCount,
+      durationMs,
+      color,
     });
   }, [session, color]);
 

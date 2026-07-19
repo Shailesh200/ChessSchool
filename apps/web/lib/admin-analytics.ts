@@ -150,6 +150,11 @@ export type AdminAnalytics = {
       count: number;
     }[];
     playModes: { mode: string; count: number }[];
+    matchOutcomes: {
+      channel: string;
+      outcome: string;
+      count: number;
+    }[];
     lessonCompletionRate: number | null;
     enrollCtaToSignup: number | null;
   };
@@ -244,6 +249,7 @@ export async function getAdminAnalytics(
     events30Rows,
     authProviderRows,
     gameEndModeRows,
+    matchOutcomeRows,
   ] = await Promise.all([
     conn.select({ n: count() }).from(users),
     conn.select({ n: count() }).from(users).where(eq(users.role, "student")),
@@ -530,18 +536,56 @@ export async function getAdminAnalytics(
       .orderBy(desc(count())),
     conn
       .select({
-        mode: sql<string>`coalesce(json_extract(${analyticsEvents.props}, '$.mode'), 'unknown')`,
+        mode: sql<string>`coalesce(
+          json_extract(${analyticsEvents.props}, '$.channel'),
+          json_extract(${analyticsEvents.props}, '$.mode'),
+          'unknown'
+        )`,
         count: count(),
       })
       .from(analyticsEvents)
       .where(
         and(
+          // game_end keeps historical modes; new rows also carry channel/outcome.
           eq(analyticsEvents.name, "game_end"),
           gte(analyticsEvents.createdAt, d30),
         ),
       )
-      .groupBy(sql`coalesce(json_extract(${analyticsEvents.props}, '$.mode'), 'unknown')`)
+      .groupBy(
+        sql`coalesce(
+          json_extract(${analyticsEvents.props}, '$.channel'),
+          json_extract(${analyticsEvents.props}, '$.mode'),
+          'unknown'
+        )`,
+      )
       .orderBy(desc(count())),
+    conn
+      .select({
+        channel: sql<string>`coalesce(
+          json_extract(${analyticsEvents.props}, '$.channel'),
+          json_extract(${analyticsEvents.props}, '$.mode'),
+          'unknown'
+        )`,
+        outcome: sql<string>`coalesce(json_extract(${analyticsEvents.props}, '$.outcome'), 'unknown')`,
+        count: count(),
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.name, "match_end"),
+          gte(analyticsEvents.createdAt, d30),
+        ),
+      )
+      .groupBy(
+        sql`coalesce(
+          json_extract(${analyticsEvents.props}, '$.channel'),
+          json_extract(${analyticsEvents.props}, '$.mode'),
+          'unknown'
+        )`,
+        sql`coalesce(json_extract(${analyticsEvents.props}, '$.outcome'), 'unknown')`,
+      )
+      .orderBy(desc(count()))
+      .limit(40),
   ]);
 
   const events = eventRows.map((r) => ({
@@ -826,6 +870,11 @@ export async function getAdminAnalytics(
       })),
       playModes: gameEndModeRows.map((r) => ({
         mode: r.mode || "unknown",
+        count: Number(r.count),
+      })),
+      matchOutcomes: matchOutcomeRows.map((r) => ({
+        channel: r.channel || "unknown",
+        outcome: r.outcome || "unknown",
         count: Number(r.count),
       })),
       lessonCompletionRate,

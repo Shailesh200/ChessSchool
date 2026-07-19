@@ -40,6 +40,12 @@ import { moveMatchesSolution } from "@/features/play/calculationPuzzle";
 import type { CoachPersonality } from "@/core/store/settings.store";
 import type { BoardArrow, MoveInput, VerboseMove } from "@/core/types/chess";
 import { hintArrow } from "@/features/coaching/coach";
+import { trackEvent } from "@/core/analytics/track";
+import {
+  outcomeFromWinner,
+  trackMatchEnd,
+  trackMatchStart,
+} from "@/lib/analytics/matchEvents";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const BOARD_SHELL = "relative mx-auto w-full max-w-[min(100%,520px)]";
@@ -88,6 +94,16 @@ export function AssistedPlay({ variant }: { variant: AssistedVariant }) {
     variant === "full"
       ? "Coach explains every move · rated ~{rating}"
       : "Coached puzzles with undo · rated ~{rating}";
+
+  useEffect(() => {
+    trackEvent("feature_open", { feature: "assisted", variant });
+    trackMatchStart({
+      channel: "assisted",
+      opponent: "bot",
+      targetElo: rating,
+      variant,
+    });
+  }, [variant, rating]);
 
   return (
     <AppShell focus>
@@ -149,6 +165,28 @@ function AssistedFullGame({ rating }: { rating: number }) {
   const engineRef = useRef(new ChessEngine(START_FEN));
   const pendingPlayerRef = useRef<PendingPlayerMove | null>(null);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endedRef = useRef(false);
+
+  const recordEndIfOver = useCallback(() => {
+    const e = engineRef.current;
+    if (!e.isGameOver() || endedRef.current) return;
+    endedRef.current = true;
+    const status = e.status();
+    const winner =
+      status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    const result =
+      winner === "w" ? "1-0" : winner === "b" ? "0-1" : ("1/2-1/2" as const);
+    trackMatchEnd({
+      channel: "assisted",
+      opponent: "bot",
+      targetElo: rating,
+      variant: "full",
+      outcome: outcomeFromWinner(winner, "w"),
+      result,
+      reason: status === "playing" ? "draw" : status,
+      moveCount: e.history().length,
+    });
+  }, [rating]);
   const [history, setHistory] = useState({ fens: [START_FEN], cursor: 0 });
   const [fen, setFen] = useState(START_FEN);
   // Parent remounts this component when personality/rating change (`key`).
@@ -259,8 +297,17 @@ function AssistedFullGame({ rating }: { rating: number }) {
       setCoach(botLine);
       void speakCoachText(botLine);
       setTurnPhase("review-bot");
+      if (e.isGameOver()) recordEndIfOver();
     });
-  }, [rating, bot.name, personality, pushSnapshot, finishBotReview, clearAdvanceTimer]);
+  }, [
+    rating,
+    bot.name,
+    personality,
+    pushSnapshot,
+    finishBotReview,
+    clearAdvanceTimer,
+    recordEndIfOver,
+  ]);
 
   const handleNext = useCallback(() => {
     haptics.fire("select");
@@ -334,9 +381,10 @@ function AssistedFullGame({ rating }: { rating: number }) {
       void speakCoachText(playerLine);
       setCoach(playerLine);
       setTurnPhase(e.isGameOver() ? "review-bot" : "review-player");
+      if (e.isGameOver()) recordEndIfOver();
       return true;
     },
-    [boardLocked, rating, bot.name, personality, pushSnapshot],
+    [boardLocked, rating, bot.name, personality, pushSnapshot, recordEndIfOver],
   );
 
   const showAdvance = turnPhase === "review-player" || turnPhase === "review-bot";

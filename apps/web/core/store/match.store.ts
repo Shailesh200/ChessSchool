@@ -5,6 +5,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { EndReason } from "@/core/db/db";
 import type { Color } from "@/core/types/chess";
 import { trackEvent } from "@/core/analytics/track";
+import { trackMatchStart } from "@/lib/analytics/matchEvents";
 
 export type MatchMode = "bot" | "pass" | "shadow";
 
@@ -83,12 +84,43 @@ export const useMatch = create<MatchStore>()(
     (set) => ({
       active: null,
       start: (mode, targetElo, timeControlMin, opts) => {
+        const isArena = Boolean(opts?.arena);
         if (mode === "bot") {
           trackEvent("bot_game_start", {
             targetElo,
             timeMin: timeControlMin,
             fromHomework: Boolean(opts?.fromHomework),
-            arena: Boolean(opts?.arena),
+            arena: isArena,
+          });
+        }
+        if (mode === "bot" && isArena) {
+          trackMatchStart({
+            channel: "arena",
+            opponent: "bot",
+            targetElo: opts?.arena?.bandElo ?? targetElo,
+            timeMin: timeControlMin,
+          });
+        } else if (mode === "bot") {
+          trackMatchStart({
+            channel: "bot",
+            opponent: "bot",
+            targetElo,
+            timeMin: timeControlMin,
+            fromHomework: Boolean(opts?.fromHomework),
+          });
+        } else if (mode === "pass") {
+          trackMatchStart({
+            channel: "pass",
+            opponent: "human",
+            humanKind: "same_device",
+            timeMin: timeControlMin,
+          });
+        } else if (mode === "shadow") {
+          trackMatchStart({
+            channel: "shadow",
+            opponent: "human",
+            humanKind: "same_device",
+            variant: opts?.shadow?.flipped ? "flipped" : "replay",
           });
         }
         set({

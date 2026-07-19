@@ -585,7 +585,7 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                 empty="No auth events in this window."
               />
             </Card>
-            <ChartCard title="Games finished by mode · 30d">
+            <ChartCard title="Matches finished by channel · 30d">
               {playModeBars.length === 0 ? (
                 <Empty>No finished games yet.</Empty>
               ) : (
@@ -631,6 +631,26 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
               )}
             </ChartCard>
           </div>
+
+          <Card className="overflow-hidden p-0">
+            <div className="border-hairline border-b px-4 py-3">
+              <h3 className="text-ink text-sm font-extrabold">Match outcomes</h3>
+              <p className="text-ink-500 text-[11px] font-semibold">
+                Bot win/loss · online share-link · same-device pass · arena · shadow ·
+                assisted · 30d
+              </p>
+            </div>
+            <DataTable
+              columns={["Channel", "Outcome", "Count"]}
+              rows={data.insights.matchOutcomes.map((r) => [
+                r.channel,
+                r.outcome,
+                fmt(r.count),
+              ])}
+              empty="No match_end events yet. Play a few games with analytics on."
+              mono
+            />
+          </Card>
         </div>
       )}
 

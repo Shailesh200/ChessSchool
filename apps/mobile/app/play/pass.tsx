@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,6 +19,13 @@ import { parseTimeControl, useChessClock } from "@/useChessClock";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import {
+  passOutcome,
+  scoreFromWinner,
+  trackMatchEnd,
+  trackMatchStart,
+} from "@/productAnalytics/matchEvents";
+import { trackEvent } from "@/productAnalytics/track";
 
 function PlayerBar({
   name,
@@ -76,6 +83,15 @@ export default function PassPlayScreen() {
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
 
+  useEffect(() => {
+    trackMatchStart({
+      channel: "pass",
+      opponent: "human",
+      humanKind: "same_device",
+      timeMin: timeMs > 0 ? Math.round(timeMs / 60_000) : 0,
+    });
+  }, [timeMs]);
+
   const turn = fen.split(" ")[1] === "b" ? "b" : "w";
   const hasClock = timeMs > 0 && !over;
   const { whiteMs, blackMs } = useChessClock({
@@ -130,6 +146,31 @@ export default function PassPlayScreen() {
   function finish(result: "win" | "loss" | "draw", title: string, win: boolean, endReason: EndReason = "checkmate") {
     saveRecentGame(result, endReason);
     setOver({ title, win, gameId: gameIdRef.current });
+    const winner = winnerFromPlayerResult(result, "w");
+    const score = scoreFromWinner(winner);
+    const moveCount = engineRef.current.history().length;
+    const durationMs = Date.now() - createdAtRef.current;
+    trackMatchEnd({
+      channel: "pass",
+      opponent: "human",
+      humanKind: "same_device",
+      outcome: passOutcome(winner),
+      result: score,
+      reason: endReason,
+      moveCount,
+      durationMs,
+    });
+    trackEvent("game_end", {
+      mode: "pass",
+      channel: "pass",
+      opponent: "human",
+      humanKind: "same_device",
+      outcome: passOutcome(winner),
+      result: score,
+      reason: endReason,
+      moveCount,
+      durationMs,
+    });
   }
 
   function confirmResign() {

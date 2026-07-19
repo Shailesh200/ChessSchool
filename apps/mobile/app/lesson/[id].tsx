@@ -30,6 +30,7 @@ import { markHomeworkActivities, markHomeworkActivity } from "@/homeworkRoutine"
 import { settings } from "@/settings";
 import { useType } from "@/typography";
 import { colors, font, radius, shadowCard, space } from "@/theme";
+import { trackEvent } from "@/productAnalytics/track";
 
 type Step = {
   id: string;
@@ -226,6 +227,11 @@ export default function LessonScreen() {
       cacheSet(cacheKey, l);
       setLesson(l);
       setDisplayFen(l.steps[0]?.fen);
+      trackEvent("lesson_start", {
+        lessonId: l.id,
+        exam: Boolean(l.exam),
+        classId: l.classId ?? null,
+      });
       if (l.classId) {
         try {
           const cd = await api<{ class: { id: string; title: string }; lessons: { id: string }[] }>(`/api/class/${l.classId}`);
@@ -378,6 +384,7 @@ export default function LessonScreen() {
       setPhase("exam-failed");
       haptics.error();
       playSfx("error");
+      trackEvent("exam_complete", { lessonId: lesson!.id, passed: false, ratio });
       return;
     }
 
@@ -447,6 +454,26 @@ export default function LessonScreen() {
         progressSavedRef.current = true;
         invalidateLearnCache();
         setGraduatedTitle(completedClassTitle);
+        if (lesson!.exam) {
+          trackEvent("exam_complete", {
+            lessonId: lesson!.id,
+            passed: true,
+            ratio,
+          });
+        } else {
+          trackEvent("lesson_complete", {
+            lessonId: lesson!.id,
+            ratio,
+            correct,
+            total: interactive,
+          });
+        }
+        if (completedClassTitle && lessonClass) {
+          trackEvent("class_graduate", {
+            classId: lessonClass.id,
+            title: completedClassTitle,
+          });
+        }
       }
       const prog = await fetchProgress();
       setLessonsAttempted(

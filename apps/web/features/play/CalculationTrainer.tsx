@@ -27,6 +27,8 @@ import { toast } from "@/core/store/toast.store";
 import type { CalculationPuzzle } from "@/features/play/calculationPuzzle";
 import { moveMatchesSolution } from "@/features/play/calculationPuzzle";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
+import { trackEvent } from "@/core/analytics/track";
+import { trackMatchStart } from "@/lib/analytics/matchEvents";
 
 type Phase = "loading" | "calc" | "correct" | "wrong" | "revealed";
 
@@ -82,6 +84,14 @@ function CalculationTrainerSession({
         const prompt = calculationCoachPrompt(0, engine.inCheck(), rating);
         setCoach(`${intro} ${prompt}`.trim());
         setPhase("calc");
+        const puzzleId = `${p.lessonId}:${p.stepIndex}`;
+        trackEvent("feature_open", { feature: "think", puzzleId });
+        trackMatchStart({
+          channel: "think",
+          opponent: "bot",
+          variant: "puzzle",
+          targetElo: rating,
+        });
       })
       .catch(() => {
         if (cancelled) return;
@@ -131,6 +141,11 @@ function CalculationTrainerSession({
         setPhase("correct");
         audio.play(applied.captured ? "capture" : "success");
         haptics.fire("success");
+        trackEvent("think_puzzle_result", {
+          outcome: "win",
+          puzzleId: `${puzzle.lessonId}:${puzzle.stepIndex}`,
+          hinted: hintLevel > 0,
+        });
         return;
       }
 
@@ -138,8 +153,13 @@ function CalculationTrainerSession({
       setPhase("wrong");
       audio.play("fail");
       haptics.fire("error");
+      trackEvent("think_puzzle_result", {
+        outcome: "loss",
+        puzzleId: `${puzzle.lessonId}:${puzzle.stepIndex}`,
+        hinted: hintLevel > 0,
+      });
     },
-    [puzzle, character],
+    [puzzle, character, hintLevel],
   );
 
   const handleMove = useCallback(
@@ -184,7 +204,12 @@ function CalculationTrainerSession({
       ),
     );
     audio.play("notify");
-  }, [puzzle, character]);
+    trackEvent("think_puzzle_result", {
+      outcome: "reveal",
+      puzzleId: `${puzzle.lessonId}:${puzzle.stepIndex}`,
+      hinted: hintLevel > 0,
+    });
+  }, [puzzle, character, hintLevel]);
 
   const tryAgain = useCallback(() => {
     if (!puzzle) return;
