@@ -38,6 +38,7 @@
     "db:fresh": "pnpm db:reset && pnpm db:push && pnpm db:seed && pnpm db:seed-homework",
     "db:remote": "node scripts/seed-remote.mjs",
     "db:remote-clean": "node scripts/clean-seed-remote.mjs",
+    "db:wipe-users": "node scripts/wipe-user-data.mjs",
     "crux:report": "node scripts/crux-report.mjs",
     "storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006",
     "build-storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook build"
