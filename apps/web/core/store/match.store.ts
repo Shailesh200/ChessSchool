@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { EndReason } from "@/core/db/db";
 import type { Color } from "@/core/types/chess";
+import { trackEvent } from "@/core/analytics/track";
 
 export type MatchMode = "bot" | "pass" | "shadow";
 
@@ -81,7 +82,15 @@ export const useMatch = create<MatchStore>()(
   persist(
     (set) => ({
       active: null,
-      start: (mode, targetElo, timeControlMin, opts) =>
+      start: (mode, targetElo, timeControlMin, opts) => {
+        if (mode === "bot") {
+          trackEvent("bot_game_start", {
+            targetElo,
+            timeMin: timeControlMin,
+            fromHomework: Boolean(opts?.fromHomework),
+            arena: Boolean(opts?.arena),
+          });
+        }
         set({
           active: {
             id: `g${Date.now()}`,
@@ -102,7 +111,8 @@ export const useMatch = create<MatchStore>()(
             fromHomework: opts?.fromHomework ?? false,
             endSnapshot: null,
           },
-        }),
+        });
+      },
       sync: (patch) =>
         set((s) =>
           s.active

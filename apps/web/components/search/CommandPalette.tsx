@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/components/ui/cn";
 import type { SearchResult } from "@/lib/search-types";
+import { trackEvent } from "@/core/analytics/track";
 
 type Props = {
   open: boolean;
@@ -28,11 +29,17 @@ export function CommandPalette({ open, onOpenChange }: Props) {
   }, [onOpenChange]);
 
   const go = useCallback(
-    (href: string) => {
+    (item: SearchResult, rank: number) => {
+      trackEvent("search_result_open", {
+        query: query.trim().slice(0, 64),
+        resultType: item.type,
+        href: item.href,
+        rank,
+      });
       close();
-      router.push(href);
+      router.push(item.href);
     },
-    [close, router],
+    [close, router, query],
   );
 
   useEffect(() => {
@@ -87,7 +94,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
       }
       if (e.key === "Enter" && results[active]) {
         e.preventDefault();
-        go(results[active]!.href);
+        go(results[active]!, active);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -161,7 +168,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
                         : "text-ink hover:bg-surface-sunken",
                     )}
                     onMouseEnter={() => setActive(i)}
-                    onClick={() => go(item.href)}
+                    onClick={() => go(item, i)}
                   >
                     <span className="bg-surface-sunken text-ink-500 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm">
                       {item.emoji ?? typeGlyph(item.type)}

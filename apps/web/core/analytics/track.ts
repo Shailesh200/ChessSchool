@@ -9,7 +9,19 @@ export type AnalyticsEventName =
   | "game_end"
   | "signup"
   | "login"
-  | "pwa_install";
+  | "pwa_install"
+  | "onboarding_complete"
+  | "exam_complete"
+  | "class_graduate"
+  | "homework_complete"
+  | "online_game_create"
+  | "online_game_join"
+  | "bot_game_start"
+  | "account_delete"
+  | "journal_reflection"
+  | "search_result_open"
+  | "enroll_cta_click"
+  | "coach_character_select";
 
 type Pending = {
   name: AnalyticsEventName;

@@ -6,6 +6,7 @@ import { getApiUser } from "@/lib/auth";
 import { createGameSessionId } from "@/lib/game-session";
 import { formatSeatToken } from "@/lib/session-secret";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,13 @@ export async function POST(req: Request) {
     createdAt: now,
     updatedAt: now,
   });
+  void insertAnalyticsEvents([
+    {
+      name: "online_game_create",
+      userId: user.id,
+      props: { sessionId: id },
+    },
+  ]).catch(() => void 0);
   return NextResponse.json({
     id,
     color: "w",

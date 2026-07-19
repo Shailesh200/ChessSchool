@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { deleteUserAccount, getApiUser, revokeToken } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,14 @@ export async function DELETE(req: Request) {
   const jar = await cookies();
   const cookieToken = jar.get(COOKIE)?.value;
   if (cookieToken) await revokeToken(cookieToken);
+
+  // Fire without userId so the row survives account purge of analytics_events.
+  void insertAnalyticsEvents([
+    {
+      name: "account_delete",
+      props: { role: user.role },
+    },
+  ]).catch(() => void 0);
 
   const res = await deleteUserAccount(user.id);
   if ("error" in res) return NextResponse.json({ error: res.error }, { status: 403 });

@@ -103,7 +103,9 @@ export async function registerUser(
   });
   await db.insert(progress).values({ userId: id, updatedAt: now });
   await startSession(id);
-  void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
+  void insertAnalyticsEvents([
+    { name: "signup", userId: id, props: { provider: "password" } },
+  ]).catch(() => void 0);
   return { ok: true };
 }
 
@@ -122,7 +124,9 @@ export async function loginUser(
     return { error: "Wrong email or password." };
   }
   await startSession(user.id);
-  void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
+  void insertAnalyticsEvents([
+    { name: "login", userId: user.id, props: { provider: "password" } },
+  ]).catch(() => void 0);
   return { ok: true };
 }
 
@@ -208,7 +212,9 @@ export async function registerWithToken(
   });
   await db.insert(progress).values({ userId: id, updatedAt: now });
   const token = await createSessionToken(id);
-  void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
+  void insertAnalyticsEvents([
+    { name: "signup", userId: id, props: { provider: "password" } },
+  ]).catch(() => void 0);
   return { token, user: { id, email, name: name.trim(), role: "student" } };
 }
 
@@ -227,7 +233,9 @@ export async function loginWithToken(
     return { error: "Wrong email or password." };
   }
   const token = await createSessionToken(user.id);
-  void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(() => void 0);
+  void insertAnalyticsEvents([
+    { name: "login", userId: user.id, props: { provider: "password" } },
+  ]).catch(() => void 0);
   return {
     token,
     user: { id: user.id, email: user.email, name: user.name, role: user.role },
@@ -306,9 +314,9 @@ export async function signInWithGoogle(
       await db.select().from(users).where(eq(users.id, oauthRow.userId)).limit(1)
     )[0];
     if (!user) return { error: "Account not found." };
-    void insertAnalyticsEvents([{ name: "login", userId: user.id }]).catch(
-      () => void 0,
-    );
+    void insertAnalyticsEvents([
+      { name: "login", userId: user.id, props: { provider: "google" } },
+    ]).catch(() => void 0);
     return { user: toSessionUser(user), isNewUser: false };
   }
 
@@ -317,16 +325,22 @@ export async function signInWithGoogle(
   )[0];
   if (existing) {
     await linkGoogleAccount(existing.id, profile.sub);
-    void insertAnalyticsEvents([{ name: "login", userId: existing.id }]).catch(
-      () => void 0,
-    );
+    void insertAnalyticsEvents([
+      {
+        name: "login",
+        userId: existing.id,
+        props: { provider: "google", linked: true },
+      },
+    ]).catch(() => void 0);
     return { user: toSessionUser(existing), isNewUser: false };
   }
 
   const id = randomUUID();
   await provisionNewStudent(id, email, profile.name, null);
   await linkGoogleAccount(id, profile.sub);
-  void insertAnalyticsEvents([{ name: "signup", userId: id }]).catch(() => void 0);
+  void insertAnalyticsEvents([
+    { name: "signup", userId: id, props: { provider: "google" } },
+  ]).catch(() => void 0);
   return {
     user: { id, email, name: profile.name.trim(), role: "student" },
     isNewUser: true,

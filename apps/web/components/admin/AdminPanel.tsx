@@ -15,6 +15,8 @@ import {
   importContent,
   importPuzzleJsonl,
 } from "@/lib/admin-actions";
+import type { AdminAnalytics as AnalyticsData } from "@/lib/admin-analytics";
+import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
 
 const PUZZLE_JSONL_EXAMPLE = `{"id":"cs-pz-middle-fork-demo","stage":"middle","concepts":["fork"],"rating":1110,"source":"authored","fen":"3R4/8/K7/pB2b3/1p6/1P2k3/3p4/8 w - - 4 58","line":["a6a5","e5c7","a5b4","c7d8"],"coach":{"setup":"Find the fork on the next move."}}`;
 
@@ -40,12 +42,14 @@ type Opt = { id: string; title: string };
 export function AdminPanel({
   adminName,
   stats,
+  analytics,
   semesters,
   classes,
   recent,
 }: {
   adminName: string;
   stats: { semesters: number; classes: number; lessons: number; users: number };
+  analytics: AnalyticsData;
   semesters: Opt[];
   classes: Opt[];
   recent: { id: string; classId: string; title: string }[];
@@ -64,9 +68,18 @@ export function AdminPanel({
         </div>
 
         <div>
-          <h1 className="text-ink text-2xl font-extrabold">Curriculum Admin</h1>
+          <h1 className="text-ink text-2xl font-extrabold">Admin</h1>
           <p className="text-ink-500 text-sm font-semibold">
-            Signed in as {adminName} · add content; it appears in the library instantly.
+            Signed in as {adminName} · analytics + curriculum CMS.
+          </p>
+        </div>
+
+        <AdminAnalytics data={analytics} />
+
+        <div className="border-hairline border-t pt-2">
+          <h2 className="text-ink text-lg font-extrabold">Curriculum</h2>
+          <p className="text-ink-500 text-xs font-semibold">
+            Add content; it appears in the library instantly.
           </p>
         </div>
 

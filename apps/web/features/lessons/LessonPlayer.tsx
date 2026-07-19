@@ -318,7 +318,15 @@ export function LessonPlayer({
 
     // School exam: passing unlocks the next school (no class to graduate).
     if (schoolExam) {
-      if (ratio >= 0.67) {
+      const passed = ratio >= 0.67;
+      trackEvent("exam_complete", {
+        lessonId: lesson.id,
+        examType: "school",
+        passed,
+        ratio,
+        stage: schoolExam.stage,
+      });
+      if (passed) {
         progression.passSchoolExam(schoolExam.stage);
         setCeremony({
           variant: "exam",
@@ -347,8 +355,20 @@ export function LessonPlayer({
 
     // Exam: passing graduates the whole class.
     if (lesson.exam && ratio >= 0.67 && cls) {
+      trackEvent("exam_complete", {
+        lessonId: lesson.id,
+        examType: "class",
+        passed: true,
+        ratio,
+        classId: cls.id,
+      });
       cls.lessonIds.forEach((id) => progression.recordLesson(id, 1, 1));
       progression.graduateClass(cls.id);
+      trackEvent("class_graduate", {
+        classId: cls.id,
+        classTitle: cls.title,
+        via: "exam",
+      });
       setCeremony({
         variant: "graduation",
         title: cls.title,
@@ -356,6 +376,16 @@ export function LessonPlayer({
       });
       audio.play("graduation");
       return;
+    }
+
+    if (lesson.exam) {
+      trackEvent("exam_complete", {
+        lessonId: lesson.id,
+        examType: "class",
+        passed: false,
+        ratio,
+        classId: cls?.id,
+      });
     }
 
     // Normal lesson: did finishing it complete (graduate) the whole class?
@@ -366,6 +396,11 @@ export function LessonPlayer({
         cls.lessonIds.every((id) => (records[id]?.mastery ?? 0) >= 0.9);
       if (allMastered) {
         progression.graduateClass(cls.id);
+        trackEvent("class_graduate", {
+          classId: cls.id,
+          classTitle: cls.title,
+          via: "mastery",
+        });
         setCeremony({
           variant: "graduation",
           title: cls.title,

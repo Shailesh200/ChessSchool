@@ -7,6 +7,7 @@ import { addJournalEntry, type JournalEntry } from "@/core/db/db";
 import { isoDay } from "@/core/store/progression.store";
 import { audio } from "@/core/audio/audioEngine";
 import { toast } from "@/core/store/toast.store";
+import { trackEvent } from "@/core/analytics/track";
 
 const CONFIDENCE = ["😣", "😕", "😐", "🙂", "😄"];
 
@@ -31,6 +32,7 @@ export function ReflectSheet({
   const [saved, setSaved] = useState(false);
 
   async function save() {
+    const trimmed = note.trim();
     await addJournalEntry({
       id: `j${Date.now()}`,
       day: isoDay(),
@@ -38,9 +40,15 @@ export function ReflectSheet({
       kind,
       title,
       confidence,
-      note: note.trim(),
+      note: trimmed,
       summary,
       ref: refId,
+    });
+    trackEvent("journal_reflection", {
+      kind,
+      confidence,
+      hasNote: trimmed.length > 0,
+      refId,
     });
     setSaved(true);
     audio.play("success");

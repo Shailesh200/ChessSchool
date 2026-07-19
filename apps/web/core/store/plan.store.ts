@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { trackEvent } from "@/core/analytics/track";
 
 export type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
 export type Schedule = "daily" | "weekdays" | "weekends";
@@ -134,9 +135,15 @@ export const usePlan = create<PlanState>()(
         if (all && get().homeworkLastDay !== today) {
           const prev = get().homeworkLastDay;
           const yesterday = addDay(today, -1);
+          const streak = prev === yesterday ? get().homeworkStreak + 1 : 1;
           set({
-            homeworkStreak: prev === yesterday ? get().homeworkStreak + 1 : 1,
+            homeworkStreak: streak,
             homeworkLastDay: today,
+          });
+          trackEvent("homework_complete", {
+            streak,
+            day: today,
+            stepsCompleted: ROUTINE_STEPS.length,
           });
         }
       },

@@ -6,6 +6,7 @@ import { profiles } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { houseForGoal } from "@/lib/profile-shared";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,14 @@ export async function POST(req: Request) {
       onboarded: 1,
     })
     .where(eq(profiles.userId, user.id));
+
+  void insertAnalyticsEvents([
+    {
+      name: "onboarding_complete",
+      userId: user.id,
+      props: { goal, avatar, source: "mobile" },
+    },
+  ]).catch(() => void 0);
 
   return NextResponse.json({ ok: true });
 }

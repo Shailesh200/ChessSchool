@@ -9,6 +9,7 @@ import { useSettings } from "@/core/store/settings.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
 import { audio } from "@/core/audio/audioEngine";
+import { trackEvent } from "@/core/analytics/track";
 
 export function EnrollPrompt({
   open,
@@ -27,6 +28,7 @@ export function EnrollPrompt({
   function enroll() {
     haptics.fire("success");
     audio.play("unlock");
+    trackEvent("enroll_cta_click", { source: "prompt", next });
     startNav();
     router.push(`/register?next=${encodeURIComponent(next)}`);
     onClose();

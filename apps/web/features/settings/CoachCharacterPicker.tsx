@@ -10,6 +10,7 @@ import {
   previewCoachCharacter,
   stopCoachSpeech,
 } from "@/core/audio/coachSpeech";
+import { trackEvent } from "@/core/analytics/track";
 
 export function CoachCharacterPicker({
   value,
@@ -22,6 +23,12 @@ export function CoachCharacterPicker({
 
   async function pick(id: CoachCharacterId) {
     onChange(id);
+    if (id !== value) {
+      trackEvent("coach_character_select", {
+        characterId: id,
+        from: "settings",
+      });
+    }
     stopCoachSpeech();
     setPreviewing(id);
     try {

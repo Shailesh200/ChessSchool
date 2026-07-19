@@ -24,6 +24,25 @@ describe("analyticsBatchSchema", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("accepts new funnel event names", () => {
+    for (const name of [
+      "onboarding_complete",
+      "exam_complete",
+      "class_graduate",
+      "homework_complete",
+      "bot_game_start",
+      "search_result_open",
+      "enroll_cta_click",
+      "coach_character_select",
+      "journal_reflection",
+    ] as const) {
+      expect(
+        analyticsBatchSchema.safeParse({ events: [{ name }] }).success,
+        name,
+      ).toBe(true);
+    }
+  });
+
   it("rejects unknown event names", () => {
     expect(
       analyticsBatchSchema.safeParse({ events: [{ name: "unknown_event" }] }).success,

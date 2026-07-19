@@ -125,7 +125,15 @@ export function OnboardingWizard({ name }: { name: string }) {
     setTier((time || "standard") as never);
     audio.play("graduation");
     haptics.fire("success");
-    await saveOnboarding({ goal, avatar });
+    // Server action records `onboarding_complete` (avoids double-count with client).
+    await saveOnboarding({
+      goal,
+      avatar,
+      coach,
+      targetElo: Number(elo) || 800,
+      theme: theme || "default",
+      planTier: time || "standard",
+    });
     window.setTimeout(() => router.push("/welcome?next=/account"), 1700);
   }
 

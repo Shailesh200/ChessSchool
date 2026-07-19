@@ -4,6 +4,7 @@ import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { users, semesters, classes, lessons } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { getAdminAnalytics } from "@/lib/admin-analytics";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { Logo } from "@/components/ui/Logo";
 
@@ -31,17 +32,20 @@ export default async function AdminPage() {
     );
   }
 
-  const sems = await db.select().from(semesters).orderBy(asc(semesters.sortOrder));
-  const cls = await db.select().from(classes).orderBy(asc(classes.sortOrder));
-  const allLessons = await db
-    .select({
-      id: lessons.id,
-      classId: lessons.classId,
-      title: lessons.title,
-      tag: lessons.tag,
-    })
-    .from(lessons);
-  const userCount = (await db.select({ id: users.id }).from(users)).length;
+  const [sems, cls, allLessons, userCount, analytics] = await Promise.all([
+    db.select().from(semesters).orderBy(asc(semesters.sortOrder)),
+    db.select().from(classes).orderBy(asc(classes.sortOrder)),
+    db
+      .select({
+        id: lessons.id,
+        classId: lessons.classId,
+        title: lessons.title,
+        tag: lessons.tag,
+      })
+      .from(lessons),
+    db.select({ id: users.id }).from(users).then((rows) => rows.length),
+    getAdminAnalytics(),
+  ]);
   const adminLessons = allLessons.filter((l) => l.tag === "admin");
 
   return (
@@ -53,6 +57,7 @@ export default async function AdminPage() {
         lessons: allLessons.length,
         users: userCount,
       }}
+      analytics={analytics}
       semesters={sems.map((s) => ({ id: s.id, title: s.title }))}
       classes={cls.map((c) => ({ id: c.id, title: c.title }))}
       recent={adminLessons.slice(-12).reverse()}

@@ -9,6 +9,7 @@ import { seatColorForUser } from "@/lib/game-session";
 import { formatSeatToken, verifySeatToken } from "@/lib/session-secret";
 import { sessionPostSchema } from "@/lib/api-schemas";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,13 @@ export async function GET(
         s = (await load(id))!;
         await publishSession(id, s);
         myColor = "b";
+        void insertAnalyticsEvents([
+          {
+            name: "online_game_join",
+            userId: user.id,
+            props: { sessionId: id, color: "b" },
+          },
+        ]).catch(() => void 0);
       }
     }
   } else if (user) {
