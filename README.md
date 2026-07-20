@@ -8,7 +8,25 @@ via Turso.
 
 > **Monorepo:** `apps/web` (Next.js PWA, Vercel root) · `apps/mobile` (Expo) ·
 > `packages/*` shared logic. Roadmap: [`plans/00_MASTER_DEVELOPMENT_PLAN.md`](plans/00_MASTER_DEVELOPMENT_PLAN.md).
-> Operator runbook: [`CLAUDE.md`](CLAUDE.md).
+> Operator runbook: [`CLAUDE.md`](CLAUDE.md). Env checklist: [`docs/ENV.md`](docs/ENV.md).
+
+---
+
+## 🔗 Operator links
+
+| What | URL |
+| --- | --- |
+| App | https://www.chess-school.in |
+| Admin / analytics | https://www.chess-school.in/admin |
+| Vercel | https://vercel.com/shaileshs-projects-c352fc88/chess-school |
+| Turso | https://turso.tech/app (`chessschool-shailesh200.aws-ap-south-1.turso.io`) |
+| GitHub | https://github.com/Shailesh200/ChessSchool |
+| CI | https://github.com/Shailesh200/ChessSchool/actions |
+| Sentry | https://shailesh-jha.sentry.io |
+| Expo | https://expo.dev/accounts/shaileshjha200/projects/chess-school |
+| Play Console | https://play.google.com/console (`com.chessschool.app`) |
+| Google OAuth | https://console.cloud.google.com/apis/credentials |
+| Search Console | https://search.google.com/search-console |
 
 ---
 
