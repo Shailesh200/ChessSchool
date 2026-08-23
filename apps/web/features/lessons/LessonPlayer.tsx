@@ -14,6 +14,7 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { trackEvent } from "@/core/analytics/track";
+import { pulseTrack } from "@/lib/pulse";
 import { usePlan, ROUTINE_STEPS } from "@/core/store/plan.store";
 import { useSettings } from "@/core/store/settings.store";
 import { useSession } from "@/core/store/session.store";
@@ -142,7 +143,17 @@ export function LessonPlayer({
       tag: lesson.tag,
       exam: lesson.exam,
     });
-  }, [lesson.id, lesson.tag, lesson.exam]);
+    if (lesson.exam) {
+      pulseTrack("exam_start", { lesson_id: lesson.id });
+    }
+    if (homeworkStep || dailyPuzzle) {
+      pulseTrack("homework_start", {
+        step_id: homeworkStep ?? "daily",
+        homework_id: lesson.id,
+        daily: Boolean(dailyPuzzle),
+      });
+    }
+  }, [lesson.id, lesson.tag, lesson.exam, homeworkStep, dailyPuzzle]);
 
   // Auto-play "observe" steps move-by-move.
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
@@ -11,6 +11,7 @@ import { Mascot } from "@/components/ui/Mascot";
 import { Confetti } from "@/components/ui/Confetti";
 import { useProgression } from "@/core/store/progression.store";
 import { trackEvent } from "@/core/analytics/track";
+import { pulseTrack } from "@/lib/pulse";
 import { startNav } from "@/core/store/nav.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
@@ -49,6 +50,10 @@ export function PlacementTest({
   const [movedFen, setMovedFen] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    pulseTrack("placement_start", { question_count: questions.length });
+  }, [questions.length]);
 
   const q = questions[i];
   const displayFen = movedFen ?? q?.fen ?? "";

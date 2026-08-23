@@ -15,6 +15,7 @@ import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { openCommandPalette } from "@/components/search/CommandPalette";
 import { isNavTabActive, NAV_TABS } from "./nav-tabs";
+import { trackEvent } from "@/core/analytics/track";
 
 function subscribeModKey() {
   return () => {};
@@ -120,6 +121,7 @@ export function SidebarNav() {
           <Link
             href="/login"
             className="text-brand block text-center text-sm font-extrabold"
+            onClick={() => trackEvent("enroll_cta_click", { source: "sidebar" })}
           >
             Enroll to track progress →
           </Link>

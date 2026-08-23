@@ -22,6 +22,7 @@ import { listItem, listContainer } from "@/core/motion/variants";
 import { MatchPreviewPanel } from "./MatchPreviewPanel";
 import { trackMatchStart } from "@/lib/analytics/matchEvents";
 import { trackEvent } from "@/core/analytics/track";
+import { pulseTrack } from "@/lib/pulse";
 
 const ELO_PRESETS = [300, 600, 900, 1200, 1600, 2000];
 const TIME_PRESETS = [
@@ -164,6 +165,7 @@ export function MatchChooser() {
         const { id, seatToken } = (await r.json()) as { id: string; seatToken: string };
         localStorage.setItem(`chessschool.online.${id}`, "w");
         localStorage.setItem(`chessschool.online.${id}.token`, seatToken);
+        pulseTrack("online_game_create", { session_id: id, color: "w", source: "chooser" });
         trackMatchStart({
           channel: "online",
           opponent: "human",

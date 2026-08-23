@@ -1,0 +1,24 @@
+{
+  "name": "@shailesh200/pulse-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vendored Pulse/Umami loader used by ChessSchool web until GitHub Packages is reachable at install time.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.tsx",
+    "./events": "./src/events.ts",
+    "./sites": "./src/sites.ts"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0"
+  }
+}

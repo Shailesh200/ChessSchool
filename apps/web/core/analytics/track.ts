@@ -1,6 +1,7 @@
 "use client";
 
 import { useSettings } from "@/core/store/settings.store";
+import { pulseTrack } from "@/lib/pulse";
 
 export type AnalyticsEventName =
   | "page_view"
@@ -102,4 +103,5 @@ export function trackEvent(
   queue.push({ name, props });
   clearTimeout(timer);
   timer = setTimeout(flush, 800);
+  pulseTrack(name, props);
 }

@@ -7,6 +7,7 @@ import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { usePlan } from "@/core/store/plan.store";
+import { pulseTrack } from "@/lib/pulse";
 
 /**
  * Logout that also wipes client-side personal state, so the next user/guest never
@@ -19,6 +20,7 @@ export function LogoutButton() {
   async function logout() {
     if (busy) return;
     setBusy(true);
+    pulseTrack("logout", { platform: "web" });
     try {
       await logoutAction();
     } catch {

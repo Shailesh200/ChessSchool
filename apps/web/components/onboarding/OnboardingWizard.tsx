@@ -16,6 +16,7 @@ import { Confetti } from "@/components/ui/Confetti";
 import { useSettings } from "@/core/store/settings.store";
 import { usePlan } from "@/core/store/plan.store";
 import { saveOnboarding } from "@/lib/profile-actions";
+import { pulseTrack } from "@/lib/pulse";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import type { FlatAvatarId } from "@/components/ui/flatAvatars/catalog";
@@ -133,6 +134,12 @@ export function OnboardingWizard({ name }: { name: string }) {
       targetElo: Number(elo) || 800,
       theme: theme || "default",
       planTier: time || "standard",
+    });
+    pulseTrack("onboarding_complete", {
+      goal,
+      target_elo: Number(elo) || 800,
+      plan_tier: time || "standard",
+      platform: "web",
     });
     window.setTimeout(() => router.push("/welcome?next=/account"), 1700);
   }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
+import { pulseTrack } from "@/lib/pulse";
 
 export function DeleteAccountButton() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export function DeleteAccountButton() {
 
     setBusy(true);
     setError(null);
+    pulseTrack("account_delete", { role: useSession.getState().user?.role, platform: "web" });
     try {
       const res = await fetch("/api/account", {
         method: "DELETE",

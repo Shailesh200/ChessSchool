@@ -14,6 +14,7 @@ import {
 } from "@/core/bootstrap/storeBootstrap";
 import { trackEvent } from "@/core/analytics/track";
 import { ProgressSync } from "@/components/providers/ProgressSync";
+import { PulseRoot } from "@/components/providers/PulseRoot";
 import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { initVitalsReporting } from "@/core/vitals/reportVitals";
 
@@ -124,6 +125,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         <PageViewTracker />
       </Suspense>
       <ProgressSync />
+      <PulseRoot />
       <NavProgress />
       <CommandPaletteHost />
       <Toaster />

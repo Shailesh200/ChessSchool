@@ -89,6 +89,7 @@ export function EnrollPromptBanner({
           size="sm"
           block
           onClick={() => {
+            trackEvent("enroll_cta_click", { source: "banner", next });
             startNav();
             router.push(`/register?next=${encodeURIComponent(next)}`);
           }}

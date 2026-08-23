@@ -3,6 +3,7 @@
 import { NavButton } from "@/components/ui/NavButton";
 import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
+import { trackEvent } from "@/core/analytics/track";
 
 /** Hero / footer CTAs that respect cookie session (don't push enrolled users to /register). */
 export function LandingPrimaryCtas({
@@ -36,7 +37,11 @@ export function LandingPrimaryCtas({
 
   return (
     <>
-      <NavButton href="/register" size={size}>
+      <NavButton
+        href="/register"
+        size={size}
+        onClick={() => trackEvent("enroll_cta_click", { source: "hero" })}
+      >
         {enrollLabel}
       </NavButton>
       <NavButton href="/academy" variant="outline" size={size}>

@@ -7,6 +7,7 @@ import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { trackEvent } from "@/core/analytics/track";
 
 export function TopBar() {
   const xp = useProgression((s) => s.xp);
@@ -33,7 +34,11 @@ export function TopBar() {
     return (
       <header className="pt-safe border-hairline bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-2.5">
-          <Link href="/login" className="text-brand text-sm font-extrabold">
+          <Link
+            href="/login"
+            className="text-brand text-sm font-extrabold"
+            onClick={() => trackEvent("enroll_cta_click", { source: "nav" })}
+          >
             Enroll to the academy to track your progress →
           </Link>
         </div>

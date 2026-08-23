@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { PULSE_PENDING_AUTH } from "@/lib/pulse";
 
 type Action = (
   prev: { error?: string } | undefined,
@@ -49,7 +50,20 @@ export function AuthForm({
           <div className="bg-hairline h-px flex-1" />
         </div>
 
-        <form action={formAction} className="flex flex-col gap-3">
+        <form
+          action={formAction}
+          className="flex flex-col gap-3"
+          onSubmit={() => {
+            try {
+              sessionStorage.setItem(
+                PULSE_PENDING_AUTH,
+                isRegister ? "signup" : "login",
+              );
+            } catch {
+              /* private mode */
+            }
+          }}
+        >
           {isRegister && (
             <Field label="Full name" name="name" type="text" autoComplete="name" />
           )}

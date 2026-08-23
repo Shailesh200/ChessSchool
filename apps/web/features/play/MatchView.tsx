@@ -36,6 +36,7 @@ import type { ArenaRunRecord } from "@/features/play/arena";
 import { useProgression, isoDay } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
 import { trackEvent } from "@/core/analytics/track";
+import { pulseTrack } from "@/lib/pulse";
 import {
   outcomeFromWinner,
   passOutcome,
@@ -696,6 +697,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       toast(canShare ? "Game shared" : "PGN copied", {
         icon: "check",
         tone: "success",
+      });
+      pulseTrack("share_pgn", {
+        method: canShare ? "native" : "clipboard",
+        move_count: engineRef.current.history().length,
       });
       window.setTimeout(() => setCopied(false), 1500);
     } catch {

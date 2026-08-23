@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { PULSE_PENDING_AUTH } from "@/lib/pulse";
 
 const GOOGLE_ENABLED = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
@@ -30,6 +31,17 @@ export function GoogleSignInButton({ next = "/welcome" }: { next?: string }) {
       )}
       <Link
         href={href}
+        onClick={() => {
+          try {
+            const register = window.location.pathname.includes("register");
+            sessionStorage.setItem(
+              PULSE_PENDING_AUTH,
+              register ? "signup" : "login",
+            );
+          } catch {
+            /* private mode */
+          }
+        }}
         className="btn-tactile rounded-card border-hairline bg-surface-card text-ink flex h-12 items-center justify-center gap-2 border text-sm font-extrabold"
       >
         <GoogleMark />

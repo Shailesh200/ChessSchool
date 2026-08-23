@@ -45,7 +45,7 @@ export async function GET(req: Request) {
   const graduatedClasses = parseGraduatedClasses(p?.graduatedClasses);
 
   return NextResponse.json({
-    user: { name: user.name, role: user.role },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
     xp: p?.xp ?? 0,
     streak: p?.streak ?? 0,
     lastActiveDay: p?.lastActiveDay ?? null,

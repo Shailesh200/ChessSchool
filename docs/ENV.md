@@ -12,6 +12,9 @@ Launch go-live steps: [`plans/M-073_WEB_GA_LAUNCH.md`](../plans/M-073_WEB_GA_LAU
 | `SESSION_TOKEN_SECRET` | Prod | HMAC for online PvP seat tokens |
 | `CRON_SECRET` | Prod | Protects session cleanup cron |
 | `NEXT_PUBLIC_APP_URL` | Prod | Canonical site URL (e.g. `https://chess-school.in`) |
+| `NPM_TOKEN` | Install | GitHub PAT with `read:packages` so Vercel can install `@shailesh200/pulse-tracker`. Must be available at **install/build**, Production **and** Preview. Not an npmjs.com token. |
+| `NEXT_PUBLIC_PULSE_WEBSITE_ID` | Prod | Umami website id (`4bb7a0af-823c-4a21-a4ab-509a7815cf02`). Inlined at build time. |
+| `NEXT_PUBLIC_PULSE_ORIGIN` | Optional | Pulse origin override. Defaults to `https://pulse.shaileshjha.in`. Do **not** use `VITE_PUBLIC_UMAMI_URL` — this app is Next.js. |
 | `GOOGLE_CLIENT_ID` | OAuth | Google OAuth web client ID |
 | `GOOGLE_CLIENT_SECRET` | OAuth | Google OAuth client secret |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | OAuth | Same client ID — shows “Continue with Google” |

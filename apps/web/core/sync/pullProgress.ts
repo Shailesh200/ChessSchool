@@ -61,7 +61,7 @@ function snapshotsEqual(
 }
 
 export type ServerSnapshot = ProgressSnapshot & {
-  user: { name: string; role: string };
+  user: { id: string; email: string; name: string; role: string };
   homeworkStreak?: number;
   homeworkLastDay?: string | null;
   settings?: Record<string, unknown> | null;
@@ -106,7 +106,12 @@ export async function fullSnapshotAsync() {
  * a guest just created instead absorbs the guest's local progress (merge-up).
  * Returns the user, or null if not logged in.
  */
-export async function pullProgress(): Promise<{ name: string; role: string } | null> {
+export async function pullProgress(): Promise<{
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+} | null> {
   let r: Response;
   try {
     r = await fetch("/api/progress");
@@ -188,6 +193,8 @@ export async function pullProgress(): Promise<{ name: string; role: string } | n
   const session = useSession.getState();
   if (
     session.authed !== true ||
+    session.user?.id !== data.user.id ||
+    session.user?.email !== data.user.email ||
     session.user?.name !== data.user.name ||
     session.user?.role !== data.user.role
   ) {
