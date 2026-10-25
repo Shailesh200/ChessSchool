@@ -1,60 +1,66 @@
 /**
- * About & licences copy. Stockfish 18 here is tag sf_18
- * (cb3d4ee9b47d0c5aae855b12379378ea1439675c), the same commit as the
- * stockfish.js 18.0.0 lite WASM served from apps/web/public/engine.
+ * About & licences copy.
  *
- * The build revision is read from Expo config `extra.gitCommit` or
- * `extra.gitTag`, then `EXPO_PUBLIC_GIT_COMMIT`. When none of those is a
- * safe git ref, the source link is the repository root.
+ * The shipped web engine is stockfish.js v18.0.0 (lite, single-threaded),
+ * commit 31a98753a5d932511693f44775da908377c24513. Official Stockfish sf_18
+ * is the upstream origin of that port, not the binary we ship.
+ *
+ * The app source link uses a full commit SHA. EAS writes
+ * EAS_BUILD_GIT_COMMIT_HASH into Expo config extra.gitCommit at build time.
+ * Anything else falls back to the repository root.
  */
 
 export const APP_REPOSITORY_URL = "https://github.com/Shailesh200/ChessSchool";
 
-export const STOCKFISH_COMMIT = "cb3d4ee9b47d0c5aae855b12379378ea1439675c";
-export const STOCKFISH_TAG = "sf_18";
-export const STOCKFISH_SOURCE_URL = `https://github.com/official-stockfish/Stockfish/tree/${STOCKFISH_COMMIT}`;
+/** stockfish.js v18.0.0 — the build whose WASM we ship. */
+export const STOCKFISH_JS_COMMIT = "31a98753a5d932511693f44775da908377c24513";
+export const STOCKFISH_JS_TAG = "v18.0.0";
+export const STOCKFISH_JS_SOURCE_URL = `https://github.com/nmrugg/stockfish.js/tree/${STOCKFISH_JS_COMMIT}`;
+
+/** Official Stockfish 18, the origin of the stockfish.js port. */
+export const STOCKFISH_UPSTREAM_COMMIT = "cb3d4ee9b47d0c5aae855b12379378ea1439675c";
+export const STOCKFISH_UPSTREAM_TAG = "sf_18";
+export const STOCKFISH_UPSTREAM_URL = `https://github.com/official-stockfish/Stockfish/tree/${STOCKFISH_UPSTREAM_COMMIT}`;
 
 export const STOCKFISH_NOTICE = "Uses Stockfish, licensed under GPL-3.0";
 
 export const STOCKFISH_AUTHORS_CREDIT =
   "Stockfish is free software by Tord Romstad, Marco Costalba, Joona Kiiski, Gary Linscott, and the other authors listed in the Stockfish AUTHORS file.";
 
-const SOURCE_REF = /^[A-Za-z0-9._-]{1,80}$/;
+const COMMIT_SHA = /^[0-9a-f]{40}$/i;
 
-export function sourceRevision(revision: string | null | undefined): string | null {
+/** Full git commit, or null when the value is missing or not a SHA. */
+export function commitSha(revision: string | null | undefined): string | null {
   const rev = revision?.trim() ?? "";
-  if (!SOURCE_REF.test(rev) || rev === "." || rev === ".." || rev.includes("..")) return null;
-  return rev;
+  return COMMIT_SHA.test(rev) ? rev.toLowerCase() : null;
 }
 
+/** Public source for this build, or the repository root when the SHA is unknown. */
 export function appSourceUrl(revision: string | null | undefined): string {
-  const rev = sourceRevision(revision);
-  return rev ? `${APP_REPOSITORY_URL}/tree/${rev}` : APP_REPOSITORY_URL;
+  const sha = commitSha(revision);
+  return sha ? `${APP_REPOSITORY_URL}/tree/${sha}` : APP_REPOSITORY_URL;
 }
 
 export type LicenceRevisionInput = {
+  /** Expo extra.gitCommit, set from EAS_BUILD_GIT_COMMIT_HASH. */
   gitCommit?: unknown;
-  gitTag?: unknown;
-  envCommit?: unknown;
   version?: unknown;
 };
 
-function asRevision(value: unknown): string | null {
-  return typeof value === "string" ? sourceRevision(value) : null;
-}
-
 /** Strings rendered by the About & licences screen. */
 export function licenceScreenModel(input: LicenceRevisionInput = {}) {
-  const revision =
-    asRevision(input.gitCommit) ?? asRevision(input.gitTag) ?? asRevision(input.envCommit);
+  const revision = typeof input.gitCommit === "string" ? commitSha(input.gitCommit) : null;
   const version =
     typeof input.version === "string" && input.version.trim() ? input.version.trim() : null;
   return {
     title: "About & licences" as const,
     notice: STOCKFISH_NOTICE,
     credit: STOCKFISH_AUTHORS_CREDIT,
-    stockfishSourceUrl: STOCKFISH_SOURCE_URL,
-    stockfishSourceHint: `Stockfish ${STOCKFISH_TAG} · ${STOCKFISH_COMMIT.slice(0, 12)}`,
+    shippedSourceUrl: STOCKFISH_JS_SOURCE_URL,
+    shippedSourceHint: `stockfish.js ${STOCKFISH_JS_TAG} · ${STOCKFISH_JS_COMMIT.slice(0, 12)}`,
+    upstreamSourceUrl: STOCKFISH_UPSTREAM_URL,
+    upstreamSourceHint:
+      `Official Stockfish ${STOCKFISH_UPSTREAM_TAG} · ${STOCKFISH_UPSTREAM_COMMIT.slice(0, 12)}`,
     appSourceUrl: appSourceUrl(revision),
     appSourceKnown: revision != null,
     versionLabel: version ? `ChessSchool v${version}` : "ChessSchool",

@@ -15,11 +15,9 @@ export default function LicencesScreen() {
   const { colors } = useAppTheme();
   const type = useType();
   const styles = useMemo(() => makeStyles(type, colors), [type, colors]);
-  const extra = Constants.expoConfig?.extra as { gitCommit?: unknown; gitTag?: unknown } | undefined;
+  const extra = Constants.expoConfig?.extra as { gitCommit?: unknown } | undefined;
   const model = licenceScreenModel({
     gitCommit: extra?.gitCommit,
-    gitTag: extra?.gitTag,
-    envCommit: process.env.EXPO_PUBLIC_GIT_COMMIT,
     version: Constants.expoConfig?.version,
   });
 
@@ -36,15 +34,21 @@ export default function LicencesScreen() {
         <Text style={styles.section}>Source</Text>
         <View style={styles.card}>
           <LinkRow
-            label="Stockfish source"
-            url={model.stockfishSourceUrl}
-            hint={model.stockfishSourceHint}
+            label="Shipped engine source"
+            url={model.shippedSourceUrl}
+            hint={model.shippedSourceHint}
+          />
+          <View style={styles.divider} />
+          <LinkRow
+            label="Stockfish origin"
+            url={model.upstreamSourceUrl}
+            hint={model.upstreamSourceHint}
           />
           <View style={styles.divider} />
           <LinkRow label="This app's source" url={model.appSourceUrl} hint={model.appSourceUrl} />
           {!model.appSourceKnown ? (
             <Text style={styles.fallback}>
-              This build has no commit or tag, so the link opens the repository root.
+              This build has no commit SHA, so the link opens the repository root.
             </Text>
           ) : null}
         </View>

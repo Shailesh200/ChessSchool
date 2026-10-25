@@ -1,15 +1,19 @@
-Stockfish version: 18
-Upstream tag: sf_18
-Upstream commit: cb3d4ee9b47d0c5aae855b12379378ea1439675c
-Source: https://github.com/official-stockfish/Stockfish/tree/cb3d4ee9b47d0c5aae855b12379378ea1439675c
-Release: https://github.com/official-stockfish/Stockfish/releases/tag/sf_18
+Shipped build: stockfish.js 18.0.0 (lite, single-threaded WASM)
+This is the stockfish.js port, not an official Stockfish binary.
+Shipped source commit: 31a98753a5d932511693f44775da908377c24513
+Shipped source: https://github.com/nmrugg/stockfish.js/tree/31a98753a5d932511693f44775da908377c24513
+Release tag: v18.0.0
 
-Web build: stockfish.js 18.0.0, lite, single-threaded WASM
+Files and SHA-256 (also in checksums.json):
   stockfish-18-lite-single.js
+  2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe
   stockfish-18-lite-single.wasm
-These two files are byte-identical to
-https://github.com/nmrugg/stockfish.js/releases/tag/v18.0.0
-NNUE network named in that build: nn-9067e33176e
+  a8fbc05ec6920b56d7485826dcb02c5ffd2826bcbf751cf973046f237a9096f1
 
+Origin: official Stockfish 18, tag sf_18
+Upstream commit: cb3d4ee9b47d0c5aae855b12379378ea1439675c
+Origin source: https://github.com/official-stockfish/Stockfish/tree/cb3d4ee9b47d0c5aae855b12379378ea1439675c
+
+NNUE network named in the shipped build: nn-9067e33176e
 Licence: Copying.txt (GNU GPL-3.0)
 Authors: AUTHORS
