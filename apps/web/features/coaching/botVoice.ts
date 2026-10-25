@@ -703,9 +703,9 @@ export function buildMatchGreeting(
     casual: `Casual band — ideas beat memorized theory.`,
     developing: `Developing — punish hangs, watch traps.`,
     club: `Club level — ${botName} spots loose pieces fast.`,
-    expert: `Expert — a stronger bot that notices small mistakes.`,
-    master: `Master band — ${botName} is stronger and very accurate.`,
-    elite: `Elite — ${botName} is much stronger. Play carefully.`,
+    expert: `Expert — ${botName} is stronger and notices small mistakes.`,
+    master: `Master — ${botName} is very strong and rarely misses.`,
+    elite: `Elite — ${botName} is the strongest. Take your time.`,
   };
 
   const base = pick(open[personality], seed);
