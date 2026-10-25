@@ -59,10 +59,10 @@ jobs:
       - name: Format check
         run: pnpm --filter web format:check
 
-      # turbo --continue runs every package test script and still fails the job
-      # if any package fails, instead of stopping at the first one.
+      # `--continue=always` is a Turbo flag (not a passthrough). `pnpm test -- --continue`
+      # forwards `--continue` into each package script, and Vitest rejects it.
       - name: Unit tests
-        run: pnpm test -- --continue
+        run: pnpm exec turbo run test --continue=always
 
       - name: Test coverage (≥90%)
         run: bash scripts/verify-test-coverage.sh
