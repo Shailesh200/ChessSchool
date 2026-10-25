@@ -5,9 +5,12 @@ import {
 } from "@chess-school/progression";
 import type { ProgressPushBody } from "@/lib/api-schemas";
 import {
-  applyOneTimeStreakGrace,
-  mergeActivityDay,
+  clockForServerDay,
+  isRealIsoDay,
+  parseStreakGrace,
   readStoredStreakGrace,
+  reconcileActiveStreak,
+  recordsStreakActivity,
   serverUtcDay,
   type StreakGrace,
 } from "@/lib/streak-grace";
@@ -39,9 +42,8 @@ export type ExtraProgressData = {
   placementDone?: boolean;
   journalEntries?: unknown[];
   /**
-   * Server-owned streak grace. Merge never copies a client-sent
-   * `streakGrace`. `applyOneTimeStreakGrace` is the only writer: it stamps
-   * `lastSeenUtcDay` and, at most once, `graceUsedAt`.
+   * Server-owned streak days and one-time grace. Merge never copies a
+   * client-sent `streakGrace`. Only an activity push updates `activeDays`.
    */
   streakGrace?: StreakGrace;
 };
@@ -309,8 +311,9 @@ function extraFromPush(body: ProgressPushBody): ExtraProgressData {
 
 export type MergeProgressOptions = {
   /**
-   * Server UTC day (`YYYY-MM-DD`) for the grace window and the activity-day
-   * cap. Defaults to today's UTC date. Tests pass this so results ignore the clock.
+   * Server UTC day (`YYYY-MM-DD`) for the grace window and the active-day
+   * set. Defaults to today's UTC date. Tests pass this so results ignore the clock.
+   * The same instant is handed to `mergeProgressSnapshots` for its day cap.
    */
   today?: string;
   /**
@@ -324,16 +327,15 @@ export type MergeProgressOptions = {
  * Max-merge an incoming client snapshot over server state.
  * Incoming is treated as "local"; server as authoritative floor (H1/H2).
  *
- * Streak grace runs after that merge and ignores the client's
- * `lastActiveDay`. `mergedStreak` is whatever `mergeProgressSnapshots`
- * chose — max() today, the newer `lastActiveDay`'s streak after D3.
- * Grace replaces it only when the server stamp shows exactly one missed
- * UTC day. The object written into `data.streakGrace` always comes from
- * the server.
+ * `lastActiveDay` comes from `mergeProgressSnapshots`, which drops a client
+ * day later than the server UTC day + 1. This merge does not apply a second
+ * copy of that clamp.
  *
- * `mergeActivityDay` stores the client day: a day later than the server
- * UTC day + 1 is dropped and does not change the streak, and a push cannot
- * move the stored day backwards.
+ * When the push shows new streak activity (XP or a completion count above
+ * the stored snapshot), the server adds today or yesterday to
+ * `data.streakGrace.activeDays` and recomputes the streak from that set.
+ * Settings, plan, and journal pushes do not. Grace can bridge one gap in
+ * the set. The object written there is always the server's.
  *
  * The corrected streak is what gets stored. POST /api/progress still replies
  * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
@@ -345,30 +347,44 @@ export function mergeProgressPush(
   options?: MergeProgressOptions,
 ): MergedProgressWrite {
   const utcToday = options?.today ?? serverUtcDay();
-  const activity = mergeActivityDay(
-    incoming.lastActiveDay,
-    server.lastActiveDay,
-    utcToday,
-  );
   const mergedCore = mergeProgressSnapshots(
     snapFromPush(incoming),
     snapFromServer(server),
+    clockForServerDay(utcToday),
   );
   const mergedExtra = mergeExtraData(server.extra, extraFromPush(incoming));
-  const graced = activity.rejectIncoming
-    ? {
-        streak: server.streak,
-        streakGrace: readStoredStreakGrace(server.extra.streakGrace),
-      }
-    : applyOneTimeStreakGrace({
+  const played =
+    isRealIsoDay(utcToday) &&
+    recordsStreakActivity(
+      {
+        xp: incoming.xp,
+        botWins: incoming.botWins,
+        lessons: incoming.lessons,
+        dailyPuzzleDay: incoming.dailyPuzzleDay,
+        recentGames: incoming.recentGames,
+      },
+      {
+        xp: server.xp,
+        botWins: server.extra.botWins,
+        lessons: server.lessons,
+        dailyPuzzleDay: server.extra.dailyPuzzleDay,
+        recentGames: server.extra.recentGames,
+      },
+    );
+  const parsed = parseStreakGrace(server.extra.streakGrace);
+  const reconciled = played
+    ? reconcileActiveStreak({
+        hasActiveDays: parsed.hasActiveDays,
+        activeDays: parsed.grace?.activeDays,
+        graceUsedAt: parsed.grace?.graceUsedAt,
+        graceCoveredDay: parsed.grace?.graceCoveredDay,
+        storedLastActiveDay: server.lastActiveDay,
         storedStreak: server.streak,
-        incomingStreak: incoming.streak,
-        mergedStreak: mergedCore.streak ?? 0,
-        storedGrace: server.extra.streakGrace,
         today: utcToday,
         graceStart: options?.graceStart,
-        acceptedActivity: activity.acceptedActivity,
-      });
+        claimedDay: incoming.lastActiveDay,
+      })
+    : null;
 
   const data: ExtraProgressData = {
     ...mergedExtra,
@@ -382,13 +398,14 @@ export function mergeProgressPush(
     dailyPuzzleDay: mergedCore.dailyPuzzleDay as string | null | undefined,
     placementDone: Boolean(mergedCore.placementDone ?? mergedExtra.placementDone),
   };
-  if (graced.streakGrace) data.streakGrace = graced.streakGrace;
-  else delete data.streakGrace;
+  if (reconciled) {
+    data.streakGrace = reconciled.streakGrace;
+  }
 
   return {
     xp: mergedCore.xp ?? 0,
-    streak: graced.streak,
-    lastActiveDay: activity.lastActiveDay,
+    streak: reconciled ? reconciled.streak : (mergedCore.streak ?? 0),
+    lastActiveDay: mergedCore.lastActiveDay ?? null,
     dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
     graduatedClasses: (mergedCore.graduatedClasses as string[] | undefined) ?? [],
     data,

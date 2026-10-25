@@ -9,56 +9,64 @@ export const STREAK_GRACE_WINDOW = {
   lengthDays: 7,
 } as const;
 
+/** How many server days of streak history we keep. */
+export const STREAK_ACTIVE_DAY_LIMIT = 60;
+
 /**
- * Server-owned grace record. Clients cannot set or clear it.
- * `lastSeenUtcDay` is the server UTC day of the last accepted activity push.
- * `graceUsedAt` is the server UTC day grace was consumed. Rows written before
- * this rename stored that day as `usedOn`; readers accept both and writers
- * emit `graceUsedAt` only.
+ * Server-owned streak record in `progress.data`. Clients cannot write it.
+ *
+ * `activeDays` is the set of UTC days that counted as streak activity,
+ * oldest first, capped at {@link STREAK_ACTIVE_DAY_LIMIT}. D2c will key
+ * this by the stored device zone; until then every day is a server UTC day.
+ *
+ * `graceUsedAt` is the server UTC day grace was consumed. Rows written
+ * before this rename stored that day as `usedOn`. `graceCoveredDay` is the
+ * single missed day that grace is bridging. A later activity push that
+ * records that day clears both fields so grace can be used again.
  */
 export type StreakGrace = {
-  lastSeenUtcDay?: string;
+  activeDays?: string[];
   graceUsedAt?: string;
+  graceCoveredDay?: string;
 };
 
-export type StreakGraceInput = {
-  storedStreak: number;
-  incomingStreak: number;
-  /**
-   * Streak already chosen by the snapshot merge.
-   * Today that is max(stored, incoming), which hides a reset (D-3).
-   * D3 will switch this to the streak on the side with the newer
-   * `lastActiveDay`, with the larger streak winning a same-day tie.
-   * Grace replaces this number only when the one-time rule matches.
-   * Otherwise it is returned unchanged.
-   */
-  mergedStreak: number;
-  storedGrace?: StreakGrace | null;
-  /** Server UTC day. This is the only clock the gap uses. */
-  today: string;
-  /**
-   * Test override for the window start. Omit it in production so
-   * `STREAK_GRACE_START` is required. Invalid values disable grace.
-   */
-  graceStart?: string;
-  /**
-   * True when this push carries a real activity day the merge accepted.
-   * Rejected days (malformed, or later than the server UTC day + 1) are
-   * not stamped and cannot grant grace.
-   */
-  acceptedActivity: boolean;
+export type StreakActivityView = {
+  xp: number;
+  botWins?: number;
+  lessons?: Record<string, { attempts?: number; mastery?: number } | undefined>;
+  dailyPuzzleDay?: string | null;
+  recentGames?: unknown[] | null;
 };
 
-export type MergedActivityDay = {
-  lastActiveDay: string | null;
-  /**
-   * Incoming day is not a calendar day, or is later than the server UTC
-   * day + 1. Callers keep the stored streak and skip grace.
-   */
-  rejectIncoming: boolean;
-  /** Incoming day was accepted, so the server may stamp today. */
-  acceptedActivity: boolean;
-};
+/**
+ * Signals we can see by diffing the stored snapshot with the push.
+ * Progress is client-reported, so an increase is treated as play:
+ * - XP went up
+ * - botWins went up
+ * - a lesson gained attempts or mastery, or a new lesson has either
+ * - dailyPuzzleDay changed to a different real calendar day
+ * - recentGames gained an id (or a new JSON payload when there is no id)
+ *
+ * Settings, plan, homework, and journal fields are not signals. A higher
+ * counter without a server-recorded completion still counts; checking the
+ * completion itself is follow-up D5.
+ */
+export function recordsStreakActivity(
+  incoming: StreakActivityView,
+  stored: StreakActivityView,
+): boolean {
+  if (incoming.xp > stored.xp) return true;
+  if (incoming.botWins != null && incoming.botWins > (stored.botWins ?? 0)) return true;
+  if (lessonsIncreased(incoming.lessons, stored.lessons)) return true;
+  if (
+    incoming.dailyPuzzleDay &&
+    isCalendarDay(incoming.dailyPuzzleDay) &&
+    incoming.dailyPuzzleDay !== (stored.dailyPuzzleDay ?? null)
+  ) {
+    return true;
+  }
+  return hasNewGame(incoming.recentGames, stored.recentGames);
+}
 
 export function isRealIsoDay(value: string): boolean {
   return isCalendarDay(value);
@@ -67,6 +75,11 @@ export function isRealIsoDay(value: string): boolean {
 /** UTC calendar day. Vercel is UTC; this does not follow the host zone. */
 export function serverUtcDay(now = new Date()): string {
   return isoDay(now, "UTC");
+}
+
+/** Noon UTC on a server day, so the merge clamp and grace share one calendar. */
+export function clockForServerDay(today: string): Date {
+  return isCalendarDay(today) ? new Date(`${today}T12:00:00.000Z`) : new Date();
 }
 
 /**
@@ -85,142 +98,231 @@ export function isInsideStreakGraceWindow(day: string, start: string): boolean {
   return day >= start && day <= end;
 }
 
-function cappedStoredDay(stored: string | null, utcToday: string): string | null {
-  if (!stored || !isCalendarDay(stored)) return null;
-  if (!isCalendarDay(utcToday)) return stored;
-  const latest = addDays(utcToday, 1);
-  return stored > latest ? latest : stored;
-}
-
-/**
- * Pick the day the merge is allowed to store.
- * A malformed day is ignored. A day later than the server UTC day + 1 is
- * not stored, and a stored day already past that cap is clamped.
- * A push never moves a stored calendar day backwards.
- *
- * This is the storage rule only. Grace does not read the result: the gap
- * comes from the server UTC stamp, and there is no ±1 timezone slack.
- */
-export function mergeActivityDay(
-  incoming: string | null,
-  stored: string | null,
-  utcToday: string,
-): MergedActivityDay {
-  if (!isCalendarDay(utcToday)) {
-    return {
-      lastActiveDay: stored && isCalendarDay(stored) ? stored : null,
-      rejectIncoming: true,
-      acceptedActivity: false,
-    };
-  }
-  if (incoming != null && !isCalendarDay(incoming)) {
-    return {
-      lastActiveDay: cappedStoredDay(stored, utcToday),
-      rejectIncoming: true,
-      acceptedActivity: false,
-    };
-  }
-  if (incoming && incoming > addDays(utcToday, 1)) {
-    return {
-      lastActiveDay: cappedStoredDay(stored, utcToday),
-      rejectIncoming: true,
-      acceptedActivity: false,
-    };
-  }
-  if (incoming && isCalendarDay(incoming)) {
-    if (stored && isCalendarDay(stored) && stored > incoming) {
-      return {
-        lastActiveDay: cappedStoredDay(stored, utcToday),
-        rejectIncoming: false,
-        acceptedActivity: true,
-      };
-    }
-    return {
-      lastActiveDay: incoming,
-      rejectIncoming: false,
-      acceptedActivity: true,
-    };
-  }
-  return {
-    lastActiveDay: cappedStoredDay(stored, utcToday),
-    rejectIncoming: false,
-    acceptedActivity: false,
-  };
-}
-
 function realDay(value: unknown): string | undefined {
   return typeof value === "string" && isRealIsoDay(value) ? value : undefined;
 }
 
-/**
- * A stored flag counts as used when the server wrote `graceUsedAt` or the
- * legacy `usedOn`. The returned object is the shape writers persist.
- */
-export function readStoredStreakGrace(value: unknown): StreakGrace | undefined {
-  if (!value || typeof value !== "object") return undefined;
+export type ParsedStreakGrace = {
+  /** True when the stored object has an `activeDays` array, even if empty. */
+  hasActiveDays: boolean;
+  grace?: StreakGrace;
+};
+
+/** Read a server record. Legacy `usedOn` becomes `graceUsedAt`. */
+export function parseStreakGrace(value: unknown): ParsedStreakGrace {
+  if (!value || typeof value !== "object") return { hasActiveDays: false };
   const raw = value as {
+    activeDays?: unknown;
     graceUsedAt?: unknown;
+    graceCoveredDay?: unknown;
     usedOn?: unknown;
-    lastSeenUtcDay?: unknown;
   };
+  const activeDayList = Array.isArray(raw.activeDays) ? raw.activeDays : undefined;
+  const hasActiveDays = activeDayList !== undefined;
+  const activeDays = activeDayList
+    ? uniqueDays(activeDayList.filter((day): day is string => typeof day === "string"))
+    : undefined;
   const graceUsedAt = realDay(raw.graceUsedAt) ?? realDay(raw.usedOn);
-  const lastSeenUtcDay = realDay(raw.lastSeenUtcDay);
-  if (!graceUsedAt && !lastSeenUtcDay) return undefined;
+  const graceCoveredDay = realDay(raw.graceCoveredDay);
+  if (!hasActiveDays && !graceUsedAt && !graceCoveredDay)
+    return { hasActiveDays: false };
   return {
-    ...(lastSeenUtcDay ? { lastSeenUtcDay } : {}),
-    ...(graceUsedAt ? { graceUsedAt } : {}),
+    hasActiveDays,
+    grace: {
+      ...(activeDays ? { activeDays } : {}),
+      ...(graceUsedAt ? { graceUsedAt } : {}),
+      ...(graceCoveredDay ? { graceCoveredDay } : {}),
+    },
   };
 }
 
-/**
- * True when the server stamp is exactly two UTC days behind `today`
- * (yesterday was missed). There is no timezone slack: both days are the
- * server's own UTC calendar, so a client zone cannot widen the gap.
- * No stamp means no grace — the client's lastActiveDay is not a substitute.
- */
-export function isExactlyOneMissedServerDay(
-  lastSeenUtcDay: string | undefined,
-  today: string,
-): boolean {
-  if (!lastSeenUtcDay || !isCalendarDay(today)) return false;
-  return lastSeenUtcDay === addDays(today, -2);
+export function readStoredStreakGrace(value: unknown): StreakGrace | undefined {
+  return parseStreakGrace(value).grace;
 }
 
-/**
- * Continue a streak after exactly one missed server UTC day, at most once.
- * The gap is `lastSeenUtcDay` versus `today` only. `graceUsedAt` is the
- * server UTC day grace was used (legacy `usedOn` already counts as used).
- * An accepted push always restamps `lastSeenUtcDay` to today.
- */
-export function applyOneTimeStreakGrace(input: StreakGraceInput): {
+export type ReconcileStreakInput = {
+  hasActiveDays: boolean;
+  activeDays?: string[];
+  graceUsedAt?: string;
+  graceCoveredDay?: string;
+  storedLastActiveDay: string | null;
+  storedStreak: number;
+  today: string;
+  graceStart?: string;
+  /** Client `lastActiveDay`. Only today or yesterday (server UTC) can be recorded. */
+  claimedDay: string | null;
+};
+
+export type ReconcileStreakResult = {
   streak: number;
-  streakGrace?: StreakGrace;
-} {
-  const storedGrace = readStoredStreakGrace(input.storedGrace);
-  const unchanged = { streak: input.mergedStreak, streakGrace: storedGrace };
+  streakGrace: StreakGrace;
+  refunded: boolean;
+};
 
-  if (!input.acceptedActivity || !isCalendarDay(input.today)) return unchanged;
+/**
+ * Rebuild the streak from the server's active-day set.
+ *
+ * An activity push may add `claimedDay` only when it is the server UTC
+ * today or yesterday. Older replays and future days are ignored. The set
+ * is capped at the last {@link STREAK_ACTIVE_DAY_LIMIT} days.
+ *
+ * The streak is the consecutive run ending today, or ending yesterday when
+ * today is still empty. Grace, once, counts exactly one missing day inside
+ * that run so the chain does not reset. If a later push records the covered
+ * day, grace is cleared and the length stays the same.
+ *
+ * Returns null when there is no set and this push does not add a day, so
+ * the caller keeps the ordinary max-merge streak.
+ */
+export function reconcileActiveStreak(
+  input: ReconcileStreakInput,
+): ReconcileStreakResult | null {
+  if (!isCalendarDay(input.today)) return null;
+  const recordable = recordableActivityDay(input.claimedDay, input.today);
+  const seeded = input.hasActiveDays
+    ? (input.activeDays ?? [])
+    : seedActiveDays(input.storedLastActiveDay, input.storedStreak, input.today);
+  if (!input.hasActiveDays && seeded.length === 0 && !recordable) return null;
 
-  const stamped: StreakGrace = {
-    ...(storedGrace?.graceUsedAt ? { graceUsedAt: storedGrace.graceUsedAt } : {}),
-    lastSeenUtcDay: input.today,
-  };
-  const kept = { streak: input.mergedStreak, streakGrace: stamped };
+  const days = boundActiveDays(
+    recordable ? [...seeded, recordable] : seeded,
+    input.today,
+  );
 
-  if (storedGrace?.graceUsedAt) return kept;
-
-  const start = streakGraceStart(input.graceStart);
-  if (!start || !isInsideStreakGraceWindow(input.today, start)) return kept;
-
-  if (!isExactlyOneMissedServerDay(storedGrace?.lastSeenUtcDay, input.today)) {
-    return kept;
+  let graceUsedAt = input.graceUsedAt;
+  let covered = input.graceCoveredDay;
+  let refunded = false;
+  if (covered && days.includes(covered)) {
+    graceUsedAt = undefined;
+    covered = undefined;
+    refunded = true;
   }
 
-  if (input.storedStreak < 1) return kept;
-  if (input.incomingStreak > 1) return kept;
+  const start = streakGraceStart(input.graceStart);
+  const allowGrace =
+    !graceUsedAt && !!start && isInsideStreakGraceWindow(input.today, start);
+  const computed = streakFromActiveDays(days, input.today, allowGrace);
+  if (computed.coveredDay) {
+    graceUsedAt = input.today;
+    covered = computed.coveredDay;
+  }
 
   return {
-    streak: input.storedStreak + 1,
-    streakGrace: { graceUsedAt: input.today, lastSeenUtcDay: input.today },
+    streak: computed.streak,
+    refunded,
+    streakGrace: {
+      activeDays: days,
+      ...(graceUsedAt ? { graceUsedAt } : {}),
+      ...(graceUsedAt && covered ? { graceCoveredDay: covered } : {}),
+    },
   };
+}
+
+/** Today or yesterday on the server calendar. Anything else is not recorded. */
+export function recordableActivityDay(
+  claimed: string | null,
+  today: string,
+): string | null {
+  if (!isCalendarDay(today) || !claimed || !isCalendarDay(claimed)) return null;
+  if (claimed === today || claimed === addDays(today, -1)) return claimed;
+  return null;
+}
+
+function seedActiveDays(
+  lastActiveDay: string | null,
+  streak: number,
+  today: string,
+): string[] {
+  if (!lastActiveDay || !isCalendarDay(lastActiveDay) || lastActiveDay > today)
+    return [];
+  const count = Math.max(0, Math.min(Math.floor(streak), STREAK_ACTIVE_DAY_LIMIT));
+  const days: string[] = [];
+  for (let i = 0; i < count; i++) days.push(addDays(lastActiveDay, -i));
+  return days;
+}
+
+function boundActiveDays(days: string[], today: string): string[] {
+  const earliest = addDays(today, -(STREAK_ACTIVE_DAY_LIMIT - 1));
+  return uniqueDays(days).filter((day) => day >= earliest && day <= today);
+}
+
+function uniqueDays(days: string[]): string[] {
+  return [...new Set(days.filter((day) => isCalendarDay(day)))].sort();
+}
+
+/**
+ * Count the run ending today, or yesterday if today has no activity.
+ * With grace, exactly one hole whose previous day is present counts too,
+ * so filling that hole later does not change the length.
+ */
+function streakFromActiveDays(
+  days: string[],
+  today: string,
+  allowGrace: boolean,
+): { streak: number; coveredDay?: string } {
+  const present = new Set(days);
+  const yesterday = addDays(today, -1);
+  let cursor: string | null = present.has(today)
+    ? today
+    : present.has(yesterday)
+      ? yesterday
+      : null;
+  if (!cursor) return { streak: 0 };
+
+  let streak = 0;
+  let bridged = false;
+  let coveredDay: string | undefined;
+  for (let step = 0; step < STREAK_ACTIVE_DAY_LIMIT + 2 && cursor; step++) {
+    if (present.has(cursor)) {
+      streak += 1;
+      cursor = addDays(cursor, -1);
+      continue;
+    }
+    const prev = addDays(cursor, -1);
+    if (allowGrace && !bridged && present.has(prev)) {
+      bridged = true;
+      coveredDay = cursor;
+      streak += 1;
+      cursor = prev;
+      continue;
+    }
+    break;
+  }
+  return { streak, coveredDay };
+}
+
+function lessonsIncreased(
+  incoming: StreakActivityView["lessons"],
+  stored: StreakActivityView["lessons"],
+): boolean {
+  if (!incoming) return false;
+  for (const [id, rec] of Object.entries(incoming)) {
+    if (!rec) continue;
+    const attempts = rec.attempts ?? 0;
+    const mastery = rec.mastery ?? 0;
+    const prev = stored?.[id];
+    if (!prev) {
+      if (attempts > 0 || mastery > 0) return true;
+    } else if (attempts > (prev.attempts ?? 0) || mastery > (prev.mastery ?? 0)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasNewGame(
+  incoming: StreakActivityView["recentGames"],
+  stored: StreakActivityView["recentGames"],
+): boolean {
+  if (!incoming || incoming.length === 0) return false;
+  const seen = new Set((stored ?? []).map(gameKey));
+  return incoming.some((game) => !seen.has(gameKey(game)));
+}
+
+function gameKey(game: unknown): string {
+  if (game && typeof game === "object" && "id" in game) {
+    const id = (game as { id?: unknown }).id;
+    if (typeof id === "string" || typeof id === "number") return `id:${id}`;
+  }
+  return `json:${JSON.stringify(game)}`;
 }
