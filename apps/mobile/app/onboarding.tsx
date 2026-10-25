@@ -149,7 +149,7 @@ export default function OnboardingScreen() {
           <View style={styles.preschoolTip}>
             <Icon name="seedling" size={16} color={colors.brand} duotone />
             <Text style={styles.preschoolTipText}>
-              We&apos;ll recommend optional Pre-School first — board, pieces & notation. Skip anytime.
+              We&apos;ll recommend optional Foundations first — board, pieces & notation. Skip anytime.
             </Text>
           </View>
         )}

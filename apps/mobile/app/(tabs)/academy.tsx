@@ -208,13 +208,13 @@ export default function AcademyScreen() {
               <View style={styles.placementOptional}>
                 <View style={styles.cardTitleRow}>
                   <Icon name="seedling" size={18} color={colors.brand} duotone />
-                  <Text style={styles.placementTitle}>Optional: Pre-School for complete beginners</Text>
+                  <Text style={styles.placementTitle}>Optional: Foundations for complete beginners</Text>
                 </View>
                 <Text style={styles.placementSub}>
                   Learn the board, pieces, and notation (d6, Nf3, Qd5) — skip anytime if you know the rules.
                 </Text>
                 <View style={{ marginTop: space[3], alignSelf: "flex-start" }}>
-                  <Button label="Start Pre-School →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
+                  <Button label="Start Foundations →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
                 </View>
               </View>
             )}

@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Chess for Beginners — Learn from Zero",
   description:
-    "Chess for beginners: learn the board, pieces, rules, and notation step by step. Free Pre-School classes with interactive puzzles at ChessSchool.",
+    "Chess for beginners: learn the board, pieces, rules, and notation step by step. Free Foundations classes with interactive puzzles at ChessSchool.",
   ...socialMeta({
     title: "Chess for Beginners",
     description:
@@ -36,13 +36,13 @@ export default function ChessForBeginnersPage() {
             {BEGINNER_INTRO}
           </p>
           <NavButton href="/class/class-pre-board" size="sm" className="self-start">
-            Start Pre-School →
+            Start Foundations →
           </NavButton>
         </header>
 
         <section aria-labelledby="preschool-heading">
           <h2 id="preschool-heading" className="text-ink mb-3 text-lg font-extrabold">
-            Pre-School classes for new players
+            Foundations classes for new players
           </h2>
           <CurriculumLinkGrid
             links={[
