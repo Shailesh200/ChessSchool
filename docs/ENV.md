@@ -26,6 +26,9 @@ Launch go-live steps: [`plans/M-073_WEB_GA_LAUNCH.md`](../plans/M-073_WEB_GA_LAU
 | `ELEVENLABS_API_KEY` | Optional | ElevenLabs TTS for named coach characters. Uses each voice’s saved Voice Lab settings + preferred model (e.g. Skye/Aerisita → Turbo v2.5). **Library/professional voices require a paid ElevenLabs plan for API calls** — Free can preview in Voice Lab but `/v1/text-to-speech` returns `paid_plan_required` and the app falls back to Edge (will not match Voice Lab). When unset or blocked, Edge Read Aloud is used. |
 | `GOOGLE_TTS_CREDENTIALS` | Optional | JSON for Google Cloud TTS |
 | `TTS_PROVIDER` | Optional | Set `google` to prefer Cloud TTS after ElevenLabs; default Edge Read Aloud when ElevenLabs unset |
+| `EMAIL_PROVIDER` | Prod email | Transactional provider. `resend` sends with the Resend HTTP API. Dev, test, and CI use the console transport when no provider key is set. Production fails closed unless a real provider is configured. |
+| `RESEND_API_KEY` | Prod email | Resend API key. Required together with `EMAIL_PROVIDER=resend` and `EMAIL_FROM`. |
+| `EMAIL_FROM` | Prod email | From address for transactional mail. Required together with `EMAIL_PROVIDER=resend` and `RESEND_API_KEY`. |
 | `NEXT_PUBLIC_SENTRY_DSN` | Optional | Sentry DSN for browser + fallback for server |
 | `SENTRY_DSN` | Optional | Server/edge Sentry DSN (falls back to `NEXT_PUBLIC_SENTRY_DSN`) |
 | `SENTRY_AUTH_TOKEN` | Optional | Build-time auth token for source map upload (`withSentryConfig`) |
@@ -60,6 +63,10 @@ SESSION_TOKEN_SECRET=dev-session-token-secret-at-least-32-chars
 # DATABASE_URL unset → local.db
 # Optional: coach character TTS (matches Voice Lab voice settings); without it → Edge
 # ELEVENLABS_API_KEY=
+# Optional transactional email. Unset → console transport in dev/test/CI.
+# EMAIL_PROVIDER=
+# RESEND_API_KEY=
+# EMAIL_FROM=
 # Optional Google + Ably for local testing
 # Optional shared rate limits — omit locally; in-memory limiter is the default
 # UPSTASH_REDIS_REST_URL=
