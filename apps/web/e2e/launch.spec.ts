@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { SUPPORT_EMAIL } from "../lib/support";
 
 /** M-073 Web GA trust / marketing pages. */
 
@@ -12,9 +13,7 @@ test("about page renders", async ({ page }) => {
 test("support page renders", async ({ page }) => {
   await page.goto("/support");
   await expect(page.getByRole("heading", { name: "Support", level: 1 })).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /iamshailesh121@gmail.com/i }),
-  ).toBeVisible();
+  await expect(page.getByRole("link", { name: SUPPORT_EMAIL })).toBeVisible();
 });
 
 test("terms page renders", async ({ page }) => {
@@ -22,6 +21,7 @@ test("terms page renders", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Terms of Use", level: 1 }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: SUPPORT_EMAIL })).toBeVisible();
 });
 
 test("chess-for-beginners landing renders", async ({ page }) => {

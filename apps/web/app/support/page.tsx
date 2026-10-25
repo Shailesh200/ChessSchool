@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { BackButton } from "@/components/ui/BackButton";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Support",
   description: "Get help with ChessSchool accounts, progress sync, and play.",
 };
-
-const CONTACT = "iamshailesh121@gmail.com";
 
 export default function SupportPage() {
   return (
@@ -24,10 +23,10 @@ export default function SupportPage() {
             <p>
               Email{" "}
               <a
-                href={`mailto:${CONTACT}`}
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-brand-500 font-bold underline"
               >
-                {CONTACT}
+                {SUPPORT_EMAIL}
               </a>
               . For security reports, use the same address with subject{" "}
               <strong>[security]</strong>.
