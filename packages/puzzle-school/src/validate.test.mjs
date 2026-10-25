@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { validateLessonSteps, validatePreschoolSpine } from "./validate.mjs";
+import { compiledPromotionErrors, validateLessonSteps, validatePreschoolSpine } from "./validate.mjs";
 import { topicIndex, preschoolTopicForLesson } from "../data/preschool-spine.mjs";
 
 describe("validateLessonSteps", () => {
@@ -88,6 +88,28 @@ describe("validateLessonSteps", () => {
       },
     ]);
     assert.ok(errors.some((e) => e.reason === "illegal_move"));
+  });
+});
+
+describe("compiledPromotionErrors", () => {
+  it("requires the UCI piece on the compiled step and ignores non-promoting plies", () => {
+    const puzzle = { line: ["e7e5", "e2e1q", "a7a6", "d2d4"] };
+    const steps = [
+      { id: "m1", promotion: "q", solution: ["e2:e1"] },
+      { id: "m3", solution: ["d2:d4"] },
+    ];
+    assert.equal(compiledPromotionErrors(puzzle, steps).length, 0);
+    assert.ok(
+      compiledPromotionErrors(puzzle, [{ id: "m1", solution: ["e2:e1"] }, steps[1]]).some(
+        (e) => e.reason === "missing_promotion",
+      ),
+    );
+    assert.ok(
+      compiledPromotionErrors(puzzle, [
+        steps[0],
+        { id: "m3", solution: ["d2:d4"], promotion: "q" },
+      ]).some((e) => e.reason === "unexpected_promotion"),
+    );
   });
 });
 

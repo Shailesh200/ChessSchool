@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBank } from "./bank.mjs";
 import { compilePuzzleSteps } from "./compile-lesson.mjs";
-import { validateLessonSteps } from "./validate.mjs";
+import { compiledPromotionErrors, validateLessonSteps } from "./validate.mjs";
 
 const bankDir = join(dirname(fileURLToPath(import.meta.url)), "../data/puzzles");
 
@@ -18,6 +18,33 @@ function studentPlies(line) {
 
 describe("promotion piece in compiled steps", () => {
   const puzzles = loadBank(bankDir);
+
+  it("emits promotion when a bank step promotes", () => {
+    const hit = puzzles.find((puzzle) =>
+      studentPlies(puzzle.line ?? []).some(
+        (uci) => uci.length > 4 && "qrbn".includes(uci[4]),
+      ),
+    );
+    assert.ok(hit, "bank has no promoting student ply");
+    const plies = studentPlies(hit.line);
+    const index = plies.findIndex((uci) => uci.length > 4);
+    const uci = plies[index];
+    const compiled = compilePuzzleSteps(hit);
+    assert.ok(!("error" in compiled), `${hit.id} failed to compile`);
+    const step = compiled.steps[index];
+    assert.equal(step.solution[0], `${uci.slice(0, 2)}:${uci.slice(2, 4)}`);
+    assert.equal(step.promotion, uci[4], `${hit.id} ${uci}`);
+    assert.equal(compiledPromotionErrors(hit, compiled.steps).length, 0);
+    const stripped = compiled.steps.map((s, i) =>
+      i === index ? { ...s, promotion: undefined } : s,
+    );
+    assert.ok(
+      compiledPromotionErrors(hit, stripped).some(
+        (e) => e.reason === "missing_promotion",
+      ),
+    );
+  });
+
   const under = [];
   for (const puzzle of puzzles) {
     const plies = studentPlies(puzzle.line ?? []);

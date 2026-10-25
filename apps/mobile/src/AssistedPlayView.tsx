@@ -22,6 +22,7 @@ import { stopCoachSpeech } from "@/coachSpeech";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, shadowCard, space, type } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
+import { assistedMoveOk } from "@/assistedPuzzle";
 import {
   outcomeFromWinner,
   scoreFromWinner,
@@ -38,6 +39,10 @@ type Puzzle = {
   orientation: "white" | "black";
   solutionKey: string;
   allSolutions: string[];
+  /** Set when every solution promotes to this piece. */
+  promotion?: "q" | "r" | "b" | "n";
+  /** Per-`from:to` piece when solutions promote to different pieces. */
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
   coach: string;
   successText: string;
   failText: string;
@@ -314,12 +319,12 @@ function AssistedPuzzle() {
     );
   }
 
-  function onMove(from: string, to: string): boolean {
+  function onMove(from: string, to: string, promotion: "q" | "r" | "b" | "n" = "q"): boolean {
     if (phase !== "calc" && phase !== "miss") return false;
     const key = `${from}:${to}`;
-    const ok = puzzle!.allSolutions.includes(key);
+    const ok = assistedMoveOk(puzzle!, { from, to, promotion });
     const engine = new ChessEngine(puzzle!.fen);
-    engine.move({ from, to, promotion: "q" });
+    engine.move({ from, to, promotion });
     setLastMove({ from, to });
     if (ok) {
       haptics.success();

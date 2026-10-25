@@ -1,6 +1,6 @@
 import { compilePuzzleSteps } from "./compile-lesson.mjs";
 import { emptyReport, finalizeReport } from "./report.mjs";
-import { validateLessonSteps } from "./validate.mjs";
+import { compiledPromotionErrors } from "./validate.mjs";
 import { MATRIX } from "../data/matrix.mjs";
 import { conceptGroup } from "./concepts.mjs";
 
@@ -67,9 +67,12 @@ export function validateBank(puzzles, opts = {}) {
       continue;
     }
 
-    const stepCheck = validateLessonSteps(p.id, compiled.steps);
-    if (stepCheck.errors.length) {
-      for (const e of stepCheck.errors) {
+    // compilePuzzleSteps already rejected illegal moves. This only checks that
+    // a promoting student ply kept its piece — a second chess.js replay of
+    // every step was ~9× slower on the full bank and did not add a check.
+    const promoErrors = compiledPromotionErrors(p, compiled.steps);
+    if (promoErrors.length) {
+      for (const e of promoErrors) {
         report.byOutcome.rejected.push({
           id: p.id,
           reason: e.reason,

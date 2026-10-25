@@ -216,6 +216,53 @@ export function validateLessonSteps(lessonId, steps) {
 }
 
 /**
+ * Promotion check for a bank puzzle after `compilePuzzleSteps`.
+ *
+ * The compiler already replays the UCI line and rejects an illegal move or an
+ * illegal promotion piece. Comparing the student ply to `step.promotion` keeps
+ * that check without building another Chess position per step.
+ *
+ * @param {{ line?: string[] }} puzzle
+ * @param {LessonStep[]} steps
+ * @returns {{ stepId: string, reason: string, detail: string }[]}
+ */
+export function compiledPromotionErrors(puzzle, steps) {
+  const errors = [];
+  const moves = (puzzle.line ?? []).map((m) => String(m).replace(/:/g, ""));
+  let si = 0;
+  for (let i = 1; i < moves.length; i += 2) {
+    const uci = moves[i] ?? "";
+    const step = steps[si++];
+    const sid = step?.id ?? "?";
+    if (!step) {
+      errors.push({
+        stepId: sid,
+        reason: "missing_promotion",
+        detail: `no compiled step for ${uci}`,
+      });
+      continue;
+    }
+    const piece = uci.length > 4 ? uci[4] : "";
+    if (piece) {
+      if (!PROMOTION_PIECES.has(piece) || step.promotion !== piece) {
+        errors.push({
+          stepId: sid,
+          reason: "missing_promotion",
+          detail: `${uci} promotes to ${piece} but step.promotion is ${step.promotion ?? "missing"}`,
+        });
+      }
+    } else if (step.promotion || (step.promotions && Object.keys(step.promotions).length > 0)) {
+      errors.push({
+        stepId: sid,
+        reason: "unexpected_promotion",
+        detail: `${uci} does not promote`,
+      });
+    }
+  }
+  return errors;
+}
+
+/**
  * @param {Map<string, { id: string, tag: string, prerequisites: string[] }>} lessonIndex
  * @param {{ id: string, tag: string, prerequisites: string[] }} lesson
  * @param {(id: string, tag: string) => string|null|undefined} topicFor
