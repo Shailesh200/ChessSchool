@@ -62,7 +62,7 @@ Rebuild the native app after changing Google OAuth env vars or adding the Google
 | `preview` | `preview` | Internal APK for device QA |
 | `production` | `production` | Play Store AAB + OTA to store users |
 
-**Runtime version:** tied to `app.json` → `expo.version` (`0.2.0`). Bump `version` when you ship a **native** change (new native module, SDK upgrade). JS-only fixes go out via **OTA** without a store update.
+**Runtime version:** `fingerprint` policy (`app.json` → `runtimeVersion`). An OTA update only reaches builds with the same native fingerprint. Native changes need a new store build. JS-only fixes still go out via **OTA**.
 
 ---
 
@@ -210,6 +210,7 @@ Users see **“Update ready — tap to restart”** at the top of the app after 
 | UI copy, styles, lesson logic (JS) | ✅ | |
 | New npm dependency with **no** native code | ✅ | |
 | New native module, permission, SDK bump | | ✅ |
+| Stockfish engine pin (`modules/stockfish/ios/engine.pin.json`) | | ✅ |
 | `app.json` version bump for store listing | | ✅ |
 | Icon / splash / adaptive icon | | ✅ |
 
@@ -261,7 +262,7 @@ as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
 
 - **`app.json` → `version`** — user-visible semver (`0.2.0`). Bump for store releases.
 - **`android.versionCode`** — integer; EAS auto-increments on production builds.
-- **`runtimeVersion`** — `appVersion` policy: OTA updates only apply to builds with the same `expo.version`.
+- **`runtimeVersion`** — `fingerprint` policy. EAS hashes the native project (autolinked modules, config plugins, native config). An OTA update only installs on builds with that same hash, so native changes need a new store build even when `expo.version` stays put. The gitignored Stockfish tree `modules/stockfish/ios/engine/` is excluded in `fingerprint.config.js` (it is fetched at build time and missing from `eas update` on CI). The committed pin `modules/stockfish/ios/engine.pin.json` — Stockfish `sf_16.1` plus the sha256 of the source tarball and both NNUE nets — is inside the autolinked iOS directory, so it is hashed. Update the pin when the fetch URL or checksums change.
 
 ---
 
@@ -273,7 +274,7 @@ as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
 | EAS build can't resolve `@chess-school/core` | Run build from `apps/mobile`; pnpm workspace is auto-detected |
 | EAS Gradle / KSP failure (`IncompatibleClassChangeError`, kotlin metadata) | Do **not** set `expo-build-properties.android.kotlinVersion` — let Expo SDK 54 pick the toolchain. Keep `gradleCommand` + `GRADLE_OPTS` with configure-on-demand off |
 | Preview APK instant crash on open | Pin Expo SDK-compatible natives (`expo-speech@~14` for SDK 54). Rebuild after `expo install` — stale wrong ABI builds crash at module load |
-| OTA not applying | Run `eas update:configure`; production build must use `channel: production` |
+| OTA not applying | Run `eas update:configure`; production build must use `channel: production`. The native fingerprint must match too — a native change needs a new store build |
 | Updates disabled in dev | Expected — OTA only runs in release builds |
 | Play rejection: missing deletion | Account screen → Delete account |
 | Play rejection: privacy | Ensure `/privacy` is deployed on production |
