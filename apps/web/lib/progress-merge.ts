@@ -1,5 +1,4 @@
 import {
-  isoDay,
   mergeProgressSnapshots,
   normalizeProgressPush,
   type Snap,
@@ -7,7 +6,9 @@ import {
 import type { ProgressPushBody } from "@/lib/api-schemas";
 import {
   applyOneTimeStreakGrace,
+  mergeActivityDay,
   readStoredStreakGrace,
+  serverUtcDay,
   type StreakGrace,
 } from "@/lib/streak-grace";
 
@@ -308,11 +309,14 @@ function extraFromPush(body: ProgressPushBody): ExtraProgressData {
 
 export type MergeProgressOptions = {
   /**
-   * Server calendar day for the grace window. Defaults to `isoDay()`
-   * (UTC on Vercel). Tests pass this so the window does not follow the clock.
+   * Server UTC day (`YYYY-MM-DD`) for the grace window and the activity-day
+   * cap. Defaults to today's UTC date. Tests pass this so results ignore the clock.
    */
   today?: string;
-  /** Overrides `STREAK_GRACE_START` / `STREAK_GRACE_WINDOW.start`. */
+  /**
+   * Window start override for tests. Production omits this and reads
+   * `STREAK_GRACE_START`. Unset or invalid disables grace.
+   */
   graceStart?: string;
 };
 
@@ -324,6 +328,8 @@ export type MergeProgressOptions = {
  * `mergeProgressSnapshots` chose — max() today, the newer `lastActiveDay`'s
  * streak after D3. Grace replaces it only for the one-time one-day rule, and
  * the flag written into `data.streakGrace` always comes from the server.
+ * An incoming `lastActiveDay` later than the server UTC day + 1 is not
+ * stored, and that push does not change the streak.
  *
  * The corrected streak is what gets stored. POST /api/progress still replies
  * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
@@ -334,21 +340,32 @@ export function mergeProgressPush(
   server: ServerProgressState,
   options?: MergeProgressOptions,
 ): MergedProgressWrite {
+  const utcToday = options?.today ?? serverUtcDay();
+  const activity = mergeActivityDay(
+    incoming.lastActiveDay,
+    server.lastActiveDay,
+    utcToday,
+  );
   const mergedCore = mergeProgressSnapshots(
     snapFromPush(incoming),
     snapFromServer(server),
   );
   const mergedExtra = mergeExtraData(server.extra, extraFromPush(incoming));
-  const graced = applyOneTimeStreakGrace({
-    storedStreak: server.streak,
-    storedLastActiveDay: server.lastActiveDay,
-    incomingStreak: incoming.streak,
-    incomingLastActiveDay: incoming.lastActiveDay,
-    mergedStreak: mergedCore.streak ?? 0,
-    storedGrace: server.extra.streakGrace,
-    today: options?.today ?? isoDay(),
-    graceStart: options?.graceStart,
-  });
+  const graced = activity.rejectIncoming
+    ? {
+        streak: server.streak,
+        streakGrace: readStoredStreakGrace(server.extra.streakGrace),
+      }
+    : applyOneTimeStreakGrace({
+        storedStreak: server.streak,
+        storedLastActiveDay: server.lastActiveDay,
+        incomingStreak: incoming.streak,
+        incomingLastActiveDay: incoming.lastActiveDay,
+        mergedStreak: mergedCore.streak ?? 0,
+        storedGrace: server.extra.streakGrace,
+        today: utcToday,
+        graceStart: options?.graceStart,
+      });
 
   const data: ExtraProgressData = {
     ...mergedExtra,
@@ -368,7 +385,7 @@ export function mergeProgressPush(
   return {
     xp: mergedCore.xp ?? 0,
     streak: graced.streak,
-    lastActiveDay: mergedCore.lastActiveDay ?? null,
+    lastActiveDay: activity.lastActiveDay,
     dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
     graduatedClasses: (mergedCore.graduatedClasses as string[] | undefined) ?? [],
     data,

@@ -1,16 +1,13 @@
-import { addDays } from "@chess-school/progression";
+import { addDays, isoDay } from "@chess-school/progression";
 
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /**
- * One-time streak grace window.
- *
- * `start` is the first calendar day the window is open (inclusive). Set it —
- * or the `STREAK_GRACE_START` env var — to the day D2 local-time days ship.
- * The window lasts `lengthDays` calendar days, counting `start`.
+ * Length of the one-time streak grace window, counting the start day.
+ * The start itself is only `STREAK_GRACE_START` (or a test override).
+ * Unset or invalid means grace is off.
  */
 export const STREAK_GRACE_WINDOW = {
-  start: "2026-10-25",
   lengthDays: 7,
 } as const;
 
@@ -26,16 +23,28 @@ export type StreakGraceInput = {
    * Streak already chosen by the snapshot merge.
    * Today that is max(stored, incoming), which hides a reset (D-3).
    * D3 will switch this to the streak on the side with the newer
-   * `lastActiveDay`. Grace does not trust this number when it applies:
-   * it sets `storedStreak + 1`. When it does not apply, this number is
-   * returned unchanged, so a later recency merge still resets.
+   * `lastActiveDay`, with the larger streak winning a same-day tie.
+   * Grace replaces this number only when the one-time rule matches.
+   * Otherwise it is returned unchanged.
    */
   mergedStreak: number;
   storedGrace?: StreakGrace | null;
-  /** Server calendar day the window is checked against. */
+  /** Server UTC day the window and the ±1 skew check use. */
   today: string;
-  /** Test override. Production uses `STREAK_GRACE_START` or `STREAK_GRACE_WINDOW.start`. */
+  /**
+   * Test override for the window start. Omit it in production so
+   * `STREAK_GRACE_START` is required. Invalid values disable grace.
+   */
   graceStart?: string;
+};
+
+export type MergedActivityDay = {
+  lastActiveDay: string | null;
+  /**
+   * Incoming day is missing a strict calendar form, or is later than the
+   * server UTC day + 1. Callers keep the stored streak and skip grace.
+   */
+  rejectIncoming: boolean;
 };
 
 export function isRealIsoDay(value: string): boolean {
@@ -44,21 +53,64 @@ export function isRealIsoDay(value: string): boolean {
   return addDays(value, 0) === value;
 }
 
-/** Override, else STREAK_GRACE_START, else the constant. An invalid override does not read the env. */
-export function streakGraceStart(override?: string): string {
-  if (override !== undefined) {
-    const trimmed = override.trim();
-    return isRealIsoDay(trimmed) ? trimmed : STREAK_GRACE_WINDOW.start;
-  }
-  const fromEnv = process.env.STREAK_GRACE_START?.trim();
-  if (fromEnv && isRealIsoDay(fromEnv)) return fromEnv;
-  return STREAK_GRACE_WINDOW.start;
+/** UTC calendar day. Vercel is UTC; this does not follow the host zone. */
+export function serverUtcDay(now = new Date()): string {
+  return isoDay(now, "UTC");
+}
+
+/**
+ * Window start from an explicit override or `STREAK_GRACE_START`.
+ * `null` means grace is disabled (fail closed). There is no built-in date.
+ */
+export function streakGraceStart(override?: string): string | null {
+  const candidate = override !== undefined ? override : process.env.STREAK_GRACE_START;
+  const trimmed = candidate?.trim() ?? "";
+  return trimmed && isRealIsoDay(trimmed) ? trimmed : null;
 }
 
 export function isInsideStreakGraceWindow(day: string, start: string): boolean {
   if (!isRealIsoDay(day) || !isRealIsoDay(start)) return false;
   const end = addDays(start, STREAK_GRACE_WINDOW.lengthDays - 1);
   return day >= start && day <= end;
+}
+
+/** Local play can fall on the UTC day, the day before, or the day after. */
+export function isWithinServerUtcSkew(day: string | null, utcToday: string): boolean {
+  if (!day || !isRealIsoDay(day) || !isRealIsoDay(utcToday)) return false;
+  return day >= addDays(utcToday, -1) && day <= addDays(utcToday, 1);
+}
+
+/**
+ * Pick the day the merge is allowed to store.
+ * A malformed incoming day is ignored. A day later than UTC tomorrow is
+ * not stored; a stored day that is already past that cap is clamped to it.
+ */
+export function mergeActivityDay(
+  incoming: string | null,
+  stored: string | null,
+  utcToday: string,
+): MergedActivityDay {
+  if (!isRealIsoDay(utcToday)) {
+    return {
+      lastActiveDay: stored && isRealIsoDay(stored) ? stored : null,
+      rejectIncoming: true,
+    };
+  }
+  const latest = addDays(utcToday, 1);
+  const capped = (day: string | null): string | null => {
+    if (!day || !isRealIsoDay(day)) return null;
+    return day > latest ? latest : day;
+  };
+  if (incoming != null && !isRealIsoDay(incoming)) {
+    return { lastActiveDay: capped(stored), rejectIncoming: true };
+  }
+  if (incoming && isRealIsoDay(incoming) && incoming > latest) {
+    return { lastActiveDay: capped(stored), rejectIncoming: true };
+  }
+  if (incoming && isRealIsoDay(incoming)) {
+    return { lastActiveDay: capped(incoming), rejectIncoming: false };
+  }
+  return { lastActiveDay: capped(stored), rejectIncoming: false };
 }
 
 /** A stored flag counts as used only when the server wrote a real day. */
@@ -81,7 +133,8 @@ function isExactlyOneMissedDay(
 
 /**
  * Continue a streak that reset after exactly one missed calendar day.
- * At most once per user, and only while `today` is inside the grace window.
+ * At most once per user, only inside the grace window, and only when the
+ * incoming day is a real `YYYY-MM-DD` within the server UTC day ±1.
  * The returned `streakGrace` is always the server's — never a client value.
  */
 export function applyOneTimeStreakGrace(input: StreakGraceInput): {
@@ -94,7 +147,10 @@ export function applyOneTimeStreakGrace(input: StreakGraceInput): {
   if (storedGrace) return unchanged;
 
   const start = streakGraceStart(input.graceStart);
-  if (!isInsideStreakGraceWindow(input.today, start)) return unchanged;
+  if (!start || !isInsideStreakGraceWindow(input.today, start)) return unchanged;
+
+  if (!isWithinServerUtcSkew(input.incomingLastActiveDay, input.today))
+    return unchanged;
 
   if (!isExactlyOneMissedDay(input.storedLastActiveDay, input.incomingLastActiveDay)) {
     return unchanged;
