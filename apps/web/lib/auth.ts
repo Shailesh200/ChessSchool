@@ -52,6 +52,39 @@ function makeStudentNo(): string {
   return `CS-${year}-${n}`;
 }
 
+/**
+ * Insert the account rows in one libSQL write transaction (`BEGIN IMMEDIATE`).
+ * If a later insert fails, the driver rolls the users row back so the email is
+ * free again. The session is created only after this commits: it is login state
+ * (and, on web, a cookie), not part of the account that owns the email.
+ */
+async function insertStudentAccount(input: {
+  id: string;
+  email: string;
+  passwordHash: string | null;
+  name: string;
+  now: number;
+}): Promise<void> {
+  const studentNo = makeStudentNo();
+  await db.transaction(async (tx) => {
+    await tx.insert(users).values({
+      id: input.id,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      name: input.name,
+      role: "student",
+      createdAt: input.now,
+    });
+    await tx.insert(profiles).values({
+      userId: input.id,
+      studentNo,
+      enrolledAt: input.now,
+      rankTitle: "Novice",
+    });
+    await tx.insert(progress).values({ userId: input.id, updatedAt: input.now });
+  });
+}
+
 async function startSession(userId: string): Promise<void> {
   const token = await createSession(userId, dbConn());
   const jar = await cookies();
@@ -87,21 +120,13 @@ export async function registerUser(
 
   const id = randomUUID();
   const now = Date.now();
-  await db.insert(users).values({
+  await insertStudentAccount({
     id,
     email,
     passwordHash: await hashPassword(password),
     name: name.trim(),
-    role: "student",
-    createdAt: now,
+    now,
   });
-  await db.insert(profiles).values({
-    userId: id,
-    studentNo: makeStudentNo(),
-    enrolledAt: now,
-    rankTitle: "Novice",
-  });
-  await db.insert(progress).values({ userId: id, updatedAt: now });
   await startSession(id);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
@@ -196,21 +221,13 @@ export async function registerWithToken(
   }
   const id = randomUUID();
   const now = Date.now();
-  await db.insert(users).values({
+  await insertStudentAccount({
     id,
     email,
     passwordHash: await hashPassword(password),
     name: name.trim(),
-    role: "student",
-    createdAt: now,
+    now,
   });
-  await db.insert(profiles).values({
-    userId: id,
-    studentNo: makeStudentNo(),
-    enrolledAt: now,
-    rankTitle: "Novice",
-  });
-  await db.insert(progress).values({ userId: id, updatedAt: now });
   const token = await createSessionToken(id);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
@@ -248,22 +265,13 @@ async function provisionNewStudent(
   name: string,
   passwordHash: string | null,
 ): Promise<void> {
-  const now = Date.now();
-  await db.insert(users).values({
+  await insertStudentAccount({
     id,
     email,
     passwordHash,
     name: name.trim(),
-    role: "student",
-    createdAt: now,
+    now: Date.now(),
   });
-  await db.insert(profiles).values({
-    userId: id,
-    studentNo: makeStudentNo(),
-    enrolledAt: now,
-    rankTitle: "Novice",
-  });
-  await db.insert(progress).values({ userId: id, updatedAt: now });
 }
 
 async function linkGoogleAccount(userId: string, sub: string): Promise<void> {
