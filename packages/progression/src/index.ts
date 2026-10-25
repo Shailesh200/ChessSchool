@@ -214,6 +214,18 @@ export function normalizeProgressPush(snap: Snap & { placementDone?: boolean }):
 }
 
 /**
+ * A real calendar day strictly after the server's UTC day + 1.
+ * T+1 stays writable. Further ahead is not.
+ */
+export function lastActiveDayBeyondServer(
+  day: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (typeof day !== "string" || !isCalendarDay(day)) return false;
+  return day > addDays(calendarDay(now, "UTC"), 1);
+}
+
+/**
  * Drop a lastActiveDay more than one day past the server's UTC day.
  * Exactly +1 is the timezone window; further ahead is never kept on write.
  */
@@ -222,7 +234,7 @@ function acceptedLastActiveDay(
   now: Date,
 ): string | null {
   if (typeof day !== "string" || !isCalendarDay(day)) return null;
-  if (day > addDays(calendarDay(now, "UTC"), 1)) return null;
+  if (lastActiveDayBeyondServer(day, now)) return null;
   return day;
 }
 

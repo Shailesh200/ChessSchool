@@ -83,6 +83,12 @@ describe("?day= on daily-puzzle and think", () => {
     },
   );
 
+  it.each(routes)("$name accepts server UTC day +1 at noon", async ({ path, get }) => {
+    const res = await get(new Request(`http://localhost${path}?day=2026-07-16`));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ day: "2026-07-16" });
+  });
+
   it.each(routes)("$name accepts the local day at 03:55 IST", async ({ path, get }) => {
     vi.setSystemTime(IST_0355);
     const res = await get(new Request(`http://localhost${path}?day=2026-07-15`));

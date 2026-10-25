@@ -159,14 +159,23 @@ describe("registerActivity across local midnight", () => {
     const skipped = registerActivity(back, "2026-07-17");
     expect(skipped.streak).toBe(1);
     expect(skipped.lastActiveDay).toBe("2026-07-17");
+  });
 
-    // The day after the rewound day still counts normally.
-    const next = registerActivity(back, "2026-07-16");
-    expect(next.streak).toBe(8);
-    expect(next.lastActiveDay).toBe("2026-07-16");
-    const after = registerActivity(next, "2026-07-17");
-    expect(after.streak).toBe(9);
-    expect(after.lastActiveDay).toBe("2026-07-17");
+  it("[accepted-risk: Arc 2026-10-26] clock toggle +1/back can double count", () => {
+    // 6 → 7 → 7 → 8. Moving a day ahead counts it, the pull-back keeps that
+    // count, and the same day counts again when it arrives. Three real days
+    // of that toggle therefore add 5, not 3.
+    // Fix: credit a day only once it has arrived in the user's stored zone
+    // (lane D PR D2c). This PR does not change the count.
+    const day = "2026-07-15";
+    let snap = registerActivity({ streak: 6, lastActiveDay: day }, "2026-07-16");
+    expect(snap.streak).toBe(7);
+    snap = registerActivity(snap, day);
+    expect(snap.streak).toBe(7);
+    expect(snap.lastActiveDay).toBe(day);
+    snap = registerActivity(snap, "2026-07-16");
+    expect(snap.streak).toBe(8);
+    expect(snap.lastActiveDay).toBe("2026-07-16");
   });
 
   it("drops a stored day more than one ahead and restarts on today", () => {
