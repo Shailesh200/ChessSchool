@@ -18,7 +18,7 @@ Goal: the app plays at true **web/chess.com strength** by bundling the real **St
 
 Nets are fetched from `https://tests.stockfishchess.org/api/nn/<name>`, then `https://github.com/official-stockfish/networks/raw/master/<name>` if the first mirror fails. The filename's 12 hex chars are the leading bytes of that SHA-256 (Stockfish's own naming rule); the script also checks the full digest.
 
-**EAS.** `apps/mobile/package.json` hook `eas-build-pre-install` runs the script. EAS sets `EAS_BUILD_PLATFORM`. The script fetches only when that is `ios` or unset (a local run). Android EAS builds exit 0 immediately and do not download. The hook runs before `pod install`, which is when `Stockfish.podspec` globs `engine/**/*.{cpp,h}` and `engine/*.nnue`.
+**EAS.** `apps/mobile/package.json` hook `eas-build-pre-install` runs the script. EAS sets `EAS_BUILD_PLATFORM`. The script fetches only when that is `ios` or unset (a local run). Android EAS builds exit 0 immediately and do not download. The hook runs before `pod install`, which is when `Stockfish.podspec` globs `engine/**/*.{cpp,h}`. The `.nnue` files are not pod resources; `incbin` reads them at compile time through `-I engine`.
 
 **Local iOS** (simulator or device), from `apps/mobile`:
 
@@ -39,7 +39,7 @@ Re-running the script is a no-op when the stamp and both net checksums still mat
 
 `ios/stockfish-config.h` (committed) is force-included by the podspec. It turns on the upstream Makefile profile without editing fetched sources: arm64 gets `USE_NEON=8` and `USE_POPCNT` (ARCH=armv8, no dotprod — iOS 15.1 still includes A9–A11), x86_64 simulator gets SSE4.1 + popcnt. `main` is still renamed to `stockfish_cpp_main` for the shim.
 
-**App size.** The big net is ~104 MiB and the small net ~3.4 MiB (~107 MiB together). `network.cpp` embeds both with `incbin` (this is what the default `EvalFile` / `EvalFileSmall` options use), and the podspec also copies `engine/*.nnue` into the app bundle as resources. Uncompressed, the nets are therefore in the IPA twice, on the order of **215 MiB** before App Store thinning and compression. The C++ sources add under 1 MiB.
+**App size.** The big net is 108,919,594 bytes and the small net is 3,519,630 bytes, **112,439,224 bytes (~108 MiB)** together. `network.cpp` embeds both with `incbin`. That embedded image is the only copy in the app: the podspec does not ship `engine/*.nnue` as resources, and nothing looks for the nets on the iOS bundle path. `Network::load` uses the embedded data when `EvalFile` / `EvalFileSmall` are the default names (`<internal>`). Its file fallbacks are the process working directory and the binary's directory, and the Swift bridge never sends an `EvalFile` path. The C++ sources add under 1 MiB. Uncompressed engine payload is about **108 MiB** before App Store thinning and compression.
 
 The JS adapter in `src/stockfish.ts` is unchanged. If the native module is missing (Expo Go, web, Android) `nativeBestMove` returns null and `getBotMove` uses the in-house JS engine. That fallback is a safety net, not the iOS build path.
 

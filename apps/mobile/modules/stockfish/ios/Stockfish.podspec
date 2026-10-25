@@ -23,11 +23,12 @@ Pod::Spec.new do |s|
   # Only the C bridge is public → it lands in the framework umbrella so Swift can
   # see `stockfish_main` (bridging headers aren't allowed for framework targets).
   s.public_header_files = 'stockfish-bridge.h'
-  # network.cpp embeds the nets with incbin (what the default UCI options use).
-  # The same files are also copied into the app bundle as resources — the
-  # original pod layout. That second copy is the bulk of the app-size cost;
-  # sizes are in STOCKFISH.md.
-  s.resources    = 'engine/*.nnue'
+  # No s.resources. network.cpp embeds both nets with incbin (see -I engine
+  # below). Stockfish loads the default EvalFile / EvalFileSmall from that
+  # embedded image ("<internal>"), not from a file. File fallbacks are the
+  # process working directory and the binary directory — not the iOS bundle —
+  # and the Swift bridge never sends an EvalFile path. Shipping the nets as
+  # pod resources would copy them a second time. Sizes are in STOCKFISH.md.
 
   # -I engine lets incbin find nn-*.nnue. -include applies the iOS arch profile
   # (NEON on arm64, SSE4.1 on x86_64 simulator) without editing fetched sources.

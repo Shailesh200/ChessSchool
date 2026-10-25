@@ -58,15 +58,18 @@ file_sha256() {
 }
 
 # Filename prefix must be the leading 12 hex chars of the pinned digest.
-# Fail here (no network) if those constants ever drift apart.
-case "${NNUE_BIG_SHA256}" in
-  c288c895ea92*) ;;
-  *) die "internal pin error: ${NNUE_BIG} does not match its SHA-256" ;;
-esac
-case "${NNUE_SMALL_SHA256}" in
-  37f18f62d772*) ;;
-  *) die "internal pin error: ${NNUE_SMALL} does not match its SHA-256" ;;
-esac
+# The full hashes live only in the constants above; this derives the check
+# from those constants so a renamed net cannot drift from its digest.
+nnue_prefix_matches() {
+  local name="$1" digest="$2" prefix
+  prefix="${name#nn-}"
+  prefix="${prefix%.nnue}"
+  [[ "${#prefix}" -eq 12 && "${digest}" == "${prefix}"* ]]
+}
+nnue_prefix_matches "${NNUE_BIG}" "${NNUE_BIG_SHA256}" \
+  || die "internal pin error: ${NNUE_BIG} does not match its SHA-256"
+nnue_prefix_matches "${NNUE_SMALL}" "${NNUE_SMALL_SHA256}" \
+  || die "internal pin error: ${NNUE_SMALL} does not match its SHA-256"
 
 already_installed() {
   local stamp="${ENGINE}/.stockfish-fetch-stamp"
