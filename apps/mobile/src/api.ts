@@ -146,7 +146,10 @@ async function fetchOnce<T>(path: string, opts: { method?: string; body?: unknow
   return (await res.json()) as T;
 }
 
-/** Fetch helper with bearer token, 45s timeout, and one retry — not session POSTs on timeout. */
+/**
+ * Bearer-token fetch. Each attempt aborts after REQUEST_TIMEOUT_MS (45_000, 45s).
+ * Retries once on network failure or timeout, except a session POST on timeout.
+ */
 export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = await getToken();
   try {
