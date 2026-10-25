@@ -5,6 +5,7 @@ import { bootApiTestEnv, type TestDb } from "@/lib/test-db.harness";
 
 const PW = "testpass123";
 const TRIGGER = "cs23_fail_progress_insert";
+const EMAIL_TAKEN = "Could not create an account with this email. Try signing in.";
 
 /** Fail the progress insert the way a real constraint failure would (ABORT, transaction left open). */
 async function failNextProgressInsert(db: TestDb): Promise<void> {
@@ -133,5 +134,46 @@ describe("atomic registration", () => {
     expect(
       (await db.select().from(sessions).where(eq(sessions.userId, user.id))).length,
     ).toBe(1);
+  });
+
+  it("registerWithToken: one of two concurrent signups is already registered", async () => {
+    const email = "race-mobile@test.dev";
+    const [a, b] = await Promise.all([
+      registerWithToken(email, PW, "One"),
+      registerWithToken(email, PW, "Two"),
+    ]);
+    const results = [a, b];
+    const created = results.filter((r) => "token" in r);
+    const taken = results.filter((r) => "error" in r);
+    expect(created).toHaveLength(1);
+    expect(taken).toEqual([{ error: EMAIL_TAKEN }]);
+
+    const rows = await db.select().from(users).where(eq(users.email, email));
+    expect(rows).toHaveLength(1);
+    expect(await db.select().from(profiles)).toHaveLength(1);
+    expect(await db.select().from(progress)).toHaveLength(1);
+    expect(await db.select().from(sessions)).toHaveLength(1);
+    const winner = created[0];
+    if (!winner || !("token" in winner)) return;
+    expect(winner.user.id).toBe(rows[0]?.id);
+  });
+
+  it("registerUser: one of two concurrent signups is already registered", async () => {
+    const email = "race-web@test.dev";
+    const [a, b] = await Promise.all([
+      registerUser(email, PW, "One"),
+      registerUser(email, PW, "Two"),
+    ]);
+    const results = [a, b];
+    const created = results.filter((r) => "ok" in r);
+    const taken = results.filter((r) => "error" in r);
+    expect(created).toEqual([{ ok: true }]);
+    expect(taken).toEqual([{ error: EMAIL_TAKEN }]);
+
+    const rows = await db.select().from(users).where(eq(users.email, email));
+    expect(rows).toHaveLength(1);
+    expect(await db.select().from(profiles)).toHaveLength(1);
+    expect(await db.select().from(progress)).toHaveLength(1);
+    expect(await db.select().from(sessions)).toHaveLength(1);
   });
 });

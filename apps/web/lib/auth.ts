@@ -25,9 +25,11 @@ import {
   findSessionByRawToken,
   revokeSessionByRawToken,
 } from "@/lib/session-store";
+import { isSqliteBusy, isUsersEmailUniqueViolation } from "@/lib/sqlite-errors";
 
 const COOKIE = "chessschool_session";
 const SESSION_DAYS = 30;
+const EMAIL_TAKEN = "Could not create an account with this email. Try signing in.";
 
 function dbConn() {
   return db as import("drizzle-orm/libsql").LibSQLDatabase<
@@ -52,19 +54,61 @@ function makeStudentNo(): string {
   return `CS-${year}-${n}`;
 }
 
-/**
- * Insert the account rows in one libSQL write transaction (`BEGIN IMMEDIATE`).
- * If a later insert fails, the driver rolls the users row back so the email is
- * free again. The session is created only after this commits: it is login state
- * (and, on web, a cookie), not part of the account that owns the email.
- */
-async function insertStudentAccount(input: {
+type NewStudent = {
   id: string;
   email: string;
   passwordHash: string | null;
   name: string;
   now: number;
-}): Promise<void> {
+};
+
+/**
+ * Same-process signups share one queue. The local file driver runs
+ * `BEGIN IMMEDIATE` synchronously and blocks this thread, so two overlapping
+ * transactions deadlock into `SQLITE_BUSY` instead of a unique violation.
+ * Queuing lets the second insert start after the first commits and hit
+ * `users.email`.
+ */
+let signupTail: Promise<void> = Promise.resolve();
+
+function enqueueSignup<T>(task: () => Promise<T>): Promise<T> {
+  const run = signupTail.then(task, task);
+  signupTail = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
+/**
+ * Insert the account rows in one libSQL write transaction (`BEGIN IMMEDIATE`).
+ * If a later insert fails, the driver rolls the users row back so the email is
+ * free again. The session is created only after this commits: it is login state
+ * (and, on web, a cookie), not part of the account that owns the email.
+ *
+ * Returns false when `users.email` already exists.
+ */
+async function insertStudentAccount(input: NewStudent): Promise<boolean> {
+  try {
+    await writeStudentAccount(input);
+    return true;
+  } catch (err) {
+    if (isUsersEmailUniqueViolation(err)) return false;
+    if (!isSqliteBusy(err)) throw err;
+  }
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
+  try {
+    await writeStudentAccount(input);
+    return true;
+  } catch (err) {
+    if (isUsersEmailUniqueViolation(err)) return false;
+    throw err;
+  }
+}
+
+async function writeStudentAccount(input: NewStudent): Promise<void> {
   const studentNo = makeStudentNo();
   await db.transaction(async (tx) => {
     await tx.insert(users).values({
@@ -114,20 +158,24 @@ export async function registerUser(
   const existing = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (existing) {
-    return { error: "Could not create an account with this email. Try signing in." };
-  }
+  if (existing) return { error: EMAIL_TAKEN };
 
   const id = randomUUID();
   const now = Date.now();
-  await insertStudentAccount({
-    id,
-    email,
-    passwordHash: await hashPassword(password),
-    name: name.trim(),
-    now,
+  const passwordHash = await hashPassword(password);
+  const created = await enqueueSignup(async () => {
+    const ok = await insertStudentAccount({
+      id,
+      email,
+      passwordHash,
+      name: name.trim(),
+      now,
+    });
+    if (!ok) return false;
+    await startSession(id);
+    return true;
   });
-  await startSession(id);
+  if (!created) return { error: EMAIL_TAKEN };
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
   ]).catch(() => void 0);
@@ -217,18 +265,24 @@ export async function registerWithToken(
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!name.trim()) return { error: "Enter your name." };
   if ((await db.select().from(users).where(eq(users.email, email)).limit(1))[0]) {
-    return { error: "Could not create an account with this email. Try signing in." };
+    return { error: EMAIL_TAKEN };
   }
   const id = randomUUID();
   const now = Date.now();
-  await insertStudentAccount({
-    id,
-    email,
-    passwordHash: await hashPassword(password),
-    name: name.trim(),
-    now,
+  const passwordHash = await hashPassword(password);
+  const created = await enqueueSignup(async () => {
+    const ok = await insertStudentAccount({
+      id,
+      email,
+      passwordHash,
+      name: name.trim(),
+      now,
+    });
+    if (!ok) return null;
+    return createSessionToken(id);
   });
-  const token = await createSessionToken(id);
+  if (!created) return { error: EMAIL_TAKEN };
+  const token = created;
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
   ]).catch(() => void 0);
@@ -264,8 +318,8 @@ async function provisionNewStudent(
   email: string,
   name: string,
   passwordHash: string | null,
-): Promise<void> {
-  await insertStudentAccount({
+): Promise<boolean> {
+  return insertStudentAccount({
     id,
     email,
     passwordHash,
@@ -293,6 +347,21 @@ function toSessionUser(user: {
   role: string;
 }): SessionUser {
   return { id: user.id, email: user.email, name: user.name, role: user.role };
+}
+
+async function linkExistingGoogleUser(
+  user: { id: string; email: string; name: string; role: string },
+  sub: string,
+): Promise<{ user: SessionUser; isNewUser: false }> {
+  await linkGoogleAccount(user.id, sub);
+  void insertAnalyticsEvents([
+    {
+      name: "login",
+      userId: user.id,
+      props: { provider: "google", linked: true },
+    },
+  ]).catch(() => void 0);
+  return { user: toSessionUser(user), isNewUser: false };
 }
 
 /** Sign in or enroll via Google — links to an existing email account when present. */
@@ -331,28 +400,27 @@ export async function signInWithGoogle(
   const existing = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (existing) {
-    await linkGoogleAccount(existing.id, profile.sub);
-    void insertAnalyticsEvents([
-      {
-        name: "login",
-        userId: existing.id,
-        props: { provider: "google", linked: true },
-      },
-    ]).catch(() => void 0);
-    return { user: toSessionUser(existing), isNewUser: false };
-  }
+  if (existing) return linkExistingGoogleUser(existing, profile.sub);
 
   const id = randomUUID();
-  await provisionNewStudent(id, email, profile.name, null);
-  await linkGoogleAccount(id, profile.sub);
-  void insertAnalyticsEvents([
-    { name: "signup", userId: id, props: { provider: "google" } },
-  ]).catch(() => void 0);
-  return {
-    user: { id, email, name: profile.name.trim(), role: "student" },
-    isNewUser: true,
-  };
+  return enqueueSignup(async () => {
+    const created = await provisionNewStudent(id, email, profile.name, null);
+    if (!created) {
+      const winner = (
+        await db.select().from(users).where(eq(users.email, email)).limit(1)
+      )[0];
+      if (!winner) return { error: EMAIL_TAKEN };
+      return linkExistingGoogleUser(winner, profile.sub);
+    }
+    await linkGoogleAccount(id, profile.sub);
+    void insertAnalyticsEvents([
+      { name: "signup", userId: id, props: { provider: "google" } },
+    ]).catch(() => void 0);
+    return {
+      user: { id, email, name: profile.name.trim(), role: "student" },
+      isNewUser: true as const,
+    };
+  });
 }
 
 /** Mobile: verify a Google ID token and return a bearer session. */
