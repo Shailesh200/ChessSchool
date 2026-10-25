@@ -43,7 +43,8 @@ export type ExtraProgressData = {
   journalEntries?: unknown[];
   /**
    * Server-owned streak days and one-time grace. Merge never copies a
-   * client-sent `streakGrace`. Only an activity push updates `activeDays`.
+   * client-sent `streakGrace`. Only an activity push adds a day. Once
+   * `activeDays` exists, every push recomputes the streak from that set.
    */
   streakGrace?: StreakGrace;
 };
@@ -331,11 +332,17 @@ export type MergeProgressOptions = {
  * day later than the server UTC day + 1. This merge does not apply a second
  * copy of that clamp.
  *
- * When the push shows new streak activity (XP or a completion count above
- * the stored snapshot), the server adds today or yesterday to
- * `data.streakGrace.activeDays` and recomputes the streak from that set.
- * Settings, plan, and journal pushes do not. Grace can bridge one gap in
- * the set. The object written there is always the server's.
+ * Once `activeDays` exists, every push recomputes the streak from that set.
+ * The client's streak number is not stored. Activity may add today or
+ * yesterday and may spend grace on one hole. Settings, plan, and journal
+ * pushes do neither.
+ *
+ * A row with no set still max-merges until the first activity push. That
+ * push seeds the set from the max-merged streak (so a higher client number
+ * can fill it) anchored on the server's `lastActiveDay`. The streak that
+ * is stored is the run those days support, at most 60, not the raw number.
+ * Grace can bridge one gap in the set. The object written there is always
+ * the server's.
  *
  * The corrected streak is what gets stored. POST /api/progress still replies
  * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
@@ -372,19 +379,24 @@ export function mergeProgressPush(
       },
     );
   const parsed = parseStreakGrace(server.extra.streakGrace);
-  const reconciled = played
-    ? reconcileActiveStreak({
-        hasActiveDays: parsed.hasActiveDays,
-        activeDays: parsed.grace?.activeDays,
-        graceUsedAt: parsed.grace?.graceUsedAt,
-        graceCoveredDay: parsed.grace?.graceCoveredDay,
-        storedLastActiveDay: server.lastActiveDay,
-        storedStreak: server.streak,
-        today: utcToday,
-        graceStart: options?.graceStart,
-        claimedDay: incoming.lastActiveDay,
-      })
-    : null;
+  const reconciled =
+    isRealIsoDay(utcToday) && (played || parsed.hasActiveDays)
+      ? reconcileActiveStreak({
+          hasActiveDays: parsed.hasActiveDays,
+          activeDays: parsed.grace?.activeDays,
+          graceUsedAt: parsed.grace?.graceUsedAt,
+          graceCoveredDay: parsed.grace?.graceCoveredDay,
+          storedLastActiveDay: server.lastActiveDay,
+          // The client number matters only while seeding a row that has no
+          // set. `mergedCore.streak` is the max of the two, then the
+          // reconcile caps it at the run those days support.
+          storedStreak: parsed.hasActiveDays ? server.streak : (mergedCore.streak ?? 0),
+          today: utcToday,
+          graceStart: options?.graceStart,
+          claimedDay: played ? incoming.lastActiveDay : null,
+          grantGrace: played,
+        })
+      : null;
 
   const data: ExtraProgressData = {
     ...mergedExtra,
@@ -402,9 +414,15 @@ export function mergeProgressPush(
     data.streakGrace = reconciled.streakGrace;
   }
 
+  const streak = reconciled
+    ? reconciled.streak
+    : parsed.hasActiveDays
+      ? server.streak
+      : (mergedCore.streak ?? 0);
+
   return {
     xp: mergedCore.xp ?? 0,
-    streak: reconciled ? reconciled.streak : (mergedCore.streak ?? 0),
+    streak,
     lastActiveDay: mergedCore.lastActiveDay ?? null,
     dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
     graduatedClasses: (mergedCore.graduatedClasses as string[] | undefined) ?? [],

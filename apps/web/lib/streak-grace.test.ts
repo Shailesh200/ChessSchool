@@ -155,6 +155,70 @@ describe("active-day streak", () => {
     expect(merged.streak).toBe(STREAK_ACTIVE_DAY_LIMIT);
   });
 
+  it("a settings-only push recomputes the streak from the set", () => {
+    const server: ServerProgressState = {
+      ...emptyServer,
+      xp: 20,
+      streak: 2,
+      lastActiveDay: T,
+      extra: { streakGrace: { activeDays: [addDays(T, -1), T] } },
+    };
+    const merged = mergeProgressPush(
+      push({
+        xp: 20,
+        streak: 50,
+        lastActiveDay: T,
+        settings: { sound: false },
+      }),
+      server,
+      { today: T, graceStart: START },
+    );
+    expect(merged.streak).toBe(2);
+    expect(merged.streak).not.toBe(50);
+    expect(merged.data.streakGrace?.activeDays).toEqual([addDays(T, -1), T]);
+    expect(merged.data.settings).toEqual({ sound: false });
+  });
+
+  it("an activity push stores the streak the set supports, not the client number", () => {
+    const merged = mergeProgressPush(
+      push({ xp: 30, streak: 50, lastActiveDay: T }),
+      {
+        ...emptyServer,
+        xp: 20,
+        streak: 2,
+        lastActiveDay: T,
+        extra: { streakGrace: { activeDays: [addDays(T, -1), T] } },
+      },
+      { today: T, graceStart: START },
+    );
+    expect(merged.streak).toBe(2);
+    expect(merged.streak).not.toBe(50);
+    expect(merged.data.streakGrace?.activeDays).toEqual([addDays(T, -1), T]);
+  });
+
+  it("caps a first seed taken from the client streak at the run those days support", () => {
+    const capped = mergeProgressPush(
+      push({ xp: 10, streak: 90, lastActiveDay: T }),
+      { ...emptyServer, streak: 1, lastActiveDay: T },
+      { today: T, graceStart: START },
+    );
+    expect(capped.data.streakGrace?.activeDays).toHaveLength(STREAK_ACTIVE_DAY_LIMIT);
+    expect(capped.streak).toBe(STREAK_ACTIVE_DAY_LIMIT);
+    expect(capped.streak).toBeLessThan(90);
+
+    const anchor = addDays(T, -10);
+    const gapped = mergeProgressPush(
+      push({ xp: 10, streak: 40, lastActiveDay: T }),
+      { ...emptyServer, streak: 1, lastActiveDay: anchor },
+      { today: T, graceStart: START },
+    );
+    expect(gapped.data.streakGrace?.activeDays).toHaveLength(41);
+    expect(gapped.data.streakGrace?.activeDays).toContain(anchor);
+    expect(gapped.data.streakGrace?.activeDays).toContain(T);
+    expect(gapped.streak).toBe(1);
+    expect(gapped.streak).not.toBe(40);
+  });
+
   it("A: a settings push on T-1 does not block grace for a play on T", () => {
     const played = mergeProgressPush(
       push({ xp: 10, streak: 1, lastActiveDay: addDays(T, -2) }),
@@ -291,6 +355,37 @@ describe("active-day streak", () => {
     expect(replay.data.streakGrace?.graceCoveredDay).toBeUndefined();
   });
 
+  it("keeps a graced length when a later push recomputes the set", () => {
+    const first = mergeProgressPush(
+      push({ xp: 10, streak: 1, lastActiveDay: addDays(T, -2) }),
+      emptyServer,
+      { today: addDays(T, -2), graceStart: START },
+    );
+    const graced = mergeProgressPush(
+      push({ xp: 20, streak: 50, lastActiveDay: T }),
+      asServer(first),
+      { today: T, graceStart: START },
+    );
+    expect(graced.streak).toBe(3);
+
+    const settings = mergeProgressPush(
+      push({ xp: 20, streak: 50, lastActiveDay: T, settings: { sound: false } }),
+      asServer(graced),
+      { today: T, graceStart: START },
+    );
+    expect(settings.streak).toBe(3);
+    expect(settings.data.streakGrace?.graceCoveredDay).toBe(addDays(T, -1));
+    expect(settings.data.streakGrace?.activeDays).not.toContain(addDays(T, -1));
+
+    const again = mergeProgressPush(
+      push({ xp: 30, streak: 50, lastActiveDay: T }),
+      asServer(settings),
+      { today: T, graceStart: START },
+    );
+    expect(again.streak).toBe(3);
+    expect(again.data.streakGrace?.graceCoveredDay).toBe(addDays(T, -1));
+  });
+
   it("ignores a replay that claims T-2 or a future day", () => {
     const web = mergeProgressPush(
       push({ xp: 10, streak: 1, lastActiveDay: T }),
@@ -394,7 +489,7 @@ describe("active-day streak", () => {
     expect(byCount.streak).toBe(2);
   });
 
-  it("[IST, pending] one local miss can look like two missed UTC days", () => {
+  it("[IST, pending D2c] one local miss can look like two missed UTC days", () => {
     // IST is UTC+5:30. Local 2026-10-20 01:00 is UTC 2026-10-19 19:30.
     // Local 2026-10-22 23:00 is UTC 2026-10-22 17:30. The player missed only
     // local 2026-10-21, but the UTC set skips 2026-10-20 and 2026-10-21.
@@ -413,7 +508,7 @@ describe("active-day streak", () => {
     expect(second.streak).toBe(1);
   });
 
-  it("[IST, pending] one local miss that is one UTC miss is graced", () => {
+  it("[IST, pending D2c] one local miss that is one UTC miss is graced", () => {
     // Local 10:00 IST is 04:30 UTC the same date. Missing local 2026-10-21
     // is also the only missed UTC day, so grace bridges it.
     const first = mergeProgressPush(
@@ -431,7 +526,7 @@ describe("active-day streak", () => {
     expect(second.streak).toBe(3);
   });
 
-  it("[IST, pending] consecutive local days that skip a UTC day are graced", () => {
+  it("[IST, pending D2c] consecutive local days that skip a UTC day are graced", () => {
     // Local 2026-10-20 01:00 IST is UTC 2026-10-19. Local 2026-10-21 23:00 IST
     // is UTC 2026-10-21. No local day was missed, but UTC missed 2026-10-20.
     const first = mergeProgressPush(

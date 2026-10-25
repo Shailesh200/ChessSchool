@@ -151,6 +151,11 @@ export type ReconcileStreakInput = {
   graceStart?: string;
   /** Client `lastActiveDay`. Only today or yesterday (server UTC) can be recorded. */
   claimedDay: string | null;
+  /**
+   * Activity may spend grace on one hole. A push that is not activity
+   * recomputes the streak but does not spend grace. Defaults to true.
+   */
+  grantGrace?: boolean;
 };
 
 export type ReconcileStreakResult = {
@@ -168,8 +173,13 @@ export type ReconcileStreakResult = {
  *
  * The streak is the consecutive run ending today, or ending yesterday when
  * today is still empty. Grace, once, counts exactly one missing day inside
- * that run so the chain does not reset. If a later push records the covered
- * day, grace is cleared and the length stays the same.
+ * that run so the chain does not reset. A day already covered still counts
+ * on later pushes. If a later push records that day, grace is cleared and
+ * the length stays the same.
+ *
+ * The first set is seeded from `storedStreak` consecutive days ending at
+ * `storedLastActiveDay`. The returned streak is the run those days support,
+ * which can be shorter than `storedStreak`.
  *
  * Returns null when there is no set and this push does not add a day, so
  * the caller keeps the ordinary max-merge streak.
@@ -200,8 +210,14 @@ export function reconcileActiveStreak(
 
   const start = streakGraceStart(input.graceStart);
   const allowGrace =
-    !graceUsedAt && !!start && isInsideStreakGraceWindow(input.today, start);
-  const computed = streakFromActiveDays(days, input.today, allowGrace);
+    input.grantGrace !== false &&
+    !graceUsedAt &&
+    !!start &&
+    isInsideStreakGraceWindow(input.today, start);
+  // A covered hole is not stored in the set. Count it so a later recompute
+  // keeps the graced length, without recording the hole as a played day.
+  const countingDays = covered && !days.includes(covered) ? [...days, covered] : days;
+  const computed = streakFromActiveDays(countingDays, input.today, allowGrace);
   if (computed.coveredDay) {
     graceUsedAt = input.today;
     covered = computed.coveredDay;
