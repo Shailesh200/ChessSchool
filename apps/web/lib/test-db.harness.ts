@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execSync } from "node:child_process";
-import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
+import { createLibsqlClient } from "@/db/client";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "@/db/schema";
 
@@ -31,7 +31,7 @@ export function createIsolatedTestDb(): {
   const dir = mkdtempSync(join(tmpdir(), "cs-test-"));
   const dbPath = join(dir, "test.db");
   pushSchema(dbPath);
-  const client = createClient({ url: `file:${dbPath}` });
+  const client = createLibsqlClient(`file:${dbPath}`);
   const db = drizzle(client, { schema }) as TestDb;
   return {
     dir,

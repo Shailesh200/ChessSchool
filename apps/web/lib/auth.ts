@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
+import type { InArgs, InStatement } from "@libsql/client";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -25,7 +26,7 @@ import {
   findSessionByRawToken,
   revokeSessionByRawToken,
 } from "@/lib/session-store";
-import { isSqliteBusy, isUsersEmailUniqueViolation } from "@/lib/sqlite-errors";
+import { isUsersEmailUniqueViolation } from "@/lib/sqlite-errors";
 
 const COOKIE = "chessschool_session";
 const SESSION_DAYS = 30;
@@ -62,43 +63,21 @@ type NewStudent = {
   now: number;
 };
 
-/**
- * Same-process signups share one queue. The local file driver runs
- * `BEGIN IMMEDIATE` synchronously and blocks this thread, so two overlapping
- * transactions deadlock into `SQLITE_BUSY` instead of a unique violation.
- * Queuing lets the second insert start after the first commits and hit
- * `users.email`.
- */
-let signupTail: Promise<void> = Promise.resolve();
-
-function enqueueSignup<T>(task: () => Promise<T>): Promise<T> {
-  const run = signupTail.then(task, task);
-  signupTail = run.then(
-    () => undefined,
-    () => undefined,
-  );
-  return run;
+function sqlStatement(query: { sql: string; params: unknown[] }): InStatement {
+  return { sql: query.sql, args: query.params as InArgs };
 }
 
 /**
- * Insert the account rows in one libSQL write transaction (`BEGIN IMMEDIATE`).
- * If a later insert fails, the driver rolls the users row back so the email is
- * free again. The session is created only after this commits: it is login state
- * (and, on web, a cookie), not part of the account that owns the email.
+ * Insert the account rows in one libSQL write transaction (`BEGIN IMMEDIATE`
+ * through `COMMIT`). The client's batch runs that whole transaction before it
+ * returns, so a second signup on a file database is not stuck waiting on a
+ * lock this thread still holds. A duplicate `users.email` comes back as the
+ * unique constraint. Returns false in that case.
  *
- * Returns false when `users.email` already exists.
+ * The session is created only after this commits: it is login state (and, on
+ * web, a cookie), not part of the account that owns the email.
  */
 async function insertStudentAccount(input: NewStudent): Promise<boolean> {
-  try {
-    await writeStudentAccount(input);
-    return true;
-  } catch (err) {
-    if (isUsersEmailUniqueViolation(err)) return false;
-    if (!isSqliteBusy(err)) throw err;
-  }
-  await new Promise<void>((resolve) => {
-    setImmediate(resolve);
-  });
   try {
     await writeStudentAccount(input);
     return true;
@@ -110,23 +89,38 @@ async function insertStudentAccount(input: NewStudent): Promise<boolean> {
 
 async function writeStudentAccount(input: NewStudent): Promise<void> {
   const studentNo = makeStudentNo();
-  await db.transaction(async (tx) => {
-    await tx.insert(users).values({
-      id: input.id,
-      email: input.email,
-      passwordHash: input.passwordHash,
-      name: input.name,
-      role: "student",
-      createdAt: input.now,
-    });
-    await tx.insert(profiles).values({
-      userId: input.id,
-      studentNo,
-      enrolledAt: input.now,
-      rankTitle: "Novice",
-    });
-    await tx.insert(progress).values({ userId: input.id, updatedAt: input.now });
-  });
+  await db.$client.batch(
+    [
+      sqlStatement(
+        db
+          .insert(users)
+          .values({
+            id: input.id,
+            email: input.email,
+            passwordHash: input.passwordHash,
+            name: input.name,
+            role: "student",
+            createdAt: input.now,
+          })
+          .toSQL(),
+      ),
+      sqlStatement(
+        db
+          .insert(profiles)
+          .values({
+            userId: input.id,
+            studentNo,
+            enrolledAt: input.now,
+            rankTitle: "Novice",
+          })
+          .toSQL(),
+      ),
+      sqlStatement(
+        db.insert(progress).values({ userId: input.id, updatedAt: input.now }).toSQL(),
+      ),
+    ],
+    "write",
+  );
 }
 
 async function startSession(userId: string): Promise<void> {
@@ -162,20 +156,15 @@ export async function registerUser(
 
   const id = randomUUID();
   const now = Date.now();
-  const passwordHash = await hashPassword(password);
-  const created = await enqueueSignup(async () => {
-    const ok = await insertStudentAccount({
-      id,
-      email,
-      passwordHash,
-      name: name.trim(),
-      now,
-    });
-    if (!ok) return false;
-    await startSession(id);
-    return true;
+  const created = await insertStudentAccount({
+    id,
+    email,
+    passwordHash: await hashPassword(password),
+    name: name.trim(),
+    now,
   });
   if (!created) return { error: EMAIL_TAKEN };
+  await startSession(id);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
   ]).catch(() => void 0);
@@ -269,20 +258,15 @@ export async function registerWithToken(
   }
   const id = randomUUID();
   const now = Date.now();
-  const passwordHash = await hashPassword(password);
-  const created = await enqueueSignup(async () => {
-    const ok = await insertStudentAccount({
-      id,
-      email,
-      passwordHash,
-      name: name.trim(),
-      now,
-    });
-    if (!ok) return null;
-    return createSessionToken(id);
+  const created = await insertStudentAccount({
+    id,
+    email,
+    passwordHash: await hashPassword(password),
+    name: name.trim(),
+    now,
   });
   if (!created) return { error: EMAIL_TAKEN };
-  const token = created;
+  const token = await createSessionToken(id);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
   ]).catch(() => void 0);
@@ -403,24 +387,22 @@ export async function signInWithGoogle(
   if (existing) return linkExistingGoogleUser(existing, profile.sub);
 
   const id = randomUUID();
-  return enqueueSignup(async () => {
-    const created = await provisionNewStudent(id, email, profile.name, null);
-    if (!created) {
-      const winner = (
-        await db.select().from(users).where(eq(users.email, email)).limit(1)
-      )[0];
-      if (!winner) return { error: EMAIL_TAKEN };
-      return linkExistingGoogleUser(winner, profile.sub);
-    }
-    await linkGoogleAccount(id, profile.sub);
-    void insertAnalyticsEvents([
-      { name: "signup", userId: id, props: { provider: "google" } },
-    ]).catch(() => void 0);
-    return {
-      user: { id, email, name: profile.name.trim(), role: "student" },
-      isNewUser: true as const,
-    };
-  });
+  const created = await provisionNewStudent(id, email, profile.name, null);
+  if (!created) {
+    const winner = (
+      await db.select().from(users).where(eq(users.email, email)).limit(1)
+    )[0];
+    if (!winner) return { error: EMAIL_TAKEN };
+    return linkExistingGoogleUser(winner, profile.sub);
+  }
+  await linkGoogleAccount(id, profile.sub);
+  void insertAnalyticsEvents([
+    { name: "signup", userId: id, props: { provider: "google" } },
+  ]).catch(() => void 0);
+  return {
+    user: { id, email, name: profile.name.trim(), role: "student" },
+    isNewUser: true,
+  };
 }
 
 /** Mobile: verify a Google ID token and return a bearer session. */

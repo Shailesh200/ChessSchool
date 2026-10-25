@@ -1,5 +1,4 @@
 /** SQLite result codes. Extended unique is `SQLITE_CONSTRAINT | (8 << 8)`. */
-const SQLITE_BUSY = 5;
 const SQLITE_CONSTRAINT = 19;
 const SQLITE_CONSTRAINT_UNIQUE = 2067;
 
@@ -65,20 +64,6 @@ export function isUsersEmailUniqueViolation(err: unknown): boolean {
     ) {
       return true;
     }
-  }
-  return false;
-}
-
-/** File-driver lock conflict (`SQLITE_BUSY` and its extended codes). */
-export function isSqliteBusy(err: unknown): boolean {
-  for (const item of errorChain(err)) {
-    const raw = rawCode(item.rawCode);
-    const extended = codeName(item.extendedCode);
-    const code = codeName(item.code);
-    if (raw !== undefined && (raw & 0xff) === SQLITE_BUSY) return true;
-    if (code === "SQLITE_BUSY" || extended === "SQLITE_BUSY") return true;
-    if (code?.startsWith("SQLITE_BUSY_") || extended?.startsWith("SQLITE_BUSY_"))
-      return true;
   }
   return false;
 }

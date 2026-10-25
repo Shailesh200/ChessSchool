@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSqliteBusy, isUsersEmailUniqueViolation } from "./sqlite-errors";
+import { isUsersEmailUniqueViolation } from "./sqlite-errors";
 
 describe("isUsersEmailUniqueViolation", () => {
   it("matches the libSQL file driver extended code without reading the message", () => {
@@ -48,18 +48,5 @@ describe("isUsersEmailUniqueViolation", () => {
         message: "UNIQUE constraint failed: users.email",
       }),
     ).toBe(false);
-  });
-});
-
-describe("isSqliteBusy", () => {
-  it("matches the file driver lock error", () => {
-    expect(
-      isSqliteBusy({
-        code: "SQLITE_BUSY",
-        extendedCode: "SQLITE_BUSY",
-        rawCode: 5,
-        message: "SQLITE_BUSY: database is locked",
-      }),
-    ).toBe(true);
   });
 });
