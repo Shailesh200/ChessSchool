@@ -17,7 +17,21 @@ export function resetGlobalDb(): void {
   (globalThis as unknown as { __db?: unknown }).__db = undefined;
 }
 
-const migrationsFolder = fileURLToPath(new URL("../db/migrations", import.meta.url));
+/**
+ * Vitest rewrites `import.meta.url` to a non-file URL, so `fileURLToPath` throws
+ * there. Package scripts run with cwd = apps/web, where `db/migrations` lives.
+ */
+function resolveMigrationsFolder(): string {
+  try {
+    const url = new URL("../db/migrations", import.meta.url);
+    if (url.protocol === "file:") return fileURLToPath(url);
+  } catch {
+    // Fall through to the package cwd.
+  }
+  return join(process.cwd(), "db/migrations");
+}
+
+const migrationsFolder = resolveMigrationsFolder();
 
 /** Apply committed migrations. Same journal format drizzle-kit migrate uses. */
 function applyMigrations(dbPath: string): void {
