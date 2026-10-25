@@ -279,9 +279,7 @@ export async function getAdminAnalytics(
     conn
       .select({ n: count() })
       .from(lessonRecords)
-      .where(
-        sql`${lessonRecords.attempts} > 0 OR ${lessonRecords.mastery} > 0`,
-      ),
+      .where(sql`${lessonRecords.attempts} > 0 OR ${lessonRecords.mastery} > 0`),
     conn
       .select({ n: count() })
       .from(lessonRecords)
@@ -335,10 +333,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          gte(analyticsEvents.createdAt, d30),
-          ne(analyticsEvents.name, "page_view"),
-        ),
+        and(gte(analyticsEvents.createdAt, d30), ne(analyticsEvents.name, "page_view")),
       )
       .groupBy(sql`date(${analyticsEvents.createdAt} / 1000, 'unixepoch')`),
     conn
@@ -348,10 +343,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "page_view"),
-          gte(analyticsEvents.createdAt, d30),
-        ),
+        and(eq(analyticsEvents.name, "page_view"), gte(analyticsEvents.createdAt, d30)),
       )
       .groupBy(sql`date(${analyticsEvents.createdAt} / 1000, 'unixepoch')`),
     conn
@@ -439,10 +431,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "page_view"),
-          gte(analyticsEvents.createdAt, d30),
-        ),
+        and(eq(analyticsEvents.name, "page_view"), gte(analyticsEvents.createdAt, d30)),
       ),
     conn
       .select({
@@ -450,10 +439,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "page_view"),
-          gte(analyticsEvents.createdAt, d7),
-        ),
+        and(eq(analyticsEvents.name, "page_view"), gte(analyticsEvents.createdAt, d7)),
       ),
     conn
       .select({
@@ -464,10 +450,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "page_view"),
-          gte(analyticsEvents.createdAt, d30),
-        ),
+        and(eq(analyticsEvents.name, "page_view"), gte(analyticsEvents.createdAt, d30)),
       )
       .groupBy(
         sql`coalesce(json_extract(${analyticsEvents.props}, '$.route'), ${analyticsEvents.pathname}, '/')`,
@@ -481,10 +464,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "page_view"),
-          gte(analyticsEvents.createdAt, d30),
-        ),
+        and(eq(analyticsEvents.name, "page_view"), gte(analyticsEvents.createdAt, d30)),
       )
       .groupBy(
         sql`coalesce(json_extract(${analyticsEvents.props}, '$.referrer'), 'direct')`,
@@ -500,10 +480,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "page_view"),
-          gte(analyticsEvents.createdAt, d30),
-        ),
+        and(eq(analyticsEvents.name, "page_view"), gte(analyticsEvents.createdAt, d30)),
       )
       .orderBy(desc(analyticsEvents.createdAt))
       .limit(8000),
@@ -571,10 +548,7 @@ export async function getAdminAnalytics(
       })
       .from(analyticsEvents)
       .where(
-        and(
-          eq(analyticsEvents.name, "match_end"),
-          gte(analyticsEvents.createdAt, d30),
-        ),
+        and(eq(analyticsEvents.name, "match_end"), gte(analyticsEvents.createdAt, d30)),
       )
       .groupBy(
         sql`coalesce(
@@ -691,9 +665,7 @@ export async function getAdminAnalytics(
     .slice(0, 20);
 
   const sampledSessions = viewsBySession.size;
-  const singlePageSessions = [...viewsBySession.values()].filter(
-    (n) => n === 1,
-  ).length;
+  const singlePageSessions = [...viewsBySession.values()].filter((n) => n === 1).length;
   const bounceRatePct =
     sampledSessions === 0
       ? 0
@@ -702,17 +674,14 @@ export async function getAdminAnalytics(
   // Prefer SQL totals when sample covers less than full 30d traffic.
   const sampleViews = pageViewSample.length;
   const authedViews30d =
-    sampleViews === 0
-      ? 0
-      : Math.round((authedViews / sampleViews) * views30);
+    sampleViews === 0 ? 0 : Math.round((authedViews / sampleViews) * views30);
   const guestViews30d = Math.max(0, views30 - authedViews30d);
 
   const byArea = [...areaCounts.entries()]
     .map(([area, views]) => ({
       area,
       label: routeAreaLabel(area),
-      views:
-        sampleViews === 0 ? 0 : Math.round((views / sampleViews) * views30),
+      views: sampleViews === 0 ? 0 : Math.round((views / sampleViews) * views30),
     }))
     .sort((a, b) => b.views - a.views);
 
@@ -733,16 +702,12 @@ export async function getAdminAnalytics(
   const starts30 = events30Map.get("lesson_start")?.count ?? 0;
   const completes30 = events30Map.get("lesson_complete")?.count ?? 0;
   const lessonCompletionRate =
-    starts30 === 0
-      ? null
-      : Math.round((completes30 / starts30) * 1000) / 10;
+    starts30 === 0 ? null : Math.round((completes30 / starts30) * 1000) / 10;
 
   const enrollCta = events30Map.get("enroll_cta_click")?.count ?? 0;
   const signups30 = events30Map.get("signup")?.count ?? 0;
   const enrollCtaToSignup =
-    enrollCta === 0
-      ? null
-      : Math.round((signups30 / enrollCta) * 1000) / 10;
+    enrollCta === 0 ? null : Math.round((signups30 / enrollCta) * 1000) / 10;
 
   return {
     generatedAt: now,

@@ -2,13 +2,7 @@ import { trackEvent } from "@/core/analytics/track";
 
 /** How the match was played (product channel). */
 export type MatchChannel =
-  | "bot"
-  | "pass"
-  | "online"
-  | "shadow"
-  | "arena"
-  | "assisted"
-  | "think";
+  "bot" | "pass" | "online" | "shadow" | "arena" | "assisted" | "think";
 
 export type MatchOpponent = "bot" | "human";
 

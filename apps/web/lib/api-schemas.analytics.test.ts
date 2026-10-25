@@ -42,10 +42,9 @@ describe("analyticsBatchSchema", () => {
       "think_puzzle_result",
       "search_open",
     ] as const) {
-      expect(
-        analyticsBatchSchema.safeParse({ events: [{ name }] }).success,
-        name,
-      ).toBe(true);
+      expect(analyticsBatchSchema.safeParse({ events: [{ name }] }).success, name).toBe(
+        true,
+      );
     }
   });
 

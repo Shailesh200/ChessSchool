@@ -34,10 +34,7 @@ export function GoogleSignInButton({ next = "/welcome" }: { next?: string }) {
         onClick={() => {
           try {
             const register = window.location.pathname.includes("register");
-            sessionStorage.setItem(
-              PULSE_PENDING_AUTH,
-              register ? "signup" : "login",
-            );
+            sessionStorage.setItem(PULSE_PENDING_AUTH, register ? "signup" : "login");
           } catch {
             /* private mode */
           }
