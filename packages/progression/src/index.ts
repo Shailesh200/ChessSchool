@@ -1,7 +1,26 @@
 import { checkLessonAchievements, checkMatchAchievements } from "@chess-school/core";
-import { addDays, calendarDay, deviceTimeZone, isoDay, yesterday } from "./day";
+import { addDays, calendarDay, dayAlreadyCovers, deviceTimeZone, isoDay, yesterday } from "./day";
+import {
+  mergeLessonRecords,
+  mergeMistakeLog,
+  newerIsoDay,
+  pickLastWriterNumber,
+  pickStreakByRecency,
+  type ActiveDayPolicy,
+} from "./merge";
 
-export { addDays, calendarDay, deviceTimeZone, isoDay, yesterday };
+export { addDays, calendarDay, dayAlreadyCovers, deviceTimeZone, isoDay, yesterday };
+export {
+  acceptableActiveDay,
+  applyProgressPushAck,
+  mergeMistakeLog,
+  newerIsoDay,
+  pickLastWriterNumber,
+  pickStreakByRecency,
+  readProgressPushAck,
+  type ActiveDayPolicy,
+  type ProgressPushAck,
+} from "./merge";
 
 // Pure progression reducers — ported 1:1 from web (core/store/progression.store.ts)
 // so the app computes XP/streak/mastery/mistakes/ELO/achievements identically.
@@ -40,7 +59,8 @@ export function recordLesson(s: Snap, id: string, correct: number, total: number
   return { ...s, lessons: { ...(s.lessons ?? {}), [id]: { mastery, attempts: (prev?.attempts ?? 0) + 1, lastSeen: Date.now(), dueAt: Date.now() + days * 86400000, incorrect: bestIncorrect } } };
 }
 export function registerActivity(s: Snap, today = isoDay()): Snap {
-  if (s.lastActiveDay === today) return s;
+  // Same day, or a stored day ahead of this local day: not a gap.
+  if (dayAlreadyCovers(s.lastActiveDay, today)) return s;
   const streak = s.lastActiveDay === addDays(today, -1) ? (s.streak ?? 0) + 1 : 1;
   return { ...s, streak, lastActiveDay: today };
 }
@@ -53,9 +73,12 @@ export function recordWeakness(s: Snap, tag?: string): Snap {
 }
 export function updateRating(s: Snap, botElo: number, score: number): Snap {
   const K = 32;
-  const expected = 1 / (1 + Math.pow(10, (botElo - (s.rating ?? 800)) / 400));
-  const rating = Math.max(100, Math.round((s.rating ?? 800) + K * (score - expected)));
-  return { ...s, rating, botWins: (s.botWins ?? 0) + (score === 1 ? 1 : 0) };
+  const previous = s.rating ?? 800;
+  const expected = 1 / (1 + Math.pow(10, (botElo - previous) / 400));
+  const rating = Math.max(100, Math.round(previous + K * (score - expected)));
+  const next: Snap = { ...s, rating, botWins: (s.botWins ?? 0) + (score === 1 ? 1 : 0) };
+  if (rating !== previous) next.ratingUpdatedAt = Date.now();
+  return next;
 }
 export function graduateClass(s: Snap, classId: string): Snap {
   const graduated = new Set((s.graduatedClasses as string[] | undefined) ?? []);
@@ -164,48 +187,82 @@ export function normalizeProgressPush(snap: Snap & { placementDone?: boolean }):
     placementDone: Boolean(snap.placementDone),
     journalEntries: Array.isArray(snap.journalEntries) ? snap.journalEntries : [],
     settings: snap.settings as Record<string, unknown> | undefined,
+    ...(typeof snap.ratingUpdatedAt === "number" && Number.isInteger(snap.ratingUpdatedAt)
+      ? { ratingUpdatedAt: snap.ratingUpdatedAt }
+      : {}),
+    ...(typeof snap.goalUpdatedAt === "number" && Number.isInteger(snap.goalUpdatedAt)
+      ? { goalUpdatedAt: snap.goalUpdatedAt }
+      : {}),
+    ...(typeof snap.tz === "string" && snap.tz ? { tz: snap.tz } : {}),
   };
 }
 
-export function mergeProgressSnapshots(local: MergeSnap, server: MergeSnap): MergeSnap {
-  const lessons = { ...(local.lessons ?? {}) };
-  for (const [id, r] of Object.entries(server.lessons ?? {})) {
-    const cur = lessons[id];
-    lessons[id] =
-      !cur || r.mastery >= cur.mastery
-        ? { ...r, attempts: Math.max(cur?.attempts ?? 0, r.attempts) }
-        : { ...cur, attempts: Math.max(cur.attempts, r.attempts) };
-  }
-  const mergeMap = (a: Record<string, number>, b: Record<string, number> = {}) => {
-    const out = { ...a };
-    for (const [k, v] of Object.entries(b)) out[k] = Math.max(out[k] ?? 0, v);
-    return out;
-  };
-  const mistakes = [...(server.mistakeLog ?? []), ...(local.mistakeLog ?? [])];
-  const seen = new Set<string>();
-  const mistakeLog = mistakes
-    .filter((m) => {
-      const key = `${m.fen}|${m.at}`;
-      return seen.has(key) ? false : (seen.add(key), true);
-    })
-    .slice(0, 30);
+function mergeNumericMaps(
+  a: Record<string, number> = {},
+  b: Record<string, number> = {},
+): Record<string, number> {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) out[k] = Math.max(out[k] ?? 0, v);
+  return out;
+}
+
+/**
+ * Merge two progress snapshots.
+ *
+ * Streak follows the newer acceptable `lastActiveDay` (tie: larger streak).
+ * Homework streak follows `homeworkLastDay` the same way. Rating and the
+ * daily-goal setting follow their writer timestamps and may go down. XP,
+ * bot wins, and lesson mastery stay monotonic. `activityDays` is a union.
+ * Pass `policy.today` on the server so a far-future day cannot win recency.
+ */
+export function mergeProgressSnapshots(
+  local: MergeSnap,
+  server: MergeSnap,
+  policy?: ActiveDayPolicy,
+): MergeSnap {
+  const streak = pickStreakByRecency(
+    { streak: local.streak ?? 0, day: local.lastActiveDay },
+    { streak: server.streak ?? 0, day: server.lastActiveDay },
+    policy,
+  );
+  const homework = pickStreakByRecency(
+    { streak: Number(local.homeworkStreak ?? 0), day: local.homeworkLastDay },
+    { streak: Number(server.homeworkStreak ?? 0), day: server.homeworkLastDay },
+    policy,
+  );
+  const rating = pickLastWriterNumber(
+    local.rating ?? 800,
+    local.ratingUpdatedAt,
+    server.rating ?? 800,
+    server.ratingUpdatedAt,
+  );
+  const goal = pickLastWriterNumber(
+    Number(local.dailyGoalXp ?? 50),
+    local.goalUpdatedAt,
+    Number(server.dailyGoalXp ?? 50),
+    server.goalUpdatedAt,
+  );
   return {
     xp: Math.max(local.xp ?? 0, server.xp ?? 0),
-    streak: Math.max(local.streak ?? 0, server.streak ?? 0),
-    lastActiveDay: local.lastActiveDay ?? server.lastActiveDay ?? null,
+    streak: streak.streak,
+    lastActiveDay: streak.day,
     graduatedClasses: Array.from(new Set([...(local.graduatedClasses ?? []), ...(server.graduatedClasses ?? [])])),
-    lessons,
-    rating: Math.max(local.rating ?? 800, server.rating ?? 800),
+    lessons: mergeLessonRecords(local.lessons, server.lessons),
+    rating: rating.value,
+    ...(rating.at !== null ? { ratingUpdatedAt: rating.at } : {}),
     botWins: Math.max(local.botWins ?? 0, server.botWins ?? 0),
-    dailyGoalXp: Math.max(Number(local.dailyGoalXp ?? 50), Number(server.dailyGoalXp ?? 50)),
+    dailyGoalXp: goal.value,
+    ...(goal.at !== null ? { goalUpdatedAt: goal.at } : {}),
     unlockedAchievements: Array.from(
       new Set([...(local.unlockedAchievements ?? []), ...(server.unlockedAchievements ?? [])]),
     ),
     schoolExamsPassed: Array.from(new Set([...(local.schoolExamsPassed ?? []), ...(server.schoolExamsPassed ?? [])])),
-    weaknesses: mergeMap(local.weaknesses ?? {}, server.weaknesses ?? {}),
-    activityDays: mergeMap(local.activityDays ?? {}, server.activityDays ?? {}),
-    mistakeLog,
-    dailyPuzzleDay: server.dailyPuzzleDay ?? local.dailyPuzzleDay ?? null,
+    weaknesses: mergeNumericMaps(local.weaknesses, server.weaknesses),
+    activityDays: mergeNumericMaps(local.activityDays, server.activityDays),
+    mistakeLog: mergeMistakeLog(local.mistakeLog, server.mistakeLog) as Snap["mistakeLog"],
+    homeworkStreak: homework.streak,
+    homeworkLastDay: homework.day,
+    dailyPuzzleDay: newerIsoDay(local.dailyPuzzleDay, server.dailyPuzzleDay),
     placementDone: Boolean(local.placementDone || server.placementDone),
   };
 }

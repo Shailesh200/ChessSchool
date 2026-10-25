@@ -76,6 +76,12 @@ describe("updateRating (Elo K=32)", () => {
     const s = updateRating({ rating: 800 }, 800, 0);
     expect(s.rating).toBe(784);
     expect(s.botWins).toBe(0);
+    expect(s.ratingUpdatedAt).toEqual(expect.any(Number));
+  });
+  it("does not restamp the rating when the number does not change", () => {
+    const s = updateRating({ rating: 800, ratingUpdatedAt: 5 }, 800, 0.5);
+    expect(s.rating).toBe(800);
+    expect(s.ratingUpdatedAt).toBe(5);
   });
   it("never drops below 100", () => {
     expect(updateRating({ rating: 100 }, 3000, 0).rating).toBeGreaterThanOrEqual(100);

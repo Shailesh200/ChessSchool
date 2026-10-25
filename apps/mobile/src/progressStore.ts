@@ -4,6 +4,8 @@ import * as SecureStore from "expo-secure-store";
 import { ApiError, api, getToken } from "./api";
 import {
   accountProgressEmpty,
+  applyProgressPushAck,
+  deviceTimeZone,
   localProgressPresent,
   mergeProgressSnapshots,
   normalizeProgressPush,
@@ -135,8 +137,14 @@ export async function syncProgressAfterAuth(): Promise<{ snap: ProgressSnap; mer
   if (guestHad && accountEmpty) {
     const merged = normalizeProgressPush(mergeProgressSnapshots(local, serverBody));
     try {
-      await api("/api/progress", { method: "POST", body: merged });
-      cache = { ...(server as Record<string, unknown>), ...merged };
+      const ack = await api<unknown>("/api/progress", {
+        method: "POST",
+        body: { ...merged, tz: deviceTimeZone() },
+      });
+      cache = applyProgressPushAck(
+        { ...(server as Record<string, unknown>), ...merged },
+        ack,
+      );
       lastWriteError = null;
       await clearGuestProgress();
     } catch (e) {
@@ -218,8 +226,12 @@ export function mutateProgress(fn: (snap: Record<string, unknown>) => Record<str
     }
 
     try {
-      await api("/api/progress", { method: "POST", body: next });
-      cache = { ...next, user: (base as { user?: unknown }).user ?? (cache as { user?: unknown } | null)?.user };
+      const ack = await api<unknown>("/api/progress", {
+        method: "POST",
+        body: { ...next, tz: deviceTimeZone() },
+      });
+      const adopted = applyProgressPushAck(next, ack);
+      cache = { ...adopted, user: (base as { user?: unknown }).user ?? (cache as { user?: unknown } | null)?.user };
       lastWriteError = null;
       emit();
       if (Array.isArray(next.recentGames)) await saveGamesCache(next.recentGames as unknown[]);

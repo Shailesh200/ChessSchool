@@ -38,6 +38,17 @@ describe("homeworkRoutine", () => {
     expect(allRoutineDoneToday(snap, today)).toBe(true);
   });
 
+  it("does not reset a streak when the stored day is ahead of today", () => {
+    const today = "2026-07-12";
+    const snap = markHomeworkActivities(
+      { homeworkStreak: 4, homeworkLastDay: "2026-07-13" },
+      ["warmup", "lesson", "practice", "match", "review", "reflection"],
+      today,
+    );
+    expect(snap.homeworkStreak).toBe(4);
+    expect(snap.homeworkLastDay).toBe("2026-07-13");
+  });
+
   it("does not double-mark the same step", () => {
     const today = "2026-07-12";
     const once = markHomeworkActivity({}, "lesson", today);

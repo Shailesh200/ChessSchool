@@ -9,6 +9,26 @@ export const authRegisterSchema = authCredentialsSchema.extend({
   name: z.string().trim().min(1).max(80),
 });
 
+const DAY_MS = 86_400_000;
+
+/** Integer epoch ms. A stamp more than one day ahead of the server clock is rejected. */
+const updatedAtMs = z
+  .number()
+  .int()
+  .refine((n) => n <= Date.now() + DAY_MS, {
+    message: "timestamp is more than 1 day in the future",
+  });
+
+function isIanaTimeZone(timeZone: string): boolean {
+  if (!timeZone) return false;
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const lessonRecSchema = z.object({
   mastery: z.number().min(0).max(1),
   attempts: z.number().int().min(0).max(10_000),
@@ -38,6 +58,13 @@ export const progressPushSchema = z.object({
   settings: z.record(z.string(), z.unknown()).optional(),
   homeworkDone: z.record(z.string(), z.array(z.string())).optional(),
   placementDone: z.boolean().optional(),
+  ratingUpdatedAt: updatedAtMs.optional(),
+  goalUpdatedAt: updatedAtMs.optional(),
+  tz: z
+    .string()
+    .max(64)
+    .refine(isIanaTimeZone, { message: "invalid IANA time zone" })
+    .optional(),
   journalEntries: z
     .array(
       z.object({

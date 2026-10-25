@@ -89,3 +89,19 @@ export function addDays(iso: string, delta: number): string {
 export function yesterday(date: Date = new Date(), timeZone?: string): string {
   return addDays(calendarDay(date, timeZone), -1);
 }
+
+/**
+ * True when `stored` is already `today`, or a later real calendar day.
+ * A stored day ahead of the local day is timezone skew, not a missed day,
+ * so streak logic treats it as the same day instead of a gap.
+ */
+export function dayAlreadyCovers(
+  stored: string | null | undefined,
+  today: string,
+): boolean {
+  if (!stored) return false;
+  if (stored === today) return true;
+  if (!ISO_DAY.test(stored) || !ISO_DAY.test(today)) return false;
+  if (addDays(stored, 0) !== stored || addDays(today, 0) !== today) return false;
+  return stored > today;
+}

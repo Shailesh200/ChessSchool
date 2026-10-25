@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { addDays, isoDay, mergeProgressSnapshots } from "@chess-school/progression";
+import { addDays, dayAlreadyCovers, isoDay, mergeProgressSnapshots } from "@chess-school/progression";
 import type { ArenaRunRecord } from "@/features/play/arena";
 
 export { isoDay };
@@ -43,6 +43,10 @@ export interface ProgressionState {
   activityDays: Record<string, number>;
   /** the player's live ELO rating, updated after each bot game */
   rating: number;
+  /** ms when `rating` last changed on this device */
+  ratingUpdatedAt?: number;
+  /** ms when `dailyGoalXp` last changed on this device */
+  goalUpdatedAt?: number;
   /** total bot wins (for achievements) */
   botWins: number;
   /** stage ids whose school exam has been passed (unlocks the next school) */
@@ -91,8 +95,10 @@ export interface ProgressSnapshot {
   lessons: Record<string, LessonRecord>;
   // Extended sync (everything that used to be device-local):
   rating: number;
+  ratingUpdatedAt?: number;
   botWins: number;
   dailyGoalXp: number;
+  goalUpdatedAt?: number;
   unlockedAchievements: string[];
   schoolExamsPassed: string[];
   weaknesses: Record<string, number>;
@@ -110,8 +116,10 @@ export function progressSnapshot(s: ProgressionState): ProgressSnapshot {
     graduatedClasses: s.graduatedClasses,
     lessons: s.lessons,
     rating: s.rating,
+    ...(typeof s.ratingUpdatedAt === "number" ? { ratingUpdatedAt: s.ratingUpdatedAt } : {}),
     botWins: s.botWins,
     dailyGoalXp: s.dailyGoalXp,
+    ...(typeof s.goalUpdatedAt === "number" ? { goalUpdatedAt: s.goalUpdatedAt } : {}),
     unlockedAchievements: s.unlockedAchievements,
     schoolExamsPassed: s.schoolExamsPassed,
     weaknesses: s.weaknesses,
@@ -180,7 +188,9 @@ export const useProgression = create<ProgressionState>()(
           const K = 32;
           const expected = 1 / (1 + Math.pow(10, (botElo - s.rating) / 400));
           const rating = Math.max(100, Math.round(s.rating + K * (score - expected)));
-          return { rating, botWins: s.botWins + (score === 1 ? 1 : 0) };
+          const botWins = s.botWins + (score === 1 ? 1 : 0);
+          if (rating === s.rating) return { botWins };
+          return { rating, botWins, ratingUpdatedAt: Date.now() };
         }),
 
       passSchoolExam: (stage) =>
@@ -208,7 +218,12 @@ export const useProgression = create<ProgressionState>()(
           };
         }),
 
-      setDailyGoalXp: (xp) => set({ dailyGoalXp: Math.max(10, Math.round(xp)) }),
+      setDailyGoalXp: (xp) =>
+        set((s) => {
+          const dailyGoalXp = Math.max(10, Math.round(xp));
+          if (dailyGoalXp === s.dailyGoalXp) return s;
+          return { dailyGoalXp, goalUpdatedAt: Date.now() };
+        }),
 
       recordLesson: (id, correct, total, incorrect = 0) =>
         set((s) => {
@@ -249,7 +264,8 @@ export const useProgression = create<ProgressionState>()(
 
       registerActivity: (today) =>
         set((s) => {
-          if (s.lastActiveDay === today) return s;
+          // Same day, or a stored day ahead of this local day: not a gap.
+          if (dayAlreadyCovers(s.lastActiveDay, today)) return s;
           const yesterday = addDays(today, -1);
           const streak = s.lastActiveDay === yesterday ? s.streak + 1 : 1;
           return { streak, lastActiveDay: today, todayKey: today, todayXp: 0 };
@@ -295,8 +311,10 @@ export const useProgression = create<ProgressionState>()(
           graduatedClasses: snap.graduatedClasses ?? [],
           lessons: snap.lessons ?? {},
           rating: snap.rating ?? 800,
+          ratingUpdatedAt: snap.ratingUpdatedAt,
           botWins: snap.botWins ?? 0,
           dailyGoalXp: snap.dailyGoalXp ?? 50,
+          goalUpdatedAt: snap.goalUpdatedAt,
           unlockedAchievements: snap.unlockedAchievements ?? [],
           schoolExamsPassed: snap.schoolExamsPassed ?? [],
           weaknesses: snap.weaknesses ?? {},

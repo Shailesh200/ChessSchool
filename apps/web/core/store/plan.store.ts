@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { trackEvent } from "@/core/analytics/track";
-import { addDays } from "@chess-school/progression";
+import { addDays, dayAlreadyCovers } from "@chess-school/progression";
 
 export type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
 export type Schedule = "daily" | "weekdays" | "weekends";
@@ -93,6 +93,8 @@ interface PlanState {
   markActivity: (id: string, today: string) => void;
   /** apply a synced homework streak (account is source of truth) */
   setHomework: (streak: number, lastDay: string | null) => void;
+  /** Replace the homework streak with the server merge. Does not keep the local max. */
+  adoptHomework: (streak: number, lastDay?: string | null) => void;
 }
 
 export function planGoalXp(state: { tier: PlanTier; customGoalXp: number }): number {
@@ -129,6 +131,8 @@ export const usePlan = create<PlanState>()(
         const all = ROUTINE_STEPS.every((step) => done.includes(step.id));
         if (all && get().homeworkLastDay !== today) {
           const prev = get().homeworkLastDay;
+          // A stored day ahead of today is the same day, not a broken streak.
+          if (dayAlreadyCovers(prev, today)) return;
           const yesterday = addDays(today, -1);
           const streak = prev === yesterday ? get().homeworkStreak + 1 : 1;
           set({
@@ -146,6 +150,11 @@ export const usePlan = create<PlanState>()(
         set((s) => ({
           homeworkStreak: Math.max(s.homeworkStreak, streak),
           homeworkLastDay: lastDay ?? s.homeworkLastDay,
+        })),
+      adoptHomework: (streak, lastDay) =>
+        set((s) => ({
+          homeworkStreak: Math.max(0, Math.floor(streak)),
+          homeworkLastDay: lastDay === undefined ? s.homeworkLastDay : lastDay,
         })),
     }),
     {

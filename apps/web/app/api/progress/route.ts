@@ -4,7 +4,11 @@ import { db } from "@/db";
 import { progress, lessonRecords } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { progressPushSchema } from "@/lib/api-schemas";
-import { parseExtraData, parseGraduatedClasses } from "@/lib/progress-merge";
+import {
+  parseExtraData,
+  parseGraduatedClasses,
+  progressPushResponseBody,
+} from "@/lib/progress-merge";
 import { applyProgressPush } from "@/lib/progress-server";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
@@ -67,10 +71,15 @@ export async function GET(req: Request) {
     homeworkDone: extra.homeworkDone ?? {},
     placementDone: extra.placementDone ?? false,
     journalEntries: extra.journalEntries ?? [],
+    ...(typeof extra.ratingUpdatedAt === "number"
+      ? { ratingUpdatedAt: extra.ratingUpdatedAt }
+      : {}),
+    ...(typeof extra.goalUpdatedAt === "number" ? { goalUpdatedAt: extra.goalUpdatedAt } : {}),
+    ...(typeof extra.tz === "string" ? { tz: extra.tz } : {}),
   });
 }
 
-/** Push the client's snapshot — max-merged with server state in a transaction. */
+/** Push the client's snapshot — recency-merged with server state in a transaction. */
 export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -95,10 +104,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const { lessonCount } = await applyProgressPush(
+  const { lessonCount, merged } = await applyProgressPush(
     user.id,
     parsed.data,
     db as LibSQLDatabase<typeof schema>,
   );
-  return NextResponse.json({ ok: true, count: lessonCount });
+  return NextResponse.json(progressPushResponseBody(lessonCount, merged));
 }

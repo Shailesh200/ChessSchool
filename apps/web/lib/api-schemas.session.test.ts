@@ -44,6 +44,42 @@ describe("progressPushSchema", () => {
     ).toBe(false);
   });
 
+  it("accepts ratingUpdatedAt, goalUpdatedAt, and an IANA tz", () => {
+    const now = Date.now();
+    const parsed = progressPushSchema.safeParse({
+      xp: 0,
+      streak: 0,
+      lastActiveDay: null,
+      graduatedClasses: [],
+      lessons: {},
+      ratingUpdatedAt: now,
+      goalUpdatedAt: now - 1_000,
+      tz: "Asia/Kolkata",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects a timestamp more than a day ahead, a bad zone, and a long tz", () => {
+    const base = {
+      xp: 0,
+      streak: 0,
+      lastActiveDay: null,
+      graduatedClasses: [] as string[],
+      lessons: {},
+    };
+    expect(
+      progressPushSchema.safeParse({ ...base, ratingUpdatedAt: Date.now() + 86_400_000 + 5_000 })
+        .success,
+    ).toBe(false);
+    expect(
+      progressPushSchema.safeParse({ ...base, goalUpdatedAt: 1.5 }).success,
+    ).toBe(false);
+    expect(progressPushSchema.safeParse({ ...base, tz: "Not/AZone" }).success).toBe(false);
+    expect(progressPushSchema.safeParse({ ...base, tz: "" }).success).toBe(false);
+    expect(progressPushSchema.safeParse({ ...base, tz: "x".repeat(65) }).success).toBe(false);
+    expect(progressPushSchema.safeParse(base).success).toBe(true);
+  });
+
   it("rejects mastery above 1", () => {
     expect(
       progressPushSchema.safeParse({

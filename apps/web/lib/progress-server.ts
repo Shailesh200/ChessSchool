@@ -12,7 +12,7 @@ export async function applyProgressPush(
   userId: string,
   body: ProgressPushBody,
   database: Db,
-): Promise<{ lessonCount: number }> {
+): Promise<{ lessonCount: number; merged: ReturnType<typeof mergeProgressPush> }> {
   const now = Date.now();
 
   return database.transaction(async (tx) => {
@@ -79,6 +79,6 @@ export async function applyProgressPush(
       }
     }
 
-    return { lessonCount: lessonEntries.length };
+    return { lessonCount: lessonEntries.length, merged };
   });
 }

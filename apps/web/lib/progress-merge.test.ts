@@ -226,6 +226,236 @@ describe("mergeProgressPush", () => {
   });
 });
 
+describe("recency merge", () => {
+  const today = "2026-10-22";
+  const opts = { today, graceStart: "2099-01-01" };
+
+  function withGraceOff(run: () => void) {
+    const previous = process.env.STREAK_GRACE_START;
+    process.env.STREAK_GRACE_START = "2099-01-01";
+    try {
+      run();
+    } finally {
+      if (previous === undefined) delete process.env.STREAK_GRACE_START;
+      else process.env.STREAK_GRACE_START = previous;
+    }
+  }
+
+  it("syncs a broken streak, a rating drop, and a lowered goal", () => {
+    withGraceOff(() => {
+      const merged = mergeProgressPush(
+        push({
+          streak: 1,
+          lastActiveDay: today,
+          rating: 1400,
+          ratingUpdatedAt: 2_000,
+          dailyGoalXp: 30,
+          goalUpdatedAt: 2_000,
+          homeworkStreak: 1,
+          homeworkLastDay: today,
+        }),
+        {
+          ...emptyServer,
+          streak: 9,
+          lastActiveDay: "2026-10-20",
+          extra: {
+            rating: 1600,
+            ratingUpdatedAt: 1_000,
+            dailyGoalXp: 80,
+            goalUpdatedAt: 1_000,
+            homeworkStreak: 6,
+            homeworkLastDay: "2026-10-18",
+          },
+        },
+        opts,
+      );
+      expect(merged.streak).toBe(1);
+      expect(merged.lastActiveDay).toBe(today);
+      expect(merged.data.rating).toBe(1400);
+      expect(merged.data.ratingUpdatedAt).toBe(2_000);
+      expect(merged.dailyGoalXp).toBe(30);
+      expect(merged.data.goalUpdatedAt).toBe(2_000);
+      expect(merged.data.homeworkStreak).toBe(1);
+      expect(merged.data.homeworkLastDay).toBe(today);
+    });
+  });
+
+  it("keeps max rating and goal for an old client with no timestamps", () => {
+    withGraceOff(() => {
+      const merged = mergeProgressPush(
+        push({
+          rating: 900,
+          dailyGoalXp: 40,
+          streak: 2,
+          lastActiveDay: today,
+        }),
+        {
+          ...emptyServer,
+          streak: 6,
+          lastActiveDay: today,
+          extra: { rating: 1200, dailyGoalXp: 80 },
+        },
+        opts,
+      );
+      expect(merged.data.rating).toBe(1200);
+      expect(merged.dailyGoalXp).toBe(80);
+      expect(merged.data.ratingUpdatedAt).toBeUndefined();
+      expect(merged.data.goalUpdatedAt).toBeUndefined();
+      expect(merged.streak).toBe(6);
+    });
+  });
+
+  it("rejects a far-future or malformed lastActiveDay", () => {
+    withGraceOff(() => {
+      const future = mergeProgressPush(
+        push({ streak: 40, lastActiveDay: "2027-01-01" }),
+        { ...emptyServer, streak: 3, lastActiveDay: today },
+        opts,
+      );
+      expect(future.streak).toBe(3);
+      expect(future.lastActiveDay).toBe(today);
+
+      const malformed = mergeProgressPush(
+        push({ streak: 12, lastActiveDay: "2026-02-30" }),
+        { ...emptyServer, streak: 2, lastActiveDay: "2026-10-21" },
+        opts,
+      );
+      expect(malformed.streak).toBe(2);
+      expect(malformed.lastActiveDay).toBe("2026-10-21");
+
+      // No stored day to compare against: the future claim still must not win the tie.
+      const unanchored = mergeProgressPush(
+        push({ streak: 40, lastActiveDay: "2027-01-01" }),
+        { ...emptyServer, streak: 2, lastActiveDay: null },
+        opts,
+      );
+      expect(unanchored.streak).toBe(2);
+      expect(unanchored.lastActiveDay).toBeNull();
+
+      // A valid older day does not replace a newer stored day.
+      const older = mergeProgressPush(
+        push({ streak: 9, lastActiveDay: "2026-10-20" }),
+        { ...emptyServer, streak: 4, lastActiveDay: today },
+        opts,
+      );
+      expect(older.streak).toBe(4);
+      expect(older.lastActiveDay).toBe(today);
+
+      // A stored day ahead of the incoming local day is the same day, not a gap.
+      const ahead = mergeProgressPush(
+        push({ streak: 1, lastActiveDay: today }),
+        { ...emptyServer, streak: 4, lastActiveDay: "2026-10-23" },
+        opts,
+      );
+      expect(ahead.streak).toBe(4);
+      expect(ahead.lastActiveDay).toBe("2026-10-23");
+    });
+  });
+
+  it("stores tz without letting it choose the streak day", () => {
+    withGraceOff(() => {
+      const merged = mergeProgressPush(
+        push({
+          streak: 1,
+          lastActiveDay: today,
+          tz: "Asia/Kolkata",
+        }),
+        { ...emptyServer, streak: 4, lastActiveDay: "2026-10-20" },
+        opts,
+      );
+      expect(merged.data.tz).toBe("Asia/Kolkata");
+      expect(merged.streak).toBe(1);
+      expect(merged.lastActiveDay).toBe(today);
+    });
+  });
+
+  it("keeps the newest 30 mistakes and the newest puzzle day", () => {
+    const older = Array.from({ length: 20 }, (_, i) => ({
+      fen: `s${i}`,
+      played: "e2e4",
+      best: "d2d4",
+      tag: "fork",
+      at: i,
+    }));
+    const newer = Array.from({ length: 15 }, (_, i) => ({
+      fen: `l${i}`,
+      played: "a2a3",
+      best: "d2d4",
+      tag: "pin",
+      at: 100 + i,
+    }));
+    const merged = mergeProgressPush(
+      push({ mistakeLog: newer, dailyPuzzleDay: "2026-06-15" }),
+      {
+        ...emptyServer,
+        extra: { mistakeLog: older, dailyPuzzleDay: "2026-01-01" },
+      },
+      opts,
+    );
+    expect(merged.data.mistakeLog).toHaveLength(30);
+    expect((merged.data.mistakeLog as Array<{ at: number }>)[0]?.at).toBe(114);
+    expect(merged.data.dailyPuzzleDay).toBe("2026-06-15");
+  });
+
+  it("ends on the same values when two devices push in either order", () => {
+    withGraceOff(() => {
+      const deviceA = push({
+        xp: 100,
+        streak: 5,
+        lastActiveDay: "2026-10-20",
+        rating: 1500,
+        ratingUpdatedAt: 1_000,
+        dailyGoalXp: 80,
+        goalUpdatedAt: 2_000,
+        homeworkStreak: 4,
+        homeworkLastDay: "2026-10-20",
+      });
+      const deviceB = push({
+        xp: 40,
+        streak: 1,
+        lastActiveDay: today,
+        rating: 1400,
+        ratingUpdatedAt: 3_000,
+        dailyGoalXp: 30,
+        goalUpdatedAt: 1_000,
+        homeworkStreak: 1,
+        homeworkLastDay: today,
+      });
+      const asServer = (
+        merged: ReturnType<typeof mergeProgressPush>,
+      ): ServerProgressState => ({
+        xp: merged.xp,
+        streak: merged.streak,
+        lastActiveDay: merged.lastActiveDay,
+        dailyGoalXp: merged.dailyGoalXp,
+        graduatedClasses: merged.graduatedClasses,
+        lessons: merged.lessons,
+        extra: merged.data,
+      });
+      const ab = mergeProgressPush(
+        deviceB,
+        asServer(mergeProgressPush(deviceA, emptyServer, opts)),
+        opts,
+      );
+      const ba = mergeProgressPush(
+        deviceA,
+        asServer(mergeProgressPush(deviceB, emptyServer, opts)),
+        opts,
+      );
+      expect(ab.streak).toBe(ba.streak);
+      expect(ab.streak).toBe(1);
+      expect(ab.data.rating).toBe(1400);
+      expect(ba.data.rating).toBe(1400);
+      expect(ab.dailyGoalXp).toBe(80);
+      expect(ba.dailyGoalXp).toBe(80);
+      expect(ab.data.homeworkStreak).toBe(1);
+      expect(ba.data.homeworkStreak).toBe(1);
+      expect(ab.xp).toBe(100);
+      expect(ba.xp).toBe(100);
+    });
+  });
+});
+
 describe("mergeExtraData", () => {
   it("keeps previous arrays when incoming omits them", () => {
     const prev = {

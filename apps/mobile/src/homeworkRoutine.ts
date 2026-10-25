@@ -1,4 +1,4 @@
-import { addDays, isoDay } from "@/progression";
+import { addDays, dayAlreadyCovers, isoDay } from "@/progression";
 
 /** Daily routine step ids — matches web ROUTINE_STEPS. */
 export const ROUTINE_STEP_IDS = [
@@ -29,9 +29,12 @@ export function markHomeworkActivity(
 
   const allDone = ROUTINE_STEP_IDS.every((id) => todayDone.has(id));
   if (allDone && homeworkLastDay !== today) {
-    const yesterday = addDays(today, -1);
-    homeworkStreak = homeworkLastDay === yesterday ? homeworkStreak + 1 : 1;
-    homeworkLastDay = today;
+    // A stored day ahead of today is the same day, not a broken streak.
+    if (!dayAlreadyCovers(homeworkLastDay, today)) {
+      const yesterday = addDays(today, -1);
+      homeworkStreak = homeworkLastDay === yesterday ? homeworkStreak + 1 : 1;
+      homeworkLastDay = today;
+    }
   }
 
   return { ...snap, homeworkDone: hd, homeworkStreak, homeworkLastDay };

@@ -60,9 +60,9 @@ function graceInput(partial: Partial<StreakGraceInput> = {}): StreakGraceInput {
 }
 
 /**
- * D3 will take the streak from the side with the newer lastActiveDay.
- * A tie (same day) keeps the larger streak. This is not the production
- * merge (that is still max). Tests pass its result in as `mergedStreak`.
+ * Production merge takes the streak from the side with the newer lastActiveDay.
+ * A tie (same day) keeps the larger streak. Tests that call grace directly
+ * pass this result in as `mergedStreak`.
  */
 function streakFromNewerLastActiveDay(
   stored: { streak: number; lastActiveDay: string | null },
@@ -117,7 +117,8 @@ describe("streak grace window", () => {
         { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
         { today: TODAY },
       );
-      expect(merged.streak).toBe(4);
+      // Grace is off, so the newer day's reset is stored. It is not the old max of 4, and not 5.
+      expect(merged.streak).toBe(1);
       expect(merged.streak).not.toBe(5);
       expect(merged.data.streakGrace).toBeUndefined();
       expect(merged.lastActiveDay).toBe(TODAY);
@@ -145,7 +146,8 @@ describe("streak grace window", () => {
         { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
         { today: TODAY },
       );
-      expect(merged.streak).toBe(4);
+      expect(merged.streak).toBe(1);
+      expect(merged.streak).not.toBe(5);
       expect(merged.data.streakGrace).toBeUndefined();
     } finally {
       if (previous === undefined) delete process.env.STREAK_GRACE_START;
@@ -468,7 +470,9 @@ describe("server-owned streakGrace merge", () => {
       { today: outside, graceStart: START },
     );
     expect(merged.data.streakGrace).toBeUndefined();
-    expect(merged.streak).toBe(4);
+    // Grace does not apply, so the newer day's reset is what gets stored.
+    expect(merged.streak).toBe(1);
+    expect(merged.lastActiveDay).toBe(outside);
     expect(merged.streak).not.toBe(5);
   });
 
@@ -480,7 +484,8 @@ describe("server-owned streakGrace merge", () => {
       { today: incomingDay, graceStart: START },
     );
     expect(merged.data.streakGrace).toBeUndefined();
-    expect(merged.streak).toBe(4);
+    expect(merged.streak).toBe(1);
+    expect(merged.lastActiveDay).toBe(incomingDay);
     expect(merged.streak).not.toBe(5);
   });
 
@@ -497,7 +502,8 @@ describe("server-owned streakGrace merge", () => {
       { today: "2026-10-24", graceStart: START },
     );
     expect(merged.data.streakGrace).toEqual({ usedOn: TODAY });
-    expect(merged.streak).toBe(server.streak);
+    expect(merged.streak).toBe(1);
+    expect(merged.lastActiveDay).toBe("2026-10-24");
     expect(merged.streak).not.toBe(server.streak + 1);
   });
 
@@ -567,7 +573,8 @@ describe("server-owned streakGrace merge", () => {
       { today: TODAY, graceStart: START },
     );
     expect(merged.data.streakGrace).toEqual(storedGrace);
-    expect(merged.streak).toBe(4);
+    expect(merged.streak).toBe(1);
+    expect(merged.lastActiveDay).toBe(TODAY);
     expect(merged.streak).not.toBe(5);
   });
 

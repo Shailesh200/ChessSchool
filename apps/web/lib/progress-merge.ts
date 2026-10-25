@@ -1,6 +1,11 @@
 import {
+  mergeMistakeLog,
   mergeProgressSnapshots,
+  newerIsoDay,
   normalizeProgressPush,
+  pickLastWriterNumber,
+  pickStreakByRecency,
+  type ActiveDayPolicy,
   type Snap,
 } from "@chess-school/progression";
 import type { ProgressPushBody } from "@/lib/api-schemas";
@@ -38,6 +43,12 @@ export type ExtraProgressData = {
   homeworkDone?: Record<string, string[]>;
   placementDone?: boolean;
   journalEntries?: unknown[];
+  /** Integer ms. Present only after a client that stamps rating writes. */
+  ratingUpdatedAt?: number;
+  /** Integer ms. Present only after a client that stamps the goal writes. */
+  goalUpdatedAt?: number;
+  /** Device IANA zone. Stored for a later server-side day. Not read yet. */
+  tz?: string;
   /**
    * Server-owned one-time streak grace. Merge always keeps the stored value
    * and never copies a client-sent `streakGrace` (including when the client
@@ -134,7 +145,7 @@ function snapFromServer(
     lastActiveDay: state.lastActiveDay,
     graduatedClasses: state.graduatedClasses,
     lessons: state.lessons,
-    dailyGoalXp: state.dailyGoalXp,
+    dailyGoalXp: state.extra.dailyGoalXp ?? state.dailyGoalXp,
     rating: state.extra.rating,
     botWins: state.extra.botWins,
     unlockedAchievements: state.extra.unlockedAchievements,
@@ -144,6 +155,8 @@ function snapFromServer(
     mistakeLog: state.extra.mistakeLog as Snap["mistakeLog"],
     homeworkStreak: state.extra.homeworkStreak,
     homeworkLastDay: state.extra.homeworkLastDay,
+    ratingUpdatedAt: state.extra.ratingUpdatedAt,
+    goalUpdatedAt: state.extra.goalUpdatedAt,
     recentGames: state.extra.recentGames,
     dailyPuzzleDay: state.extra.dailyPuzzleDay,
     homeworkDone: state.extra.homeworkDone,
@@ -170,6 +183,8 @@ function snapFromPush(body: ProgressPushBody): Snap & { placementDone?: boolean 
     mistakeLog: body.mistakeLog as Snap["mistakeLog"],
     homeworkStreak: body.homeworkStreak,
     homeworkLastDay: body.homeworkLastDay,
+    ratingUpdatedAt: body.ratingUpdatedAt,
+    goalUpdatedAt: body.goalUpdatedAt,
     recentGames: body.recentGames,
     dailyPuzzleDay: body.dailyPuzzleDay,
     homeworkDone: body.homeworkDone,
@@ -230,15 +245,37 @@ function mergeRecentGames(prev: unknown[] = [], incoming: unknown[] = []): unkno
 export function mergeExtraData(
   prev: ExtraProgressData,
   incoming: ExtraProgressData,
+  policy?: ActiveDayPolicy,
 ): ExtraProgressData {
   const hasIncoming = (k: keyof ExtraProgressData) => incoming[k] !== undefined;
+  const incomingRatingStamp =
+    typeof incoming.ratingUpdatedAt === "number" &&
+    Number.isInteger(incoming.ratingUpdatedAt);
+  const incomingGoalStamp =
+    typeof incoming.goalUpdatedAt === "number" &&
+    Number.isInteger(incoming.goalUpdatedAt);
+  // An omitted value with no timestamp must not default over the stored one.
+  const rating = pickLastWriterNumber(
+    incoming.rating ?? (incomingRatingStamp ? 800 : (prev.rating ?? 800)),
+    incoming.ratingUpdatedAt,
+    prev.rating ?? 800,
+    prev.ratingUpdatedAt,
+  );
+  const goal = pickLastWriterNumber(
+    Number(incoming.dailyGoalXp ?? (incomingGoalStamp ? 50 : (prev.dailyGoalXp ?? 50))),
+    incoming.goalUpdatedAt,
+    Number(prev.dailyGoalXp ?? 50),
+    prev.goalUpdatedAt,
+  );
+  const homework = pickStreakByRecency(
+    { streak: incoming.homeworkStreak ?? 0, day: incoming.homeworkLastDay },
+    { streak: prev.homeworkStreak ?? 0, day: prev.homeworkLastDay },
+    policy,
+  );
   const merged: ExtraProgressData = {
-    rating: Math.max(prev.rating ?? 800, incoming.rating ?? prev.rating ?? 800),
+    rating: rating.value,
     botWins: Math.max(prev.botWins ?? 0, incoming.botWins ?? prev.botWins ?? 0),
-    dailyGoalXp: Math.max(
-      Number(prev.dailyGoalXp ?? 50),
-      Number(incoming.dailyGoalXp ?? prev.dailyGoalXp ?? 50),
-    ),
+    dailyGoalXp: goal.value,
     unlockedAchievements: hasIncoming("unlockedAchievements")
       ? Array.from(
           new Set([
@@ -258,17 +295,16 @@ export function mergeExtraData(
     weaknesses: mergeNumericMaps(prev.weaknesses, incoming.weaknesses),
     activityDays: mergeNumericMaps(prev.activityDays, incoming.activityDays),
     mistakeLog: hasIncoming("mistakeLog")
-      ? (incoming.mistakeLog ?? prev.mistakeLog)
+      ? mergeMistakeLog(incoming.mistakeLog, prev.mistakeLog)
       : prev.mistakeLog,
-    homeworkStreak: Math.max(
-      prev.homeworkStreak ?? 0,
-      incoming.homeworkStreak ?? prev.homeworkStreak ?? 0,
-    ),
-    homeworkLastDay: incoming.homeworkLastDay ?? prev.homeworkLastDay ?? null,
+    homeworkStreak: homework.streak,
+    homeworkLastDay: homework.day,
     recentGames: hasIncoming("recentGames")
       ? mergeRecentGames(prev.recentGames, incoming.recentGames)
       : prev.recentGames,
-    dailyPuzzleDay: incoming.dailyPuzzleDay ?? prev.dailyPuzzleDay ?? null,
+    dailyPuzzleDay: hasIncoming("dailyPuzzleDay")
+      ? newerIsoDay(incoming.dailyPuzzleDay, prev.dailyPuzzleDay)
+      : (prev.dailyPuzzleDay ?? null),
     settings:
       incoming.settings !== undefined
         ? { ...(prev.settings ?? {}), ...incoming.settings }
@@ -278,7 +314,10 @@ export function mergeExtraData(
     journalEntries: hasIncoming("journalEntries")
       ? mergeJournal(prev.journalEntries, incoming.journalEntries)
       : prev.journalEntries,
+    tz: typeof incoming.tz === "string" && incoming.tz ? incoming.tz : prev.tz,
   };
+  if (rating.at !== null) merged.ratingUpdatedAt = rating.at;
+  if (goal.at !== null) merged.goalUpdatedAt = goal.at;
   // Client payloads are not a source for this key. Omission must not clear it.
   const storedGrace = readStoredStreakGrace(prev.streakGrace);
   if (storedGrace) merged.streakGrace = storedGrace;
@@ -298,6 +337,9 @@ function extraFromPush(body: ProgressPushBody): ExtraProgressData {
     mistakeLog: body.mistakeLog,
     homeworkStreak: body.homeworkStreak,
     homeworkLastDay: body.homeworkLastDay,
+    ratingUpdatedAt: body.ratingUpdatedAt,
+    goalUpdatedAt: body.goalUpdatedAt,
+    tz: body.tz,
     recentGames: body.recentGames,
     dailyPuzzleDay: body.dailyPuzzleDay,
     settings: body.settings,
@@ -320,20 +362,43 @@ export type MergeProgressOptions = {
   graceStart?: string;
 };
 
+/** Merged fields POST /api/progress returns so a client can adopt the server result. */
+export function progressPushResponseBody(
+  lessonCount: number,
+  merged: MergedProgressWrite,
+): {
+  ok: true;
+  count: number;
+  streak: number;
+  lastActiveDay: string | null;
+  rating: number;
+  dailyGoalXp: number;
+  homeworkStreak: number;
+} {
+  return {
+    ok: true,
+    count: lessonCount,
+    streak: merged.streak,
+    lastActiveDay: merged.lastActiveDay,
+    rating: merged.data.rating ?? 800,
+    dailyGoalXp: merged.dailyGoalXp,
+    homeworkStreak: merged.data.homeworkStreak ?? 0,
+  };
+}
+
 /**
- * Max-merge an incoming client snapshot over server state.
- * Incoming is treated as "local"; server as authoritative floor (H1/H2).
+ * Recency-merge an incoming client snapshot over server state.
+ * XP, bot wins, and lesson mastery stay monotonic. Streak, rating, and the
+ * daily goal follow the rules in `mergeProgressSnapshots` and may go down.
  *
- * Streak grace runs after that merge. `mergedStreak` is whatever
- * `mergeProgressSnapshots` chose — max() today, the newer `lastActiveDay`'s
- * streak after D3. Grace replaces it only for the one-time one-day rule, and
+ * Streak grace runs after that merge. `mergedStreak` is the streak on the
+ * side with the newer acceptable `lastActiveDay` (the larger streak wins a
+ * same-day tie). Grace replaces it only for the one-time one-day rule, and
  * the flag written into `data.streakGrace` always comes from the server.
- * An incoming `lastActiveDay` later than the server UTC day + 1 is not
- * stored, and that push does not change the streak.
- *
- * The corrected streak is what gets stored. POST /api/progress still replies
- * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
- * copies a merged streak out of that response. Clients pick it up on the next GET.
+ * An incoming `lastActiveDay` later than the server UTC day + 1, or a
+ * malformed day, is not stored, and that push does not change the streak.
+ * POST /api/progress returns the merged streak fields so clients adopt them
+ * immediately.
  */
 export function mergeProgressPush(
   incoming: ProgressPushBody,
@@ -346,11 +411,13 @@ export function mergeProgressPush(
     server.lastActiveDay,
     utcToday,
   );
+  const policy: ActiveDayPolicy = { today: utcToday };
   const mergedCore = mergeProgressSnapshots(
     snapFromPush(incoming),
     snapFromServer(server),
+    policy,
   );
-  const mergedExtra = mergeExtraData(server.extra, extraFromPush(incoming));
+  const mergedExtra = mergeExtraData(server.extra, extraFromPush(incoming), policy);
   const graced = activity.rejectIncoming
     ? {
         streak: server.streak,
@@ -371,21 +438,36 @@ export function mergeProgressPush(
     ...mergedExtra,
     rating: mergedCore.rating,
     botWins: mergedCore.botWins,
+    dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
     unlockedAchievements: mergedCore.unlockedAchievements as string[] | undefined,
     schoolExamsPassed: mergedCore.schoolExamsPassed as string[] | undefined,
     weaknesses: mergedCore.weaknesses as Record<string, number> | undefined,
     activityDays: mergedCore.activityDays as Record<string, number> | undefined,
     mistakeLog: mergedCore.mistakeLog,
+    homeworkStreak:
+      typeof mergedCore.homeworkStreak === "number" ? mergedCore.homeworkStreak : 0,
+    homeworkLastDay:
+      typeof mergedCore.homeworkLastDay === "string"
+        ? mergedCore.homeworkLastDay
+        : null,
     dailyPuzzleDay: mergedCore.dailyPuzzleDay as string | null | undefined,
     placementDone: Boolean(mergedCore.placementDone ?? mergedExtra.placementDone),
   };
+  if (typeof mergedCore.ratingUpdatedAt === "number") {
+    data.ratingUpdatedAt = mergedCore.ratingUpdatedAt;
+  } else delete data.ratingUpdatedAt;
+  if (typeof mergedCore.goalUpdatedAt === "number") {
+    data.goalUpdatedAt = mergedCore.goalUpdatedAt;
+  } else delete data.goalUpdatedAt;
   if (graced.streakGrace) data.streakGrace = graced.streakGrace;
   else delete data.streakGrace;
 
   return {
     xp: mergedCore.xp ?? 0,
     streak: graced.streak,
-    lastActiveDay: activity.lastActiveDay,
+    lastActiveDay: activity.rejectIncoming
+      ? activity.lastActiveDay
+      : (mergedCore.lastActiveDay ?? activity.lastActiveDay),
     dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
     graduatedClasses: (mergedCore.graduatedClasses as string[] | undefined) ?? [],
     data,

@@ -96,6 +96,13 @@ describe("registerActivity across local midnight", () => {
     expect(snap.lastActiveDay).toBe("2026-07-15");
   });
 
+  it("treats a stored day ahead of the local day as the same day", () => {
+    const today = "2026-07-15";
+    const base = { streak: 4, lastActiveDay: "2026-07-16" };
+    expect(registerActivity(base, today)).toBe(base);
+    expect(registerActivity({ streak: 4, lastActiveDay: "2026-07-20" }, today).streak).toBe(4);
+  });
+
   it("does not bump the streak between 05:29 and 05:31 IST", () => {
     const at0529 = calendarDay(new Date("2026-07-14T23:59:00.000Z"), IST);
     const at0531 = calendarDay(new Date("2026-07-15T00:01:00.000Z"), IST);

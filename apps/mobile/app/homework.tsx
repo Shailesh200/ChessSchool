@@ -61,7 +61,11 @@ export default function PlanScreen() {
 
   async function setTier(tier: PlanTier) {
     settings.set("planTier", tier);
-    await mutateProgress((snap) => ({ ...snap, dailyGoalXp: PLAN_SPECS[tier].goalXp }));
+    await mutateProgress((snap) => {
+      const dailyGoalXp = PLAN_SPECS[tier].goalXp;
+      if (snap.dailyGoalXp === dailyGoalXp) return snap;
+      return { ...snap, dailyGoalXp, goalUpdatedAt: Date.now() };
+    });
   }
 
   const dayIndex = Math.floor(Date.parse(isoDay() + "T00:00:00Z") / 86400000);

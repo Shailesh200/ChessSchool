@@ -20,12 +20,11 @@ export type StreakGraceInput = {
   incomingStreak: number;
   incomingLastActiveDay: string | null;
   /**
-   * Streak already chosen by the snapshot merge.
-   * Today that is max(stored, incoming), which hides a reset (D-3).
-   * D3 will switch this to the streak on the side with the newer
-   * `lastActiveDay`, with the larger streak winning a same-day tie.
-   * Grace replaces this number only when the one-time rule matches.
-   * Otherwise it is returned unchanged.
+   * Streak already chosen by the snapshot merge: the side with the newer
+   * acceptable `lastActiveDay`, or the larger streak when the day ties.
+   * Grace replaces this number only when the one-time rule matches
+   * (`storedStreak + 1`). Otherwise it is returned unchanged, so a reset
+   * still syncs.
    */
   mergedStreak: number;
   storedGrace?: StreakGrace | null;

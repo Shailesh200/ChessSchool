@@ -15,6 +15,7 @@ import {
 } from "@/core/db/db";
 import {
   accountProgressEmpty,
+  deviceTimeZone,
   localProgressPresent,
   normalizeSyncGame,
 } from "@chess-school/progression";
@@ -70,6 +71,8 @@ export type ServerSnapshot = ProgressSnapshot & {
   homeworkDone?: Record<string, string[]>;
   recentGames?: unknown[];
   dailyPuzzleDay?: string | null;
+  ratingUpdatedAt?: number;
+  goalUpdatedAt?: number;
 };
 
 /** The full push payload — progression snapshot + homework streak + settings + journal. */
@@ -83,6 +86,7 @@ export function fullSnapshot() {
     homeworkStreak: plan.homeworkStreak,
     homeworkLastDay: plan.homeworkLastDay,
     settings: settingsPayload,
+    tz: deviceTimeZone(),
   };
 }
 
@@ -140,12 +144,18 @@ export async function pullProgress(): Promise<{
     useProgression
       .getState()
       .mergeSnapshot({ ...data, placementDone: data.placementDone });
+    usePlan
+      .getState()
+      .setHomework(data.homeworkStreak ?? 0, data.homeworkLastDay ?? null);
   } else {
     const current = progressSnapshot(useProgression.getState());
     const incoming = { ...data, placementDone: data.placementDone };
     if (!snapshotsEqual(current, incoming, Boolean(data.placementDone))) {
       useProgression.getState().hydrateSnapshot(incoming);
     }
+    usePlan
+      .getState()
+      .adoptHomework(data.homeworkStreak ?? 0, data.homeworkLastDay ?? null);
   }
   if (
     data.dailyPuzzleDay !== undefined &&
@@ -153,9 +163,6 @@ export async function pullProgress(): Promise<{
   ) {
     useProgression.setState({ dailyPuzzleDay: data.dailyPuzzleDay ?? null });
   }
-  usePlan
-    .getState()
-    .setHomework(data.homeworkStreak ?? 0, data.homeworkLastDay ?? null);
   if (data.settings && typeof data.settings === "object") {
     type SyncedSettings = Partial<
       Omit<SettingsState, "set" | "toggle" | "reset" | "applyPatch" | "diagnostics">

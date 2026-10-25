@@ -100,7 +100,12 @@ export default function PlacementScreen() {
     const classIds = stages.slice(0, targetIdx).flatMap((s) => s.classIds);
     try {
       await mutateProgress((snap) => {
-        let next: Record<string, unknown> = { ...snap, rating: elo, placementDone: true };
+        let next: Record<string, unknown> = {
+          ...snap,
+          rating: elo,
+          placementDone: true,
+          ...(snap.rating !== elo ? { ratingUpdatedAt: Date.now() } : {}),
+        };
         for (const cid of classIds) next = graduateClass(next, cid);
         return next;
       });
