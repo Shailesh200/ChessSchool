@@ -2,7 +2,11 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { addDays, isoDay, mergeProgressSnapshots } from "@chess-school/progression";
+import {
+  advanceStreak,
+  isoDay,
+  mergeProgressSnapshots,
+} from "@chess-school/progression";
 import type { ArenaRunRecord } from "@/features/play/arena";
 
 export { isoDay };
@@ -249,10 +253,14 @@ export const useProgression = create<ProgressionState>()(
 
       registerActivity: (today) =>
         set((s) => {
-          if (s.lastActiveDay === today) return s;
-          const yesterday = addDays(today, -1);
-          const streak = s.lastActiveDay === yesterday ? s.streak + 1 : 1;
-          return { streak, lastActiveDay: today, todayKey: today, todayXp: 0 };
+          const next = advanceStreak(s.lastActiveDay, today, s.streak);
+          if (next.day === s.lastActiveDay && next.streak === s.streak) return s;
+          return {
+            streak: next.streak,
+            lastActiveDay: next.day,
+            todayKey: today,
+            todayXp: 0,
+          };
         }),
 
       graduateClass: (classId) =>

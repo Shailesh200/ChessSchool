@@ -46,6 +46,28 @@ describe("registerActivity (streak)", () => {
     const base: Snap = { streak: 7, lastActiveDay: today };
     expect(registerActivity(base)).toBe(base);
   });
+
+  it("keeps a UTC day that is ahead of the local day", () => {
+    const base: Snap = { streak: 6, lastActiveDay: "2026-07-16" };
+    expect(registerActivity(base, "2026-07-15")).toBe(base);
+  });
+});
+
+describe("RS-LL-01b guest streak at 03:55 IST", () => {
+  const IST = "Asia/Kolkata";
+  const evening = isoDay(new Date("2026-07-14T18:00:00.000Z"), IST); // 23:30 IST
+  const morning = isoDay(new Date("2026-07-14T22:25:00.000Z"), IST); // 03:55 IST next day
+
+  it("increments once across local midnight and does not double-count", () => {
+    expect(evening).toBe("2026-07-14");
+    expect(morning).toBe("2026-07-15");
+    const first = registerActivity({}, evening);
+    expect(first.streak).toBe(1);
+    const second = registerActivity(first, morning);
+    expect(second.streak).toBe(2);
+    expect(second.lastActiveDay).toBe(morning);
+    expect(registerActivity(second, morning)).toBe(second);
+  });
 });
 
 describe("recordLesson (mastery EWMA + spaced repetition)", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, calendarDay, isoDay, yesterday } from "./day";
+import { addDays, calendarDay, isoDay, resolveRequestedDay, yesterday } from "./day";
 import { registerActivity } from "./index";
 
 const IST = "Asia/Kolkata";
@@ -76,6 +76,42 @@ describe("addDays / yesterday (DST-safe)", () => {
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(addDays("2027-01-01", -1)).toBe("2026-12-31");
   });
+
+  it("returns non-ISO input unchanged instead of throwing", () => {
+    expect(addDays("nope", 1)).toBe("nope");
+    expect(addDays("2026-7-15", -1)).toBe("2026-7-15");
+    expect(addDays("2026-02-31", 1)).toBe("2026-02-31");
+    expect(addDays("2026-07-15", Number.NaN)).toBe("2026-07-15");
+    expect(() => addDays("not-a-date", 1)).not.toThrow();
+  });
+
+  it("yesterday of an invalid date is the previous calendar day, not a throw", () => {
+    const result = yesterday(new Date(Number.NaN), "UTC");
+    expect(result).toBe(addDays(isoDay(new Date(), "UTC"), -1));
+    expect(() => yesterday(new Date(Number.NaN), IST)).not.toThrow();
+  });
+});
+
+describe("resolveRequestedDay", () => {
+  const now = new Date("2026-07-15T12:00:00.000Z");
+
+  it("accepts a strict YYYY-MM-DD within the server UTC day ±1", () => {
+    expect(resolveRequestedDay("2026-07-14", now)).toBe("2026-07-14");
+    expect(resolveRequestedDay("2026-07-15", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("2026-07-16", now)).toBe("2026-07-16");
+  });
+
+  it("falls back to the server UTC day for anything else", () => {
+    expect(resolveRequestedDay("2026-07-13", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("2026-07-17", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("2026-07-15T00:00:00Z", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("2026-7-15", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("2026-02-31", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("2026-07-15 ", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay("", now)).toBe("2026-07-15");
+    expect(resolveRequestedDay(null, now)).toBe("2026-07-15");
+    expect(resolveRequestedDay(undefined, now)).toBe("2026-07-15");
+  });
 });
 
 describe("registerActivity across local midnight", () => {
@@ -94,6 +130,14 @@ describe("registerActivity across local midnight", () => {
     const snap = registerActivity({ streak: 4, lastActiveDay: prev }, next);
     expect(snap.streak).toBe(5);
     expect(snap.lastActiveDay).toBe("2026-07-15");
+  });
+
+  it("treats a stored UTC day ahead of the local day as the same day", () => {
+    const stored = { streak: 6, lastActiveDay: "2026-07-16" };
+    const next = registerActivity(stored, "2026-07-15");
+    expect(next).toBe(stored);
+    expect(next.streak).toBe(6);
+    expect(next.lastActiveDay).toBe("2026-07-16");
   });
 
   it("does not bump the streak between 05:29 and 05:31 IST", () => {

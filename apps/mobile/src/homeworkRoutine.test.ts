@@ -44,4 +44,15 @@ describe("homeworkRoutine", () => {
     const twice = markHomeworkActivity(once, "lesson", today);
     expect(twice).toBe(once);
   });
+
+  it("keeps a UTC homework day that is ahead of the local day", () => {
+    const today = "2026-07-15";
+    const snap = markHomeworkActivities(
+      { homeworkStreak: 4, homeworkLastDay: "2026-07-16" },
+      ["warmup", "lesson", "practice", "match", "review", "reflection"],
+      today,
+    );
+    expect(snap.homeworkStreak).toBe(4);
+    expect(snap.homeworkLastDay).toBe("2026-07-16");
+  });
 });

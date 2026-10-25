@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { trackEvent } from "@/core/analytics/track";
-import { addDays } from "@chess-school/progression";
+import { advanceStreak } from "@chess-school/progression";
 
 export type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
 export type Schedule = "daily" | "weekdays" | "weekends";
@@ -129,15 +129,15 @@ export const usePlan = create<PlanState>()(
         const all = ROUTINE_STEPS.every((step) => done.includes(step.id));
         if (all && get().homeworkLastDay !== today) {
           const prev = get().homeworkLastDay;
-          const yesterday = addDays(today, -1);
-          const streak = prev === yesterday ? get().homeworkStreak + 1 : 1;
+          const next = advanceStreak(prev, today, get().homeworkStreak);
+          if (next.day === prev && next.streak === get().homeworkStreak) return;
           set({
-            homeworkStreak: streak,
-            homeworkLastDay: today,
+            homeworkStreak: next.streak,
+            homeworkLastDay: next.day,
           });
           trackEvent("homework_complete", {
-            streak,
-            day: today,
+            streak: next.streak,
+            day: next.day,
             stepsCompleted: ROUTINE_STEPS.length,
           });
         }

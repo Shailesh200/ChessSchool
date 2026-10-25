@@ -1,7 +1,46 @@
 import { checkLessonAchievements, checkMatchAchievements } from "@chess-school/core";
-import { addDays, calendarDay, deviceTimeZone, isoDay, yesterday } from "./day";
+import {
+  addDays,
+  calendarDay,
+  deviceTimeZone,
+  isCalendarDay,
+  isoDay,
+  resolveRequestedDay,
+  yesterday,
+} from "./day";
 
-export { addDays, calendarDay, deviceTimeZone, isoDay, yesterday };
+export {
+  addDays,
+  calendarDay,
+  deviceTimeZone,
+  isoDay,
+  resolveRequestedDay,
+  yesterday,
+};
+
+/**
+ * Next streak and the day to store.
+ * A UTC key written before the local-day cutover can sit ahead of `today`
+ * (western-hemisphere users, or late evening). That counts as the same day:
+ * no reset, no increment, and the later key is kept.
+ */
+export function advanceStreak(
+  stored: string | null | undefined,
+  today: string,
+  streak: number,
+): { streak: number; day: string } {
+  if (stored === today) return { streak, day: today };
+  if (
+    stored &&
+    isCalendarDay(stored) &&
+    isCalendarDay(today) &&
+    stored > today
+  ) {
+    return { streak, day: stored };
+  }
+  const continued = stored != null && stored === addDays(today, -1);
+  return { streak: continued ? streak + 1 : 1, day: today };
+}
 
 // Pure progression reducers — ported 1:1 from web (core/store/progression.store.ts)
 // so the app computes XP/streak/mastery/mistakes/ELO/achievements identically.
@@ -40,9 +79,9 @@ export function recordLesson(s: Snap, id: string, correct: number, total: number
   return { ...s, lessons: { ...(s.lessons ?? {}), [id]: { mastery, attempts: (prev?.attempts ?? 0) + 1, lastSeen: Date.now(), dueAt: Date.now() + days * 86400000, incorrect: bestIncorrect } } };
 }
 export function registerActivity(s: Snap, today = isoDay()): Snap {
-  if (s.lastActiveDay === today) return s;
-  const streak = s.lastActiveDay === addDays(today, -1) ? (s.streak ?? 0) + 1 : 1;
-  return { ...s, streak, lastActiveDay: today };
+  const next = advanceStreak(s.lastActiveDay, today, s.streak ?? 0);
+  if (next.day === s.lastActiveDay && next.streak === (s.streak ?? 0)) return s;
+  return { ...s, streak: next.streak, lastActiveDay: next.day };
 }
 export function logMistake(s: Snap, m: Mistake): Snap {
   return { ...s, mistakeLog: [m, ...(s.mistakeLog ?? [])].slice(0, 30) };
