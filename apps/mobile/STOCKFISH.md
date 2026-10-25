@@ -18,6 +18,8 @@ Goal: the app plays at true **web/chess.com strength** by bundling the real **St
 
 Nets are fetched from `https://tests.stockfishchess.org/api/nn/<name>`, then `https://github.com/official-stockfish/networks/raw/master/<name>` if the first mirror fails. The filename's 12 hex chars are the leading bytes of that SHA-256 (Stockfish's own naming rule); the script also checks the full digest.
 
+GitHub tag tarballs are not guaranteed to stay byte-identical. If the `sf_18` tarball's SHA-256 does not match the pin, treat that as a repin: verify the new tarball against upstream, then update the single `TARBALL_SHA256` constant in `scripts/fetch-stockfish.sh` and the Source SHA-256 row in this table.
+
 **EAS.** `apps/mobile/package.json` hook `eas-build-pre-install` runs the script. EAS sets `EAS_BUILD_PLATFORM`. The script fetches only when that is `ios` or unset (a local run). Android EAS builds exit 0 immediately and do not download. The hook runs before `pod install`, which is when `Stockfish.podspec` globs `engine/**/*.{cpp,h}`. The `.nnue` files are not pod resources; `incbin` reads them at compile time through `-I engine`.
 
 **Local iOS** (simulator or device), from `apps/mobile`:

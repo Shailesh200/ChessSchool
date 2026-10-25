@@ -175,9 +175,15 @@ npx expo prebuild -p ios
 npx expo run:ios
 ```
 
-Do not commit `engine/` or the `.nnue` files. Pins, checksums, and the ~108 MiB uncompressed net payload (embedded once via `incbin`, not copied again as pod resources) are in [`STOCKFISH.md`](STOCKFISH.md). GPL notes for the binary are there too; the in-app licence screen is a separate change.
+Do not commit `engine/` or the `.nnue` files. Pins, checksums, and the embedded net payload (one copy via `incbin`, not copied again as pod resources) are in [`STOCKFISH.md`](STOCKFISH.md). GPL notes for the binary are there too; the in-app licence screen is a separate change.
 
 There is no `eas.json` change. The hook is the `eas-build-pre-install` script in `apps/mobile/package.json`, which EAS runs for the mobile app.
+
+### iOS download size
+
+The NNUE nets alone are about 112 MB (112,439,224 bytes: the big net plus the small net), embedded once. The App Store download must stay under 200 MB.
+
+TODO: record the IPA size from the first iOS EAS build.
 
 ---
 
