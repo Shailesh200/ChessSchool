@@ -129,17 +129,18 @@ export const usePlan = create<PlanState>()(
         const all = ROUTINE_STEPS.every((step) => done.includes(step.id));
         if (all && get().homeworkLastDay !== today) {
           const prev = get().homeworkLastDay;
-          const next = advanceStreak(prev, today, get().homeworkStreak);
-          if (next.day === prev && next.streak === get().homeworkStreak) return;
-          set({
-            homeworkStreak: next.streak,
-            homeworkLastDay: next.day,
-          });
-          trackEvent("homework_complete", {
-            streak: next.streak,
-            day: next.day,
-            stepsCompleted: ROUTINE_STEPS.length,
-          });
+          const streakBefore = get().homeworkStreak;
+          const next = advanceStreak(prev, today, streakBefore);
+          const day = next.day ?? prev;
+          if (day === prev && next.streak === streakBefore) return;
+          set({ homeworkStreak: next.streak, homeworkLastDay: day });
+          if (next.streak !== streakBefore) {
+            trackEvent("homework_complete", {
+              streak: next.streak,
+              day,
+              stepsCompleted: ROUTINE_STEPS.length,
+            });
+          }
         }
       },
       setHomework: (streak, lastDay) =>

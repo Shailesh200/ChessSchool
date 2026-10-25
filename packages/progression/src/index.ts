@@ -13,6 +13,7 @@ export {
   addDays,
   calendarDay,
   deviceTimeZone,
+  isCalendarDay,
   isoDay,
   resolveRequestedDay,
   yesterday,
@@ -20,23 +21,28 @@ export {
 
 /**
  * Next streak and the day to store.
- * A UTC key written before the local-day cutover can sit ahead of `today`
- * (western-hemisphere users, or late evening). That counts as the same day:
- * no reset, no increment, and the later key is kept.
+ *
+ * A stored day exactly one ahead of `today` is the UTC-vs-local cutover.
+ * That is the same day: no reset and no increment. The key is pulled back
+ * to `today`, so a later call on today+2 cannot treat the stale day as
+ * yesterday and skip a day.
+ *
+ * Anything further ahead is corrupt. It is dropped and the streak restarts
+ * at 1 on `today` — a future key is not a valid previous day to continue from.
+ * An invalid `today` leaves the streak and the stored day untouched.
  */
 export function advanceStreak(
   stored: string | null | undefined,
   today: string,
   streak: number,
-): { streak: number; day: string } {
+): { streak: number; day: string | null } {
+  if (!isCalendarDay(today)) return { streak, day: stored ?? null };
   if (stored === today) return { streak, day: today };
-  if (
-    stored &&
-    isCalendarDay(stored) &&
-    isCalendarDay(today) &&
-    stored > today
-  ) {
-    return { streak, day: stored };
+  if (stored && isCalendarDay(stored) && stored === addDays(today, 1)) {
+    return { streak, day: today };
+  }
+  if (stored && isCalendarDay(stored) && stored > addDays(today, 1)) {
+    return { streak: 1, day: today };
   }
   const continued = stored != null && stored === addDays(today, -1);
   return { streak: continued ? streak + 1 : 1, day: today };
@@ -80,8 +86,9 @@ export function recordLesson(s: Snap, id: string, correct: number, total: number
 }
 export function registerActivity(s: Snap, today = isoDay()): Snap {
   const next = advanceStreak(s.lastActiveDay, today, s.streak ?? 0);
-  if (next.day === s.lastActiveDay && next.streak === (s.streak ?? 0)) return s;
-  return { ...s, streak: next.streak, lastActiveDay: next.day };
+  const day = next.day ?? s.lastActiveDay ?? null;
+  if (day === (s.lastActiveDay ?? null) && next.streak === (s.streak ?? 0)) return s;
+  return { ...s, streak: next.streak, lastActiveDay: day };
 }
 export function logMistake(s: Snap, m: Mistake): Snap {
   return { ...s, mistakeLog: [m, ...(s.mistakeLog ?? [])].slice(0, 30) };
@@ -206,7 +213,24 @@ export function normalizeProgressPush(snap: Snap & { placementDone?: boolean }):
   };
 }
 
-export function mergeProgressSnapshots(local: MergeSnap, server: MergeSnap): MergeSnap {
+/**
+ * Drop a lastActiveDay more than one day past the server's UTC day.
+ * Exactly +1 is the timezone window; further ahead is never kept on write.
+ */
+function acceptedLastActiveDay(
+  day: string | null | undefined,
+  now: Date,
+): string | null {
+  if (typeof day !== "string" || !isCalendarDay(day)) return null;
+  if (day > addDays(calendarDay(now, "UTC"), 1)) return null;
+  return day;
+}
+
+export function mergeProgressSnapshots(
+  local: MergeSnap,
+  server: MergeSnap,
+  now: Date = new Date(),
+): MergeSnap {
   const lessons = { ...(local.lessons ?? {}) };
   for (const [id, r] of Object.entries(server.lessons ?? {})) {
     const cur = lessons[id];
@@ -231,7 +255,9 @@ export function mergeProgressSnapshots(local: MergeSnap, server: MergeSnap): Mer
   return {
     xp: Math.max(local.xp ?? 0, server.xp ?? 0),
     streak: Math.max(local.streak ?? 0, server.streak ?? 0),
-    lastActiveDay: local.lastActiveDay ?? server.lastActiveDay ?? null,
+    lastActiveDay:
+      acceptedLastActiveDay(local.lastActiveDay, now) ??
+      acceptedLastActiveDay(server.lastActiveDay, now),
     graduatedClasses: Array.from(new Set([...(local.graduatedClasses ?? []), ...(server.graduatedClasses ?? [])])),
     lessons,
     rating: Math.max(local.rating ?? 800, server.rating ?? 800),

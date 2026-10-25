@@ -31,7 +31,7 @@ export function markHomeworkActivity(
   if (allDone && homeworkLastDay !== today) {
     const next = advanceStreak(homeworkLastDay, today, homeworkStreak);
     homeworkStreak = next.streak;
-    homeworkLastDay = next.day;
+    homeworkLastDay = next.day ?? homeworkLastDay;
   }
 
   return { ...snap, homeworkDone: hd, homeworkStreak, homeworkLastDay };

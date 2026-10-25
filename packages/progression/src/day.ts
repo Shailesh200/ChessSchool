@@ -113,16 +113,17 @@ export function yesterday(date: Date = new Date(), timeZone?: string): string {
 
 /**
  * `?day=` for the daily puzzle and calculation trainer.
- * Accept only a real YYYY-MM-DD within the server's UTC day ±1 (every real
- * timezone fits in that window). Anything else is the server UTC day — the
- * route still responds, it does not error.
+ * A missing value is the server UTC day. A present value must be a real
+ * YYYY-MM-DD within that day ±1 (every real timezone fits). Anything else
+ * is rejected so the route returns 400 — there is no silent fallback.
  */
 export function resolveRequestedDay(
   raw: string | null | undefined,
   now: Date = new Date(),
-): string {
+): string | null {
   const server = calendarDay(now, "UTC");
-  if (typeof raw !== "string" || !isCalendarDay(raw)) return server;
-  if (raw < addDays(server, -1) || raw > addDays(server, 1)) return server;
+  if (raw == null) return server;
+  if (!isCalendarDay(raw)) return null;
+  if (raw < addDays(server, -1) || raw > addDays(server, 1)) return null;
   return raw;
 }

@@ -45,7 +45,7 @@ describe("homeworkRoutine", () => {
     expect(twice).toBe(once);
   });
 
-  it("keeps a UTC homework day that is ahead of the local day", () => {
+  it("pulls a homework day exactly one ahead back to today", () => {
     const today = "2026-07-15";
     const snap = markHomeworkActivities(
       { homeworkStreak: 4, homeworkLastDay: "2026-07-16" },
@@ -53,6 +53,17 @@ describe("homeworkRoutine", () => {
       today,
     );
     expect(snap.homeworkStreak).toBe(4);
-    expect(snap.homeworkLastDay).toBe("2026-07-16");
+    expect(snap.homeworkLastDay).toBe(today);
+  });
+
+  it("restarts when the stored homework day is more than one ahead", () => {
+    const today = "2026-07-15";
+    const snap = markHomeworkActivities(
+      { homeworkStreak: 4, homeworkLastDay: "9999-12-31" },
+      ["warmup", "lesson", "practice", "match", "review", "reflection"],
+      today,
+    );
+    expect(snap.homeworkStreak).toBe(1);
+    expect(snap.homeworkLastDay).toBe(today);
   });
 });

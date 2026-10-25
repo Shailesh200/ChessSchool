@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
   addDays,
   isoDay,
@@ -47,9 +47,52 @@ describe("registerActivity (streak)", () => {
     expect(registerActivity(base)).toBe(base);
   });
 
-  it("keeps a UTC day that is ahead of the local day", () => {
-    const base: Snap = { streak: 6, lastActiveDay: "2026-07-16" };
-    expect(registerActivity(base, "2026-07-15")).toBe(base);
+  it("pulls a UTC day exactly one ahead back to the local day", () => {
+    const next = registerActivity({ streak: 6, lastActiveDay: "2026-07-16" }, "2026-07-15");
+    expect(next.streak).toBe(6);
+    expect(next.lastActiveDay).toBe("2026-07-15");
+  });
+
+  it("a future day then a move back does not skip a free day", () => {
+    let snap = registerActivity({ streak: 5, lastActiveDay: "2026-07-14" }, "2026-07-15");
+    snap = registerActivity(snap, "2026-07-16");
+    expect(snap.streak).toBe(7);
+    const back = registerActivity(snap, "2026-07-15");
+    expect(back.streak).toBe(7);
+    expect(back.lastActiveDay).toBe("2026-07-15");
+    const jumped = registerActivity(back, "2026-07-17");
+    expect(jumped.streak).toBe(1);
+    expect(jumped.lastActiveDay).toBe("2026-07-17");
+  });
+});
+
+const RealDateTimeFormat = Intl.DateTimeFormat;
+
+describe("RS-LL-01b guest streak at 03:55 IST from the device clock", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("increments once across local midnight and does not double-count", () => {
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+      const opts: Intl.DateTimeFormatOptions = { ...options };
+      if (!opts.timeZone) opts.timeZone = "Asia/Kolkata";
+      return new RealDateTimeFormat(locales, opts);
+    });
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-14T18:00:00.000Z")); // 23:30 IST
+    const first = registerActivity({});
+    expect(first.streak).toBe(1);
+    expect(first.lastActiveDay).toBe(isoDay());
+
+    vi.setSystemTime(new Date("2026-07-14T22:25:00.000Z")); // 03:55 IST next day
+    const morning = isoDay();
+    expect(morning).toBe(addDays(first.lastActiveDay!, 1));
+    const second = registerActivity(first);
+    expect(second.streak).toBe(2);
+    expect(second.lastActiveDay).toBe(morning);
+    expect(registerActivity(second)).toBe(second);
   });
 });
 

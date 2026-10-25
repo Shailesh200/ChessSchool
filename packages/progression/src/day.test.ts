@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, calendarDay, isoDay, resolveRequestedDay, yesterday } from "./day";
-import { registerActivity } from "./index";
+import { advanceStreak, mergeProgressSnapshots, registerActivity } from "./index";
 
 const IST = "Asia/Kolkata";
 const NY = "America/New_York";
@@ -101,16 +101,20 @@ describe("resolveRequestedDay", () => {
     expect(resolveRequestedDay("2026-07-16", now)).toBe("2026-07-16");
   });
 
-  it("falls back to the server UTC day for anything else", () => {
-    expect(resolveRequestedDay("2026-07-13", now)).toBe("2026-07-15");
-    expect(resolveRequestedDay("2026-07-17", now)).toBe("2026-07-15");
-    expect(resolveRequestedDay("2026-07-15T00:00:00Z", now)).toBe("2026-07-15");
-    expect(resolveRequestedDay("2026-7-15", now)).toBe("2026-07-15");
-    expect(resolveRequestedDay("2026-02-31", now)).toBe("2026-07-15");
-    expect(resolveRequestedDay("2026-07-15 ", now)).toBe("2026-07-15");
-    expect(resolveRequestedDay("", now)).toBe("2026-07-15");
+  it("uses the server UTC day only when ?day= is missing", () => {
     expect(resolveRequestedDay(null, now)).toBe("2026-07-15");
     expect(resolveRequestedDay(undefined, now)).toBe("2026-07-15");
+  });
+
+  it("rejects a bad format, an impossible date, and a day outside ±1", () => {
+    expect(resolveRequestedDay("2026-07-13", now)).toBeNull();
+    expect(resolveRequestedDay("2026-07-17", now)).toBeNull();
+    expect(resolveRequestedDay("2026-07-15T00:00:00Z", now)).toBeNull();
+    expect(resolveRequestedDay("2026-7-15", now)).toBeNull();
+    expect(resolveRequestedDay("2026-02-30", now)).toBeNull();
+    expect(resolveRequestedDay("2026-02-31", now)).toBeNull();
+    expect(resolveRequestedDay("2026-07-15 ", now)).toBeNull();
+    expect(resolveRequestedDay("", now)).toBeNull();
   });
 });
 
@@ -132,12 +136,62 @@ describe("registerActivity across local midnight", () => {
     expect(snap.lastActiveDay).toBe("2026-07-15");
   });
 
-  it("treats a stored UTC day ahead of the local day as the same day", () => {
+  it("pulls a stored day exactly one ahead back to today", () => {
     const stored = { streak: 6, lastActiveDay: "2026-07-16" };
     const next = registerActivity(stored, "2026-07-15");
-    expect(next).toBe(stored);
     expect(next.streak).toBe(6);
+    expect(next.lastActiveDay).toBe("2026-07-15");
+  });
+
+  it("does not grant a free day when a future day is followed by a move back", () => {
+    // D → 6, D+1 → 7, back to D keeps 7 and drops the stale +1 key.
+    // Jumping on to D+2 must not treat that stale key as yesterday.
+    let snap = registerActivity({ streak: 5, lastActiveDay: "2026-07-14" }, "2026-07-15");
+    expect(snap.streak).toBe(6);
+    snap = registerActivity(snap, "2026-07-16");
+    expect(snap.streak).toBe(7);
+    expect(snap.lastActiveDay).toBe("2026-07-16");
+
+    const back = registerActivity(snap, "2026-07-15");
+    expect(back.streak).toBe(7);
+    expect(back.lastActiveDay).toBe("2026-07-15");
+
+    const skipped = registerActivity(back, "2026-07-17");
+    expect(skipped.streak).toBe(1);
+    expect(skipped.lastActiveDay).toBe("2026-07-17");
+
+    // The day after the rewound day still counts normally.
+    const next = registerActivity(back, "2026-07-16");
+    expect(next.streak).toBe(8);
     expect(next.lastActiveDay).toBe("2026-07-16");
+    const after = registerActivity(next, "2026-07-17");
+    expect(after.streak).toBe(9);
+    expect(after.lastActiveDay).toBe("2026-07-17");
+  });
+
+  it("drops a stored day more than one ahead and restarts on today", () => {
+    const yearAhead = registerActivity(
+      { streak: 6, lastActiveDay: "2027-07-15" },
+      "2026-07-15",
+    );
+    expect(yearAhead.streak).toBe(1);
+    expect(yearAhead.lastActiveDay).toBe("2026-07-15");
+
+    const far = registerActivity({ streak: 9, lastActiveDay: "9999-12-31" }, "2026-07-15");
+    expect(far.streak).toBe(1);
+    expect(far.lastActiveDay).toBe("2026-07-15");
+  });
+
+  it("leaves the snapshot untouched when today is not a calendar day", () => {
+    const base = { streak: 4, lastActiveDay: "2026-07-15", xp: 10 };
+    expect(registerActivity(base, "nope")).toBe(base);
+    expect(registerActivity(base, "2026-02-30")).toBe(base);
+    expect(advanceStreak("2026-07-15", "2026-02-31", 4)).toEqual({
+      streak: 4,
+      day: "2026-07-15",
+    });
+    const empty = { streak: 0 };
+    expect(registerActivity(empty, "not-a-day")).toBe(empty);
   });
 
   it("does not bump the streak between 05:29 and 05:31 IST", () => {
@@ -146,5 +200,37 @@ describe("registerActivity across local midnight", () => {
     expect(at0529).toBe(at0531);
     const base = { streak: 2, lastActiveDay: at0529 };
     expect(registerActivity(base, at0531)).toBe(base);
+  });
+});
+
+describe("mergeProgressSnapshots lastActiveDay clamp", () => {
+  const now = new Date("2026-07-15T12:00:00.000Z");
+
+  it("keeps a client day inside the server UTC day ±1", () => {
+    const merged = mergeProgressSnapshots(
+      { lastActiveDay: "2026-07-16", streak: 4 },
+      { lastActiveDay: "2026-07-14", streak: 2 },
+      now,
+    );
+    expect(merged.lastActiveDay).toBe("2026-07-16");
+  });
+
+  it("rejects a client day more than one past the server UTC day and keeps the stored day", () => {
+    const merged = mergeProgressSnapshots(
+      { lastActiveDay: "2026-07-17", streak: 9 },
+      { lastActiveDay: "2026-07-14", streak: 3 },
+      now,
+    );
+    expect(merged.lastActiveDay).toBe("2026-07-14");
+    expect(merged.streak).toBe(9);
+  });
+
+  it("never keeps a day more than one past the server UTC day", () => {
+    const merged = mergeProgressSnapshots(
+      { lastActiveDay: "9999-12-31" },
+      { lastActiveDay: "2027-07-15" },
+      now,
+    );
+    expect(merged.lastActiveDay).toBeNull();
   });
 });

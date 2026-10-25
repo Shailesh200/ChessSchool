@@ -10,6 +10,9 @@ export const revalidate = 3600;
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const day = resolveRequestedDay(url.searchParams.get("day"));
+  if (day === null) {
+    return NextResponse.json({ error: "invalid_day" }, { status: 400 });
+  }
 
   const rows = await db
     .select({

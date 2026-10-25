@@ -25,6 +25,9 @@ type PoolEntry = {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const day = resolveRequestedDay(url.searchParams.get("day"));
+  if (day === null) {
+    return NextResponse.json({ error: "invalid_day" }, { status: 400 });
+  }
   const offset = Math.max(0, Number(url.searchParams.get("n") ?? 0) || 0);
 
   const rows = await db

@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
   advanceStreak,
+  isCalendarDay,
   isoDay,
   mergeProgressSnapshots,
 } from "@chess-school/progression";
@@ -253,11 +254,18 @@ export const useProgression = create<ProgressionState>()(
 
       registerActivity: (today) =>
         set((s) => {
+          if (!isCalendarDay(today)) return s;
           const next = advanceStreak(s.lastActiveDay, today, s.streak);
-          if (next.day === s.lastActiveDay && next.streak === s.streak) return s;
+          const day = next.day ?? s.lastActiveDay;
+          // Same logical day (including a +1 UTC key pulled back to today):
+          // move the daily-XP key without zeroing XP already earned.
+          if (next.streak === s.streak) {
+            if (day === s.lastActiveDay && s.todayKey === today) return s;
+            return { lastActiveDay: day, todayKey: today };
+          }
           return {
             streak: next.streak,
-            lastActiveDay: next.day,
+            lastActiveDay: day,
             todayKey: today,
             todayXp: 0,
           };
