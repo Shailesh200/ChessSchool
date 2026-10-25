@@ -3,7 +3,7 @@
  *
  *   pnpm db:load-seed
  *
- * Expects schema already applied (`pnpm db:push`). Refreshes content tables only;
+ * Expects schema already applied (`pnpm db:migrate`). Refreshes content tables only;
  * auth/user tables are untouched when they already exist.
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -17,7 +17,7 @@ if (!existsSync(SEED_PATH)) {
   process.exit(1);
 }
 if (!existsSync(DB_PATH)) {
-  console.error("✗ local.db not found. Run pnpm db:push first.");
+  console.error("✗ local.db not found. Run pnpm db:migrate first.");
   process.exit(1);
 }
 

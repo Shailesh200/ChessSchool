@@ -11,3 +11,4 @@ storybook-static
 *.db-wal
 public/engine
 curriculum-import-report.json
+db/migrations
