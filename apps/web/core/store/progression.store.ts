@@ -2,8 +2,10 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { mergeProgressSnapshots } from "@chess-school/progression";
+import { addDays, isoDay, mergeProgressSnapshots } from "@chess-school/progression";
 import type { ArenaRunRecord } from "@/features/play/arena";
+
+export { isoDay };
 
 export interface MistakeEntry {
   fen: string;
@@ -328,13 +330,3 @@ export const useProgression = create<ProgressionState>()(
     },
   ),
 );
-
-export function isoDay(d = new Date()): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function addDays(iso: string, delta: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
-}

@@ -7,6 +7,7 @@ import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
 import { mutateProgress, useProgress } from "@/progressStore";
 import { markHomeworkActivity } from "@/homeworkRoutine";
+import { isoDay } from "@/progression";
 import { journalKindIcon } from "@/iconMaps";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
@@ -24,9 +25,6 @@ type JournalEntry = {
 };
 
 const CONF = ["😣", "😕", "😐", "🙂", "😄"];
-function isoDay() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function JournalScreen() {
   const router = useRouter();

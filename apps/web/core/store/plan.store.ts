@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { trackEvent } from "@/core/analytics/track";
+import { addDays } from "@chess-school/progression";
 
 export type PlanTier = "casual" | "standard" | "serious" | "competitive" | "custom";
 export type Schedule = "daily" | "weekdays" | "weekends";
@@ -98,12 +99,6 @@ export function planGoalXp(state: { tier: PlanTier; customGoalXp: number }): num
   return state.tier === "custom" ? state.customGoalXp : PLAN_SPECS[state.tier].goalXp;
 }
 
-function addDay(iso: string, delta: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
-}
-
 export const usePlan = create<PlanState>()(
   persist(
     (set, get) => ({
@@ -134,7 +129,7 @@ export const usePlan = create<PlanState>()(
         const all = ROUTINE_STEPS.every((step) => done.includes(step.id));
         if (all && get().homeworkLastDay !== today) {
           const prev = get().homeworkLastDay;
-          const yesterday = addDay(today, -1);
+          const yesterday = addDays(today, -1);
           const streak = prev === yesterday ? get().homeworkStreak + 1 : 1;
           set({
             homeworkStreak: streak,

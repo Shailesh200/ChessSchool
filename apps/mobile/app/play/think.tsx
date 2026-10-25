@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChessEngine } from "@chess-school/core";
 import { api } from "@/api";
+import { isoDay } from "@/progression";
 import { ChessBoard } from "@/ChessBoard";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
@@ -56,7 +57,7 @@ export default function LessonTrainerScreen() {
     setPending(false);
     setLastMove(null);
     setDisplayFen(null);
-    api<{ puzzle: Puzzle }>(`/api/think?n=${offset}`)
+    api<{ puzzle: Puzzle }>(`/api/think?n=${offset}&day=${isoDay()}`)
       .then((data) => {
         if (cancelled) return;
         const p = data.puzzle;
