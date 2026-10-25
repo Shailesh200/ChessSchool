@@ -59,6 +59,11 @@ jobs:
       - name: Format check
         run: pnpm --filter web format:check
 
+      # turbo --continue runs every package test script and still fails the job
+      # if any package fails, instead of stopping at the first one.
+      - name: Unit tests
+        run: pnpm test -- --continue
+
       - name: Test coverage (≥90%)
         run: bash scripts/verify-test-coverage.sh
 

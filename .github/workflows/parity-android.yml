@@ -1,26 +1,11 @@
 name: Parity Android
 
-# Validates the Android capture path (scripts + Maestro coverage). Full visual
-# overlay against an emulator runs locally: `pnpm parity:android`.
-# Semantic matrix (PR-blocking) lives in parity-ios.yml.
+# Manual only, same as Parity iOS. Full emulator capture stays opt-in
+# (`pnpm parity:android`). The iOS workflow cannot build without the gitignored
+# Stockfish engine sources, so neither parity workflow runs on a schedule or on
+# PRs. Semantic PWA parity still runs in ci.yml.
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "scripts/parity-android.sh"
-      - "scripts/parity-compare.mjs"
-      - "scripts/parity-routes.json"
-      - "parity/**"
-      - ".github/workflows/parity-android.yml"
-  push:
-    branches: [main]
-    paths:
-      - "scripts/parity-android.sh"
-      - "scripts/parity-compare.mjs"
-      - "scripts/parity-routes.json"
-      - "parity/**"
-      - ".github/workflows/parity-android.yml"
   workflow_dispatch:
 
 concurrency:
