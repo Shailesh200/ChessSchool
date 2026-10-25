@@ -136,6 +136,47 @@ test.describe("mobile layout @390", () => {
     expect(ring.bottom + ring.offset + 3).toBeLessThanOrEqual((navBox?.y ?? 844) + 1);
   });
 
+  test("pass-and-play Start (one device) stays above the bottom nav", async ({
+    page,
+  }) => {
+    await page.goto("/play");
+    await page.getByRole("button", { name: /vs Human/ }).click();
+    const start = page.getByRole("button", { name: "Start (one device)", exact: true });
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await expect(start).toBeVisible();
+    await expect(start).toBeInViewport();
+
+    const place = async () => {
+      const startBox = await start.boundingBox();
+      const navBox = await nav.boundingBox();
+      expect(startBox).toBeTruthy();
+      expect(navBox).toBeTruthy();
+      expect(startBox!.y + startBox!.height).toBeLessThanOrEqual(navBox!.y + 1);
+      return startBox!;
+    };
+
+    const before = await place();
+    await page.evaluate(() => {
+      document.querySelectorAll("*").forEach((el) => {
+        if (el instanceof HTMLElement && el.scrollHeight > el.clientHeight + 2) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    });
+    const after = await place();
+    expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+
+    const cardBottom = await page
+      .getByText("Time control", { exact: true })
+      .evaluate((el) => {
+        let node: HTMLElement | null = el.parentElement;
+        while (node && !node.className.includes("rounded-card"))
+          node = node.parentElement;
+        return (node ?? el).getBoundingClientRect().bottom;
+      });
+    expect(cardBottom).toBeLessThanOrEqual(after.y + 1);
+  });
+
   test("no horizontal overflow on primary routes", async ({ page }) => {
     const routes = [
       "/",

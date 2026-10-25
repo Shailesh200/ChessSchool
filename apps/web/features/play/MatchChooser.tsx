@@ -324,9 +324,11 @@ export function MatchChooser() {
                 <TimeControlCard timeMin={timeMin} onSelect={setTimeMin} />
               </motion.div>
               <motion.div variants={listItem} className="flex flex-col gap-2">
-                <Button size="lg" block onClick={beginBotOrPass}>
-                  Start (one device)
-                </Button>
+                <div className="max-md:hidden">
+                  <Button size="lg" block onClick={beginBotOrPass}>
+                    Start (one device)
+                  </Button>
+                </div>
                 <Button
                   size="lg"
                   variant="outline"
@@ -486,6 +488,13 @@ export function MatchChooser() {
           <div className="max-md:bg-surface max-md:sticky max-md:bottom-0 max-md:z-20 max-md:shrink-0 max-md:pt-3 md:pt-4">
             <Button size="lg" block onClick={beginBotOrPass}>
               Start match
+            </Button>
+          </div>
+        )}
+        {mode === "pass" && (
+          <div className="max-md:bg-surface max-md:sticky max-md:bottom-0 max-md:z-20 max-md:shrink-0 max-md:pt-3 md:hidden">
+            <Button size="lg" block onClick={beginBotOrPass}>
+              Start (one device)
             </Button>
           </div>
         )}
