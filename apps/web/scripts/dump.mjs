@@ -17,7 +17,7 @@
  */
 import Database from "better-sqlite3";
 import { existsSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CONTENT_TABLES,
