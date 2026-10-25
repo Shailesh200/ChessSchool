@@ -9,7 +9,10 @@ export const dynamic = "force-dynamic";
 /** Accept batched product analytics events from the client. */
 export async function POST(req: Request) {
   // Page views + product events — allow a bursty navigation session.
-  const limited = enforceRateLimit(req, "events", { limit: 180, windowMs: 60_000 });
+  const limited = await enforceRateLimit(req, "events", {
+    limit: 180,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const raw = await req.json().catch(() => null);

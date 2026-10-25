@@ -7,9 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -58,6 +58,11 @@ jobs:
 
       - name: Format check
         run: pnpm --filter web format:check
+
+      # `--continue=always` is a Turbo flag (not a passthrough). `pnpm test -- --continue`
+      # forwards `--continue` into each package script, and Vitest rejects it.
+      - name: Unit tests
+        run: pnpm exec turbo run test --continue=always
 
       - name: Test coverage (≥90%)
         run: bash scripts/verify-test-coverage.sh

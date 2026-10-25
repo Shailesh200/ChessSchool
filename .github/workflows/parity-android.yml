@@ -1,12 +1,13 @@
 name: Parity Android
 
-# Validates the Android capture path (scripts + Maestro coverage). Full visual
-# overlay against an emulator runs locally: `pnpm parity:android`.
-# Semantic matrix (PR-blocking) lives in parity-ios.yml.
+# Script and threshold checks on ubuntu (seconds, no emulator). Full visual
+# capture stays local: `pnpm parity:android`.
+# iOS parity stays workflow_dispatch only until Stockfish sources can be
+# fetched in CI (follow-up once fetch-stockfish.sh from #29 works there).
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "scripts/parity-android.sh"
       - "scripts/parity-compare.mjs"
@@ -14,7 +15,7 @@ on:
       - "parity/**"
       - ".github/workflows/parity-android.yml"
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "scripts/parity-android.sh"
       - "scripts/parity-compare.mjs"
