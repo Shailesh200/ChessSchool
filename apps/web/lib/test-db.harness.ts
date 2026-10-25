@@ -1,8 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/libsql";
+import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { createLibsqlClient } from "@/db/client";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "@/db/schema";
@@ -14,12 +17,16 @@ export function resetGlobalDb(): void {
   (globalThis as unknown as { __db?: unknown }).__db = undefined;
 }
 
-function pushSchema(dbPath: string): void {
-  execSync("pnpm exec drizzle-kit push", {
-    cwd: process.cwd(),
-    env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
-    stdio: "pipe",
-  });
+const migrationsFolder = fileURLToPath(new URL("../db/migrations", import.meta.url));
+
+/** Apply committed migrations. Same journal format drizzle-kit migrate uses. */
+function applyMigrations(dbPath: string): void {
+  const sqlite = new Database(dbPath);
+  try {
+    migrate(drizzleSqlite(sqlite), { migrationsFolder });
+  } finally {
+    sqlite.close();
+  }
 }
 
 /** Isolated libSQL file + Drizzle client (pass `conn` into server helpers). */
@@ -30,7 +37,7 @@ export function createIsolatedTestDb(): {
 } {
   const dir = mkdtempSync(join(tmpdir(), "cs-test-"));
   const dbPath = join(dir, "test.db");
-  pushSchema(dbPath);
+  applyMigrations(dbPath);
   const client = createLibsqlClient(`file:${dbPath}`);
   const db = drizzle(client, { schema }) as TestDb;
   return {
@@ -53,7 +60,7 @@ export async function bootApiTestEnv(): Promise<{
   const dbPath = join(dir, "test.db");
   process.env.DATABASE_URL = `file:${dbPath}`;
   resetGlobalDb();
-  pushSchema(dbPath);
+  applyMigrations(dbPath);
   const { db } = await import("@/db");
   return {
     dir,

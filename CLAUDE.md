@@ -48,7 +48,7 @@ pnpm build            # turbo build all packages
 pnpm typecheck | lint | test | e2e
 pnpm verify:milestone # full gate: typecheck, lint, coverage≥90%, e2e, SEO, Lighthouse
 pnpm --filter web storybook     # M-072 UI component catalog
-pnpm --filter web db:fresh      # reset + push + seed local
+pnpm --filter web db:fresh      # reset + migrate + seed local
 pnpm --filter web db:import-puzzles
 pnpm --filter web db:dump && pnpm --filter web db:remote
 ```
@@ -68,7 +68,8 @@ pnpm --filter web db:dump && pnpm --filter web db:remote
 - Remote: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN`
 - Schema: `apps/web/db/schema.ts` — users, oauth_accounts, sessions, profiles, progress, lessonRecords, semesters, classes, lessons, homeworkLessons, gameSessions, analytics_events, web_vitals
 - `db/seed.sql.gz` is the committed curriculum snapshot (deterministic gzip, decompressed on read). It is **non-destructive** for user tables — re-seeding preserves accounts. CI fails if that artifact exceeds 90 MB or a plain `seed.sql` is committed.
-- After schema changes (e.g. OAuth): `pnpm --filter web db:push` locally and against Turso
+- Schema changes: `pnpm --filter web db:generate -- --name <slug>`, commit `apps/web/db/migrations`, then `pnpm --filter web db:migrate` locally. `db:fresh` / `db:provision` always rebuild `local.db` and ignore `DATABASE_URL`.
+- Existing production Turso already has the push / seed snapshot tables. Do not run `db:migrate` there until `0000_baseline` is recorded. `pnpm --filter web db:baseline` prints the journal row and does not connect; `pnpm --filter web db:baseline -- --apply --allow-remote` inserts that row only (no `CREATE TABLE`). Then `db:migrate` applies later migrations. See [`plans/M-073_WEB_GA_LAUNCH.md`](plans/M-073_WEB_GA_LAUNCH.md).
 
 ## Auth & accounts
 - Email/password register + login; **Google sign-in** when OAuth env vars are set (web button + mobile token API)

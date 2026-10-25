@@ -6,7 +6,7 @@
  * and inserts them into the SQLite DB. Every position/move is validated with
  * chess.js before it is written — no broken lesson can be seeded.
  *
- * Run: pnpm db:seed   (or pnpm db:fresh to reset + push + seed)
+ * Run: pnpm db:seed   (or pnpm db:fresh to reset + migrate + seed)
  */
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";

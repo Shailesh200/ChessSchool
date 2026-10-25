@@ -68,14 +68,45 @@ Complete before public promotion of https://chess-school.in:
 
 - Push or merge to `main` → Vercel builds `apps/web`.
 - No separate API deploy — App Router + route handlers on Vercel.
-- After schema changes: `pnpm --filter web db:push` against Turso (personal network if office TLS blocks CLI).
+- After schema changes: `pnpm --filter web db:generate -- --name <slug>`, commit `apps/web/db/migrations`, then `pnpm --filter web db:migrate`.
+- The live Turso database was created by `drizzle-kit push` and `db/seed.sql`. Record `0000_baseline` before the first production `db:migrate` (procedure below). Do not replay `0000_baseline.sql` on that database.
 
 ### Database
 
-- Local: unset `DATABASE_URL` → `apps/web/local.db`.
+- Local: unset `DATABASE_URL` → `apps/web/local.db`. `pnpm --filter web db:fresh` deletes that file, applies committed migrations, and seeds. It ignores `DATABASE_URL` / `DATABASE_AUTH_TOKEN`.
 - Production: Turso via `DATABASE_URL` + `DATABASE_AUTH_TOKEN`.
+- New empty database: `pnpm --filter web db:migrate` creates tables from `apps/web/db/migrations`, then seed.
+- Existing production database: mark `0000_baseline` applied (below) before `db:migrate`. `db:migrate` refuses to run when `users` exists and the baseline row is missing, so `CREATE TABLE` is not replayed.
 - Seed is non-destructive for user tables. Rebuild curriculum carefully; prefer import scripts over wiping users.
 - Session expiry cleanup: cron route protected by `CRON_SECRET` (see Vercel cron config).
+
+#### Mark the baseline on production (once)
+
+`0000_baseline.sql` is the drizzle-kit snapshot of `db/schema.ts`. Production already has tables, so the migration must not be executed there. `db:baseline` inserts the journal row drizzle-orm would have written, and nothing else.
+
+drizzle-orm skips a migration when the latest `__drizzle_migrations.created_at` is **greater than or equal** to that migration's journal `when` (`created_at < when` is the condition that runs SQL). The script sets `created_at` to `0000_baseline`'s `when` and `hash` to sha256 of the raw SQL file — the same values `readMigrationFiles` uses.
+
+This command was not run against production from the migration PR. Run it once, from a network that can reach Turso:
+
+```bash
+# Dry-run. Prints tag, created_at, and hash. Does not connect, even if DATABASE_URL is set.
+pnpm --filter web db:baseline
+
+# Write the journal row on production. Requires both flags. Does not execute 0000_baseline.sql.
+cd apps/web
+export DATABASE_URL='libsql://…'          # Turso URL
+export DATABASE_AUTH_TOKEN='…'            # never commit; the script does not print it
+pnpm db:baseline -- --apply --allow-remote
+
+# Later migrations only. 0000 is skipped.
+pnpm db:migrate
+```
+
+The script aborts unless the 12 tables from `db/seed.sql` already exist, so an empty database is not stamped (use `db:migrate` there). It refuses a remote URL unless `--apply --allow-remote` are both present, and it opens no connection on a dry-run.
+
+Stamping does **not** create objects that are in `db/schema.ts` but absent from `db/seed.sql` (`oauth_accounts`, nullable `users.password_hash`, `users_email_unique`, and the secondary indexes). Those differences are listed on the B6 PR. `db:generate` will not emit them again while they remain in the `0000` snapshot; a follow-up migration has to add whichever of them production is missing.
+
+A local file left over from `db:push` can be stamped with `pnpm --filter web db:baseline -- --apply` (no `--allow-remote`), or deleted with `pnpm --filter web db:fresh`. `pnpm dev` stamps a complete local file automatically before migrating.
 
 ### Monitoring
 

@@ -13,3 +13,4 @@ db/seed.sql
 db/seed.sql.gz
 public/engine
 curriculum-import-report.json
+db/migrations
