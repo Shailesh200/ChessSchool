@@ -10,6 +10,7 @@ import { formatSeatToken, verifySeatToken } from "@/lib/session-secret";
 import { sessionPostSchema } from "@/lib/api-schemas";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
+import { sessionWriteBarrier } from "@/lib/session-write-barrier";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,10 @@ async function respond(id: string) {
 /**
  * Moves, resignations, and flag claims are accepted only while the game is
  * active, both seats are filled, and no result is stored yet.
- * `inPlayWhere` is the same predicate on the UPDATE so a finishing write
- * cannot be overwritten by one that read an earlier row. Ordering two
- * concurrent moves is intentionally not handled here.
+ * `writeWhere` repeats that predicate and the position that was read.
+ * There is no move-count column; `fen` + `turn` identify that position, so a
+ * second writer that sampled the same row cannot overwrite the first.
+ * No lock and no transaction. A missed update re-reads and returns 409.
  */
 function isInPlay(s: DBGameSession): boolean {
   return (
@@ -54,13 +56,22 @@ function inPlayWhere(id: string) {
   );
 }
 
+function writeWhere(id: string, read: Pick<DBGameSession, "fen" | "turn">) {
+  return and(
+    inPlayWhere(id),
+    eq(gameSessions.fen, read.fen),
+    eq(gameSessions.turn, read.turn),
+  );
+}
+
 function wroteOne(res: unknown): boolean {
   return (res as { rowsAffected?: number }).rowsAffected === 1;
 }
 
 /** Current row plus an error code so the caller can replace its local board. */
 function conflict(state: DBGameSession) {
-  return NextResponse.json({ ...state, error: "game not active" }, { status: 409 });
+  const error = isInPlay(state) ? "conflict" : "game not active";
+  return NextResponse.json({ ...state, error }, { status: 409 });
 }
 
 async function appliedOrConflict(id: string, res: unknown): Promise<NextResponse> {
@@ -168,11 +179,14 @@ export async function POST(
 
   if (!isInPlay(s)) return conflict(s);
 
+  // Tests hold both writers here, after the read and before the UPDATE.
+  if (sessionWriteBarrier.wait) await sessionWriteBarrier.wait();
+
   if (body.action === "resign") {
     const res = await db
       .update(gameSessions)
       .set({ status: "over", result: `resign:${seat}`, updatedAt: Date.now() })
-      .where(inPlayWhere(id));
+      .where(writeWhere(id, s));
     return appliedOrConflict(id, res);
   }
 
@@ -209,7 +223,7 @@ export async function POST(
         blackMs,
         updatedAt: now,
       })
-      .where(inPlayWhere(id));
+      .where(writeWhere(id, s));
     return appliedOrConflict(id, res);
   }
 
@@ -243,7 +257,7 @@ export async function POST(
           blackMs,
           updatedAt: now,
         })
-        .where(inPlayWhere(id));
+        .where(writeWhere(id, s));
       return appliedOrConflict(id, res);
     }
   }
@@ -282,6 +296,6 @@ export async function POST(
       blackMs,
       updatedAt: now,
     })
-    .where(inPlayWhere(id));
+    .where(writeWhere(id, s));
   return appliedOrConflict(id, res);
 }

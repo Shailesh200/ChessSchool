@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import { Chess } from "chess.js";
 import { gameSessions } from "@/db/schema";
 import {
   bootApiTestEnv,
@@ -35,18 +36,22 @@ describe("session API integration", () => {
   let postSession: typeof import("@/app/api/session/route").POST;
   let getSession: typeof import("@/app/api/session/[id]/route").GET;
   let postSessionMove: typeof import("@/app/api/session/[id]/route").POST;
+  let writeBarrier: { wait: (() => Promise<void>) | null } = { wait: null };
 
   beforeEach(async () => {
     vi.resetModules();
     ({ teardown, db } = await bootApiTestEnv());
     postRegister = (await import("@/app/api/auth/register/route")).POST;
     postSession = (await import("@/app/api/session/route")).POST;
+    // Same module instance the route closes over (resetModules drops the last one).
+    writeBarrier = (await import("@/lib/session-write-barrier")).sessionWriteBarrier;
     const sessionIdMod = await import("@/app/api/session/[id]/route");
     getSession = sessionIdMod.GET;
     postSessionMove = sessionIdMod.POST;
   });
 
   afterEach(() => {
+    writeBarrier.wait = null;
     teardown();
     vi.resetModules();
   });
@@ -251,6 +256,10 @@ describe("session API integration", () => {
     status: string;
     result: string | null;
     fen: string;
+    pgn: string;
+    turn: string;
+    lastFrom: string | null;
+    lastTo: string | null;
     updatedAt: number;
     blackJoined: number;
   };
@@ -606,6 +615,159 @@ describe("session API integration", () => {
     const stored = await readRow(game.id);
     expect(stored.status).toBe("over");
     expect(stored.result).toBe(winner.result);
+  });
+
+  function sans(pgn: string): string[] {
+    if (!pgn.trim()) return [];
+    const g = new Chess();
+    g.loadPgn(pgn);
+    return g.history();
+  }
+
+  /** Hold every writer after its read so the updates actually race. */
+  function overlapWrites(parties: number): {
+    release: () => void;
+    arrived: () => number;
+  } {
+    let seen = 0;
+    let open!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      open = resolve;
+    });
+    writeBarrier.wait = () => {
+      seen += 1;
+      if (seen >= parties) open();
+      return gate;
+    };
+    return {
+      release: () => {
+        writeBarrier.wait = null;
+        open();
+      },
+      arrived: () => seen,
+    };
+  }
+
+  async function raced<T>(parties: number, run: () => Promise<T>): Promise<T> {
+    const gate = overlapWrites(parties);
+    try {
+      const result = await run();
+      expect(gate.arrived()).toBe(parties);
+      return result;
+    } finally {
+      gate.release();
+    }
+  }
+
+  function expectOneMove(stored: SessionSnap, san: string, from: string, to: string) {
+    expect(sans(stored.pgn)).toEqual([san]);
+    const g = new Chess();
+    g.move({ from, to });
+    expect(stored.fen).toBe(g.fen());
+    expect(stored.turn).toBe("b");
+    expect(stored.status).toBe("active");
+    expect(stored.result).toBeNull();
+    expect(stored.lastFrom).toBe(from);
+    expect(stored.lastTo).toBe(to);
+  }
+
+  it("keeps exactly one copy when the same move is posted twice at once", async () => {
+    const game = await openGame("concurrent-same-move");
+    const [a, b] = await raced(2, () =>
+      Promise.all([
+        act(game.id, game.white, { action: "move", from: "e2", to: "e4" }),
+        act(game.id, game.white, { action: "move", from: "e2", to: "e4" }),
+      ]),
+    );
+    const won = [a, b].filter((res) => res.status === 200);
+    const lost = [a, b].filter((res) => res.status === 409);
+    expect(won).toHaveLength(1);
+    expect(lost).toHaveLength(1);
+
+    const winner = await readJson<SessionSnap>(won[0]!);
+    const loser = await readJson<ConflictBody & { pgn: string }>(lost[0]!);
+    const stored = await readRow(game.id);
+    expectOneMove(stored, "e4", "e2", "e4");
+    expect(winner.fen).toBe(stored.fen);
+    expect(sans(winner.pgn)).toEqual(["e4"]);
+    expect(loser.error).toBe("conflict");
+    expect(loser.fen).toBe(stored.fen);
+    expect(loser.status).toBe(stored.status);
+    expect(loser.result).toBeNull();
+    expect(sans(loser.pgn)).toEqual(["e4"]);
+  });
+
+  it("keeps exactly one move when two different legal moves are posted at once", async () => {
+    const game = await openGame("concurrent-different-moves");
+    const [e4, d4] = await raced(2, () =>
+      Promise.all([
+        act(game.id, game.white, { action: "move", from: "e2", to: "e4" }),
+        act(game.id, game.white, { action: "move", from: "d2", to: "d4" }),
+      ]),
+    );
+    const responses = [e4, d4];
+    const won = responses.filter((res) => res.status === 200);
+    const lost = responses.filter((res) => res.status === 409);
+    expect(won).toHaveLength(1);
+    expect(lost).toHaveLength(1);
+
+    const winner = await readJson<SessionSnap>(won[0]!);
+    const loser = await readJson<ConflictBody & { pgn: string }>(lost[0]!);
+    const stored = await readRow(game.id);
+    const played = sans(stored.pgn);
+    expect(played).toHaveLength(1);
+    expect(["e4", "d4"]).toContain(played[0]);
+    const from = played[0] === "e4" ? "e2" : "d2";
+    const to = played[0] === "e4" ? "e4" : "d4";
+    expectOneMove(stored, played[0]!, from, to);
+    expect(winner.fen).toBe(stored.fen);
+    expect(sans(winner.pgn)).toEqual(played);
+    expect(loser.error).toBe("conflict");
+    expect(loser.fen).toBe(stored.fen);
+    expect(loser.result).toBeNull();
+    expect(sans(loser.pgn)).toEqual(played);
+  });
+
+  it("lets exactly one of a concurrent move and resign commit", async () => {
+    const game = await openGame("concurrent-move-resign");
+    const [moveRes, resignRes] = await raced(2, () =>
+      Promise.all([
+        act(game.id, game.white, { action: "move", from: "e2", to: "e4" }),
+        act(game.id, game.black, { action: "resign" }),
+      ]),
+    );
+    const responses = [moveRes, resignRes];
+    const won = responses.filter((res) => res.status === 200);
+    const lost = responses.filter((res) => res.status === 409);
+    expect(won).toHaveLength(1);
+    expect(lost).toHaveLength(1);
+
+    const winner = await readJson<SessionSnap>(won[0]!);
+    const loser = await readJson<ConflictBody & { pgn: string }>(lost[0]!);
+    const stored = await readRow(game.id);
+    const played = sans(stored.pgn);
+    const resigned = stored.result?.startsWith("resign") ?? false;
+    expect(played.length > 0 && resigned).toBe(false);
+
+    if (resigned) {
+      expect(stored.status).toBe("over");
+      expect(stored.result).toBe("resign:b");
+      expect(played).toEqual([]);
+      expect(stored.fen).toBe(new Chess().fen());
+      expect(loser.error).toBe("game not active");
+    } else {
+      expectOneMove(stored, "e4", "e2", "e4");
+      expect(loser.error).toBe("conflict");
+    }
+
+    expect(winner.fen).toBe(stored.fen);
+    expect(winner.status).toBe(stored.status);
+    expect(winner.result).toBe(stored.result);
+    expect(sans(winner.pgn)).toEqual(played);
+    expect(loser.fen).toBe(stored.fen);
+    expect(loser.status).toBe(stored.status);
+    expect(loser.result).toBe(stored.result);
+    expect(sans(loser.pgn)).toEqual(played);
   });
 
   it("does not let a join reopen a finished unseated game", async () => {

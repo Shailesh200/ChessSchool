@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
+import { shouldRetryApiFailure } from "./sessionPost";
 
 /** Canonical host — apex 308-redirects to www; prefer www to avoid redirect races on Android. */
 const PRODUCTION = "https://www.chess-school.in";
@@ -106,10 +107,12 @@ export const clearToken = async (): Promise<void> => {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  body: unknown;
+  constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -128,7 +131,7 @@ async function fetchOnce<T>(path: string, opts: { method?: string; body?: unknow
     signal: requestSignal(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
-    const msg = (await res.json().catch(() => ({}))) as { error?: string };
+    const payload = (await res.json().catch(() => ({}))) as { error?: string };
     // Only wipe the session if this 401 is for the token we still hold.
     // Stale in-flight requests (e.g. guest→auth race) must not clear a fresh adopt.
     if (res.status === 401 && opts.token) {
@@ -138,21 +141,18 @@ async function fetchOnce<T>(path: string, opts: { method?: string; body?: unknow
         onUnauthorized?.();
       }
     }
-    throw new ApiError(res.status, msg.error ?? `HTTP ${res.status}`);
+    throw new ApiError(res.status, payload.error ?? `HTTP ${res.status}`, payload);
   }
   return (await res.json()) as T;
 }
 
-/** Fetch helper with bearer token, 15s timeout, and one retry on network failure. */
+/** Fetch helper with bearer token, 45s timeout, and one retry — not session POSTs on timeout. */
 export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = await getToken();
   try {
     return await fetchOnce<T>(path, { ...opts, token });
   } catch (e) {
-    const retryable =
-      e instanceof TypeError ||
-      (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError"));
-    if (!retryable) throw e;
+    if (!shouldRetryApiFailure(path, opts.method, e)) throw e;
     return fetchOnce<T>(path, { ...opts, token });
   }
 }
