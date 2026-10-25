@@ -4,6 +4,7 @@ import {
   enforceRateLimit,
   enforceRateLimitHeaders,
   rateLimitKey,
+  rateLimitPrefix,
   resetRateLimitsForTests,
 } from "@/lib/rate-limit";
 
@@ -19,6 +20,7 @@ const redisState = vi.hoisted(() => {
   return {
     redis: [] as { url?: string; token?: string; retry?: { retries?: number } }[],
     fixedWindow: [] as { tokens: number; window: string }[],
+    slidingWindow: [] as { tokens: number; window: string }[],
     configs: [] as {
       prefix?: string;
       timeout?: number;
@@ -26,7 +28,7 @@ const redisState = vi.hoisted(() => {
       enableTelemetry?: boolean;
       enableProtection?: boolean;
       dynamicLimits?: boolean;
-      limiter: { tokens: number; window: string };
+      limiter: { tokens: number; window: string; kind?: "fixed" | "sliding" };
     }[],
     counts: new Map<string, number>(),
     limit: vi.fn<(key: string, tokens: number) => Promise<LimitResult>>(),
@@ -35,6 +37,10 @@ const redisState = vi.hoisted(() => {
 
 const sentry = vi.hoisted(() => ({
   captureException: vi.fn(),
+}));
+
+const platformIp = vi.hoisted(() => ({
+  override: null as ((input: Request | Headers) => string | undefined) | null,
 }));
 
 vi.mock("@upstash/redis", () => ({
@@ -48,19 +54,35 @@ vi.mock("@upstash/redis", () => ({
 vi.mock("@upstash/ratelimit", () => ({
   Ratelimit: class Ratelimit {
     private tokens: number;
+    private prefix: string;
     static fixedWindow(tokens: number, window: string) {
       redisState.fixedWindow.push({ tokens, window });
-      return { tokens, window };
+      return { tokens, window, kind: "fixed" as const };
+    }
+    static slidingWindow(tokens: number, window: string) {
+      redisState.slidingWindow.push({ tokens, window });
+      return { tokens, window, kind: "sliding" as const };
     }
     constructor(config: (typeof redisState.configs)[number]) {
       this.tokens = config.limiter.tokens;
+      this.prefix = config.prefix ?? "";
       redisState.configs.push(config);
     }
     limit(key: string) {
-      return redisState.limit(key, this.tokens);
+      // The real SDK stores `${prefix}:${identifier}`.
+      return redisState.limit(`${this.prefix}:${key}`, this.tokens);
     }
   },
 }));
+
+vi.mock("@vercel/functions", async () => {
+  const actual =
+    await vi.importActual<typeof import("@vercel/functions")>("@vercel/functions");
+  return {
+    ipAddress: (input: Request | Headers) =>
+      platformIp.override ? platformIp.override(input) : actual.ipAddress(input),
+  };
+});
 
 vi.mock("@sentry/nextjs", () => ({
   captureException: sentry.captureException,
@@ -89,13 +111,23 @@ function countedLimit(key: string, tokens: number) {
   };
 }
 
+const vercelEnvBefore = process.env.VERCEL_ENV;
+
+function restoreVercelEnv(): void {
+  if (vercelEnvBefore === undefined) delete process.env.VERCEL_ENV;
+  else process.env.VERCEL_ENV = vercelEnvBefore;
+}
+
 describe("checkRateLimit", () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     clearRedisEnv();
+    restoreVercelEnv();
+    platformIp.override = null;
     redisState.redis.length = 0;
     redisState.fixedWindow.length = 0;
+    redisState.slidingWindow.length = 0;
     redisState.configs.length = 0;
     redisState.counts.clear();
     redisState.limit.mockReset();
@@ -111,6 +143,8 @@ describe("checkRateLimit", () => {
     errorSpy.mockRestore();
     vi.useRealTimers();
     clearRedisEnv();
+    restoreVercelEnv();
+    platformIp.override = null;
     resetRateLimitsForTests();
   });
 
@@ -162,20 +196,51 @@ describe("checkRateLimit", () => {
     expect((await checkRateLimit(key, opts)).ok).toBe(true);
   });
 
-  it("uses the first forwarded IP and keeps 429 shape", async () => {
+  it("keys by ipAddress() and keeps the 429 shape", async () => {
+    platformIp.override = () => "203.0.113.10";
+    const opts = { limit: 1, windowMs: 60_000 };
+    const spoofed = new Request("http://test", {
+      headers: {
+        "x-forwarded-for": "1.1.1.1, 2.2.2.2",
+        "x-real-ip": "9.9.9.9",
+      },
+    });
+    expect(await enforceRateLimit(spoofed, "events", opts)).toBeNull();
+    const blocked = await enforceRateLimit(spoofed, "events", opts);
+    expect(blocked?.status).toBe(429);
+    expect(blocked?.headers.get("Retry-After")).toBeTruthy();
+    expect(await blocked?.json()).toEqual({ error: "rate_limited" });
+
+    platformIp.override = () => undefined;
+    const fromRealIp = new Request("http://test", {
+      headers: { "x-real-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1" },
+    });
+    expect(await enforceRateLimit(fromRealIp, "events", opts)).toBeNull();
+  });
+
+  it("ignores a spoofed X-Forwarded-For list", async () => {
+    platformIp.override = () => undefined;
     const opts = { limit: 1, windowMs: 60_000 };
     const first = new Request("http://test", {
       headers: { "x-forwarded-for": "1.1.1.1, 2.2.2.2" },
     });
     const other = new Request("http://test", {
-      headers: { "x-forwarded-for": "9.9.9.9" },
+      headers: { "x-forwarded-for": "8.8.8.8" },
     });
-    expect(await enforceRateLimit(first, "auth:login", opts)).toBeNull();
-    const blocked = await enforceRateLimit(first, "auth:login", opts);
-    expect(blocked?.status).toBe(429);
-    expect(blocked?.headers.get("Retry-After")).toBeTruthy();
-    expect(await blocked?.json()).toEqual({ error: "rate_limited" });
-    expect(await enforceRateLimit(other, "auth:login", opts)).toBeNull();
+    expect(await enforceRateLimit(first, "events", opts)).toBeNull();
+    expect((await enforceRateLimit(other, "events", opts))?.status).toBe(429);
+  });
+
+  it("uses unknown when the platform helper throws and no x-real-ip is set", async () => {
+    platformIp.override = () => {
+      throw new Error("platform unavailable");
+    };
+    const opts = { limit: 1, windowMs: 60_000 };
+    const req = new Request("http://test", {
+      headers: { "x-forwarded-for": "1.1.1.1" },
+    });
+    expect(await enforceRateLimit(req, "events", opts)).toBeNull();
+    expect((await enforceRateLimit(req, "events", opts))?.status).toBe(429);
   });
 
   it("returns the server-action error from headers", async () => {
@@ -200,16 +265,22 @@ describe("checkRateLimit", () => {
       token: "test-token-value",
       retry: { retries: 0 },
     });
-    expect(redisState.fixedWindow).toEqual([{ tokens: 2, window: "60 s" }]);
+    const stored = `${rateLimitPrefix()}:${key}`;
+    expect(redisState.slidingWindow).toEqual([{ tokens: 2, window: "60 s" }]);
+    expect(redisState.fixedWindow).toEqual([]);
     expect(redisState.configs[0]).toMatchObject({
-      prefix: "chess-school:rl",
+      prefix: "chess-school:rl:local",
       analytics: false,
       enableProtection: false,
       enableTelemetry: false,
       dynamicLimits: false,
       timeout: 1_500,
     });
-    expect(redisState.limit.mock.calls.map((call) => call[0])).toEqual([key, key, key]);
+    expect(redisState.limit.mock.calls.map((call) => call[0])).toEqual([
+      stored,
+      stored,
+      stored,
+    ]);
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
@@ -352,6 +423,112 @@ describe("checkRateLimit", () => {
     });
     rejectPending(new Error("background analytics"));
     await Promise.resolve();
+  });
+
+  it("keeps production, preview, and local memory counters apart", async () => {
+    const key = rateLimitKey("events", "5.5.5.5");
+    const opts = { limit: 1, windowMs: 60_000 };
+
+    process.env.VERCEL_ENV = "production";
+    expect(rateLimitPrefix()).toBe("chess-school:rl:production");
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+
+    process.env.VERCEL_ENV = "preview";
+    expect(rateLimitPrefix()).toBe("chess-school:rl:preview");
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+
+    delete process.env.VERCEL_ENV;
+    expect(rateLimitPrefix()).toBe("chess-school:rl:local");
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+
+    process.env.VERCEL_ENV = "production";
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+  });
+
+  it("scopes Upstash keys by VERCEL_ENV so environments do not share a counter", async () => {
+    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "test-token-value";
+    const key = rateLimitKey("vitals", "5.5.5.5");
+    const opts = { limit: 1, windowMs: 60_000 };
+
+    process.env.VERCEL_ENV = "production";
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+
+    process.env.VERCEL_ENV = "preview";
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+
+    delete process.env.VERCEL_ENV;
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+
+    expect(redisState.configs.map((config) => config.prefix)).toEqual([
+      "chess-school:rl:production",
+      "chess-school:rl:preview",
+      "chess-school:rl:local",
+    ]);
+    expect(redisState.fixedWindow).toHaveLength(3);
+    expect(redisState.slidingWindow).toHaveLength(0);
+    process.env.VERCEL_ENV = "production";
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+  });
+
+  it("uses slidingWindow for login and register only", async () => {
+    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "test-token-value";
+    await checkRateLimit(rateLimitKey("auth:login", "1.1.1.1"), {
+      limit: 15,
+      windowMs: 60_000,
+    });
+    await checkRateLimit(rateLimitKey("auth:register", "1.1.1.1"), {
+      limit: 10,
+      windowMs: 60_000,
+    });
+    await checkRateLimit(rateLimitKey("session:create", "1.1.1.1", "user-1"), {
+      limit: 30,
+      windowMs: 60_000,
+    });
+    expect(redisState.slidingWindow).toEqual([
+      { tokens: 15, window: "60 s" },
+      { tokens: 10, window: "60 s" },
+    ]);
+    expect(redisState.fixedWindow).toEqual([{ tokens: 30, window: "60 s" }]);
+  });
+
+  it("slides auth:login in memory instead of resetting the whole window", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(0);
+    const key = rateLimitKey("auth:login", "1.2.3.4");
+    const opts = { limit: 2, windowMs: 10_000 };
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    vi.setSystemTime(9_000);
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+    vi.setSystemTime(10_000);
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+  });
+
+  it("keeps the sliding log when login falls open to memory", async () => {
+    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "test-token-value";
+    redisState.limit.mockRejectedValue(new Error("redis down"));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(0);
+    const key = rateLimitKey("auth:register", "4.4.4.4");
+    const opts = { limit: 2, windowMs: 10_000 };
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    vi.setSystemTime(9_000);
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+    vi.setSystemTime(10_000);
+    expect((await checkRateLimit(key, opts)).ok).toBe(true);
+    expect((await checkRateLimit(key, opts)).ok).toBe(false);
+    expect(redisState.limit).toHaveBeenCalledTimes(1);
   });
 
   it("forgets a cached Redis client after resetRateLimitsForTests", async () => {

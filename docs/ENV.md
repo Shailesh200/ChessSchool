@@ -39,7 +39,9 @@ Sentry sampling: `tracesSampleRate` 0.05 in production (1.0 in development), `se
 1. `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (preferred; what `@upstash/redis` `Redis.fromEnv()` reads first)
 2. `KV_REST_API_URL` + `KV_REST_API_TOKEN` (name still used by some Marketplace / former Vercel KV installs)
 
-A URL without its own token does not enable Redis. The two pairs are not mixed. When Redis is selected, `@upstash/ratelimit` `fixedWindow` stores the counters. If Redis errors or times out, that request is counted on the in-memory limiter and the failure is logged once per instance (console and Sentry). Provision the database from the Vercel Marketplace (Upstash Redis, free plan); it is not created by this repo.
+A URL without its own token does not enable Redis. The two pairs are not mixed. When Redis is selected, `@upstash/ratelimit` stores the counters (`slidingWindow` for `auth:login` and `auth:register`, `fixedWindow` otherwise). If Redis errors or times out, that request is counted on the in-memory limiter and the failure is logged once per instance (console and Sentry). Provision the database from the Vercel Marketplace (Upstash Redis, free plan); it is not created by this repo.
+
+Keys are prefixed with `chess-school:rl:${VERCEL_ENV}` (`local` when `VERCEL_ENV` is unset). Vercel sets `VERCEL_ENV` to `production`, `preview`, or `development`. Give staging its own Upstash database; the prefix only stops a shared database from mixing those counters.
 
 ### Google OAuth redirect
 

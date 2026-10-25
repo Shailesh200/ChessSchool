@@ -1,35 +1,50 @@
 import { NextResponse } from "next/server";
+import { ipAddress } from "@vercel/functions";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 /**
  * Rate limits for auth, session, TTS, and the other hot routes.
  *
- * Default store is an in-process fixed window (local dev, tests, CI). When a
- * Vercel Marketplace Upstash pair is set, checks use `@upstash/ratelimit`
- * `fixedWindow` so serverless instances share one counter. Same bucket names,
- * limits, and key shape as before.
+ * Default store is in-process (local dev, tests, CI). When a Vercel
+ * Marketplace Upstash pair is set, checks use `@upstash/ratelimit` so
+ * serverless instances share one counter. Same bucket names, limits, and
+ * logical key shape as before.
  *
- * Redis is epoch-aligned (clock buckets). The in-memory window still starts
- * on the first hit. Both allow `limit` requests per `windowMs`.
+ * Every key is prefixed with `chess-school:rl:${VERCEL_ENV ?? "local"}` in
+ * both stores. Preview, staging, and a laptop therefore cannot consume
+ * production budget when they point at the same Redis database. Staging
+ * should still have its own database; the prefix is defence in depth.
  *
- * If Redis throws or the SDK times out, the request is counted on the
- * in-memory store instead. That keeps a single warm instance limiting during
- * an outage, and it does not turn the route into an error. The failure is
- * logged once per instance. Further Redis attempts wait out a short cooldown
- * so a dead store cannot add a timeout to every request.
+ * `auth:login` and `auth:register` use a sliding window so a burst on a
+ * clock boundary cannot take about twice the budget. Other buckets stay on
+ * a fixed window. Upstash sliding mode is the SDK's weighted mix of the
+ * current and previous fixed windows. The in-memory store keeps a log of
+ * hit timestamps in the last `windowMs` (a true sliding log). Same limit
+ * and window; near a boundary they can differ by a request or two.
+ *
+ * Fixed windows: Redis buckets are clock-aligned. The in-memory window
+ * still starts on the first hit.
+ *
+ * If Redis throws or the SDK times out, that request is counted on the
+ * in-memory store instead. The failure is logged once per instance. Further
+ * Redis attempts wait out a short cooldown.
  */
 
 const MAX_BUCKETS = 10_000;
-const REDIS_PREFIX = "chess-school:rl";
+const SLIDING_BUCKETS = new Set(["auth:login", "auth:register"]);
 /** SDK timeout. On expiry it resolves `success: true`; we treat that as a failure. */
 const REDIS_TIMEOUT_MS = 1_500;
 /** After a Redis failure, stay on the in-memory store this long. */
 const REDIS_COOLDOWN_MS = 30_000;
 
+export type RateLimitAlgorithm = "fixed" | "sliding";
+
 export type RateLimitOptions = {
   limit: number;
   windowMs: number;
+  /** Set for tests. Login and register default to sliding; everything else is fixed. */
+  algorithm?: RateLimitAlgorithm;
 };
 
 export type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number };
@@ -43,13 +58,20 @@ type Bucket = { count: number; resetAt: number };
 
 class MemoryRateLimitStore implements RateLimitStore {
   private buckets = new Map<string, Bucket>();
+  private sliding = new Map<string, number[]>();
 
   consume(key: string, opts: RateLimitOptions): Promise<RateLimitResult> {
-    return Promise.resolve(this.hit(key, opts));
+    const scoped = scopedRateLimitKey(key);
+    return Promise.resolve(
+      opts.algorithm === "sliding"
+        ? this.hitSliding(scoped, opts)
+        : this.hit(scoped, opts),
+    );
   }
 
   reset(): void {
     this.buckets.clear();
+    this.sliding.clear();
   }
 
   /** Fixed window starting at the first hit. The body stays synchronous. */
@@ -73,6 +95,29 @@ class MemoryRateLimitStore implements RateLimitStore {
       };
     }
     cur.count++;
+    return { ok: true };
+  }
+
+  /** Timestamp log: only hits newer than `windowMs` count. */
+  private hitSliding(key: string, opts: RateLimitOptions): RateLimitResult {
+    const now = Date.now();
+    const start = now - opts.windowMs;
+    if (this.sliding.size > MAX_BUCKETS) {
+      for (const [bucketKey, hits] of this.sliding) {
+        if (hits.every((ts) => ts <= start)) this.sliding.delete(bucketKey);
+      }
+    }
+    const recent = (this.sliding.get(key) ?? []).filter((ts) => ts > start);
+    if (recent.length >= opts.limit) {
+      this.sliding.set(key, recent);
+      const retryAt = recent[0]! + opts.windowMs;
+      return {
+        ok: false,
+        retryAfterSec: Math.max(1, Math.ceil((retryAt - now) / 1000)),
+      };
+    }
+    recent.push(now);
+    this.sliding.set(key, recent);
     return { ok: true };
   }
 }
@@ -101,13 +146,19 @@ class UpstashRateLimitStore implements RateLimitStore {
   }
 
   private limiterFor(opts: RateLimitOptions): Ratelimit {
-    const id = `${opts.limit}:${opts.windowMs}`;
+    const prefix = rateLimitPrefix();
+    const algorithm = opts.algorithm ?? "fixed";
+    const id = `${prefix}:${algorithm}:${opts.limit}:${opts.windowMs}`;
     const existing = this.limiters.get(id);
     if (existing) return existing;
+    const window = windowDuration(opts.windowMs);
     const limiter = new Ratelimit({
       redis: this.redis,
-      limiter: Ratelimit.fixedWindow(opts.limit, windowDuration(opts.windowMs)),
-      prefix: REDIS_PREFIX,
+      limiter:
+        algorithm === "sliding"
+          ? Ratelimit.slidingWindow(opts.limit, window)
+          : Ratelimit.fixedWindow(opts.limit, window),
+      prefix,
       analytics: false,
       enableProtection: false,
       enableTelemetry: false,
@@ -124,35 +175,54 @@ let upstashStore: UpstashRateLimitStore | null = null;
 let redisDisabledUntil = 0;
 let redisFailureLogged = false;
 
+/**
+ * Vercel sets `x-real-ip` to the client address. `ipAddress()` reads that
+ * header. A caller-supplied `X-Forwarded-For` list is not used: its first
+ * hop is spoofable. Missing both sources yields `unknown`.
+ */
+function readClientIp(input: Request | Headers): string {
+  try {
+    const platform = ipAddress(input)?.trim();
+    if (platform) return platform;
+  } catch {
+    // Off Vercel the helper is best-effort and must not fail the request.
+  }
+  const headers = "headers" in input ? input.headers : input;
+  const real = headers.get("x-real-ip")?.trim();
+  return real || "unknown";
+}
+
 export function clientIp(req: Request): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]!.trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  return readClientIp(req);
 }
 
 export function clientIpFromHeaders(h: Headers): string {
-  const xff = h.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]!.trim();
-  return h.get("x-real-ip") ?? "unknown";
+  return readClientIp(h);
 }
 
 export function rateLimitKey(bucket: string, ip: string, userId?: string): string {
   return userId ? `${bucket}:u:${userId}` : `${bucket}:ip:${ip}`;
 }
 
+/** `chess-school:rl:production` | `preview` | `development`, or `local` when unset. */
+export function rateLimitPrefix(env: NodeJS.ProcessEnv = process.env): string {
+  return `chess-school:rl:${env.VERCEL_ENV ?? "local"}`;
+}
+
 export async function checkRateLimit(
   key: string,
   opts: RateLimitOptions,
 ): Promise<RateLimitResult> {
-  if (Date.now() < redisDisabledUntil) return memoryStore.consume(key, opts);
+  const resolved = resolveRateLimitOptions(key, opts);
+  if (Date.now() < redisDisabledUntil) return memoryStore.consume(key, resolved);
   try {
     const upstash = getUpstashStore();
-    if (!upstash) return memoryStore.consume(key, opts);
-    return await upstash.consume(key, opts);
+    if (!upstash) return memoryStore.consume(key, resolved);
+    return await upstash.consume(key, resolved);
   } catch (err) {
     redisDisabledUntil = Date.now() + REDIS_COOLDOWN_MS;
     reportRedisFailure(err);
-    return memoryStore.consume(key, opts);
+    return memoryStore.consume(key, resolved);
   }
 }
 
@@ -228,6 +298,27 @@ function getUpstashStore(): UpstashRateLimitStore | null {
   });
   upstashStore = new UpstashRateLimitStore(redis);
   return upstashStore;
+}
+
+function scopedRateLimitKey(key: string): string {
+  return `${rateLimitPrefix()}:${key}`;
+}
+
+function bucketFromKey(key: string): string {
+  const cuts = [":ip:", ":u:"]
+    .map((marker) => key.indexOf(marker))
+    .filter((index) => index >= 0);
+  if (cuts.length === 0) return key;
+  return key.slice(0, Math.min(...cuts));
+}
+
+function resolveRateLimitOptions(
+  key: string,
+  opts: RateLimitOptions,
+): RateLimitOptions {
+  if (opts.algorithm) return opts;
+  const algorithm = SLIDING_BUCKETS.has(bucketFromKey(key)) ? "sliding" : "fixed";
+  return { ...opts, algorithm };
 }
 
 function windowDuration(windowMs: number): `${number} s` | `${number} ms` {
