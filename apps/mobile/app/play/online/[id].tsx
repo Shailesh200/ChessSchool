@@ -8,7 +8,12 @@ import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
-import { API_URL, api } from "@/api";
+import { API_URL, api, getToken } from "@/api";
+import {
+  ABLY_DROP_EVENTS,
+  createAblyPollingFallback,
+  createGameAblyAuth,
+} from "@/ablyAuth";
 import { mutateProgress } from "@/progressStore";
 import { prependRecentGame, isoDay } from "@/progression";
 import { markHomeworkActivity } from "@/homeworkRoutine";
@@ -134,21 +139,47 @@ export default function OnlineGameScreen() {
   useEffect(() => {
     let client: { close: () => void } | null = null;
     let cancelled = false;
-    void fetch(`${API_URL}/api/ably-token`)
-      .then((r) => (r.ok ? import("ably") : null))
-      .then((mod) => {
-        if (!mod || cancelled) return;
-        const { Realtime } = mod;
-        const rt = new Realtime({ authUrl: `${API_URL}/api/ably-token`, autoConnect: true });
+    // No session token → stay on the poll loop. authCallback (not authHeaders)
+    // reads getToken() on every mint, including renewal.
+    const dropToPolling = createAblyPollingFallback({
+      ablyRef,
+      close: () => client?.close(),
+    });
+    void (async () => {
+      const sessionToken = await getToken();
+      if (!sessionToken || cancelled) {
+        ablyRef.current = false;
+        return;
+      }
+      try {
+        const { Realtime } = await import("ably");
+        if (cancelled) return;
+        const rt = new Realtime({
+          autoConnect: false,
+          authCallback: createGameAblyAuth({
+            apiUrl: API_URL,
+            gameId: sid,
+            getToken,
+            isCancelled: () => cancelled,
+            onAuthError: dropToPolling,
+          }),
+        });
+        if (cancelled) {
+          rt.close();
+          return;
+        }
         client = rt;
         rt.connection.on("connected", () => { ablyRef.current = true; });
-        rt.connection.on("failed", () => { ablyRef.current = false; });
         rt.connection.on("disconnected", () => { ablyRef.current = false; });
+        for (const event of ABLY_DROP_EVENTS) rt.connection.on(event, dropToPolling);
         rt.channels.get(`game:${sid}`).subscribe("state", (msg) => {
           if (msg?.data) applyState(msg.data as Session);
         });
-      })
-      .catch(() => void 0);
+        rt.connect();
+      } catch {
+        dropToPolling();
+      }
+    })();
     return () => {
       cancelled = true;
       try { client?.close(); } catch { /* ignore */ }

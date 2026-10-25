@@ -10,7 +10,7 @@ export async function registerAction(
   _prev: { error?: string } | undefined,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const limited = enforceRateLimitHeaders(await headers(), "auth:register", {
+  const limited = await enforceRateLimitHeaders(await headers(), "auth:register", {
     limit: 10,
     windowMs: 60_000,
   });
@@ -33,7 +33,7 @@ export async function loginAction(
   _prev: { error?: string } | undefined,
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const limited = enforceRateLimitHeaders(await headers(), "auth:login", {
+  const limited = await enforceRateLimitHeaders(await headers(), "auth:login", {
     limit: 15,
     windowMs: 60_000,
   });

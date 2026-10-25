@@ -1,11 +1,11 @@
 /**
- * FALLBACK homework seeder (no CSV needed) — derives the `homework_lessons` pool
- * from puzzles already in the `lessons` table, bucketed by routine type. Runs in
- * `db:fresh` so local dev always has homework.
+ * Sample homework seeder (no CSV) — derives the `homework_lessons` pool from
+ * puzzles already in the `lessons` table, bucketed by routine type. `db:fresh`
+ * calls this directly so local dev always has homework.
  *
- * For a homework pool that's DISTINCT from the curriculum puzzles, use
- * `pnpm db:import-homework <lichess_db_puzzle.csv[.zst]>` instead — it pulls a
- * separate slice of puzzles straight from the Lichess DB.
+ * `import-homework.mjs` does not call this unless `--samples` is passed. For a
+ * homework pool that's DISTINCT from the curriculum puzzles, run
+ * `pnpm db:import-homework` (reads `<repo>/data/chess-school-puzzles.csv.gz`).
  */
 import Database from "better-sqlite3";
 import { existsSync } from "node:fs";
