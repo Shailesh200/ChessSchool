@@ -6,67 +6,25 @@
  * Schema is NOT dropped or recreated. Migrations own the tables. seed.sql only
  * upserts semesters, classes, lessons, and homework_lessons.
  *
+ * Refuses PRODUCTION_DB_HOSTS even when confirm matches.
+ * Confirm is CONFIRM=WIPE:<hostname> (exact hostname of DATABASE_URL).
+ * Prints the hostname only, never the URL or auth token.
+ *
  * Use only on a disposable database. For a content refresh that keeps accounts
  * and live games, use `pnpm db:remote` (dry-run unless --apply --backup-done).
  *
- *   DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… CONFIRM=WIPE pnpm db:remote-clean
+ *   DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… CONFIRM=WIPE:<hostname> pnpm db:remote-clean
  */
 import { readFileSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import {
   applyContentUpserts,
   databaseHasMigrationRow,
-  databaseHostname,
+  invokedDirectly,
   loadContentSeed,
 } from "./seed-content.mjs";
 import { redactSecrets } from "./seed-remote.mjs";
-
-const url = process.env.DATABASE_URL;
-const authToken = process.env.DATABASE_AUTH_TOKEN;
-
-if (
-  !url ||
-  (!url.startsWith("libsql:") && !url.startsWith("https:") && !url.startsWith("http:"))
-) {
-  console.error(
-    "Set DATABASE_URL=libsql://…  (and DATABASE_AUTH_TOKEN). The token is not printed.",
-  );
-  process.exit(1);
-}
-if (process.env.CONFIRM !== "WIPE") {
-  console.error(
-    "This DELETES all users, accounts, progress, and live games on the remote DB.\n" +
-      "Curriculum tables are upserted, not dropped.\n" +
-      "If you're sure, re-run with CONFIRM=WIPE:\n" +
-      "    DATABASE_URL=… DATABASE_AUTH_TOKEN=… CONFIRM=WIPE pnpm db:remote-clean",
-  );
-  process.exit(1);
-}
-
-const hostname = databaseHostname(url);
-if (!hostname) {
-  console.error("Refusing to wipe: DATABASE_URL has no hostname.");
-  process.exit(1);
-}
-if (!authToken) {
-  console.error("DATABASE_AUTH_TOKEN is required. It is not printed.");
-  process.exit(1);
-}
-
-let loaded;
-try {
-  loaded = loadContentSeed(
-    readFileSync(new URL("../db/seed.sql", import.meta.url), "utf8"),
-  );
-} catch (error) {
-  console.error(
-    redactSecrets(error instanceof Error ? error.message : String(error), [
-      url,
-      authToken,
-    ]),
-  );
-  process.exit(1);
-}
+import { assertCanWipe } from "./wipe-guard.mjs";
 
 const USER_TABLES = [
   "analytics_events",
@@ -80,15 +38,66 @@ const USER_TABLES = [
   "users",
 ];
 
-const client = createClient({ url, authToken });
-let exitCode = 0;
-try {
-  if (!(await databaseHasMigrationRow(client))) {
-    console.error(
-      `Refusing to wipe ${hostname}: no __drizzle_migrations row. No rows were deleted.`,
-    );
-    exitCode = 1;
-  } else {
+function pick(options, key, envValue) {
+  return Object.prototype.hasOwnProperty.call(options, key) ? options[key] : envValue;
+}
+
+function defaultSeedText() {
+  return readFileSync(new URL("../db/seed.sql", import.meta.url), "utf8");
+}
+
+export async function runRemoteClean(options = {}) {
+  const url = pick(options, "url", process.env.DATABASE_URL);
+  const authToken = pick(options, "authToken", process.env.DATABASE_AUTH_TOKEN);
+  const confirm = pick(options, "confirm", process.env.CONFIRM);
+  const secrets = [url, authToken];
+  const fail = (lines, code = 1) => {
+    for (const line of lines) console.error(redactSecrets(line, secrets));
+    return code;
+  };
+
+  if (
+    !url ||
+    (!url.startsWith("libsql:") &&
+      !url.startsWith("https:") &&
+      !url.startsWith("http:"))
+  ) {
+    return fail([
+      "Set DATABASE_URL to a libsql:// or https:// URL. The auth token is not printed.",
+    ]);
+  }
+
+  const decision = assertCanWipe(url, confirm);
+  if (!decision.ok) return fail(decision.lines);
+  if (!authToken) return fail(["DATABASE_AUTH_TOKEN is required. It is not printed."]);
+
+  let loaded;
+  try {
+    const raw = pick(options, "sql", null) ?? defaultSeedText();
+    loaded = loadContentSeed(raw);
+  } catch (error) {
+    return fail([error instanceof Error ? error.message : String(error)]);
+  }
+
+  const openClient =
+    options.openClient ??
+    ((target, token) => createClient({ url: target, authToken: token }));
+  let client;
+  try {
+    client = openClient(url, authToken);
+  } catch (error) {
+    return fail([error instanceof Error ? error.message : String(error)]);
+  }
+
+  const hostname = decision.hostname;
+  try {
+    if (!(await databaseHasMigrationRow(client))) {
+      console.error(
+        `Refusing to wipe ${hostname}: no __drizzle_migrations row. No rows were deleted.`,
+      );
+      return 1;
+    }
+
     const present = await client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table'",
     );
@@ -106,11 +115,8 @@ try {
     }
     await client.execute("PRAGMA foreign_keys = ON");
 
-    console.log(`Upserting content — ${loaded.statements.length} statements…`);
-    await applyContentUpserts(client, loaded.statements, (done, total) => {
-      process.stdout.write(`\r  ${done}/${total}`);
-    });
-    process.stdout.write("\n");
+    console.log(`Upserting content — ${loaded.statements.length} statements.`);
+    await applyContentUpserts(client, loaded.statements);
     const lessons = Number(
       (await client.execute("SELECT COUNT(*) AS c FROM lessons")).rows[0].c,
     );
@@ -118,16 +124,18 @@ try {
       (await client.execute("SELECT COUNT(*) AS c FROM users")).rows[0].c,
     );
     console.log(`Clean DB on ${hostname} — ${users} users, ${lessons} lessons.`);
+    return 0;
+  } catch (error) {
+    console.error(
+      redactSecrets(error instanceof Error ? error.message : String(error), secrets),
+    );
+    return 1;
+  } finally {
+    client.close();
   }
-} catch (error) {
-  console.error(
-    redactSecrets(error instanceof Error ? error.message : String(error), [
-      url,
-      authToken,
-    ]),
-  );
-  exitCode = 1;
-} finally {
-  client.close();
 }
-process.exit(exitCode);
+
+if (invokedDirectly(import.meta.url)) {
+  const code = await runRemoteClean();
+  process.exit(code);
+}

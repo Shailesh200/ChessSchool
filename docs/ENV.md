@@ -73,10 +73,11 @@ The snapshot does not touch `users`, `sessions`, `oauth_accounts`, `profiles`, `
 
 `pnpm --filter web db:remote` writes only when every guard below passes. It prints the database hostname and never prints `DATABASE_URL` or `DATABASE_AUTH_TOKEN`.
 
-1. Rebuild the local file, then regenerate the snapshot. Dump reads `apps/web/local.db` only and ignores `DATABASE_URL`.
+1. Rebuild the local file, then regenerate the snapshot. Dump reads `apps/web/local.db` only and ignores `DATABASE_URL`. It refuses when any content table would have fewer rows than the current `db/seed.sql` (a fresh local database is 118 lessons, smaller than the puzzle snapshot). Pass `--allow-shrink` only when that drop is intentional.
 
    ```bash
    pnpm --filter web db:dump
+   pnpm --filter web db:dump -- --allow-shrink
    ```
 
 2. The target must already have a `__drizzle_migrations` row. On the push-era Turso database, record the baseline first (`plans/M-073_WEB_GA_LAUNCH.md`), then `pnpm --filter web db:migrate`. `db:remote` refuses an unmigrated database and writes nothing.
@@ -103,7 +104,12 @@ The snapshot does not touch `users`, `sessions`, `oauth_accounts`, `profiles`, `
 
 Re-running is safe: the same ids are updated in place. Live games and accounts stay. `db:fresh` rebuilds local `local.db` only (migrate, then the local generators: 118 lessons and 46 homework lessons) and ignores `DATABASE_URL`. That local count is separate from the puzzle snapshot in `db/seed.sql`.
 
-`db:remote-clean` with `CONFIRM=WIPE` still deletes user rows. It is not the content rollout.
+`db:wipe-users` and `db:remote-clean` delete user rows. They are not the content rollout. Both refuse every host in `PRODUCTION_DB_HOSTS` (`chessschool-shailesh200.aws-ap-south-1.turso.io`) even when confirm matches. Confirm is `CONFIRM=WIPE:<hostname>`: the exact hostname of `DATABASE_URL`, or `local.db` when `db:wipe-users` targets the local file. The command prints that hostname only, never the URL or auth token.
+
+```bash
+CONFIRM=WIPE:local.db pnpm --filter web db:wipe-users
+CONFIRM='WIPE:<hostname>' pnpm --filter web db:remote-clean
+```
 
 ## Related
 
