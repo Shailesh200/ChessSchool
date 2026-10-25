@@ -214,7 +214,7 @@ export default function AcademyScreen() {
                   Learn the board, pieces, and notation (d6, Nf3, Qd5) — skip anytime if you know the rules.
                 </Text>
                 <View style={{ marginTop: space[3], alignSelf: "flex-start" }}>
-                  <Button label="Start the Starter stage →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
+                  <Button label="Start here →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
                 </View>
               </View>
             )}

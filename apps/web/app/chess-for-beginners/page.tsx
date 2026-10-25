@@ -36,7 +36,7 @@ export default function ChessForBeginnersPage() {
             {BEGINNER_INTRO}
           </p>
           <NavButton href="/class/class-pre-board" size="sm" className="self-start">
-            Start the Starter stage →
+            Start here →
           </NavButton>
         </header>
 

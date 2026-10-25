@@ -152,7 +152,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
               skip anytime if you already know the rules.
             </p>
             <NavButton href="/class/class-pre-board" size="sm" className="mt-3">
-              Start the Starter stage →
+              Start here →
             </NavButton>
           </div>
         )}
