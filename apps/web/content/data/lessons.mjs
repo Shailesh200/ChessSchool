@@ -1269,7 +1269,7 @@ export const LESSONS = [
         id: "goal-info",
         kind: "info",
         coach:
-          "The goal of chess is to checkmate your opponent's king. You can also win if they resign (give up) when the position is hopeless. In Foundations we learn the rules — real timed games come later in Play mode!",
+          "The goal of chess is to checkmate your opponent's king. You can also win if they resign (give up) when the position is hopeless. In the Starter stage we learn the rules — real timed games come later in Play mode!",
         fen: "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1",
         highlight: ["h8", "g7"],
         orientation: "white",
@@ -1601,7 +1601,7 @@ export const LESSONS = [
         id: "finish",
         kind: "info",
         coach:
-          "You now know the board, the pieces, and how to read moves like d6, e4, Nf3, and Qd5. Foundations complete — head to Elementary when you are ready, or replay any lesson for practice!",
+          "You now know the board, the pieces, and how to read moves like d6, e4, Nf3, and Qd5. Starter complete — head to Elementary when you are ready, or replay any lesson for practice!",
         fen: START,
         highlight: ["e4", "d5"],
       },

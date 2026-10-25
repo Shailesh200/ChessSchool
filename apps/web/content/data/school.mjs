@@ -2,7 +2,7 @@
 export const STAGES = [
   {
     id: "preschool",
-    name: "Foundations",
+    name: "Starter",
     emoji: "🧸",
     blurb: "Optional · board → pieces → moves → rules → notation",
     status: "open",

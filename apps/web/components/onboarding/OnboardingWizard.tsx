@@ -202,7 +202,7 @@ export function OnboardingWizard({ name }: { name: string }) {
                 />
                 <span>
                   We&apos;ll recommend our optional{" "}
-                  <span className="text-ink font-extrabold">Foundations</span> first —
+                  <span className="text-ink font-extrabold">Starter</span> stage first —
                   board, pieces &amp; notation. Skip anytime if you prefer.
                 </span>
               </p>
