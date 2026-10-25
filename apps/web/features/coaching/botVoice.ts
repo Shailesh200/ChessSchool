@@ -105,6 +105,20 @@ type LineCtx = {
   moveNumber: number;
 };
 
+/** Unknown personality, missing kind, then missing quiet line — all use the default coach. */
+export function coachCommentPool<T>(
+  tables: Partial<Record<string, Partial<Record<string, T>> | undefined>>,
+  personality: string,
+  kind: string,
+): T {
+  const fallback = tables[DEFAULT_COACH_CHARACTER];
+  const table = tables[personality] ?? fallback;
+  return (table?.[kind] ??
+    fallback?.[kind] ??
+    table?.quiet_middlegame ??
+    fallback?.quiet_middlegame)!;
+}
+
 function templates(
   personality: CoachPersonality,
   kind: MoveCommentKind,
@@ -608,13 +622,7 @@ function templates(
     },
   };
 
-  const table = tables[personality] ?? tables[DEFAULT_COACH_CHARACTER];
-  const pool =
-    table[kind] ??
-    tables[DEFAULT_COACH_CHARACTER][kind] ??
-    table.quiet_middlegame ??
-    tables[DEFAULT_COACH_CHARACTER].quiet_middlegame!;
-  return pool;
+  return coachCommentPool(tables, personality, kind);
 }
 
 /** Full coach+bot move line — personality tone × named opponent character. */

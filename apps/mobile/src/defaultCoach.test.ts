@@ -48,10 +48,11 @@ import { onboardingCoachChoice } from "../app/onboarding";
 import { DEFAULT_COACH_CHARACTER, normalizeCoachCharacter } from "./coachCharacters";
 import {
   buildMoveComment,
+  coachCommentPool,
   type CoachPersonality,
   type MoveCommentKind,
 } from "./coaching/botVoice";
-import { PERSONAS, personaOf } from "./coaching/personality";
+import { PERSONAS, personaById, personaOf } from "./coaching/personality";
 import { hydrateSettings, settings } from "./settings";
 
 const KEY = "chessschool.settings";
@@ -75,23 +76,88 @@ function memoryStorage(initial?: string) {
 }
 
 describe("default coach fallbacks", () => {
-  it("resolves missing and unknown ids to DEFAULT_COACH_CHARACTER", () => {
-    expect(DEFAULT_COACH_CHARACTER).toBe("anxious_nerd");
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", undefined);
+    settings.reset();
+  });
+
+  it("F2 empty settings use the default coach", () => {
+    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(settings.get().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
+    settings.reset();
+    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(settings.get().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
+  });
+
+  it("F3 normalizeSettings uses the default coach", async () => {
+    hydrateSettings({});
+    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(settings.get().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
+
+    hydrateSettings({ coachCharacter: "not-a-coach" } as never);
+    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+
+    hydrateSettings({ coachCharacter: "sarcastic", coachPersonality: "sarcastic" });
+    expect(settings.get().coachCharacter).toBe("sarcastic");
+    expect(settings.get().coachPersonality).toBe("sarcastic");
+    hydrateSettings({ coachPersonality: "sarcastic" });
+    expect(settings.get().coachCharacter).toBe("sarcastic");
+
+    memoryStorage(
+      JSON.stringify({ coachCharacter: "sarcastic", coachPersonality: "sarcastic" }),
+    );
+    vi.resetModules();
+    const loaded = await import("./settings");
+    expect(loaded.settings.get().coachCharacter).toBe("sarcastic");
+    expect(loaded.settings.get().coachPersonality).toBe("sarcastic");
+
+    memoryStorage();
+    vi.resetModules();
+    const fresh = await import("./settings");
+    expect(fresh.settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(fresh.settings.get().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
+  });
+
+  it("F4 onboarding empty pick uses the default coach", () => {
+    expect(onboardingCoachChoice("")).toBe(DEFAULT_COACH_CHARACTER);
+    expect(onboardingCoachChoice(undefined as never)).toBe(DEFAULT_COACH_CHARACTER);
+    expect(onboardingCoachChoice("friendly")).toBe(DEFAULT_COACH_CHARACTER);
+    expect(onboardingCoachChoice("not-a-coach")).toBe(DEFAULT_COACH_CHARACTER);
+    expect(onboardingCoachChoice("sarcastic")).toBe("sarcastic");
+  });
+
+  it("F6 normalizeCoachCharacter uses the default coach", () => {
     expect(normalizeCoachCharacter(undefined)).toBe(DEFAULT_COACH_CHARACTER);
     expect(normalizeCoachCharacter("not-a-coach")).toBe(DEFAULT_COACH_CHARACTER);
     expect(normalizeCoachCharacter("friendly")).toBe(DEFAULT_COACH_CHARACTER);
     expect(normalizeCoachCharacter("strict")).toBe("sarcastic");
     expect(normalizeCoachCharacter("sarcastic")).toBe("sarcastic");
-    expect(onboardingCoachChoice("")).toBe(DEFAULT_COACH_CHARACTER);
-    expect(onboardingCoachChoice("friendly")).toBe(DEFAULT_COACH_CHARACTER);
-    expect(onboardingCoachChoice("sarcastic")).toBe("sarcastic");
-    expect(personaOf(unknown)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
-    expect(personaOf("sarcastic")).toBe(PERSONAS.sarcastic);
-    expect(personaOf("friendly")).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
-    expect(personaOf("friendly")).not.toBe(PERSONAS.genz);
   });
 
-  it("uses the default coach's move lines when the personality is unknown", () => {
+  it("F7 persona lookup uses the default coach", () => {
+    expect(personaById("not-a-coach")).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
+    expect(personaById("not-a-coach")).not.toBe(PERSONAS.sarcastic);
+    expect(personaOf(undefined as never)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
+    expect(personaOf(unknown)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
+    expect(personaOf("friendly")).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
+    expect(personaById("sarcastic")).toBe(PERSONAS.sarcastic);
+  });
+
+  it("F8 botVoice table, kind, and quiet_middlegame use the default coach", () => {
+    const tables = {
+      sarcastic: { mate: ["ash-mate"], quiet_middlegame: ["ash-quiet"] },
+      [DEFAULT_COACH_CHARACTER]: {
+        mate: ["otto-mate"],
+        quiet_middlegame: ["otto-quiet"],
+      },
+      genz: { quiet_middlegame: ["kira-quiet"] },
+      partial: { check: ["partial-check"] },
+    };
+    expect(coachCommentPool(tables, "not-a-coach", "mate")).toEqual(["otto-mate"]);
+    expect(coachCommentPool(tables, "genz", "mate")).toEqual(["otto-mate"]);
+    expect(coachCommentPool(tables, "partial", "not-a-kind")).toEqual(["otto-quiet"]);
+    expect(coachCommentPool(tables, "sarcastic", "mate")).toEqual(["ash-mate"]);
+
     const ctx = {
       botName: "Cody",
       botElo: 800,
@@ -109,54 +175,13 @@ describe("default coach fallbacks", () => {
     const missing = buildMoveComment({ ...ctx, personality: unknown }, "mate");
     expect(missing).toMatch(/Study where shelter broke|The idea started earlier/);
     expect(missing).not.toMatch(/King safety was a choice|hung everything/);
-
     const missingKind = buildMoveComment(
       { ...ctx, personality: unknown },
       "not-a-kind" as MoveCommentKind,
     );
     expect(missingKind).toMatch(/Trade ahead, improve when equal|plays slowly/);
     expect(missingKind).not.toMatch(/worst piece|Thrilling advice/);
-
     const saved = buildMoveComment({ ...ctx, personality: "sarcastic" }, "mate");
     expect(saved).toMatch(/King safety was a choice|hung everything/);
-  });
-});
-
-describe("settings coach default", () => {
-  beforeEach(() => {
-    vi.stubGlobal("localStorage", undefined);
-    settings.reset();
-  });
-
-  it("starts empty settings on the default coach", () => {
-    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
-    expect(settings.get().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
-    hydrateSettings({});
-    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
-  });
-
-  it("keeps a saved sarcastic choice from the account and from localStorage", async () => {
-    hydrateSettings({ coachCharacter: "sarcastic", coachPersonality: "sarcastic" });
-    expect(settings.get().coachCharacter).toBe("sarcastic");
-    expect(settings.get().coachPersonality).toBe("sarcastic");
-
-    hydrateSettings({ coachPersonality: "sarcastic" });
-    expect(settings.get().coachCharacter).toBe("sarcastic");
-
-    hydrateSettings({ coachCharacter: "friendly" } as never);
-    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
-
-    memoryStorage(
-      JSON.stringify({ coachCharacter: "sarcastic", coachPersonality: "sarcastic" }),
-    );
-    vi.resetModules();
-    const loaded = await import("./settings");
-    expect(loaded.settings.get().coachCharacter).toBe("sarcastic");
-    expect(loaded.settings.get().coachPersonality).toBe("sarcastic");
-
-    memoryStorage();
-    vi.resetModules();
-    const fresh = await import("./settings");
-    expect(fresh.settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
   });
 });
