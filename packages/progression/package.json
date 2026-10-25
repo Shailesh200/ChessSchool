@@ -12,6 +12,7 @@
     "@chess-school/core": "workspace:*"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.9",
     "typescript": "^5",
     "vitest": "^4.1.9"
   }

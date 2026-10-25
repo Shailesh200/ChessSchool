@@ -1,7 +1,7 @@
 /**
  * Characterization tests for today's progression reducers.
- * Cases named "later PR will change this" lock behaviour that timezone-aware
- * days and the recency-based merge are expected to replace on purpose.
+ * Names marked [D-3], [D-4], or [D-5] lock known behaviour a later fix will flip:
+ * D-3 max-merge, D-4 UTC day boundaries, D-5 server-first merge.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -35,7 +35,8 @@ afterEach(() => {
 });
 
 describe("isoDay", () => {
-  it("current behaviour (later PR will change this): isoDay is the UTC calendar date", () => {
+  // D-4: the calendar day is the UTC date, so a local evening can be tomorrow.
+  it("[D-4 current behaviour] isoDay is the UTC calendar date", () => {
     expect(isoDay(new Date("2026-01-15T23:30:00.000Z"))).toBe("2026-01-15");
     // 23:30 in US Eastern is already the next UTC day.
     expect(isoDay(new Date("2026-01-15T23:30:00.000-05:00"))).toBe("2026-01-16");
@@ -43,19 +44,22 @@ describe("isoDay", () => {
     expect(isoDay(new Date("2026-01-15T00:30:00.000+05:30"))).toBe("2026-01-14");
   });
 
-  it("reads the clock when no date is passed", () => {
+  // D-4: the default day is whatever UTC day the clock is in.
+  it("[D-4 current behaviour] reads the UTC clock when no date is passed", () => {
     expect(isoDay()).toBe(FROZEN_DAY);
   });
 });
 
 describe("awardXp", () => {
-  it("adds the amount to total xp and the current UTC day bucket", () => {
+  // D-4: today's XP bucket key is the UTC day, not the local calendar day.
+  it("[D-4 current behaviour] adds the amount to total xp and the current UTC day bucket", () => {
     const s = awardXp({ xp: 10, activityDays: { "2026-06-14": 5 } }, 20);
     expect(s.xp).toBe(30);
     expect(s.activityDays).toEqual({ "2026-06-14": 5, [FROZEN_DAY]: 20 });
   });
 
-  it("accumulates further awards into the same UTC day bucket", () => {
+  // D-4: a second award the same UTC instant stays in that same UTC bucket.
+  it("[D-4 current behaviour] accumulates further awards into the same UTC day bucket", () => {
     const s = awardXp(awardXp({ xp: 0 }, 15), 5);
     expect(s.xp).toBe(20);
     expect(s.activityDays?.[FROZEN_DAY]).toBe(20);
@@ -151,7 +155,8 @@ describe("updateRating", () => {
 });
 
 describe("applyLessonComplete", () => {
-  it("records mastery, xp, the UTC day, and a perfect-lesson achievement", () => {
+  // D-4: completion stamps lastActiveDay and the XP bucket from the UTC clock.
+  it("[D-4 current behaviour] records mastery, xp, the UTC day, and a perfect-lesson achievement", () => {
     const s = applyLessonComplete(
       {},
       { lessonId: "board-basics", correct: 4, total: 4, mistakes: 0, xp: 20 },
@@ -164,7 +169,8 @@ describe("applyLessonComplete", () => {
     expect(s.unlockedAchievements).toEqual(["first-step", "perfect"]);
   });
 
-  it("continues yesterday's streak and unlocks the 3-day achievement", () => {
+  // D-4: "yesterday" is the previous UTC day, and today is the frozen UTC day.
+  it("[D-4 current behaviour] continues yesterday's streak and unlocks the 3-day achievement", () => {
     const s = applyLessonComplete(
       { streak: 2, lastActiveDay: "2026-06-14" },
       { lessonId: "board-basics", correct: 1, total: 1, mistakes: 0, xp: 10 },
@@ -196,7 +202,8 @@ describe("applyLessonComplete", () => {
 });
 
 describe("applyMatchEnd", () => {
-  it("a win raises rating, grants 40 xp, and registers the UTC day", () => {
+  // D-4: a win registers activity and XP on the UTC day from the clock.
+  it("[D-4 current behaviour] a win raises rating, grants 40 xp, and registers the UTC day", () => {
     const s = applyMatchEnd({ rating: 800 }, { botElo: 800, result: "win" });
     expect(s.rating).toBe(816);
     expect(s.xp).toBe(40);
@@ -207,7 +214,8 @@ describe("applyMatchEnd", () => {
     expect(s.unlockedAchievements).toEqual(["first-win"]);
   });
 
-  it("a loss changes rating without granting xp", () => {
+  // D-4: a loss still stamps lastActiveDay from the UTC clock.
+  it("[D-4 current behaviour] a loss changes rating without granting xp and stamps the UTC day", () => {
     const s = applyMatchEnd({ rating: 800, xp: 15 }, { botElo: 800, result: "loss" });
     expect(s.rating).toBe(784);
     expect(s.xp).toBe(15);
@@ -289,12 +297,14 @@ describe("normalizeProgressPush", () => {
 });
 
 describe("mergeProgressSnapshots current behaviour", () => {
-  it("current behaviour (later PR will change this): streak takes the max", () => {
+  // D-3: streak is Math.max, so a stale higher streak beats the newer lower one.
+  it("[D-3 current behaviour] streak takes the max", () => {
     expect(mergeProgressSnapshots({ streak: 12 }, { streak: 3 }).streak).toBe(12);
     expect(mergeProgressSnapshots({ streak: 2 }, { streak: 9 }).streak).toBe(9);
   });
 
-  it("current behaviour (later PR will change this): rating takes the max, and a missing rating counts as 800", () => {
+  // D-3: rating is Math.max, and a missing rating is treated as 800 before that max.
+  it("[D-3 current behaviour] rating takes the max, and a missing rating counts as 800", () => {
     expect(mergeProgressSnapshots({ rating: 1500 }, { rating: 1100 }).rating).toBe(
       1500,
     );
@@ -302,7 +312,8 @@ describe("mergeProgressSnapshots current behaviour", () => {
     expect(mergeProgressSnapshots({ rating: 500 }, {}).rating).toBe(800);
   });
 
-  it("current behaviour (later PR will change this): dailyGoalXp takes the max, and a missing goal counts as 50", () => {
+  // D-3: dailyGoalXp is Math.max, and a missing goal is treated as 50 before that max.
+  it("[D-3 current behaviour] dailyGoalXp takes the max, and a missing goal counts as 50", () => {
     expect(
       mergeProgressSnapshots({ dailyGoalXp: 120 }, { dailyGoalXp: 60 }).dailyGoalXp,
     ).toBe(120);
@@ -312,7 +323,8 @@ describe("mergeProgressSnapshots current behaviour", () => {
     expect(mergeProgressSnapshots({ dailyGoalXp: 20 }, {}).dailyGoalXp).toBe(50);
   });
 
-  it("current behaviour (later PR will change this): mistakeLog keeps server entries first", () => {
+  // D-5: server mistakes are listed first, and a shared fen|at keeps the server copy.
+  it("[D-5 current behaviour] mistakeLog keeps server entries first", () => {
     const merged = mergeProgressSnapshots(
       {
         mistakeLog: [
@@ -335,7 +347,8 @@ describe("mergeProgressSnapshots current behaviour", () => {
     ]);
   });
 
-  it("current behaviour (later PR will change this): mistakeLog stays capped at 30 with the server prefix kept", () => {
+  // D-5: the 30-item cap drops the local tail and keeps the server prefix.
+  it("[D-5 current behaviour] mistakeLog stays capped at 30 with the server prefix kept", () => {
     const serverLog = Array.from({ length: 20 }, (_, i) => mistake(`s${i}`, i));
     const localLog = Array.from({ length: 15 }, (_, i) => mistake(`l${i}`, 100 + i));
     const merged = mergeProgressSnapshots(
@@ -350,7 +363,8 @@ describe("mergeProgressSnapshots current behaviour", () => {
     ]);
   });
 
-  it("current behaviour (later PR will change this): dailyPuzzleDay prefers the server day", () => {
+  // D-5: a server dailyPuzzleDay wins even when the local day is later. Null falls through.
+  it("[D-5 current behaviour] dailyPuzzleDay prefers the server day", () => {
     expect(
       mergeProgressSnapshots(
         { dailyPuzzleDay: "2026-06-15" },
@@ -364,7 +378,8 @@ describe("mergeProgressSnapshots current behaviour", () => {
     expect(mergeProgressSnapshots({}, {}).dailyPuzzleDay).toBeNull();
   });
 
-  it("max-merges xp and maps, prefers local lastActiveDay, and keeps the higher-mastery lesson", () => {
+  // D-3: max-merge, including the stale-device case where local lastActiveDay wins over a later server day.
+  it("[D-3 current behaviour] max-merges xp and maps, prefers local lastActiveDay, and keeps the higher-mastery lesson", () => {
     const merged = mergeProgressSnapshots(
       {
         xp: 40,
@@ -412,7 +427,8 @@ describe("mergeProgressSnapshots current behaviour", () => {
     });
   });
 
-  it("current behaviour (later PR will change this): equal lesson mastery keeps the server record", () => {
+  // D-5: an equal mastery keeps the server lesson record, even if local was stored earlier.
+  it("[D-5 current behaviour] equal lesson mastery keeps the server record", () => {
     const merged = mergeProgressSnapshots(
       { lessons: { a: { mastery: 0.5, attempts: 3, lastSeen: 1, dueAt: 2 } } },
       { lessons: { a: { mastery: 0.5, attempts: 1, lastSeen: 9, dueAt: 10 } } },

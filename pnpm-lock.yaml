@@ -360,6 +360,9 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^4.1.9
+        version: 4.1.9(vitest@4.1.9)
       typescript:
         specifier: ^5
         version: 5.9.3
