@@ -1,58 +1,141 @@
 /**
- * ⚠️ DESTRUCTIVE remote seed — wipes ALL user data (accounts, sessions, profiles,
- * progress, lesson records, live games) AND reseeds curriculum content.
+ * DESTRUCTIVE remote reset — deletes user rows (accounts, sessions, profiles,
+ * progress, lesson records, live games, analytics) and then upserts curriculum
+ * content from db/seed.sql.
  *
- * Use ONLY for testing a fresh flow — never on a real production DB with users you
- * care about. Guarded behind CONFIRM=WIPE so it can't run by accident:
+ * Schema is NOT dropped or recreated. Migrations own the tables. seed.sql only
+ * upserts semesters, classes, lessons, and homework_lessons.
  *
- *   DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… CONFIRM=WIPE pnpm db:remote-clean
+ * Refuses PRODUCTION_DB_HOSTS even when confirm matches.
+ * Confirm is CONFIRM=WIPE:<hostname> (exact hostname of DATABASE_URL).
+ * Prints the hostname only, never the URL or auth token.
  *
- * For normal, non-destructive content refreshes use `pnpm db:remote` instead.
+ * Use only on a disposable database. For a content refresh that keeps accounts
+ * and live games, use `pnpm db:remote` (dry-run unless --apply --backup-done).
+ *
+ *   DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… CONFIRM=WIPE:<hostname> pnpm db:remote-clean
  */
 import { readFileSync } from "node:fs";
 import { createClient } from "@libsql/client";
+import {
+  applyContentUpserts,
+  databaseHasMigrationRow,
+  invokedDirectly,
+  loadContentSeed,
+} from "./seed-content.mjs";
+import { redactSecrets } from "./seed-remote.mjs";
+import { assertCanWipe } from "./wipe-guard.mjs";
 
-const url = process.env.DATABASE_URL;
-if (!url || !url.startsWith("libsql:")) {
-  console.error("Set DATABASE_URL=libsql://…  (and DATABASE_AUTH_TOKEN)");
-  process.exit(1);
-}
-if (process.env.CONFIRM !== "WIPE") {
-  console.error(
-    "⚠️  This DELETES ALL USERS/ACCOUNTS/PROGRESS on the remote DB.\n" +
-      "    If you're sure, re-run with CONFIRM=WIPE:\n" +
-      "    DATABASE_URL=… DATABASE_AUTH_TOKEN=… CONFIRM=WIPE pnpm db:remote-clean",
-  );
-  process.exit(1);
-}
-
-const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
-
-// Drop child tables before parents (FKs reference users). seed.sql recreates them
-// empty via CREATE TABLE IF NOT EXISTS, then loads curriculum content.
 const USER_TABLES = [
+  "analytics_events",
+  "web_vitals",
   "lesson_records",
   "progress",
   "profiles",
   "sessions",
+  "oauth_accounts",
   "game_sessions",
   "users",
 ];
-console.log("⚠️  Wiping all user data…");
-await client.execute("PRAGMA foreign_keys=OFF");
-for (const t of USER_TABLES) await client.execute(`DROP TABLE IF EXISTS ${t}`);
 
-const raw = readFileSync(new URL("../db/seed.sql", import.meta.url), "utf8");
-const stmts = raw
-  .split(/;\s*\n/)
-  .map((s) => s.trim())
-  .filter((s) => s && !s.startsWith("--") && !/^PRAGMA/i.test(s));
-
-console.log(`Reseeding — ${stmts.length} statements…`);
-for (let i = 0; i < stmts.length; i += 200) {
-  await client.batch(stmts.slice(i, i + 200), "write");
-  process.stdout.write(`\r  ${Math.min(i + 200, stmts.length)}/${stmts.length}`);
+function pick(options, key, envValue) {
+  return Object.prototype.hasOwnProperty.call(options, key) ? options[key] : envValue;
 }
-const lessons = (await client.execute("SELECT COUNT(*) AS c FROM lessons")).rows[0].c;
-const users = (await client.execute("SELECT COUNT(*) AS c FROM users")).rows[0].c;
-console.log(`\n✅ Clean DB — ${users} users (all cleared), ${lessons} lessons seeded.`);
+
+function defaultSeedText() {
+  return readFileSync(new URL("../db/seed.sql", import.meta.url), "utf8");
+}
+
+export async function runRemoteClean(options = {}) {
+  const url = pick(options, "url", process.env.DATABASE_URL);
+  const authToken = pick(options, "authToken", process.env.DATABASE_AUTH_TOKEN);
+  const confirm = pick(options, "confirm", process.env.CONFIRM);
+  const secrets = [url, authToken];
+  const fail = (lines, code = 1) => {
+    for (const line of lines) console.error(redactSecrets(line, secrets));
+    return code;
+  };
+
+  if (
+    !url ||
+    (!url.startsWith("libsql:") &&
+      !url.startsWith("https:") &&
+      !url.startsWith("http:"))
+  ) {
+    return fail([
+      "Set DATABASE_URL to a libsql:// or https:// URL. The auth token is not printed.",
+    ]);
+  }
+
+  const decision = assertCanWipe(url, confirm);
+  if (!decision.ok) return fail(decision.lines);
+  if (!authToken) return fail(["DATABASE_AUTH_TOKEN is required. It is not printed."]);
+
+  let loaded;
+  try {
+    const raw = pick(options, "sql", null) ?? defaultSeedText();
+    loaded = loadContentSeed(raw);
+  } catch (error) {
+    return fail([error instanceof Error ? error.message : String(error)]);
+  }
+
+  const openClient =
+    options.openClient ??
+    ((target, token) => createClient({ url: target, authToken: token }));
+  let client;
+  try {
+    client = openClient(url, authToken);
+  } catch (error) {
+    return fail([error instanceof Error ? error.message : String(error)]);
+  }
+
+  const hostname = decision.hostname;
+  try {
+    if (!(await databaseHasMigrationRow(client))) {
+      console.error(
+        `Refusing to wipe ${hostname}: no __drizzle_migrations row. No rows were deleted.`,
+      );
+      return 1;
+    }
+
+    const present = await client.execute(
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    );
+    const names = new Set(present.rows.map((row) => String(row.name)));
+
+    console.log(`Wiping user rows on ${hostname}. Curriculum tables are not dropped.`);
+    await client.execute("PRAGMA foreign_keys = OFF");
+    for (const table of USER_TABLES) {
+      if (!names.has(table)) {
+        console.log(`  skip ${table} (missing)`);
+        continue;
+      }
+      await client.execute(`DELETE FROM ${table}`);
+      console.log(`  cleared ${table}`);
+    }
+    await client.execute("PRAGMA foreign_keys = ON");
+
+    console.log(`Upserting content — ${loaded.statements.length} statements.`);
+    await applyContentUpserts(client, loaded.statements);
+    const lessons = Number(
+      (await client.execute("SELECT COUNT(*) AS c FROM lessons")).rows[0].c,
+    );
+    const users = Number(
+      (await client.execute("SELECT COUNT(*) AS c FROM users")).rows[0].c,
+    );
+    console.log(`Clean DB on ${hostname} — ${users} users, ${lessons} lessons.`);
+    return 0;
+  } catch (error) {
+    console.error(
+      redactSecrets(error instanceof Error ? error.message : String(error), secrets),
+    );
+    return 1;
+  } finally {
+    client.close();
+  }
+}
+
+if (invokedDirectly(import.meta.url)) {
+  const code = await runRemoteClean();
+  process.exit(code);
+}

@@ -45,7 +45,7 @@ Complete before public promotion of https://chess-school.in:
 ### Content & trust
 
 - [ ] `/privacy`, `/terms`, `/about`, `/support` live and linked from footer
-- [ ] Curriculum seeded on Turso (`db:dump` / `db:remote` as needed)
+- [ ] Curriculum rolled out with the guarded content snapshot (`docs/ENV.md`, dry-run `db:remote`, then `--apply --backup-done`)
 - [ ] Admin account exists for CMS (`UPDATE users SET role='admin' …`)
 
 ### Quality gates
@@ -102,9 +102,9 @@ pnpm db:baseline -- --apply --allow-remote
 pnpm db:migrate
 ```
 
-The script aborts unless the 12 tables from `db/seed.sql` already exist, so an empty database is not stamped (use `db:migrate` there). It refuses a remote URL unless `--apply --allow-remote` are both present, and it opens no connection on a dry-run.
+The script aborts unless the 12 tables the push-era `db/seed.sql` created already exist, so an empty database is not stamped (use `db:migrate` there). It refuses a remote URL unless `--apply --allow-remote` are both present, and it opens no connection on a dry-run. The current `db/seed.sql` is content upserts only and does not create those tables.
 
-Stamping does **not** create objects that are in `db/schema.ts` but absent from `db/seed.sql` (`oauth_accounts`, nullable `users.password_hash`, `users_email_unique`, and the secondary indexes). Those differences are listed on the B6 PR. `db:generate` will not emit them again while they remain in the `0000` snapshot; a follow-up migration has to add whichever of them production is missing.
+Stamping does **not** create objects that are in `db/schema.ts` but were absent from the push-era seed DDL (`oauth_accounts`, nullable `users.password_hash`, `users_email_unique`, and the secondary indexes). Those differences are listed on the B6 PR. `db:generate` will not emit them again while they remain in the `0000` snapshot; a follow-up migration has to add whichever of them production is missing.
 
 A local file left over from `db:push` can be stamped with `pnpm --filter web db:baseline -- --apply` (no `--allow-remote`), or deleted with `pnpm --filter web db:fresh`. `pnpm dev` stamps a complete local file automatically before migrating.
 
@@ -125,7 +125,7 @@ A local file left over from `db:push` can be stamped with `pnpm --filter web db:
 | Task | Action |
 |------|--------|
 | Make admin | `UPDATE users SET role='admin' WHERE email='…'` in Turso |
-| Re-seed curriculum | `db:dump` locally → `db:remote` (preserves users) |
+| Roll out curriculum content | Dump locally, back up Turso, dry-run `db:remote`, then `--apply --backup-done` (`docs/ENV.md`). Upserts content ids only. Does not touch games or accounts. |
 | Rotate session secret | Set new `SESSION_TOKEN_SECRET`; existing PvP seats invalidate |
 | Disable Google button | Unset `NEXT_PUBLIC_GOOGLE_CLIENT_ID` |
 

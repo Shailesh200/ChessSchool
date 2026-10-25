@@ -4,7 +4,7 @@
  * daily homework is never a replay of the school lessons you're grinding.
  *
  *   node scripts/import-homework.mjs lichess_db_puzzle.csv.zst
- *   pnpm db:dump && pnpm db:remote
+ *   pnpm db:dump    # then the guarded content rollout in docs/ENV.md
  *
  * Disjointness: per type we SKIP the first `SKIP_PER_TYPE` matching puzzles (the
  * high-popularity head the curriculum import takes) and collect the next batch.
@@ -300,6 +300,6 @@ for (const [type, meta] of Object.entries(TYPES)) {
   console.log(`  ${meta.emoji} ${type}: ${made} sessions (${pool.length} puzzles)`);
 }
 console.log(
-  `✅ Imported ${total} homework lessons into local.db. Next: pnpm db:dump && pnpm db:remote`,
+  `✅ Imported ${total} homework lessons into local.db. Next: pnpm db:dump, then the content rollout in docs/ENV.md`,
 );
 db.close();
