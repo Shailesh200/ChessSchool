@@ -2,5 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Fail install when Node does not satisfy package.json engines (Node 22).
+engineStrict: true
+
 ignoredBuiltDependencies:
   - unrs-resolver
