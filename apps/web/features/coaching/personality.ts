@@ -70,11 +70,7 @@ export const PERSONAS: Record<CoachCharacterId, Persona> = {
     capture: (p) => `You took a ${p}. Material up. Nice.`,
     check: "Check! Nice… I checked twice.",
     mate: "Checkmate! I checked. Definitely over.",
-    lessonOpeners: [
-      "Okay. Stay with me — ",
-      "Quick note — ",
-      "Careful version — ",
-    ],
+    lessonOpeners: ["Okay. Stay with me — ", "Quick note — ", "Careful version — "],
   },
   genz: {
     praise: [
@@ -384,7 +380,10 @@ export function applyCoachLine(
   return opener ? `${opener}${text}` : text;
 }
 
-export function encourage(personality: CoachCharacterId | string, seed: number): string {
+export function encourage(
+  personality: CoachCharacterId | string,
+  seed: number,
+): string {
   return pick(personaOf(personality).praise, seed);
 }
 

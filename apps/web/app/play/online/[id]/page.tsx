@@ -132,7 +132,11 @@ export default function OnlineSessionPage({
             localStorage.setItem(tokenKey, s.seatToken);
             setSeatToken(s.seatToken);
           }
-          pulseTrack("online_game_join", { session_id: id, color: "b", source: "link" });
+          pulseTrack("online_game_join", {
+            session_id: id,
+            color: "b",
+            source: "link",
+          });
           trackMatchStart({
             channel: "online",
             opponent: "human",

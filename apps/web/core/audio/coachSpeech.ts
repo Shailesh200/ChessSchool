@@ -30,9 +30,7 @@ export function coachTextAlreadyQueued(text: string): boolean {
 }
 
 function activeCharacter(settings = useSettings.getState()): CoachCharacterId {
-  return normalizeCoachCharacter(
-    settings.coachCharacter ?? settings.coachPersonality,
-  );
+  return normalizeCoachCharacter(settings.coachCharacter ?? settings.coachPersonality);
 }
 
 function cacheKey(
@@ -212,9 +210,7 @@ export async function previewCoachCharacter(
   const settings = useSettings.getState();
   if (!settings.sound) return;
 
-  const character = normalizeCoachCharacter(
-    characterId ?? activeCharacter(settings),
-  );
+  const character = normalizeCoachCharacter(characterId ?? activeCharacter(settings));
   const line = coachCharacterOf(character).previewLine;
   stopCoachSpeech();
   const gen = speakGen;

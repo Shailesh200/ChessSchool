@@ -6,10 +6,7 @@ import {
   type CoachCharacterId,
 } from "@/features/coaching/characters";
 import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
-import {
-  previewCoachCharacter,
-  stopCoachSpeech,
-} from "@/core/audio/coachSpeech";
+import { previewCoachCharacter, stopCoachSpeech } from "@/core/audio/coachSpeech";
 import { trackEvent } from "@/core/analytics/track";
 
 export function CoachCharacterPicker({
@@ -61,9 +58,7 @@ export function CoachCharacterPicker({
               size="md"
             />
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-[var(--ink)]">
-                {c.name}
-              </span>
+              <span className="block font-semibold text-[var(--ink)]">{c.name}</span>
               <span className="block text-xs text-[var(--muted)]">{c.theme}</span>
             </span>
             {on ? (
