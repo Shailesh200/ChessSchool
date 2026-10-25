@@ -1,20 +1,39 @@
 /**
  * Runtime fingerprint overrides for `runtimeVersion.policy = "fingerprint"`.
  *
+ * `expo/fingerprint` re-exports `@expo/fingerprint`. The package is transitive
+ * under pnpm, so the app cannot require `@expo/fingerprint` directly.
+ *
  * @type {import("expo/fingerprint").Config}
  */
+const { SourceSkips } = require("expo/fingerprint");
+
 const config = {
+  // Library default keeps prebuild's android/ios script rewrite out of the hash.
+  // ExpoConfigExtraSection drops `extra`. app.config.ts (PR #22) copies
+  // EAS_BUILD_GIT_COMMIT_HASH into extra.gitCommit; hashing that would mint a
+  // new runtime on every commit, so OTA updates would never match installed builds.
+  sourceSkips:
+    SourceSkips.PackageJsonAndroidAndIosScriptsIfNotContainRun |
+    SourceSkips.ExpoConfigExtraSection,
   ignorePaths: [
-    // Fetched Stockfish sources + NNUE nets (SIMULATOR.md). Gitignored, ~66MB,
-    // and only present after the iOS fetch — an EAS build that has downloaded
-    // them would otherwise hash a different tree than `eas update` on CI or a
-    // laptop where ios/engine/ is absent. Safe to ignore because:
-    // - modules/stockfish/ios/engine.pin.json (tag sf_16.1 + sha256 of the
-    //   tarball and both nets) sits in the autolinked ios directory and is hashed
-    // - StockfishModule.swift, stockfish-shim.cpp, stockfish-bridge.h, and
-    //   Stockfish.podspec are not matched by this pattern
+    // Fetched Stockfish sources and NNUE nets. Gitignored, and present only after
+    // scripts/fetch-stockfish.sh runs, so an iOS EAS build would otherwise hash a
+    // different tree than `eas update` where ios/engine/ is absent.
+    // Safe because:
+    // - the checksum pins live once, at the top of scripts/fetch-stockfish.sh,
+    //   and that file is an extraSources file input below
+    // - StockfishModule.swift, stockfish-shim.cpp, stockfish-bridge.h,
+    //   stockfish-config.h, and Stockfish.podspec are not matched
     // The rest of modules/stockfish is not ignored.
     "modules/stockfish/ios/engine/**/*",
+  ],
+  extraSources: [
+    {
+      type: "file",
+      filePath: "scripts/fetch-stockfish.sh",
+      reasons: ["stockfishFetchPins"],
+    },
   ],
 };
 

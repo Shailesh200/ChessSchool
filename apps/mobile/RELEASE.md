@@ -210,7 +210,7 @@ Users see **“Update ready — tap to restart”** at the top of the app after 
 | UI copy, styles, lesson logic (JS) | ✅ | |
 | New npm dependency with **no** native code | ✅ | |
 | New native module, permission, SDK bump | | ✅ |
-| Stockfish engine pin (`modules/stockfish/ios/engine.pin.json`) | | ✅ |
+| Stockfish fetch pins (`scripts/fetch-stockfish.sh`) | | ✅ |
 | `app.json` version bump for store listing | | ✅ |
 | Icon / splash / adaptive icon | | ✅ |
 
@@ -262,7 +262,7 @@ as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
 
 - **`app.json` → `version`** — user-visible semver (`0.2.0`). Bump for store releases.
 - **`android.versionCode`** — integer; EAS auto-increments on production builds.
-- **`runtimeVersion`** — `fingerprint` policy. EAS hashes the native project (autolinked modules, config plugins, native config). An OTA update only installs on builds with that same hash, so native changes need a new store build even when `expo.version` stays put. The gitignored Stockfish tree `modules/stockfish/ios/engine/` is excluded in `fingerprint.config.js` (it is fetched at build time and missing from `eas update` on CI). The committed pin `modules/stockfish/ios/engine.pin.json` — Stockfish `sf_16.1` plus the sha256 of the source tarball and both NNUE nets — is inside the autolinked iOS directory, so it is hashed. Update the pin when the fetch URL or checksums change.
+- **`runtimeVersion`** — `fingerprint` policy. EAS hashes the native project (autolinked modules, config plugins, native config). An OTA update only installs on builds with that same hash, so native changes need a new store build even when `expo.version` stays put. `fingerprint.config.js` ignores the fetched `modules/stockfish/ios/engine/` tree (present on an iOS EAS build, absent for `eas update`) and hashes `scripts/fetch-stockfish.sh` instead, so editing a checksum pin there changes the runtime. `extra` is left out of the hash so `EAS_BUILD_GIT_COMMIT_HASH` (stored on `extra.gitCommit`) does not mint a new runtime per commit.
 
 ---
 
