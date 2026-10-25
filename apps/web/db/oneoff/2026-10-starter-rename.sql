@@ -9,7 +9,13 @@
 -- Run on the staging database first.
 -- Production only with Shailesh's OK, after a backup, run by Dex.
 -- Do not run a full reseed on production.
--- Run this whole file as one script so BEGIN/COMMIT stay a single transaction.
+-- Run this whole file as one script with stop-on-error, so COMMIT cannot run
+-- after the guard fails. In the sqlite3 or turso shell, turn on `.bail on`
+-- first. One client batch (libsql executeMultiple, or better-sqlite3 exec)
+-- also stops on the first error and leaves the transaction uncommitted.
+-- Before any production run, Dex does a read-only SELECT of lessons.steps for
+-- pre-game-goal and pre-notation-practice and compares those bytes to the old
+-- text in the WHERE clauses below.
 --
 -- Stage display name is not a database row (nothing to UPDATE):
 -- stage-name source: apps/web/content/data/school.mjs:5
@@ -39,5 +45,11 @@ WHERE id = 'pre-game-goal'
 UPDATE lessons SET steps = '[{"id":"play-d6","kind":"move","coach":"Play pawn to d6 — push the pawn from d5 forward to d6.","fen":"k7/8/8/3P4/8/8/8/7K w - - 0 1","solution":["d5:d6"],"highlight":["d5"],"highlightFiles":["d"],"highlightRanks":[5,6],"successText":"d6! You read the square and played the right move.","failText":"Move the pawn on d5 one square forward to d6.","tag":"preschool"},{"id":"play-nf3","kind":"move","coach":"Play Nf3 — develop the knight from g1 to f3.","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","solution":["g1:f3"],"highlight":["g1"],"highlightFiles":["g","f"],"highlightRanks":[1,3],"successText":"Nf3 — well done! You are reading chess notation.","failText":"Hop the knight from g1 to f3.","tag":"preschool"},{"id":"finish","kind":"info","coach":"You now know the board, the pieces, and how to read moves like d6, e4, Nf3, and Qd5. Starter complete — head to Elementary when you are ready, or replay any lesson for practice!","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","highlight":["e4","d5"]}]'
 WHERE id = 'pre-notation-practice'
   AND steps = '[{"id":"play-d6","kind":"move","coach":"Play pawn to d6 — push the pawn from d5 forward to d6.","fen":"k7/8/8/3P4/8/8/8/7K w - - 0 1","solution":["d5:d6"],"highlight":["d5"],"highlightFiles":["d"],"highlightRanks":[5,6],"successText":"d6! You read the square and played the right move.","failText":"Move the pawn on d5 one square forward to d6.","tag":"preschool"},{"id":"play-nf3","kind":"move","coach":"Play Nf3 — develop the knight from g1 to f3.","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","solution":["g1:f3"],"highlight":["g1"],"highlightFiles":["g","f"],"highlightRanks":[1,3],"successText":"Nf3 — well done! You are reading chess notation.","failText":"Hop the knight from g1 to f3.","tag":"preschool"},{"id":"finish","kind":"info","coach":"You now know the board, the pieces, and how to read moves like d6, e4, Nf3, and Qd5. Pre-School complete — head to Elementary when you are ready, or replay any lesson for practice!","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","highlight":["e4","d5"]}]';
+
+CREATE TEMP TABLE _starter_guard (n INTEGER CHECK (n = 2));
+INSERT INTO _starter_guard SELECT count(*) FROM lessons
+ WHERE (id = 'pre-game-goal' AND steps = '[{"id":"goal-info","kind":"info","coach":"The goal of chess is to checkmate your opponent''s king. You can also win if they resign (give up) when the position is hopeless. In the Starter stage we learn the rules — real timed games come later in Play mode!","fen":"7k/6Q1/6K1/8/8/8/8/8 b - - 0 1","highlight":["h8","g7"],"orientation":"white"}]')
+    OR (id = 'pre-notation-practice' AND steps = '[{"id":"play-d6","kind":"move","coach":"Play pawn to d6 — push the pawn from d5 forward to d6.","fen":"k7/8/8/3P4/8/8/8/7K w - - 0 1","solution":["d5:d6"],"highlight":["d5"],"highlightFiles":["d"],"highlightRanks":[5,6],"successText":"d6! You read the square and played the right move.","failText":"Move the pawn on d5 one square forward to d6.","tag":"preschool"},{"id":"play-nf3","kind":"move","coach":"Play Nf3 — develop the knight from g1 to f3.","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","solution":["g1:f3"],"highlight":["g1"],"highlightFiles":["g","f"],"highlightRanks":[1,3],"successText":"Nf3 — well done! You are reading chess notation.","failText":"Hop the knight from g1 to f3.","tag":"preschool"},{"id":"finish","kind":"info","coach":"You now know the board, the pieces, and how to read moves like d6, e4, Nf3, and Qd5. Starter complete — head to Elementary when you are ready, or replay any lesson for practice!","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","highlight":["e4","d5"]}]');
+DROP TABLE _starter_guard;
 
 COMMIT;

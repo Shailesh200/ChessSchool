@@ -239,15 +239,28 @@ function maskSteps(snap: Snap): Snap {
   };
 }
 
-async function openDb(): Promise<{ client: Client; cleanup: () => Promise<void> }> {
+async function openDb(): Promise<{
+  client: Client;
+  path: string;
+  close: () => void;
+  cleanup: () => Promise<void>;
+}> {
   const dir = mkdtempSync(join(tmpdir(), "starter-rename-"));
   const path = join(dir, "test.db");
   const client = createClient({ url: `file:${path}` });
   await client.executeMultiple(SCHEMA);
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    client.close();
+  };
   return {
     client,
+    path,
+    close,
     cleanup: async () => {
-      client.close();
+      close();
       rmSync(dir, { recursive: true, force: true });
     },
   };
@@ -335,6 +348,25 @@ async function applyScript(client: Client): Promise<void> {
   await client.executeMultiple(readFileSync(SQL_PATH(), "utf8"));
 }
 
+async function committedSnapshot(path: string): Promise<Snap> {
+  const reader = createClient({ url: `file:${path}` });
+  try {
+    return await snapshot(reader);
+  } finally {
+    reader.close();
+  }
+}
+
+/** Guard failure stops the batch before COMMIT. Closing rolls the transaction back. */
+async function expectGuardAbort(
+  db: { client: Client; path: string; close: () => void },
+  before: Snap,
+): Promise<void> {
+  await expect(applyScript(db.client)).rejects.toThrow(/CHECK constraint failed/);
+  db.close();
+  expect(await committedSnapshot(db.path)).toEqual(before);
+}
+
 async function stepsOf(client: Client, id: string): Promise<string> {
   const row = await client.execute({
     sql: "SELECT steps FROM lessons WHERE id = ?",
@@ -377,11 +409,19 @@ describe("starter rename fallback sql", () => {
     const begin = script.search(/^\s*BEGIN;/m);
     const select = script.search(/^\s*SELECT\b/m);
     const update = script.search(/^\s*UPDATE\b/m);
+    const guard = script.search(
+      /^CREATE TEMP TABLE _starter_guard \(n INTEGER CHECK \(n = 2\)\);/m,
+    );
+    const drop = script.search(/^DROP TABLE _starter_guard;/m);
     const commit = script.search(/^\s*COMMIT;/m);
     expect(begin).toBeGreaterThanOrEqual(0);
     expect(begin).toBeLessThan(select);
     expect(select).toBeLessThan(update);
-    expect(update).toBeLessThan(commit);
+    expect(update).toBeLessThan(guard);
+    expect(guard).toBeLessThan(drop);
+    expect(drop).toBeLessThan(commit);
+    expect(script).toContain(".bail on");
+    expect(script).toContain("read-only SELECT");
 
     const byId = Object.fromEntries(updates.map((row) => [row.id, row]));
     expect(byId["pre-game-goal"]!.prev).toBe(seeded["pre-game-goal"]);
@@ -399,6 +439,13 @@ describe("starter rename fallback sql", () => {
     );
     expect(coachWith(byId["pre-notation-practice"]!.next, "Starter")).toBe(
       FINISH_NEW_COACH,
+    );
+    const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
+    expect(script).toContain(
+      `(id = 'pre-game-goal' AND steps = ${quote(byId["pre-game-goal"]!.next)})`,
+    );
+    expect(script).toContain(
+      `(id = 'pre-notation-practice' AND steps = ${quote(byId["pre-notation-practice"]!.next)})`,
     );
     for (const row of updates) {
       const oldJson = JSON.parse(row.prev) as unknown[];
@@ -477,7 +524,7 @@ describe("starter rename fallback sql", () => {
     expect(await snapshot(db.client)).toEqual(before);
   });
 
-  it("is a no-op when the stored text differs from the old exact value", async () => {
+  it("aborts and leaves both cells unchanged when the stored text differs", async () => {
     const db = await openDb();
     cleanups.push(db.cleanup);
     const byId = Object.fromEntries(updates.map((row) => [row.id, row]));
@@ -487,27 +534,28 @@ describe("starter rename fallback sql", () => {
       byId["pre-notation-practice"]!.prev.replace("Pre-School", "Preschool"),
     );
     const before = await snapshot(db.client);
-    await applyScript(db.client);
-    expect(await snapshot(db.client)).toEqual(before);
+    await expectGuardAbort(db, before);
   });
 
-  it("updates only the row whose steps still match exactly", async () => {
+  it("rolls back both cells when one stored value differs by one byte", async () => {
     const db = await openDb();
     cleanups.push(db.cleanup);
     const byId = Object.fromEntries(updates.map((row) => [row.id, row]));
-    const other = "not the old json";
-    await seed(db.client, byId["pre-game-goal"]!.prev, other);
-    await applyScript(db.client);
-    expect(await stepsOf(db.client, "pre-game-goal")).toBe(byId["pre-game-goal"]!.next);
-    expect(await stepsOf(db.client, "pre-notation-practice")).toBe(other);
-    expect(await stepsOf(db.client, "decoy-same-steps")).toBe(
-      byId["pre-game-goal"]!.prev,
+    const goal = byId["pre-game-goal"]!.prev;
+    const flipped = `${goal.slice(0, -1)}${goal.endsWith("]") ? "}" : "]"}`;
+    expect(flipped).not.toBe(goal);
+    expect(Buffer.byteLength(flipped)).toBe(Buffer.byteLength(goal));
+    await seed(db.client, flipped, byId["pre-notation-practice"]!.prev);
+    const before = await snapshot(db.client);
+    await expectGuardAbort(db, before);
+    const committed = await committedSnapshot(db.path);
+    const lessons = committed.lessons ?? [];
+    expect(lessons.find((row) => row.id === "pre-game-goal")?.steps).toBe(flipped);
+    expect(lessons.find((row) => row.id === "pre-notation-practice")?.steps).toBe(
+      byId["pre-notation-practice"]!.prev,
     );
-    const homework = await db.client.execute(
-      "SELECT steps FROM homework_lessons WHERE id = 'hw-1'",
-    );
-    expect(homework.rows[0]?.steps).toBe(byId["pre-game-goal"]!.prev);
-    const user = await db.client.execute("SELECT name FROM users WHERE id = 'user-1'");
-    expect(user.rows[0]?.name).toBe("Pre-School");
+    expect(lessons.find((row) => row.id === "decoy-same-steps")?.steps).toBe(flipped);
+    expect(committed.homework_lessons?.[0]?.steps).toBe(flipped);
+    expect(committed.users?.[0]?.name).toBe("Pre-School");
   });
 });

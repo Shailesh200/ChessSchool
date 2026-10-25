@@ -41,8 +41,21 @@ seeder imports semesters, not `STAGES`. The nearest database key stays as it is:
 
 ## How to run
 
-1. Staging database first. Run the whole file as one script so `BEGIN` /
-   `COMMIT` stay a single transaction. Do not stop after the opening `SELECT`.
+Run the whole file as one script with stop-on-error, so `COMMIT` cannot run
+after the guard fails. In the sqlite3 or turso shell, turn on `.bail on` first.
+One client batch (libsql `executeMultiple`, or better-sqlite3 `exec`) also
+stops on the first error. Do not stop after the opening `SELECT`.
+
+The script updates the two rows, then counts how many of them hold the exact
+new `steps` text. That count must be 2 or the statement errors and the
+transaction stays uncommitted. A second run still passes, because it checks the
+new text rather than the old text.
+
+Before any production run, Dex does a read-only `SELECT` of `lessons.steps` for
+`pre-game-goal` and `pre-notation-practice` on prod and compares those bytes to
+the old text in this file.
+
+1. Staging database first.
 2. Production only with Shailesh's OK, after a backup, run by Dex.
 
 Do not point this at a remote database from a laptop seed script, and do not
