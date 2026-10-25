@@ -165,7 +165,11 @@ export function MatchChooser() {
         const { id, seatToken } = (await r.json()) as { id: string; seatToken: string };
         localStorage.setItem(`chessschool.online.${id}`, "w");
         localStorage.setItem(`chessschool.online.${id}.token`, seatToken);
-        pulseTrack("online_game_create", { session_id: id, color: "w", source: "chooser" });
+        pulseTrack("online_game_create", {
+          session_id: id,
+          color: "w",
+          source: "chooser",
+        });
         trackMatchStart({
           channel: "online",
           opponent: "human",

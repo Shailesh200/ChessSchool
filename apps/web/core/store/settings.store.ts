@@ -123,9 +123,7 @@ const defaults = {
   enrollPromptDismissedAt: null as number | null,
 };
 
-function syncCoachFields(
-  patch: Partial<SettingsState>,
-): Partial<SettingsState> {
+function syncCoachFields(patch: Partial<SettingsState>): Partial<SettingsState> {
   if (patch.coachCharacter !== undefined) {
     const c = normalizeCoachCharacter(patch.coachCharacter);
     return { ...patch, coachCharacter: c, coachPersonality: c };

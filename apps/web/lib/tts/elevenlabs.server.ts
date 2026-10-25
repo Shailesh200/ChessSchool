@@ -104,7 +104,13 @@ export async function synthesizeElevenLabsSpeech(
           );
           return null;
         }
-        console.warn("[tts/elevenlabs]", character, model, res.status, detail.slice(0, 280));
+        console.warn(
+          "[tts/elevenlabs]",
+          character,
+          model,
+          res.status,
+          detail.slice(0, 280),
+        );
         continue;
       }
       const buf = Buffer.from(await res.arrayBuffer());

@@ -28,9 +28,7 @@ export function routePattern(pathname: string): string {
     }
     // UUID / long opaque ids
     if (
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        seg,
-      ) ||
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg) ||
       (/^[a-z0-9_-]{16,}$/i.test(seg) && prev !== undefined)
     ) {
       out.push(":id");
