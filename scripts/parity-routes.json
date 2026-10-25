@@ -89,7 +89,7 @@
         "steps": [{ "openUrl": "/settings" }],
         "readyText": "Sound effects"
       },
-      "semantic": ["Sound effects", "Coach personality", "Reduce motion"]
+      "semantic": ["Sound effects", "Coach character", "Reduce motion"]
     },
     {
       "id": "themes",

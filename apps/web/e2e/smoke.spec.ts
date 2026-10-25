@@ -75,5 +75,5 @@ test("review tab shows match history section", async ({ page }) => {
 test("settings exposes accessibility controls", async ({ page }) => {
   await page.goto("/settings");
   await expect(page.getByText("Reduce motion")).toBeVisible();
-  await expect(page.getByText("Coach personality")).toBeVisible();
+  await expect(page.getByText("Coach character")).toBeVisible();
 });
