@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /** Token register for the mobile client → { token, user }. */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "auth:register", {
+  const limited = await enforceRateLimit(req, "auth:register", {
     limit: 10,
     windowMs: 60_000,
   });

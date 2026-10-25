@@ -12,7 +12,10 @@ const bodySchema = z.object({
 
 /** Mobile Google Sign-In — verify ID token, return bearer session. */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "auth:google", { limit: 30, windowMs: 60_000 });
+  const limited = await enforceRateLimit(req, "auth:google", {
+    limit: 30,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   if (!googleOAuthConfigured()) {

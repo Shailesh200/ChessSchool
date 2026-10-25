@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 
 /** Token login for the mobile client → { token, user }. */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "auth:login", { limit: 15, windowMs: 60_000 });
+  const limited = await enforceRateLimit(req, "auth:login", {
+    limit: 15,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const raw = await req.json().catch(() => null);
