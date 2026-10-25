@@ -18,6 +18,7 @@ const message: EmailMessage = {
 function useEnv(overrides: Record<string, string> = {}) {
   const values: Record<string, string> = {
     NODE_ENV: "test",
+    VERCEL_ENV: "",
     CI: "",
     EMAIL_PROVIDER: "",
     RESEND_API_KEY: "",
@@ -46,28 +47,45 @@ describe("transport selection", () => {
     expect(result).toEqual({ provider: "console", id: null });
     expect(fetchMock).not.toHaveBeenCalled();
     const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
-    expect(logged).toContain("ada@example.com");
+    expect(logged).toContain("a***@example.com");
+    expect(logged).not.toContain("ada@example.com");
     expect(logged).toContain("[link]");
     expect(logged).not.toContain(TOKEN);
     expect(logged).not.toContain(LINK);
     expect(logged).not.toContain("chess-school.in");
   });
 
-  it("uses the console transport in test and in CI even when NODE_ENV is production", async () => {
+  it("uses the console transport in test and in non-production CI", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "debug").mockImplementation(() => {});
 
-    useEnv({ NODE_ENV: "test" });
+    useEnv({ NODE_ENV: "test", CI: "true" });
     const testResult = await sendEmail(message);
     expect(testResult.provider).toBe("console");
 
     info.mockClear();
-    useEnv({ NODE_ENV: "production", CI: "true" });
+    useEnv({ NODE_ENV: "development", CI: "1", VERCEL_ENV: "preview" });
     const ciResult = await sendEmail(message);
     expect(ciResult.provider).toBe("console");
     const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
     expect(logged).not.toContain(TOKEN);
     expect(logged).not.toContain(LINK);
+    expect(logged).not.toContain("ada@example.com");
+    expect(logged).toContain("a***@example.com");
+  });
+
+  it("masks the recipient in console logs", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    useEnv({ NODE_ENV: "development" });
+
+    await sendEmail({ ...message, to: "jane@example.com" });
+
+    const logged = [...info.mock.calls, ...debug.mock.calls]
+      .map((args) => args.join(" "))
+      .join("\n");
+    expect(logged).toContain("j***@example.com");
+    expect(logged).not.toContain("jane@example.com");
   });
 
   it("does not print the link at info level, and only copies it at debug in development", async () => {
@@ -139,13 +157,49 @@ describe("production fail-closed", () => {
       EMAIL_PROVIDER: "resend",
       RESEND_API_KEY: "re_test_key",
     });
-    await expect(sendEmail(message)).rejects.toThrow(/RESEND_API_KEY and EMAIL_FROM/);
+    const incomplete = await sendEmail(message).catch((err: unknown) => err);
+    expect(incomplete).toBeInstanceOf(EmailNotConfiguredError);
+    expect(String(incomplete)).toMatch(/RESEND_API_KEY and EMAIL_FROM/);
+    expect(String(incomplete)).not.toContain("re_test_key");
+    expect(String(incomplete)).not.toContain(TOKEN);
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
-    const thrown = await sendEmail(message).catch((err: unknown) => err);
-    expect(String(thrown)).not.toContain("re_test_key");
-    expect(String(thrown)).not.toContain(TOKEN);
+
+    useEnv({ NODE_ENV: "production", CI: "1" });
+    await expect(sendEmail(message)).rejects.toBeInstanceOf(EmailNotConfiguredError);
+  });
+
+  it("fails closed on Vercel production when CI=1 and no provider key is set", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    useEnv({ VERCEL_ENV: "production", CI: "1", NODE_ENV: "production" });
+
+    await expect(sendEmail(message)).rejects.toBeInstanceOf(EmailNotConfiguredError);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it("uses Resend on Vercel production when CI=1 and a provider key is set", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ id: "email_vercel" }, { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    useEnv({
+      VERCEL_ENV: "production",
+      CI: "1",
+      NODE_ENV: "production",
+      EMAIL_PROVIDER: "resend",
+      RESEND_API_KEY: "re_test_key",
+      EMAIL_FROM: FROM,
+    });
+
+    const result = await sendEmail(message);
+    expect(result).toEqual({ provider: "resend", id: "email_vercel" });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 
@@ -204,6 +258,33 @@ describe("Resend request", () => {
     expect(String(error)).not.toContain("re_test_key");
     expect(String(error)).not.toContain(TOKEN);
   });
+
+  it("turns a 10 second Resend timeout into EmailDeliveryError", async () => {
+    const signal = new AbortController().signal;
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(signal);
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
+      async () => {
+        throw new DOMException(
+          "The operation was aborted due to timeout",
+          "TimeoutError",
+        );
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    useEnv({
+      EMAIL_PROVIDER: "resend",
+      RESEND_API_KEY: "re_test_key",
+      EMAIL_FROM: FROM,
+    });
+
+    const error = await sendEmail(message).catch((err: unknown) => err);
+
+    expect(timeout).toHaveBeenCalledWith(10_000);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBe(signal);
+    expect(error).toBeInstanceOf(EmailDeliveryError);
+    expect(String(error)).toMatch(/timed out/i);
+    expect(String(error)).not.toContain("re_test_key");
+  });
 });
 
 describe("templates", () => {
@@ -257,5 +338,43 @@ describe("templates", () => {
     });
     expect(blank.text.startsWith("Hi there,")).toBe(true);
     expect(blank.html).toContain("Hi there,");
+  });
+
+  it("rejects bad, relative, and non-https production links", () => {
+    const input = { to: "ada@example.com", name: "Ada" };
+    useEnv({ NODE_ENV: "test", VERCEL_ENV: "" });
+
+    expect(() => passwordResetEmail({ ...input, link: "not a url" })).toThrow(
+      /absolute URL/,
+    );
+    expect(() => passwordResetEmail({ ...input, link: "/account/reset#tok" })).toThrow(
+      /absolute URL/,
+    );
+    expect(() => verifyEmailMessage({ ...input, link: "javascript:alert(1)" })).toThrow(
+      /http or https/,
+    );
+
+    useEnv({ NODE_ENV: "test", VERCEL_ENV: "" });
+    const local = passwordResetEmail({
+      ...input,
+      link: "http://localhost:3000/reset#tok",
+    });
+    expect(local.text).toContain("http://localhost:3000/reset#tok");
+
+    useEnv({ NODE_ENV: "production", VERCEL_ENV: "", CI: "1" });
+    expect(() =>
+      passwordResetEmail({ ...input, link: "http://localhost:3000/reset#tok" }),
+    ).toThrow(/https in production/);
+    expect(() =>
+      verifyEmailMessage({ ...input, link: "http://chess-school.in/verify#tok" }),
+    ).toThrow(/https in production/);
+
+    useEnv({ NODE_ENV: "test", VERCEL_ENV: "production", CI: "1" });
+    expect(() =>
+      passwordResetEmail({ ...input, link: "http://localhost/reset#tok" }),
+    ).toThrow(/https in production/);
+
+    const secure = passwordResetEmail({ ...input, link: LINK });
+    expect(secure.text).toContain(LINK);
   });
 });

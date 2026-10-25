@@ -15,6 +15,7 @@ export type SendEmailResult = {
 
 export type EmailEnv = {
   NODE_ENV?: string;
+  VERCEL_ENV?: string;
   CI?: string;
   EMAIL_PROVIDER?: string;
   RESEND_API_KEY?: string;

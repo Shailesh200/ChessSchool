@@ -1,40 +1,35 @@
 import "server-only";
+import { envValue, isProduction } from "./env";
 import { EmailDeliveryError, EmailNotConfiguredError } from "./errors";
-import { redactSecret, redactUrls } from "./redact";
+import { maskEmailAddress, redactSecret, redactUrls } from "./redact";
 import type { EmailEnv, EmailMessage, EmailProviderName } from "./types";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const RESEND_TIMEOUT_MS = 10_000;
 
 export type EmailTransport = {
   name: EmailProviderName;
   send(message: EmailMessage): Promise<{ id: string | null }>;
 };
 
-function trimmed(value: string | undefined): string {
-  return value?.replace(/[\r\n]/g, "").trim() ?? "";
-}
-
-/** Dev, test, and CI may log instead of sending when no real provider is configured. */
+/** Outside production only. Never selected when NODE_ENV or VERCEL_ENV is production. */
 function consoleFallbackAllowed(env: EmailEnv): boolean {
-  const ci = trimmed(env.CI);
-  if (ci === "true" || ci === "1") return true;
-  const nodeEnv = trimmed(env.NODE_ENV);
-  if (nodeEnv === "development" || nodeEnv === "test") return true;
-  return nodeEnv !== "production";
+  return !isProduction(env);
 }
 
 function logConsoleEmail(message: EmailMessage, env: EmailEnv): void {
+  const to = maskEmailAddress(message.to);
   const redacted = {
-    to: message.to,
+    to,
     subject: redactUrls(message.subject),
     text: redactUrls(message.text),
   };
   console.info(`[email] console transport ${JSON.stringify(redacted)}`);
   // Local dev only: the link (and its fragment token) is on debug, never info.
-  if (trimmed(env.NODE_ENV) === "development") {
+  if (envValue(env.NODE_ENV) === "development") {
     console.debug(
       `[email] development copy ${JSON.stringify({
-        to: message.to,
+        to,
         subject: message.subject,
         text: message.text,
       })}`,
@@ -50,6 +45,18 @@ function createConsoleTransport(env: EmailEnv): EmailTransport {
       return { id: null };
     },
   };
+}
+
+function deliveryFailure(err: unknown): string {
+  const named =
+    (typeof DOMException !== "undefined" && err instanceof DOMException) ||
+    err instanceof Error
+      ? err
+      : null;
+  if (named?.name === "TimeoutError" || named?.name === "AbortError") {
+    return "request timed out";
+  }
+  return named instanceof Error ? named.message : "network error";
 }
 
 async function readErrorMessage(res: Response): Promise<string> {
@@ -83,11 +90,11 @@ function createResendTransport(apiKey: string, from: string): EmailTransport {
             text: message.text,
             html: message.html,
           }),
+          signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
         });
       } catch (err) {
-        const reason = err instanceof Error ? err.message : "network error";
         throw new EmailDeliveryError(
-          `Resend email failed: ${redactSecret(reason, apiKey)}`,
+          `Resend email failed: ${redactSecret(deliveryFailure(err), apiKey)}`,
         );
       }
 
@@ -128,12 +135,13 @@ function failClosed(provider: string, resendSelected: boolean): never {
 
 /**
  * Resend when EMAIL_PROVIDER=resend and both RESEND_API_KEY and EMAIL_FROM are set.
- * Otherwise the console transport in dev, test, and CI. Production fails closed.
+ * Otherwise the console transport outside production. Production fails closed
+ * even when CI is set (Vercel sets CI=1).
  */
 export function resolveEmailTransport(env: EmailEnv = process.env): EmailTransport {
-  const provider = trimmed(env.EMAIL_PROVIDER).toLowerCase();
-  const apiKey = trimmed(env.RESEND_API_KEY);
-  const from = trimmed(env.EMAIL_FROM);
+  const provider = envValue(env.EMAIL_PROVIDER).toLowerCase();
+  const apiKey = envValue(env.RESEND_API_KEY);
+  const from = envValue(env.EMAIL_FROM);
   const resendSelected = provider === "resend";
   const resendReady = resendSelected && apiKey !== "" && from !== "";
 

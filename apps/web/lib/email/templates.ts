@@ -1,5 +1,6 @@
 import "server-only";
-import type { EmailMessage } from "./types";
+import { isProduction } from "./env";
+import type { EmailEnv, EmailMessage } from "./types";
 
 const PRODUCT_NAME = "Chess School";
 
@@ -39,9 +40,24 @@ function displayName(name: string): string {
   return trimmed || "there";
 }
 
-function requireLink(link: string): string {
+function requireLink(link: string, env: EmailEnv = process.env): string {
   const trimmed = link.trim();
   if (!trimmed) throw new Error("Email link is required.");
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error("Email link must be an absolute URL.");
+  }
+
+  const https = url.protocol === "https:";
+  if (isProduction(env)) {
+    if (!https) throw new Error("Email link must use https in production.");
+  } else if (!https && url.protocol !== "http:") {
+    throw new Error("Email link must use http or https.");
+  }
+
   return trimmed;
 }
 

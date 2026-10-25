@@ -19,8 +19,8 @@ function assertMessage(message: EmailMessage): EmailMessage {
 
 /**
  * Send one transactional email.
- * Dev, test, and CI log a redacted copy when Resend is not configured.
- * Production throws EmailNotConfiguredError instead of logging.
+ * Outside production, a missing provider logs a redacted copy.
+ * Production throws EmailNotConfiguredError instead of logging, even when CI is set.
  */
 export async function sendEmail(message: EmailMessage): Promise<SendEmailResult> {
   const safe = assertMessage(message);
