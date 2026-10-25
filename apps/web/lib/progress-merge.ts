@@ -39,9 +39,9 @@ export type ExtraProgressData = {
   placementDone?: boolean;
   journalEntries?: unknown[];
   /**
-   * Server-owned one-time streak grace. Merge always keeps the stored value
-   * and never copies a client-sent `streakGrace` (including when the client
-   * omits the key). Only `applyOneTimeStreakGrace` writes it.
+   * Server-owned streak grace. Merge never copies a client-sent
+   * `streakGrace`. `applyOneTimeStreakGrace` is the only writer: it stamps
+   * `lastSeenUtcDay` and, at most once, `graceUsedAt`.
    */
   streakGrace?: StreakGrace;
 };
@@ -324,12 +324,16 @@ export type MergeProgressOptions = {
  * Max-merge an incoming client snapshot over server state.
  * Incoming is treated as "local"; server as authoritative floor (H1/H2).
  *
- * Streak grace runs after that merge. `mergedStreak` is whatever
- * `mergeProgressSnapshots` chose — max() today, the newer `lastActiveDay`'s
- * streak after D3. Grace replaces it only for the one-time one-day rule, and
- * the flag written into `data.streakGrace` always comes from the server.
- * An incoming `lastActiveDay` later than the server UTC day + 1 is not
- * stored, and that push does not change the streak.
+ * Streak grace runs after that merge and ignores the client's
+ * `lastActiveDay`. `mergedStreak` is whatever `mergeProgressSnapshots`
+ * chose — max() today, the newer `lastActiveDay`'s streak after D3.
+ * Grace replaces it only when the server stamp shows exactly one missed
+ * UTC day. The object written into `data.streakGrace` always comes from
+ * the server.
+ *
+ * `mergeActivityDay` stores the client day: a day later than the server
+ * UTC day + 1 is dropped and does not change the streak, and a push cannot
+ * move the stored day backwards.
  *
  * The corrected streak is what gets stored. POST /api/progress still replies
  * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
@@ -358,13 +362,12 @@ export function mergeProgressPush(
       }
     : applyOneTimeStreakGrace({
         storedStreak: server.streak,
-        storedLastActiveDay: server.lastActiveDay,
         incomingStreak: incoming.streak,
-        incomingLastActiveDay: incoming.lastActiveDay,
         mergedStreak: mergedCore.streak ?? 0,
         storedGrace: server.extra.streakGrace,
         today: utcToday,
         graceStart: options?.graceStart,
+        acceptedActivity: activity.acceptedActivity,
       });
 
   const data: ExtraProgressData = {

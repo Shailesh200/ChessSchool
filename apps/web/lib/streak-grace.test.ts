@@ -9,12 +9,13 @@ import {
 import {
   STREAK_GRACE_WINDOW,
   applyOneTimeStreakGrace,
+  isExactlyOneMissedServerDay,
   isInsideStreakGraceWindow,
   isRealIsoDay,
-  isWithinServerUtcSkew,
   readStoredStreakGrace,
   serverUtcDay,
   streakGraceStart,
+  type StreakGrace,
   type StreakGraceInput,
 } from "@/lib/streak-grace";
 
@@ -22,6 +23,7 @@ const START = "2026-10-20";
 const STORED_DAY = "2026-10-20";
 const MISSED_DAY = "2026-10-21";
 const TODAY = "2026-10-22";
+const T = TODAY;
 
 const emptyServer: ServerProgressState = {
   xp: 0,
@@ -47,16 +49,24 @@ function push(
 }
 
 function graceInput(partial: Partial<StreakGraceInput> = {}): StreakGraceInput {
+  const incomingStreak = partial.incomingStreak ?? 1;
   return {
     storedStreak: 4,
-    storedLastActiveDay: STORED_DAY,
-    incomingStreak: 1,
-    incomingLastActiveDay: TODAY,
-    mergedStreak: partial.mergedStreak ?? Math.max(4, partial.incomingStreak ?? 1),
+    incomingStreak,
+    mergedStreak: partial.mergedStreak ?? Math.max(4, incomingStreak),
     today: TODAY,
     graceStart: START,
+    acceptedActivity: true,
+    storedGrace: { lastSeenUtcDay: STORED_DAY },
     ...partial,
   };
+}
+
+function legacyUsed(usedOn: string, lastSeenUtcDay?: string): StreakGrace {
+  return {
+    usedOn,
+    ...(lastSeenUtcDay ? { lastSeenUtcDay } : {}),
+  } as unknown as StreakGrace;
 }
 
 /**
@@ -87,10 +97,6 @@ describe("streak grace window", () => {
     expect(isInsideStreakGraceWindow(addDays(start, 6), start)).toBe(true);
     expect(isInsideStreakGraceWindow(addDays(start, 7), start)).toBe(false);
     expect(isInsideStreakGraceWindow(addDays(start, -1), start)).toBe(false);
-    expect(isWithinServerUtcSkew(TODAY, TODAY)).toBe(true);
-    expect(isWithinServerUtcSkew(addDays(TODAY, 1), TODAY)).toBe(true);
-    expect(isWithinServerUtcSkew(addDays(TODAY, -1), TODAY)).toBe(true);
-    expect(isWithinServerUtcSkew(addDays(TODAY, 2), TODAY)).toBe(false);
     expect(serverUtcDay(new Date("2026-10-22T23:30:00.000Z"))).toBe(
       isoDay(new Date("2026-10-22T23:30:00.000Z"), "UTC"),
     );
@@ -114,12 +120,18 @@ describe("streak grace window", () => {
 
       const merged = mergeProgressPush(
         push({ streak: 1, lastActiveDay: TODAY }),
-        { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
+        {
+          ...emptyServer,
+          streak: 4,
+          lastActiveDay: STORED_DAY,
+          extra: { streakGrace: { lastSeenUtcDay: STORED_DAY } },
+        },
         { today: TODAY },
       );
       expect(merged.streak).toBe(4);
       expect(merged.streak).not.toBe(5);
-      expect(merged.data.streakGrace).toBeUndefined();
+      expect(merged.data.streakGrace).toEqual({ lastSeenUtcDay: TODAY });
+      expect(merged.data.streakGrace?.graceUsedAt).toBeUndefined();
       expect(merged.lastActiveDay).toBe(TODAY);
     } finally {
       if (previous === undefined) delete process.env.STREAK_GRACE_START;
@@ -142,11 +154,16 @@ describe("streak grace window", () => {
       process.env.STREAK_GRACE_START = "not-a-date";
       const merged = mergeProgressPush(
         push({ streak: 1, lastActiveDay: TODAY }),
-        { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
+        {
+          ...emptyServer,
+          streak: 4,
+          lastActiveDay: STORED_DAY,
+          extra: { streakGrace: { lastSeenUtcDay: STORED_DAY } },
+        },
         { today: TODAY },
       );
       expect(merged.streak).toBe(4);
-      expect(merged.data.streakGrace).toBeUndefined();
+      expect(merged.data.streakGrace?.graceUsedAt).toBeUndefined();
     } finally {
       if (previous === undefined) delete process.env.STREAK_GRACE_START;
       else process.env.STREAK_GRACE_START = previous;
@@ -155,101 +172,105 @@ describe("streak grace window", () => {
 });
 
 describe("applyOneTimeStreakGrace", () => {
-  it("applies grace once when exactly one calendar day was missed", () => {
-    const result = applyOneTimeStreakGrace(graceInput());
+  it("applies grace once when the server missed exactly one UTC day", () => {
     expect(MISSED_DAY).toBe(addDays(STORED_DAY, 1));
+    expect(isExactlyOneMissedServerDay(STORED_DAY, TODAY)).toBe(true);
+    const result = applyOneTimeStreakGrace(graceInput());
     expect(result.streak).toBe(5);
-    expect(result.streakGrace).toEqual({ usedOn: TODAY });
+    expect(result.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: TODAY,
+    });
+  });
+
+  it("applies grace only after exactly one missed server day", () => {
+    for (const offset of [0, -1, -3, -4]) {
+      const lastSeen = addDays(TODAY, offset);
+      const result = applyOneTimeStreakGrace(
+        graceInput({
+          storedGrace: { lastSeenUtcDay: lastSeen },
+          mergedStreak: 1,
+        }),
+      );
+      expect(result.streak).toBe(1);
+      expect(result.streakGrace).toEqual({ lastSeenUtcDay: TODAY });
+    }
+
+    const missing = applyOneTimeStreakGrace(
+      graceInput({ storedGrace: undefined, mergedStreak: 1 }),
+    );
+    expect(missing.streak).toBe(1);
+    expect(missing.streakGrace).toEqual({ lastSeenUtcDay: TODAY });
   });
 
   it("does not grace a second missed day", () => {
     const second = applyOneTimeStreakGrace(
       graceInput({
         storedStreak: 5,
-        storedLastActiveDay: TODAY,
-        incomingStreak: 1,
-        incomingLastActiveDay: "2026-10-24",
-        mergedStreak: 5,
-        storedGrace: { usedOn: TODAY },
+        storedGrace: { graceUsedAt: TODAY, lastSeenUtcDay: TODAY },
         today: "2026-10-24",
+        mergedStreak: 1,
       }),
     );
-    expect(second.streak).toBe(5);
-    expect(second.streakGrace).toEqual({ usedOn: TODAY });
+    expect(second.streak).toBe(1);
+    expect(second.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: "2026-10-24",
+    });
   });
 
   it("does not grace outside the window", () => {
     const outside = addDays(START, STREAK_GRACE_WINDOW.lengthDays);
     const result = applyOneTimeStreakGrace(
       graceInput({
-        storedLastActiveDay: addDays(outside, -2),
-        incomingLastActiveDay: outside,
         today: outside,
+        storedGrace: { lastSeenUtcDay: addDays(outside, -2) },
         mergedStreak: 1,
       }),
     );
     expect(isInsideStreakGraceWindow(outside, START)).toBe(false);
     expect(result.streak).toBe(1);
-    expect(result.streakGrace).toBeUndefined();
+    expect(result.streakGrace).toEqual({ lastSeenUtcDay: outside });
   });
 
-  it("does not grace a two-day gap", () => {
-    const incomingDay = addDays(STORED_DAY, 3);
+  it("does not grace a two-day server gap", () => {
     const result = applyOneTimeStreakGrace(
       graceInput({
-        incomingLastActiveDay: incomingDay,
-        today: incomingDay,
+        storedGrace: { lastSeenUtcDay: addDays(TODAY, -3) },
         mergedStreak: 1,
       }),
     );
     expect(result.streak).toBe(1);
-    expect(result.streakGrace).toBeUndefined();
+    expect(result.streakGrace?.graceUsedAt).toBeUndefined();
   });
 
-  it("does not consume grace on a consecutive day or when nothing was stored", () => {
+  it("does not consume grace on a consecutive server day or an empty streak", () => {
     const consecutive = applyOneTimeStreakGrace(
       graceInput({
-        storedLastActiveDay: "2026-10-21",
-        incomingStreak: 1,
+        storedGrace: { lastSeenUtcDay: "2026-10-21" },
         mergedStreak: 4,
       }),
     );
     expect(consecutive.streak).toBe(4);
-    expect(consecutive.streakGrace).toBeUndefined();
+    expect(consecutive.streakGrace?.graceUsedAt).toBeUndefined();
 
     const noStreak = applyOneTimeStreakGrace(
       graceInput({ storedStreak: 0, mergedStreak: 1 }),
     );
     expect(noStreak.streak).toBe(1);
-    expect(noStreak.streakGrace).toBeUndefined();
+    expect(noStreak.streakGrace?.graceUsedAt).toBeUndefined();
 
     const notAReset = applyOneTimeStreakGrace(
       graceInput({ incomingStreak: 2, mergedStreak: 4 }),
     );
     expect(notAReset.streak).toBe(4);
-    expect(notAReset.streakGrace).toBeUndefined();
+    expect(notAReset.streakGrace?.graceUsedAt).toBeUndefined();
 
-    const missingDay = applyOneTimeStreakGrace(
-      graceInput({ storedLastActiveDay: null, mergedStreak: 4 }),
+    const idle = applyOneTimeStreakGrace(
+      graceInput({ acceptedActivity: false, mergedStreak: 4 }),
     );
-    expect(missingDay.streak).toBe(4);
-    expect(missingDay.streakGrace).toBeUndefined();
-
-    const invalidStoredDay = applyOneTimeStreakGrace(
-      graceInput({ storedLastActiveDay: "2026-02-30", mergedStreak: 4 }),
-    );
-    expect(invalidStoredDay.streakGrace).toBeUndefined();
-
-    const invalidIncomingDay = applyOneTimeStreakGrace(
-      graceInput({ incomingLastActiveDay: "nope", mergedStreak: 4 }),
-    );
-    expect(invalidIncomingDay.streakGrace).toBeUndefined();
-
-    const missingIncomingDay = applyOneTimeStreakGrace(
-      graceInput({ incomingLastActiveDay: null, mergedStreak: 4 }),
-    );
-    expect(missingIncomingDay.streak).toBe(4);
-    expect(missingIncomingDay.streakGrace).toBeUndefined();
+    expect(idle.streak).toBe(4);
+    expect(idle.streakGrace).toEqual({ lastSeenUtcDay: STORED_DAY });
   });
 
   it("still graces when merged streak is the newer day's reset (D3 recency)", () => {
@@ -261,41 +282,15 @@ describe("applyOneTimeStreakGrace", () => {
     const result = applyOneTimeStreakGrace(
       graceInput({
         storedStreak: stored.streak,
-        storedLastActiveDay: stored.lastActiveDay,
         incomingStreak: incoming.streak,
-        incomingLastActiveDay: incoming.lastActiveDay,
         mergedStreak,
       }),
     );
     expect(result.streak).toBe(5);
-    expect(result.streakGrace).toEqual({ usedOn: TODAY });
-  });
-
-  it("does not grace an incoming day outside the server UTC day ±1", () => {
-    const result = applyOneTimeStreakGrace(
-      graceInput({
-        today: STORED_DAY,
-        incomingLastActiveDay: TODAY,
-        mergedStreak: 1,
-      }),
-    );
-    expect(addDays(STORED_DAY, 2)).toBe(TODAY);
-    expect(isWithinServerUtcSkew(TODAY, STORED_DAY)).toBe(false);
-    expect(result.streak).toBe(1);
-    expect(result.streakGrace).toBeUndefined();
-  });
-
-  it("graces a day one UTC day ahead of the server", () => {
-    const incoming = addDays(TODAY, 1);
-    const result = applyOneTimeStreakGrace(
-      graceInput({
-        storedLastActiveDay: addDays(incoming, -2),
-        incomingLastActiveDay: incoming,
-        mergedStreak: 1,
-      }),
-    );
-    expect(result.streak).toBe(5);
-    expect(result.streakGrace).toEqual({ usedOn: TODAY });
+    expect(result.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: TODAY,
+    });
   });
 
   it("keeps the newer day's reset when recency merge cannot be graced", () => {
@@ -307,36 +302,64 @@ describe("applyOneTimeStreakGrace", () => {
     const result = applyOneTimeStreakGrace(
       graceInput({
         storedStreak: stored.streak,
-        storedLastActiveDay: stored.lastActiveDay,
         incomingStreak: incoming.streak,
-        incomingLastActiveDay: incoming.lastActiveDay,
         mergedStreak,
-        storedGrace: { usedOn: TODAY },
+        storedGrace: { graceUsedAt: TODAY, lastSeenUtcDay: TODAY },
         today: "2026-10-24",
+        acceptedActivity: true,
       }),
     );
     expect(result.streak).toBe(1);
-    expect(result.streakGrace).toEqual({ usedOn: TODAY });
+    expect(result.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: "2026-10-24",
+    });
+  });
+
+  it("treats a legacy usedOn as already used", () => {
+    const result = applyOneTimeStreakGrace(
+      graceInput({
+        storedGrace: legacyUsed("2026-10-18", STORED_DAY),
+        mergedStreak: 1,
+      }),
+    );
+    expect(result.streak).toBe(1);
+    expect(result.streakGrace).toEqual({
+      graceUsedAt: "2026-10-18",
+      lastSeenUtcDay: TODAY,
+    });
   });
 });
 
 describe("server-owned streakGrace merge", () => {
-  const storedGrace = { usedOn: "2026-10-18" };
+  const storedGrace = legacyUsed("2026-10-18");
 
-  it("applies grace on the server merge and persists it in data", () => {
-    const server: ServerProgressState = {
+  function gracedServer(
+    partial: Partial<ServerProgressState> = {},
+  ): ServerProgressState {
+    return {
       ...emptyServer,
-      xp: 40,
       streak: 4,
       lastActiveDay: STORED_DAY,
-      extra: { unlockedAchievements: ["first-win"] },
+      extra: { streakGrace: { lastSeenUtcDay: STORED_DAY } },
+      ...partial,
     };
+  }
+
+  it("applies grace on the server merge and persists it in data", () => {
+    const server = gracedServer({
+      xp: 40,
+      extra: {
+        streakGrace: { lastSeenUtcDay: STORED_DAY },
+        unlockedAchievements: ["first-win"],
+      },
+    });
     const merged = mergeProgressPush(
       push({
         xp: 40,
         streak: 1,
         lastActiveDay: TODAY,
-        streakGrace: { used: false, usedOn: "1999-01-01" },
+        streakGrace: { used: false, graceUsedAt: "1999-01-01", usedOn: "1999-01-01" },
       }),
       server,
       { today: TODAY, graceStart: START },
@@ -344,10 +367,174 @@ describe("server-owned streakGrace merge", () => {
     expect(merged.streak).toBe(5);
     expect(merged.streak).not.toBe(Math.max(server.streak, 1));
     expect(merged.lastActiveDay).toBe(TODAY);
-    expect(merged.data.streakGrace).toEqual({ usedOn: TODAY });
+    expect(merged.data.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: TODAY,
+    });
     expect(merged.data.unlockedAchievements).toEqual(["first-win"]);
-    expect(JSON.parse(JSON.stringify(merged.data)).streakGrace).toEqual({
-      usedOn: TODAY,
+  });
+
+  it("a client lastActiveDay of T-1 or T+1 does not change grace", () => {
+    const server = gracedServer();
+    const outcomes = [addDays(T, -1), T, addDays(T, 1)].map((day) => {
+      const merged = mergeProgressPush(
+        push({ streak: 1, lastActiveDay: day }),
+        server,
+        { today: T, graceStart: START },
+      );
+      return {
+        streak: merged.streak,
+        grace: merged.data.streakGrace,
+      };
+    });
+    expect(outcomes).toEqual([
+      {
+        streak: 5,
+        grace: { graceUsedAt: T, lastSeenUtcDay: T },
+      },
+      {
+        streak: 5,
+        grace: { graceUsedAt: T, lastSeenUtcDay: T },
+      },
+      {
+        streak: 5,
+        grace: { graceUsedAt: T, lastSeenUtcDay: T },
+      },
+    ]);
+
+    const noGap = [addDays(T, -1), T, addDays(T, 1)].map((day) => {
+      const merged = mergeProgressPush(
+        push({ streak: 1, lastActiveDay: day }),
+        gracedServer({
+          extra: { streakGrace: { lastSeenUtcDay: addDays(T, -1) } },
+        }),
+        { today: T, graceStart: START },
+      );
+      return { streak: merged.streak, used: merged.data.streakGrace?.graceUsedAt };
+    });
+    expect(noGap).toEqual([
+      { streak: 4, used: undefined },
+      { streak: 4, used: undefined },
+      { streak: 4, used: undefined },
+    ]);
+  });
+
+  it("does not grace from a client day when the server has no stamp", () => {
+    const merged = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: TODAY }),
+      { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
+      { today: TODAY, graceStart: START },
+    );
+    expect(addDays(STORED_DAY, 2)).toBe(TODAY);
+    expect(merged.streak).toBe(4);
+    expect(merged.data.streakGrace).toEqual({ lastSeenUtcDay: TODAY });
+  });
+
+  it("repro a: last server day T-3 and a client day of T-1 is two misses", () => {
+    const merged = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: addDays(T, -1) }),
+      gracedServer({
+        streak: 8,
+        lastActiveDay: addDays(T, -3),
+        extra: { streakGrace: { lastSeenUtcDay: addDays(T, -3) } },
+      }),
+      { today: T, graceStart: START },
+    );
+    expect(merged.streak).toBe(8);
+    expect(merged.data.streakGrace).toEqual({ lastSeenUtcDay: T });
+    expect(merged.lastActiveDay).toBe(addDays(T, -1));
+  });
+
+  it("repro b: last server day T-1 and a client day of T+1 is not a miss", () => {
+    const merged = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: addDays(T, 1) }),
+      gracedServer({
+        streak: 8,
+        lastActiveDay: addDays(T, -1),
+        extra: { streakGrace: { lastSeenUtcDay: addDays(T, -1) } },
+      }),
+      { today: T, graceStart: START },
+    );
+    expect(merged.streak).toBe(8);
+    expect(merged.data.streakGrace?.graceUsedAt).toBeUndefined();
+    expect(merged.data.streakGrace?.lastSeenUtcDay).toBe(T);
+    expect(merged.lastActiveDay).toBe(addDays(T, 1));
+  });
+
+  it("repro c: a T-1 push does not rewind a stored T, and T+1 gets no grace", () => {
+    const first = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: addDays(T, -1) }),
+      gracedServer({
+        streak: 6,
+        lastActiveDay: T,
+        extra: { streakGrace: { lastSeenUtcDay: T } },
+      }),
+      { today: T, graceStart: START },
+    );
+    expect(first.lastActiveDay).toBe(T);
+    expect(first.lastActiveDay).not.toBe(addDays(T, -1));
+    expect(first.streak).toBe(6);
+    expect(first.data.streakGrace?.graceUsedAt).toBeUndefined();
+
+    const second = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: addDays(T, 1) }),
+      {
+        ...emptyServer,
+        streak: first.streak,
+        lastActiveDay: first.lastActiveDay,
+        extra: { streakGrace: first.data.streakGrace },
+      },
+      { today: T, graceStart: START },
+    );
+    expect(second.streak).toBe(6);
+    expect(second.data.streakGrace).toEqual({ lastSeenUtcDay: T });
+    expect(second.lastActiveDay).toBe(addDays(T, 1));
+  });
+
+  it("a real grace chained into the next merge rejects a second claim", () => {
+    const first = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: T }),
+      gracedServer(),
+      { today: T, graceStart: START },
+    );
+    expect(first.streak).toBe(5);
+    expect(first.data.streakGrace).toEqual({
+      graceUsedAt: T,
+      lastSeenUtcDay: T,
+    });
+
+    for (const crafted of [addDays(T, -1), addDays(T, 1)]) {
+      const again = mergeProgressPush(
+        push({ streak: 1, lastActiveDay: crafted }),
+        {
+          ...emptyServer,
+          streak: first.streak,
+          lastActiveDay: first.lastActiveDay,
+          extra: { streakGrace: first.data.streakGrace },
+        },
+        { today: T, graceStart: START },
+      );
+      expect(again.streak).toBe(5);
+      expect(again.data.streakGrace?.graceUsedAt).toBe(T);
+    }
+
+    const nextGap = addDays(T, 2);
+    const later = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: nextGap }),
+      {
+        ...emptyServer,
+        streak: first.streak,
+        lastActiveDay: first.lastActiveDay,
+        extra: { streakGrace: first.data.streakGrace },
+      },
+      { today: nextGap, graceStart: START },
+    );
+    expect(isExactlyOneMissedServerDay(T, nextGap)).toBe(true);
+    expect(later.streak).toBe(5);
+    expect(later.streak).not.toBe(6);
+    expect(later.data.streakGrace).toEqual({
+      graceUsedAt: T,
+      lastSeenUtcDay: nextGap,
     });
   });
 
@@ -369,13 +556,13 @@ describe("server-owned streakGrace merge", () => {
         ...emptyServer,
         streak: 8,
         lastActiveDay: STORED_DAY,
-        extra: { streakGrace: { usedOn: "2026-10-18" } },
+        extra: { streakGrace: storedGrace },
       },
       { today: TODAY, graceStart: START },
     );
     expect(far.streak).toBe(8);
     expect(far.lastActiveDay).toBe(STORED_DAY);
-    expect(far.data.streakGrace).toEqual({ usedOn: "2026-10-18" });
+    expect(far.data.streakGrace).toEqual({ graceUsedAt: "2026-10-18" });
 
     const alreadyFuture = mergeProgressPush(
       push({ streak: 1, lastActiveDay: "2099-06-01" }),
@@ -419,12 +606,15 @@ describe("server-owned streakGrace merge", () => {
   it("a same-day push after grace keeps the graced streak", () => {
     const first = mergeProgressPush(
       push({ streak: 1, lastActiveDay: TODAY }),
-      { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
+      gracedServer(),
       { today: TODAY, graceStart: START },
     );
     expect(first.streak).toBe(5);
     expect(first.lastActiveDay).toBe(TODAY);
-    expect(first.data.streakGrace).toEqual({ usedOn: TODAY });
+    expect(first.data.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: TODAY,
+    });
 
     const second = mergeProgressPush(
       push({ streak: 1, lastActiveDay: TODAY }),
@@ -438,7 +628,10 @@ describe("server-owned streakGrace merge", () => {
     );
     expect(second.streak).toBe(5);
     expect(second.lastActiveDay).toBe(TODAY);
-    expect(second.data.streakGrace).toEqual({ usedOn: TODAY });
+    expect(second.data.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: TODAY,
+    });
 
     const stored = { streak: second.streak, lastActiveDay: TODAY };
     const incoming = { streak: 1, lastActiveDay: TODAY };
@@ -448,38 +641,41 @@ describe("server-owned streakGrace merge", () => {
     const recency = applyOneTimeStreakGrace(
       graceInput({
         storedStreak: stored.streak,
-        storedLastActiveDay: stored.lastActiveDay,
         incomingStreak: incoming.streak,
-        incomingLastActiveDay: incoming.lastActiveDay,
         mergedStreak,
-        storedGrace: { usedOn: TODAY },
+        storedGrace: second.data.streakGrace,
         today: TODAY,
       }),
     );
     expect(recency.streak).toBe(5);
-    expect(recency.streakGrace).toEqual({ usedOn: TODAY });
+    expect(recency.streakGrace?.graceUsedAt).toBe(TODAY);
   });
 
   it("does not grace outside the window on the server merge", () => {
     const outside = addDays(START, STREAK_GRACE_WINDOW.lengthDays);
     const merged = mergeProgressPush(
       push({ streak: 1, lastActiveDay: outside }),
-      { ...emptyServer, streak: 4, lastActiveDay: addDays(outside, -2) },
+      gracedServer({
+        lastActiveDay: addDays(outside, -2),
+        extra: { streakGrace: { lastSeenUtcDay: addDays(outside, -2) } },
+      }),
       { today: outside, graceStart: START },
     );
-    expect(merged.data.streakGrace).toBeUndefined();
+    expect(merged.data.streakGrace).toEqual({ lastSeenUtcDay: outside });
     expect(merged.streak).toBe(4);
     expect(merged.streak).not.toBe(5);
   });
 
   it("does not grace a two-day gap on the server merge", () => {
-    const incomingDay = addDays(STORED_DAY, 3);
+    const today = addDays(STORED_DAY, 3);
     const merged = mergeProgressPush(
-      push({ streak: 1, lastActiveDay: incomingDay }),
-      { ...emptyServer, streak: 4, lastActiveDay: STORED_DAY },
-      { today: incomingDay, graceStart: START },
+      push({ streak: 1, lastActiveDay: today }),
+      gracedServer({
+        extra: { streakGrace: { lastSeenUtcDay: STORED_DAY } },
+      }),
+      { today, graceStart: START },
     );
-    expect(merged.data.streakGrace).toBeUndefined();
+    expect(merged.data.streakGrace?.graceUsedAt).toBeUndefined();
     expect(merged.streak).toBe(4);
     expect(merged.streak).not.toBe(5);
   });
@@ -489,14 +685,19 @@ describe("server-owned streakGrace merge", () => {
       ...emptyServer,
       streak: 5,
       lastActiveDay: TODAY,
-      extra: { streakGrace: { usedOn: TODAY } },
+      extra: {
+        streakGrace: { graceUsedAt: TODAY, lastSeenUtcDay: TODAY },
+      },
     };
     const merged = mergeProgressPush(
       push({ streak: 1, lastActiveDay: "2026-10-24" }),
       server,
       { today: "2026-10-24", graceStart: START },
     );
-    expect(merged.data.streakGrace).toEqual({ usedOn: TODAY });
+    expect(merged.data.streakGrace).toEqual({
+      graceUsedAt: TODAY,
+      lastSeenUtcDay: "2026-10-24",
+    });
     expect(merged.streak).toBe(server.streak);
     expect(merged.streak).not.toBe(server.streak + 1);
   });
@@ -507,48 +708,65 @@ describe("server-owned streakGrace merge", () => {
       xp: 20,
       streak: 4,
       lastActiveDay: TODAY,
-      extra: { streakGrace: storedGrace, weaknesses: { fork: 2 } },
+      extra: {
+        streakGrace: legacyUsed("2026-10-18", "2026-10-19"),
+        weaknesses: { fork: 2 },
+      },
     };
     const body = push({ xp: 25, streak: 4, lastActiveDay: TODAY });
     expect(body).not.toHaveProperty("streakGrace");
 
     const merged = mergeProgressPush(body, server, { today: TODAY, graceStart: START });
-    expect(merged.data.streakGrace).toEqual(storedGrace);
+    expect(merged.data.streakGrace).toEqual({
+      graceUsedAt: "2026-10-18",
+      lastSeenUtcDay: TODAY,
+    });
     expect(merged.data.weaknesses).toEqual({ fork: 2 });
     expect(mergeExtraData(server.extra, {})).toMatchObject({
-      streakGrace: storedGrace,
+      streakGrace: { graceUsedAt: "2026-10-18", lastSeenUtcDay: "2026-10-19" },
       weaknesses: { fork: 2 },
     });
   });
 
   it("Test B: a client grace value is ignored and the server value stays", () => {
-    const prev = { streakGrace: storedGrace, unlockedAchievements: ["a"] };
+    const canonical = { graceUsedAt: "2026-10-18", lastSeenUtcDay: "2026-10-19" };
+    const prev = {
+      streakGrace: legacyUsed("2026-10-18", "2026-10-19"),
+      unlockedAchievements: ["a"],
+    };
     expect(mergeExtraData(prev, { streakGrace: null } as never).streakGrace).toEqual(
-      storedGrace,
+      canonical,
     );
     expect(
       mergeExtraData(prev, { streakGrace: { used: false } } as never).streakGrace,
-    ).toEqual(storedGrace);
+    ).toEqual(canonical);
     expect(
-      mergeExtraData(prev, { streakGrace: { usedOn: "1999-01-01" } }).streakGrace,
-    ).toEqual(storedGrace);
+      mergeExtraData(prev, {
+        streakGrace: { graceUsedAt: "1999-01-01", lastSeenUtcDay: "2099-01-01" },
+      }).streakGrace,
+    ).toEqual(canonical);
+    expect(
+      mergeExtraData(prev, { streakGrace: { usedOn: "1999-01-01" } as never })
+        .streakGrace,
+    ).toEqual(canonical);
     expect(
       mergeExtraData(prev, { unlockedAchievements: ["b"] }).unlockedAchievements,
     ).toEqual(["a", "b"]);
     expect(
-      mergeExtraData({}, { streakGrace: { usedOn: "1999-01-01" } }).streakGrace,
+      mergeExtraData({}, { streakGrace: { usedOn: "1999-01-01" } as never })
+        .streakGrace,
     ).toBeUndefined();
 
     const invented = mergeProgressPush(
       push({
         streak: 4,
         lastActiveDay: TODAY,
-        streakGrace: { usedOn: "1999-01-01" },
+        streakGrace: { graceUsedAt: "1999-01-01", lastSeenUtcDay: "2099-01-01" },
       }),
       { ...emptyServer, streak: 4, lastActiveDay: TODAY },
       { today: TODAY, graceStart: START },
     );
-    expect(invented.data.streakGrace).toBeUndefined();
+    expect(invented.data.streakGrace).toEqual({ lastSeenUtcDay: TODAY });
     expect(invented.streak).toBe(4);
 
     const server: ServerProgressState = {
@@ -561,12 +779,15 @@ describe("server-owned streakGrace merge", () => {
       push({
         streak: 1,
         lastActiveDay: TODAY,
-        streakGrace: { usedOn: "1999-01-01" },
+        streakGrace: { usedOn: "1999-01-01", graceUsedAt: null, lastSeenUtcDay: null },
       }),
       server,
       { today: TODAY, graceStart: START },
     );
-    expect(merged.data.streakGrace).toEqual(storedGrace);
+    expect(merged.data.streakGrace).toEqual({
+      graceUsedAt: "2026-10-18",
+      lastSeenUtcDay: TODAY,
+    });
     expect(merged.streak).toBe(4);
     expect(merged.streak).not.toBe(5);
   });
@@ -605,7 +826,10 @@ describe("server-owned streakGrace merge", () => {
     expect(merged.lessons.a?.mastery).toBe(1);
     expect(merged.lessons.b?.mastery).toBe(0.5);
     expect(merged.data.settings).toEqual({ sound: true, haptics: true });
-    expect(merged.data.streakGrace).toEqual(storedGrace);
+    expect(merged.data.streakGrace).toEqual({
+      graceUsedAt: "2026-10-18",
+      lastSeenUtcDay: TODAY,
+    });
   });
 
   it("uses STREAK_GRACE_START from the environment during merge", () => {
@@ -614,11 +838,14 @@ describe("server-owned streakGrace merge", () => {
     try {
       const merged = mergeProgressPush(
         push({ streak: 1, lastActiveDay: TODAY }),
-        { ...emptyServer, streak: 3, lastActiveDay: STORED_DAY },
+        gracedServer({ streak: 3 }),
         { today: TODAY },
       );
       expect(merged.streak).toBe(4);
-      expect(merged.data.streakGrace).toEqual({ usedOn: TODAY });
+      expect(merged.data.streakGrace).toEqual({
+        graceUsedAt: TODAY,
+        lastSeenUtcDay: TODAY,
+      });
     } finally {
       if (previous === undefined) delete process.env.STREAK_GRACE_START;
       else process.env.STREAK_GRACE_START = previous;
@@ -632,16 +859,33 @@ describe("server-owned streakGrace merge", () => {
       lastActiveDay: TODAY,
       graduatedClasses: [],
       lessons: {},
-      streakGrace: { usedOn: "1999-01-01", used: false },
+      streakGrace: {
+        usedOn: "1999-01-01",
+        graceUsedAt: "1999-01-01",
+        lastSeenUtcDay: "2099-01-01",
+        used: false,
+      },
     });
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
     expect(parsed.data).not.toHaveProperty("streakGrace");
   });
+
+  it("stores an older in-range client day without treating it as the grace gap", () => {
+    const older = addDays(T, -5);
+    const merged = mergeProgressPush(
+      push({ streak: 1, lastActiveDay: older }),
+      { ...emptyServer, streak: 4, lastActiveDay: null },
+      { today: T, graceStart: START },
+    );
+    expect(merged.lastActiveDay).toBe(older);
+    expect(merged.streak).toBe(4);
+    expect(merged.data.streakGrace).toEqual({ lastSeenUtcDay: T });
+  });
 });
 
 describe("readStoredStreakGrace", () => {
-  it("accepts only a server-written calendar day", () => {
+  it("accepts a server-written calendar day and migrates usedOn", () => {
     expect(readStoredStreakGrace(undefined)).toBeUndefined();
     expect(readStoredStreakGrace(null)).toBeUndefined();
     expect(readStoredStreakGrace("2026-10-22")).toBeUndefined();
@@ -649,6 +893,25 @@ describe("readStoredStreakGrace", () => {
     expect(readStoredStreakGrace({ usedOn: "" })).toBeUndefined();
     expect(readStoredStreakGrace({ usedOn: 20261022 })).toBeUndefined();
     expect(readStoredStreakGrace({ usedOn: "2026-02-30" })).toBeUndefined();
-    expect(readStoredStreakGrace({ usedOn: TODAY })).toEqual({ usedOn: TODAY });
+    expect(readStoredStreakGrace({ graceUsedAt: "2026-02-30", usedOn: TODAY })).toEqual(
+      {
+        graceUsedAt: TODAY,
+      },
+    );
+    expect(readStoredStreakGrace({ usedOn: TODAY })).toEqual({ graceUsedAt: TODAY });
+    expect(readStoredStreakGrace({ graceUsedAt: TODAY })).toEqual({
+      graceUsedAt: TODAY,
+    });
+    expect(
+      readStoredStreakGrace({
+        graceUsedAt: "2026-10-18",
+        usedOn: TODAY,
+        lastSeenUtcDay: STORED_DAY,
+      }),
+    ).toEqual({ graceUsedAt: "2026-10-18", lastSeenUtcDay: STORED_DAY });
+    expect(readStoredStreakGrace({ lastSeenUtcDay: "2026-02-30" })).toBeUndefined();
+    expect(readStoredStreakGrace({ lastSeenUtcDay: TODAY })).toEqual({
+      lastSeenUtcDay: TODAY,
+    });
   });
 });

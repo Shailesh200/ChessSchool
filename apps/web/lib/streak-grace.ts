@@ -1,6 +1,4 @@
-import { addDays, isoDay } from "@chess-school/progression";
-
-const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+import { addDays, isCalendarDay, isoDay } from "@chess-school/progression";
 
 /**
  * Length of the one-time streak grace window, counting the start day.
@@ -11,14 +9,21 @@ export const STREAK_GRACE_WINDOW = {
   lengthDays: 7,
 } as const;
 
-/** Server-owned marker. Written only by `applyOneTimeStreakGrace`. */
-export type StreakGrace = { usedOn: string };
+/**
+ * Server-owned grace record. Clients cannot set or clear it.
+ * `lastSeenUtcDay` is the server UTC day of the last accepted activity push.
+ * `graceUsedAt` is the server UTC day grace was consumed. Rows written before
+ * this rename stored that day as `usedOn`; readers accept both and writers
+ * emit `graceUsedAt` only.
+ */
+export type StreakGrace = {
+  lastSeenUtcDay?: string;
+  graceUsedAt?: string;
+};
 
 export type StreakGraceInput = {
   storedStreak: number;
-  storedLastActiveDay: string | null;
   incomingStreak: number;
-  incomingLastActiveDay: string | null;
   /**
    * Streak already chosen by the snapshot merge.
    * Today that is max(stored, incoming), which hides a reset (D-3).
@@ -29,28 +34,34 @@ export type StreakGraceInput = {
    */
   mergedStreak: number;
   storedGrace?: StreakGrace | null;
-  /** Server UTC day the window and the ±1 skew check use. */
+  /** Server UTC day. This is the only clock the gap uses. */
   today: string;
   /**
    * Test override for the window start. Omit it in production so
    * `STREAK_GRACE_START` is required. Invalid values disable grace.
    */
   graceStart?: string;
+  /**
+   * True when this push carries a real activity day the merge accepted.
+   * Rejected days (malformed, or later than the server UTC day + 1) are
+   * not stamped and cannot grant grace.
+   */
+  acceptedActivity: boolean;
 };
 
 export type MergedActivityDay = {
   lastActiveDay: string | null;
   /**
-   * Incoming day is missing a strict calendar form, or is later than the
-   * server UTC day + 1. Callers keep the stored streak and skip grace.
+   * Incoming day is not a calendar day, or is later than the server UTC
+   * day + 1. Callers keep the stored streak and skip grace.
    */
   rejectIncoming: boolean;
+  /** Incoming day was accepted, so the server may stamp today. */
+  acceptedActivity: boolean;
 };
 
 export function isRealIsoDay(value: string): boolean {
-  if (!ISO_DAY.test(value)) return false;
-  // Reject overflow dates such as 2026-02-30. `addDays` anchors at UTC noon.
-  return addDays(value, 0) === value;
+  return isCalendarDay(value);
 }
 
 /** UTC calendar day. Vercel is UTC; this does not follow the host zone. */
@@ -74,68 +85,112 @@ export function isInsideStreakGraceWindow(day: string, start: string): boolean {
   return day >= start && day <= end;
 }
 
-/** Local play can fall on the UTC day, the day before, or the day after. */
-export function isWithinServerUtcSkew(day: string | null, utcToday: string): boolean {
-  if (!day || !isRealIsoDay(day) || !isRealIsoDay(utcToday)) return false;
-  return day >= addDays(utcToday, -1) && day <= addDays(utcToday, 1);
+function cappedStoredDay(stored: string | null, utcToday: string): string | null {
+  if (!stored || !isCalendarDay(stored)) return null;
+  if (!isCalendarDay(utcToday)) return stored;
+  const latest = addDays(utcToday, 1);
+  return stored > latest ? latest : stored;
 }
 
 /**
  * Pick the day the merge is allowed to store.
- * A malformed incoming day is ignored. A day later than UTC tomorrow is
- * not stored; a stored day that is already past that cap is clamped to it.
+ * A malformed day is ignored. A day later than the server UTC day + 1 is
+ * not stored, and a stored day already past that cap is clamped.
+ * A push never moves a stored calendar day backwards.
+ *
+ * This is the storage rule only. Grace does not read the result: the gap
+ * comes from the server UTC stamp, and there is no ±1 timezone slack.
  */
 export function mergeActivityDay(
   incoming: string | null,
   stored: string | null,
   utcToday: string,
 ): MergedActivityDay {
-  if (!isRealIsoDay(utcToday)) {
+  if (!isCalendarDay(utcToday)) {
     return {
-      lastActiveDay: stored && isRealIsoDay(stored) ? stored : null,
+      lastActiveDay: stored && isCalendarDay(stored) ? stored : null,
       rejectIncoming: true,
+      acceptedActivity: false,
     };
   }
-  const latest = addDays(utcToday, 1);
-  const capped = (day: string | null): string | null => {
-    if (!day || !isRealIsoDay(day)) return null;
-    return day > latest ? latest : day;
+  if (incoming != null && !isCalendarDay(incoming)) {
+    return {
+      lastActiveDay: cappedStoredDay(stored, utcToday),
+      rejectIncoming: true,
+      acceptedActivity: false,
+    };
+  }
+  if (incoming && incoming > addDays(utcToday, 1)) {
+    return {
+      lastActiveDay: cappedStoredDay(stored, utcToday),
+      rejectIncoming: true,
+      acceptedActivity: false,
+    };
+  }
+  if (incoming && isCalendarDay(incoming)) {
+    if (stored && isCalendarDay(stored) && stored > incoming) {
+      return {
+        lastActiveDay: cappedStoredDay(stored, utcToday),
+        rejectIncoming: false,
+        acceptedActivity: true,
+      };
+    }
+    return {
+      lastActiveDay: incoming,
+      rejectIncoming: false,
+      acceptedActivity: true,
+    };
+  }
+  return {
+    lastActiveDay: cappedStoredDay(stored, utcToday),
+    rejectIncoming: false,
+    acceptedActivity: false,
   };
-  if (incoming != null && !isRealIsoDay(incoming)) {
-    return { lastActiveDay: capped(stored), rejectIncoming: true };
-  }
-  if (incoming && isRealIsoDay(incoming) && incoming > latest) {
-    return { lastActiveDay: capped(stored), rejectIncoming: true };
-  }
-  if (incoming && isRealIsoDay(incoming)) {
-    return { lastActiveDay: capped(incoming), rejectIncoming: false };
-  }
-  return { lastActiveDay: capped(stored), rejectIncoming: false };
 }
 
-/** A stored flag counts as used only when the server wrote a real day. */
-export function readStoredStreakGrace(value: unknown): StreakGrace | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const usedOn = (value as { usedOn?: unknown }).usedOn;
-  if (typeof usedOn !== "string" || !isRealIsoDay(usedOn)) return undefined;
-  return { usedOn };
-}
-
-function isExactlyOneMissedDay(
-  storedDay: string | null,
-  incomingDay: string | null,
-): boolean {
-  if (!storedDay || !incomingDay) return false;
-  if (!isRealIsoDay(storedDay) || !isRealIsoDay(incomingDay)) return false;
-  // stored 2026-10-20 and incoming 2026-10-22 misses exactly 2026-10-21.
-  return addDays(storedDay, 2) === incomingDay;
+function realDay(value: unknown): string | undefined {
+  return typeof value === "string" && isRealIsoDay(value) ? value : undefined;
 }
 
 /**
- * Continue a streak that reset after exactly one missed calendar day.
- * At most once per user, only inside the grace window, and only when the
- * incoming day is a real `YYYY-MM-DD` within the server UTC day ±1.
- * The returned `streakGrace` is always the server's — never a client value.
+ * A stored flag counts as used when the server wrote `graceUsedAt` or the
+ * legacy `usedOn`. The returned object is the shape writers persist.
+ */
+export function readStoredStreakGrace(value: unknown): StreakGrace | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as {
+    graceUsedAt?: unknown;
+    usedOn?: unknown;
+    lastSeenUtcDay?: unknown;
+  };
+  const graceUsedAt = realDay(raw.graceUsedAt) ?? realDay(raw.usedOn);
+  const lastSeenUtcDay = realDay(raw.lastSeenUtcDay);
+  if (!graceUsedAt && !lastSeenUtcDay) return undefined;
+  return {
+    ...(lastSeenUtcDay ? { lastSeenUtcDay } : {}),
+    ...(graceUsedAt ? { graceUsedAt } : {}),
+  };
+}
+
+/**
+ * True when the server stamp is exactly two UTC days behind `today`
+ * (yesterday was missed). There is no timezone slack: both days are the
+ * server's own UTC calendar, so a client zone cannot widen the gap.
+ * No stamp means no grace — the client's lastActiveDay is not a substitute.
+ */
+export function isExactlyOneMissedServerDay(
+  lastSeenUtcDay: string | undefined,
+  today: string,
+): boolean {
+  if (!lastSeenUtcDay || !isCalendarDay(today)) return false;
+  return lastSeenUtcDay === addDays(today, -2);
+}
+
+/**
+ * Continue a streak after exactly one missed server UTC day, at most once.
+ * The gap is `lastSeenUtcDay` versus `today` only. `graceUsedAt` is the
+ * server UTC day grace was used (legacy `usedOn` already counts as used).
+ * An accepted push always restamps `lastSeenUtcDay` to today.
  */
 export function applyOneTimeStreakGrace(input: StreakGraceInput): {
   streak: number;
@@ -144,23 +199,28 @@ export function applyOneTimeStreakGrace(input: StreakGraceInput): {
   const storedGrace = readStoredStreakGrace(input.storedGrace);
   const unchanged = { streak: input.mergedStreak, streakGrace: storedGrace };
 
-  if (storedGrace) return unchanged;
+  if (!input.acceptedActivity || !isCalendarDay(input.today)) return unchanged;
+
+  const stamped: StreakGrace = {
+    ...(storedGrace?.graceUsedAt ? { graceUsedAt: storedGrace.graceUsedAt } : {}),
+    lastSeenUtcDay: input.today,
+  };
+  const kept = { streak: input.mergedStreak, streakGrace: stamped };
+
+  if (storedGrace?.graceUsedAt) return kept;
 
   const start = streakGraceStart(input.graceStart);
-  if (!start || !isInsideStreakGraceWindow(input.today, start)) return unchanged;
+  if (!start || !isInsideStreakGraceWindow(input.today, start)) return kept;
 
-  if (!isWithinServerUtcSkew(input.incomingLastActiveDay, input.today))
-    return unchanged;
-
-  if (!isExactlyOneMissedDay(input.storedLastActiveDay, input.incomingLastActiveDay)) {
-    return unchanged;
+  if (!isExactlyOneMissedServerDay(storedGrace?.lastSeenUtcDay, input.today)) {
+    return kept;
   }
 
-  if (input.storedStreak < 1) return unchanged;
-  if (input.incomingStreak > 1) return unchanged;
+  if (input.storedStreak < 1) return kept;
+  if (input.incomingStreak > 1) return kept;
 
   return {
     streak: input.storedStreak + 1,
-    streakGrace: { usedOn: input.today },
+    streakGrace: { graceUsedAt: input.today, lastSeenUtcDay: input.today },
   };
 }
