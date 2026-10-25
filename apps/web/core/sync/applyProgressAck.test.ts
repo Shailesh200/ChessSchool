@@ -24,17 +24,51 @@ describe("applyServerProgressAck", () => {
       streak: 6,
       lastActiveDay: "2026-10-22",
       rating: 1400,
+      ratingUpdatedAt: 5_000,
       dailyGoalXp: 30,
+      goalUpdatedAt: 4_000,
       homeworkStreak: 1,
+      homeworkLastDay: "2026-10-22",
     });
 
     const progress = useProgression.getState();
     expect(progress.streak).toBe(6);
     expect(progress.lastActiveDay).toBe("2026-10-22");
     expect(progress.rating).toBe(1400);
+    expect(progress.ratingUpdatedAt).toBe(5_000);
     expect(progress.dailyGoalXp).toBe(30);
-    expect(progress.ratingUpdatedAt).toBeUndefined();
+    expect(progress.goalUpdatedAt).toBe(4_000);
     expect(usePlan.getState().homeworkStreak).toBe(1);
+    expect(usePlan.getState().homeworkLastDay).toBe("2026-10-22");
+  });
+
+  it("adopts a winning homework day and clears a stamp the merge did not keep", () => {
+    useProgression.setState({
+      rating: 1200,
+      ratingUpdatedAt: 1_000,
+      dailyGoalXp: 80,
+      goalUpdatedAt: 1_000,
+    });
+    usePlan.setState({ homeworkStreak: 4, homeworkLastDay: "2026-10-20" });
+
+    applyServerProgressAck({
+      ok: true,
+      count: 1,
+      rating: 1100,
+      ratingUpdatedAt: 5_000,
+      dailyGoalXp: 40,
+      goalUpdatedAt: null,
+      homeworkStreak: 4,
+      homeworkLastDay: "2026-10-22",
+    });
+
+    const progress = useProgression.getState();
+    expect(progress.rating).toBe(1100);
+    expect(progress.ratingUpdatedAt).toBe(5_000);
+    expect(progress.dailyGoalXp).toBe(40);
+    expect(progress.goalUpdatedAt).toBeUndefined();
+    expect(usePlan.getState().homeworkStreak).toBe(4);
+    expect(usePlan.getState().homeworkLastDay).toBe("2026-10-22");
   });
 
   it("leaves local state alone for an old ok/count response", () => {

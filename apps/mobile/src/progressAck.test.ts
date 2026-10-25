@@ -19,15 +19,21 @@ describe("mobile progress POST ack", () => {
         streak: 5,
         lastActiveDay: "2026-10-22",
         rating: 1410,
+        ratingUpdatedAt: 5_000,
         dailyGoalXp: 30,
+        goalUpdatedAt: null,
         homeworkStreak: 1,
+        homeworkLastDay: "2026-10-22",
       }),
     ).toMatchObject({
       streak: 5,
       lastActiveDay: "2026-10-22",
       rating: 1410,
+      ratingUpdatedAt: 5_000,
       dailyGoalXp: 30,
+      goalUpdatedAt: null,
       homeworkStreak: 1,
+      homeworkLastDay: "2026-10-22",
       xp: 12,
     });
   });

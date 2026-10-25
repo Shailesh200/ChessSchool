@@ -16,7 +16,15 @@ type MergeSnap = Snap & {
   dailyPuzzleDay?: string | null;
 };
 
-const DAYS = [null, "2026-10-18", "2026-10-20", "2026-10-22", "2026-10-23", "2099-01-01", "nope"];
+const DAYS = [
+  null,
+  "2026-10-18",
+  "2026-10-20",
+  "2026-10-22",
+  "2026-10-23",
+  "2099-01-01",
+  "nope",
+];
 
 function mulberry32(seed: number) {
   let state = seed >>> 0;
@@ -63,8 +71,20 @@ function snap(rand: () => number): MergeSnap {
     weaknesses: { fork: pick(rand, [0, 2, 4]) },
     activityDays: { "2026-10-20": pick(rand, [0, 10, 40]) },
     mistakeLog: [
-      { fen: "shared", played: pick(rand, ["a2a3", "b2b3"]), best: "d2d4", tag: "fork", at: 10 },
-      { fen: `m${Math.floor(rand() * 40)}`, played: "e2e4", best: "d2d4", tag: "pin", at: Math.floor(rand() * 50) },
+      {
+        fen: "shared",
+        played: pick(rand, ["a2a3", "b2b3"]),
+        best: "d2d4",
+        tag: "fork",
+        at: 10,
+      },
+      {
+        fen: `m${Math.floor(rand() * 40)}`,
+        played: "e2e4",
+        best: "d2d4",
+        tag: "pin",
+        at: Math.floor(rand() * 50),
+      },
     ],
     lessons,
   };
@@ -287,7 +307,14 @@ describe("mergeProgressSnapshots recency", () => {
 describe("progress push ack", () => {
   it("adopts merged fields and ignores an old ok/count body", () => {
     expect(readProgressPushAck({ ok: true, count: 3 })).toBeNull();
-    const local = { streak: 1, lastActiveDay: "2026-10-20", rating: 1500, dailyGoalXp: 80, homeworkStreak: 4, xp: 10 };
+    const local = {
+      streak: 1,
+      lastActiveDay: "2026-10-20",
+      rating: 1500,
+      dailyGoalXp: 80,
+      homeworkStreak: 4,
+      xp: 10,
+    };
     expect(applyProgressPushAck(local, { ok: true, count: 3 })).toEqual(local);
     expect(
       applyProgressPushAck(local, {
@@ -296,16 +323,29 @@ describe("progress push ack", () => {
         streak: 6,
         lastActiveDay: "2026-10-22",
         rating: 1400,
+        ratingUpdatedAt: 5_000,
         dailyGoalXp: 30,
+        goalUpdatedAt: null,
         homeworkStreak: 1,
+        homeworkLastDay: "2026-10-22",
       }),
     ).toEqual({
       streak: 6,
       lastActiveDay: "2026-10-22",
       rating: 1400,
+      ratingUpdatedAt: 5_000,
       dailyGoalXp: 30,
+      goalUpdatedAt: null,
       homeworkStreak: 1,
+      homeworkLastDay: "2026-10-22",
       xp: 10,
     });
+    expect(
+      readProgressPushAck({
+        ratingUpdatedAt: 1.5,
+        goalUpdatedAt: "soon",
+        homeworkLastDay: 4,
+      }),
+    ).toBeNull();
   });
 });

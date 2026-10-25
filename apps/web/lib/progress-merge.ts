@@ -372,8 +372,11 @@ export function progressPushResponseBody(
   streak: number;
   lastActiveDay: string | null;
   rating: number;
+  ratingUpdatedAt: number | null;
   dailyGoalXp: number;
+  goalUpdatedAt: number | null;
   homeworkStreak: number;
+  homeworkLastDay: string | null;
 } {
   return {
     ok: true,
@@ -381,8 +384,18 @@ export function progressPushResponseBody(
     streak: merged.streak,
     lastActiveDay: merged.lastActiveDay,
     rating: merged.data.rating ?? 800,
+    ratingUpdatedAt:
+      typeof merged.data.ratingUpdatedAt === "number"
+        ? merged.data.ratingUpdatedAt
+        : null,
     dailyGoalXp: merged.dailyGoalXp,
+    goalUpdatedAt:
+      typeof merged.data.goalUpdatedAt === "number" ? merged.data.goalUpdatedAt : null,
     homeworkStreak: merged.data.homeworkStreak ?? 0,
+    homeworkLastDay:
+      typeof merged.data.homeworkLastDay === "string"
+        ? merged.data.homeworkLastDay
+        : null,
   };
 }
 
@@ -397,8 +410,8 @@ export function progressPushResponseBody(
  * the flag written into `data.streakGrace` always comes from the server.
  * An incoming `lastActiveDay` later than the server UTC day + 1, or a
  * malformed day, is not stored, and that push does not change the streak.
- * POST /api/progress returns the merged streak fields so clients adopt them
- * immediately.
+ * POST /api/progress returns the merged streak, the winning homework day, and
+ * the winning writer timestamps so another device can adopt them immediately.
  */
 export function mergeProgressPush(
   incoming: ProgressPushBody,

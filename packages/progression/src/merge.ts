@@ -124,7 +124,10 @@ function mistakeRank(m: MistakeLike): string {
 }
 
 /** Union by id or fen|at. Keep the newest 30 by `at` (rank breaks ties). */
-export function mergeMistakeLog(local: unknown[] = [], server: unknown[] = []): MistakeLike[] {
+export function mergeMistakeLog(
+  local: unknown[] = [],
+  server: unknown[] = [],
+): MistakeLike[] {
   const best = new Map<string, MistakeLike>();
   for (const raw of [...local, ...server]) {
     if (!raw || typeof raw !== "object") continue;
@@ -137,7 +140,8 @@ export function mergeMistakeLog(local: unknown[] = [], server: unknown[] = []): 
     .sort((a, b) => {
       const at = (b.at ?? 0) - (a.at ?? 0);
       if (at !== 0) return at;
-      const key = mistakeKey(a) < mistakeKey(b) ? -1 : mistakeKey(a) > mistakeKey(b) ? 1 : 0;
+      const key =
+        mistakeKey(a) < mistakeKey(b) ? -1 : mistakeKey(a) > mistakeKey(b) ? 1 : 0;
       return key;
     })
     .slice(0, 30);
@@ -184,25 +188,44 @@ export type ProgressPushAck = {
   streak?: number;
   lastActiveDay?: string | null;
   rating?: number;
+  ratingUpdatedAt?: number | null;
   dailyGoalXp?: number;
+  goalUpdatedAt?: number | null;
   homeworkStreak?: number;
+  homeworkLastDay?: string | null;
 };
+
+/** Integer writer stamp, or `null` when the merge kept no stamp. Malformed values are ignored. */
+function readWriterTimestamp(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  return undefined;
+}
 
 /** Fields an old `{ ok, count }` response does not carry. Absent fields are left alone. */
 export function readProgressPushAck(body: unknown): ProgressPushAck | null {
   if (!body || typeof body !== "object") return null;
   const raw = body as Record<string, unknown>;
   const ack: ProgressPushAck = {};
-  if (typeof raw.streak === "number" && Number.isFinite(raw.streak)) ack.streak = raw.streak;
+  if (typeof raw.streak === "number" && Number.isFinite(raw.streak))
+    ack.streak = raw.streak;
   if (typeof raw.lastActiveDay === "string" || raw.lastActiveDay === null) {
     ack.lastActiveDay = raw.lastActiveDay;
   }
-  if (typeof raw.rating === "number" && Number.isFinite(raw.rating)) ack.rating = raw.rating;
+  if (typeof raw.rating === "number" && Number.isFinite(raw.rating))
+    ack.rating = raw.rating;
+  const ratingUpdatedAt = readWriterTimestamp(raw.ratingUpdatedAt);
+  if (ratingUpdatedAt !== undefined) ack.ratingUpdatedAt = ratingUpdatedAt;
   if (typeof raw.dailyGoalXp === "number" && Number.isFinite(raw.dailyGoalXp)) {
     ack.dailyGoalXp = raw.dailyGoalXp;
   }
+  const goalUpdatedAt = readWriterTimestamp(raw.goalUpdatedAt);
+  if (goalUpdatedAt !== undefined) ack.goalUpdatedAt = goalUpdatedAt;
   if (typeof raw.homeworkStreak === "number" && Number.isFinite(raw.homeworkStreak)) {
     ack.homeworkStreak = raw.homeworkStreak;
+  }
+  if (typeof raw.homeworkLastDay === "string" || raw.homeworkLastDay === null) {
+    ack.homeworkLastDay = raw.homeworkLastDay;
   }
   return Object.keys(ack).length > 0 ? ack : null;
 }

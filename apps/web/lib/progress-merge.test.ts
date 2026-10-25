@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   mergeExtraData,
   mergeProgressPush,
+  progressPushResponseBody,
   type ServerProgressState,
 } from "./progress-merge";
 import type { ProgressPushBody } from "@/lib/api-schemas";
@@ -277,6 +278,18 @@ describe("recency merge", () => {
       expect(merged.data.goalUpdatedAt).toBe(2_000);
       expect(merged.data.homeworkStreak).toBe(1);
       expect(merged.data.homeworkLastDay).toBe(today);
+      expect(progressPushResponseBody(2, merged)).toMatchObject({
+        ok: true,
+        count: 2,
+        streak: 1,
+        lastActiveDay: today,
+        rating: 1400,
+        ratingUpdatedAt: 2_000,
+        dailyGoalXp: 30,
+        goalUpdatedAt: 2_000,
+        homeworkStreak: 1,
+        homeworkLastDay: today,
+      });
     });
   });
 
@@ -302,6 +315,13 @@ describe("recency merge", () => {
       expect(merged.data.ratingUpdatedAt).toBeUndefined();
       expect(merged.data.goalUpdatedAt).toBeUndefined();
       expect(merged.streak).toBe(6);
+      expect(progressPushResponseBody(1, merged)).toMatchObject({
+        rating: 1200,
+        ratingUpdatedAt: null,
+        dailyGoalXp: 80,
+        goalUpdatedAt: null,
+        homeworkLastDay: null,
+      });
     });
   });
 
