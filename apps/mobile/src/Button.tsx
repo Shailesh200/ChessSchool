@@ -35,7 +35,7 @@ export function Button({
   testID?: string;
   /** Set false when the caller already fires a haptic/SFX for this action. */
   haptic?: boolean;
-  /** Overrides the accessible name. Omit to keep the visible label. */
+  /** Overrides the accessible name. Blank falls back to the label without a trailing arrow. */
   accessibilityLabel?: string;
 }) {
   const { colors } = useAppTheme();
@@ -91,7 +91,7 @@ export function Button({
       disabled={inactive}
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
-      {...buttonPressableA11yProps(accessibilityLabel)}
+      {...buttonPressableA11yProps(label, accessibilityLabel)}
       onPress={() => {
         if (inactive) return;
         if (haptic) {

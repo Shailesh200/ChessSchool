@@ -2,17 +2,39 @@ import { describe, expect, it } from "vitest";
 import { buttonPressableA11yProps } from "./buttonPressableA11y";
 
 describe("buttonPressableA11yProps", () => {
-  it("forwards accessibilityLabel to the Pressable props when set", () => {
-    expect(buttonPressableA11yProps("Start here")).toEqual({
+  it('uses "Start here" for a label of "Start here →"', () => {
+    expect(buttonPressableA11yProps("Start here →")).toEqual({
       accessibilityLabel: "Start here",
     });
-    expect(buttonPressableA11yProps("")).toEqual({ accessibilityLabel: "" });
+    expect(buttonPressableA11yProps("Start here→")).toEqual({
+      accessibilityLabel: "Start here",
+    });
+    expect(buttonPressableA11yProps("  Start here →  ")).toEqual({
+      accessibilityLabel: "Start here",
+    });
   });
 
-  it("omits accessibilityLabel when unset so the accessible name stays the label", () => {
-    expect(buttonPressableA11yProps()).toEqual({});
-    expect(buttonPressableA11yProps(undefined)).not.toHaveProperty(
-      "accessibilityLabel",
-    );
+  it("leaves a label with no arrow unchanged", () => {
+    expect(buttonPressableA11yProps("Continue")).toEqual({
+      accessibilityLabel: "Continue",
+    });
+  });
+
+  it("lets an explicit accessibilityLabel win", () => {
+    expect(buttonPressableA11yProps("Start here →", "Open the Starter stage")).toEqual({
+      accessibilityLabel: "Open the Starter stage",
+    });
+  });
+
+  it("falls back to the arrow-stripped label when accessibilityLabel is empty or whitespace", () => {
+    expect(buttonPressableA11yProps("Start here →", "")).toEqual({
+      accessibilityLabel: "Start here",
+    });
+    expect(buttonPressableA11yProps("Start here →", "   ")).toEqual({
+      accessibilityLabel: "Start here",
+    });
+    expect(buttonPressableA11yProps("Continue", undefined)).toEqual({
+      accessibilityLabel: "Continue",
+    });
   });
 });
