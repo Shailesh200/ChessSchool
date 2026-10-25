@@ -1,9 +1,15 @@
 import {
+  isoDay,
   mergeProgressSnapshots,
   normalizeProgressPush,
   type Snap,
 } from "@chess-school/progression";
 import type { ProgressPushBody } from "@/lib/api-schemas";
+import {
+  applyOneTimeStreakGrace,
+  readStoredStreakGrace,
+  type StreakGrace,
+} from "@/lib/streak-grace";
 
 export type LessonRec = {
   mastery: number;
@@ -31,6 +37,12 @@ export type ExtraProgressData = {
   homeworkDone?: Record<string, string[]>;
   placementDone?: boolean;
   journalEntries?: unknown[];
+  /**
+   * Server-owned one-time streak grace. Merge always keeps the stored value
+   * and never copies a client-sent `streakGrace` (including when the client
+   * omits the key). Only `applyOneTimeStreakGrace` writes it.
+   */
+  streakGrace?: StreakGrace;
 };
 
 export type ServerProgressState = {
@@ -219,7 +231,7 @@ export function mergeExtraData(
   incoming: ExtraProgressData,
 ): ExtraProgressData {
   const hasIncoming = (k: keyof ExtraProgressData) => incoming[k] !== undefined;
-  return {
+  const merged: ExtraProgressData = {
     rating: Math.max(prev.rating ?? 800, incoming.rating ?? prev.rating ?? 800),
     botWins: Math.max(prev.botWins ?? 0, incoming.botWins ?? prev.botWins ?? 0),
     dailyGoalXp: Math.max(
@@ -266,9 +278,14 @@ export function mergeExtraData(
       ? mergeJournal(prev.journalEntries, incoming.journalEntries)
       : prev.journalEntries,
   };
+  // Client payloads are not a source for this key. Omission must not clear it.
+  const storedGrace = readStoredStreakGrace(prev.streakGrace);
+  if (storedGrace) merged.streakGrace = storedGrace;
+  return merged;
 }
 
 function extraFromPush(body: ProgressPushBody): ExtraProgressData {
+  // streakGrace is server-owned and is not read from the client body.
   return {
     rating: body.rating,
     botWins: body.botWins,
@@ -289,38 +306,72 @@ function extraFromPush(body: ProgressPushBody): ExtraProgressData {
   };
 }
 
+export type MergeProgressOptions = {
+  /**
+   * Server calendar day for the grace window. Defaults to `isoDay()`
+   * (UTC on Vercel). Tests pass this so the window does not follow the clock.
+   */
+  today?: string;
+  /** Overrides `STREAK_GRACE_START` / `STREAK_GRACE_WINDOW.start`. */
+  graceStart?: string;
+};
+
 /**
  * Max-merge an incoming client snapshot over server state.
  * Incoming is treated as "local"; server as authoritative floor (H1/H2).
+ *
+ * Streak grace runs after that merge. `mergedStreak` is whatever
+ * `mergeProgressSnapshots` chose — max() today, the newer `lastActiveDay`'s
+ * streak after D3. Grace replaces it only for the one-time one-day rule, and
+ * the flag written into `data.streakGrace` always comes from the server.
+ *
+ * The corrected streak is what gets stored. POST /api/progress still replies
+ * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
+ * copies a merged streak out of that response. Clients pick it up on the next GET.
  */
 export function mergeProgressPush(
   incoming: ProgressPushBody,
   server: ServerProgressState,
+  options?: MergeProgressOptions,
 ): MergedProgressWrite {
   const mergedCore = mergeProgressSnapshots(
     snapFromPush(incoming),
     snapFromServer(server),
   );
   const mergedExtra = mergeExtraData(server.extra, extraFromPush(incoming));
+  const graced = applyOneTimeStreakGrace({
+    storedStreak: server.streak,
+    storedLastActiveDay: server.lastActiveDay,
+    incomingStreak: incoming.streak,
+    incomingLastActiveDay: incoming.lastActiveDay,
+    mergedStreak: mergedCore.streak ?? 0,
+    storedGrace: server.extra.streakGrace,
+    today: options?.today ?? isoDay(),
+    graceStart: options?.graceStart,
+  });
+
+  const data: ExtraProgressData = {
+    ...mergedExtra,
+    rating: mergedCore.rating,
+    botWins: mergedCore.botWins,
+    unlockedAchievements: mergedCore.unlockedAchievements as string[] | undefined,
+    schoolExamsPassed: mergedCore.schoolExamsPassed as string[] | undefined,
+    weaknesses: mergedCore.weaknesses as Record<string, number> | undefined,
+    activityDays: mergedCore.activityDays as Record<string, number> | undefined,
+    mistakeLog: mergedCore.mistakeLog,
+    dailyPuzzleDay: mergedCore.dailyPuzzleDay as string | null | undefined,
+    placementDone: Boolean(mergedCore.placementDone ?? mergedExtra.placementDone),
+  };
+  if (graced.streakGrace) data.streakGrace = graced.streakGrace;
+  else delete data.streakGrace;
 
   return {
     xp: mergedCore.xp ?? 0,
-    streak: mergedCore.streak ?? 0,
+    streak: graced.streak,
     lastActiveDay: mergedCore.lastActiveDay ?? null,
     dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
     graduatedClasses: (mergedCore.graduatedClasses as string[] | undefined) ?? [],
-    data: {
-      ...mergedExtra,
-      rating: mergedCore.rating,
-      botWins: mergedCore.botWins,
-      unlockedAchievements: mergedCore.unlockedAchievements as string[] | undefined,
-      schoolExamsPassed: mergedCore.schoolExamsPassed as string[] | undefined,
-      weaknesses: mergedCore.weaknesses as Record<string, number> | undefined,
-      activityDays: mergedCore.activityDays as Record<string, number> | undefined,
-      mistakeLog: mergedCore.mistakeLog,
-      dailyPuzzleDay: mergedCore.dailyPuzzleDay as string | null | undefined,
-      placementDone: Boolean(mergedCore.placementDone ?? mergedExtra.placementDone),
-    },
+    data,
     lessons: (mergedCore.lessons ?? {}) as Record<string, LessonRec>,
   };
 }
