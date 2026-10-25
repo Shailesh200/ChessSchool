@@ -59,6 +59,11 @@ export default function OnlineSessionPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  // Join must run once per id; a fresh router object must not re-claim the seat.
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
   const [boardBox, boardSize] = useSquareSize();
   const [session, setSession] = useState<SessionState | null>(null);
   const [color, setColor] = useState<"w" | "b" | "spectator" | null>(null);
@@ -124,7 +129,7 @@ export default function OnlineSessionPage({
     fetch(`/api/session/${id}?join=1`, { credentials: "include" })
       .then((r) => {
         if (r.status === 401) {
-          router.push(`/login?next=/play/online/${id}`);
+          routerRef.current.push(`/login?next=/play/online/${id}`);
           return null;
         }
         return r.ok ? r.json() : null;
@@ -523,7 +528,7 @@ export default function OnlineSessionPage({
         optimisticRef.current = null;
         setOptimistic(null);
       });
-  }, [active, hasClock, wMs, bMs, id, consumePost]);
+  }, [active, hasClock, wMs, bMs, id, consumePost, seatToken]);
 
   const myClock = color === "b" ? bMs : wMs;
   const oppClock = color === "b" ? wMs : bMs;
