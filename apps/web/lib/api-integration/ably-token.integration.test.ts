@@ -27,7 +27,6 @@ vi.mock("ably", () => {
     channels = {
       get: () => ({ publish: async () => undefined }),
     };
-    constructor(_key: string) {}
   }
   return { default: { Rest } };
 });
