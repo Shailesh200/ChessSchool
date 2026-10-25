@@ -22,8 +22,15 @@ import { plainSpeechText } from "@/features/coaching/speechStyle";
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
 let speakGen = 0;
+/**
+ * Speak/preview wait for /api/tts before speechSynthesis.
+ * There is no shared TTS timeout elsewhere in the app.
+ */
+export const COACH_TTS_TIMEOUT_MS = 8000;
 /** Speak/preview fetch only. Aborted when the user stops or skips playback. */
 let playbackAbort: AbortController | null = null;
+/** Active speak/preview timeout. Cleared on success, failure, and stop. */
+let playbackTimer: ReturnType<typeof setTimeout> | null = null;
 /** Dedupes hook-triggered speech when a handler already queued the same line. */
 let lastQueuedCoachText = "";
 
@@ -166,16 +173,49 @@ async function fetchCloudAudio(
   }
 }
 
-/** Tie a speak/preview fetch to stopCoachSpeech without cancelling prefetch. */
+function timeoutError(): DOMException {
+  return new DOMException("The operation was aborted due to timeout", "TimeoutError");
+}
+
+/** Forward `source` into `target`. AbortSignal.any is missing on Safari 16.4. */
+function forwardAbort(source: AbortSignal, target: AbortController) {
+  if (source.aborted) {
+    if (!target.signal.aborted) target.abort(source.reason);
+    return;
+  }
+  source.addEventListener(
+    "abort",
+    () => {
+      if (!target.signal.aborted) target.abort(source.reason);
+    },
+    { once: true },
+  );
+}
+
+/**
+ * Stop signal plus a client timeout for speak/preview.
+ * Prefetch is not tied to this controller, so a new line does not cancel its warm-up.
+ */
 async function withPlaybackSignal<T>(
   run: (signal: AbortSignal) => Promise<T>,
 ): Promise<T> {
-  const playback = new AbortController();
-  playbackAbort = playback;
+  const stop = new AbortController();
+  const timeout = new AbortController();
+  const combined = new AbortController();
+  playbackAbort = stop;
+  forwardAbort(stop.signal, combined);
+  forwardAbort(timeout.signal, combined);
+  const timer = setTimeout(() => {
+    if (playbackTimer === timer) playbackTimer = null;
+    if (!timeout.signal.aborted) timeout.abort(timeoutError());
+  }, COACH_TTS_TIMEOUT_MS);
+  playbackTimer = timer;
   try {
-    return await run(playback.signal);
+    return await run(combined.signal);
   } finally {
-    if (playbackAbort === playback) playbackAbort = null;
+    clearTimeout(timer);
+    if (playbackTimer === timer) playbackTimer = null;
+    if (playbackAbort === stop) playbackAbort = null;
   }
 }
 
@@ -198,6 +238,10 @@ export async function prefetchCoachText(text: string): Promise<void> {
 /** Stop any in-flight coach speech (e.g. on unmount or voice switch). */
 export function stopCoachSpeech() {
   speakGen++;
+  if (playbackTimer !== null) {
+    clearTimeout(playbackTimer);
+    playbackTimer = null;
+  }
   playbackAbort?.abort();
   playbackAbort = null;
   stopCurrent();

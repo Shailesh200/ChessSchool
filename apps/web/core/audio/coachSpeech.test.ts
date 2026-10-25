@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { speakCoachText, stopCoachSpeech } from "./coachSpeech";
+import {
+  COACH_TTS_TIMEOUT_MS,
+  previewCoachCharacter,
+  previewCoachVoice,
+  speakCoachText,
+  stopCoachSpeech,
+} from "./coachSpeech";
+import { coachCharacterOf } from "@/features/coaching/characters";
 import { useSettings } from "@/core/store/settings.store";
 
 /** #39 defines this on navigator. Drop it so later suites are not stuck pre-gesture. */
@@ -152,6 +159,38 @@ function abortError(): DOMException {
   return new DOMException("The operation was aborted.", "AbortError");
 }
 
+function audioResponse(): Response {
+  return new Response(new Uint8Array([0xff, 0xfb]), {
+    status: 200,
+    headers: { "Content-Type": "audio/mpeg" },
+  });
+}
+
+function errorResponse(): Response {
+  return Response.json({ error: "synthesis_failed" }, { status: 502 });
+}
+
+/** Fetch that never settles until the playback signal aborts. */
+function hangUntilAbort(
+  _input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const signal = init?.signal;
+  if (!signal) return Promise.reject(new Error("missing playback signal"));
+  if (signal.aborted) return Promise.reject(signal.reason ?? abortError());
+  return new Promise((_resolve, reject) => {
+    signal.addEventListener("abort", () => reject(signal.reason ?? abortError()), {
+      once: true,
+    });
+  });
+}
+
+function usePlaybackTimers() {
+  vi.useFakeTimers({
+    toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+  });
+}
+
 async function timeoutSignal(): Promise<AbortSignal> {
   const timeout = AbortSignal.timeout(1);
   if (timeout.aborted) return timeout;
@@ -173,6 +212,7 @@ describe("speakCoachText cloud TTS fallback", () => {
 
   afterEach(() => {
     stopCoachSpeech();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     resetUserActivation();
@@ -265,5 +305,168 @@ describe("speakCoachText cloud TTS fallback", () => {
 
     expect(speak).not.toHaveBeenCalled();
     expect(FakeAudio.plays).toBe(0);
+  });
+
+  it("falls back once a fetch that never answers hits the client timeout", async () => {
+    usePlaybackTimers();
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(hangUntilAbort));
+
+    const pending = speakCoachText("Hang until the client timeout");
+    await vi.advanceTimersByTimeAsync(COACH_TTS_TIMEOUT_MS - 1);
+    expect(speak).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak.mock.calls[0]?.[0].text).toBe("Hang until the client timeout");
+    expect(FakeAudio.plays).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("stays silent and clears the timer when the user stops before timeout", async () => {
+    usePlaybackTimers();
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(hangUntilAbort));
+
+    const pending = speakCoachText("Stop before the client timeout");
+    expect(vi.getTimerCount()).toBe(1);
+    stopCoachSpeech();
+    await pending;
+
+    expect(speak).not.toHaveBeenCalled();
+    expect(FakeAudio.plays).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("plays server audio before the timeout and leaves no timer", async () => {
+    usePlaybackTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async () => audioResponse()),
+    );
+
+    await speakCoachText("Cloud audio before the timeout");
+
+    expect(FakeAudio.plays).toBe(1);
+    expect(speak).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not play an older request that resolves after a newer one starts", async () => {
+    let resolveOlder: (response: Response) => void = () => {};
+    let resolveNewer: (response: Response) => void = () => {};
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(
+        () =>
+          new Promise((resolve) => {
+            calls += 1;
+            if (calls === 1) resolveOlder = resolve;
+            else resolveNewer = resolve;
+          }),
+      ),
+    );
+
+    const older = speakCoachText("Older coach line");
+    const newer = speakCoachText("Newer coach line");
+    resolveOlder(audioResponse());
+    resolveNewer(audioResponse());
+    await older;
+    await newer;
+
+    expect(speak).not.toHaveBeenCalled();
+    expect(FakeAudio.plays).toBe(1);
+    expect(FakeAudio.created).toHaveLength(1);
+  });
+});
+
+const previews = [
+  {
+    name: "previewCoachVoice",
+    line: "Preview the knight fork",
+    run: () => previewCoachVoice("emma", "Preview the knight fork"),
+  },
+  {
+    name: "previewCoachCharacter",
+    line: coachCharacterOf("anxious_nerd").previewLine,
+    run: () => previewCoachCharacter("anxious_nerd"),
+  },
+] as const;
+
+describe.each(previews)("$name", ({ line, run }) => {
+  beforeEach(() => {
+    resetUserActivation();
+    FakeAudio.created = [];
+    FakeAudio.plays = 0;
+    speak.mockClear();
+    useSettings.setState({ sound: true, coachSpeech: true, volume: 1 });
+    installObjectUrls();
+    installBrowserSpeech();
+  });
+
+  afterEach(() => {
+    stopCoachSpeech();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    resetUserActivation();
+  });
+
+  it("falls back to browser speech when the request is aborted", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async () => {
+        throw abortError();
+      }),
+    );
+
+    await run();
+
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak.mock.calls[0]?.[0].text).toBe(line);
+    expect(FakeAudio.plays).toBe(0);
+  });
+
+  it("falls back to browser speech when the request times out", async () => {
+    usePlaybackTimers();
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(hangUntilAbort));
+
+    const pending = run();
+    await vi.advanceTimersByTimeAsync(COACH_TTS_TIMEOUT_MS - 1);
+    expect(speak).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak.mock.calls[0]?.[0].text).toBe(line);
+    expect(FakeAudio.plays).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("falls back to browser speech when the server returns an error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async () => errorResponse()),
+    );
+
+    await run();
+
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak.mock.calls[0]?.[0].text).toBe(line);
+    expect(FakeAudio.plays).toBe(0);
+  });
+
+  it("stays silent and clears the timer when the user stops", async () => {
+    usePlaybackTimers();
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(hangUntilAbort));
+
+    const pending = run();
+    expect(vi.getTimerCount()).toBe(1);
+    stopCoachSpeech();
+    await pending;
+
+    expect(speak).not.toHaveBeenCalled();
+    expect(FakeAudio.plays).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
