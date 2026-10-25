@@ -1,5 +1,8 @@
 import type { CoachPersonality, CoachVoiceId } from "@/core/store/settings.store";
-import { COACH_CHARACTERS } from "@/features/coaching/characters";
+import {
+  COACH_CHARACTERS,
+  DEFAULT_COACH_CHARACTER,
+} from "@/features/coaching/characters";
 
 export interface EdgeVoiceProfile {
   name: string;
@@ -261,8 +264,8 @@ export function resolveEdgeVoice(
   const base =
     id !== "auto"
       ? (COACH_VOICE_OPTIONS.find((o) => o.id === id)?.edge ??
-        TTS_VOICES.sarcastic.edge)
-      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES.sarcastic.edge);
+        TTS_VOICES[DEFAULT_COACH_CHARACTER].edge)
+      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES[DEFAULT_COACH_CHARACTER].edge);
   return {
     ...base,
     rate: Math.min(2.5, base.rate * COACH_SPEECH_RATE_MULTIPLIER),

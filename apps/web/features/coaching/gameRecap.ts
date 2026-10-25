@@ -1,4 +1,5 @@
 import type { CoachPersonality } from "@/core/store/settings.store";
+import { DEFAULT_COACH_CHARACTER } from "@/features/coaching/characters";
 import type { EndReason } from "@/core/db/db";
 import type { VerboseMove } from "@/core/types/chess";
 import { applyCoachLine } from "./personality";
@@ -208,7 +209,9 @@ export function buildMatchRecap(input: GameRecapInput): string {
   };
 
   const base = pick(
-    pools[outcome]?.[personality] ?? pools.draw.sarcastic ?? pools.draw.anxious_nerd!,
+    pools[outcome]?.[personality] ??
+      pools[outcome]?.[DEFAULT_COACH_CHARACTER] ??
+      pools.draw[DEFAULT_COACH_CHARACTER]!,
     seed,
   );
   const tail = buildRecapEpilogue(botName, personality, tier, playerWon, seed);

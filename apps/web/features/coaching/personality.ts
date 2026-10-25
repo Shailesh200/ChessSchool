@@ -1,5 +1,8 @@
 import type { CoachCharacterId } from "@/features/coaching/characters";
-import { normalizeCoachCharacter } from "@/features/coaching/characters";
+import {
+  DEFAULT_COACH_CHARACTER,
+  normalizeCoachCharacter,
+} from "@/features/coaching/characters";
 
 /** @deprecated Prefer CoachCharacterId */
 export type CoachPersonality = CoachCharacterId;
@@ -284,7 +287,7 @@ export function quizUiLabels(
 
 export function personaOf(p: CoachCharacterId | string): Persona {
   const id = normalizeCoachCharacter(p);
-  return PERSONAS[id] ?? PERSONAS.sarcastic;
+  return PERSONAS[id] ?? PERSONAS[DEFAULT_COACH_CHARACTER];
 }
 
 const GENERIC_SUCCESS = /^(correct|nice|solved|good|promoted|well done)/i;

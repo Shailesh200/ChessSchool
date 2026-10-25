@@ -1,4 +1,5 @@
 import type { VerboseMove } from "@chess-school/core";
+import { DEFAULT_COACH_CHARACTER } from "@/coachCharacters";
 import type { BotTier } from "./matchCommentary";
 import { tierForElo } from "./matchCommentary";
 
@@ -515,12 +516,12 @@ function templates(
     },
   };
 
-  const table = tables[personality] ?? tables.sarcastic;
+  const table = tables[personality] ?? tables[DEFAULT_COACH_CHARACTER];
   const pool =
     table[kind] ??
-    tables.sarcastic[kind] ??
+    tables[DEFAULT_COACH_CHARACTER][kind] ??
     table.quiet_middlegame ??
-    tables.sarcastic.quiet_middlegame!;
+    tables[DEFAULT_COACH_CHARACTER].quiet_middlegame!;
   return pool;
 }
 

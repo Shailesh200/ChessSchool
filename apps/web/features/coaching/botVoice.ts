@@ -1,4 +1,5 @@
 import type { CoachPersonality } from "@/core/store/settings.store";
+import { DEFAULT_COACH_CHARACTER } from "@/features/coaching/characters";
 import type { VerboseMove } from "@/core/types/chess";
 import type { BotTier } from "./matchCommentary";
 import { tierForElo } from "./matchCommentary";
@@ -607,12 +608,12 @@ function templates(
     },
   };
 
-  const table = tables[personality] ?? tables.sarcastic;
+  const table = tables[personality] ?? tables[DEFAULT_COACH_CHARACTER];
   const pool =
     table[kind] ??
-    tables.sarcastic[kind] ??
+    tables[DEFAULT_COACH_CHARACTER][kind] ??
     table.quiet_middlegame ??
-    tables.sarcastic.quiet_middlegame!;
+    tables[DEFAULT_COACH_CHARACTER].quiet_middlegame!;
   return pool;
 }
 
@@ -761,7 +762,8 @@ export function buildRecapEpilogue(
       ` Defeat vs ${botName}. Learn or don't bother.`,
     ],
   };
-  return pick(playerWon ? won[personality] : lost[personality], seed);
+  const table = (playerWon ? won : lost) as Record<string, string[] | undefined>;
+  return pick(table[personality] ?? table[DEFAULT_COACH_CHARACTER]!, seed);
 }
 
 /** Thinking-mode opener — bot + coach + calculation framing. */
