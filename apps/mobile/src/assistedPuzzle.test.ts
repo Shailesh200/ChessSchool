@@ -1,5 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { assistedMoveOk } from "./assistedPuzzle";
+import { matchesSolution } from "@chess-school/progression";
+import { assistedEngineMove, assistedMoveOk } from "./assistedPuzzle";
+
+describe("assisted play promotion", () => {
+  it("plays the piece the student chose in free play and in the puzzle drill", () => {
+    expect(assistedEngineMove("e7", "e8", "n")).toEqual({
+      from: "e7",
+      to: "e8",
+      promotion: "n",
+    });
+    expect(assistedEngineMove("c2", "c1", "r").promotion).toBe("r");
+    expect(assistedEngineMove("a7", "a8", "b").promotion).toBe("b");
+    expect(assistedEngineMove("e2", "e4").promotion).toBe("q");
+  });
+
+  it("grades the puzzle drill with matchesSolution, so a queen fails an underpromotion", () => {
+    const puzzle = { allSolutions: ["c2:c1"], promotion: "n" as const };
+    const knight = assistedEngineMove("c2", "c1", "n");
+    const queen = assistedEngineMove("c2", "c1", "q");
+    expect(assistedMoveOk(puzzle, knight)).toBe(
+      matchesSolution(
+        { solution: puzzle.allSolutions, promotion: puzzle.promotion },
+        knight,
+      ),
+    );
+    expect(assistedMoveOk(puzzle, queen)).toBe(false);
+    expect(assistedMoveOk(puzzle, knight)).toBe(true);
+  });
+});
 
 describe("assistedMoveOk", () => {
   it("rejects a queen on an underpromotion and accepts the named piece", () => {

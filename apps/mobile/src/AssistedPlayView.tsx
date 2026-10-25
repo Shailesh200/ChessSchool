@@ -22,7 +22,7 @@ import { stopCoachSpeech } from "@/coachSpeech";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, shadowCard, space, type } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
-import { assistedMoveOk } from "@/assistedPuzzle";
+import { assistedEngineMove, assistedMoveOk } from "@/assistedPuzzle";
 import {
   outcomeFromWinner,
   scoreFromWinner,
@@ -164,7 +164,7 @@ function AssistedFullGame() {
     if (phase !== "your-turn") return false;
     const e = engineRef.current;
     const before = e.fen();
-    const applied = e.move({ from, to, promotion });
+    const applied = e.move(assistedEngineMove(from, to, promotion));
     if (!applied) return false;
     haptics.tap();
     sfx.play(applied.captured ? "capture" : "move");
@@ -324,7 +324,7 @@ function AssistedPuzzle() {
     const key = `${from}:${to}`;
     const ok = assistedMoveOk(puzzle!, { from, to, promotion });
     const engine = new ChessEngine(puzzle!.fen);
-    engine.move({ from, to, promotion });
+    engine.move(assistedEngineMove(from, to, promotion));
     setLastMove({ from, to });
     if (ok) {
       haptics.success();
