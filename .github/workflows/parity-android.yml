@@ -1,11 +1,27 @@
 name: Parity Android
 
-# Manual only, same as Parity iOS. Full emulator capture stays opt-in
-# (`pnpm parity:android`). The iOS workflow cannot build without the gitignored
-# Stockfish engine sources, so neither parity workflow runs on a schedule or on
-# PRs. Semantic PWA parity still runs in ci.yml.
+# Script and threshold checks on ubuntu (seconds, no emulator). Full visual
+# capture stays local: `pnpm parity:android`.
+# iOS parity stays workflow_dispatch only until Stockfish sources can be
+# fetched in CI (follow-up once fetch-stockfish.sh from #29 works there).
 
 on:
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - "scripts/parity-android.sh"
+      - "scripts/parity-compare.mjs"
+      - "scripts/parity-routes.json"
+      - "parity/**"
+      - ".github/workflows/parity-android.yml"
+  push:
+    branches: [main, staging]
+    paths:
+      - "scripts/parity-android.sh"
+      - "scripts/parity-compare.mjs"
+      - "scripts/parity-routes.json"
+      - "parity/**"
+      - ".github/workflows/parity-android.yml"
   workflow_dispatch:
 
 concurrency:
