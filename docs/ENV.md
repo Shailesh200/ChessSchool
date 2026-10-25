@@ -65,6 +65,46 @@ Bundle-time inlined — changing values requires a new native build or OTA-compa
 | `CRON_SECRET` | Vercel | Authorization header for cleanup cron |
 | `CI` | GitHub Actions | Set by CI; used by verify scripts |
 
+## Content rollout (`db:remote`)
+
+Sanji's D-1 content rollout uses this procedure. `db/seed.sql` is a content snapshot: idempotent `INSERT ... ON CONFLICT(id) DO UPDATE` for `semesters`, `classes`, `lessons`, and `homework_lessons` only. It has no `DROP` or `CREATE TABLE`. Schema changes go through `db:migrate`. Lesson and class ids stay the values in the snapshot.
+
+The snapshot does not touch `users`, `sessions`, `oauth_accounts`, `profiles`, `progress`, `lesson_records`, `game_sessions`, `analytics_events`, or `web_vitals`. Rows removed from the snapshot are left in the database. Deleting them could orphan progress (`lesson_records.lesson_id` and progress JSON are not foreign keys), and `ON DELETE CASCADE` from semesters or classes would remove lessons those rows still name.
+
+`pnpm --filter web db:remote` writes only when every guard below passes. It prints the database hostname and never prints `DATABASE_URL` or `DATABASE_AUTH_TOKEN`.
+
+1. Rebuild the local file, then regenerate the snapshot. Dump reads `apps/web/local.db` only and ignores `DATABASE_URL`.
+
+   ```bash
+   pnpm --filter web db:dump
+   ```
+
+2. The target must already have a `__drizzle_migrations` row. On the push-era Turso database, record the baseline first (`plans/M-073_WEB_GA_LAUNCH.md`), then `pnpm --filter web db:migrate`. `db:remote` refuses an unmigrated database and writes nothing.
+
+3. Take a Turso backup: `turso db shell <db>` to inspect, or create a database branch / point-in-time restore.
+
+4. Dry run (the default). `CONFIRM` must equal the hostname exactly as written in `DATABASE_URL`, including case (no scheme, port, path, or token). This connects only to read the migration journal.
+
+   ```bash
+   cd apps/web
+   export DATABASE_URL='libsql://<hostname>'
+   export DATABASE_AUTH_TOKEN='…'
+   export CONFIRM='<hostname>'
+   pnpm db:remote
+   ```
+
+   The output lists how many rows would be upserted per content table. It writes nothing.
+
+5. Apply after the backup exists:
+
+   ```bash
+   pnpm db:remote -- --apply --backup-done
+   ```
+
+Re-running is safe: the same ids are updated in place. Live games and accounts stay. `db:fresh` rebuilds local `local.db` only (migrate, then the local generators: 118 lessons and 46 homework lessons) and ignores `DATABASE_URL`. That local count is separate from the puzzle snapshot in `db/seed.sql`.
+
+`db:remote-clean` with `CONFIRM=WIPE` still deletes user rows. It is not the content rollout.
+
 ## Related
 
 - Operational guide: [`CLAUDE.md`](../CLAUDE.md)

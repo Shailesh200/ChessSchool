@@ -15,7 +15,11 @@ export const MIGRATIONS_DIR = fileURLToPath(
   new URL("../db/migrations/", import.meta.url),
 );
 
-/** Tables declared by the CREATE TABLE statements in db/seed.sql. */
+/**
+ * Tables the push-era db/seed.sql created with CREATE TABLE.
+ * Still required before stamping a database that predates the migration journal.
+ * The current seed.sql is content upserts only and does not declare tables.
+ */
 export const SEED_TABLES = [
   "analytics_events",
   "classes",

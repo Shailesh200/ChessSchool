@@ -36,12 +36,12 @@ function printPlan(meta, target) {
   );
   console.log("");
   console.log(
-    "Stamping does not create or alter tables. The baseline snapshot includes objects that db/seed.sql does not:",
+    "Stamping does not create or alter tables. The baseline snapshot includes objects the push-era seed DDL did not:",
   );
   console.log(
     "  - table oauth_accounts (index oauth_accounts_user_id_idx, FK user_id)",
   );
-  console.log("  - users.password_hash nullable (seed.sql: NOT NULL)");
+  console.log("  - users.password_hash nullable (push-era seed.sql: NOT NULL)");
   console.log("  - unique index users_email_unique on users.email");
   console.log(
     "  - indexes classes_semester_id_idx, lessons_class_id_idx, lesson_records_user_id_idx, sessions_user_id_idx, sessions_expires_at_idx",
@@ -55,7 +55,7 @@ function printHelp() {
   console.log(`Usage: node scripts/mark-baseline-applied.mjs [--apply] [--allow-remote]
 
   (no flags)     Print the journal row. Do not connect.
-  --apply        Write the row on a local SQLite file that already has the seed.sql tables.
+  --apply        Write the row on a local SQLite file that already has the push-era tables.
   --allow-remote Required together with --apply when DATABASE_URL is libsql:// or http(s)://.
 `);
 }

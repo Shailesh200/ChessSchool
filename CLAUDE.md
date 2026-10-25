@@ -50,7 +50,9 @@ pnpm verify:milestone # full gate: typecheck, lint, coverage≥90%, e2e, SEO, Li
 pnpm --filter web storybook     # M-072 UI component catalog
 pnpm --filter web db:fresh      # reset + migrate + seed local
 pnpm --filter web db:import-puzzles
-pnpm --filter web db:dump && pnpm --filter web db:remote
+pnpm --filter web db:dump      # content upserts only; ignores DATABASE_URL
+# remote: CONFIRM=<hostname> pnpm --filter web db:remote  # dry run
+#   then -- --apply --backup-done (docs/ENV.md)
 ```
 
 ### Puzzle import (one-time build off-network if needed)
@@ -60,14 +62,16 @@ pnpm --filter web db:build-puzzles lichess_db_puzzle.csv.zst
 pnpm install && pnpm --filter web db:fresh
 pnpm --filter web db:import-puzzles    # LIMIT=5200 default
 pnpm --filter web db:import-homework
-pnpm --filter web db:dump && pnpm --filter web db:remote
+pnpm --filter web db:dump      # content upserts only; ignores DATABASE_URL
+# remote: CONFIRM=<hostname> pnpm --filter web db:remote  # dry run
+#   then -- --apply --backup-done (docs/ENV.md)
 ```
 
 ## Database
 - Local: `DATABASE_URL` unset → `apps/web/local.db`
 - Remote: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN`
 - Schema: `apps/web/db/schema.ts` — users, oauth_accounts, sessions, profiles, progress, lessonRecords, semesters, classes, lessons, homeworkLessons, gameSessions, analytics_events, web_vitals
-- `db/seed.sql` is **non-destructive** for user tables — re-seeding preserves accounts
+- `db/seed.sql` is content upserts only (semesters, classes, lessons, homework_lessons). No DROP or CREATE. It does not touch accounts, progress, or `game_sessions`. Stale content rows stay so progress that stores lesson ids is not orphaned. Remote apply: [`docs/ENV.md`](docs/ENV.md) (`CONFIRM` = hostname, dry-run, `--apply --backup-done`, `__drizzle_migrations` required).
 - Schema changes: `pnpm --filter web db:generate -- --name <slug>`, commit `apps/web/db/migrations`, then `pnpm --filter web db:migrate` locally. `db:fresh` / `db:provision` always rebuild `local.db` and ignore `DATABASE_URL`.
 - Existing production Turso already has the push / `db/seed.sql` tables. Do not run `db:migrate` there until `0000_baseline` is recorded. `pnpm --filter web db:baseline` prints the journal row and does not connect; `pnpm --filter web db:baseline -- --apply --allow-remote` inserts that row only (no `CREATE TABLE`). Then `db:migrate` applies later migrations. See [`plans/M-073_WEB_GA_LAUNCH.md`](plans/M-073_WEB_GA_LAUNCH.md).
 

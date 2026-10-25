@@ -5,7 +5,7 @@
  *        curl -L -o lichess_db_puzzle.csv.zst https://database.lichess.org/lichess_db_puzzle.csv.zst
  *   2. Run:  node scripts/import-lichess.mjs lichess_db_puzzle.csv.zst
  *      (accepts .csv or .csv.zst — .zst is streamed through `zstd -dc`)
- *   3. pnpm db:dump   (regenerate db/seed.sql)  then  pnpm db:remote   (push to Turso, off-network)
+ *   3. pnpm db:dump   (regenerate content upserts) then the guarded rollout in docs/ENV.md
  *
  * Each Lichess puzzle is a real-game position rated 400–3000 and tagged by theme.
  * We bucket them by (school stage ← rating) × (concept ← theme) so difficulty rises
@@ -437,5 +437,5 @@ printReportSummary(importReport);
 writeFileSync(REPORT_PATH, JSON.stringify(importReport, null, 2));
 console.log(`  Report:     ${REPORT_PATH}`);
 console.log(
-  `✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump && pnpm db:remote`,
+  `✅ Imported into local.db. Next: pnpm curriculum:validate && pnpm db:dump, then docs/ENV.md content rollout`,
 );

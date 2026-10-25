@@ -1,60 +1,97 @@
 /**
- * Regenerate db/seed.sql from the current local.db.
+ * Regenerate db/seed.sql from the local SQLite file (apps/web/local.db).
  *
- * Content tables (semesters/classes/lessons) + the ephemeral game_sessions table are
- * DROP+CREATE+INSERT (so re-seeds refresh curriculum and pick up schema changes);
- * auth/user tables use CREATE TABLE IF NOT EXISTS so a remote re-seed preserves accounts.
+ * Emits idempotent upserts for content tables only:
+ * semesters, classes, lessons, homework_lessons.
+ * Schema comes from Drizzle migrations — the file has no DROP or CREATE TABLE.
+ * Lesson and class ids are copied as stored. User tables and game_sessions are
+ * not read and not written.
+ *
+ * Stale content rows that are no longer in local.db are left out of the file
+ * and are NOT deleted on apply. lesson_records and progress store lesson and
+ * class ids without a foreign key, and semesters/classes cascade-delete lessons.
+ *
+ * Ignores DATABASE_URL. Never opens a remote database.
+ *
+ *   pnpm --filter web db:dump
  */
 import Database from "better-sqlite3";
-import { writeFileSync, existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  CONTENT_TABLES,
+  SEED_HEADER,
+  invokedDirectly,
+  upsertStatement,
+} from "./seed-content.mjs";
 
-if (!existsSync("local.db")) {
-  console.error(
-    "✗ local.db not found. Create it first:\n    pnpm db:fresh\n    pnpm db:import-puzzle-school && pnpm db:import-homework && pnpm db:dump\n  Or load committed seed: pnpm db:provision",
-  );
-  process.exit(1);
+function packagePaths() {
+  let root = process.cwd();
+  try {
+    const url = new URL("..", import.meta.url);
+    if (url.protocol === "file:") root = fileURLToPath(url);
+  } catch {
+    // Vitest may rewrite import.meta.url. Package scripts run with cwd = apps/web.
+  }
+  return {
+    localDbPath: join(root, "local.db"),
+    seedPath: join(root, "db/seed.sql"),
+  };
 }
-const db = new Database("local.db", { readonly: true });
-const tables = db
-  .prepare(
-    "SELECT name, sql FROM sqlite_master WHERE type='table' AND sql IS NOT NULL ORDER BY rowid",
-  )
-  .all();
-const RESET = new Set([
-  "semesters",
-  "classes",
-  "lessons",
-  "homework_lessons",
-  "game_sessions",
-]);
-const SEED = ["semesters", "classes", "lessons", "homework_lessons"];
-const esc = (v) =>
-  v === null
-    ? "NULL"
-    : typeof v === "number"
-      ? String(v)
-      : `'${String(v).replace(/'/g, "''")}'`;
 
-let out =
-  "-- ChessSchool seed. Refreshes curriculum + session table; PRESERVES user data (auth tables IF NOT EXISTS).\nPRAGMA foreign_keys=OFF;\n";
-for (const t of [...tables].reverse())
-  if (RESET.has(t.name)) out += `DROP TABLE IF EXISTS ${t.name};\n`;
-for (const t of tables)
-  out += RESET.has(t.name)
-    ? t.sql.replace(/\s+/g, " ") + ";\n"
-    : t.sql
-        .replace(/\s+/g, " ")
-        .replace(/^CREATE TABLE /, "CREATE TABLE IF NOT EXISTS ") + ";\n";
-for (const tbl of SEED) {
-  const cols = db
-    .prepare(`PRAGMA table_info(${tbl})`)
-    .all()
-    .map((c) => c.name);
-  for (const r of db.prepare(`SELECT * FROM ${tbl}`).all())
-    out += `INSERT INTO ${tbl} (${cols.join(",")}) VALUES (${cols.map((c) => esc(r[c])).join(",")});\n`;
+export function renderContentSeed(db) {
+  const chunks = [SEED_HEADER];
+  const counts = {};
+  for (const table of CONTENT_TABLES) {
+    const columns = db
+      .prepare(`PRAGMA table_info(${table})`)
+      .all()
+      .map((column) => column.name);
+    if (columns.length === 0) {
+      throw new Error(
+        `local.db has no ${table} table. Run pnpm db:migrate or pnpm db:fresh first.`,
+      );
+    }
+    const rows = db.prepare(`SELECT * FROM ${table}`).all();
+    counts[table] = rows.length;
+    for (const row of rows) chunks.push(`${upsertStatement(table, columns, row)};\n`);
+  }
+  return { sql: chunks.join(""), counts };
 }
-writeFileSync("db/seed.sql", out);
-const counts = SEED.map(
-  (t) => `${db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c} ${t}`,
-).join(" · ");
-console.log(`db/seed.sql: ${(out.length / 1024).toFixed(0)} KB · ${counts}`);
+
+function formatCounts(counts) {
+  return CONTENT_TABLES.map((table) => `${counts[table]} ${table}`).join(" · ");
+}
+
+export function dumpLocalSeed() {
+  const { localDbPath, seedPath } = packagePaths();
+  if (!existsSync(localDbPath)) {
+    console.error(
+      "✗ local.db not found. Create it first:\n    pnpm db:fresh\n    pnpm db:import-puzzle-school && pnpm db:import-homework && pnpm db:dump\n  Or load the committed snapshot: pnpm db:provision",
+    );
+    return 1;
+  }
+  console.log("Reading local.db (DATABASE_URL is ignored).");
+  const db = new Database(localDbPath, { readonly: true });
+  try {
+    const { sql, counts } = renderContentSeed(db);
+    writeFileSync(seedPath, sql);
+    console.log(
+      `db/seed.sql: ${(Buffer.byteLength(sql) / 1024).toFixed(0)} KB · ${formatCounts(counts)}`,
+    );
+    console.log(
+      "Content upserts only. Stale rows are not deleted (user progress may reference lesson and class ids).",
+    );
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  } finally {
+    db.close();
+  }
+}
+
+if (invokedDirectly(import.meta.url)) {
+  process.exit(dumpLocalSeed());
+}

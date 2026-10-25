@@ -350,9 +350,12 @@ pnpm curriculum:validate
 
 ```bash
 cd apps/web
-pnpm db:dump                     # regenerates db/seed.sql from local.db
+pnpm db:dump                     # content upserts only; ignores DATABASE_URL
 pnpm curriculum:validate         # still green
-pnpm db:fresh && pnpm db:remote  # optional: dry-run remote from fresh seed.sql counts
+# Remote content rollout (docs/ENV.md): backup Turso, then dry-run, then apply.
+# CONFIRM is the hostname only, including case. The token and full URL are not printed.
+CONFIRM='<hostname>' pnpm db:remote
+CONFIRM='<hostname>' pnpm db:remote -- --apply --backup-done
 # Or validate remote directly:
 DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… pnpm curriculum:validate -- --remote
 ```
@@ -437,7 +440,7 @@ SKIP_LIGHTHOUSE=1 pnpm verify:milestone
 pnpm --filter puzzle-school validate
 pnpm --filter web db:import-puzzle-school   # writes curriculum-import-report.json
 pnpm --filter web curriculum:validate
-pnpm --filter web db:dump && pnpm --filter web db:remote   # from personal network
+# Content rollout: docs/ENV.md (CONFIRM=<hostname>, dry-run, then --apply --backup-done)
 SKIP_LIGHTHOUSE=1 pnpm verify:milestone
 ```
 

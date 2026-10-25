@@ -31,7 +31,9 @@ const client = url?.startsWith("libsql:")
       url: `file:${path.join(__dirname, "..", "local.db")}`,
     });
 
-const target = url?.startsWith("libsql:") ? url.replace(/^libsql:\/\//, "") : "local.db";
+const target = url?.startsWith("libsql:")
+  ? url.replace(/^libsql:\/\//, "")
+  : "local.db";
 
 /** Child → parent order. Curriculum tables are intentionally omitted. */
 const TABLES = [
@@ -85,6 +87,8 @@ console.log(`   lessons: ${afterLessons} (was ${before.lessons})`);
 console.log(`   homework_lessons: ${afterHw} (was ${before.homework_lessons})`);
 
 if (afterLessons === 0) {
-  console.error("\n✗ lessons table is empty — curriculum may be missing. Re-seed with db:remote.");
+  console.error(
+    "\n✗ lessons table is empty — curriculum may be missing. Roll out content with db:remote (docs/ENV.md).",
+  );
   process.exit(2);
 }
