@@ -93,7 +93,7 @@ export async function POST(
   const seat = seatColorForUser(s, user.id);
   if (!seat) return NextResponse.json({ error: "not a participant" }, { status: 403 });
 
-  const limited = enforceRateLimit(
+  const limited = await enforceRateLimit(
     req,
     "session:move",
     { limit: 180, windowMs: 60_000 },

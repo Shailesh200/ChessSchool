@@ -6,7 +6,10 @@ export const dynamic = "force-dynamic";
 
 /** Revoke the bearer token (mobile logout). */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "auth:logout", { limit: 30, windowMs: 60_000 });
+  const limited = await enforceRateLimit(req, "auth:logout", {
+    limit: 30,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const h = req.headers.get("authorization");
