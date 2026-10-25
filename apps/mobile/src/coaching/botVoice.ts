@@ -277,44 +277,44 @@ function templates(
       mate: reacting
         ? [`You mated ${b}! Replay the forcing moves.`, `Checkmate vs ${b}! I checked twice.`]
         : [
-            `${b} mated you. Study where shelter broke.`,
+            `${b} mated you. Let's find where your king got exposed.`,
             `Mate from ${b}. The idea started earlier.`,
           ],
       check: reacting
-        ? [`You checked ${b}. Good tempo. What's their defense?`, `Check vs ${b}. Improve, don't just poke.`]
+        ? [`You checked ${b}. Good tempo. What's their defense?`, `Check vs ${b}! What's your follow-up?`]
         : [
             `${b} checks you. Which escape keeps options?`,
-            `In check from ${b}. Calm squares beat fast.`,
+            `In check from ${b}. Breathe, then pick a safe square.`,
           ],
       capture_queen: reacting
-        ? [`You won ${b}'s queen! Walk through the conversion.`, `Queen from ${b} is yours. We're fine. Probably.`]
+        ? [`You won ${b}'s queen! Now use her carefully.`, `Queen from ${b} is yours! Okay. We're fine.`]
         : [
             `Oh no — ${b} took your queen. We can fix this.`,
-            `Losing the queen to ${b}. Where did she lose guards?`,
+            `${b} took your queen. Where was she unprotected?`,
           ],
       capture_rook: reacting
         ? [`You took ${b}'s rook! Open files. We're okay.`, `Rook capture vs ${b}. Verify the reply.`]
         : [
             `Oh no they took your rook. We can fix this.`,
-            `${b} wins your rook. Deep breath. File discipline.`,
+            `${b} wins your rook. Deep breath. Check what's unguarded.`,
           ],
       capture_minor: reacting
         ? [`You picked off ${b}'s ${p}. I double-checked. Solid.`, `${b}'s ${p} is gone. Keep improving.`]
         : [
             `Oh no — ${b} captured your ${p}. Scan for tactics.`,
-            `${b} wins the ${p}. Don't donate another.`,
+            `${b} wins the ${p}. Let's keep the rest guarded.`,
           ],
       capture_pawn: reacting
         ? [`You took ${b}'s pawn. Little bite. Verified.`, `Pawn from ${b} is yours. Stay with me.`]
         : [
-            `Oh no they took something. We can fix this.`,
+            `${b} took a pawn. No panic — we can fix this.`,
             `${b} ate your pawn. Structure still matters.`,
           ],
       castle: reacting
-        ? [`You castled vs ${b}! I can unclench a little.`, `Castle against ${b}. Kings belong tucked.`]
+        ? [`You castled vs ${b}! I can relax a little.`, `Castle against ${b}. Kings belong tucked.`]
         : [
-            `${b} castled. Plan against pawns, not panic.`,
-            `${b} tucked the king. Calculate your development.`,
+            `${b} castled. Make a calm plan.`,
+            `${b} tucked the king. Bring your pieces out next.`,
           ],
       promote: [
         `Oh no — ${b} promoted. Stop the next one.`,
@@ -327,17 +327,17 @@ function templates(
       develop: reacting
         ? [`You're developing vs ${b}. Pieces before random pushes.`, `Piece out! Development still wins.`]
         : [
-            `${b} developed. Mirror tempo — falling behind scares me.`,
+            `${b} developed. Your turn — bring a piece out.`,
             `${b} gets a piece out. Find yours.`,
           ],
       center: reacting
         ? [`You fought for the centre vs ${b}. Good habit.`, `Central pawn from you. ${b} can't ignore it.`]
         : [
-            `${b} claimed the middle. Contest it or regret it.`,
+            `${b} claimed the middle. Push back with a pawn or piece.`,
             `${b} stakes the centre. Space matters.`,
           ],
       escape_check: [
-        `${b} slipped out of check. Reload or regroup?`,
+        `${b} escaped check. Attack again or regroup?`,
         `${b} found a king square. Not gone. Breathe.`,
       ],
       quiet_opening: [
@@ -345,12 +345,12 @@ function templates(
         `Subtle start. What's your best piece doing?`,
       ],
       quiet_middlegame: [
-        `Middlegame vs ${b}. Trade ahead, improve when equal.`,
+        `Middlegame vs ${b}. Ahead? Trade pieces. Even? Improve one.`,
         `${b} plays slowly. Find the hidden weakness.`,
       ],
       quiet_endgame: [
         `Endgame vs ${b}. Activate your king first.`,
-        `Few pieces left. One slip still hurts.`,
+        `Few pieces left. Every move counts — go slow.`,
       ],
     },
     egoistic: {
@@ -563,7 +563,7 @@ export function buildMatchGreeting(
         `Back against ${botName}. Neither should you.`,
       ],
       anxious_nerd: [
-        `Welcome back to ${botName}. Scan before you touch.`,
+        `Welcome back. ${botName} is waiting. Look before you move.`,
         `Paused mid-fight with ${botName}. Okay. Plan?`,
       ],
       egoistic: [
@@ -611,9 +611,9 @@ export function buildMatchGreeting(
     casual: `Casual band — ideas beat memorized theory.`,
     developing: `Developing — punish hangs, watch traps.`,
     club: `Club level — ${botName} spots loose pieces fast.`,
-    expert: `Expert — small slips become lectures.`,
-    master: `Master band — ${botName} punishes everything.`,
-    elite: `Elite — ${botName} doesn't do friendly inaccuracies.`,
+    expert: `Expert — a stronger bot that notices small mistakes.`,
+    master: `Master band — ${botName} is stronger and very accurate.`,
+    elite: `Elite — ${botName} is much stronger. Play carefully.`,
   };
 
   const base = pick(open[personality], seed);
@@ -638,8 +638,8 @@ export function buildRecapEpilogue(
       ` You beat ${botName}. Don't confuse luck with ceiling.`,
     ],
     anxious_nerd: [
-      ` Strong result vs ${botName}. Write one move down.`,
-      ` Win against ${botName}. Notice what came before tactics.`,
+      ` Strong result vs ${botName}. Remember one move that worked.`,
+      ` Win against ${botName}. Notice how you set it up.`,
     ],
     egoistic: [
       ` You took down ${botName}! Next rating band.`,
@@ -661,7 +661,7 @@ export function buildRecapEpilogue(
     ],
     anxious_nerd: [
       ` Loss to ${botName}. Study one turning point.`,
-      ` ${botName} outplayed you. Deep breath.`,
+      ` ${botName} won this one. Deep breath — you'll get the next.`,
     ],
     egoistic: [
       ` ${botName} turned it — find the missed tactic.`,

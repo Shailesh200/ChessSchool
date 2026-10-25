@@ -32,7 +32,7 @@ export const PERSONAS: Record<CoachCharacterId, Persona> = {
     praise: [
       "Okay okay — that works. You're good.",
       "Yes! I checked twice. That's correct.",
-      "Phew. Safe move. Heartbeat normal again.",
+      "Phew. Safe move. Nicely done.",
       "That holds. I ran it twice. We're fine.",
       "Solid. You saw it before I did.",
       "Correct — king still breathing. Important.",
@@ -41,36 +41,36 @@ export const PERSONAS: Record<CoachCharacterId, Persona> = {
     ],
     nudge: [
       "Wait — not that square. Breathe.",
-      "Oh no. Scan checks first. Try again.",
+      "Not quite. Look for checks first, then try again.",
       "Slow down. Anything hanging? Look again.",
-      "That made me twitch. Cleaner idea nearby.",
+      "Hmm, not that one. A cleaner idea is nearby.",
       "Pause. King safety first. You've got this.",
-      "I don't love that. What is their queen doing?",
+      "Hmm, not that one. What is their next threat?",
     ],
     quizIntro: [
-      "Pop quiz. No pressure. Little pressure.",
+      "Pop quiz. No pressure. Just one careful look.",
       "Read it twice. Then tap an answer.",
       "Quiz time. I already overthought it.",
     ],
     quizSuccess: [
-      "Yes! I knew you'd get it. Mostly.",
-      "Correct. I can unclench now.",
+      "Yes! I knew you'd get it.",
+      "Correct. I can relax now.",
       "That's the one. Verified. Moving on.",
     ],
     quizRetry: [
       "Not that — wrong answers are data.",
       "Hmm. Try once more. Read it again.",
-      "Close-ish. Slow breath. Another look.",
+      "Not quite. Slow breath. Another look.",
     ],
     quizAnswerLabel: [
-      "Tap the answer you'd double-check",
-      "Pick the safest correct option",
+      "Tap the answer you're sure of",
+      "Pick the correct option",
       "Which one survives a second look?",
     ],
-    capture: (p) => `You took a ${p}. Material up. Nice.`,
+    capture: (p) => `You took a ${p}. Nice capture.`,
     check: "Check! Nice… I checked twice.",
     mate: "Checkmate! I checked. Definitely over.",
-    lessonOpeners: ["Okay. Stay with me — ", "Quick note — ", "Careful version — "],
+    lessonOpeners: ["Okay. Stay with me — ", "Quick note — ", "Let's go slowly — "],
   },
   genz: {
     praise: [
@@ -85,7 +85,7 @@ export const PERSONAS: Record<CoachCharacterId, Persona> = {
     ],
     nudge: [
       "Nope. Reset. You've got this.",
-      "That was mid. Find the real idea.",
+      "Not quite. Find the real idea.",
       "Not it. Look again — free pieces.",
       "Nah. King safety first. Vibes second.",
       "Try again. Answer's right there.",
@@ -107,7 +107,7 @@ export const PERSONAS: Record<CoachCharacterId, Persona> = {
       "Miss. Options still there. Lock in.",
     ],
     quizAnswerLabel: [
-      "Tap the answer you'd send in chat",
+      "Pick the right answer",
       "Pick the real one",
       "Which option is actually correct?",
     ],
@@ -292,13 +292,13 @@ const GENERIC_SUCCESS = /^(correct|nice|solved|good|promoted|well done)/i;
 const LESSON_TEMPLATE_ALTS: Record<CoachCharacterId, string[]> = {
   anxious_nerd: [
     "Find the safe strong move. I'll wait.",
-    "Play the idea that still works if we're wrong.",
-    "What would you play if you explained it twice?",
+    "Play the idea that still works if they reply well.",
+    "Pick a move you could explain out loud.",
   ],
   genz: [
     "Your move — find the idea that hits.",
     "Lock in. Play the cleanest plan.",
-    "What would you play for the clip? That one.",
+    "What's the move you'd show a friend?",
   ],
   sassy: [
     "Your move. Find something with taste.",
