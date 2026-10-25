@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChessSchool screenshot caption</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #fbfaff;
+      }
+      #frame {
+        box-sizing: border-box;
+        width: 1080px;
+        height: 1920px;
+        display: flex;
+        flex-direction: column;
+        background: #fbfaff;
+        font-family: Fredoka, "Avenir Next", "Segoe UI", sans-serif;
+      }
+      header {
+        box-sizing: border-box;
+        height: 280px;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        padding: 36px 64px;
+        background: linear-gradient(135deg, #5b5bd6 0%, #4b46c4 58%, #3b35a0 100%);
+        color: #fbfaff;
+      }
+      .mark {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+      }
+      .mark span {
+        color: #f6c343;
+      }
+      h1 {
+        margin: 0;
+        max-width: 952px;
+        font-size: 46px;
+        line-height: 1.15;
+        font-weight: 700;
+        letter-spacing: -0.6px;
+        color: #fbfaff;
+      }
+      .rule {
+        width: 96px;
+        height: 8px;
+        border-radius: 999px;
+        background: #f6c343;
+      }
+      #shot {
+        display: block;
+        width: 1080px;
+        height: 1640px;
+        flex: none;
+        object-fit: fill;
+        background: #fbfaff;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Caption source for the Play phone screenshots.
+      capture.mjs sets #caption and #shot, then screenshots #frame at 1080×1920.
+      Captions:
+        01 Learn chess step by step, like school
+        02 Short classes that build on each other
+        03 Learn by doing, one move at a time
+        04 Play bots that match your level
+        05 Spot forks, pins and more
+        06 Review every game, move by move
+      Colours match feature-graphic.html: #5b5bd6 #4b46c4 #3b35a0 #f6c343 #fbfaff #1c1b2e
+    -->
+    <div id="frame">
+      <header>
+        <p class="mark">Chess<span>School</span></p>
+        <h1 id="caption">Learn chess step by step, like school</h1>
+        <div class="rule"></div>
+      </header>
+      <img id="shot" alt="" />
+    </div>
+  </body>
+</html>

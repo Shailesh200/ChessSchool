@@ -1,0 +1,37 @@
+# Play listing assets
+
+No avatars appear in these files. No coach portraits, mascots, or cartoon characters are in the frames.
+
+The phone screenshots are the **web** app in a phone-sized browser window, not a native Android capture. This machine has no Android emulator. Web-only chrome is hidden for the capture (Next.js dev tools, the desktop sidebar, and the guest enroll banner). The signed-in streak and level bar, and the bottom tabs, stay because the phone app uses that same chrome.
+
+Each screenshot is a local test account created on the dev database at capture time. The display name is Alex. The account is a normal student profile. No email address, real name, or child profile is in any frame.
+
+Captions are drawn from `screenshots/caption-frame.html` (Fredoka, the same brand colours as `feature-graphic.html`) and composited on top. Final phone PNGs are 1080×1920 with no alpha.
+
+## How to regenerate the phone screenshots
+
+`capture.mjs` needs **system Chrome** (Playwright `channel: "chrome"`, not the bundled Chromium build).
+
+```bash
+pnpm --filter web dev
+node apps/mobile/store-assets/play-store/capture.mjs screens
+```
+
+`BASE_URL` defaults to `http://localhost:3000`. Use `localhost`, not `127.0.0.1`. The script creates the local Alex user itself. `node apps/mobile/store-assets/play-store/capture.mjs graphic` re-renders `feature-graphic.html`; the PNG checked in here is the approved render, so leave that mode alone unless the HTML changes.
+
+`node scripts/generate-play-store-assets.mjs` only runs the `screens` command above. It does not write `icon-512.png`, `feature-graphic-1024x500.png`, or the retired screenshot names.
+
+| File | Dimensions | Bytes | What it shows |
+|------|------------|------:|---------------|
+| `feature-graphic.png` | 1024×500 | 78160 | ChessSchool wordmark, app icon, and a Staunton board (Italian Game). Source: `feature-graphic.html`. Approved; not regenerated here. |
+| `feature-graphic.html` | — | — | Editable source for the feature graphic. Pieces are `apps/web/public/pieces/cburnett`. |
+| `icon-512.png` | 512×512 | 29284 | Existing app icon (book and cap). Not a character. Not rewritten by the generator. |
+| `screenshots/caption-frame.html` | — | — | Caption band source. Fredoka on `#5b5bd6` / `#4b46c4` / `#3b35a0`, gold rule `#f6c343`. |
+| `screenshots/01-campus.png` | 1080×1920 | 327046 | Caption: “Learn chess step by step, like school”. Academy path with the stage name **Starter**. Signed-in level bar. Welcome mascot is scrolled off. |
+| `screenshots/02-class-journey.png` | 1080×1920 | 263356 | Caption: “Short classes that build on each other”. The Chess Board class lesson path. No portrait on this screen. |
+| `screenshots/03-lesson.png` | 1080×1920 | 282434 | Caption: “Learn by doing, one move at a time”. Pawn Power. Coach line “Pawns move forward. Push your e-pawn two squares to grab the centre!”, the board with the lesson’s e2–e4 arrow, and “White to move”. The generic “Take your time and calculate” tip is not in the frame. Portrait hidden. |
+| `screenshots/04-bot-game.png` | 1080×1920 | 272105 | Caption: “Play bots that match your level”. Bot game vs **Remi · 900** on a 5-minute clock. Header `vs Remi · 900`. Both bars read **4:58** (`Remi · 900` and `You`). Position after 1.e4 c6 2.Nf3 Nh6 3.Bc4 Rg8. The coach portrait between the bars is hidden; the coach line is text only. The name row has no character art. |
+| `screenshots/05-tactic.png` | 1080×1920 | 218670 | Caption: “Spot forks, pins and more”. The Fork, after the knight leaps to **c7**, checking the king on e8 and attacking the rook on a8. Hint: “A knight fork hits two pieces at once — aim at the king and a big piece.” Portrait hidden. |
+| `screenshots/06-review.png` | 1080×1920 | 284519 | Caption: “Review every game, move by move”. Replay of that bot game. Move list: 1.e4 c6 2.Nf3 Nh6 3.Bc4 Rg8. No loading bar. The review index mascot is not this screen. |
+
+Replaced because they showed coach or mascot art, or pointed at files that no longer exist: `screenshots/01-academy.png`, `screenshots/04-play.png`, `screenshots/05-review.png`, `screenshots/06-profile.png`, and `feature-graphic-1024x500.png`.
