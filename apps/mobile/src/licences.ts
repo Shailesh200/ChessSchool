@@ -1,9 +1,9 @@
 /**
  * About & licences copy.
  *
- * The shipped web engine is stockfish.js v18.0.0 (lite, single-threaded),
- * commit 31a98753a5d932511693f44775da908377c24513. Official Stockfish sf_18
- * is the upstream origin of that port, not the binary we ship.
+ * Android and web ship stockfish.js v18.0.0 (commit 31a98753). iOS compiles
+ * native Stockfish from the official sf_18 tarball (commit cb3d4ee9), so the
+ * iOS screen links that source instead of stockfish.js.
  *
  * The app source link uses a full commit SHA. EAS writes
  * EAS_BUILD_GIT_COMMIT_HASH into Expo config extra.gitCommit at build time.
@@ -45,6 +45,8 @@ export type LicenceRevisionInput = {
   /** Expo extra.gitCommit, set from EAS_BUILD_GIT_COMMIT_HASH. */
   gitCommit?: unknown;
   version?: unknown;
+  /** `Platform.OS`. Only `ios` links the native sf_18 sources. */
+  platform?: string;
 };
 
 /** Strings rendered by the About & licences screen. */
@@ -52,15 +54,19 @@ export function licenceScreenModel(input: LicenceRevisionInput = {}) {
   const revision = typeof input.gitCommit === "string" ? commitSha(input.gitCommit) : null;
   const version =
     typeof input.version === "string" && input.version.trim() ? input.version.trim() : null;
+  const nativeIos = input.platform === "ios";
+  const upstreamHint = `Official Stockfish ${STOCKFISH_UPSTREAM_TAG} · ${STOCKFISH_UPSTREAM_COMMIT.slice(0, 12)}`;
   return {
     title: "About & licences" as const,
     notice: STOCKFISH_NOTICE,
     credit: STOCKFISH_AUTHORS_CREDIT,
-    shippedSourceUrl: STOCKFISH_JS_SOURCE_URL,
-    shippedSourceHint: `stockfish.js ${STOCKFISH_JS_TAG} · ${STOCKFISH_JS_COMMIT.slice(0, 12)}`,
-    upstreamSourceUrl: STOCKFISH_UPSTREAM_URL,
-    upstreamSourceHint:
-      `Official Stockfish ${STOCKFISH_UPSTREAM_TAG} · ${STOCKFISH_UPSTREAM_COMMIT.slice(0, 12)}`,
+    shippedSourceLabel: nativeIos ? "Stockfish source" : "Shipped engine source",
+    shippedSourceUrl: nativeIos ? STOCKFISH_UPSTREAM_URL : STOCKFISH_JS_SOURCE_URL,
+    shippedSourceHint: nativeIos
+      ? upstreamHint
+      : `stockfish.js ${STOCKFISH_JS_TAG} · ${STOCKFISH_JS_COMMIT.slice(0, 12)}`,
+    upstreamSourceUrl: nativeIos ? null : STOCKFISH_UPSTREAM_URL,
+    upstreamSourceHint: nativeIos ? null : upstreamHint,
     appSourceUrl: appSourceUrl(revision),
     appSourceKnown: revision != null,
     versionLabel: version ? `ChessSchool v${version}` : "ChessSchool",

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { AppShell } from "@/AppShell";
@@ -19,6 +19,7 @@ export default function LicencesScreen() {
   const model = licenceScreenModel({
     gitCommit: extra?.gitCommit,
     version: Constants.expoConfig?.version,
+    platform: Platform.OS,
   });
 
   return (
@@ -34,16 +35,20 @@ export default function LicencesScreen() {
         <Text style={styles.section}>Source</Text>
         <View style={styles.card}>
           <LinkRow
-            label="Shipped engine source"
+            label={model.shippedSourceLabel}
             url={model.shippedSourceUrl}
             hint={model.shippedSourceHint}
           />
-          <View style={styles.divider} />
-          <LinkRow
-            label="Stockfish origin"
-            url={model.upstreamSourceUrl}
-            hint={model.upstreamSourceHint}
-          />
+          {model.upstreamSourceUrl ? (
+            <>
+              <View style={styles.divider} />
+              <LinkRow
+                label="Stockfish origin"
+                url={model.upstreamSourceUrl}
+                hint={model.upstreamSourceHint ?? ""}
+              />
+            </>
+          ) : null}
           <View style={styles.divider} />
           <LinkRow label="This app's source" url={model.appSourceUrl} hint={model.appSourceUrl} />
           {!model.appSourceKnown ? (
