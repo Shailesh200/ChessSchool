@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   LOCAL_DATABASE_URL,
+  PRODUCTION_DB_HOSTS,
   isHostedDatabaseUrl,
   isRemoteDriverUrl,
   requiresHostedDatabase,
@@ -9,6 +10,18 @@ import {
 
 const SECRET_URL = "file:/tmp/do-not-leak-database-url";
 const SECRET_TOKEN = "do-not-leak-auth-token-value";
+const PROD_HOST = PRODUCTION_DB_HOSTS[0];
+/** Synthetic stand-in. The staging hostname is not recorded in this repo. */
+const NON_PROD_HOST = "staging-not-production.turso.io";
+
+function errorFrom(run: () => void): string {
+  try {
+    run();
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  throw new Error("expected resolveDatabaseUrl to throw");
+}
 
 describe("resolveDatabaseUrl", () => {
   afterEach(() => {
@@ -126,5 +139,84 @@ describe("resolveDatabaseUrl", () => {
         DATABASE_URL: "https://prod.turso.io",
       }),
     ).toBe("https://prod.turso.io");
+  });
+
+  it("throws when preview or development points at the production host", () => {
+    for (const VERCEL_ENV of ["preview", "development", undefined]) {
+      const DATABASE_URL = `libsql://preview-user:preview-secret-token@${PROD_HOST}/db`;
+      const message = errorFrom(() =>
+        resolveDatabaseUrl({
+          VERCEL: "1",
+          VERCEL_ENV,
+          DATABASE_URL,
+          DATABASE_AUTH_TOKEN: SECRET_TOKEN,
+        }),
+      );
+      expect(message).toMatch(/DATABASE_URL/);
+      expect(message).toMatch(/VERCEL_ENV/);
+      expect(message).toMatch(/not production/);
+      expect(message).not.toContain(DATABASE_URL);
+      expect(message).not.toContain("preview-secret-token");
+      expect(message).not.toContain(SECRET_TOKEN);
+    }
+    const dotted = `https://preview-secret-token@${PROD_HOST}.`;
+    const dottedMessage = errorFrom(() =>
+      resolveDatabaseUrl({
+        VERCEL: "1",
+        VERCEL_ENV: "preview",
+        DATABASE_URL: dotted,
+      }),
+    );
+    expect(dottedMessage).not.toContain(dotted);
+    expect(dottedMessage).not.toContain("preview-secret-token");
+  });
+
+  it("throws when production points at a non-production host", () => {
+    const DATABASE_URL = `https://prod-user:production-secret-token@${NON_PROD_HOST}/db`;
+    const message = errorFrom(() =>
+      resolveDatabaseUrl({
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+        DATABASE_URL,
+        DATABASE_AUTH_TOKEN: SECRET_TOKEN,
+      }),
+    );
+    expect(message).toMatch(/DATABASE_URL/);
+    expect(message).toMatch(/VERCEL_ENV is production/);
+    expect(message).not.toContain(DATABASE_URL);
+    expect(message).not.toContain(NON_PROD_HOST);
+    expect(message).not.toContain("production-secret-token");
+    expect(message).not.toContain(SECRET_TOKEN);
+  });
+
+  it("allows production on the production host and preview on another host", () => {
+    expect(
+      resolveDatabaseUrl({
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+        DATABASE_URL: `libsql://${PROD_HOST}`,
+      }),
+    ).toBe(`libsql://${PROD_HOST}`);
+    expect(
+      resolveDatabaseUrl({
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+        DATABASE_URL: `  https://${PROD_HOST}/  `,
+      }),
+    ).toBe(`https://${PROD_HOST}/`);
+    expect(
+      resolveDatabaseUrl({
+        VERCEL: "1",
+        VERCEL_ENV: "preview",
+        DATABASE_URL: `libsql://${NON_PROD_HOST}`,
+      }),
+    ).toBe(`libsql://${NON_PROD_HOST}`);
+    expect(
+      resolveDatabaseUrl({
+        VERCEL: "1",
+        VERCEL_ENV: "development",
+        DATABASE_URL: `https://${NON_PROD_HOST}`,
+      }),
+    ).toBe(`https://${NON_PROD_HOST}`);
   });
 });

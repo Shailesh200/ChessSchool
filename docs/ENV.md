@@ -28,6 +28,8 @@ Launch go-live steps: [`plans/M-073_WEB_GA_LAUNCH.md`](../plans/M-073_WEB_GA_LAU
 
 On Vercel, `VERCEL=1` for Production and Preview (build and runtime). `DATABASE_URL` must then be a `libsql:` or `https:` URL. A missing value, a `file:` URL, or a bare path throws when the DB client loads. The error names `DATABASE_URL` and does not include the URL or `DATABASE_AUTH_TOKEN`. Local dev, local `next build`, and CI do not set `VERCEL`, so they still use `apps/web/local.db` when `DATABASE_URL` is unset. `NODE_ENV=production` is not the gate: those local production builds use a file database on purpose.
 
+When `VERCEL_ENV` is `production`, the hostname must be the production Turso host `chessschool-shailesh200.aws-ap-south-1.turso.io` (README operator links; hostname only). Preview and development refuse that host so a copied production URL cannot write to live data. The error names `DATABASE_URL` and `VERCEL_ENV` and does not include the URL or token.
+
 Sentry sampling: `tracesSampleRate` 0.05 in production (1.0 in development), `sendDefaultPii: false`, no session replay. Tunnel route: `/sentry-tunnel`. Org `shailesh-jha` / project `chessschool-web`.
 
 ### Google OAuth redirect

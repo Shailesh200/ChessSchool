@@ -7,7 +7,8 @@ import * as schema from "./schema";
 /**
  * Drizzle DB client (libSQL) — one driver for both worlds:
  *   • local dev / local production build → DATABASE_URL unset → `file:local.db`
- *   • Vercel → DATABASE_URL must be `libsql:` or `https:` (no file fallback)
+ *   • Vercel → DATABASE_URL must be `libsql:` or `https:` (no file fallback).
+ *     Production must use the production Turso host; Preview must not.
  * Cached on globalThis to survive HMR outside production.
  */
 const globalForDb = globalThis as unknown as { __db?: ReturnType<typeof drizzle> };
