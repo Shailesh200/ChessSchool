@@ -6,6 +6,7 @@
  *
  *   pnpm --filter web dev
  *   node apps/mobile/store-assets/play-store/capture.mjs screens
+ *   node apps/mobile/store-assets/play-store/capture.mjs screens 04,05,06
  *   node apps/mobile/store-assets/play-store/capture.mjs graphic
  *
  * BASE_URL defaults to http://localhost:3000. Use localhost, not 127.0.0.1.
@@ -22,6 +23,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Chess } from "../../../web/node_modules/chess.js/dist/esm/chess.js";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const shotDir = path.join(dir, "screenshots");
@@ -169,25 +171,113 @@ async function clickSquare(page, boardId, square) {
 async function pieceSignature(page, prefix) {
   return page.evaluate((prefix) => {
     return [...document.querySelectorAll(`[id^="${prefix}-square-"] img`)]
-      .map((img) => `${img.closest("[id]")?.id}:${img.getAttribute("src")}`)
+      .map((img) => {
+        const square = img.closest(`[id^="${prefix}-square-"]`);
+        return `${square?.id}:${img.getAttribute("src")}`;
+      })
       .sort()
       .join("|");
   }, prefix);
 }
 
-async function waitForSignatureChange(page, prefix, previous) {
+async function waitForSignatureChange(page, prefix, previous, timeout = 20000) {
   await page.waitForFunction(
     ({ prefix, previous }) => {
       const now = [...document.querySelectorAll(`[id^="${prefix}-square-"] img`)]
-        .map((img) => `${img.closest("[id]")?.id}:${img.getAttribute("src")}`)
+        .map((img) => {
+          const square = img.closest(`[id^="${prefix}-square-"]`);
+          return `${square?.id}:${img.getAttribute("src")}`;
+        })
         .sort()
         .join("|");
       return now !== previous && now.length > 0;
     },
     { prefix, previous },
-    { timeout: 20000 },
+    { timeout },
   );
   return pieceSignature(page, prefix);
+}
+
+function pieceMap(sig) {
+  const map = new Map();
+  for (const part of sig.split("|")) {
+    if (!part) continue;
+    const idx = part.indexOf(":");
+    const id = part.slice(0, idx);
+    const src = part.slice(idx + 1);
+    const sq = id.split("-square-").pop();
+    if (sq) map.set(sq, src);
+  }
+  return map;
+}
+
+/** Apply the position diff to a chess.js game and return the SAN. */
+function applyDiff(chess, beforeSig, afterSig) {
+  const before = pieceMap(beforeSig);
+  const after = pieceMap(afterSig);
+  const squares = new Set([...before.keys(), ...after.keys()]);
+  const lost = [];
+  const gained = [];
+  for (const sq of squares) {
+    const av = before.get(sq) ?? "";
+    const bv = after.get(sq) ?? "";
+    if (av === bv) continue;
+    if (av) lost.push({ sq, src: av });
+    if (bv) gained.push({ sq, src: bv });
+  }
+  const kingLost = lost.find((p) => p.src.endsWith("K.svg"));
+  const kingGained = gained.find((p) => p.src.endsWith("K.svg"));
+  if (kingLost && kingGained && lost.length >= 2) {
+    return chess.move({ from: kingLost.sq, to: kingGained.sq });
+  }
+  if (lost.length === 2 && gained.length === 1) {
+    const mover = lost.find((p) => p.src === gained[0].src);
+    if (mover) return chess.move({ from: mover.sq, to: gained[0].sq });
+  }
+  if (lost.length === 1 && gained.length === 1) {
+    const promotion =
+      lost[0].src.endsWith("P.svg") && !gained[0].src.endsWith("P.svg")
+        ? gained[0].src.includes("Q.svg")
+          ? "q"
+          : gained[0].src.includes("R.svg")
+            ? "r"
+            : gained[0].src.includes("B.svg")
+              ? "b"
+              : "n"
+        : undefined;
+    return chess.move({ from: lost[0].sq, to: gained[0].sq, promotion });
+  }
+  return null;
+}
+
+const RIM_BLUNDER = /^(Na3|Na6|Nh3|Nh6|Ra3|Ra6|Rh3|Rh6|Rg8|Rh5|Ra5|Ra6)$/;
+
+function hasRimBlunder(history) {
+  return history.slice(0, 16).some((san) => RIM_BLUNDER.test(san));
+}
+
+function legalSan(chess, san) {
+  try {
+    const mv = chess.move(san);
+    if (!mv) return null;
+    chess.undo();
+    return mv;
+  } catch {
+    return null;
+  }
+}
+
+function pickWhite(chess) {
+  const whiteCount = chess.history().filter((_, i) => i % 2 === 0).length;
+  const scripted = legalSan(chess, WHITE_LINE[whiteCount] ?? "");
+  if (scripted) return scripted;
+  const prefs = ["Nf3", "Nc3", "d4", "Bc4", "O-O", "Re1", "d3", "c3", "h3", "a3"];
+  for (const san of prefs) {
+    const mv = legalSan(chess, san);
+    if (mv) return mv;
+  }
+  const moves = chess.moves({ verbose: true });
+  return moves.find((m) => !m.captured && m.piece !== "k") ?? moves[0] ?? null;
 }
 
 const LESSON_PACK_CSS = `
@@ -202,24 +292,97 @@ const LESSON_PACK_CSS = `
   }
 `;
 
+const TACTIC_PACK_CSS = `
+  body[data-capture="tactic"] .coach-avatar { display: none !important; }
+  body[data-capture="tactic"] .min-h-dvh { min-height: 0 !important; }
+  body[data-capture="tactic"] .min-h-dvh > .flex-1,
+  body[data-capture="tactic"] .order-1,
+  body[data-capture="tactic"] .order-2,
+  body[data-capture="tactic"] .order-2 .flex-1 {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+  }
+  body[data-capture="tactic"] .order-1 { min-height: 0 !important; }
+  body[data-capture="tactic"] .order-2 { gap: 8px !important; }
+  body[data-capture="tactic"] .min-h-dvh > .flex-1 {
+    gap: 8px !important;
+    padding-top: 6px !important;
+    padding-bottom: 4px !important;
+  }
+  body[data-capture="tactic"] [class*="min-h-[5.25rem]"] {
+    position: static !important;
+    min-height: 0 !important;
+    padding-top: 4px !important;
+  }
+  body[data-capture="tactic"] div:has(> [data-testid="chess-board"]) {
+    width: var(--cap-board) !important;
+    max-width: var(--cap-board) !important;
+  }
+  body[data-capture="tactic"] #capture-fork-arrows {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 30;
+  }
+`;
+
 const MATCH_PACK_CSS = `
   body[data-capture="match"] .coach-avatar { display: none !important; }
-  body[data-capture="match"] .capture-board {
-    width: calc(100vw - 64px) !important;
-    height: calc(100vw - 64px) !important;
-    max-width: calc(100vw - 64px) !important;
-    max-height: calc(100vw - 64px) !important;
+  body[data-capture="match"] div.sticky + div { margin-top: var(--cap-shift, 0px) !important; }
+  body[data-capture="match"] .h-\\[4\\.75rem\\] > div:first-child { display: none !important; }
+  body[data-capture="match"] .h-\\[4\\.75rem\\] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 3.4rem !important;
   }
-  body[data-capture="match"] .capture-board-col {
+  body[data-capture="match"] div:has(> button[aria-label="Previous move"]) { display: none !important; }
+  body[data-capture="match"] div:has(> div > div > #match-board-board) {
     flex: 0 0 auto !important;
+    min-height: 0 !important;
     justify-content: flex-start !important;
-    padding-left: 32px !important;
-    padding-right: 32px !important;
+    padding-top: var(--cap-pad, 8px) !important;
+    padding-bottom: 6px !important;
+  }
+  body[data-capture="match"] div:has(> div > #match-board-board) {
+    width: var(--cap-board) !important;
+    height: var(--cap-board) !important;
+    max-width: var(--cap-board) !important;
+    max-height: var(--cap-board) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+`;
+
+const REVIEW_PACK_CSS = `
+  body[data-capture="review"] div:has(> [data-testid="chess-board"]) {
+    width: var(--cap-board, 100%) !important;
+    max-width: var(--cap-board, 28rem) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  body[data-capture="review"] [data-testid="chess-board"] [id*="-square-"] > div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  body[data-capture="review"] [data-testid="chess-board"] img {
+    width: var(--piece-scale, 46%) !important;
+    height: var(--piece-scale, 46%) !important;
+    margin: 0 !important;
+  }
+  body[data-capture="review"] [id*="-square-"] > span span {
+    font-size: 9px !important;
+    line-height: 1 !important;
+    z-index: 3 !important;
   }
 `;
 
 async function installPackStyles(page) {
-  await page.addStyleTag({ content: LESSON_PACK_CSS + MATCH_PACK_CSS });
+  await page.addStyleTag({ content: LESSON_PACK_CSS + TACTIC_PACK_CSS + MATCH_PACK_CSS + REVIEW_PACK_CSS });
 }
 
 async function prepareLesson(page, { hideGenericTip }) {
@@ -295,24 +458,504 @@ async function fitLessonBoard(page, boardSel) {
   }
 }
 
-async function prepareMatch(page) {
+async function drawForkArrows(page) {
   await page.evaluate(() => {
-    document.body.dataset.capture = "match";
-    const board = document.querySelector("#match-board-board");
-    const sized = board?.parentElement;
-    if (sized) sized.classList.add("capture-board");
-    const col = sized?.parentElement;
-    if (col) col.classList.add("capture-board-col");
-    const avatar = document.querySelector(".coach-avatar");
-    const hole = avatar?.parentElement;
-    if (hole) {
-      hole.style.display = "none";
-      hole.style.width = "0";
-      hole.style.height = "0";
-      hole.style.overflow = "hidden";
+    document.getElementById("capture-fork-arrows")?.remove();
+    const c7 = document.querySelector("#lesson-fork-master-square-c7");
+    const e8 = document.querySelector("#lesson-fork-master-square-e8");
+    const a8 = document.querySelector("#lesson-fork-master-square-a8");
+    if (!c7 || !e8 || !a8) return;
+    const center = (el) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.id = "capture-fork-arrows";
+    svg.setAttribute("viewBox", `0 0 ${window.innerWidth} ${window.innerHeight}`);
+    const from = center(c7);
+    const add = (toEl) => {
+      const to = center(toEl);
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+      const endPad = Math.min(18, len * 0.28);
+      const ex = to.x - ux * endPad;
+      const ey = to.y - uy * endPad;
+      const head = 15;
+      const wing = 8;
+      const px = -uy;
+      const py = ux;
+      const hx = ex - ux * head;
+      const hy = ey - uy * head;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute(
+        "d",
+        `M ${from.x.toFixed(1)} ${from.y.toFixed(1)} L ${hx.toFixed(1)} ${hy.toFixed(1)} M ${(hx + px * wing).toFixed(1)} ${(hy + py * wing).toFixed(1)} L ${ex.toFixed(1)} ${ey.toFixed(1)} L ${(hx - px * wing).toFixed(1)} ${(hy - py * wing).toFixed(1)}`,
+      );
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "#f59e0b");
+      path.setAttribute("stroke-width", "7");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      svg.appendChild(path);
+    };
+    add(e8);
+    add(a8);
+    document.body.appendChild(svg);
+  });
+}
+
+async function packTactic(page) {
+  await page.evaluate(() => {
+    document.body.dataset.capture = "tactic";
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    for (const row of document.querySelectorAll(".order-2 .h-10")) {
+      if (!row.innerText.trim()) row.style.setProperty("display", "none", "important");
     }
   });
+  let size = 330;
+  let last = null;
+  for (let i = 0; i < 12; i += 1) {
+    last = await page.evaluate((next) => {
+      document.documentElement.style.setProperty("--cap-board", `${next}px`);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const header = document.querySelector(".sticky.top-0")?.getBoundingClientRect();
+      const rect = (sel) => {
+        const r = document.querySelector(sel)?.getBoundingClientRect();
+        if (!r) return null;
+        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width };
+      };
+      const tip = [...document.querySelectorAll("p")].find((p) => p.textContent.includes("knight fork"));
+      const cont = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Continue");
+      const box = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, height: r.height };
+      };
+      return {
+        size: next,
+        headerBottom: header?.bottom ?? 0,
+        a8: rect("#lesson-fork-master-square-a8"),
+        e8: rect("#lesson-fork-master-square-e8"),
+        h8: rect("#lesson-fork-master-square-h8"),
+        a1: rect("#lesson-fork-master-square-a1"),
+        h1: rect("#lesson-fork-master-square-h1"),
+        board: rect("#lesson-fork-master-board"),
+        tip: box(tip),
+        cont: box(cont),
+        innerHeight: window.innerHeight,
+        pieces: {
+          c7: Boolean(document.querySelector("#lesson-fork-master-square-c7 img")),
+          e8: Boolean(document.querySelector("#lesson-fork-master-square-e8 img")),
+          a8: Boolean(document.querySelector("#lesson-fork-master-square-a8 img")),
+        },
+      };
+    }, size);
+    const hidden = !last.a8 || last.a8.top < last.headerBottom - 0.5 || last.a8.height < 12;
+    const cut =
+      !last.cont ||
+      last.cont.bottom > last.innerHeight - 1 ||
+      !last.a1 ||
+      last.a1.bottom > last.innerHeight - 1 ||
+      !last.h8 ||
+      last.h8.top < last.headerBottom - 0.5;
+    const gap = last.tip && last.board ? last.tip.top - last.board.bottom : 999;
+    const slack = last.cont ? last.innerHeight - last.cont.bottom : 0;
+    const ready = last.pieces.c7 && last.pieces.e8 && last.pieces.a8;
+    if (!hidden && !cut && ready && gap >= 0 && gap <= 36) {
+      if (slack > 36 && size < 400) {
+        size += Math.min(18, Math.floor((slack - 12) / 2));
+        continue;
+      }
+      break;
+    }
+    size = Math.max(210, size + (hidden || cut || gap > 36 ? -20 : 12));
+  }
+  await drawForkArrows(page);
+  const arrows = await page.locator("#capture-fork-arrows path").count();
+  if (!last?.a8 || last.a8.top < last.headerBottom - 0.5) {
+    throw new Error(`tactic rank 8 still under the header ${JSON.stringify(last)}`);
+  }
+  if (!last.pieces?.e8 || !last.pieces?.a8 || !last.pieces?.c7) {
+    throw new Error(`tactic fork pieces missing ${JSON.stringify(last?.pieces)}`);
+  }
+  if (!last.cont || last.cont.bottom > last.innerHeight - 1) {
+    throw new Error(`tactic Continue clipped ${JSON.stringify(last)}`);
+  }
+  const gap = last.tip && last.board ? last.tip.top - last.board.bottom : 999;
+  if (gap > 40) throw new Error(`tactic gap still ${gap}px ${JSON.stringify(last)}`);
+  if (arrows < 2) throw new Error("tactic fork arrows missing");
+  last.arrows = arrows;
+  last.gap = gap;
+  return last;
+}
+
+const ITALIAN_REPLIES = {
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1": "e7e5",
+  "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2": "b8c6",
+  "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3": "f8c5",
+  "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R b KQkq - 0 4": "g8f6",
+  "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQK2R b KQkq - 0 5": "d7d6",
+  "r1bqk2r/ppp2ppp/2np1n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQ1RK1 b kq - 1 6": "e8g8",
+  "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQR1K1 b - - 3 7": "a7a6",
+  "r1bq1rk1/1pp2ppp/p1np1n2/2b1p3/2B1P3/2PP1N2/PP1N1PPP/R1BQR1K1 b - - 1 8": "c5a7",
+  "r1bq1rk1/bpp2ppp/p1np1n2/4p3/2B1P3/2PP1N1P/PP1N1PP1/R1BQR1K1 b - - 0 9": "h7h6",
+};
+
+const WHITE_LINE = ["e4", "Nf3", "Bc4", "c3", "d3", "O-O", "Re1", "Nbd2", "h3"];
+
+async function installBotThinkDelay(page) {
+  await page.addInitScript((replies) => {
+    const wraps = new WeakMap();
+    let lastFen = "";
+    const origPost = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (msg, ...rest) {
+      const text = String(msg);
+      if (text.startsWith("position fen ")) lastFen = text.slice("position fen ".length).trim();
+      return origPost.call(this, msg, ...rest);
+    };
+    const origAdd = Worker.prototype.addEventListener;
+    const origRemove = Worker.prototype.removeEventListener;
+    Worker.prototype.addEventListener = function (type, fn, ...rest) {
+      if (type !== "message" || typeof fn !== "function") {
+        return origAdd.call(this, type, fn, ...rest);
+      }
+      let wrapped = wraps.get(fn);
+      if (!wrapped) {
+        wrapped = (ev) => {
+          const data = ev.data;
+          if (String(data).startsWith("bestmove")) {
+            const scripted = replies[lastFen];
+            const line = scripted ? `bestmove ${scripted}` : String(data);
+            window.setTimeout(() => fn({ data: line }), 3800);
+            return;
+          }
+          fn(ev);
+        };
+        wraps.set(fn, wrapped);
+      }
+      return origAdd.call(this, type, wrapped, ...rest);
+    };
+    Worker.prototype.removeEventListener = function (type, fn, ...rest) {
+      return origRemove.call(this, type, wraps.get(fn) ?? fn, ...rest);
+    };
+  }, ITALIAN_REPLIES);
+}
+
+async function startMatch(page, elo) {
+  const start = page.getByRole("button", { name: "Start match" });
+  if (!(await start.isVisible().catch(() => false))) {
+    await page.goto(BASE + "/play", { waitUntil: "domcontentloaded" });
+    await installPackStyles(page);
+  }
+  await page.getByRole("button", { name: "Adaptive bot" }).waitFor();
+  const adaptiveOn = await page.locator("button", { hasText: "Adaptive bot" }).evaluate((el) =>
+    el.className.includes("border-brand"),
+  );
+  if (adaptiveOn) await page.getByRole("button", { name: "Adaptive bot" }).click();
+  await page.getByRole("button", { name: String(elo), exact: true }).click();
+  await page.getByRole("button", { name: "5 min", exact: true }).click();
+  await page.getByRole("button", { name: "Start match" }).click();
+  await page.locator("#match-board-board").waitFor();
+  await page.waitForFunction(() => {
+    const r = document.querySelector("#match-board-board")?.getBoundingClientRect();
+    return Boolean(r && r.width > 180 && r.height > 180);
+  });
+  await page.waitForFunction(() => /vs /.test(document.body.innerText), null, { timeout: 15000 });
+  const header = (await page.locator("div.sticky").first().innerText()).split("\n")[0];
+  console.log("match header", JSON.stringify(header));
+  if (!header.includes(String(elo))) throw new Error(`expected elo ${elo}, header was ${header}`);
+  return header;
+}
+
+async function clickVisible(locator) {
+  const count = await locator.count();
+  for (let i = 0; i < count; i += 1) {
+    const item = locator.nth(i);
+    if (await item.isVisible().catch(() => false)) {
+      await item.click();
+      return;
+    }
+  }
+  throw new Error("no visible control for that action");
+}
+
+async function resignToChooser(page) {
+  await clickVisible(page.getByRole("button", { name: "Resign", exact: true }));
+  await page.getByRole("button", { name: "Resign", exact: true }).last().click();
+  await page.getByRole("button", { name: "New game" }).first().waitFor({ timeout: 15000 });
+  await clickVisible(page.getByRole("button", { name: "New game" }));
+  await page.getByRole("button", { name: "Start match" }).first().waitFor({ timeout: 15000 });
+}
+
+async function playUci(page, chess, from, to, burnMs) {
+  if (burnMs) await page.waitForTimeout(burnMs);
+  await page
+    .waitForFunction(() => !document.body.innerText.includes("Thinking…"), null, { timeout: 30000 })
+    .catch(() => {});
+  const before = await pieceSignature(page, "match-board");
+  await clickSquare(page, "match-board", from);
+  await page.waitForTimeout(280);
+  await clickSquare(page, "match-board", to);
+  const confirm = page.getByRole("button", { name: /^Play / });
+  if ((await confirm.count()) > 0 && (await confirm.isVisible().catch(() => false))) {
+    await confirm.click();
+  }
+  const after = await waitForSignatureChange(page, "match-board", before, 15000);
+  const ours = applyDiff(chess, before, after);
+  if (!ours) throw new Error(`could not read white move ${from}${to}`);
+  if (chess.isGameOver() || chess.turn() === "w") return;
+  const replied = await waitForSignatureChange(page, "match-board", after, 20000);
+  const bot = applyDiff(chess, after, replied);
+  if (!bot) throw new Error(`could not read bot reply after ${ours.san}`);
+  console.log(chess.history().join(" "));
+}
+
+async function finishGame(page, chess) {
+  while (chess.history().length < 18 && !chess.isGameOver()) {
+    if (chess.turn() !== "w") throw new Error(`turn desync ${chess.fen()} ${chess.history().join(" ")}`);
+    const mv = pickWhite(chess);
+    if (!mv) break;
+    const burn = chess.history().length >= 4 ? 10000 : 1200;
+    await playUci(page, chess, mv.from, mv.to, burn);
+    if (hasRimBlunder(chess.history())) {
+      throw new Error(`rim blunder ${chess.history().join(" ")}`);
+    }
+  }
+  const history = chess.history();
+  const expected = "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O";
+  if (history.slice(0, 12).join(" ") !== expected) {
+    throw new Error(`opening left the Italian: ${history.join(" ")}`);
+  }
+  if (history.length < 16) throw new Error(`game too short ${history.join(" ")}`);
+  if (hasRimBlunder(history)) throw new Error(`blunder ${history.join(" ")}`);
+  return chess;
+}
+
+async function probeOpening(page, elo) {
+  const header = await startMatch(page, elo);
+  const chess = new Chess();
+  const first = pickWhite(chess);
+  await playUci(page, chess, first.from, first.to, 0);
+  return { chess, header };
+}
+
+async function playBelievableGame(page) {
+  await installBotThinkDelay(page);
+  const { chess, header } = await probeOpening(page, 1600);
+  facts.matchHeader = header;
+  return finishGame(page, chess);
+}
+
+async function packMatch(page) {
+  const plan = await page.evaluate(() => {
+    document.body.dataset.capture = "match";
+    const botName = [...document.querySelectorAll("span")].find((s) => {
+      const t = s.textContent.trim();
+      return /· \d+$/.test(t) && s.className.includes("font-extrabold") && !t.startsWith("vs");
+    });
+    const youName = [...document.querySelectorAll("span")].find(
+      (s) => s.textContent.trim() === "You" && s.className.includes("font-extrabold"),
+    );
+    const botBar = botName?.parentElement?.parentElement;
+    const youBar = youName?.parentElement?.parentElement;
+    if (!botBar || !youBar) return { error: "player bars missing" };
+    const side = 18;
+    const coach = document.querySelector('[class*="h-[4.75rem]"]');
+    const aboveBottom = coach
+      ? coach.getBoundingClientRect().bottom
+      : botBar.getBoundingClientRect().bottom;
+    const youH = youBar.getBoundingClientRect().height;
+    const availW = window.innerWidth - side * 2;
+    const availH = window.innerHeight - aboveBottom - youH - 16;
+    const size = Math.max(220, Math.floor(Math.min(availW, availH)));
+    const extra = Math.max(0, availH - size);
+    const pad = Math.max(4, Math.min(24, Math.floor(extra / 2)));
+    document.documentElement.style.setProperty("--cap-board", `${size}px`);
+    document.documentElement.style.setProperty("--cap-pad", `${pad}px`);
+    return { size, pad, availW: Math.round(availW), availH: Math.round(availH) };
+  });
   await page.waitForTimeout(250);
+  const check = await page.evaluate(() => {
+    const rect = (el) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width };
+    };
+    const botName = [...document.querySelectorAll("span")].find((s) => {
+      const t = s.textContent.trim();
+      return /· \d+$/.test(t) && s.className.includes("font-extrabold") && !t.startsWith("vs");
+    });
+    const youName = [...document.querySelectorAll("span")].find(
+      (s) => s.textContent.trim() === "You" && s.className.includes("font-extrabold"),
+    );
+    const clocks = [...document.querySelectorAll("span.font-mono")].map((s) => s.textContent.trim());
+    return {
+      board: rect(document.querySelector("#match-board-board")),
+      a8: rect(document.querySelector("#match-board-square-a8")),
+      h1: rect(document.querySelector("#match-board-square-h1")),
+      bot: rect(botName?.parentElement?.parentElement ?? null),
+      you: rect(youName?.parentElement?.parentElement ?? null),
+      header: rect(document.querySelector(".sticky.top-0")),
+      headerText: document.querySelector(".sticky.top-0")?.innerText?.split("\n")[0] ?? "",
+      botLabel: botName?.textContent.trim() ?? "",
+      clocks,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+    };
+  });
+  if (check.you && check.innerHeight - check.you.bottom > 40) {
+    const shift = Math.max(0, Math.round(check.innerHeight - check.you.bottom - 20));
+    await page.evaluate((shift) => {
+      document.documentElement.style.setProperty("--cap-shift", `${shift}px`);
+    }, shift);
+    await page.waitForTimeout(120);
+    Object.assign(check, await page.evaluate(() => {
+      const rect = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width };
+      };
+      const botName = [...document.querySelectorAll("span")].find((s) => {
+        const t = s.textContent.trim();
+        return /· \d+$/.test(t) && s.className.includes("font-extrabold") && !t.startsWith("vs");
+      });
+      const youName = [...document.querySelectorAll("span")].find(
+        (s) => s.textContent.trim() === "You" && s.className.includes("font-extrabold"),
+      );
+      return {
+        board: rect(document.querySelector("#match-board-board")),
+        a8: rect(document.querySelector("#match-board-square-a8")),
+        h1: rect(document.querySelector("#match-board-square-h1")),
+        bot: rect(botName?.parentElement?.parentElement ?? null),
+        you: rect(youName?.parentElement?.parentElement ?? null),
+        header: rect(document.querySelector(".sticky.top-0")),
+        clocks: [...document.querySelectorAll("span.font-mono")].map((s) => s.textContent.trim()),
+      };
+    }));
+  }
+  const { board, you, bot, header, a8, h1 } = check;
+  const problems = [];
+  if (!board || !you || !bot || !a8 || !h1 || !header) problems.push("missing boxes");
+  else {
+    if (board.left < 12 || check.innerWidth - board.right < 12) problems.push("board touches the edge");
+    if (a8.top < header.bottom - 1) problems.push("rank 8 under header");
+    if (h1.bottom > you.top + 1) problems.push("rank 1 under your bar");
+    if (you.bottom > check.innerHeight - 1 || you.top < board.bottom - 2) problems.push("your bar clipped");
+    if (bot.bottom > board.top + 1 || bot.top < 0) problems.push("bot bar clipped");
+    if (you.top - board.bottom > 36) problems.push(`gap under board ${Math.round(you.top - board.bottom)}`);
+  }
+  if (problems.length) {
+    throw new Error(`match frame: ${problems.join("; ")} ${JSON.stringify({ plan, check })}`);
+  }
+  return { plan, check };
+}
+
+function notationOverlaps() {
+  const hits = [];
+  const squares = ["a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"];
+  for (const sq of squares) {
+    const el = document.querySelector(`[id$="-square-${sq}"]`);
+    if (!el) continue;
+    const img = el.querySelector("img");
+    if (!img) continue;
+    const ir = img.getBoundingClientRect();
+    for (const letter of el.querySelectorAll("span")) {
+      const text = letter.textContent.trim();
+      if (text.length !== 1) continue;
+      const lr = letter.getBoundingClientRect();
+      if (lr.width < 2 || lr.height < 2) continue;
+      const overlap =
+        ir.left < lr.right - 0.5 &&
+        ir.right > lr.left + 0.5 &&
+        ir.top < lr.bottom - 0.5 &&
+        ir.bottom > lr.top + 0.5;
+      if (overlap) hits.push(`${sq}:${text}`);
+    }
+  }
+  return hits;
+}
+
+async function packReview(page) {
+  await page.evaluate(() => {
+    document.body.dataset.capture = "review";
+    document.documentElement.style.setProperty("--piece-scale", "46%");
+    const main = document.querySelector("#main-content");
+    const board = document.querySelector("[data-testid='chess-board']");
+    if (main && board) {
+      const top = board.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+      main.scrollTop = Math.max(0, top - 4);
+    }
+  });
+  let size = 300;
+  let last = null;
+  for (let i = 0; i < 8; i += 1) {
+    last = await page.evaluate((next) => {
+      document.documentElement.style.setProperty("--cap-board", `${next}px`);
+      const main = document.querySelector("#main-content");
+      const boardEl = document.querySelector("[data-testid='chess-board']");
+      if (main && boardEl) {
+        const top = boardEl.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+        main.scrollTop = Math.max(0, top - 4);
+      }
+      const rect = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height };
+      };
+      const label = [...document.querySelectorAll("p")].find((p) =>
+        /^(Starting position|\d+\.)/.test(p.textContent.trim()),
+      );
+      const navTops = [...document.querySelectorAll("nav")]
+        .map((n) => n.getBoundingClientRect())
+        .filter((r) => r.height > 24 && r.top > window.innerHeight * 0.45)
+        .map((r) => r.top);
+      return {
+        size: next,
+        board: rect(document.querySelector('[id$="-board"]')),
+        a8: rect(document.querySelector('[id$="-square-a8"]')),
+        h1: rect(document.querySelector('[id$="-square-h1"]')),
+        label: rect(label),
+        labelText: label?.textContent.trim() ?? "",
+        navTop: navTops.length ? Math.min(...navTops) : window.innerHeight,
+        mainTop: main?.getBoundingClientRect().top ?? 0,
+      };
+    }, size);
+    const fit =
+      last.board &&
+      last.a8 &&
+      last.h1 &&
+      last.label &&
+      last.a8.top >= last.mainTop - 1 &&
+      last.h1.bottom <= last.navTop - 4 &&
+      last.label.bottom <= last.navTop - 4 &&
+      last.label.top >= last.mainTop;
+    if (fit) break;
+    if (size <= 250) break;
+    size -= 16;
+  }
+  let overlaps = await page.evaluate(notationOverlaps);
+  for (const scale of ["42%", "38%", "34%"]) {
+    if (!overlaps.length) break;
+    await page.evaluate((scale) => {
+      document.documentElement.style.setProperty("--piece-scale", scale);
+    }, scale);
+    await page.waitForTimeout(50);
+    overlaps = await page.evaluate(notationOverlaps);
+  }
+  if (!last?.label || last.label.bottom > last.navTop - 2) {
+    throw new Error(`review label clipped ${JSON.stringify(last)}`);
+  }
+  if (!last.a8 || last.a8.top < last.mainTop - 1 || !last.h1 || last.h1.bottom > last.navTop) {
+    throw new Error(`review board clipped ${JSON.stringify(last)}`);
+  }
+  if (overlaps.length) throw new Error(`notation still overlaps pieces: ${overlaps.join(", ")}`);
+  last.overlaps = overlaps;
+  return last;
 }
 
 async function composite(name) {
@@ -392,6 +1035,13 @@ async function captureGraphic(browser) {
 }
 
 async function captureScreens(browser) {
+  const only = new Set(
+    (process.argv[3] ?? "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean),
+  );
+  const want = (file) => only.size === 0 || only.has(file) || only.has(file.slice(0, 2));
   await mkdir(shotDir, { recursive: true });
   const context = await browser.newContext({
     viewport: { width: CSS_W, height: CSS_H },
@@ -405,157 +1055,139 @@ async function captureScreens(browser) {
   page.setDefaultTimeout(60000);
   page.on("pageerror", (err) => console.error("pageerror", err.message));
 
-  await page.goto(BASE + "/academy", { waitUntil: "domcontentloaded" });
-  await installPackStyles(page);
-  await page.getByRole("banner").getByText("L1", { exact: true }).waitFor({ timeout: 45000 });
-  await page.getByRole("heading", { name: "Starter", exact: true }).waitFor({ timeout: 45000 });
-  await page.evaluate(() => {
-    const main = document.querySelector("#main-content");
-    const heading = [...document.querySelectorAll("h2")].find((el) => el.textContent.trim() === "Starter");
-    if (!main || !heading) throw new Error("Starter heading missing from campus");
-    const top =
-      heading.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
-    main.scrollTop = Math.max(0, top - 12);
-  });
-  await page.waitForTimeout(300);
-  const bytes01 = await shoot(page, "01-campus.png");
-  const starterBox = await page.getByRole("heading", { name: "Starter", exact: true }).boundingBox();
-  if (!starterBox || starterBox.y < 0 || starterBox.y > CSS_H - 24) {
-    throw new Error(`Starter heading not in campus frame: ${JSON.stringify(starterBox)}`);
+  try {
+  if (want("01-campus.png")) {
+    await page.goto(BASE + "/academy", { waitUntil: "domcontentloaded" });
+    await installPackStyles(page);
+    await page.getByRole("banner").getByText("L1", { exact: true }).waitFor({ timeout: 45000 });
+    await page.getByRole("heading", { name: "Starter", exact: true }).waitFor({ timeout: 45000 });
+    await page.evaluate(() => {
+      const main = document.querySelector("#main-content");
+      const heading = [...document.querySelectorAll("h2")].find((el) => el.textContent.trim() === "Starter");
+      if (!main || !heading) throw new Error("Starter heading missing from campus");
+      const top =
+        heading.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+      main.scrollTop = Math.max(0, top - 12);
+    });
+    await page.waitForTimeout(300);
+    const bytes01 = await shoot(page, "01-campus.png");
+    const starterBox = await page.getByRole("heading", { name: "Starter", exact: true }).boundingBox();
+    if (!starterBox || starterBox.y < 0 || starterBox.y > CSS_H - 24) {
+      throw new Error(`Starter heading not in campus frame: ${JSON.stringify(starterBox)}`);
+    }
+    facts.campus = { starterInFrame: true, bytes: bytes01 };
   }
-  facts.campus = { starterInFrame: true, bytes: bytes01 };
 
-  await page.goto(BASE + "/class/class-pre-board", { waitUntil: "domcontentloaded" });
-  await installPackStyles(page);
-  await page.getByRole("heading", { name: "The Chess Board" }).waitFor();
-  await page.getByRole("banner").getByText("L1", { exact: true }).waitFor();
-  await page.waitForTimeout(400);
-  facts.classJourney = { bytes: await shoot(page, "02-class-journey.png") };
-
-  await page.goto(BASE + "/lesson/pawn-power", { waitUntil: "domcontentloaded" });
-  await installPackStyles(page);
-  await page.locator("#lesson-pawn-power-board").waitFor();
-  await page.getByText("White to move").waitFor();
-  await page.getByText("Push your e-pawn", { exact: false }).waitFor();
-  await prepareLesson(page, { hideGenericTip: true });
-  await fitLessonBoard(page, "#lesson-pawn-power-board");
-  await page.waitForTimeout(200);
-  if (await page.getByText("Take your time and calculate").isVisible().catch(() => false)) {
-    throw new Error("generic lesson tip still visible");
+  if (want("02-class-journey.png")) {
+    await page.goto(BASE + "/class/class-pre-board", { waitUntil: "domcontentloaded" });
+    await installPackStyles(page);
+    await page.getByRole("heading", { name: "The Chess Board" }).waitFor();
+    await page.getByRole("banner").getByText("L1", { exact: true }).waitFor();
+    await page.waitForTimeout(400);
+    facts.classJourney = { bytes: await shoot(page, "02-class-journey.png") };
   }
-  facts.lesson = {
-    coach: await page.locator(".order-1 p").first().innerText(),
-    hintHidden: true,
-    bytes: await shoot(page, "03-lesson.png"),
-  };
 
-  await page.goto(BASE + "/lesson/fork-master", { waitUntil: "domcontentloaded" });
-  await installPackStyles(page);
-  await page.locator("#lesson-fork-master-board").waitFor();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.waitForFunction(
-    () => Boolean(document.querySelector("#lesson-fork-master-square-c7 img")),
-    { timeout: 15000 },
-  );
-  await prepareLesson(page, { hideGenericTip: false });
-  await fitLessonBoard(page, "#lesson-fork-master-board");
-  await page.waitForTimeout(250);
-  facts.tactic = {
-    coach: await page.locator(".order-1 p").first().innerText(),
-    knightOnC7: true,
-    tip: await page
-      .locator("p")
-      .filter({ hasText: "knight fork" })
-      .first()
-      .innerText()
-      .catch(() => ""),
-    bytes: await shoot(page, "05-tactic.png"),
-  };
-
-  await page.setViewportSize({ width: CSS_W, height: CSS_H });
-  await page.goto(BASE + "/play", { waitUntil: "domcontentloaded" });
-  await installPackStyles(page);
-  await page.getByRole("button", { name: "Adaptive bot" }).waitFor();
-  const adaptiveOn = await page.locator("button", { hasText: "Adaptive bot" }).evaluate((el) =>
-    el.className.includes("border-brand"),
-  );
-  if (adaptiveOn) await page.getByRole("button", { name: "Adaptive bot" }).click();
-  await page.getByRole("button", { name: "900", exact: true }).click();
-  await page.getByRole("button", { name: "5 min", exact: true }).click();
-  await page.getByRole("button", { name: "Start match" }).click();
-  await page.locator("#match-board-board").waitFor();
-  await page.waitForFunction(() => {
-    const r = document.querySelector("#match-board-board")?.getBoundingClientRect();
-    return Boolean(r && r.width > 200 && r.height > 200);
-  });
-  await page.getByText("vs Remi", { exact: false }).waitFor();
-
-  const played = [];
-  for (const [from, to] of [
-    ["e2", "e4"],
-    ["g1", "f3"],
-    ["f1", "c4"],
-  ]) {
-    const before = await pieceSignature(page, "match-board");
-    await clickSquare(page, "match-board", from);
-    await page.waitForTimeout(250);
-    await clickSquare(page, "match-board", to);
-    const confirm = page.getByRole("button", { name: /^Play / });
-    if ((await confirm.count()) > 0 && (await confirm.isVisible().catch(() => false))) {
-      played.push((await confirm.innerText()).replace(/^Play\s+/, "").trim());
-      await confirm.click();
-    }
-    let afterOurs;
-    try {
-      afterOurs = await waitForSignatureChange(page, "match-board", before);
-    } catch {
-      console.log("move did not land", from, to);
-      break;
-    }
-    if (!played.length || played[played.length - 1].includes(from)) played.push(`${from}-${to}`);
-    try {
-      await waitForSignatureChange(page, "match-board", afterOurs);
-    } catch {
-      break;
-    }
+  if (want("03-lesson.png")) {
+    await page.goto(BASE + "/lesson/pawn-power", { waitUntil: "domcontentloaded" });
+    await installPackStyles(page);
+    await page.locator("#lesson-pawn-power-board").waitFor();
+    await page.getByText("White to move").waitFor();
+    await page.getByText("Push your e-pawn", { exact: false }).waitFor();
+    await prepareLesson(page, { hideGenericTip: true });
+    await fitLessonBoard(page, "#lesson-pawn-power-board");
     await page.waitForTimeout(200);
+    if (await page.getByText("Take your time and calculate").isVisible().catch(() => false)) {
+      throw new Error("generic lesson tip still visible");
+    }
+    facts.lesson = {
+      coach: await page.locator(".order-1 p").first().innerText(),
+      hintHidden: true,
+      bytes: await shoot(page, "03-lesson.png"),
+    };
   }
-  if (!played.length) throw new Error("bot game did not leave the starting position");
-  await prepareMatch(page);
-  const matchLines = (await page.locator("body").innerText())
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, 24);
-  facts.match = { played, lines: matchLines };
-  facts.match.bytes = await shoot(page, "04-bot-game.png");
 
-  await page.getByRole("button", { name: "Resign" }).click();
-  await page.getByRole("button", { name: "Resign", exact: true }).last().click();
-  await page.getByText("You resigned", { exact: false }).waitFor({ timeout: 15000 });
-  await page.getByRole("button", { name: "Review", exact: true }).click();
-  await page.getByText("Moves", { exact: true }).waitFor({ timeout: 20000 });
-  const href = new URL(page.url()).pathname;
-  await page.waitForFunction(
-    () =>
-      ![...document.querySelectorAll("div")].some(
-        (el) =>
-          String(el.className).includes("z-[100]") && String(el.className).includes("h-[3px]"),
-      ),
-  );
-  await page.evaluate(() => {
-    const main = document.querySelector("#main-content");
-    const board = document.querySelector('[id$="-board"]');
-    if (!main || !board) return;
-    const top = board.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
-    main.scrollTop = Math.max(0, top - 8);
-  });
-  await page.waitForTimeout(300);
-  const moveText = await page.locator("p").filter({ hasText: /^Moves$/ }).locator("xpath=..").innerText();
-  facts.review = { hrefPath: href.replace(/[0-9]/g, "#"), moves: moveText, bytes: await shoot(page, "06-review.png") };
+  if (want("05-tactic.png")) {
+    await page.goto(BASE + "/lesson/fork-master", { waitUntil: "domcontentloaded" });
+    await installPackStyles(page);
+    await page.locator("#lesson-fork-master-board").waitFor();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.waitForFunction(
+      () => Boolean(document.querySelector("#lesson-fork-master-square-c7 img")),
+      { timeout: 15000 },
+    );
+    await page.getByRole("button", { name: "Continue" }).waitFor();
+    await page.waitForTimeout(300);
+    const tactic = await packTactic(page);
+    facts.tactic = {
+      coach: await page.locator(".order-1 p").first().innerText(),
+      knightOnC7: true,
+      tip: await page.locator("p").filter({ hasText: "knight fork" }).first().innerText(),
+      geometry: tactic,
+      bytes: await shoot(page, "05-tactic.png"),
+    };
+  }
 
-  await writeFile("/tmp/play-capture-facts.json", JSON.stringify(facts, null, 2));
-  await context.close();
+  if (want("04-bot-game.png") || want("06-review.png")) {
+    const chess = await playBelievableGame(page);
+    const history = chess.history();
+    facts.match = { history, pgn: chess.pgn() };
+    if (want("04-bot-game.png")) {
+      const packed = await packMatch(page);
+      facts.match.header = packed.check.headerText;
+      facts.match.botLabel = packed.check.botLabel;
+      facts.match.clocks = packed.check.clocks;
+      facts.match.frame = packed.check;
+      facts.match.bytes = await shoot(page, "04-bot-game.png");
+    }
+
+    await page.getByRole("button", { name: "Resign" }).click();
+    await page.getByRole("button", { name: "Resign", exact: true }).last().click();
+    await page.getByText("You resigned", { exact: false }).waitFor({ timeout: 15000 });
+    if (want("06-review.png")) {
+      await page.getByRole("button", { name: "Review", exact: true }).click();
+      await page.getByText("Moves", { exact: true }).waitFor({ timeout: 20000 });
+      const href = new URL(page.url()).pathname;
+      await page.waitForFunction(
+        () =>
+          ![...document.querySelectorAll("div")].some(
+            (el) =>
+              String(el.className).includes("z-[100]") && String(el.className).includes("h-[3px]"),
+          ),
+      );
+      await installPackStyles(page);
+      const castle = page.getByRole("button", { name: /^\d+\.\s*O-O$/ }).first();
+      if (await castle.count()) await castle.click();
+      else {
+        const mid = page.locator("button").filter({ hasText: /^\d+\./ }).nth(4);
+        if (await mid.count()) await mid.click();
+      }
+      await page.waitForTimeout(250);
+      const review = await packReview(page);
+      const moveText = await page.locator("p").filter({ hasText: /^Moves$/ }).locator("xpath=..").innerText();
+      const comment = await page
+        .locator("p")
+        .filter({ hasText: /How the checkmate happened|prevented this/ })
+        .allInnerTexts()
+        .catch(() => []);
+      facts.review = {
+        hrefPath: href.replace(/[0-9]/g, "#"),
+        label: review.labelText,
+        comment,
+        moves: moveText,
+        geometry: review,
+        bytes: await shoot(page, "06-review.png"),
+      };
+    }
+  }
+
+  } catch (error) {
+    await page.screenshot({ path: "/tmp/play-capture-fail.png", fullPage: true }).catch(() => {});
+    facts.error = String(error?.message ?? error);
+    throw error;
+  } finally {
+    await writeFile("/tmp/play-capture-facts.json", JSON.stringify(facts, null, 2));
+    await context.close();
+  }
 }
 
 const mode = process.argv[2] ?? "screens";

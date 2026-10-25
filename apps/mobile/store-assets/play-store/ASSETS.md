@@ -15,7 +15,10 @@ Captions are drawn from `screenshots/caption-frame.html` (Fredoka, the same bran
 ```bash
 pnpm --filter web dev
 node apps/mobile/store-assets/play-store/capture.mjs screens
+node apps/mobile/store-assets/play-store/capture.mjs screens 04,05,06
 ```
+
+The optional id list recaptures only those frames. Omit it to recapture all six.
 
 `BASE_URL` defaults to `http://localhost:3000`. Use `localhost`, not `127.0.0.1`. The script creates the local Alex user itself. `node apps/mobile/store-assets/play-store/capture.mjs graphic` re-renders `feature-graphic.html`; the PNG checked in here is the approved render, so leave that mode alone unless the HTML changes.
 
@@ -30,8 +33,8 @@ node apps/mobile/store-assets/play-store/capture.mjs screens
 | `screenshots/01-campus.png` | 1080×1920 | 327046 | Caption: “Learn chess step by step, like school”. Academy path with the stage name **Starter**. Signed-in level bar. Welcome mascot is scrolled off. |
 | `screenshots/02-class-journey.png` | 1080×1920 | 263356 | Caption: “Short classes that build on each other”. The Chess Board class lesson path. No portrait on this screen. |
 | `screenshots/03-lesson.png` | 1080×1920 | 282434 | Caption: “Learn by doing, one move at a time”. Pawn Power. Coach line “Pawns move forward. Push your e-pawn two squares to grab the centre!”, the board with the lesson’s e2–e4 arrow, and “White to move”. The generic “Take your time and calculate” tip is not in the frame. Portrait hidden. |
-| `screenshots/04-bot-game.png` | 1080×1920 | 272105 | Caption: “Play bots that match your level”. Bot game vs **Remi · 900** on a 5-minute clock. Header `vs Remi · 900`. Both bars read **4:58** (`Remi · 900` and `You`). Position after 1.e4 c6 2.Nf3 Nh6 3.Bc4 Rg8. The coach portrait between the bars is hidden; the coach line is text only. The name row has no character art. |
-| `screenshots/05-tactic.png` | 1080×1920 | 218670 | Caption: “Spot forks, pins and more”. The Fork, after the knight leaps to **c7**, checking the king on e8 and attacking the rook on a8. Hint: “A knight fork hits two pieces at once — aim at the king and a big piece.” Portrait hidden. |
-| `screenshots/06-review.png` | 1080×1920 | 284519 | Caption: “Review every game, move by move”. Replay of that bot game. Move list: 1.e4 c6 2.Nf3 Nh6 3.Bc4 Rg8. No loading bar. The review index mascot is not this screen. |
+| `screenshots/04-bot-game.png` | 1080×1920 | 297981 | Caption: “Play bots that match your level”. Bot game vs **Vera · 1600** on a 5-minute clock. Header `vs Vera · 1600`. Opponent bar **Vera · 1600** at **4:22**, your bar **You** at **3:44**. Board inset from the edges. Position after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3 Nf6 5.d3 d6 6.O-O O-O 7.Re1 a6 8.Nbd2 Ba7 9.h3 h6. The coach portrait is hidden; the coach line is text only. The name row has no character art. |
+| `screenshots/05-tactic.png` | 1080×1920 | 234824 | Caption: “Spot forks, pins and more”. The Fork, all 8 ranks visible below the progress header. Knight on **c7**, black king on **e8**, rook on **a8**, with arrows from c7 to e8 and c7 to a8. Coach line: “Here's the point — Watch the knight leap to c7 — checking the king and hitting the rook.” Hint under the board: “A knight fork hits two pieces at once — aim at the king and a big piece.” Continue is directly under that hint. Portrait hidden. |
+| `screenshots/06-review.png` | 1080×1920 | 261565 | Caption: “Review every game, move by move”. Replay of that same game, stopped on **6. O-O**. This screen has no separate eval or coach card on a resigned game; the move line is the label. Move list: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3 Nf6 5.d3 d6 6.O-O O-O 7.Re1 a6 8.Nbd2 Ba7 9.h3 h6. File and rank labels sit in the square corners. No loading bar. The review index mascot is not this screen. |
 
 Replaced because they showed coach or mascot art, or pointed at files that no longer exist: `screenshots/01-academy.png`, `screenshots/04-play.png`, `screenshots/05-review.png`, `screenshots/06-profile.png`, and `feature-graphic-1024x500.png`.
