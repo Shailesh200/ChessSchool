@@ -37,7 +37,6 @@ afterEach(() => {
 describe("transport selection", () => {
   it("uses the console transport in development when no provider key is set", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    vi.spyOn(console, "debug").mockImplementation(() => {});
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -49,15 +48,11 @@ describe("transport selection", () => {
     const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
     expect(logged).toContain("a***@example.com");
     expect(logged).not.toContain("ada@example.com");
-    expect(logged).toContain("[link]");
-    expect(logged).not.toContain(TOKEN);
-    expect(logged).not.toContain(LINK);
-    expect(logged).not.toContain("chess-school.in");
+    expect(logged).toContain(LINK);
   });
 
   it("uses the console transport in test and in non-production CI", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    vi.spyOn(console, "debug").mockImplementation(() => {});
 
     useEnv({ NODE_ENV: "test", CI: "true" });
     const testResult = await sendEmail(message);
@@ -68,41 +63,21 @@ describe("transport selection", () => {
     const ciResult = await sendEmail(message);
     expect(ciResult.provider).toBe("console");
     const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
-    expect(logged).not.toContain(TOKEN);
-    expect(logged).not.toContain(LINK);
+    expect(logged).toContain(LINK);
     expect(logged).not.toContain("ada@example.com");
     expect(logged).toContain("a***@example.com");
   });
 
-  it("masks the recipient in console logs", async () => {
+  it("masks the recipient in console logs and keeps the link in the text", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
     useEnv({ NODE_ENV: "development" });
 
     await sendEmail({ ...message, to: "jane@example.com" });
 
-    const logged = [...info.mock.calls, ...debug.mock.calls]
-      .map((args) => args.join(" "))
-      .join("\n");
+    const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
     expect(logged).toContain("j***@example.com");
     expect(logged).not.toContain("jane@example.com");
-  });
-
-  it("does not print the link at info level, and only copies it at debug in development", async () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
-
-    useEnv({ NODE_ENV: "development" });
-    await sendEmail(message);
-    expect(info.mock.calls.join(" ")).not.toContain(TOKEN);
-    expect(debug.mock.calls.join(" ")).toContain(LINK);
-
-    info.mockClear();
-    debug.mockClear();
-    useEnv({ NODE_ENV: "test" });
-    await sendEmail(message);
-    expect(debug).not.toHaveBeenCalled();
-    expect(info.mock.calls.join(" ")).not.toContain(LINK);
+    expect(logged).toContain(LINK);
   });
 
   it("selects Resend only when provider, key, and from are all set", async () => {
@@ -111,7 +86,6 @@ describe("transport selection", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(console, "info").mockImplementation(() => {});
-    vi.spyOn(console, "debug").mockImplementation(() => {});
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     useEnv({ RESEND_API_KEY: "re_test_key", EMAIL_FROM: FROM });
@@ -168,6 +142,34 @@ describe("production fail-closed", () => {
 
     useEnv({ NODE_ENV: "production", CI: "1" });
     await expect(sendEmail(message)).rejects.toBeInstanceOf(EmailNotConfiguredError);
+  });
+
+  it("fails closed when VERCEL_ENV is unset and NODE_ENV is production", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    useEnv({ NODE_ENV: "production", VERCEL_ENV: "", CI: "1" });
+
+    await expect(sendEmail(message)).rejects.toBeInstanceOf(EmailNotConfiguredError);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it("uses the console transport on a Vercel preview when NODE_ENV is production", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    useEnv({ NODE_ENV: "production", VERCEL_ENV: "preview", CI: "1" });
+
+    const result = await sendEmail(message);
+    expect(result).toEqual({ provider: "console", id: null });
+    expect(fetchMock).not.toHaveBeenCalled();
+    const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
+    expect(logged).toContain("a***@example.com");
+    expect(logged).not.toContain("ada@example.com");
+    expect(logged).toContain(LINK);
   });
 
   it("fails closed on Vercel production when CI=1 and no provider key is set", async () => {
@@ -374,6 +376,14 @@ describe("templates", () => {
       passwordResetEmail({ ...input, link: "http://localhost/reset#tok" }),
     ).toThrow(/https in production/);
 
+    useEnv({ NODE_ENV: "production", VERCEL_ENV: "preview", CI: "1" });
+    const preview = passwordResetEmail({ ...input, link: LINK });
+    expect(preview.text).toContain(LINK);
+
+    useEnv({ NODE_ENV: "production", VERCEL_ENV: "production", CI: "1" });
+    expect(() =>
+      passwordResetEmail({ ...input, link: "http://chess-school.in/reset#tok" }),
+    ).toThrow(/https in production/);
     const secure = passwordResetEmail({ ...input, link: LINK });
     expect(secure.text).toContain(LINK);
   });

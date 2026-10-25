@@ -1,7 +1,7 @@
 import "server-only";
 import { envValue, isProduction } from "./env";
 import { EmailDeliveryError, EmailNotConfiguredError } from "./errors";
-import { maskEmailAddress, redactSecret, redactUrls } from "./redact";
+import { maskEmailAddress, redactSecret } from "./redact";
 import type { EmailEnv, EmailMessage, EmailProviderName } from "./types";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -12,36 +12,27 @@ export type EmailTransport = {
   send(message: EmailMessage): Promise<{ id: string | null }>;
 };
 
-/** Outside production only. Never selected when NODE_ENV or VERCEL_ENV is production. */
+/** Console is fine except real production. See {@link isProduction}. */
 function consoleFallbackAllowed(env: EmailEnv): boolean {
   return !isProduction(env);
 }
 
-function logConsoleEmail(message: EmailMessage, env: EmailEnv): void {
-  const to = maskEmailAddress(message.to);
-  const redacted = {
-    to,
-    subject: redactUrls(message.subject),
-    text: redactUrls(message.text),
-  };
-  console.info(`[email] console transport ${JSON.stringify(redacted)}`);
-  // Local dev only: the link (and its fragment token) is on debug, never info.
-  if (envValue(env.NODE_ENV) === "development") {
-    console.debug(
-      `[email] development copy ${JSON.stringify({
-        to,
-        subject: message.subject,
-        text: message.text,
-      })}`,
-    );
-  }
+function logConsoleEmail(message: EmailMessage): void {
+  // Mask the recipient. Leave text intact so preview and e2e can follow the link.
+  console.info(
+    `[email] console transport ${JSON.stringify({
+      to: maskEmailAddress(message.to),
+      subject: message.subject,
+      text: message.text,
+    })}`,
+  );
 }
 
-function createConsoleTransport(env: EmailEnv): EmailTransport {
+function createConsoleTransport(): EmailTransport {
   return {
     name: "console",
     async send(message) {
-      logConsoleEmail(message, env);
+      logConsoleEmail(message);
       return { id: null };
     },
   };
@@ -135,8 +126,8 @@ function failClosed(provider: string, resendSelected: boolean): never {
 
 /**
  * Resend when EMAIL_PROVIDER=resend and both RESEND_API_KEY and EMAIL_FROM are set.
- * Otherwise the console transport outside production. Production fails closed
- * even when CI is set (Vercel sets CI=1).
+ * Otherwise the console transport, including Vercel preview. Real production
+ * fails closed even when CI is set.
  */
 export function resolveEmailTransport(env: EmailEnv = process.env): EmailTransport {
   const provider = envValue(env.EMAIL_PROVIDER).toLowerCase();
@@ -159,5 +150,5 @@ export function resolveEmailTransport(env: EmailEnv = process.env): EmailTranspo
     );
   }
 
-  return createConsoleTransport(env);
+  return createConsoleTransport();
 }

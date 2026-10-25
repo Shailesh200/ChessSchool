@@ -1,8 +1,3 @@
-/** Drop URLs so logs cannot contain reset/verify tokens or full links. */
-export function redactUrls(value: string): string {
-  return value.replace(/https?:\/\/[^\s<>"')\]]+/gi, "[link]");
-}
-
 /** `jane@example.com` → `j***@example.com`. Unparseable values collapse to `***`. */
 export function maskEmailAddress(address: string): string {
   const trimmed = address.replace(/[\r\n]/g, "").trim();

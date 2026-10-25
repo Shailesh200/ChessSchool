@@ -5,11 +5,17 @@ export function envValue(value: string | undefined): string {
 }
 
 /**
- * Production is `NODE_ENV=production` or `VERCEL_ENV=production`.
- * Vercel sets `CI=1` on production deployments, so CI must not override this.
+ * Real production only. Vercel preview and other non-production deployments
+ * set `NODE_ENV=production` but a different `VERCEL_ENV`, and those must keep
+ * the console transport. `CI` is ignored: Vercel sets `CI=1` everywhere.
+ *
+ * Fail closed when:
+ * - `VERCEL_ENV=production`, or
+ * - `VERCEL_ENV` is unset and `NODE_ENV=production`.
  */
 export function isProduction(env: EmailEnv = process.env): boolean {
-  return (
-    envValue(env.VERCEL_ENV) === "production" || envValue(env.NODE_ENV) === "production"
-  );
+  const vercelEnv = envValue(env.VERCEL_ENV);
+  if (vercelEnv === "production") return true;
+  if (vercelEnv !== "") return false;
+  return envValue(env.NODE_ENV) === "production";
 }
