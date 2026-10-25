@@ -75,6 +75,10 @@ test.describe("desktop layout @1280", () => {
     await page.goto("/play");
     await expect(page.getByText("Match preview")).toBeVisible();
     await expect(page.getByRole("heading", { name: "New match" })).toBeVisible();
+    const position = await page
+      .getByRole("button", { name: "Start match" })
+      .evaluate((el) => getComputedStyle(el.parentElement!).position);
+    expect(position).toBe("static");
   });
 
   test("dashboard uses two-column skill layout", async ({ page }) => {
