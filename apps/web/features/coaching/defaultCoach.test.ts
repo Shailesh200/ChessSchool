@@ -21,6 +21,20 @@ import { resolveEdgeVoice, TTS_VOICES } from "@/lib/tts/voices";
 const unknown = "not-a-coach" as CoachPersonality;
 const preview = () => COACH_CHARACTERS[DEFAULT_COACH_CHARACTER].previewLine;
 
+/** Resolutions that existed before the default coach changed to Otto. */
+const LEGACY_SAVED_COACH = {
+  friendly: "genz",
+  strict: "sarcastic",
+  mentor: "anxious_nerd",
+  tactical: "egoistic",
+  minimal: "sassy",
+  anxious_nerd: "anxious_nerd",
+  genz: "genz",
+  sassy: "sassy",
+  sarcastic: "sarcastic",
+  egoistic: "egoistic",
+} as const satisfies Record<string, CoachPersonality>;
+
 function move(san: string, color: "w" | "b" = "w"): VerboseMove {
   return { color, from: "e2", to: "e4", piece: "p", san, flags: "b" };
 }
@@ -49,7 +63,7 @@ describe("default coach fallbacks", () => {
     const friendly = (await migrate({ coachPersonality: "friendly" }, 10)) as {
       coachCharacter: string;
     };
-    expect(friendly.coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(friendly.coachCharacter).toBe("genz");
 
     const kept = (await migrate(
       { coachCharacter: "sarcastic", coachPersonality: "sarcastic" },
@@ -70,10 +84,24 @@ describe("default coach fallbacks", () => {
     expect(useSettings.getState().coachPersonality).toBe("sarcastic");
   });
 
+  it("pins every legacy saved coach id to its previous resolution", async () => {
+    const migrate = useSettings.persist.getOptions().migrate!;
+    for (const [saved, resolved] of Object.entries(LEGACY_SAVED_COACH)) {
+      expect(normalizeCoachCharacter(saved), saved).toBe(resolved);
+      expect(personaOf(saved as CoachPersonality), saved).toBe(PERSONAS[resolved]);
+      const migrated = (await migrate(
+        { coachCharacter: saved, coachPersonality: saved },
+        11,
+      )) as { coachCharacter: string; coachPersonality: string };
+      expect(migrated.coachCharacter, saved).toBe(resolved);
+      expect(migrated.coachPersonality, saved).toBe(resolved);
+    }
+  });
+
   it("F5 normalizeCoachCharacter uses the default coach", () => {
     expect(normalizeCoachCharacter(undefined)).toBe(DEFAULT_COACH_CHARACTER);
     expect(normalizeCoachCharacter("not-a-coach")).toBe(DEFAULT_COACH_CHARACTER);
-    expect(normalizeCoachCharacter("friendly")).toBe(DEFAULT_COACH_CHARACTER);
+    expect(normalizeCoachCharacter("friendly")).toBe("genz");
     expect(normalizeCoachCharacter("strict")).toBe("sarcastic");
     expect(normalizeCoachCharacter("sarcastic")).toBe("sarcastic");
   });
@@ -83,7 +111,7 @@ describe("default coach fallbacks", () => {
     expect(personaById("not-a-coach")).not.toBe(PERSONAS.sarcastic);
     expect(personaOf(undefined as never)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
     expect(personaOf(unknown)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
-    expect(personaOf("friendly")).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
+    expect(personaOf("friendly")).toBe(PERSONAS.genz);
     expect(personaById("sarcastic")).toBe(PERSONAS.sarcastic);
     expect(personaOf("sarcastic")).toBe(PERSONAS.sarcastic);
   });
