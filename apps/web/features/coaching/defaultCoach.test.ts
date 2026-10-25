@@ -9,6 +9,7 @@ import {
 } from "@/features/coaching/characters";
 import {
   buildMoveComment,
+  coachCommentLines,
   coachCommentPool,
   type MoveCommentKind,
 } from "@/features/coaching/botVoice";
@@ -89,13 +90,24 @@ describe("default coach fallbacks", () => {
     for (const [saved, resolved] of Object.entries(LEGACY_SAVED_COACH)) {
       expect(normalizeCoachCharacter(saved), saved).toBe(resolved);
       expect(personaOf(saved as CoachPersonality), saved).toBe(PERSONAS[resolved]);
+      // Zustand passes the stored version. v10 is the payload this store upgrades.
       const migrated = (await migrate(
         { coachCharacter: saved, coachPersonality: saved },
-        11,
+        10,
       )) as { coachCharacter: string; coachPersonality: string };
       expect(migrated.coachCharacter, saved).toBe(resolved);
       expect(migrated.coachPersonality, saved).toBe(resolved);
     }
+  });
+
+  it("bogus coachCharacter with friendly personality resolves to the default coach", async () => {
+    const migrate = useSettings.persist.getOptions().migrate!;
+    const mixed = (await migrate(
+      { coachCharacter: "bogus", coachPersonality: "friendly" },
+      10,
+    )) as { coachCharacter: string; coachPersonality: string };
+    expect(mixed.coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(mixed.coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
   });
 
   it("F5 normalizeCoachCharacter uses the default coach", () => {
@@ -145,7 +157,11 @@ describe("default coach fallbacks", () => {
       { ...ctx, personality: unknown },
       "not-a-kind" as MoveCommentKind,
     );
-    expect(missingKind).toMatch(/Trade ahead, improve when equal|plays slowly/);
+    const ottoQuiet = coachCommentLines(
+      DEFAULT_COACH_CHARACTER,
+      "quiet_middlegame",
+    ).map((line) => line.replace(/\{botName\}/g, ctx.botName));
+    expect(ottoQuiet).toContain(missingKind);
     expect(missingKind).not.toMatch(/worst piece|Thrilling advice/);
     const saved = buildMoveComment({ ...ctx, personality: "sarcastic" }, "mate");
     expect(saved).toMatch(/King safety was a choice|hung everything/);

@@ -535,6 +535,15 @@ function templates(
   return coachCommentPool(tables, personality, kind);
 }
 
+/** Lines from a coach's table, after the default-coach fallback. */
+export function coachCommentLines(
+  personality: string,
+  kind: string,
+  reacting = false,
+): string[] {
+  return templates(personality as CoachPersonality, kind as MoveCommentKind, reacting);
+}
+
 /** Full coach+bot move line — personality tone × named opponent character. */
 export function buildMoveComment(ctx: LineCtx, kind: MoveCommentKind): string {
   const char = botCharacter(ctx.botName);

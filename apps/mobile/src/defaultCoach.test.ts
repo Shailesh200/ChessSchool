@@ -48,6 +48,7 @@ import { onboardingCoachChoice } from "../app/onboarding";
 import { DEFAULT_COACH_CHARACTER, normalizeCoachCharacter } from "./coachCharacters";
 import {
   buildMoveComment,
+  coachCommentLines,
   coachCommentPool,
   type CoachPersonality,
   type MoveCommentKind,
@@ -143,6 +144,15 @@ describe("default coach fallbacks", () => {
     }
   });
 
+  it("bogus coachCharacter with friendly personality resolves to the default coach", () => {
+    hydrateSettings({
+      coachCharacter: "bogus",
+      coachPersonality: "friendly",
+    } as never);
+    expect(settings.get().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
+    expect(settings.get().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
+  });
+
   it("F4 onboarding empty pick uses the default coach", () => {
     expect(onboardingCoachChoice("")).toBe(DEFAULT_COACH_CHARACTER);
     expect(onboardingCoachChoice(undefined as never)).toBe(DEFAULT_COACH_CHARACTER);
@@ -204,7 +214,11 @@ describe("default coach fallbacks", () => {
       { ...ctx, personality: unknown },
       "not-a-kind" as MoveCommentKind,
     );
-    expect(missingKind).toMatch(/Trade ahead, improve when equal|plays slowly/);
+    const ottoQuiet = coachCommentLines(
+      DEFAULT_COACH_CHARACTER,
+      "quiet_middlegame",
+    ).map((line) => line.replace(/\{botName\}/g, ctx.botName));
+    expect(ottoQuiet).toContain(missingKind);
     expect(missingKind).not.toMatch(/worst piece|Thrilling advice/);
     const saved = buildMoveComment({ ...ctx, personality: "sarcastic" }, "mate");
     expect(saved).toMatch(/King safety was a choice|hung everything/);
