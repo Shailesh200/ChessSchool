@@ -192,17 +192,34 @@ export default function OnlineSessionPage({
       .then((mod) => {
         if (!mod || cancelled) return;
         const { Realtime } = mod;
-        client = new Realtime({ authUrl: tokenUrl, autoConnect: true });
-        client.connection.on("connected", () => {
+        const rt = new Realtime({ authUrl: tokenUrl, autoConnect: true });
+        if (cancelled) {
+          rt.close();
+          return;
+        }
+        client = rt;
+        // Auth failures surface as `failed`. `suspended` would otherwise leave
+        // ablyRef true and the poll stuck on the slow realtime backstop.
+        let dropped = false;
+        const dropToPolling = () => {
+          if (dropped) return;
+          dropped = true;
+          ablyRef.current = false;
+          try {
+            rt.close();
+          } catch {
+            /* ignore */
+          }
+        };
+        rt.connection.on("connected", () => {
           ablyRef.current = true;
         });
-        client.connection.on("failed", () => {
+        rt.connection.on("disconnected", () => {
           ablyRef.current = false;
         });
-        client.connection.on("disconnected", () => {
-          ablyRef.current = false;
-        });
-        client.channels.get(`game:${id}`).subscribe("state", (msg) => {
+        rt.connection.on("failed", dropToPolling);
+        rt.connection.on("suspended", dropToPolling);
+        rt.channels.get(`game:${id}`).subscribe("state", (msg) => {
           if (msg?.data) applyState(msg.data as SessionState);
         });
       })
