@@ -9,6 +9,7 @@ import { Button } from "@/Button";
 import { BotAvatar } from "@/BotAvatar";
 import { CoachAvatar } from "@/CoachAvatar";
 import { api } from "@/api";
+import { isoDay } from "@/progression";
 import { ScreenLoader } from "@/ScreenLoader";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
@@ -261,7 +262,7 @@ function AssistedPuzzle() {
   useEffect(() => {
     setLoading(true);
     setPhase("calc");
-    api<{ puzzle: Puzzle }>(`/api/think?n=${offset}`)
+    api<{ puzzle: Puzzle }>(`/api/think?n=${offset}&day=${isoDay()}`)
       .then((d) => {
         const p = d.puzzle;
         setPuzzle(p);

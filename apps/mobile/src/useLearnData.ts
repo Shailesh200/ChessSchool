@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { api } from "@/api";
+import { isoDay } from "@/progression";
 import { cacheInvalidate, cachePeek, cacheSet, cacheAge } from "@/dataCache";
 import { fetchProgress } from "@/progressStore";
 import type { CampusStage } from "@/CampusMap";
@@ -39,7 +40,7 @@ async function fetchLearnBundle(): Promise<LearnData> {
   const [resume, campus, daily] = await Promise.all([
     api<Resume>("/api/next-lesson"),
     api<{ stages: CampusStage[] }>("/api/campus"),
-    api<DailyPuzzle>("/api/daily-puzzle").catch(() => null),
+    api<DailyPuzzle>(`/api/daily-puzzle?day=${isoDay()}`).catch(() => null),
   ]);
   return { resume, stages: campus.stages ?? [], daily };
 }

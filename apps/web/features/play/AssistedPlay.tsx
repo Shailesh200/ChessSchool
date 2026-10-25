@@ -31,7 +31,7 @@ import { thinkingMatchGreeting } from "@/features/coaching/thinkingPrompt";
 import { stopCoachSpeech, speakCoachText } from "@/core/audio/coachSpeech";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { useSettings } from "@/core/store/settings.store";
-import { useProgression } from "@/core/store/progression.store";
+import { isoDay, useProgression } from "@/core/store/progression.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { toast } from "@/core/store/toast.store";
@@ -488,7 +488,7 @@ function AssistedPuzzleDrill({
   useEffect(() => {
     let cancelled = false;
     // Phase is set to "loading" by the Next-puzzle click handler (and initial state).
-    fetch(`/api/think?n=${offset}`, { cache: "no-store" })
+    fetch(`/api/think?n=${offset}&day=${isoDay()}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: { puzzle: CalculationPuzzle }) => {
         if (cancelled) return;

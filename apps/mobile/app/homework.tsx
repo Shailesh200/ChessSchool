@@ -64,7 +64,7 @@ export default function PlanScreen() {
     await mutateProgress((snap) => ({ ...snap, dailyGoalXp: PLAN_SPECS[tier].goalXp }));
   }
 
-  const dayIndex = Math.floor(Date.now() / 86400000);
+  const dayIndex = Math.floor(Date.parse(isoDay() + "T00:00:00Z") / 86400000);
   const doneToday = ((prog?.homeworkDone as Record<string, string[]>) ?? {})[isoDay()] ?? [];
   const allDone = ROUTINE.every((r) => doneToday.includes(r.id));
   const openRoutine = (id: string) => {

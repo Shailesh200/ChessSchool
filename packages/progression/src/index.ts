@@ -1,4 +1,7 @@
 import { checkLessonAchievements, checkMatchAchievements } from "@chess-school/core";
+import { addDays, calendarDay, deviceTimeZone, isoDay, yesterday } from "./day";
+
+export { addDays, calendarDay, deviceTimeZone, isoDay, yesterday };
 
 // Pure progression reducers — ported 1:1 from web (core/store/progression.store.ts)
 // so the app computes XP/streak/mastery/mistakes/ELO/achievements identically.
@@ -22,12 +25,6 @@ export type Snap = {
   [k: string]: unknown;
 };
 
-export const isoDay = (d = new Date()): string => d.toISOString().slice(0, 10);
-const addDays = (iso: string, delta: number): string => {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
-};
 export const todayXpOf = (s: Snap): number => (s.activityDays ?? {})[isoDay()] ?? 0;
 
 export function awardXp(s: Snap, amount: number): Snap {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  addDays,
   isoDay,
   awardXp,
   recordLesson,
@@ -13,12 +14,8 @@ import {
 } from "./progression";
 import { levelForXp, xpProgress, rankForClasses } from "./progress-utils";
 
+// Same zone the reducers use (`isoDay()`), so the assertions don't assume UTC.
 const today = isoDay();
-const addDays = (iso: string, d: number) => {
-  const dt = new Date(iso + "T00:00:00Z");
-  dt.setUTCDate(dt.getUTCDate() + d);
-  return dt.toISOString().slice(0, 10);
-};
 
 describe("awardXp", () => {
   it("adds to total xp and today's activity bucket", () => {
