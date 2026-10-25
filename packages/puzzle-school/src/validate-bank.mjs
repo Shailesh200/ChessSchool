@@ -1,5 +1,6 @@
 import { compilePuzzleSteps } from "./compile-lesson.mjs";
 import { emptyReport, finalizeReport } from "./report.mjs";
+import { validateLessonSteps } from "./validate.mjs";
 import { MATRIX } from "../data/matrix.mjs";
 import { conceptGroup } from "./concepts.mjs";
 
@@ -63,6 +64,19 @@ export function validateBank(puzzles, opts = {}) {
     if ("error" in compiled) {
       report.byOutcome.rejected.push({ id: p.id, reason: "illegal_line", detail: compiled.error });
       report.summary.rejected++;
+      continue;
+    }
+
+    const stepCheck = validateLessonSteps(p.id, compiled.steps);
+    if (stepCheck.errors.length) {
+      for (const e of stepCheck.errors) {
+        report.byOutcome.rejected.push({
+          id: p.id,
+          reason: e.reason,
+          detail: `${e.stepId}: ${e.detail}`,
+        });
+        report.summary.rejected++;
+      }
       continue;
     }
 

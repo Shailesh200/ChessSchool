@@ -1,6 +1,58 @@
 import { Chess } from "chess.js";
 
-/** @typedef {{ id: string, kind: string, fen?: string, solution?: string[], moves?: string[], coach?: string, question?: string, options?: unknown[], correct?: number }} LessonStep */
+const PROMOTION_PIECES = new Set(["q", "r", "b", "n"]);
+
+/** @typedef {{ id: string, kind: string, fen?: string, solution?: string[], moves?: string[], promotion?: string, promotions?: Record<string, string>, coach?: string, question?: string, options?: unknown[], correct?: number }} LessonStep */
+
+/**
+ * Piece required for a `from:to` key. The per-key map wins over the scalar.
+ * @param {LessonStep} step
+ * @param {string} key
+ */
+function declaredPromotion(step, key) {
+  const mapped = step.promotions?.[key];
+  if (mapped) return mapped;
+  return step.promotion;
+}
+
+/**
+ * @param {LessonStep} step
+ * @param {string} sid
+ */
+function promotionFieldErrors(step, sid) {
+  const errors = [];
+  if (step.promotion && !PROMOTION_PIECES.has(step.promotion)) {
+    errors.push({
+      stepId: sid,
+      reason: "bad_promotion",
+      detail: `promotion ${step.promotion} must be q, r, b, or n`,
+    });
+  }
+  if (step.promotions && (typeof step.promotions !== "object" || Array.isArray(step.promotions))) {
+    errors.push({
+      stepId: sid,
+      reason: "bad_promotion",
+      detail: "promotions must be an object keyed by from:to",
+    });
+    return errors;
+  }
+  for (const [key, piece] of Object.entries(step.promotions ?? {})) {
+    if (!PROMOTION_PIECES.has(piece)) {
+      errors.push({
+        stepId: sid,
+        reason: "bad_promotion",
+        detail: `${key} promotion ${piece} must be q, r, b, or n`,
+      });
+    } else if (step.promotion && piece !== step.promotion) {
+      errors.push({
+        stepId: sid,
+        reason: "mixed_promotion",
+        detail: `${key} is ${piece} but promotion is ${step.promotion}; omit promotion and use promotions when pieces differ`,
+      });
+    }
+  }
+  return errors;
+}
 
 /**
  * @param {string} lessonId
@@ -29,17 +81,61 @@ export function validateLessonSteps(lessonId, steps) {
         errors.push({ stepId: sid, reason: "invalid_fen", detail: step.fen });
         continue;
       }
+      errors.push(...promotionFieldErrors(step, sid));
       for (const sol of step.solution ?? []) {
         const [from, to] = sol.split(":");
         if (!from || !to) {
           errors.push({ stepId: sid, reason: "bad_solution", detail: sol });
           continue;
         }
-        try {
-          const m = g.move({ from, to, promotion: "q" });
-          if (!m) errors.push({ stepId: sid, reason: "illegal_move", detail: `${lessonId}/${sid} ${sol}` });
-        } catch {
+        const trial = new Chess(g.fen());
+        const matched = trial.moves({ verbose: true }).filter((m) => m.from === from && m.to === to);
+        if (matched.length === 0) {
           errors.push({ stepId: sid, reason: "illegal_move", detail: `${lessonId}/${sid} ${sol}` });
+          continue;
+        }
+        const promotes = matched.some((m) => m.promotion);
+        const piece = declaredPromotion(step, sol);
+        if (promotes) {
+          if (!piece) {
+            errors.push({
+              stepId: sid,
+              reason: "missing_promotion",
+              detail: `${lessonId}/${sid} ${sol} promotes but has no piece`,
+            });
+            continue;
+          }
+          if (!PROMOTION_PIECES.has(piece)) continue;
+          try {
+            const m = trial.move({ from, to, promotion: piece });
+            if (!m) {
+              errors.push({
+                stepId: sid,
+                reason: "illegal_move",
+                detail: `${lessonId}/${sid} ${sol}=${piece}`,
+              });
+            }
+          } catch {
+            errors.push({
+              stepId: sid,
+              reason: "illegal_move",
+              detail: `${lessonId}/${sid} ${sol}=${piece}`,
+            });
+          }
+        } else {
+          if (piece) {
+            errors.push({
+              stepId: sid,
+              reason: "unexpected_promotion",
+              detail: `${lessonId}/${sid} ${sol} does not promote`,
+            });
+          }
+          try {
+            const m = trial.move({ from, to });
+            if (!m) errors.push({ stepId: sid, reason: "illegal_move", detail: `${lessonId}/${sid} ${sol}` });
+          } catch {
+            errors.push({ stepId: sid, reason: "illegal_move", detail: `${lessonId}/${sid} ${sol}` });
+          }
         }
       }
       if ((step.coach ?? "").trim().length < 8) {
@@ -60,10 +156,39 @@ export function validateLessonSteps(lessonId, steps) {
         errors.push({ stepId: sid, reason: "invalid_fen", detail: step.fen });
         continue;
       }
+      errors.push(...promotionFieldErrors(step, sid));
       for (const mv of step.moves ?? []) {
         const [from, to] = mv.split(":");
+        const key = `${from ?? ""}:${to ?? ""}`;
+        const matched = g.moves({ verbose: true }).filter((m) => m.from === from && m.to === to);
+        const promotes = matched.some((m) => m.promotion);
+        const piece = declaredPromotion(step, key);
+        let playPiece;
+        if (promotes && !piece) {
+          errors.push({
+            stepId: sid,
+            reason: "missing_promotion",
+            detail: `${lessonId}/${sid} ${mv} promotes but has no piece`,
+          });
+          playPiece = "q";
+        } else if (promotes && !PROMOTION_PIECES.has(piece)) {
+          errors.push({ stepId: sid, reason: "bad_promotion", detail: `${lessonId}/${sid} ${mv}` });
+          playPiece = "q";
+        } else if (!promotes && piece) {
+          errors.push({
+            stepId: sid,
+            reason: "unexpected_promotion",
+            detail: `${lessonId}/${sid} ${mv} does not promote`,
+          });
+        } else if (promotes) {
+          playPiece = piece;
+        }
         try {
-          const m = g.move({ from: from ?? "", to: to ?? "", promotion: "q" });
+          const m = g.move(
+            playPiece
+              ? { from: from ?? "", to: to ?? "", promotion: playPiece }
+              : { from: from ?? "", to: to ?? "" },
+          );
           if (!m) errors.push({ stepId: sid, reason: "illegal_observe", detail: `${lessonId}/${sid} ${mv}` });
         } catch {
           errors.push({ stepId: sid, reason: "illegal_observe", detail: `${lessonId}/${sid} ${mv}` });

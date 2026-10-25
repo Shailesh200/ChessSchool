@@ -59,6 +59,7 @@ const moveStep = (id, coach, fen, solution, opts = {}) => ({
   coach,
   fen,
   solution,
+  ...(opts.promotion ? { promotion: opts.promotion } : {}),
   highlight: opts.highlight,
   successText: opts.successText ?? "Correct!",
   failText: opts.failText ?? "Not quite — try again.",
@@ -316,6 +317,7 @@ function genPromotion() {
           {
             highlight: [to],
             tag: "promotion",
+            promotion: "q",
             successText: "A brand-new queen!",
           },
         ),

@@ -136,7 +136,7 @@ function CalculationTrainerSession({
       if (!applied) return;
 
       setAttempted(true);
-      if (moveMatchesSolution(move, puzzle.allSolutions)) {
+      if (moveMatchesSolution(move, puzzle.allSolutions, puzzle)) {
         setCoach(applyCoachLine(puzzle.successText, character, "success"));
         setPhase("correct");
         audio.play(applied.captured ? "capture" : "success");

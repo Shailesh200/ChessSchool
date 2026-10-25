@@ -2,6 +2,8 @@ import { Chess } from "chess.js";
 import { conceptGroup } from "./concepts.mjs";
 import { setupCoach, finishCoach, midCoachAt } from "./coach-voice.mjs";
 
+const PROMOTION_PIECES = new Set(["q", "r", "b", "n"]);
+
 /** @param {string} uci */
 function uciMove(uci) {
   return {
@@ -56,7 +58,9 @@ export function compilePuzzleSteps(puzzle) {
       kind: "move",
       coach,
       fen: before,
+      // Keep `from:to` (shipped clients compare that). The piece is separate.
       solution: [`${mv.from}:${mv.to}`],
+      ...(PROMOTION_PIECES.has(mv.promotion) ? { promotion: mv.promotion } : {}),
       tag: group.id,
       successText: lastIdx ? "Solved! 🎉" : "Correct — keep going!",
       ...(i === 1 && puzzle.coach?.hint ? { hint: puzzle.coach.hint } : {}),
