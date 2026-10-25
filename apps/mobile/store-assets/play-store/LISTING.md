@@ -10,7 +10,7 @@ Use with assets in this folder. Privacy: https://chess-school.in/privacy
 | Package | `com.chessschool.app` |
 | Category | Education |
 | Short description (80 chars max) | Graduate through chess classes, puzzles, and matches. |
-| Full description | ChessSchool is a free online chess academy structured like a real school. Enroll, take a placement test, and graduate through Pre-School → University with FEN-verified lessons, homework, bots, and live multiplayer. Progress syncs across web and app. No credit card required. |
+| Full description | ChessSchool is a free online chess academy structured like a real school. Enroll, take a placement test, and graduate through Starter → University with FEN-verified lessons, homework, bots, and live multiplayer. Progress syncs across web and app. No credit card required. |
 | Privacy policy URL | https://chess-school.in/privacy |
 | Support URL | https://chess-school.in/support |
 | Marketing URL | https://chess-school.in |
