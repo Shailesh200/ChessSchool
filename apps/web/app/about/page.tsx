@@ -80,9 +80,9 @@ export default function AboutPage() {
             <h2 className="text-ink text-lg font-extrabold">Licences</h2>
             <p>{STOCKFISH_NOTICE}.</p>
             <p>
-              {STOCKFISH_AUTHORS_CREDIT} ChessSchool serves Stockfish 18 (tag {STOCKFISH_TAG})
-              as a lite, single-threaded WebAssembly build. The GPL-3.0 text and author
-              list are published beside the engine.
+              {STOCKFISH_AUTHORS_CREDIT} ChessSchool serves Stockfish 18 (tag{" "}
+              {STOCKFISH_TAG}) as a lite, single-threaded WebAssembly build. The GPL-3.0
+              text and author list are published beside the engine.
             </p>
             <ul className="list-disc space-y-2 pl-5">
               <li>
@@ -104,12 +104,18 @@ export default function AboutPage() {
                 (the WebAssembly files in /engine)
               </li>
               <li>
-                <a href="/engine/Copying.txt" className="text-brand-500 font-bold underline">
+                <a
+                  href="/engine/Copying.txt"
+                  className="text-brand-500 font-bold underline"
+                >
                   GNU GPL-3.0 (Copying.txt)
                 </a>
               </li>
               <li>
-                <a href="/engine/AUTHORS" className="text-brand-500 font-bold underline">
+                <a
+                  href="/engine/AUTHORS"
+                  className="text-brand-500 font-bold underline"
+                >
                   Stockfish AUTHORS
                 </a>
               </li>

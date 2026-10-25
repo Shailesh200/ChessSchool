@@ -24,7 +24,8 @@ const SOURCE_REF = /^[A-Za-z0-9._-]{1,80}$/;
 /** Commit, tag, or other single path segment safe to put under `/tree/`. */
 export function sourceRevision(revision: string | null | undefined): string | null {
   const rev = revision?.trim() ?? "";
-  if (!SOURCE_REF.test(rev) || rev === "." || rev === ".." || rev.includes("..")) return null;
+  if (!SOURCE_REF.test(rev) || rev === "." || rev === ".." || rev.includes(".."))
+    return null;
   return rev;
 }
 
