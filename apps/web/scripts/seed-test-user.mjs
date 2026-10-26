@@ -294,11 +294,11 @@ function openLocalClient(url, env) {
 }
 
 /**
- * Insert or update Alex. Idempotent: one user, fixture XP, streak, and the
- * four board lessons. An existing row with this email keeps its id. Otherwise
- * the fixed test id is inserted, or updated when that id already exists.
- * Does not write a coach (`progress.data` has no settings), and marks the
- * profile onboarded so the app keeps the default coach.
+ * Insert or update Alex. Idempotent on `user-alex-play-store` only: fixture
+ * XP, streak, and the four board lessons. If the email already belongs to a
+ * different id, this throws before any write. Does not write a coach
+ * (`progress.data` has no settings), and marks the profile onboarded so the
+ * app keeps the default coach.
  *
  * @param {{ execute: Function, batch: Function }} client
  * @param {{ email: string, password: string }} [login]
@@ -314,16 +314,22 @@ export async function seedTestUser(client, login = storeShotLogin()) {
     );
   }
 
-  const now = Date.now();
-  const today = isoDay(now);
   const { email, password } = login;
-  const passwordHash = await hashPassword(password);
   const found = await client.execute({
     sql: "SELECT id FROM users WHERE email = ?",
     args: [email],
   });
   const existingId = found.rows[0]?.id;
-  const userId = existingId == null ? TEST_USER_ID : String(existingId);
+  if (existingId != null && String(existingId) !== TEST_USER_ID) {
+    throw new Error(
+      "Refusing to seed the test user: that email already belongs to a different account. No rows were written.",
+    );
+  }
+
+  const now = Date.now();
+  const today = isoDay(now);
+  const passwordHash = await hashPassword(password);
+  const userId = TEST_USER_ID;
   /** @type {Record<string, number>} */
   const activityDays = {};
   const lessons = ALEX_LESSONS.map((lesson, index) => {

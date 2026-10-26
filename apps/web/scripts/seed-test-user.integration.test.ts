@@ -4,6 +4,7 @@
 import { spawn } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -157,6 +158,26 @@ function expectRealStoreShotEnvUnchanged(before: Buffer | null) {
   const after = snapshotRealStoreShotEnv();
   if (before === null) expect(after).toBeNull();
   else expect(after).toEqual(before);
+}
+
+async function accountSnapshot(client: Client, userId: string) {
+  const user = await client.execute({
+    sql: `SELECT id, email, password_hash, name, role, created_at
+          FROM users WHERE id = ?`,
+    args: [userId],
+  });
+  const profile = await client.execute({
+    sql: `SELECT user_id, student_no, enrolled_at, rank_title, avatar_url, goal, house, onboarded
+          FROM profiles WHERE user_id = ?`,
+    args: [userId],
+  });
+  const progress = await client.execute({
+    sql: `SELECT user_id, xp, streak, last_active_day, daily_goal_xp,
+                 graduated_classes, data, updated_at
+          FROM progress WHERE user_id = ?`,
+    args: [userId],
+  });
+  return { user: user.rows, profile: profile.rows, progress: progress.rows };
 }
 
 function expectNoSecrets(output: string, url: string) {
@@ -505,49 +526,71 @@ describe("test-user seed", () => {
     );
   });
 
-  it("reuses an existing user id when the email is already taken", async () => {
-    const client = createClient({ url: ":memory:" });
-    open.push(client);
-    await client.executeMultiple(MEMORY_SCHEMA);
-    await client.execute("PRAGMA foreign_keys = ON");
+  it("refuses to touch a different user who already has the store-shot email", async () => {
+    vi.resetModules();
+    const previousUrl = process.env.DATABASE_URL;
+    const realBefore = snapshotRealStoreShotEnv();
+    const shotDir = mkdtempSync(path.join(tmpdir(), "store-shot-taken-"));
+    const shotFile = path.join(shotDir, ".store-shot.env");
     const existingId = "user-already-alex";
-    await client.execute({
-      sql: `INSERT INTO users (id, email, password_hash, name, role, created_at)
-            VALUES (?, ?, 'old-hash', 'Someone', 'student', 1)`,
-      args: [existingId, TEST_USER_EMAIL],
-    });
+    const passwordHash = "hash-do-not-touch-other";
+    let env: Awaited<ReturnType<typeof bootApiTestEnv>> | undefined;
+    try {
+      env = await bootApiTestEnv();
+      const client = (env.db as unknown as { $client: Client }).$client;
+      await client.execute({
+        sql: `INSERT INTO users (id, email, password_hash, name, role, created_at)
+              VALUES (?, ?, ?, 'Other', 'student', 111)`,
+        args: [existingId, TEST_USER_EMAIL, passwordHash],
+      });
+      await client.execute({
+        sql: `INSERT INTO profiles (
+                user_id, student_no, enrolled_at, rank_title, avatar_url, goal, house, onboarded
+              ) VALUES (?, 'CS-OTHER', 222, 'Expert', 'pawn', 'tactics', 'blue', 0)`,
+        args: [existingId],
+      });
+      await client.execute({
+        sql: `INSERT INTO progress (
+                user_id, xp, streak, last_active_day, daily_goal_xp,
+                graduated_classes, data, updated_at
+              ) VALUES (?, 7, 2, '2020-01-01', 30, '["class-a"]', '{"keep":true}', 333)`,
+        args: [existingId],
+      });
+      const before = await accountSnapshot(client, existingId);
 
-    const firstId = await seedTestUser(client, storeShotLogin({}));
-    const secondId = await seedTestUser(client, storeShotLogin({}));
-    expect(firstId).toBe(existingId);
-    expect(secondId).toBe(existingId);
+      const fileUrl = process.env.DATABASE_URL;
+      const result = await runScript(
+        scriptEnv({
+          DATABASE_URL: fileUrl,
+          DATABASE_AUTH_TOKEN: undefined,
+          STORE_SHOT_EMAIL: undefined,
+          STORE_SHOT_PASSWORD: undefined,
+          STORE_SHOT_ENV_PATH: shotFile,
+        }),
+      );
 
-    const users = await client.execute(
-      "SELECT id, email, name, password_hash, created_at FROM users",
-    );
-    expect(users.rows).toHaveLength(1);
-    const user = users.rows[0] as Record<string, unknown>;
-    expect(user.id).toBe(existingId);
-    expect(user.email).toBe(TEST_USER_EMAIL);
-    expect(user.name).toBe(TEST_USER_NAME);
-    expect(Number(user.created_at)).toBe(1);
-    expect(await bcrypt.compare(TEST_USER_PASSWORD, String(user.password_hash))).toBe(
-      true,
-    );
-    const progress = await client.execute({
-      sql: "SELECT xp, streak FROM progress WHERE user_id = ?",
-      args: [existingId],
-    });
-    expect(Number((progress.rows[0] as Record<string, unknown>).xp)).toBe(ALEX_XP);
-    expect(Number((progress.rows[0] as Record<string, unknown>).streak)).toBe(
-      ALEX_STREAK,
-    );
-    const fixed = await client.execute({
-      sql: "SELECT COUNT(*) AS c FROM users WHERE id = ?",
-      args: [TEST_USER_ID],
-    });
-    expect(Number((fixed.rows[0] as Record<string, unknown>).c)).toBe(0);
-  });
+      expect(result.code).toBe(1);
+      const output = `${result.stdout}\n${result.stderr}`;
+      expect(output).toMatch(/different account/);
+      expect(output).not.toContain(TEST_USER_EMAIL);
+      expect(output).not.toContain(TEST_USER_PASSWORD);
+      expect(output).not.toContain(passwordHash);
+      expect(existsSync(shotFile)).toBe(false);
+      expectRealStoreShotEnvUnchanged(realBefore);
+      expect(await accountSnapshot(client, existingId)).toEqual(before);
+      const alex = await client.execute({
+        sql: "SELECT COUNT(*) AS c FROM users WHERE id = ?",
+        args: [TEST_USER_ID],
+      });
+      expect(Number((alex.rows[0] as Record<string, unknown>).c)).toBe(0);
+    } finally {
+      env?.teardown();
+      rmSync(shotDir, { recursive: true, force: true });
+      if (previousUrl === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = previousUrl;
+      vi.resetModules();
+    }
+  }, 90_000);
 
   it("seeds a local file, logs in through the login route, and the CLI is idempotent", async () => {
     vi.resetModules();

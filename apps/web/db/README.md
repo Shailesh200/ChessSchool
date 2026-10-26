@@ -10,7 +10,9 @@ flow on an Android emulator against an API on the CI runner. **Alex is not a
 real person and is not part of the main seed.** Do not add this account to
 `seed.sql.gz` or `scripts/seed.mjs`.
 
-The script inserts or updates one student and is safe to run again. It gives
+The script inserts or updates `user-alex-play-store` and is safe to run again
+on that row. If the email already belongs to a different account, it exits
+non-zero and writes nothing. It gives
 Alex a 4-day streak and 50 XP from the first four Chess Basics lessons (The
 Chess Board), which is what the home header reads: a streak count and a
 partial level-1 XP bar (50 / 100). The profile is already onboarded and
@@ -35,9 +37,9 @@ login looks it up. The defaults are made up and test-only:
 | `STORE_SHOT_EMAIL`    | `alex@test.chessschool.local` |
 | `STORE_SHOT_PASSWORD` | `AlexTestOnly1`               |
 
-Success logs only `test user seeded` and the user id. A new student uses
-`user-alex-play-store`. An account that already has this email keeps its id.
-The email and password are not printed.
+Success logs only `test user seeded` and the user id (`user-alex-play-store`).
+The email and password are not printed. A different account that already uses
+the email is left unchanged, and `.store-shot.env` is not written.
 
 After a successful seed the script removes any existing env file (a missing file
 is fine) and writes a new one with mode `0600`. The path is `STORE_SHOT_ENV_PATH`
