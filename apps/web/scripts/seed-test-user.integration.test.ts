@@ -472,6 +472,20 @@ describe("test-user seed guard", () => {
     }
   }, 90_000);
 
+  it("refuses a STORE_SHOT_ENV_PATH through a non-directory without printing the path", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-enotdir-"));
+    const blocker = path.join(dir, "afile");
+    writeFileSync(blocker, "not-a-directory\n");
+    const envPath = path.join(blocker, "x", "a.env");
+    try {
+      await expectBadEnvPathLeavesDbUntouched(envPath, /cannot be written/, {
+        hidden: [dir, blocker],
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 90_000);
+
   it("refuses a directory at STORE_SHOT_ENV_PATH", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "store-shot-dir-"));
     const envPath = path.join(dir, ".env");

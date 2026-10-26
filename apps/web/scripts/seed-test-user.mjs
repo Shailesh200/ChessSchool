@@ -242,7 +242,8 @@ function isReplaceableStoreShotEnv(content) {
 
 /**
  * Resolve the capture-job env file and refuse a path that cannot be written.
- * Call this before opening the database. Does not print the path.
+ * Parent stat failures, and path stat failures other than a missing file, are
+ * the same refusal. Call this before opening the database. Does not print the path.
  *
  * @param {Record<string, string | undefined>} [env]
  * @returns {string}
@@ -258,13 +259,10 @@ export function resolveStoreShotEnvPath(env = process.env) {
   let parentStat;
   try {
     parentStat = statSync(parent);
-  } catch (error) {
-    if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") {
-      throw new Error(
-        "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
-      );
-    }
-    throw error;
+  } catch {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+    );
   }
   if (!parentStat.isDirectory()) {
     throw new Error(
@@ -278,22 +276,19 @@ export function resolveStoreShotEnvPath(env = process.env) {
       "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
     );
   }
+  let current;
   try {
-    const current = statSync(filePath);
-    if (!current.isFile()) {
-      throw new Error(
-        "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
-      );
-    }
+    current = statSync(filePath);
   } catch (error) {
-    const code = /** @type {NodeJS.ErrnoException} */ (error).code;
-    if (code === "ENOENT") return filePath;
-    if (code) {
-      throw new Error(
-        "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
-      );
-    }
-    throw error;
+    if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") return filePath;
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+    );
+  }
+  if (!current.isFile()) {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+    );
   }
   let content;
   try {
@@ -330,7 +325,7 @@ export function storeShotLogin(env = process.env) {
 /**
  * Replace the capture-job env file with the values this seed used.
  * An existing file is removed first so a looser mode cannot stick.
- * The new file is mode 0600. Does not print the values.
+ * The replacement is created with flag wx and mode 0600. Does not print the values.
  *
  * @param {string} filePath
  * @param {{ email: string, password: string }} login
@@ -347,7 +342,7 @@ export function writeStoreShotEnv(filePath, login) {
   } catch (error) {
     if (/** @type {NodeJS.ErrnoException} */ (error).code !== "ENOENT") throw error;
   }
-  writeFileSync(filePath, body, { encoding: "utf8", mode: 0o600, flag: "w" });
+  writeFileSync(filePath, body, { encoding: "utf8", mode: 0o600, flag: "wx" });
   chmodSync(filePath, 0o600);
 }
 
