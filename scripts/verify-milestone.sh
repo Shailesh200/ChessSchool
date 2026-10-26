@@ -9,6 +9,9 @@ echo "════════════════════════�
 echo " ChessSchool verify:milestone"
 echo "═══════════════════════════════════════════════════════════"
 
+echo "→ seed artifact (seed.sql.gz ≤ 90 MB, no plain seed.sql)"
+node scripts/verify-seed-artifact.mjs
+
 echo "→ pnpm typecheck"
 pnpm typecheck
 

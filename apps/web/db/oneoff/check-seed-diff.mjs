@@ -1,23 +1,29 @@
 /**
- * Prove `apps/web/db/seed.sql` differs from a base ref only in:
+ * Prove the curriculum seed differs from a base ref only in:
  *   1. `homework_lessons` INSERT rows
  *   2. `steps` FEN strings of `pre-bishop-diagonal-info` and `pre-queen-on-diagonal`
+ *
+ * The snapshot is `apps/web/db/seed.sql.gz`. Both sides are decompressed before
+ * the line check, so a deterministic re-gzip of the same SQL is not a diff.
+ * A base ref that still has plain `apps/web/db/seed.sql` is read as text.
  *
  * The new FENs must match `apps/web/content/data/preschool-lessons-extra.mjs`.
  * Any other seed line — other lessons, promotion pieces, schema, formatting — fails.
  *
- *   node apps/web/scripts/check-seed-diff.mjs [base-ref]
+ *   node apps/web/db/oneoff/check-seed-diff.mjs [base-ref]
  *
  * Default base ref is `staging`. Compares that ref to the working tree.
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PRESCHOOL_EXTRA } from "../content/data/preschool-lessons-extra.mjs";
+import { gunzipSeedSql, readSeedSql } from "../seed-file.mjs";
+import { PRESCHOOL_EXTRA } from "../../content/data/preschool-lessons-extra.mjs";
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const seedRel = "apps/web/db/seed.sql";
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const seedGzRel = "apps/web/db/seed.sql.gz";
+const seedSqlRel = "apps/web/db/seed.sql";
 const base = process.argv[2] ?? "staging";
 const FEN_LESSONS = ["pre-bishop-diagonal-info", "pre-queen-on-diagonal"];
 const EXPECTED_HOMEWORK = 84;
@@ -27,16 +33,21 @@ function fail(message) {
   process.exit(1);
 }
 
-function git(args) {
+function git(args, encoding = "utf8") {
   const result = spawnSync("git", args, {
     cwd: repoRoot,
-    encoding: "utf8",
+    encoding,
     maxBuffer: 128 * 1024 * 1024,
   });
   if (result.error) fail(result.error.message);
   if (result.status !== 0)
-    fail((result.stderr || `git ${args.join(" ")} failed`).trim());
+    fail((result.stderr || `git ${args.join(" ")} failed`).toString().trim());
   return result.stdout;
+}
+
+function refExists(spec) {
+  const result = spawnSync("git", ["cat-file", "-e", spec], { cwd: repoRoot });
+  return result.status === 0;
 }
 
 function homeworkId(line) {
@@ -86,44 +97,80 @@ function maskFens(line) {
   return line.replace(/"fen":"[^"]*"/g, '"fen":"*"');
 }
 
-const diff = git(["--no-pager", "diff", "-U0", "--no-color", base, "--", seedRel]);
-if (!diff.trim()) fail(`no ${seedRel} changes against ${base}`);
+function countLines(sql) {
+  const counts = new Map();
+  for (const line of sql.split("\n")) {
+    counts.set(line, (counts.get(line) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Multiset difference of SQL lines. Order does not matter; duplicate lines do. */
+function lineChanges(before, after) {
+  const beforeCounts = countLines(before);
+  const afterCounts = countLines(after);
+  const removed = [];
+  const added = [];
+  for (const [line, count] of beforeCounts) {
+    const kept = afterCounts.get(line) ?? 0;
+    for (let i = kept; i < count; i++) removed.push(line);
+  }
+  for (const [line, count] of afterCounts) {
+    const kept = beforeCounts.get(line) ?? 0;
+    for (let i = kept; i < count; i++) added.push(line);
+  }
+  return { removed, added };
+}
+
+function readBaseSql(ref) {
+  const gzSpec = `${ref}:${seedGzRel}`;
+  if (refExists(gzSpec)) return gunzipSeedSql(git(["show", gzSpec], "buffer"));
+  const sqlSpec = `${ref}:${seedSqlRel}`;
+  if (refExists(sqlSpec)) return git(["show", sqlSpec], "buffer").toString("utf8");
+  fail(`neither ${seedGzRel} nor ${seedSqlRel} exists at ${ref}`);
+}
+
+function readWorkingSql() {
+  const gzPath = join(repoRoot, seedGzRel);
+  if (existsSync(gzPath)) return readSeedSql(gzPath);
+  const sqlPath = join(repoRoot, seedSqlRel);
+  if (existsSync(sqlPath)) return readFileSync(sqlPath, "utf8");
+  fail(`missing ${seedGzRel}`);
+}
+
+function artifactSize(ref) {
+  for (const rel of [seedGzRel, seedSqlRel]) {
+    const spec = `${ref}:${rel}`;
+    if (!refExists(spec)) continue;
+    return { rel, bytes: Number(git(["cat-file", "-s", spec]).trim()) };
+  }
+  fail(`no seed artifact at ${ref}`);
+}
+
+const baseSql = readBaseSql(base);
+const newSql = readWorkingSql();
+const { removed, added } = lineChanges(baseSql, newSql);
+const changedLines = removed.length + added.length;
+if (changedLines === 0) fail(`no seed SQL changes against ${base}`);
 
 const removedLessons = new Map();
 const addedLessons = new Map();
-let changedLines = 0;
 
-for (const line of diff.split("\n")) {
-  if (
-    line === "" ||
-    line.startsWith("diff ") ||
-    line.startsWith("index ") ||
-    line.startsWith("--- ") ||
-    line.startsWith("+++ ") ||
-    line.startsWith("@@")
-  ) {
-    continue;
-  }
-  if (line.startsWith("\\")) fail(`unexpected diff marker: ${line}`);
-  if (!line.startsWith("+") && !line.startsWith("-")) {
-    fail(`unexpected diff line: ${line.slice(0, 160)}`);
-  }
-  changedLines++;
-  const sign = line[0];
-  const body = line.slice(1);
+function record(body, sign) {
   const kind = classify(body);
   if (!kind) {
     const id = body.match(/VALUES \('([^']+)'/)?.[1] ?? body.slice(0, 80);
     fail(`disallowed seed change (${id})`);
   }
-  if (kind.kind === "homework") continue;
+  if (kind.kind === "homework") return;
   const bucket = sign === "-" ? removedLessons : addedLessons;
   if (bucket.has(kind.id)) fail(`multiple ${sign} lines for ${kind.id}`);
   bucket.set(kind.id, body);
 }
 
-const newSql = readFileSync(join(repoRoot, seedRel), "utf8");
-const baseSql = git(["show", `${base}:${seedRel}`]);
+for (const body of removed) record(body, "-");
+for (const body of added) record(body, "+");
+
 const oldIds = idsFrom(baseSql);
 const newIds = idsFrom(newSql);
 if (new Set(newIds).size !== newIds.length)
@@ -136,16 +183,16 @@ const newIdSet = new Set(newIds);
 const oldIdSet = new Set(oldIds);
 const overlap = oldIds.filter((id) => newIdSet.has(id));
 const missing = oldIds.filter((id) => !newIdSet.has(id));
-const added = newIds.filter((id) => !oldIdSet.has(id));
+const addedIds = newIds.filter((id) => !oldIdSet.has(id));
 
 const sourceByLesson = new Map(PRESCHOOL_EXTRA.map((lesson) => [lesson.id, lesson]));
-console.log(`seed.sql check against ${base}`);
+console.log(`seed.sql.gz check against ${base}`);
 console.log(`homework rows: ${oldIds.length} -> ${newIds.length}`);
 console.log(`id overlap: ${overlap.length}`);
 console.log(`old ids missing from the new set: ${missing.length}`);
 if (missing.length) console.log(`  ${missing.join(", ")}`);
-console.log(`new ids not in the old set: ${added.length}`);
-if (added.length) console.log(`  ${added.join(", ")}`);
+console.log(`new ids not in the old set: ${addedIds.length}`);
+if (addedIds.length) console.log(`  ${addedIds.join(", ")}`);
 
 for (const id of FEN_LESSONS) {
   const oldLine = removedLessons.get(id);
@@ -184,9 +231,12 @@ for (const id of FEN_LESSONS) {
   }
 }
 
-const beforeBytes = Number(git(["cat-file", "-s", `${base}:${seedRel}`]).trim());
-const afterBytes = statSync(join(repoRoot, seedRel)).size;
-console.log(`seed size: ${beforeBytes} -> ${afterBytes} bytes`);
+const before = artifactSize(base);
+const gzPath = join(repoRoot, seedGzRel);
+const afterBytes = existsSync(gzPath)
+  ? statSync(gzPath).size
+  : statSync(join(repoRoot, seedSqlRel)).size;
+console.log(`seed size: ${before.bytes} (${before.rel}) -> ${afterBytes} bytes`);
 console.log(`changed seed lines: ${changedLines}`);
 console.log(
   "✓ every changed seed line is a homework row or one of the two FEN lessons",

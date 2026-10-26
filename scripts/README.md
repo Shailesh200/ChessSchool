@@ -8,6 +8,8 @@ Run before every milestone **owner approval** and **merge to main**.
 pnpm verify:milestone
 ```
 
+Also runs `node scripts/verify-seed-artifact.mjs` first: `apps/web/db/seed.sql.gz` must be gzip and at most 90 MB, and no uncompressed `seed.sql` may be committed (`pnpm verify:seed`).
+
 Runs, in order:
 
 1. `pnpm typecheck`

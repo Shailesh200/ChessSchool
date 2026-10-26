@@ -30,6 +30,8 @@ import { Chess } from "chess.js";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 /** Monorepo root (`apps/web/scripts` → repo). */
 export const REPO_ROOT = join(SCRIPT_DIR, "../../..");
+/** `apps/web/local.db`, resolved from this file so cwd does not matter. */
+export const LOCAL_DB_PATH = join(SCRIPT_DIR, "..", "local.db");
 /** Committed curated puzzle set. Resolved from this file, not `process.cwd()`. */
 export const DEFAULT_PUZZLE_CSV = join(REPO_ROOT, "data/chess-school-puzzles.csv.gz");
 
@@ -304,13 +306,13 @@ async function importFromCsv(input) {
   console.log(`\nScanned ${scanned.toLocaleString()} rows.`);
 
   // ── Build homework lessons ────────────────────────────────────────────────────
-  if (!existsSync("local.db")) {
+  if (!existsSync(LOCAL_DB_PATH)) {
     console.error(
-      `✗ local.db not found in ${process.cwd()}. Run \`pnpm db:fresh\` from apps/web first.`,
+      `✗ local.db not found at ${LOCAL_DB_PATH}. Run \`pnpm db:fresh\` from apps/web first.`,
     );
     process.exit(1);
   }
-  const db = new Database("local.db");
+  const db = new Database(LOCAL_DB_PATH);
   db.exec(`CREATE TABLE IF NOT EXISTS homework_lessons (
   id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, subtitle TEXT NOT NULL DEFAULT '',
   emoji TEXT NOT NULL DEFAULT '♟️', tag TEXT NOT NULL DEFAULT 'drill', xp INTEGER NOT NULL DEFAULT 20,

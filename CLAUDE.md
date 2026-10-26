@@ -67,7 +67,7 @@ pnpm --filter web db:dump && pnpm --filter web db:remote
 - Local: `DATABASE_URL` unset → `apps/web/local.db`
 - Remote: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN`
 - Schema: `apps/web/db/schema.ts` — users, oauth_accounts, sessions, profiles, progress, lessonRecords, semesters, classes, lessons, homeworkLessons, gameSessions, analytics_events, web_vitals
-- `db/seed.sql` is **non-destructive** for user tables — re-seeding preserves accounts
+- `db/seed.sql.gz` is the committed curriculum snapshot (deterministic gzip, decompressed on read). It is **non-destructive** for user tables — re-seeding preserves accounts. CI fails if that artifact exceeds 90 MB or a plain `seed.sql` is committed.
 - After schema changes (e.g. OAuth): `pnpm --filter web db:push` locally and against Turso
 
 ## Auth & accounts

@@ -1,24 +1,30 @@
 /**
- * Seed a REMOTE libSQL/Turso DB from db/seed.sql (schema + curriculum content).
- * Run from any network that can reach Turso (e.g. home wifi / hotspot):
+ * Seed a REMOTE libSQL/Turso DB from db/seed.sql.gz (schema + curriculum content).
+ * The gzip is decompressed in memory. Run from any network that can reach Turso
+ * (e.g. home wifi / hotspot):
  *   DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… pnpm db:remote
  * Idempotent — safe to re-run (it drops + recreates the content tables).
  */
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
+import {
+  SEED_SQL_GZ_PATH,
+  readSeedSql,
+  splitSeedStatements,
+} from "../db/seed-file.mjs";
 
 const url = process.env.DATABASE_URL;
 if (!url || !url.startsWith("libsql:")) {
   console.error("Set DATABASE_URL=libsql://…  (and DATABASE_AUTH_TOKEN)");
   process.exit(1);
 }
+if (!existsSync(SEED_SQL_GZ_PATH)) {
+  console.error("✗ db/seed.sql.gz not found. Run pnpm db:dump after a full import.");
+  process.exit(1);
+}
 
 const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
-const raw = readFileSync(new URL("../db/seed.sql", import.meta.url), "utf8");
-const stmts = raw
-  .split(/;\s*\n/)
-  .map((s) => s.trim())
-  .filter((s) => s && !s.startsWith("--") && !/^PRAGMA/i.test(s));
+const stmts = splitSeedStatements(readSeedSql());
 
 console.log(`Seeding remote DB — ${stmts.length} statements…`);
 for (let i = 0; i < stmts.length; i += 200) {

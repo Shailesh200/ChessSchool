@@ -346,13 +346,13 @@ pnpm curriculum:validate
 **Pass import report:** `Rejected: 0`, `Inserted` matches expectation.  
 **Pass validate:** `Rejected: 0` (warnings for `generic_coach` on bulk OK for now).
 
-### D — Before committing `seed.sql` or pushing Turso
+### D — Before committing `seed.sql.gz` or pushing Turso
 
 ```bash
 cd apps/web
-pnpm db:dump                     # regenerates db/seed.sql from local.db
+pnpm db:dump                     # regenerates db/seed.sql.gz from local.db
 pnpm curriculum:validate         # still green
-pnpm db:fresh && pnpm db:remote  # optional: dry-run remote from fresh seed.sql counts
+pnpm db:fresh && pnpm db:remote  # optional: dry-run remote from fresh seed.sql.gz counts
 # Or validate remote directly:
 DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… pnpm curriculum:validate -- --remote
 ```
@@ -372,7 +372,7 @@ SKIP_LIGHTHOUSE=1 pnpm verify:milestone
 | `puzzle-school` validate logic | `pnpm test` (package) + `curriculum:validate` |
 | Preschool lesson in `.mjs` | `db:fresh` → `curriculum:validate` (0 rejections) |
 | Import script / csv.gz | `db:fresh` → `db:import-puzzle-school` → `curriculum:validate` |
-| `seed.sql` / Turso | `db:dump` → `curriculum:validate` → `--remote` validate |
+| `seed.sql.gz` / Turso | `db:dump` → `curriculum:validate` → `--remote` validate |
 | UI lesson player only | `pnpm --filter web test` + manual playthrough |
 
 **Report file:** always inspect `apps/web/curriculum-import-report.json` for `rejected` and `warnings` details.
@@ -406,7 +406,7 @@ SKIP_LIGHTHOUSE=1 pnpm verify:milestone
 
 ### Phase 4 — Admin & ops
 - [ ] Admin: import puzzle JSONL / edit puzzle metadata (extends M-023)
-- [ ] `db/seed.sql` + Turso remote seed from Puzzle School export
+- [ ] `db/seed.sql.gz` + Turso remote seed from Puzzle School export
 - [ ] `pnpm verify:milestone` green
 
 ---
