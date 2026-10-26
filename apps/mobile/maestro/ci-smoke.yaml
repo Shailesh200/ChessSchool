@@ -16,17 +16,16 @@ appId: com.chessschool.app
     id: "orientation-skip"
     optional: true
 - tapOn:
-    text: "Not Now"
+    text: "Not now"
     optional: true
 - extendedWaitUntil:
     visible:
       id: "tab-Academy"
     timeout: 120000
-# Guest subtitle after #42 is "Enroll in the academy to track your progress."
-# The regex also accepts the previous "Enroll to" wording.
+# Guest subtitle is academy-subtitle: "Enroll in the academy to track your progress."
 - extendedWaitUntil:
     visible:
-      text: "Enroll (to|in) the academy to track your progress\\."
+      id: "academy-subtitle"
     timeout: 120000
 # Filename matches SHOTS.md. This guest frame is not the signed-in campus shot.
 - takeScreenshot: 01-campus

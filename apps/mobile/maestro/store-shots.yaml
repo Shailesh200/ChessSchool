@@ -11,8 +11,9 @@
 #
 # Selectors are ids and text that exist on this branch. The campus frame is
 # the signed-in greeting, taken before any scroll. The stage heading is not
-# used: its display name is "Pre-School" here and "Starter" after the rename
-# in PR #31, and that heading sits below the fold.
+# used: its display name is "Starter" (stage id preschool) and it sits below
+# the fold. Lesson coach copy is an opener plus the curriculum sentence, so
+# those frames wait on lesson-coach, lesson-turn, and lesson-hint.
 appId: com.chessschool.app
 ---
 - extendedWaitUntil:
@@ -45,10 +46,6 @@ appId: com.chessschool.app
     visible:
       id: "academy-subtitle"
     timeout: 30000
-- extendedWaitUntil:
-    visible:
-      text: "Graduate through classes. Become a stronger player."
-    timeout: 30000
 - openLink: "chessschool:///academy"
 - extendedWaitUntil:
     visible:
@@ -70,10 +67,6 @@ appId: com.chessschool.app
     visible:
       id: "lesson-coach"
     timeout: 60000
-- extendedWaitUntil:
-    visible:
-      text: "Pawns move forward. Push your e-pawn two squares to grab the centre!"
-    timeout: 30000
 - extendedWaitUntil:
     visible:
       id: "lesson-turn"
@@ -115,14 +108,6 @@ appId: com.chessschool.app
 - extendedWaitUntil:
     visible:
       id: "lesson-hint"
-    timeout: 30000
-- extendedWaitUntil:
-    visible:
-      text: "A knight fork hits two pieces at once — aim at the king and a big piece."
-    timeout: 30000
-- extendedWaitUntil:
-    visible:
-      text: "Your turn — find the royal fork!"
     timeout: 30000
 - takeScreenshot: 05-tactic
 - openLink: "chessschool:///play"
