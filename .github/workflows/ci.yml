@@ -46,12 +46,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Fast static gate, before typecheck and e2e. Store/preview builds must
-      # not bake the parity auto-login flag. --self-test covers the fixtures.
-      - name: Store builds omit EXPO_PUBLIC_PARITY
-        run: |
-          node scripts/check-no-parity-in-store-builds.mjs --self-test
-          node scripts/check-no-parity-in-store-builds.mjs
+      # Fast static gate, before typecheck and e2e. Fixtures run in the mobile tests.
+      - name: Store builds omit parity auto-login flag
+        run: node scripts/check-no-parity-in-store-builds.mjs
 
       - name: Puzzle-school validate
         run: pnpm puzzle-school:validate

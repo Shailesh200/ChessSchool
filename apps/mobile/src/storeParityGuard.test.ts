@@ -1,9 +1,26 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConfigContext } from "expo/config";
 import appConfig from "../app.config";
+
+type ParityChecker = {
+  checkEasConfig: (eas: unknown, file?: string) => string[];
+  checkWorkflowText: (text: string, file: string) => string[];
+  checkRepository: (root: string) => string[];
+};
+
+const checkerPath = path.resolve(
+  __dirname,
+  "../../../scripts/check-no-parity-in-store-builds.mjs",
+);
+let checker: ParityChecker;
+const SCREENSHOTS = ".github/workflows/play-store-screenshots.yml";
+
+beforeAll(async () => {
+  checker = (await import(checkerPath)) as ParityChecker;
+});
 
 const mobileRoot = path.resolve(__dirname, "..");
 const hookPath = path.join(mobileRoot, "scripts/eas-build-pre-install.mjs");
@@ -114,5 +131,107 @@ describe("eas-build-pre-install", () => {
         expect(result.stderr).toContain("EXPO_PUBLIC_PARITY");
       }
     }
+  });
+});
+
+describe("store build parity scan", () => {
+  const file = "apps/mobile/eas.json";
+
+  it("accepts a clean eas.json, including a dev profile that sets the flag", () => {
+    const errors = checker.checkEasConfig(
+      {
+        build: {
+          base: { env: { EXPO_PUBLIC_API_URL: "http://localhost:3000" } },
+          development: { extends: "base", env: { EXPO_PUBLIC_PARITY: "1" } },
+          preview: { extends: "base" },
+          production: { extends: "preview" },
+          qa: { extends: "preview" },
+        },
+      },
+      file,
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it("fails when production sets the flag", () => {
+    const errors = checker.checkEasConfig(
+      { build: { production: { env: { EXPO_PUBLIC_PARITY: "1" } } } },
+      file,
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain(file);
+    expect(errors[0]).toContain('build profile "production"');
+    expect(errors[0]).toContain("EXPO_PUBLIC_PARITY");
+  });
+
+  it("fails when a profile that extends production sets the flag", () => {
+    const errors = checker.checkEasConfig(
+      {
+        build: {
+          production: { env: { EXPO_PUBLIC_API_URL: "https://www.chess-school.in" } },
+          "store-internal": { extends: "production", env: { EXPO_PUBLIC_PARITY: "1" } },
+        },
+      },
+      file,
+    );
+    expect(errors.some((error) => error.includes('profile "store-internal"'))).toBe(
+      true,
+    );
+    expect(errors.some((error) => error.includes('extends "production"'))).toBe(true);
+    expect(errors.some((error) => error.includes('profile "production" sets'))).toBe(
+      false,
+    );
+  });
+
+  it("fails when production inherits the flag through extends", () => {
+    const errors = checker.checkEasConfig(
+      {
+        build: {
+          base: { env: { EXPO_PUBLIC_PARITY: "1" } },
+          production: { extends: "base" },
+        },
+      },
+      file,
+    );
+    expect(errors.some((error) => error.includes('profile "production"'))).toBe(true);
+    expect(errors.some((error) => error.includes('inherited from "base"'))).toBe(true);
+  });
+
+  it("fails when a workflow runs eas build with the flag", () => {
+    const workflow = ".github/workflows/release.yml";
+    const errors = checker.checkWorkflowText(
+      [
+        "jobs:",
+        "  ship:",
+        "    env:",
+        '      EXPO_PUBLIC_PARITY: "1"',
+        "    steps:",
+        "      - run: npx eas-cli build --profile production",
+        "",
+      ].join("\n"),
+      workflow,
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain(workflow);
+    expect(errors[0]).toContain("EXPO_PUBLIC_PARITY");
+  });
+
+  it("allows the screenshot workflow to mention the flag only without eas", () => {
+    expect(
+      checker.checkWorkflowText(
+        'jobs:\n  capture:\n    env:\n      EXPO_PUBLIC_PARITY: "1"\n    steps:\n      - run: ./gradlew :app:assembleRelease\n',
+        SCREENSHOTS,
+      ),
+    ).toEqual([]);
+    const blocked = checker.checkWorkflowText(
+      "jobs:\n  capture:\n    steps:\n      - run: eas build --profile production\n",
+      SCREENSHOTS,
+    );
+    expect(blocked[0]).toContain(SCREENSHOTS);
+    expect(blocked[0]).toContain("eas build");
+  });
+
+  it("accepts the current repo", () => {
+    expect(checker.checkRepository(path.resolve(__dirname, "../../.."))).toEqual([]);
   });
 });
