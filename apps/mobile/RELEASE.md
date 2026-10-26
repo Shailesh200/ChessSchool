@@ -154,6 +154,39 @@ pnpm submit:android:store
 Or promote the internal release in Play Console → Production.
 ---
 
+## iOS builds and Stockfish
+
+Android EAS builds do not compile the Stockfish pod (`modules/stockfish` is Apple-only). iOS builds do.
+
+`modules/stockfish/ios/engine/` is gitignored. `package.json` → `eas-build-pre-install` runs `scripts/fetch-stockfish.sh` before dependencies and `pod install`. The script:
+
+- Runs the download only when `EAS_BUILD_PLATFORM` is `ios` or unset (local). Any other EAS platform, including Android, exits 0 without downloading.
+- Pins **Stockfish 18** (`sf_18`, the same major release as the web WASM engine) plus the two NNUE nets named in that tag's `evaluate.h`.
+- Checks SHA-256 on the source tarball and both nets, and exits 1 if a download or checksum fails. `pod install` then never sees a half-written tree.
+- Is safe to re-run: a matching stamp and matching net checksums skip the download.
+- Writes Stockfish's own `Copying.txt` and `AUTHORS` next to the sources (`modules/stockfish/ios/engine/`). Those files stay gitignored with the rest of `engine/`.
+
+Local iOS (the hook does not run outside EAS):
+
+```bash
+cd apps/mobile
+bash scripts/fetch-stockfish.sh    # or: pnpm fetch-stockfish
+npx expo prebuild -p ios
+npx expo run:ios
+```
+
+Do not commit `engine/` or the `.nnue` files. Pins, checksums, and the embedded net payload (one copy via `incbin`, not copied again as pod resources) are in [`STOCKFISH.md`](STOCKFISH.md). GPL notes for the binary are there too; the in-app licence screen is a separate change.
+
+There is no `eas.json` change. The hook is the `eas-build-pre-install` script in `apps/mobile/package.json`, which EAS runs for the mobile app.
+
+### iOS download size
+
+The NNUE nets alone are about 112 MB (112,439,224 bytes: the big net plus the small net), embedded once. The App Store download must stay under 200 MB.
+
+TODO: record the IPA size from the first iOS EAS build.
+
+---
+
 ## OTA updates (EAS Update)
 
 Ship JavaScript/asset fixes **without** a new Play Store review:

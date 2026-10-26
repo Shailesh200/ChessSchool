@@ -11,6 +11,8 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "generate:pieces": "node scripts/generate-piece-assets.mjs",
+    "fetch-stockfish": "bash scripts/fetch-stockfish.sh",
+    "eas-build-pre-install": "bash scripts/fetch-stockfish.sh",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "doctor": "npx expo-doctor",
