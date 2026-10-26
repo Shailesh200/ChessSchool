@@ -14,6 +14,12 @@ name: Play Store screenshots
 # Phone frames come from the pixel_2 profile (1080×1920, 420 dpi). The job
 # also sets wm size/density to those values. It does not resize. Alpha is stripped.
 #
+# TEMPORARY push trigger below proves the seeded login flow on this branch.
+# Remove it after that run. A push has no workflow input, so it uses
+# apps/mobile/maestro/store-shots.yaml. db:seed:test-user writes
+# apps/web/.store-shot.env and the job substitutes those values into a
+# mode-600 copy before Maestro runs.
+#
 # EXPO_PUBLIC_PARITY=1 is capture-only. The test APK stays in RUNNER_TEMP and
 # is deleted after the emulator step. Only normalized PNGs are uploaded.
 # A store-shot login link is substituted into a mode-600 flow in RUNNER_TEMP
@@ -27,6 +33,10 @@ on:
         required: false
         default: apps/mobile/maestro/store-shots.yaml
         type: string
+  # TEMPORARY: one proof of the seeded store-shot flow. Remove after that run.
+  push:
+    branches:
+      - jimbe/e-native-store-shots
 
 permissions:
   contents: read
@@ -76,9 +86,9 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          # Push has no workflow_dispatch input, and store-shots.yaml is not on this branch.
+          # Push has no workflow_dispatch input. Prove the seeded login flow.
           if [ "$EVENT_NAME" = "push" ]; then
-            FLOW="apps/mobile/maestro/ci-smoke.yaml"
+            FLOW="apps/mobile/maestro/store-shots.yaml"
           else
             FLOW="${MAESTRO_FLOW_INPUT}"
             if [ -z "$FLOW" ]; then
