@@ -16,6 +16,8 @@
  * An existing file is replaced only when it is empty or holds only
  * STORE_SHOT_EMAIL= / STORE_SHOT_PASSWORD= lines. A directory at the path
  * is refused. A bad path exits before the database is opened.
+ * If the rows are written and the env file still cannot be written, the
+ * process exits 1 with a message that does not include the path.
  *
  * Requires the local schema (`pnpm --filter web db:push` or `db:fresh`).
  */
@@ -325,25 +327,34 @@ export function storeShotLogin(env = process.env) {
 /**
  * Replace the capture-job env file with the values this seed used.
  * An existing file is removed first so a looser mode cannot stick.
- * The replacement is created with flag wx and mode 0600. Does not print the values.
+ * The replacement is created with flag wx and mode 0600. Any failure,
+ * including EEXIST, EACCES, ENOSPC, and EROFS, is reported without the path.
  *
  * @param {string} filePath
  * @param {{ email: string, password: string }} login
  */
 export function writeStoreShotEnv(filePath, login) {
-  if (/[\r\n]/.test(login.email) || /[\r\n]/.test(login.password)) {
-    throw new Error(
-      "STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD must be single-line values.",
-    );
-  }
-  const body = `STORE_SHOT_EMAIL=${login.email}\nSTORE_SHOT_PASSWORD=${login.password}\n`;
   try {
-    unlinkSync(filePath);
-  } catch (error) {
-    if (/** @type {NodeJS.ErrnoException} */ (error).code !== "ENOENT") throw error;
+    if (/[\r\n]/.test(login.email) || /[\r\n]/.test(login.password)) {
+      throw new Error(
+        "STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD must be single-line values.",
+      );
+    }
+    const body = `STORE_SHOT_EMAIL=${login.email}\nSTORE_SHOT_PASSWORD=${login.password}\n`;
+    try {
+      unlinkSync(filePath);
+    } catch (error) {
+      if (/** @type {NodeJS.ErrnoException} */ (error).code !== "ENOENT") throw error;
+    }
+    // Test stand-in for a file appearing after unlink, so flag wx hits EEXIST.
+    if (process.env.STORE_SHOT_ENV_INJECT_EEXIST === filePath) {
+      writeFileSync(filePath, "kept\n", { encoding: "utf8", flag: "w" });
+    }
+    writeFileSync(filePath, body, { encoding: "utf8", mode: 0o600, flag: "wx" });
+    chmodSync(filePath, 0o600);
+  } catch {
+    throw new Error("test user seeded, but the env file could not be written");
   }
-  writeFileSync(filePath, body, { encoding: "utf8", mode: 0o600, flag: "wx" });
-  chmodSync(filePath, 0o600);
 }
 
 function secretsFrom(env) {

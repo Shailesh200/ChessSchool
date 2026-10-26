@@ -537,6 +537,53 @@ describe("test-user seed guard", () => {
     }
   }, 90_000);
 
+  it("exits 1 with a path-free message when the env file cannot be created", async () => {
+    vi.resetModules();
+    const previousUrl = process.env.DATABASE_URL;
+    const realBefore = snapshotRealStoreShotEnv();
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-wx-"));
+    const envPath = path.join(dir, "shot.env");
+    let env: Awaited<ReturnType<typeof bootApiTestEnv>> | undefined;
+    try {
+      env = await bootApiTestEnv();
+      const fileUrl = process.env.DATABASE_URL ?? "";
+      const client = (env.db as unknown as { $client: Client }).$client;
+      const result = await runScript(
+        scriptEnv({
+          DATABASE_URL: fileUrl,
+          DATABASE_AUTH_TOKEN: undefined,
+          STORE_SHOT_EMAIL: undefined,
+          STORE_SHOT_PASSWORD: undefined,
+          STORE_SHOT_ENV_PATH: envPath,
+          STORE_SHOT_ENV_INJECT_EEXIST: envPath,
+        }),
+      );
+      const output = `${result.stdout}\n${result.stderr}`;
+      expect(result.code).toBe(1);
+      expect(result.stderr.trim()).toBe(
+        "test user seeded, but the env file could not be written",
+      );
+      expect(output).not.toContain(envPath);
+      expect(output).not.toContain(dir);
+      expect(output).not.toContain(TEST_USER_EMAIL);
+      expect(output).not.toContain(TEST_USER_PASSWORD);
+      expectNoSecrets(output, fileUrl);
+      expect(readFileSync(envPath, "utf8")).toBe("kept\n");
+      const alex = await client.execute({
+        sql: "SELECT COUNT(*) AS c FROM users WHERE id = ?",
+        args: [TEST_USER_ID],
+      });
+      expect(Number((alex.rows[0] as Record<string, unknown>).c)).toBe(1);
+      expectRealStoreShotEnvUnchanged(realBefore);
+    } finally {
+      env?.teardown();
+      rmSync(dir, { recursive: true, force: true });
+      if (previousUrl === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = previousUrl;
+      vi.resetModules();
+    }
+  }, 90_000);
+
   it("replaces a pre-existing 0644 file with mode 0600", () => {
     const realBefore = snapshotRealStoreShotEnv();
     const dir = mkdtempSync(path.join(tmpdir(), "store-shot-"));

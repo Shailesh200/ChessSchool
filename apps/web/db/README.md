@@ -39,7 +39,10 @@ login looks it up. The defaults are made up and test-only:
 
 Success logs only `test user seeded` and the user id (`user-alex-play-store`).
 The email and password are not printed. A different account that already uses
-the email is left unchanged, and `.store-shot.env` is not written.
+the email is left unchanged, and `.store-shot.env` is not written. If the rows
+are written and the env file still cannot be written, the script exits non-zero
+and prints `test user seeded, but the env file could not be written`. That
+message does not include the path, the login, or the database URL.
 
 After a successful seed the script writes an env file with mode `0600`. The path
 is `STORE_SHOT_ENV_PATH` when that is set, and `apps/web/.store-shot.env`
