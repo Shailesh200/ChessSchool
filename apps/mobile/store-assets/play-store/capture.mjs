@@ -304,8 +304,17 @@ const TACTIC_PACK_CSS = `
     align-items: flex-start !important;
     justify-content: flex-start !important;
   }
+  body[data-capture="tactic"] .order-2 {
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+  body[data-capture="tactic"] .order-2 .flex-1 {
+    width: 100% !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
   body[data-capture="tactic"] .order-1 { min-height: 0 !important; }
-  body[data-capture="tactic"] .order-2 { gap: 8px !important; }
   body[data-capture="tactic"] .min-h-dvh > .flex-1 {
     gap: 8px !important;
     padding-top: 6px !important;
@@ -319,6 +328,8 @@ const TACTIC_PACK_CSS = `
   body[data-capture="tactic"] div:has(> [data-testid="chess-board"]) {
     width: var(--cap-board) !important;
     max-width: var(--cap-board) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
   body[data-capture="tactic"] #capture-fork-arrows {
     position: fixed;
@@ -358,26 +369,18 @@ const MATCH_PACK_CSS = `
 `;
 
 const REVIEW_PACK_CSS = `
+  body[data-capture="review"] #main-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
   body[data-capture="review"] div:has(> [data-testid="chess-board"]) {
-    width: var(--cap-board, 100%) !important;
-    max-width: var(--cap-board, 28rem) !important;
+    width: var(--cap-board, 396px) !important;
+    max-width: var(--cap-board, 396px) !important;
     margin-left: auto !important;
     margin-right: auto !important;
   }
-  body[data-capture="review"] [data-testid="chess-board"] [id*="-square-"] > div {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  body[data-capture="review"] [data-testid="chess-board"] img {
-    width: var(--piece-scale, 46%) !important;
-    height: var(--piece-scale, 46%) !important;
-    margin: 0 !important;
-  }
-  body[data-capture="review"] [id*="-square-"] > span span {
-    font-size: 9px !important;
-    line-height: 1 !important;
-    z-index: 3 !important;
+  body[data-capture="review"] [id*="-square-"] > span {
+    display: none !important;
   }
 `;
 
@@ -548,6 +551,7 @@ async function packTactic(page) {
         tip: box(tip),
         cont: box(cont),
         innerHeight: window.innerHeight,
+        innerWidth: window.innerWidth,
         pieces: {
           c7: Boolean(document.querySelector("#lesson-fork-master-square-c7 img")),
           e8: Boolean(document.querySelector("#lesson-fork-master-square-e8 img")),
@@ -588,6 +592,10 @@ async function packTactic(page) {
   }
   const gap = last.tip && last.board ? last.tip.top - last.board.bottom : 999;
   if (gap > 40) throw new Error(`tactic gap still ${gap}px ${JSON.stringify(last)}`);
+  const rightGap = (last.innerWidth ?? CSS_W) - (last.board?.right ?? 0);
+  if (!last.board || Math.abs(last.board.left - rightGap) > 4) {
+    throw new Error(`tactic board off centre left ${last.board?.left} right ${rightGap}`);
+  }
   if (arrows < 2) throw new Error("tactic fork arrows missing");
   last.arrows = arrows;
   last.gap = gap;
@@ -657,7 +665,22 @@ async function startMatch(page, elo) {
     el.className.includes("border-brand"),
   );
   if (adaptiveOn) await page.getByRole("button", { name: "Adaptive bot" }).click();
-  await page.getByRole("button", { name: String(elo), exact: true }).click();
+  const preset = page.getByRole("button", { name: String(elo), exact: true });
+  let eloHeld = false;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await preset.click();
+    const selected = await preset
+      .evaluate((el) => el.className.includes("bg-brand"))
+      .catch(() => false);
+    if (!selected) {
+      await page.waitForTimeout(200);
+      continue;
+    }
+    await page.waitForTimeout(350);
+    eloHeld = await preset.evaluate((el) => el.className.includes("bg-brand")).catch(() => false);
+    if (eloHeld) break;
+  }
+  if (!eloHeld) throw new Error(`elo ${elo} did not stay selected`);
   await page.getByRole("button", { name: "5 min", exact: true }).click();
   await page.getByRole("button", { name: "Start match" }).click();
   await page.locator("#match-board-board").waitFor();
@@ -883,7 +906,7 @@ function notationOverlaps() {
 async function packReview(page) {
   await page.evaluate(() => {
     document.body.dataset.capture = "review";
-    document.documentElement.style.setProperty("--piece-scale", "46%");
+    document.documentElement.style.setProperty("--cap-board", "396px");
     const main = document.querySelector("#main-content");
     const board = document.querySelector("[data-testid='chess-board']");
     if (main && board) {
@@ -891,70 +914,55 @@ async function packReview(page) {
       main.scrollTop = Math.max(0, top - 4);
     }
   });
-  let size = 300;
-  let last = null;
-  for (let i = 0; i < 8; i += 1) {
-    last = await page.evaluate((next) => {
-      document.documentElement.style.setProperty("--cap-board", `${next}px`);
-      const main = document.querySelector("#main-content");
-      const boardEl = document.querySelector("[data-testid='chess-board']");
-      if (main && boardEl) {
-        const top = boardEl.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
-        main.scrollTop = Math.max(0, top - 4);
-      }
-      const rect = (el) => {
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height };
-      };
-      const label = [...document.querySelectorAll("p")].find((p) =>
-        /^(Starting position|\d+\.)/.test(p.textContent.trim()),
-      );
-      const navTops = [...document.querySelectorAll("nav")]
-        .map((n) => n.getBoundingClientRect())
-        .filter((r) => r.height > 24 && r.top > window.innerHeight * 0.45)
-        .map((r) => r.top);
-      return {
-        size: next,
-        board: rect(document.querySelector('[id$="-board"]')),
-        a8: rect(document.querySelector('[id$="-square-a8"]')),
-        h1: rect(document.querySelector('[id$="-square-h1"]')),
-        label: rect(label),
-        labelText: label?.textContent.trim() ?? "",
-        navTop: navTops.length ? Math.min(...navTops) : window.innerHeight,
-        mainTop: main?.getBoundingClientRect().top ?? 0,
-      };
-    }, size);
-    const fit =
-      last.board &&
-      last.a8 &&
-      last.h1 &&
-      last.label &&
-      last.a8.top >= last.mainTop - 1 &&
-      last.h1.bottom <= last.navTop - 4 &&
-      last.label.bottom <= last.navTop - 4 &&
-      last.label.top >= last.mainTop;
-    if (fit) break;
-    if (size <= 250) break;
-    size -= 16;
-  }
-  let overlaps = await page.evaluate(notationOverlaps);
-  for (const scale of ["42%", "38%", "34%"]) {
-    if (!overlaps.length) break;
-    await page.evaluate((scale) => {
-      document.documentElement.style.setProperty("--piece-scale", scale);
-    }, scale);
-    await page.waitForTimeout(50);
-    overlaps = await page.evaluate(notationOverlaps);
-  }
-  if (!last?.label || last.label.bottom > last.navTop - 2) {
+  const last = await page.evaluate(() => {
+    const main = document.querySelector("#main-content");
+    const boardEl = document.querySelector("[data-testid='chess-board']");
+    if (main && boardEl) {
+      const top = boardEl.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+      main.scrollTop = Math.max(0, top - 4);
+    }
+    const rect = (el) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width };
+    };
+    const label = [...document.querySelectorAll("p")].find((p) =>
+      /^(Starting position|\d+\.)/.test(p.textContent.trim()),
+    );
+    const navTops = [...document.querySelectorAll("nav")]
+      .map((n) => n.getBoundingClientRect())
+      .filter((r) => r.height > 24 && r.top > window.innerHeight * 0.45)
+      .map((r) => r.top);
+    const square = document.querySelector('[id$="-square-d1"]');
+    const piece = square?.querySelector("img");
+    const notation = document.querySelector('[id*="-square-"] > span');
+    const notationStyle = notation ? getComputedStyle(notation) : null;
+    return {
+      board: rect(document.querySelector('[id$="-board"]')),
+      a8: rect(document.querySelector('[id$="-square-a8"]')),
+      h1: rect(document.querySelector('[id$="-square-h1"]')),
+      label: rect(label),
+      labelText: label?.textContent.trim() ?? "",
+      navTop: navTops.length ? Math.min(...navTops) : window.innerHeight,
+      mainTop: main?.getBoundingClientRect().top ?? 0,
+      innerWidth: window.innerWidth,
+      pieceRatio: square && piece ? piece.getBoundingClientRect().width / square.getBoundingClientRect().width : 0,
+      notationHidden: !notation || notationStyle.display === "none" || notationStyle.visibility === "hidden",
+    };
+  });
+  if (last.labelText !== "6. O-O") throw new Error(`review label is ${last.labelText}`);
+  if (!last.label || last.label.bottom > last.navTop - 2) {
     throw new Error(`review label clipped ${JSON.stringify(last)}`);
   }
   if (!last.a8 || last.a8.top < last.mainTop - 1 || !last.h1 || last.h1.bottom > last.navTop) {
     throw new Error(`review board clipped ${JSON.stringify(last)}`);
   }
-  if (overlaps.length) throw new Error(`notation still overlaps pieces: ${overlaps.join(", ")}`);
-  last.overlaps = overlaps;
+  const rightGap = last.innerWidth - (last.board?.right ?? 0);
+  if (!last.board || Math.abs(last.board.left - rightGap) > 4 || last.board.width < 380) {
+    throw new Error(`review board margins left ${last.board?.left} right ${rightGap} width ${last.board?.width}`);
+  }
+  if (!last.notationHidden) throw new Error("review notation still visible");
+  if (last.pieceRatio < 0.9) throw new Error(`review pieces inset at ${last.pieceRatio}`);
   return last;
 }
 
