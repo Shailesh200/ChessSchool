@@ -6,8 +6,8 @@
  * for the host). A local database must be a sqlite file, not Turso or any
  * http(s) URL.
  *
- *   node apps/mobile/store-assets/play-store/capture-host.mjs --self-test
- *   node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"
+ *   node apps/mobile/store-assets/play-store/emulator-host.mjs --self-test
+ *   node apps/mobile/store-assets/play-store/emulator-host.mjs "$EXPO_PUBLIC_API_URL"
  */
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
@@ -114,7 +114,7 @@ function selfTest() {
     }
     if (!threw) throw new Error(`expected database reject for a remote URL`);
   }
-  console.log("✓ capture-host self-test");
+  console.log("✓ emulator-host self-test");
 }
 
 if (isDirectRun()) {

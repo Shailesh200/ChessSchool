@@ -1,8 +1,8 @@
 name: Play Store screenshots
 
-# Manual only. Builds a release APK on the runner, seeds a local database,
-# boots an Android emulator, and uploads screenshots. Nothing is committed
-# and nothing is published.
+# Builds a release APK on the runner, seeds a local database, boots an
+# Android emulator, and uploads screenshots. Nothing is committed and
+# nothing is published.
 #
 # Actions → Play Store screenshots → Run workflow.
 # Default flow: apps/mobile/maestro/store-shots.yaml
@@ -13,6 +13,9 @@ name: Play Store screenshots
 #
 # Phone frames come from the pixel_2 profile (1080×1920, 420 dpi). The job
 # also sets wm size/density to those values. It does not resize. Alpha is stripped.
+#
+# TEMPORARY push trigger below must be removed before merge. A push has no
+# workflow input, so that run uses apps/mobile/maestro/ci-smoke.yaml.
 
 on:
   workflow_dispatch:
@@ -22,10 +25,13 @@ on:
         required: false
         default: apps/mobile/maestro/store-shots.yaml
         type: string
+  # TEMPORARY: prove this job on jimbe/e-native-store-shots. Must be removed before merge.
+  push:
+    branches:
+      - jimbe/e-native-store-shots
 
 permissions:
   contents: read
-  actions: write
 
 concurrency:
   group: play-store-screenshots-${{ github.ref }}
@@ -59,12 +65,18 @@ jobs:
 
       - name: Choose Maestro flow
         env:
-          MAESTRO_FLOW_INPUT: ${{ inputs.maestro_flow }}
+          MAESTRO_FLOW_INPUT: ${{ github.event.inputs.maestro_flow }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          FLOW="${MAESTRO_FLOW_INPUT}"
-          if [ -z "$FLOW" ]; then
-            FLOW="apps/mobile/maestro/store-shots.yaml"
+          # Push has no workflow_dispatch input, and store-shots.yaml is not on this branch.
+          if [ "$EVENT_NAME" = "push" ]; then
+            FLOW="apps/mobile/maestro/ci-smoke.yaml"
+          else
+            FLOW="${MAESTRO_FLOW_INPUT}"
+            if [ -z "$FLOW" ]; then
+              FLOW="apps/mobile/maestro/store-shots.yaml"
+            fi
           fi
           case "$FLOW" in
             ./*) FLOW="${FLOW#./}" ;;
@@ -112,8 +124,8 @@ jobs:
         run: |
           set -euo pipefail
           unset DATABASE_AUTH_TOKEN || true
-          node apps/mobile/store-assets/play-store/capture-host.mjs --self-test
-          node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"
+          node apps/mobile/store-assets/play-store/emulator-host.mjs --self-test
+          node apps/mobile/store-assets/play-store/emulator-host.mjs "$EXPO_PUBLIC_API_URL"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -162,7 +174,7 @@ jobs:
         run: |
           set -euo pipefail
           unset DATABASE_AUTH_TOKEN || true
-          node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"
+          node apps/mobile/store-assets/play-store/emulator-host.mjs "$EXPO_PUBLIC_API_URL"
           cd apps/mobile
           pnpm exec expo prebuild --platform android --no-install
           node "$GITHUB_WORKSPACE/apps/mobile/store-assets/play-store/enable-emulator-cleartext.mjs" \
@@ -226,8 +238,8 @@ jobs:
             ls -la "$GITHUB_WORKSPACE/apps/mobile/android/app/build/outputs/apk/release" || true
             exit 1
           fi
-          if ! grep -R -a -q -F "10.0.2.2" "$GITHUB_WORKSPACE/apps/mobile/android/app/build"; then
-            echo "::error::Release build does not reference the emulator host 10.0.2.2."
+          if ! unzip -p "$APK" assets/index.android.bundle | grep -F -q "10.0.2.2"; then
+            echo "::error::Release APK JS bundle (assets/index.android.bundle) does not reference the emulator host 10.0.2.2."
             exit 1
           fi
           cp "$APK" "$RUNNER_TEMP/app-release.apk"
@@ -259,10 +271,13 @@ jobs:
           exit 1
 
       - name: Install Maestro
+        env:
+          MAESTRO_VERSION: "2.11.0"
         run: |
           set -euo pipefail
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
 
       - name: Boot emulator and run Maestro
         uses: reactivecircus/android-emulator-runner@v2
