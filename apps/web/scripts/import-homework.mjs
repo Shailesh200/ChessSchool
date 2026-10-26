@@ -30,6 +30,28 @@ import { Chess } from "chess.js";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 /** Monorepo root (`apps/web/scripts` → repo). */
 export const REPO_ROOT = join(SCRIPT_DIR, "../../..");
+/** `apps/web/local.db`, resolved from this file so cwd does not matter. */
+export const LOCAL_DB_PATH = join(SCRIPT_DIR, "..", "local.db");
+
+/**
+ * Default is {@link LOCAL_DB_PATH}. `CHESS_SCHOOL_LOCAL_DB` may point at another
+ * local file (tests). Remote URLs are rejected and not opened.
+ *
+ * @param {{ CHESS_SCHOOL_LOCAL_DB?: string }} [env]
+ * @returns {{ path: string } | { error: string }}
+ */
+export function resolveHomeworkDbPath(env = process.env) {
+  const override = env.CHESS_SCHOOL_LOCAL_DB;
+  if (typeof override !== "string" || override.length === 0) {
+    return { path: LOCAL_DB_PATH };
+  }
+  if (/^(libsql|https?|wss?):/i.test(override)) {
+    return {
+      error: "✗ CHESS_SCHOOL_LOCAL_DB must be a local SQLite file path.",
+    };
+  }
+  return { path: override.replace(/^file:/, "") };
+}
 /** Committed curated puzzle set. Resolved from this file, not `process.cwd()`. */
 export const DEFAULT_PUZZLE_CSV = join(REPO_ROOT, "data/chess-school-puzzles.csv.gz");
 
@@ -304,13 +326,19 @@ async function importFromCsv(input) {
   console.log(`\nScanned ${scanned.toLocaleString()} rows.`);
 
   // ── Build homework lessons ────────────────────────────────────────────────────
-  if (!existsSync("local.db")) {
+  const resolvedDb = resolveHomeworkDbPath();
+  if ("error" in resolvedDb) {
+    console.error(resolvedDb.error);
+    process.exit(1);
+  }
+  const dbPath = resolvedDb.path;
+  if (!existsSync(dbPath)) {
     console.error(
-      `✗ local.db not found in ${process.cwd()}. Run \`pnpm db:fresh\` from apps/web first.`,
+      `✗ local.db not found at ${dbPath}. Run \`pnpm db:fresh\` from apps/web first.`,
     );
     process.exit(1);
   }
-  const db = new Database("local.db");
+  const db = new Database(dbPath);
   db.exec(`CREATE TABLE IF NOT EXISTS homework_lessons (
   id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, subtitle TEXT NOT NULL DEFAULT '',
   emoji TEXT NOT NULL DEFAULT '♟️', tag TEXT NOT NULL DEFAULT 'drill', xp INTEGER NOT NULL DEFAULT 20,
