@@ -134,6 +134,24 @@ async function assertFrameClean(page, clip, label) {
   if (bar) throw new Error(`${label}: loading bar still visible`);
 }
 
+async function installCaptureCoach(context) {
+  await context.addInitScript(() => {
+    const key = "chessschool.settings";
+    let stored = { state: {}, version: 11 };
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || "null");
+      if (parsed && typeof parsed === "object") stored = parsed;
+    } catch {
+      stored = { state: {}, version: 11 };
+    }
+    if (!stored.state || typeof stored.state !== "object") stored.state = {};
+    stored.state.coachCharacter = "anxious_nerd";
+    stored.state.coachPersonality = "anxious_nerd";
+    if (typeof stored.version !== "number") stored.version = 11;
+    localStorage.setItem(key, JSON.stringify(stored));
+  });
+}
+
 async function hideDevChrome(context) {
   await context.addInitScript(() => {
     const paint = () => {
@@ -1116,6 +1134,7 @@ async function captureScreens(browser) {
     isMobile: true,
   });
   await hideDevChrome(context);
+  await installCaptureCoach(context);
   await signIn(context);
   const page = await context.newPage();
   page.setDefaultTimeout(60000);
@@ -1165,8 +1184,15 @@ async function captureScreens(browser) {
     if (await page.getByText("Take your time and calculate").isVisible().catch(() => false)) {
       throw new Error("generic lesson tip still visible");
     }
+    const lessonCoach = await page.locator(".order-1 p").first().innerText();
+    if (!lessonCoach.includes("Pawns move forward")) {
+      throw new Error(`lesson coach line changed: ${lessonCoach}`);
+    }
+    if (/Bold of you to show up|Thrilling advice|No fireworks yet/.test(lessonCoach)) {
+      throw new Error(`lesson still uses the sarcastic coach: ${lessonCoach}`);
+    }
     facts.lesson = {
-      coach: await page.locator(".order-1 p").first().innerText(),
+      coach: lessonCoach,
       hintHidden: true,
       bytes: await shoot(page, "03-lesson.png"),
     };
@@ -1184,8 +1210,12 @@ async function captureScreens(browser) {
     await page.getByRole("button", { name: "Continue" }).waitFor();
     await page.waitForTimeout(300);
     const tactic = await packTactic(page);
+    const tacticCoach = await page.locator(".order-1 p").first().innerText();
+    if (!tacticCoach.includes("Watch the knight leap to c7")) {
+      throw new Error(`tactic coach line changed: ${tacticCoach}`);
+    }
     facts.tactic = {
-      coach: await page.locator(".order-1 p").first().innerText(),
+      coach: tacticCoach,
       knightOnC7: true,
       tip: await page.locator("p").filter({ hasText: "knight fork" }).first().innerText(),
       geometry: tactic,
@@ -1202,6 +1232,11 @@ async function captureScreens(browser) {
       facts.match.header = packed.check.headerText;
       facts.match.botLabel = packed.check.botLabel;
       facts.match.clocks = packed.check.clocks;
+      const matchCoach = await page.locator(".line-clamp-2").last().innerText();
+      if (/Bold of you to show up|Thrilling advice|No fireworks yet/.test(matchCoach)) {
+        throw new Error(`match still uses the sarcastic coach: ${matchCoach}`);
+      }
+      facts.match.coach = matchCoach;
       facts.match.frame = packed.check;
       facts.match.bytes = await shoot(page, "04-bot-game.png");
     }
