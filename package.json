@@ -22,6 +22,7 @@
     "verify:web-lighthouse": "bash scripts/verify-web-lighthouse.sh",
     "verify:e2e-routes": "node scripts/verify-e2e-route-coverage.mjs",
     "verify:parity": "node scripts/verify-parity-coverage.mjs",
+    "verify:store-parity": "node scripts/check-no-parity-in-store-builds.mjs",
     "parity:generate": "node scripts/generate-parity-maestro.mjs",
     "parity:seed": "node scripts/parity-seed.mjs",
     "parity:compare": "node scripts/parity-compare.mjs",
