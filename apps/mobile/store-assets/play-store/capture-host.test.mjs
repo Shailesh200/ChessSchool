@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertSafeCaptureHost } from "./capture.mjs";
+import { assertSafeCaptureHost } from "./capture-host.mjs";
 
 describe("assertSafeCaptureHost", () => {
   it("allows localhost, loopback, and a branch preview", () => {

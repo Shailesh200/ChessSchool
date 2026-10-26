@@ -30,6 +30,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Chess } from "../../../web/node_modules/chess.js/dist/esm/chess.js";
+import { assertSafeCaptureHost } from "./capture-host.mjs";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const shotDir = path.join(dir, "screenshots");
@@ -37,33 +38,7 @@ const rawDir = path.join(shotDir, ".raw");
 const captionHtml = path.join(shotDir, "caption-frame.html");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 
-/** Branch preview only: chess-school-git-<branch>.vercel.app, never main or staging. */
-const CAPTURE_PREVIEW_HOST = /^chess-school-git-([a-z0-9-]+)\.vercel\.app$/;
-
-function isAllowedCaptureHost(host) {
-  if (host === "localhost" || host === "127.0.0.1") return true;
-  const match = CAPTURE_PREVIEW_HOST.exec(host);
-  if (!match) return false;
-  const branch = match[1];
-  if (branch === "main" || branch === "staging") return false;
-  if (branch.startsWith("main-") || branch.startsWith("staging-")) return false;
-  return true;
-}
-
-/** Hosts where the script may create the throwaway Alex account. */
-export function assertSafeCaptureHost(url) {
-  let host = "";
-  try {
-    host = new URL(url).hostname;
-  } catch {
-    throw new Error(`Refusing to register a capture user: BASE_URL is not a valid URL (${url})`);
-  }
-  if (!isAllowedCaptureHost(host)) {
-    throw new Error(
-      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or chess-school-git-<branch>.vercel.app for a branch other than main or staging.`,
-    );
-  }
-}
+export { assertSafeCaptureHost };
 
 const CSS_W = 432;
 const CSS_H = 656;
