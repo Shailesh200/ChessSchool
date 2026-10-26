@@ -39,7 +39,7 @@ export function TopBar() {
             className="text-brand text-sm font-extrabold"
             onClick={() => trackEvent("enroll_cta_click", { source: "nav" })}
           >
-            Enroll to the academy to track your progress →
+            Enroll in the academy to track your progress →
           </Link>
         </div>
       </header>

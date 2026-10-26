@@ -36,7 +36,7 @@ const FEATURES = [
   {
     icon: "learn" as const,
     title: "Structured curriculum",
-    body: "Graduate through schools — Pre-School to University — with semesters, classes, and exams.",
+    body: "Graduate from Starter to University — with semesters, classes, and exams.",
   },
   {
     icon: "puzzle" as const,
@@ -209,9 +209,8 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
           {stageCount} schools — one clear path
         </h2>
         <p className="text-ink-600 mt-2 max-w-2xl text-sm font-semibold">
-          From Pre-School (board setup and piece moves) through Elementary, Middle
-          School, High School, and University — each stage unlocks when you graduate the
-          last.
+          From Starter (board setup and piece moves) through Elementary, Middle School,
+          High School, and University — each stage unlocks when you graduate the last.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {STAGES.map((stage) => (
