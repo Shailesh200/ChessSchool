@@ -1,4 +1,9 @@
-import { addDays, isCalendarDay, isoDay } from "@chess-school/progression";
+import {
+  addDays,
+  isCalendarDay,
+  isoDay,
+  resolveRequestedDay,
+} from "@chess-school/progression";
 
 /**
  * Length of the one-time streak grace window, counting the start day.
@@ -15,9 +20,10 @@ export const STREAK_ACTIVE_DAY_LIMIT = 60;
 /**
  * Server-owned streak record in `progress.data`. Clients cannot write it.
  *
- * `activeDays` is the set of UTC days that counted as streak activity,
- * oldest first, capped at {@link STREAK_ACTIVE_DAY_LIMIT}. D2c will key
- * this by the stored device zone; until then every day is a server UTC day.
+ * `activeDays` is the set of local days that counted as streak activity,
+ * oldest first, capped at {@link STREAK_ACTIVE_DAY_LIMIT}. A day is recorded
+ * only when it is the client's local day and sits in the server UTC day ±1,
+ * the same window as `?day=`. D2c will key this by the stored device zone.
  *
  * `graceUsedAt` is the server UTC day grace was consumed. Rows written
  * before this rename stored that day as `usedOn`. `graceCoveredDay` is the
@@ -149,7 +155,12 @@ export type ReconcileStreakInput = {
   storedStreak: number;
   today: string;
   graceStart?: string;
-  /** Client `lastActiveDay`. Only today or yesterday (server UTC) can be recorded. */
+  /**
+   * Client `lastActiveDay`, the local day this push claims. It is recorded
+   * only when it is inside the server UTC day ±1, and only when it is not
+   * older than the newest day already stored. The day before it is not
+   * inserted; grace is the only way that hole counts.
+   */
   claimedDay: string | null;
   /**
    * Activity may spend grace on one hole. A push that is not activity
@@ -167,19 +178,22 @@ export type ReconcileStreakResult = {
 /**
  * Rebuild the streak from the server's active-day set.
  *
- * An activity push may add `claimedDay` only when it is the server UTC
- * today or yesterday. Older replays and future days are ignored. The set
- * is capped at the last {@link STREAK_ACTIVE_DAY_LIMIT} days.
+ * An activity push may add `claimedDay` only when that local day is inside
+ * the server UTC day ±1 (`input.today` is the server UTC day). That single
+ * day is the push's today. A claim older than the newest stored day is
+ * ignored, so yesterday cannot be backfilled behind today. One missed day
+ * counts only through grace. The set is capped at the last
+ * {@link STREAK_ACTIVE_DAY_LIMIT} days.
  *
- * The streak is the consecutive run ending today, or ending yesterday when
- * today is still empty. Grace, once, counts exactly one missing day inside
- * that run so the chain does not reset. A day already covered still counts
- * on later pushes. If a later push records that day, grace is cleared and
- * the length stays the same.
+ * The streak run ends on the local day just recorded, or on the server UTC
+ * day — or on that day + 1 when the set already holds it, so an early-morning
+ * local day is not dropped. Grace, once, counts exactly one missing day.
+ * A day already covered still counts on later pushes. Recording that day
+ * later, when it is not behind a newer day, clears grace.
  *
  * The first set is seeded from `storedStreak` consecutive days ending at
- * `storedLastActiveDay`. The returned streak is the run those days support,
- * which can be shorter than `storedStreak`.
+ * `storedLastActiveDay`. Callers pass the server streak, never the client
+ * number. The returned streak is the run those days support.
  *
  * Returns null when there is no set and this push does not add a day, so
  * the caller keeps the ordinary max-merge streak.
@@ -189,15 +203,20 @@ export function reconcileActiveStreak(
 ): ReconcileStreakResult | null {
   if (!isCalendarDay(input.today)) return null;
   const recordable = recordableActivityDay(input.claimedDay, input.today);
+  const seedCap = recordable && recordable > input.today ? recordable : input.today;
   const seeded = input.hasActiveDays
     ? (input.activeDays ?? [])
-    : seedActiveDays(input.storedLastActiveDay, input.storedStreak, input.today);
+    : seedActiveDays(input.storedLastActiveDay, input.storedStreak, seedCap);
   if (!input.hasActiveDays && seeded.length === 0 && !recordable) return null;
 
-  const days = boundActiveDays(
-    recordable ? [...seeded, recordable] : seeded,
-    input.today,
-  );
+  const base = uniqueDays(seeded);
+  const latest = base.length > 0 ? base[base.length - 1] : null;
+  // The claim is the one validated local day. Do not insert it behind a
+  // newer stored day: that backfills a miss, which only grace can cover.
+  const added = recordable && (!latest || recordable >= latest) ? recordable : null;
+  const ahead = addDays(input.today, 1);
+  const anchor = added ?? (base.includes(ahead) ? ahead : input.today);
+  const days = boundActiveDays(added ? [...base, added] : base, anchor);
 
   let graceUsedAt = input.graceUsedAt;
   let covered = input.graceCoveredDay;
@@ -213,13 +232,13 @@ export function reconcileActiveStreak(
     input.grantGrace !== false &&
     !graceUsedAt &&
     !!start &&
-    isInsideStreakGraceWindow(input.today, start);
+    isInsideStreakGraceWindow(anchor, start);
   // A covered hole is not stored in the set. Count it so a later recompute
   // keeps the graced length, without recording the hole as a played day.
   const countingDays = covered && !days.includes(covered) ? [...days, covered] : days;
-  const computed = streakFromActiveDays(countingDays, input.today, allowGrace);
+  const computed = streakFromActiveDays(countingDays, anchor, allowGrace);
   if (computed.coveredDay) {
-    graceUsedAt = input.today;
+    graceUsedAt = anchor;
     covered = computed.coveredDay;
   }
 
@@ -234,14 +253,18 @@ export function reconcileActiveStreak(
   };
 }
 
-/** Today or yesterday on the server calendar. Anything else is not recorded. */
+/**
+ * Client local day if it sits in the server UTC day ±1.
+ * Same window as `resolveRequestedDay`. A day outside that window is
+ * rejected. The caller adds this day only, and not when it is older than
+ * the newest day already stored.
+ */
 export function recordableActivityDay(
   claimed: string | null,
-  today: string,
+  serverUtc: string,
 ): string | null {
-  if (!isCalendarDay(today) || !claimed || !isCalendarDay(claimed)) return null;
-  if (claimed === today || claimed === addDays(today, -1)) return claimed;
-  return null;
+  if (!isCalendarDay(serverUtc) || !claimed) return null;
+  return resolveRequestedDay(claimed, clockForServerDay(serverUtc));
 }
 
 function seedActiveDays(

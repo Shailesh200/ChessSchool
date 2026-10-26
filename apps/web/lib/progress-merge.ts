@@ -333,16 +333,16 @@ export type MergeProgressOptions = {
  * copy of that clamp.
  *
  * Once `activeDays` exists, every push recomputes the streak from that set.
- * The client's streak number is not stored. Activity may add today or
- * yesterday and may spend grace on one hole. Settings, plan, and journal
- * pushes do neither.
+ * The client's streak number is never stored. Activity may add the client's
+ * local day when that day is inside the server UTC day ±1, and may spend
+ * grace on one hole. It does not insert an older day. Settings, plan, and
+ * journal pushes do neither.
  *
  * A row with no set still max-merges until the first activity push. That
- * push seeds the set from the max-merged streak (so a higher client number
- * can fill it) anchored on the server's `lastActiveDay`. The streak that
- * is stored is the run those days support, at most 60, not the raw number.
- * Grace can bridge one gap in the set. The object written there is always
- * the server's.
+ * push seeds the set from `server.streak` only, anchored on the server's
+ * `lastActiveDay`. The streak that is stored is the run those days support,
+ * at most 60. Grace can bridge one gap in the set. The object written there
+ * is always the server's.
  *
  * The corrected streak is what gets stored. POST /api/progress still replies
  * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
@@ -387,10 +387,10 @@ export function mergeProgressPush(
           graceUsedAt: parsed.grace?.graceUsedAt,
           graceCoveredDay: parsed.grace?.graceCoveredDay,
           storedLastActiveDay: server.lastActiveDay,
-          // The client number matters only while seeding a row that has no
-          // set. `mergedCore.streak` is the max of the two, then the
-          // reconcile caps it at the run those days support.
-          storedStreak: parsed.hasActiveDays ? server.streak : (mergedCore.streak ?? 0),
+          // The client streak is never a seed. A row with no set takes the
+          // server's number, then the reconcile keeps only the run those
+          // days support.
+          storedStreak: server.streak,
           today: utcToday,
           graceStart: options?.graceStart,
           claimedDay: played ? incoming.lastActiveDay : null,
