@@ -36,14 +36,40 @@ function isAllowedCaptureHost(host) {
   return true;
 }
 
+const API_AUTHORITY_ERROR =
+  "Refusing to register a capture user: BASE_URL is not allowed.";
+const DB_AUTHORITY_ERROR = "Refusing a remote DATABASE_URL.";
+
+/**
+ * WHATWG `URL` folds `\` into `/`, so `localhost\@evil.com` parses as host
+ * localhost. @libsql/core does not. Refuse `\` and `@` before parsing, and
+ * refuse a parsed username or password. The message does not include the value.
+ */
+function assertPlainAuthority(value, message) {
+  if (typeof value === "string" && (value.includes("\\") || value.includes("@"))) {
+    throw new Error(message);
+  }
+}
+
+function assertNoUserInfo(parsed, message) {
+  if (parsed.username !== "" || parsed.password !== "") {
+    throw new Error(message);
+  }
+}
+
 /** Throw before registration when BASE_URL is not a local or branch-preview host. */
 export function assertSafeCaptureHost(url) {
-  let host = "";
+  assertPlainAuthority(url, API_AUTHORITY_ERROR);
+  let parsed;
   try {
-    host = new URL(url).hostname;
+    parsed = new URL(url);
   } catch {
-    throw new Error(`Refusing to register a capture user: BASE_URL is not a valid URL (${url})`);
+    throw new Error(
+      `Refusing to register a capture user: BASE_URL is not a valid URL (${url})`,
+    );
   }
+  assertNoUserInfo(parsed, API_AUTHORITY_ERROR);
+  const host = parsed.hostname;
   if (!isAllowedCaptureHost(host)) {
     throw new Error(
       `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, 10.0.2.2, or chess-school-git-<branch>.vercel.app for a branch other than main or staging.`,
@@ -57,26 +83,28 @@ const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1"]);
  * Fail closed. This runs on the CI runner, so 10.0.2.2 is not local here.
  * Allowed: empty, `file:` (not a nested URL), `:memory:`,
  * or a URL whose host is exactly localhost or 127.0.0.1.
- * The error does not include the URL.
+ * `\` and `@` are refused before parsing. The error does not include the URL.
  */
 export function assertLocalDatabaseUrl(raw) {
   if (raw == null || String(raw).trim() === "") return;
   const value = String(raw).trim();
+  assertPlainAuthority(value, DB_AUTHORITY_ERROR);
   if (value === ":memory:" || LOCAL_DB_HOSTS.has(value)) return;
   if (value.startsWith("file:")) {
     if (value.slice("file:".length).includes("://")) {
-      throw new Error("Refusing a remote DATABASE_URL.");
+      throw new Error(DB_AUTHORITY_ERROR);
     }
     return;
   }
-  let host = "";
+  let parsed;
   try {
-    host = new URL(value).hostname;
+    parsed = new URL(value);
   } catch {
-    throw new Error("Refusing a remote DATABASE_URL.");
+    throw new Error(DB_AUTHORITY_ERROR);
   }
-  if (!LOCAL_DB_HOSTS.has(host)) {
-    throw new Error("Refusing a remote DATABASE_URL.");
+  assertNoUserInfo(parsed, DB_AUTHORITY_ERROR);
+  if (!LOCAL_DB_HOSTS.has(parsed.hostname)) {
+    throw new Error(DB_AUTHORITY_ERROR);
   }
 }
 
@@ -105,6 +133,10 @@ function selfTest() {
     "https://chess-school.in",
     "https://www.chess-school.in",
     "https://chess-school-git-x.vercel.app.evil.com",
+    "http://10.0.2.2\\@evil.com",
+    "http://10.0.2.2@evil.com",
+    "http://user:pw@localhost",
+    "http://localhost\\@evil.com",
   ]) {
     let threw = false;
     try {
@@ -132,6 +164,11 @@ function selfTest() {
     "localhost.evil.com",
     "http://10.0.2.2",
     "libsql://10.0.2.2",
+    "http://localhost\\@evil.com",
+    "http://127.0.0.1\\@evil.com",
+    "http://user@localhost",
+    "http://localhost@evil.com",
+    "libsql://localhost\\@evil.com",
   ]) {
     let threw = false;
     try {
@@ -139,7 +176,11 @@ function selfTest() {
     } catch (err) {
       threw = true;
       const message = err instanceof Error ? err.message : String(err);
-      if (message.includes("turso") || message.includes("libsql") || message.includes("example")) {
+      if (
+        message.includes("turso") ||
+        message.includes("libsql") ||
+        message.includes("example")
+      ) {
         throw new Error("database guard echoed the remote URL");
       }
     }

@@ -73,7 +73,7 @@ Do not commit them. Do not point the app at production (`https://www.chess-schoo
 | `STORE_SHOT_EMAIL` | Jimbe's job, from Luffy's fixture | Alex's email. The Maestro login URL reads this name. Never print it. |
 | `STORE_SHOT_PASSWORD` | Jimbe's job, from Luffy's fixture | Password for that same account. The Maestro login URL reads this name. Never print it. |
 | `EXPO_PUBLIC_API_URL` | Jimbe's job, at bundle time | `http://10.0.2.2:<port>`. `10.0.2.2` is the emulator's name for the host machine. The API host guard allows that exact host. The database guard does not: on the CI runner it is only a private network address. |
-| `DATABASE_URL` | Seed and API on the runner | A local sqlite URL such as `file:local.db`. A bare `local.db` path is refused. |
+| `DATABASE_URL` | Seed and API on the runner | A local sqlite URL such as `file:local.db`. A bare `local.db` path is refused by `capture-host.mjs`. The #54 seed and the web app do accept a bare path. |
 | `EXPO_PUBLIC_PARITY` | Jimbe's job, at bundle time | `1`. The login screen already auto-submits a deep link when this is set. A release build uses `EXPO_PUBLIC_API_URL` as given. |
 
 The login step in `apps/mobile/maestro/store-shots.yaml` is:

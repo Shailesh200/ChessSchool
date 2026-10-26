@@ -9,7 +9,9 @@ describe("assertSafeCaptureHost", () => {
     assert.doesNotThrow(() => assertSafeCaptureHost("http://10.0.2.2:3000"));
     assert.doesNotThrow(() => assertSafeCaptureHost("http://10.0.2.2"));
     assert.doesNotThrow(() =>
-      assertSafeCaptureHost("https://chess-school-git-lane-f-f12-shailesh200.vercel.app"),
+      assertSafeCaptureHost(
+        "https://chess-school-git-lane-f-f12-shailesh200.vercel.app",
+      ),
     );
   });
 
@@ -26,7 +28,9 @@ describe("assertSafeCaptureHost", () => {
       const host = new URL(url).hostname;
       assert.throws(
         () => assertSafeCaptureHost(url),
-        new RegExp(`Refusing to register a capture user on ${host.replaceAll(".", "\\.")}`),
+        new RegExp(
+          `Refusing to register a capture user on ${host.replaceAll(".", "\\.")}`,
+        ),
         url,
       );
     }
@@ -47,9 +51,38 @@ describe("assertSafeCaptureHost", () => {
       const host = new URL(url).hostname;
       assert.throws(
         () => assertSafeCaptureHost(url),
-        new RegExp(`Refusing to register a capture user on ${host.replaceAll(".", "\\.")}`),
+        new RegExp(
+          `Refusing to register a capture user on ${host.replaceAll(".", "\\.")}`,
+        ),
         url,
       );
+    }
+  });
+
+  it("refuses a backslash or userinfo before the host is trusted", () => {
+    const refused = [
+      "http://10.0.2.2\\@evil.com",
+      "http://10.0.2.2@evil.com",
+      "http://user:pw@localhost",
+      "http://localhost\\@evil.com",
+    ];
+    for (const url of refused) {
+      assert.throws(
+        () => assertSafeCaptureHost(url),
+        /Refusing to register a capture user: BASE_URL is not allowed\./,
+      );
+      try {
+        assertSafeCaptureHost(url);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        assert.equal(
+          message,
+          "Refusing to register a capture user: BASE_URL is not allowed.",
+        );
+        assert.equal(message.includes(url), false);
+        assert.equal(message.includes("evil.com"), false);
+        assert.equal(message.includes("pw"), false);
+      }
     }
   });
 });
@@ -88,9 +121,17 @@ describe("assertLocalDatabaseUrl", () => {
       "http://10.0.2.2:3210",
       "libsql://10.0.2.2",
       "http://10.0.2.2.evil.com",
+      "http://localhost\\@evil.com",
+      "http://127.0.0.1\\@evil.com",
+      "http://user@localhost",
+      "http://localhost@evil.com",
+      "libsql://localhost\\@evil.com",
     ];
     for (const url of refused) {
-      assert.throws(() => assertLocalDatabaseUrl(url), /Refusing a remote DATABASE_URL/);
+      assert.throws(
+        () => assertLocalDatabaseUrl(url),
+        /Refusing a remote DATABASE_URL/,
+      );
       try {
         assertLocalDatabaseUrl(url);
       } catch (err) {
