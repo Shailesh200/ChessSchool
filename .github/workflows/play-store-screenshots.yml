@@ -16,6 +16,11 @@ name: Play Store screenshots
 #
 # TEMPORARY push trigger below must be removed before merge. A push has no
 # workflow input, so that run uses apps/mobile/maestro/ci-smoke.yaml.
+#
+# EXPO_PUBLIC_PARITY=1 is capture-only. The test APK stays in RUNNER_TEMP and
+# is deleted after the emulator step. Only normalized PNGs are uploaded.
+# A store-shot login link is substituted into a mode-600 flow in RUNNER_TEMP
+# from apps/web/.store-shot.env. That file is not created for the guest smoke.
 
 on:
   workflow_dispatch:
@@ -119,6 +124,9 @@ jobs:
         run: |
           set -euo pipefail
           echo "EXPO_PUBLIC_API_URL=http://10.0.2.2:${API_PORT}" >> "$GITHUB_ENV"
+          # Capture-only. Never set EXPO_PUBLIC_PARITY in EAS or store builds
+          # (production or preview). It only lets this job's login link auto-submit.
+          echo "EXPO_PUBLIC_PARITY=1" >> "$GITHUB_ENV"
 
       - name: Refuse a non-local API host
         run: |
@@ -144,6 +152,9 @@ jobs:
         run: |
           set -euo pipefail
           unset DATABASE_AUTH_TOKEN || true
+          # Do not set STORE_SHOT_EMAIL or STORE_SHOT_PASSWORD.
+          # db:seed:test-user reads them from the environment or uses its own
+          # test-only defaults, then writes apps/web/.store-shot.env (mode 600).
           PKG=""
           if node -e 'const s=require("./apps/web/package.json").scripts||{}; if(!s["db:seed:test-user"]) process.exit(1)'; then
             PKG="web"
@@ -243,7 +254,9 @@ jobs:
             exit 1
           fi
           cp "$APK" "$RUNNER_TEMP/app-release.apk"
-          ls -lh "$APK"
+          chmod 600 "$RUNNER_TEMP/app-release.apk"
+          # Test-only APK. Do not leave a copy in the workspace or upload it.
+          find "$GITHUB_WORKSPACE/apps/mobile/android" -name '*.apk' -delete
 
       - name: Start local API
         working-directory: apps/web
@@ -279,6 +292,38 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
 
+      - name: Substitute store-shot login link
+        run: |
+          set -euo pipefail
+          node "$GITHUB_WORKSPACE/scripts/substitute-store-shot-flow.mjs" --self-test
+          ENV_FILE="$GITHUB_WORKSPACE/apps/web/.store-shot.env"
+          OUT="$RUNNER_TEMP/store-shot-flow.yaml"
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "MAESTRO_FLOW_FILE=$GITHUB_WORKSPACE/$MAESTRO_FLOW" >> "$GITHUB_ENV"
+            echo "No store-shot env file. Leaving the Maestro flow unsubstituted."
+            exit 0
+          fi
+          # Read and mask inside the script. Do not echo values, do not set -x,
+          # and do not export them to later steps.
+          set +e
+          node "$GITHUB_WORKSPACE/scripts/substitute-store-shot-flow.mjs" \
+            --env-file "$ENV_FILE" \
+            --flow "$GITHUB_WORKSPACE/$MAESTRO_FLOW" \
+            --out "$OUT" \
+            --repo "$GITHUB_WORKSPACE" \
+            --not-under "$RUNNER_TEMP/maestro-raw"
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo "MAESTRO_FLOW_FILE=$GITHUB_WORKSPACE/$MAESTRO_FLOW" >> "$GITHUB_ENV"
+            echo "Maestro flow has no store-shot placeholders."
+            exit 0
+          fi
+          if [ "$code" -ne 0 ]; then
+            exit "$code"
+          fi
+          echo "MAESTRO_FLOW_FILE=$OUT" >> "$GITHUB_ENV"
+
       - name: Boot emulator and run Maestro
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -307,17 +352,36 @@ jobs:
             adb shell wm density
             adb install -r -t "$RUNNER_TEMP/app-release.apk"
             mkdir -p "$RUNNER_TEMP/maestro-raw"
-            maestro test --test-output-dir "$RUNNER_TEMP/maestro-raw" "$GITHUB_WORKSPACE/$MAESTRO_FLOW"
+            scrub_maestro_output() {
+              if [ -d "$RUNNER_TEMP/maestro-raw" ]; then
+                find "$RUNNER_TEMP/maestro-raw" -type f ! -name '*.png' -delete || true
+              fi
+            }
+            trap scrub_maestro_output EXIT
+            maestro test --test-output-dir "$RUNNER_TEMP/maestro-raw" "$MAESTRO_FLOW_FILE"
             if ! find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print -quit | grep -q .; then
               if [ -d "$HOME/.maestro" ]; then
                 find "$HOME/.maestro" -name '*.png' -exec cp -t "$RUNNER_TEMP/maestro-raw" {} +
               fi
             fi
+            scrub_maestro_output
             if ! find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print -quit | grep -q .; then
               echo "Maestro finished without writing a PNG screenshot."
               exit 1
             fi
             find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print
+
+      - name: Delete test-only APK and login flow
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -f "$RUNNER_TEMP/app-release.apk" "$RUNNER_TEMP/store-shot-flow.yaml"
+          if [ -d "$GITHUB_WORKSPACE/apps/mobile/android" ]; then
+            find "$GITHUB_WORKSPACE/apps/mobile/android" -name '*.apk' -delete
+          fi
+          if [ -d "$RUNNER_TEMP/maestro-raw" ]; then
+            find "$RUNNER_TEMP/maestro-raw" -type f ! -name '*.png' -delete
+          fi
 
       - name: Require 1080x1920 RGB screenshots
         if: success()
@@ -328,6 +392,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: play-store-screenshots
+          # PNGs only. The test APK and the substituted flow are not artifacts.
           path: play-store-screenshots/*.png
           if-no-files-found: error
 
