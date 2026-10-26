@@ -209,10 +209,15 @@ seed. Seed the CI runner's local API database with `pnpm db:seed:test-user`
 (see `apps/web/db/README.md`). The script refuses production and any non-local
 database.
 
-| | |
+Set `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` to choose the login. When either
+is unset or blank, the script uses that variable's made-up default. It does not
+print the values. After a successful seed it writes them to `apps/web/.store-shot.env`
+(mode `0600`, gitignored) as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
+
+| Variable | Default when unset |
 | --- | --- |
-| Email | `alex@test.chessschool.local` |
-| Password | `AlexTestOnly1` |
+| `STORE_SHOT_EMAIL` | `alex@test.chessschool.local` |
+| `STORE_SHOT_PASSWORD` | `AlexTestOnly1` |
 
 **Review notes:** Provide a test account email/password for Google reviewers.
 

@@ -26,12 +26,28 @@ pnpm db:seed:test-user
 
 With `DATABASE_URL` unset, that writes `apps/web/local.db`.
 
-|          |                               |
-| -------- | ----------------------------- |
-| Email    | `alex@test.chessschool.local` |
-| Password | `AlexTestOnly1`               |
+The script reads the login from the environment. Each variable falls back on its
+own when it is unset or blank. The email is stored lowercased, the same way
+login looks it up. The defaults are made up and test-only:
 
-These credentials are invented. They are only for a local or in-memory database.
+| Variable              | Default when unset            |
+| --------------------- | ----------------------------- |
+| `STORE_SHOT_EMAIL`    | `alex@test.chessschool.local` |
+| `STORE_SHOT_PASSWORD` | `AlexTestOnly1`               |
+
+Success logs only `test user seeded` and the user id (`user-alex-play-store`).
+The email and password are not printed.
+
+After a successful seed the script overwrites `apps/web/.store-shot.env` (file
+mode `0600`, gitignored) with the values it used:
+
+```
+STORE_SHOT_EMAIL=...
+STORE_SHOT_PASSWORD=...
+```
+
+That is the env value when the variable is set, and the default when it is not.
+The capture job can source this file. Do not commit it.
 
 ### Local-only guard
 

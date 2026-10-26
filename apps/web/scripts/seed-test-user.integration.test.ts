@@ -2,7 +2,8 @@
  * @vitest-environment node
  */
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient, type Client } from "@libsql/client";
@@ -14,6 +15,7 @@ import {
   ALEX_LESSONS,
   ALEX_STREAK,
   ALEX_XP,
+  STORE_SHOT_ENV_PATH,
   TEST_USER_EMAIL,
   TEST_USER_ID,
   TEST_USER_NAME,
@@ -21,6 +23,8 @@ import {
   TEST_USER_STUDENT_NO,
   assertLocalSeedTarget,
   seedTestUser,
+  storeShotLogin,
+  writeStoreShotEnv,
 } from "./seed-test-user.mjs";
 
 const PROD = PRODUCTION_DB_HOSTS[0]!;
@@ -122,6 +126,13 @@ function runScript(env: NodeJS.ProcessEnv) {
       });
     },
   );
+}
+
+function assertStoreShotFile(filePath: string, email: string, password: string) {
+  expect(readFileSync(filePath, "utf8")).toBe(
+    `STORE_SHOT_EMAIL=${email}\nSTORE_SHOT_PASSWORD=${password}\n`,
+  );
+  expect(statSync(filePath).mode & 0o777).toBe(0o600);
 }
 
 function expectNoSecrets(output: string, url: string) {
@@ -226,6 +237,39 @@ describe("test-user seed guard", () => {
     expectNoSecrets(`${result.stdout}\n${result.stderr}`, url);
   });
 
+  it("falls back to the made-up defaults when the shot env vars are unset", () => {
+    expect(storeShotLogin({})).toEqual({
+      email: TEST_USER_EMAIL,
+      password: TEST_USER_PASSWORD,
+    });
+    expect(
+      storeShotLogin({ STORE_SHOT_EMAIL: "   ", STORE_SHOT_PASSWORD: "" }),
+    ).toEqual({
+      email: TEST_USER_EMAIL,
+      password: TEST_USER_PASSWORD,
+    });
+    expect(storeShotLogin({ STORE_SHOT_PASSWORD: "OnlyPassword1" })).toEqual({
+      email: TEST_USER_EMAIL,
+      password: "OnlyPassword1",
+    });
+  });
+
+  it("writes STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD with mode 0600", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-"));
+    const file = path.join(dir, ".store-shot.env");
+    try {
+      writeFileSync(file, "OLD=1\n", { mode: 0o644 });
+      writeStoreShotEnv(file, {
+        email: "shot.user@store-shot.test",
+        password: "StoreShotEnv1",
+      });
+      assertStoreShotFile(file, "shot.user@store-shot.test", "StoreShotEnv1");
+      expect(readFileSync(file, "utf8")).not.toContain("OLD=");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("keeps Alex out of the main seed files", () => {
     const seedSql = readFileSync(path.join(webRoot, "db", "seed.sql"), "utf8");
     const seedScript = readFileSync(path.join(webRoot, "scripts", "seed.mjs"), "utf8");
@@ -249,7 +293,7 @@ describe("test-user seed", () => {
     await client.executeMultiple(MEMORY_SCHEMA);
     await client.execute("PRAGMA foreign_keys = ON");
 
-    await seedTestUser(client);
+    await seedTestUser(client, storeShotLogin({}));
     await client.execute({
       sql: `INSERT INTO lesson_records (
               id, user_id, lesson_id, mastery, attempts, last_seen, due_at
@@ -260,7 +304,7 @@ describe("test-user seed", () => {
       sql: "SELECT id, created_at, password_hash FROM users WHERE email = ?",
       args: [TEST_USER_EMAIL],
     });
-    await seedTestUser(client);
+    await seedTestUser(client, storeShotLogin({}));
 
     const users = await client.execute({
       sql: "SELECT id, email, name, role, created_at, password_hash FROM users WHERE email = ?",
@@ -332,14 +376,41 @@ describe("test-user seed", () => {
     }
   });
 
+  it("uses STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD when they are set", async () => {
+    const client = createClient({ url: ":memory:" });
+    open.push(client);
+    await client.executeMultiple(MEMORY_SCHEMA);
+    const login = storeShotLogin({
+      STORE_SHOT_EMAIL: "  Shot.User@store-shot.test ",
+      STORE_SHOT_PASSWORD: "StoreShotEnv1",
+    });
+    expect(login).toEqual({
+      email: "shot.user@store-shot.test",
+      password: "StoreShotEnv1",
+    });
+
+    await seedTestUser(client, storeShotLogin({}));
+    await seedTestUser(client, login);
+
+    const users = await client.execute("SELECT id, email, password_hash FROM users");
+    expect(users.rows).toHaveLength(1);
+    const user = users.rows[0] as Record<string, unknown>;
+    expect(user.id).toBe(TEST_USER_ID);
+    expect(user.email).toBe(login.email);
+    expect(await bcrypt.compare(login.password, String(user.password_hash))).toBe(true);
+    expect(await bcrypt.compare(TEST_USER_PASSWORD, String(user.password_hash))).toBe(
+      false,
+    );
+  });
+
   it("seeds a local file, logs in through the login route, and the CLI is idempotent", async () => {
     vi.resetModules();
     const previousUrl = process.env.DATABASE_URL;
     const env = await bootApiTestEnv();
     try {
       const client = (env.db as unknown as { $client: Client }).$client;
-      await seedTestUser(client);
-      await seedTestUser(client);
+      await seedTestUser(client, storeShotLogin({}));
+      await seedTestUser(client, storeShotLogin({}));
 
       const count = await client.execute({
         sql: "SELECT COUNT(*) AS c FROM users WHERE email = ?",
@@ -394,16 +465,22 @@ describe("test-user seed", () => {
       expect(fileUrl?.startsWith("file:")).toBe(true);
       for (let i = 0; i < 2; i++) {
         const result = await runScript(
-          scriptEnv({ DATABASE_URL: fileUrl, DATABASE_AUTH_TOKEN: undefined }),
+          scriptEnv({
+            DATABASE_URL: fileUrl,
+            DATABASE_AUTH_TOKEN: undefined,
+            STORE_SHOT_EMAIL: undefined,
+            STORE_SHOT_PASSWORD: undefined,
+          }),
         );
         expect(result.code).toBe(0);
-        expect(result.stdout).toContain(TEST_USER_EMAIL);
-        expect(result.stdout).toContain(`xp ${ALEX_XP}`);
-        expect(result.stdout).toContain(`streak ${ALEX_STREAK}`);
+        expect(result.stdout.trim()).toBe(`test user seeded ${TEST_USER_ID}`);
+        expect(result.stdout).not.toContain(TEST_USER_EMAIL);
         expect(result.stdout).not.toContain(TEST_USER_PASSWORD);
+        expect(result.stderr).not.toContain(TEST_USER_EMAIL);
         expect(result.stderr).not.toContain(TEST_USER_PASSWORD);
         if (fileUrl) expectNoSecrets(`${result.stdout}\n${result.stderr}`, fileUrl);
       }
+      assertStoreShotFile(STORE_SHOT_ENV_PATH, TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
       const again = await client.execute({
         sql: "SELECT COUNT(*) AS c FROM users WHERE email = ?",
@@ -428,8 +505,48 @@ describe("test-user seed", () => {
         }),
       );
       expect(relogin.status).toBe(200);
+
+      const shotEmail = "Shot.User@store-shot.test";
+      const shotPassword = "StoreShotEnv1";
+      const shot = await runScript(
+        scriptEnv({
+          DATABASE_URL: fileUrl,
+          DATABASE_AUTH_TOKEN: undefined,
+          STORE_SHOT_EMAIL: `  ${shotEmail} `,
+          STORE_SHOT_PASSWORD: shotPassword,
+        }),
+      );
+      expect(shot.code).toBe(0);
+      expect(shot.stdout.trim()).toBe(`test user seeded ${TEST_USER_ID}`);
+      expect(`${shot.stdout}\n${shot.stderr}`).not.toContain(shotEmail);
+      expect(`${shot.stdout}\n${shot.stderr}`).not.toContain(
+        "shot.user@store-shot.test",
+      );
+      expect(`${shot.stdout}\n${shot.stderr}`).not.toContain(shotPassword);
+      assertStoreShotFile(
+        STORE_SHOT_ENV_PATH,
+        "shot.user@store-shot.test",
+        shotPassword,
+      );
+      const shotLogin = await postLogin(
+        new Request("http://test/api/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json", ...testIp(212) },
+          body: JSON.stringify({
+            email: "shot.user@store-shot.test",
+            password: shotPassword,
+          }),
+        }),
+      );
+      expect(shotLogin.status).toBe(200);
+      const stillOne = await client.execute({
+        sql: "SELECT COUNT(*) AS c FROM users",
+        args: [],
+      });
+      expect(Number((stillOne.rows[0] as Record<string, unknown>).c)).toBe(1);
     } finally {
       env.teardown();
+      rmSync(STORE_SHOT_ENV_PATH, { force: true });
       if (previousUrl === undefined) delete process.env.DATABASE_URL;
       else process.env.DATABASE_URL = previousUrl;
       vi.resetModules();

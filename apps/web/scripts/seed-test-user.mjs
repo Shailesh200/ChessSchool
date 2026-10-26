@@ -3,15 +3,19 @@
  *
  * Test-only. Alex is not in `db/seed.sql` or `scripts/seed.mjs`.
  * Refuses every non-local database and every production host.
- * Prints neither DATABASE_URL nor the auth token.
+ * Prints neither the login, DATABASE_URL, nor the auth token.
  *
  *   pnpm --filter web db:seed:test-user
  *   pnpm db:seed:test-user
  *
+ * Login comes from STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD when those are
+ * set. Otherwise the made-up defaults below are used. After a successful
+ * seed the values used are written to apps/web/.store-shot.env (mode 0600).
+ *
  * Requires the local schema (`pnpm --filter web db:push` or `db:fresh`).
- * Login (made up): alex@test.chessschool.local / AlexTestOnly1
  */
 import { createClient } from "@libsql/client";
+import { chmodSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isProductionDbHost } from "../db/production-db-hosts.mjs";
@@ -23,10 +27,15 @@ const WEB_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const DEFAULT_LOCAL_DATABASE_URL = `file:${path.join(WEB_ROOT, "local.db")}`;
 
 export const TEST_USER_ID = "user-alex-play-store";
+/** Made-up default used when STORE_SHOT_EMAIL is unset or blank. */
 export const TEST_USER_EMAIL = "alex@test.chessschool.local";
+/** Made-up default used when STORE_SHOT_PASSWORD is unset or blank. */
 export const TEST_USER_PASSWORD = "AlexTestOnly1";
 export const TEST_USER_NAME = "Alex";
 export const TEST_USER_STUDENT_NO = "CS-TEST-ALEX";
+
+/** Written after a successful seed. Gitignored. */
+export const STORE_SHOT_ENV_PATH = path.join(WEB_ROOT, ".store-shot.env");
 
 /**
  * First Chess Basics lessons (The Chess Board). XP matches the curriculum
@@ -135,8 +144,49 @@ export function assertLocalSeedTarget(rawUrl) {
   return refusal("remote", hostname);
 }
 
+function nonempty(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Email and password the seed will use. Each env var falls back on its own.
+ * Email is lowercased the same way login looks it up.
+ *
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {{ email: string, password: string }}
+ */
+export function storeShotLogin(env = process.env) {
+  const email = nonempty(env.STORE_SHOT_EMAIL).toLowerCase();
+  const password = nonempty(env.STORE_SHOT_PASSWORD);
+  return {
+    email: email || TEST_USER_EMAIL,
+    password: password || TEST_USER_PASSWORD,
+  };
+}
+
+/**
+ * Overwrite the capture-job env file with the values this seed used.
+ * Mode 0600. Does not print the values.
+ *
+ * @param {string} filePath
+ * @param {{ email: string, password: string }} login
+ */
+export function writeStoreShotEnv(filePath, login) {
+  if (/[\r\n]/.test(login.email) || /[\r\n]/.test(login.password)) {
+    throw new Error(
+      "STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD must be single-line values.",
+    );
+  }
+  const body = `STORE_SHOT_EMAIL=${login.email}\nSTORE_SHOT_PASSWORD=${login.password}\n`;
+  writeFileSync(filePath, body, { encoding: "utf8", mode: 0o600, flag: "w" });
+  chmodSync(filePath, 0o600);
+}
+
 function secretsFrom(env) {
-  const secrets = [TEST_USER_PASSWORD];
+  const login = storeShotLogin(env);
+  const secrets = [TEST_USER_PASSWORD, TEST_USER_EMAIL, login.password, login.email];
+  if (env.STORE_SHOT_EMAIL) secrets.push(env.STORE_SHOT_EMAIL);
+  if (env.STORE_SHOT_PASSWORD) secrets.push(env.STORE_SHOT_PASSWORD);
   if (env.DATABASE_AUTH_TOKEN) secrets.push(env.DATABASE_AUTH_TOKEN);
   if (env.DATABASE_URL) {
     secrets.push(env.DATABASE_URL);
@@ -185,8 +235,9 @@ function openLocalClient(url, env) {
  * and marks the profile onboarded so the app keeps the default coach.
  *
  * @param {{ execute: Function, batch: Function }} client
+ * @param {{ email: string, password: string }} [login]
  */
-export async function seedTestUser(client) {
+export async function seedTestUser(client, login = storeShotLogin()) {
   const existing = await client.execute(
     "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'users'",
   );
@@ -198,7 +249,8 @@ export async function seedTestUser(client) {
 
   const now = Date.now();
   const today = isoDay(now);
-  const passwordHash = await hashPassword(TEST_USER_PASSWORD);
+  const { email, password } = login;
+  const passwordHash = await hashPassword(password);
   /** @type {Record<string, number>} */
   const activityDays = {};
   const lessons = ALEX_LESSONS.map((lesson, index) => {
@@ -219,10 +271,11 @@ export async function seedTestUser(client) {
     {
       sql: `INSERT INTO users (id, email, password_hash, name, role, created_at)
             VALUES (?, ?, ?, ?, 'student', ?)
-            ON CONFLICT(email) DO UPDATE SET
+            ON CONFLICT(id) DO UPDATE SET
+              email = excluded.email,
               password_hash = excluded.password_hash,
               name = excluded.name`,
-      args: [TEST_USER_ID, TEST_USER_EMAIL, passwordHash, TEST_USER_NAME, now],
+      args: [TEST_USER_ID, email, passwordHash, TEST_USER_NAME, now],
     },
     {
       sql: `INSERT INTO profiles (
@@ -237,7 +290,7 @@ export async function seedTestUser(client) {
               goal = NULL,
               house = NULL,
               onboarded = 1`,
-      args: [TEST_USER_STUDENT_NO, now, TEST_USER_EMAIL],
+      args: [TEST_USER_STUDENT_NO, now, email],
     },
     {
       sql: `INSERT INTO progress (
@@ -254,7 +307,7 @@ export async function seedTestUser(client) {
               graduated_classes = excluded.graduated_classes,
               data = excluded.data,
               updated_at = excluded.updated_at`,
-      args: [ALEX_XP, ALEX_STREAK, today, data, now, TEST_USER_EMAIL],
+      args: [ALEX_XP, ALEX_STREAK, today, data, now, email],
     },
   ];
 
@@ -270,7 +323,7 @@ export async function seedTestUser(client) {
               attempts = excluded.attempts,
               last_seen = excluded.last_seen,
               due_at = excluded.due_at`,
-      args: [lesson.id, lesson.id, lesson.lastSeen, lesson.dueAt, TEST_USER_EMAIL],
+      args: [lesson.id, lesson.id, lesson.lastSeen, lesson.dueAt, email],
     });
   }
 
@@ -279,7 +332,7 @@ export async function seedTestUser(client) {
     sql: `DELETE FROM lesson_records
           WHERE user_id = (SELECT id FROM users WHERE email = ?)
             AND lesson_id NOT IN (${placeholders})`,
-    args: [TEST_USER_EMAIL, ...ALEX_LESSONS.map((lesson) => lesson.id)],
+    args: [email, ...ALEX_LESSONS.map((lesson) => lesson.id)],
   });
 
   await client.batch(statements, "write");
@@ -301,10 +354,10 @@ export async function main(env = process.env) {
     if (decision.url.toLowerCase().startsWith("file:")) {
       await client.execute("PRAGMA busy_timeout = 5000");
     }
-    await seedTestUser(client);
-    console.log(
-      `Seeded test user ${TEST_USER_EMAIL} (xp ${ALEX_XP}, streak ${ALEX_STREAK}).`,
-    );
+    const login = storeShotLogin(env);
+    await seedTestUser(client, login);
+    writeStoreShotEnv(STORE_SHOT_ENV_PATH, login);
+    console.log(`test user seeded ${TEST_USER_ID}`);
     return 0;
   } catch (err) {
     console.error(redact(err, env));
