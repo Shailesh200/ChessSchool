@@ -372,6 +372,77 @@ describe("test-user seed guard", () => {
     expect(storeShotEnvPath({ STORE_SHOT_ENV_PATH: override })).toBe(override);
   });
 
+  async function expectBadEnvPathLeavesDbUntouched(envPath: string, message: RegExp) {
+    vi.resetModules();
+    const previousUrl = process.env.DATABASE_URL;
+    const realBefore = snapshotRealStoreShotEnv();
+    const sentinelId = "user-path-sentinel";
+    const passwordHash = "hash-path-sentinel";
+    let env: Awaited<ReturnType<typeof bootApiTestEnv>> | undefined;
+    try {
+      env = await bootApiTestEnv();
+      const client = (env.db as unknown as { $client: Client }).$client;
+      await client.execute({
+        sql: `INSERT INTO users (id, email, password_hash, name, role, created_at)
+              VALUES (?, 'path-sentinel@example.com', ?, 'Kept', 'student', 5)`,
+        args: [sentinelId, passwordHash],
+      });
+      const before = await accountSnapshot(client, sentinelId);
+      const result = await runScript(
+        scriptEnv({
+          DATABASE_URL: process.env.DATABASE_URL,
+          DATABASE_AUTH_TOKEN: undefined,
+          STORE_SHOT_EMAIL: undefined,
+          STORE_SHOT_PASSWORD: undefined,
+          STORE_SHOT_ENV_PATH: envPath,
+        }),
+      );
+      expect(result.code).toBe(1);
+      const output = `${result.stdout}\n${result.stderr}`;
+      expect(output).toMatch(message);
+      expect(output).not.toContain(envPath);
+      expect(output).not.toContain(TEST_USER_EMAIL);
+      expect(output).not.toContain(TEST_USER_PASSWORD);
+      expect(output).not.toContain(passwordHash);
+      expect(existsSync(envPath)).toBe(false);
+      expectRealStoreShotEnvUnchanged(realBefore);
+      expect(await accountSnapshot(client, sentinelId)).toEqual(before);
+      const users = await client.execute("SELECT COUNT(*) AS c FROM users");
+      const alex = await client.execute({
+        sql: "SELECT COUNT(*) AS c FROM users WHERE id = ?",
+        args: [TEST_USER_ID],
+      });
+      expect(Number((users.rows[0] as Record<string, unknown>).c)).toBe(1);
+      expect(Number((alex.rows[0] as Record<string, unknown>).c)).toBe(0);
+    } finally {
+      env?.teardown();
+      if (previousUrl === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = previousUrl;
+      vi.resetModules();
+    }
+  }
+
+  it("refuses a STORE_SHOT_ENV_PATH whose name does not end in .env", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-name-"));
+    const envPath = path.join(dir, "notes.txt");
+    try {
+      await expectBadEnvPathLeavesDbUntouched(envPath, /must end in \.env/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 90_000);
+
+  it("refuses a STORE_SHOT_ENV_PATH whose directory does not exist", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-missing-"));
+    const envPath = path.join(dir, "missing", "shot.env");
+    try {
+      await expectBadEnvPathLeavesDbUntouched(envPath, /cannot be written/);
+      expect(existsSync(path.dirname(envPath))).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 90_000);
+
   it("replaces a pre-existing 0644 file with mode 0600", () => {
     const realBefore = snapshotRealStoreShotEnv();
     const dir = mkdtempSync(path.join(tmpdir(), "store-shot-"));

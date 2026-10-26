@@ -11,12 +11,21 @@
  * Login comes from STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD when those are
  * set. Otherwise the made-up defaults below are used. After a successful
  * seed the values used are written to apps/web/.store-shot.env (mode 0600),
- * or to STORE_SHOT_ENV_PATH when that is set.
+ * or to STORE_SHOT_ENV_PATH when that is set. The path is resolved first:
+ * its filename must end in `.env` and its directory must already exist.
+ * A bad path exits before the database is opened.
  *
  * Requires the local schema (`pnpm --filter web db:push` or `db:fresh`).
  */
 import { createClient } from "@libsql/client";
-import { chmodSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  accessSync,
+  chmodSync,
+  constants,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isProductionDbHost } from "../db/production-db-hosts.mjs";
@@ -203,7 +212,66 @@ function nonempty(value) {
  * @returns {string}
  */
 export function storeShotEnvPath(env = process.env) {
-  return nonempty(env.STORE_SHOT_ENV_PATH) || STORE_SHOT_ENV_PATH;
+  const chosen = nonempty(env.STORE_SHOT_ENV_PATH) || STORE_SHOT_ENV_PATH;
+  return path.resolve(chosen);
+}
+
+/**
+ * Resolve the capture-job env file and refuse a path that cannot be written.
+ * Call this before opening the database. Does not print the path.
+ *
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {string}
+ */
+export function resolveStoreShotEnvPath(env = process.env) {
+  const filePath = storeShotEnvPath(env);
+  if (!path.basename(filePath).endsWith(".env")) {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH must end in .env. No rows were written.",
+    );
+  }
+  const parent = path.dirname(filePath);
+  let parentStat;
+  try {
+    parentStat = statSync(parent);
+  } catch (error) {
+    if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") {
+      throw new Error(
+        "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+      );
+    }
+    throw error;
+  }
+  if (!parentStat.isDirectory()) {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+    );
+  }
+  try {
+    accessSync(parent, constants.W_OK);
+  } catch {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+    );
+  }
+  try {
+    const current = statSync(filePath);
+    if (!current.isFile()) {
+      throw new Error(
+        "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+      );
+    }
+  } catch (error) {
+    const code = /** @type {NodeJS.ErrnoException} */ (error).code;
+    if (code === "ENOENT") return filePath;
+    if (code) {
+      throw new Error(
+        "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+      );
+    }
+    throw error;
+  }
+  return filePath;
 }
 
 /**
@@ -429,6 +497,14 @@ export async function main(env = process.env) {
     return 1;
   }
 
+  let envFile;
+  try {
+    envFile = resolveStoreShotEnvPath(env);
+  } catch (err) {
+    console.error(redact(err, env));
+    return 1;
+  }
+
   const client = openLocalClient(decision.url, env);
   try {
     if (decision.url.toLowerCase().startsWith("file:")) {
@@ -436,7 +512,7 @@ export async function main(env = process.env) {
     }
     const login = storeShotLogin(env);
     const userId = await seedTestUser(client, login);
-    writeStoreShotEnv(storeShotEnvPath(env), login);
+    writeStoreShotEnv(envFile, login);
     console.log(`test user seeded ${userId}`);
     return 0;
   } catch (err) {
