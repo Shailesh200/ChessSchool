@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { BackButton } from "@/components/ui/BackButton";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Privacy Policy",
   description: "How ChessSchool collects, uses, and deletes your data.",
 };
 
-const CONTACT = "iamshailesh121@gmail.com";
 const UPDATED = "July 12, 2026";
 
 export default function PrivacyPage() {
@@ -205,10 +205,10 @@ export default function PrivacyPage() {
             <p className="mt-3">
               To request deletion by email, contact us at{" "}
               <a
-                href={`mailto:${CONTACT}`}
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-brand-500 font-bold underline"
               >
-                {CONTACT}
+                {SUPPORT_EMAIL}
               </a>
               .
             </p>
@@ -233,10 +233,10 @@ export default function PrivacyPage() {
               requests. You can disable first-party analytics and performance sharing in
               Settings at any time. For other requests, email{" "}
               <a
-                href={`mailto:${CONTACT}`}
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-brand-500 font-bold underline"
               >
-                {CONTACT}
+                {SUPPORT_EMAIL}
               </a>
               .
             </p>
@@ -256,10 +256,10 @@ export default function PrivacyPage() {
             <p>
               Questions about this policy:{" "}
               <a
-                href={`mailto:${CONTACT}`}
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-brand-500 font-bold underline"
               >
-                {CONTACT}
+                {SUPPORT_EMAIL}
               </a>
               . For general help see{" "}
               <Link href="/support" className="text-brand-500 font-bold underline">
