@@ -4,7 +4,11 @@ import * as SecureStore from "expo-secure-store";
 import { normalizePieceThemeId, normalizeBoardThemeId } from "@chess-school/progression";
 import { type PieceThemeId } from "./pieceThemes";
 import { normalizeCoachVoice } from "./coachVoices";
-import { normalizeCoachCharacter, type CoachCharacterId } from "./coachCharacters";
+import {
+  DEFAULT_COACH_CHARACTER,
+  normalizeCoachCharacter,
+  type CoachCharacterId,
+} from "./coachCharacters";
 
 export type BoardTheme =
   | "classic"
@@ -64,8 +68,8 @@ const DEFAULTS: Settings = {
   customGoalXp: 60,
   schedule: "daily",
   avatar: "ava-knight",
-  coachPersonality: "sarcastic",
-  coachCharacter: "sarcastic",
+  coachPersonality: DEFAULT_COACH_CHARACTER,
+  coachCharacter: DEFAULT_COACH_CHARACTER,
   coachSpeech: true,
   coachVoice: "auto",
   goal: "",
@@ -86,7 +90,7 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
   const boardTheme = (next as { boardTheme?: string }).boardTheme;
   const schoolTheme = (next as { schoolTheme?: string }).schoolTheme;
   const character = normalizeCoachCharacter(
-    next.coachCharacter ?? next.coachPersonality ?? "sarcastic",
+    next.coachCharacter ?? next.coachPersonality ?? DEFAULT_COACH_CHARACTER,
   );
   return {
     ...next,

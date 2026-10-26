@@ -1,4 +1,5 @@
 import type { VerboseMove } from "@chess-school/core";
+import { DEFAULT_COACH_CHARACTER } from "@/coachCharacters";
 import type { BotTier } from "./matchCommentary";
 import { tierForElo } from "./matchCommentary";
 
@@ -104,6 +105,22 @@ type LineCtx = {
   move: VerboseMove;
   moveNumber: number;
 };
+
+/** Unknown personality, missing kind, then missing quiet line — all use the default coach. */
+export function coachCommentPool<T>(
+  tables: Partial<Record<string, Partial<Record<string, T>> | undefined>>,
+  personality: string,
+  kind: string,
+): T {
+  const fallback = tables[DEFAULT_COACH_CHARACTER];
+  const table = tables[personality] ?? fallback;
+  return (
+    table?.[kind] ??
+    fallback?.[kind] ??
+    table?.quiet_middlegame ??
+    fallback?.quiet_middlegame
+  )!;
+}
 
 function templates(
   personality: CoachPersonality,
@@ -515,13 +532,16 @@ function templates(
     },
   };
 
-  const table = tables[personality] ?? tables.sarcastic;
-  const pool =
-    table[kind] ??
-    tables.sarcastic[kind] ??
-    table.quiet_middlegame ??
-    tables.sarcastic.quiet_middlegame!;
-  return pool;
+  return coachCommentPool(tables, personality, kind);
+}
+
+/** Lines from a coach's table, after the default-coach fallback. */
+export function coachCommentLines(
+  personality: string,
+  kind: string,
+  reacting = false,
+): string[] {
+  return templates(personality as CoachPersonality, kind as MoveCommentKind, reacting);
 }
 
 /** Full coach+bot move line — personality tone × named opponent character. */
