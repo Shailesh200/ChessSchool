@@ -97,15 +97,19 @@ describe("app.config store parity guard", () => {
 });
 
 describe("eas-build-pre-install", () => {
-  it("is wired from the mobile package", () => {
-    const pkg = JSON.parse(
-      readFileSync(path.join(mobileRoot, "package.json"), "utf8"),
-    ) as {
-      scripts: Record<string, string>;
-    };
+  it("is the only eas-build-pre-install script and runs the Stockfish fetch first", () => {
+    const raw = readFileSync(path.join(mobileRoot, "package.json"), "utf8");
+    const pkg = JSON.parse(raw) as { scripts: Record<string, string> };
+    expect(raw.match(/"eas-build-pre-install"/g)).toHaveLength(1);
     expect(pkg.scripts["eas-build-pre-install"]).toBe(
       "node scripts/eas-build-pre-install.mjs",
     );
+    expect(pkg.scripts["fetch-stockfish"]).toBe("bash scripts/fetch-stockfish.sh");
+    const hook = readFileSync(hookPath, "utf8");
+    const fetchAt = hook.indexOf("fetch-stockfish.sh");
+    const parityAt = hook.indexOf("EXPO_PUBLIC_PARITY");
+    expect(fetchAt).toBeGreaterThan(-1);
+    expect(parityAt).toBeGreaterThan(fetchAt);
   });
 
   it("exits 0 when a store profile does not have the flag", () => {
