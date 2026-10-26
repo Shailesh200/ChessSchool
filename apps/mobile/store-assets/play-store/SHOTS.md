@@ -6,7 +6,7 @@ The flow signs in as a made-up local student whose display name is **Alex**. Eve
 
 The app default coach is still Ash (`sarcastic`) until `lane-f/f3-default-coach` (PR #21) lands. That change has to land before the listing goes out. Lesson bubbles prefix the curriculum line with the active coach's opener. The lines below are what Ash shows today. The flow does not switch coaches.
 
-There is no GitHub Actions emulator job in this PR. Jimbe owns that workflow. It should pass the env vars in the last section and run `maestro test apps/mobile/maestro/store-shots.yaml`.
+The manual workflow [`.github/workflows/store-shots.yml`](../../../../.github/workflows/store-shots.yml) runs this flow. It is `workflow_dispatch` only. It does not run on push or pull request. Jimbe reviews that workflow.
 
 ## Shot list
 
@@ -21,7 +21,7 @@ There is no GitHub Actions emulator job in this PR. Jimbe owns that workflow. It
 
 ### 01 Campus
 
-- **State:** Signed-in academy, scrolled until the stage heading `stage-preschool` is on screen. A fresh Alex has streak 0, so the greeting still reads “Welcome to ChessSchool!” with the subtitle “Graduate through classes. Become a stronger player.” The guest enroll line is not this screen.
+- **State:** Signed-in academy, scrolled until the stage heading `stage-preschool` is on screen. The store-shot seed gives Alex streak **4** and **240** XP, so the greeting reads “Day 4 at the academy” and the subtitle is “Graduate through classes. Become a stronger player.” The guest enroll line is not this screen. Placement is already marked done, so the placement card is not in the way.
 - **Must show:** The stage name **Starter** (stage id `preschool`). The Elementary semester titled Foundations is a different label and is not this heading.
 - **Coach copy:** None. This screen has no lesson coach bubble.
 
@@ -56,16 +56,33 @@ There is no GitHub Actions emulator job in this PR. Jimbe owns that workflow. It
 - **Must show:** The replay board for that game, the move label (`replay-move-label`), and the move chips for 1.e4 plus Vera’s real reply. The in-game Review button passes `gameId` while this screen reads `id`, so the flow uses the review list instead.
 - **Coach copy:** None on a resigned replay. The move label is the line on screen.
 
+## How to run it
+
+On GitHub, open **Actions → Store shots → Run workflow** and choose this branch. Nothing else starts the job. It does not run when you push or open a pull request.
+
+The job, on `ubuntu-latest`:
+
+1. Runs `assertSafeCaptureHost` on `http://10.0.2.2:3000` and stops unless that host is exactly `10.0.2.2`. It does not use production, staging, or any Vercel host.
+2. Builds a throwaway local database with `pnpm --filter web db:fresh` (that is `db:reset`, `db:push`, `db:seed`, and `db:seed-homework`). It does not read `seed.sql`.
+3. Runs `pnpm --filter web db:seed-store-shot`, which inserts Alex (streak 4, 240 XP) into that local file. The email is `alex.<run id>@example.com`. The password is random. Neither is printed. GitHub masks both, and the login link, before Maestro runs.
+4. Builds the API with `next build` and starts it on the runner with `next start` (port 3000, bound for the emulator).
+5. Builds a release APK on the runner with `expo prebuild` and `gradlew :app:assembleRelease`. No EAS and no Play signing key. The generated manifest on the runner allows cleartext HTTP so the APK can call `http://10.0.2.2:3000`. That flag is not committed.
+6. Starts an Android emulator with KVM (`reactivecircus/android-emulator-runner`), installs the APK, runs `apps/mobile/maestro/store-shots.yaml`, and uploads `store-shot-screenshots/*.png` as the artifact `play-store-screenshots`.
+
+The emulator job was not run in this change. See the pull request notes for what was validated locally.
+
 ## Env vars
 
-Set these for the emulator run. Do not commit them. Do not point them at production (`https://www.chess-school.in`, `chess-school.vercel.app`, or a `main` / `staging` preview).
+The workflow sets these itself. Do not commit them. Do not point them at production (`https://www.chess-school.in`, `chess-school.vercel.app`, or a `main` / `staging` preview).
 
 | Variable | When | Value |
 |----------|------|--------|
-| `EXPO_PUBLIC_API_URL` | Bundle time, before the app is built or Metro starts | Local API the emulator can reach, for example `http://10.0.2.2:3000`. `10.0.2.2` is the emulator’s name for the host machine. |
-| `EXPO_PUBLIC_PARITY` | Bundle time | `1`. Required so the login deep link auto-submits, and so `resolveApiUrl` keeps `EXPO_PUBLIC_API_URL` instead of rewriting localhost to a LAN host. |
-| `STORE_SHOT_EMAIL` | Seed script, then the runner | Email of the made-up Alex account. Not a real person. |
-| `STORE_SHOT_PASSWORD` | Seed script, then the runner | Password for that account. |
-| `LOGIN_LINK` | Runner, passed to Maestro with `-e` | `chessschool:///login?email=<urlencoded STORE_SHOT_EMAIL>&password=<urlencoded STORE_SHOT_PASSWORD>`. Maestro 2.6 does not expand `${STORE_SHOT_EMAIL}` inside `openLink`, so the runner builds this full URL. |
+| `STORE_SHOT_API_URL` | Before the seed and before capture | `http://10.0.2.2:3000` in the workflow. The host guard must pass, and the workflow also requires the host to be `10.0.2.2`. |
+| `EXPO_PUBLIC_API_URL` | Bundle time, before the release APK is built | Same local API, `http://10.0.2.2:3000`. `10.0.2.2` is the emulator’s name for the host machine. |
+| `EXPO_PUBLIC_PARITY` | Bundle time | `1`. Required so the login deep link auto-submits. A release build uses `EXPO_PUBLIC_API_URL` as given. |
+| `DATABASE_URL` | Seed and API | `file:local.db` on the runner. The seed script refuses `libsql:` and `http(s):` databases. |
+| `STORE_SHOT_EMAIL` | Seed script, then Maestro | Made-up `@example.com` address. The workflow generates it and does not print it. |
+| `STORE_SHOT_PASSWORD` | Seed script, then Maestro | Random password. Not printed. |
+| `LOGIN_LINK` | Maestro `-e` | `chessschool:///login?email=<urlencoded STORE_SHOT_EMAIL>&password=<urlencoded STORE_SHOT_PASSWORD>`. Maestro 2.6 does not expand `${STORE_SHOT_EMAIL}` inside `openLink`, so the runner builds this full URL and masks it. |
 
-The seed script creates the account (display name Alex, role student, no avatar upload, not a child profile) against `http://localhost:<port>` or `http://127.0.0.1:<port>` on the dev database. Call `assertSafeCaptureHost` from `capture-host.mjs` before `POST /api/auth/register`. Do not register through `10.0.2.2`; that host is only the emulator’s view of the same local server, and the guard does not allow it. The account should have no in-progress match, so shot 04 starts a new Vera game.
+`pnpm db:seed-store-shot` calls `assertSafeCaptureHost` before it writes Alex. After the guard, that script still only accepts localhost, `127.0.0.1`, or `10.0.2.2`, so a branch preview cannot be used for this seed. Alex is a normal student, display name Alex, onboarding already finished, no avatar upload, and not a child profile. There is no in-progress match, so shot 04 starts a new Vera game.

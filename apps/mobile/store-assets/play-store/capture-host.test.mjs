@@ -3,9 +3,10 @@ import { describe, it } from "node:test";
 import { assertSafeCaptureHost } from "./capture-host.mjs";
 
 describe("assertSafeCaptureHost", () => {
-  it("allows localhost, loopback, and a branch preview", () => {
+  it("allows localhost, loopback, the emulator alias, and a branch preview", () => {
     assert.doesNotThrow(() => assertSafeCaptureHost("http://localhost:3000"));
     assert.doesNotThrow(() => assertSafeCaptureHost("http://127.0.0.1:3000"));
+    assert.doesNotThrow(() => assertSafeCaptureHost("http://10.0.2.2:3000"));
     assert.doesNotThrow(() =>
       assertSafeCaptureHost("https://chess-school-git-lane-f-f12-shailesh200.vercel.app"),
     );

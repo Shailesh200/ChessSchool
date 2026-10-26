@@ -33,6 +33,10 @@ appId: com.chessschool.app
     visible:
       text: "Graduate through classes. Become a stronger player."
     timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Day 4 at the academy"
+    timeout: 120000
 - openLink: "chessschool:///academy"
 - extendedWaitUntil:
     visible:

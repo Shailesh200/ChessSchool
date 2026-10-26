@@ -4,7 +4,7 @@ Phone screenshots for Play are captures of the real Android app. The web/Playwri
 
 Run them with [`apps/mobile/maestro/store-shots.yaml`](../../../maestro/store-shots.yaml). The shot list, routes, coach copy, guest versus signed-in, and env vars are in [`SHOTS.md`](SHOTS.md). The flow signs in as a made-up local student named Alex. Email and password come from env vars a seed script sets. They are not in the repo, and the API base is a local server (for example `http://10.0.2.2:<port>`), never production.
 
-`assertSafeCaptureHost` still lives in `capture-host.mjs`, with `capture-host.test.mjs`. CI runs `node --test apps/mobile/store-assets/play-store/capture-host.test.mjs`. A seed script must call that guard before it registers Alex. Allowed hosts are localhost, 127.0.0.1, and a `chess-school-git-<branch>.vercel.app` preview whose branch is not `main` or `staging` and does not start with `main-` or `staging-`.
+`assertSafeCaptureHost` still lives in `capture-host.mjs`, with `capture-host.test.mjs`. CI runs `node --test apps/mobile/store-assets/play-store/capture-host.test.mjs`. Allowed hosts are localhost, 127.0.0.1, `10.0.2.2`, and a `chess-school-git-<branch>.vercel.app` preview whose branch is not `main` or `staging` and does not start with `main-` or `staging-`. The store-shot seed calls that guard and then still refuses every host except localhost, 127.0.0.1, and `10.0.2.2`.
 
 The app default coach is still Ash until `lane-f/f3-default-coach` (PR #21) lands, and that has to happen before this listing goes out. The Maestro flow does not force a coach. It does not script Vera’s moves, and it does not draw arrows on the fork lesson. Shot 05 uses the lesson’s own fork hint.
 
@@ -19,6 +19,6 @@ The app default coach is still Ash until `lane-f/f3-default-coach` (PR #21) land
 | `capture-host.mjs` | — | — | Host guard for registering the local Alex account. |
 | `capture-host.test.mjs` | — | — | Node test for that guard. Wired into CI. |
 
-There is no GitHub Actions emulator workflow in this change. Jimbe owns that job.
+Phone screenshots are produced by the manual workflow `.github/workflows/store-shots.yml` (`workflow_dispatch` only). How to run it is in `SHOTS.md`. Jimbe reviews that workflow.
 
 Replaced earlier, and still not restored: `screenshots/01-academy.png`, `screenshots/04-play.png`, `screenshots/05-review.png`, `screenshots/06-profile.png`, and `feature-graphic-1024x500.png`.
