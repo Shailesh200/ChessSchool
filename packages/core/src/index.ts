@@ -6,3 +6,4 @@ export * from "./engine/bot";
 export * from "./play/bots";
 export * from "./review/replay";
 export * from "./achievements";
+export * from "./lessonHint";

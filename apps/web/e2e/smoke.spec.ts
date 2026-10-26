@@ -72,8 +72,12 @@ test("review tab shows match history section", async ({ page }) => {
   await expect(page.getByText("Match history")).toBeVisible();
 });
 
-test("settings exposes accessibility controls", async ({ page }) => {
+test("settings exposes accessibility controls and the coach list", async ({ page }) => {
   await page.goto("/settings");
   await expect(page.getByText("Reduce motion")).toBeVisible();
-  await expect(page.getByText("Coach personality")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Coach speech" })).toBeVisible();
+  await expect(page.getByText("Coach character")).toBeVisible();
+  for (const name of ["Otto", "Kira", "Skye", "Ash", "Rex"]) {
+    await expect(page.getByRole("button", { name: new RegExp(name) })).toBeVisible();
+  }
 });

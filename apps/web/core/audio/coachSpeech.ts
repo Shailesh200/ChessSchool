@@ -70,9 +70,21 @@ function playUrl(url: string, volume: number, gen: number): Promise<void> {
   });
 }
 
+/**
+ * Chrome deprecates `speechSynthesis.speak()` before a user gesture and
+ * Lighthouse scores that as a best-practices failure. Cloud TTS is unaffected.
+ */
+function browserSpeechAllowed(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const activation = navigator.userActivation;
+  if (activation && !activation.hasBeenActive) return false;
+  return true;
+}
+
 function speakWithBrowser(text: string, volume: number, gen: number): Promise<void> {
   if (typeof window === "undefined" || !window.speechSynthesis)
     return Promise.resolve();
+  if (!browserSpeechAllowed()) return Promise.resolve();
   window.speechSynthesis.cancel();
   if (gen !== speakGen) return Promise.resolve();
 

@@ -9,8 +9,13 @@
  *
  * For normal, non-destructive content refreshes use `pnpm db:remote` instead.
  */
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
+import {
+  SEED_SQL_GZ_PATH,
+  readSeedSql,
+  splitSeedStatements,
+} from "../db/seed-file.mjs";
 
 const url = process.env.DATABASE_URL;
 if (!url || !url.startsWith("libsql:")) {
@@ -25,10 +30,14 @@ if (process.env.CONFIRM !== "WIPE") {
   );
   process.exit(1);
 }
+if (!existsSync(SEED_SQL_GZ_PATH)) {
+  console.error("✗ db/seed.sql.gz not found. Run pnpm db:dump after a full import.");
+  process.exit(1);
+}
 
 const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
 
-// Drop child tables before parents (FKs reference users). seed.sql recreates them
+// Drop child tables before parents (FKs reference users). seed.sql.gz recreates them
 // empty via CREATE TABLE IF NOT EXISTS, then loads curriculum content.
 const USER_TABLES = [
   "lesson_records",
@@ -42,11 +51,7 @@ console.log("⚠️  Wiping all user data…");
 await client.execute("PRAGMA foreign_keys=OFF");
 for (const t of USER_TABLES) await client.execute(`DROP TABLE IF EXISTS ${t}`);
 
-const raw = readFileSync(new URL("../db/seed.sql", import.meta.url), "utf8");
-const stmts = raw
-  .split(/;\s*\n/)
-  .map((s) => s.trim())
-  .filter((s) => s && !s.startsWith("--") && !/^PRAGMA/i.test(s));
+const stmts = splitSeedStatements(readSeedSql());
 
 console.log(`Reseeding — ${stmts.length} statements…`);
 for (let i = 0; i < stmts.length; i += 200) {

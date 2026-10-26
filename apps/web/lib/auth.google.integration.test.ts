@@ -77,4 +77,57 @@ describe("signInWithGoogle", () => {
       );
     expect(oauth).toHaveLength(1);
   });
+
+  it("does not create or link an account when Google says the email is unverified", async () => {
+    const res = await signInWithGoogle({
+      sub: "sub-unverified",
+      email: "unverified@test.dev",
+      name: "Nope",
+      emailVerified: false,
+    });
+    expect(res).toEqual({ error: "Google did not verify this email." });
+    expect(await db.select().from(schema.users)).toHaveLength(0);
+    expect(await db.select().from(schema.oauthAccounts)).toHaveLength(0);
+  });
+
+  it("concurrent Google signups for one verified email share a single account", async () => {
+    const email = "google-race@test.dev";
+    const [a, b] = await Promise.all([
+      signInWithGoogle({
+        sub: "sub-race-a",
+        email,
+        name: "Racer A",
+        emailVerified: true,
+      }),
+      signInWithGoogle({
+        sub: "sub-race-b",
+        email,
+        name: "Racer B",
+        emailVerified: true,
+      }),
+    ]);
+    expect("error" in a).toBe(false);
+    expect("error" in b).toBe(false);
+    if ("error" in a || "error" in b) return;
+    expect(a.user.id).toBe(b.user.id);
+    const fresh = [a, b].filter((r) => r.isNewUser);
+    const linked = [a, b].filter((r) => !r.isNewUser);
+    expect(fresh).toHaveLength(1);
+    expect(linked).toHaveLength(1);
+
+    const rows = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toBe(a.user.id);
+    const oauth = await db
+      .select()
+      .from(schema.oauthAccounts)
+      .where(eq(schema.oauthAccounts.userId, a.user.id));
+    expect(oauth.map((row) => row.providerAccountId).sort()).toEqual([
+      "sub-race-a",
+      "sub-race-b",
+    ]);
+  });
 });

@@ -4,6 +4,7 @@ import { buttonHeight, font, radius } from "./theme";
 import { haptics } from "./haptics";
 import { sfx } from "./sfx";
 import { useAppTheme } from "./ThemeProvider";
+import { buttonPressableA11yProps } from "./buttonPressableA11y";
 import { useType } from "./typography";
 
 /**
@@ -21,6 +22,7 @@ export function Button({
   style,
   testID,
   haptic = true,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
@@ -33,6 +35,8 @@ export function Button({
   testID?: string;
   /** Set false when the caller already fires a haptic/SFX for this action. */
   haptic?: boolean;
+  /** Overrides the accessible name. Blank falls back to the label without a trailing arrow. */
+  accessibilityLabel?: string;
 }) {
   const { colors } = useAppTheme();
   const type = useType();
@@ -87,6 +91,7 @@ export function Button({
       disabled={inactive}
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
+      {...buttonPressableA11yProps(label, accessibilityLabel)}
       onPress={() => {
         if (inactive) return;
         if (haptic) {
