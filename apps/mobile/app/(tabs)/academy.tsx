@@ -175,7 +175,7 @@ export default function AcademyScreen() {
             </Text>
             <Text style={styles.subtitle}>
               {guest
-                ? "Enroll to the academy to track your progress."
+                ? "Enroll in the academy to track your progress."
                 : "Graduate through classes. Become a stronger player."}
             </Text>
           </View>

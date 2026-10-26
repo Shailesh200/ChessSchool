@@ -117,7 +117,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
             </h1>
             <p className="text-ink-500 text-sm font-semibold">
               {authedResolved === false
-                ? "Enroll to the academy to track your progress."
+                ? "Enroll in the academy to track your progress."
                 : "Graduate through classes. Become a stronger player."}
             </p>
           </div>
