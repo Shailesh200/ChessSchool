@@ -725,7 +725,7 @@ export default function LessonScreen() {
             {step.kind === "move" && phase === "playing" && (
               <View style={styles.turnRow}>
                 <View style={[styles.turnDot, { backgroundColor: (displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? colors.ink : "#fff" }]} />
-                <Text style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
+                <Text testID="lesson-turn" style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
               </View>
             )}
             <ChessBoard
@@ -752,7 +752,7 @@ export default function LessonScreen() {
       <View style={styles.hintBar}>
         <View style={styles.hintRow}>
           <Icon name="cap" size={16} color={colors.ink500} />
-          <Text style={styles.hintText}>{hint}</Text>
+          <Text testID="lesson-hint" style={styles.hintText}>{hint}</Text>
         </View>
         {hintsEnabled && solvable && (
           <Pressable
@@ -774,6 +774,7 @@ export default function LessonScreen() {
       <View style={styles.bottom}>
         {showContinue ? (
           <Button
+            testID="lesson-continue"
             label={advancing || resolvingNext ? "Loading…" : step.kind === "observe" && !observeReady ? "Watching…" : "Continue"}
             variant="success"
             disabled={advancing || resolvingNext || (step.kind === "observe" && !observeReady)}

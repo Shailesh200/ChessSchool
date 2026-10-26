@@ -170,10 +170,10 @@ export default function AcademyScreen() {
         <View style={styles.greeting}>
           <Cody expression="wave" size={64} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text testID="academy-title" style={styles.title} numberOfLines={1}>
               {guest ? "Welcome to ChessSchool!" : streak > 0 ? `Day ${streak} at the academy` : "Welcome to ChessSchool!"}
             </Text>
-            <Text style={styles.subtitle}>
+            <Text testID="academy-subtitle" style={styles.subtitle}>
               {guest
                 ? "Enroll in the academy to track your progress."
                 : "Graduate through classes. Become a stronger player."}

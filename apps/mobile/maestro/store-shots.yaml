@@ -8,6 +8,11 @@
 # Jimbe's job passes them as STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD.
 # Do not print them. Maestro 2.6 does not expand ${...} inside openLink.
 # His job substitutes these two names into the login URL before `maestro test`.
+#
+# Selectors are ids and text that exist on this branch. The campus frame is
+# the signed-in greeting, taken before any scroll. The stage heading is not
+# used: its display name is "Pre-School" here and "Starter" after the rename
+# in PR #31, and that heading sits below the fold.
 appId: com.chessschool.app
 ---
 - extendedWaitUntil:
@@ -22,35 +27,33 @@ appId: com.chessschool.app
     text: "Open academy →"
     optional: true
 - tapOn:
-    text: "Not Now"
-    optional: true
-- tapOn:
-    text: "Open debugger to view warnings."
+    text: "Not now"
     optional: true
 - openLink: "chessschool:///login?email=${STORE_SHOT_EMAIL}&password=${STORE_SHOT_PASSWORD}"
 - tapOn:
-    text: "Not Now"
+    text: "Not now"
     optional: true
 - extendedWaitUntil:
     visible:
-      text: "Graduate through classes. Become a stronger player."
+      id: "academy-title"
     timeout: 120000
 - extendedWaitUntil:
     visible:
       text: "Day 4 at the academy"
-    timeout: 120000
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "academy-subtitle"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "Graduate through classes. Become a stronger player."
+    timeout: 30000
 - openLink: "chessschool:///academy"
 - extendedWaitUntil:
     visible:
       id: "tab-Academy"
     timeout: 60000
-- scrollUntilVisible:
-    element:
-      id: "stage-preschool"
-    direction: DOWN
-    timeout: 40000
-    visibilityPercentage: 100
-    centerElement: true
 - takeScreenshot: 01-campus
 - openLink: "chessschool:///class/class-pre-board"
 - extendedWaitUntil:
@@ -70,6 +73,10 @@ appId: com.chessschool.app
 - extendedWaitUntil:
     visible:
       text: "Pawns move forward. Push your e-pawn two squares to grab the centre!"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "lesson-turn"
     timeout: 30000
 - extendedWaitUntil:
     visible:
@@ -99,18 +106,34 @@ appId: com.chessschool.app
     id: "lesson-continue"
 - extendedWaitUntil:
     visible:
+      id: "lesson-turn"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "White to move"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
       id: "lesson-hint"
     timeout: 30000
 - extendedWaitUntil:
     visible:
       text: "A knight fork hits two pieces at once — aim at the king and a big piece."
     timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "Your turn — find the royal fork!"
+    timeout: 30000
 - takeScreenshot: 05-tactic
 - openLink: "chessschool:///play"
 - extendedWaitUntil:
     visible:
-      text: "New match"
+      id: "play-setup-title"
     timeout: 60000
+- extendedWaitUntil:
+    visible:
+      text: "New match"
+    timeout: 30000
 - tapOn:
     id: "play-elo-1600"
 - extendedWaitUntil:
@@ -139,6 +162,10 @@ appId: com.chessschool.app
     id: "sq-e4"
 - extendedWaitUntil:
     visible:
+      id: "play-coach-line"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
       text: "Thinking…"
     timeout: 20000
 - extendedWaitUntil:
@@ -152,15 +179,23 @@ appId: com.chessschool.app
     id: "play-resign-confirm"
 - extendedWaitUntil:
     visible:
+      id: "play-result"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
       text: "Resigned — Vera wins"
     timeout: 30000
 - openLink: "chessschool:///review"
 - extendedWaitUntil:
     visible:
-      text: "vs Bot · 1600"
+      id: "review-latest"
     timeout: 45000
+- extendedWaitUntil:
+    visible:
+      text: "vs Bot · 1600"
+    timeout: 15000
 - tapOn:
-    text: "vs Bot · 1600"
+    id: "review-latest"
 - extendedWaitUntil:
     visible:
       id: "replay-move-label"
