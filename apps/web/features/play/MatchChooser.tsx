@@ -193,294 +193,312 @@ export function MatchChooser() {
       : selectedTraining.title;
 
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_440px] lg:items-start lg:gap-8">
-      <motion.div
-        variants={listContainer}
-        initial={false}
-        animate="enter"
-        className="flex flex-col gap-4"
-      >
-        <motion.h1 variants={listItem} className="text-ink text-xl font-extrabold">
-          New match
-        </motion.h1>
-
+    <div className="play-chooser max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_440px] lg:items-start lg:gap-8">
+      <div className="max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
         <motion.div
-          variants={listItem}
-          className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+          variants={listContainer}
+          initial={false}
+          animate="enter"
+          className="flex flex-col gap-4 max-md:min-h-0 max-md:flex-1 max-md:overflow-y-auto max-md:overscroll-contain max-md:pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
-          <ModeCard
-            active={mode === "bot"}
-            iconName="robot"
-            title="vs Bot"
-            subtitle="Adaptive AI 300–2000"
-            onClick={() => {
-              setMode("bot");
-              haptics.fire("select");
-            }}
-          />
-          <ModeCard
-            active={mode === "pass"}
-            iconName="users"
-            title="vs Human"
-            subtitle="Pass & play on one device"
-            onClick={() => {
-              setMode("pass");
-              haptics.fire("select");
-            }}
-          />
-          <ModeCard
-            active={mode === "training"}
-            iconName="target"
-            title="Training"
-            subtitle="Shadow, arena, assisted & drills"
-            className="col-span-2 sm:col-span-1"
-            onClick={() => {
-              setMode("training");
-              haptics.fire("select");
-            }}
-          />
-        </motion.div>
+          <motion.h1 variants={listItem} className="text-ink text-xl font-extrabold">
+            New match
+          </motion.h1>
 
-        {mode === "bot" && (
-          <>
-            <motion.div variants={listItem}>
-              <Card>
-                <p className="text-ink mb-2 text-sm font-extrabold">
-                  Opponent strength
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdaptive((a) => !a);
-                    haptics.fire("select");
-                  }}
-                  className={`rounded-card mb-2 flex w-full items-center justify-between border-2 px-3 py-2 text-left transition-colors ${
-                    adaptive
-                      ? "border-brand bg-brand-50"
-                      : "border-hairline bg-surface-card"
-                  }`}
-                >
-                  <span>
-                    <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
-                      <Icon name="target" size={16} className="text-brand shrink-0" />
-                      Adaptive bot
-                    </span>
-                    <span className="text-ink-500 block text-xs font-semibold">
-                      Matches your level (~{rating}) &amp; adjusts as you play
-                    </span>
-                  </span>
-                  <span
-                    className={`h-5 w-5 shrink-0 rounded-full border-2 ${adaptive ? "border-brand bg-brand" : "border-ink-300"}`}
-                  />
-                </button>
-                <div
-                  className={`flex flex-wrap gap-2 ${adaptive ? "pointer-events-none opacity-40" : ""}`}
-                >
-                  {ELO_PRESETS.map((elo) => (
-                    <button
-                      key={elo}
-                      type="button"
-                      onClick={() => {
-                        setSetting("targetElo", elo);
-                        haptics.fire("select");
-                      }}
-                      className={`rounded-pill flex items-center gap-1.5 px-2.5 py-1 text-sm font-bold transition-colors ${
-                        targetElo === elo
-                          ? "bg-brand text-white"
-                          : "bg-surface-sunken text-ink-500"
-                      }`}
-                    >
-                      <BotAvatar elo={elo} size={32} />
-                      {elo}
-                    </button>
-                  ))}
-                </div>
-                {!adaptive && (
-                  <div className="mt-4 flex items-center gap-3">
-                    <BotAvatar elo={targetElo} size={56} />
-                    <div className="min-w-0">
-                      <p className="text-ink text-sm font-extrabold">
-                        {botProfile(targetElo).name}
-                      </p>
-                      <p className="text-ink-500 text-xs font-semibold">
-                        {botProfile(targetElo).blurb}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            </motion.div>
+          <motion.div
+            variants={listItem}
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+          >
+            <ModeCard
+              active={mode === "bot"}
+              iconName="robot"
+              title="vs Bot"
+              subtitle="Adaptive AI 300–2000"
+              onClick={() => {
+                setMode("bot");
+                haptics.fire("select");
+              }}
+            />
+            <ModeCard
+              active={mode === "pass"}
+              iconName="users"
+              title="vs Human"
+              subtitle="Pass & play on one device"
+              onClick={() => {
+                setMode("pass");
+                haptics.fire("select");
+              }}
+            />
+            <ModeCard
+              active={mode === "training"}
+              iconName="target"
+              title="Training"
+              subtitle="Shadow, arena, assisted & drills"
+              className="col-span-2 sm:col-span-1"
+              onClick={() => {
+                setMode("training");
+                haptics.fire("select");
+              }}
+            />
+          </motion.div>
 
-            <motion.div variants={listItem}>
-              <TimeControlCard timeMin={timeMin} onSelect={setTimeMin} />
-            </motion.div>
-
-            <motion.div variants={listItem}>
-              <Button size="lg" block onClick={beginBotOrPass}>
-                Start match
-              </Button>
-            </motion.div>
-          </>
-        )}
-
-        {mode === "pass" && (
-          <>
-            <motion.div variants={listItem}>
-              <TimeControlCard timeMin={timeMin} onSelect={setTimeMin} />
-            </motion.div>
-            <motion.div variants={listItem} className="flex flex-col gap-2">
-              <Button size="lg" block onClick={beginBotOrPass}>
-                Start (one device)
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                block
-                loading={creating}
-                disabled={guest}
-                onClick={playOnline}
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <Icon name="link" size={18} className="shrink-0" />
-                  {guest
-                    ? "Enroll to play online"
-                    : "Play a friend online (share link)"}
-                </span>
-              </Button>
-            </motion.div>
-          </>
-        )}
-
-        {mode === "training" && (
-          <>
-            <motion.div variants={listItem}>
-              <Card>
-                <p className="text-ink mb-3 text-sm font-extrabold">Training mode</p>
-                <div className="flex flex-col gap-2">
-                  {TRAINING_OPTIONS.map((opt) => {
-                    const active = trainingMode === opt.id;
-                    const locked = needsEnroll && opt.enrolledOnly;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          if (locked) {
-                            guardEnrolled(() => void 0);
-                            return;
-                          }
-                          setTrainingMode(opt.id);
-                          haptics.fire("select");
-                        }}
-                        className={`rounded-card flex items-start gap-3 border-2 px-3 py-2.5 text-left transition-colors ${
-                          active
-                            ? "border-brand bg-brand-50"
-                            : "border-hairline bg-surface-card"
-                        } ${locked ? "opacity-70" : ""}`}
-                      >
-                        <span
-                          className={`mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 ${active ? "border-brand bg-brand" : "border-ink-300"}`}
-                        />
-                        <span className="flex min-w-0 flex-1 items-start gap-2">
-                          <IconBadge name={opt.icon} size="md" tone="brand" />
-                          <span>
-                            <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
-                              {opt.title}
-                              {locked && (
-                                <Icon name="lock" size={14} className="text-ink-400" />
-                              )}
-                            </span>
-                            <span className="text-ink-500 block text-xs font-semibold">
-                              {opt.subtitle}
-                            </span>
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {guest && (
-                  <p className="text-ink-500 mt-3 text-xs font-semibold">
-                    Training modes require a free student account.{" "}
-                    <button
-                      type="button"
-                      className="text-brand font-bold"
-                      onClick={() => router.push("/register?next=/play")}
-                    >
-                      Enroll →
-                    </button>
-                  </p>
-                )}
-              </Card>
-            </motion.div>
-
-            {trainingMode === "assisted" && !needsEnroll && (
+          {mode === "bot" && (
+            <>
               <motion.div variants={listItem}>
                 <Card>
-                  <p className="text-ink mb-3 text-sm font-extrabold">
-                    Assisted format
+                  <p className="text-ink mb-2 text-sm font-extrabold">
+                    Opponent strength
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdaptive((a) => !a);
+                      haptics.fire("select");
+                    }}
+                    className={`rounded-card mb-2 flex w-full items-center justify-between border-2 px-3 py-2 text-left transition-colors ${
+                      adaptive
+                        ? "border-brand bg-brand-50"
+                        : "border-hairline bg-surface-card"
+                    }`}
+                  >
+                    <span>
+                      <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                        <Icon name="target" size={16} className="text-brand shrink-0" />
+                        Adaptive bot
+                      </span>
+                      <span className="text-ink-500 block text-xs font-semibold">
+                        Matches your level (~{rating}) &amp; adjusts as you play
+                      </span>
+                    </span>
+                    <span
+                      className={`h-5 w-5 shrink-0 rounded-full border-2 ${adaptive ? "border-brand bg-brand" : "border-ink-300"}`}
+                    />
+                  </button>
+                  <div
+                    className={`flex flex-wrap gap-2 ${adaptive ? "pointer-events-none opacity-40" : ""}`}
+                  >
+                    {ELO_PRESETS.map((elo) => (
+                      <button
+                        key={elo}
+                        type="button"
+                        onClick={() => {
+                          setSetting("targetElo", elo);
+                          haptics.fire("select");
+                        }}
+                        className={`rounded-pill flex items-center gap-1.5 px-2.5 py-1 text-sm font-bold transition-colors ${
+                          targetElo === elo
+                            ? "bg-brand text-white"
+                            : "bg-surface-sunken text-ink-500"
+                        }`}
+                      >
+                        <BotAvatar elo={elo} size={32} />
+                        {elo}
+                      </button>
+                    ))}
+                  </div>
+                  {!adaptive && (
+                    <div className="mt-4 flex items-center gap-3">
+                      <BotAvatar elo={targetElo} size={56} />
+                      <div className="min-w-0">
+                        <p className="text-ink text-sm font-extrabold">
+                          {botProfile(targetElo).name}
+                        </p>
+                        <p className="text-ink-500 text-xs font-semibold">
+                          {botProfile(targetElo).blurb}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+
+              <motion.div variants={listItem}>
+                <TimeControlCard timeMin={timeMin} onSelect={setTimeMin} />
+              </motion.div>
+            </>
+          )}
+
+          {mode === "pass" && (
+            <>
+              <motion.div variants={listItem}>
+                <TimeControlCard timeMin={timeMin} onSelect={setTimeMin} />
+              </motion.div>
+              <motion.div variants={listItem} className="flex flex-col gap-2">
+                <div className="max-md:hidden">
+                  <Button size="lg" block onClick={beginBotOrPass}>
+                    Start (one device)
+                  </Button>
+                </div>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  block
+                  loading={creating}
+                  disabled={guest}
+                  onClick={playOnline}
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Icon name="link" size={18} className="shrink-0" />
+                    {guest
+                      ? "Enroll to play online"
+                      : "Play a friend online (share link)"}
+                  </span>
+                </Button>
+              </motion.div>
+            </>
+          )}
+
+          {mode === "training" && (
+            <>
+              <motion.div variants={listItem}>
+                <Card>
+                  <p className="text-ink mb-3 text-sm font-extrabold">Training mode</p>
                   <div className="flex flex-col gap-2">
-                    {ASSISTED_VARIANTS.map((opt) => {
-                      const active = assistedVariant === opt.id;
+                    {TRAINING_OPTIONS.map((opt) => {
+                      const active = trainingMode === opt.id;
+                      const locked = needsEnroll && opt.enrolledOnly;
                       return (
                         <button
                           key={opt.id}
                           type="button"
                           onClick={() => {
-                            setAssistedVariant(opt.id);
+                            if (locked) {
+                              guardEnrolled(() => void 0);
+                              return;
+                            }
+                            setTrainingMode(opt.id);
                             haptics.fire("select");
                           }}
                           className={`rounded-card flex items-start gap-3 border-2 px-3 py-2.5 text-left transition-colors ${
                             active
                               ? "border-brand bg-brand-50"
                               : "border-hairline bg-surface-card"
-                          }`}
+                          } ${locked ? "opacity-70" : ""}`}
                         >
                           <span
                             className={`mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 ${active ? "border-brand bg-brand" : "border-ink-300"}`}
                           />
-                          <span>
-                            <span className="text-ink block text-sm font-extrabold">
-                              {opt.title}
-                            </span>
-                            <span className="text-ink-500 block text-xs font-semibold">
-                              {opt.subtitle}
+                          <span className="flex min-w-0 flex-1 items-start gap-2">
+                            <IconBadge name={opt.icon} size="md" tone="brand" />
+                            <span>
+                              <span className="text-ink flex items-center gap-1.5 text-sm font-extrabold">
+                                {opt.title}
+                                {locked && (
+                                  <Icon
+                                    name="lock"
+                                    size={14}
+                                    className="text-ink-400"
+                                  />
+                                )}
+                              </span>
+                              <span className="text-ink-500 block text-xs font-semibold">
+                                {opt.subtitle}
+                              </span>
                             </span>
                           </span>
                         </button>
                       );
                     })}
                   </div>
+                  {guest && (
+                    <p className="text-ink-500 mt-3 text-xs font-semibold">
+                      Training modes require a free student account.{" "}
+                      <button
+                        type="button"
+                        className="text-brand font-bold"
+                        onClick={() => router.push("/register?next=/play")}
+                      >
+                        Enroll →
+                      </button>
+                    </p>
+                  )}
                 </Card>
               </motion.div>
-            )}
 
-            <motion.div variants={listItem}>
-              <Card className="bg-surface-sunken/50">
-                <p className="text-ink text-sm font-extrabold">
-                  {selectedTraining.title}
-                </p>
-                <p className="text-ink-500 mt-1 text-xs font-semibold">
-                  {trainingMode === "assisted"
-                    ? ASSISTED_VARIANTS.find((v) => v.id === assistedVariant)?.subtitle
-                    : selectedTraining.subtitle}
-                </p>
-              </Card>
-            </motion.div>
+              {trainingMode === "assisted" && !needsEnroll && (
+                <motion.div variants={listItem}>
+                  <Card>
+                    <p className="text-ink mb-3 text-sm font-extrabold">
+                      Assisted format
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {ASSISTED_VARIANTS.map((opt) => {
+                        const active = assistedVariant === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setAssistedVariant(opt.id);
+                              haptics.fire("select");
+                            }}
+                            className={`rounded-card flex items-start gap-3 border-2 px-3 py-2.5 text-left transition-colors ${
+                              active
+                                ? "border-brand bg-brand-50"
+                                : "border-hairline bg-surface-card"
+                            }`}
+                          >
+                            <span
+                              className={`mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 ${active ? "border-brand bg-brand" : "border-ink-300"}`}
+                            />
+                            <span>
+                              <span className="text-ink block text-sm font-extrabold">
+                                {opt.title}
+                              </span>
+                              <span className="text-ink-500 block text-xs font-semibold">
+                                {opt.subtitle}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
 
-            <motion.div variants={listItem}>
-              <Button size="lg" block onClick={beginTraining} disabled={needsEnroll}>
-                {needsEnroll
-                  ? "Enroll to start"
-                  : trainingMode === "assisted"
-                    ? `Start ${ASSISTED_VARIANTS.find((v) => v.id === assistedVariant)?.title.toLowerCase() ?? "assisted play"}`
-                    : `Start ${selectedTraining.title.toLowerCase()}`}
-              </Button>
-            </motion.div>
-          </>
+              <motion.div variants={listItem}>
+                <Card className="bg-surface-sunken/50">
+                  <p className="text-ink text-sm font-extrabold">
+                    {selectedTraining.title}
+                  </p>
+                  <p className="text-ink-500 mt-1 text-xs font-semibold">
+                    {trainingMode === "assisted"
+                      ? ASSISTED_VARIANTS.find((v) => v.id === assistedVariant)
+                          ?.subtitle
+                      : selectedTraining.subtitle}
+                  </p>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={listItem}>
+                <Button size="lg" block onClick={beginTraining} disabled={needsEnroll}>
+                  {needsEnroll
+                    ? "Enroll to start"
+                    : trainingMode === "assisted"
+                      ? `Start ${ASSISTED_VARIANTS.find((v) => v.id === assistedVariant)?.title.toLowerCase() ?? "assisted play"}`
+                      : `Start ${selectedTraining.title.toLowerCase()}`}
+                </Button>
+              </motion.div>
+            </>
+          )}
+        </motion.div>
+
+        {mode === "bot" && (
+          <div className="max-md:bg-surface max-md:sticky max-md:bottom-0 max-md:z-20 max-md:shrink-0 max-md:pt-3 md:pt-4">
+            <Button size="lg" block onClick={beginBotOrPass}>
+              Start match
+            </Button>
+          </div>
         )}
-      </motion.div>
+        {mode === "pass" && (
+          <div className="max-md:bg-surface max-md:sticky max-md:bottom-0 max-md:z-20 max-md:shrink-0 max-md:pt-3 md:hidden">
+            <Button size="lg" block onClick={beginBotOrPass}>
+              Start (one device)
+            </Button>
+          </div>
+        )}
+      </div>
 
       <MatchPreviewPanel
         mode={mode}
