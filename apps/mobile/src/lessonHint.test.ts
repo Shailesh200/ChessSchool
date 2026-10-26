@@ -66,4 +66,23 @@ describe("pickLessonHint", () => {
     );
     expect(pickLessonHint({})).toBe(GENERIC_LESSON_TIP);
   });
+
+  it("does not treat object built-ins as lesson tips", () => {
+    expect(pickLessonHint({ stepTag: "constructor", lessonTag: "toString" })).toBe(
+      GENERIC_LESSON_TIP,
+    );
+    expect(pickLessonHint({ stepTag: "toString", lessonTag: "fork" })).toBe(
+      LESSON_TIPS.fork,
+    );
+  });
+
+  it("treats a blank or whitespace-only hint or tag as missing", () => {
+    expect(pickLessonHint({ stepHint: "   ", lessonTag: "fork" })).toBe(
+      LESSON_TIPS.fork,
+    );
+    expect(pickLessonHint({ stepHint: "", stepTag: "\t", lessonTag: "fork" })).toBe(
+      LESSON_TIPS.fork,
+    );
+    expect(pickLessonHint({ stepTag: " ", lessonTag: "\n" })).toBe(GENERIC_LESSON_TIP);
+  });
 });

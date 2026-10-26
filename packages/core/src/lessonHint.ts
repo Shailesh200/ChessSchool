@@ -27,18 +27,34 @@ export type LessonHintInput = {
   lessonTag?: string | null;
 };
 
+/** Blank and whitespace-only text is not a hint or a tag. */
+function nonBlank(value: string | null | undefined): string | undefined {
+  if (value == null || value.trim() === "") return undefined;
+  return value;
+}
+
+/** Own keys only — `constructor` and `toString` are not lesson tips. */
+function tipForTag(tag: string | null | undefined): string | undefined {
+  const key = nonBlank(tag);
+  if (key == null || !Object.hasOwn(LESSON_TIPS, key)) return undefined;
+  return LESSON_TIPS[key];
+}
+
 /**
  * Tip shown under the lesson board.
  *
  * Order matches the web lesson player: a step-specific hint, then the step
- * tag, then the lesson tag, then the generic line. Calling without `stepHint`
- * is exactly that web expression.
+ * tag, then the lesson tag, then the generic line. Web omits `stepHint`.
  */
 export function pickLessonHint({
   stepHint,
   stepTag,
   lessonTag,
 }: LessonHintInput): string {
-  const tips = LESSON_TIPS as Record<string, string | undefined>;
-  return stepHint ?? tips[stepTag ?? ""] ?? tips[lessonTag ?? ""] ?? GENERIC_LESSON_TIP;
+  return (
+    nonBlank(stepHint) ??
+    tipForTag(stepTag) ??
+    tipForTag(lessonTag) ??
+    GENERIC_LESSON_TIP
+  );
 }
