@@ -1,6 +1,7 @@
 {
   "name": "mobile",
   "version": "0.2.0",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
