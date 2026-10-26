@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
+import type { InArgs, InStatement } from "@libsql/client";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -25,9 +26,11 @@ import {
   findSessionByRawToken,
   revokeSessionByRawToken,
 } from "@/lib/session-store";
+import { isUsersEmailUniqueViolation } from "@/lib/sqlite-errors";
 
 const COOKIE = "chessschool_session";
 const SESSION_DAYS = 30;
+const EMAIL_TAKEN = "Could not create an account with this email. Try signing in.";
 
 function dbConn() {
   return db as import("drizzle-orm/libsql").LibSQLDatabase<
@@ -50,6 +53,74 @@ function makeStudentNo(): string {
   const year = new Date().getFullYear();
   const n = Math.floor(10000 + Math.random() * 89999);
   return `CS-${year}-${n}`;
+}
+
+type NewStudent = {
+  id: string;
+  email: string;
+  passwordHash: string | null;
+  name: string;
+  now: number;
+};
+
+function sqlStatement(query: { sql: string; params: unknown[] }): InStatement {
+  return { sql: query.sql, args: query.params as InArgs };
+}
+
+/**
+ * Insert the account rows in one libSQL write transaction (`BEGIN IMMEDIATE`
+ * through `COMMIT`). The client's batch runs that whole transaction before it
+ * returns, so a second signup on a file database is not stuck waiting on a
+ * lock this thread still holds. A duplicate `users.email` comes back as the
+ * unique constraint. Returns false in that case.
+ *
+ * The session is created only after this commits: it is login state (and, on
+ * web, a cookie), not part of the account that owns the email.
+ */
+async function insertStudentAccount(input: NewStudent): Promise<boolean> {
+  try {
+    await writeStudentAccount(input);
+    return true;
+  } catch (err) {
+    if (isUsersEmailUniqueViolation(err)) return false;
+    throw err;
+  }
+}
+
+async function writeStudentAccount(input: NewStudent): Promise<void> {
+  const studentNo = makeStudentNo();
+  await db.$client.batch(
+    [
+      sqlStatement(
+        db
+          .insert(users)
+          .values({
+            id: input.id,
+            email: input.email,
+            passwordHash: input.passwordHash,
+            name: input.name,
+            role: "student",
+            createdAt: input.now,
+          })
+          .toSQL(),
+      ),
+      sqlStatement(
+        db
+          .insert(profiles)
+          .values({
+            userId: input.id,
+            studentNo,
+            enrolledAt: input.now,
+            rankTitle: "Novice",
+          })
+          .toSQL(),
+      ),
+      sqlStatement(
+        db.insert(progress).values({ userId: input.id, updatedAt: input.now }).toSQL(),
+      ),
+    ],
+    "write",
+  );
 }
 
 async function startSession(userId: string): Promise<void> {
@@ -81,27 +152,18 @@ export async function registerUser(
   const existing = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (existing) {
-    return { error: "Could not create an account with this email. Try signing in." };
-  }
+  if (existing) return { error: EMAIL_TAKEN };
 
   const id = randomUUID();
   const now = Date.now();
-  await db.insert(users).values({
+  const created = await insertStudentAccount({
     id,
     email,
     passwordHash: await hashPassword(password),
     name: name.trim(),
-    role: "student",
-    createdAt: now,
+    now,
   });
-  await db.insert(profiles).values({
-    userId: id,
-    studentNo: makeStudentNo(),
-    enrolledAt: now,
-    rankTitle: "Novice",
-  });
-  await db.insert(progress).values({ userId: id, updatedAt: now });
+  if (!created) return { error: EMAIL_TAKEN };
   await startSession(id);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
@@ -192,25 +254,18 @@ export async function registerWithToken(
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!name.trim()) return { error: "Enter your name." };
   if ((await db.select().from(users).where(eq(users.email, email)).limit(1))[0]) {
-    return { error: "Could not create an account with this email. Try signing in." };
+    return { error: EMAIL_TAKEN };
   }
   const id = randomUUID();
   const now = Date.now();
-  await db.insert(users).values({
+  const created = await insertStudentAccount({
     id,
     email,
     passwordHash: await hashPassword(password),
     name: name.trim(),
-    role: "student",
-    createdAt: now,
+    now,
   });
-  await db.insert(profiles).values({
-    userId: id,
-    studentNo: makeStudentNo(),
-    enrolledAt: now,
-    rankTitle: "Novice",
-  });
-  await db.insert(progress).values({ userId: id, updatedAt: now });
+  if (!created) return { error: EMAIL_TAKEN };
   const token = await createSessionToken(id);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "password" } },
@@ -247,23 +302,14 @@ async function provisionNewStudent(
   email: string,
   name: string,
   passwordHash: string | null,
-): Promise<void> {
-  const now = Date.now();
-  await db.insert(users).values({
+): Promise<boolean> {
+  return insertStudentAccount({
     id,
     email,
     passwordHash,
     name: name.trim(),
-    role: "student",
-    createdAt: now,
+    now: Date.now(),
   });
-  await db.insert(profiles).values({
-    userId: id,
-    studentNo: makeStudentNo(),
-    enrolledAt: now,
-    rankTitle: "Novice",
-  });
-  await db.insert(progress).values({ userId: id, updatedAt: now });
 }
 
 async function linkGoogleAccount(userId: string, sub: string): Promise<void> {
@@ -285,6 +331,21 @@ function toSessionUser(user: {
   role: string;
 }): SessionUser {
   return { id: user.id, email: user.email, name: user.name, role: user.role };
+}
+
+async function linkExistingGoogleUser(
+  user: { id: string; email: string; name: string; role: string },
+  sub: string,
+): Promise<{ user: SessionUser; isNewUser: false }> {
+  await linkGoogleAccount(user.id, sub);
+  void insertAnalyticsEvents([
+    {
+      name: "login",
+      userId: user.id,
+      props: { provider: "google", linked: true },
+    },
+  ]).catch(() => void 0);
+  return { user: toSessionUser(user), isNewUser: false };
 }
 
 /** Sign in or enroll via Google — links to an existing email account when present. */
@@ -323,20 +384,17 @@ export async function signInWithGoogle(
   const existing = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
-  if (existing) {
-    await linkGoogleAccount(existing.id, profile.sub);
-    void insertAnalyticsEvents([
-      {
-        name: "login",
-        userId: existing.id,
-        props: { provider: "google", linked: true },
-      },
-    ]).catch(() => void 0);
-    return { user: toSessionUser(existing), isNewUser: false };
-  }
+  if (existing) return linkExistingGoogleUser(existing, profile.sub);
 
   const id = randomUUID();
-  await provisionNewStudent(id, email, profile.name, null);
+  const created = await provisionNewStudent(id, email, profile.name, null);
+  if (!created) {
+    const winner = (
+      await db.select().from(users).where(eq(users.email, email)).limit(1)
+    )[0];
+    if (!winner) return { error: EMAIL_TAKEN };
+    return linkExistingGoogleUser(winner, profile.sub);
+  }
   await linkGoogleAccount(id, profile.sub);
   void insertAnalyticsEvents([
     { name: "signup", userId: id, props: { provider: "google" } },
