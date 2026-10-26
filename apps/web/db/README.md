@@ -1,6 +1,6 @@
 # Database
 
-Curriculum lives in `seed.sql` (loaded by `pnpm db:load-seed`) and is regenerated
+Curriculum lives in `seed.sql.gz` (loaded by `pnpm db:load-seed`) and is regenerated
 by `scripts/seed.mjs` (`pnpm db:seed`). Neither file contains user accounts.
 
 ## Test user Alex (made up, test-only)
@@ -8,7 +8,7 @@ by `scripts/seed.mjs` (`pnpm db:seed`). Neither file contains user accounts.
 Alex is a fictional student for the native Play Store screenshot job: a Maestro
 flow on an Android emulator against an API on the CI runner. **Alex is not a
 real person and is not part of the main seed.** Do not add this account to
-`seed.sql` or `scripts/seed.mjs`.
+`seed.sql.gz` or `scripts/seed.mjs`.
 
 The script inserts or updates one student and is safe to run again. It gives
 Alex a 4-day streak and 50 XP from the first four Chess Basics lessons (The
@@ -35,11 +35,13 @@ login looks it up. The defaults are made up and test-only:
 | `STORE_SHOT_EMAIL`    | `alex@test.chessschool.local` |
 | `STORE_SHOT_PASSWORD` | `AlexTestOnly1`               |
 
-Success logs only `test user seeded` and the user id (`user-alex-play-store`).
+Success logs only `test user seeded` and the user id. A new student uses
+`user-alex-play-store`. An account that already has this email keeps its id.
 The email and password are not printed.
 
-After a successful seed the script removes any existing `apps/web/.store-shot.env`
-(a missing file is fine) and writes a new one with mode `0600` (gitignored):
+After a successful seed the script removes any existing env file (a missing file
+is fine) and writes a new one with mode `0600`. The path is `STORE_SHOT_ENV_PATH`
+when that is set, and `apps/web/.store-shot.env` otherwise (gitignored):
 
 ```
 STORE_SHOT_EMAIL=...
@@ -56,7 +58,7 @@ writes nothing. It never prints `DATABASE_URL` or the auth token. Local targets:
 
 - `file:` URLs (including the default `local.db` and `file::memory:`)
 - `:memory:`
-- `http:`, `https:`, or `libsql:` whose host is `localhost` or `127.0.0.1`
+- `http:`, `https:`, or `libsql:` whose host is exactly `localhost` or `127.0.0.1` (a trailing dot is refused)
 
 It also refuses production hosts from `production-db-hosts.mjs`
 (`isProductionDbHost`), including a `file:` URL whose hostname is that

@@ -1,7 +1,7 @@
 /**
  * Upsert the made-up Play Store screenshot student "Alex".
  *
- * Test-only. Alex is not in `db/seed.sql` or `scripts/seed.mjs`.
+ * Test-only. Alex is not in `db/seed.sql.gz` or `scripts/seed.mjs`.
  * Refuses every non-local database and every production host.
  * Prints neither the login, DATABASE_URL, nor the auth token.
  *
@@ -10,7 +10,8 @@
  *
  * Login comes from STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD when those are
  * set. Otherwise the made-up defaults below are used. After a successful
- * seed the values used are written to apps/web/.store-shot.env (mode 0600).
+ * seed the values used are written to apps/web/.store-shot.env (mode 0600),
+ * or to STORE_SHOT_ENV_PATH when that is set.
  *
  * Requires the local schema (`pnpm --filter web db:push` or `db:fresh`).
  */
@@ -34,7 +35,7 @@ export const TEST_USER_PASSWORD = "AlexTestOnly1";
 export const TEST_USER_NAME = "Alex";
 export const TEST_USER_STUDENT_NO = "CS-TEST-ALEX";
 
-/** Written after a successful seed. Gitignored. */
+/** Default capture-job env file. Gitignored. Override with STORE_SHOT_ENV_PATH. */
 export const STORE_SHOT_ENV_PATH = path.join(WEB_ROOT, ".store-shot.env");
 
 /**
@@ -89,9 +90,35 @@ function parsedDbUrl(url) {
   }
 }
 
+/** Lowercased host with trailing dots removed. Production check only. */
 function hostnameOf(parsed) {
   if (!parsed) return "";
   return parsed.hostname.toLowerCase().replace(/\.+$/, "");
+}
+
+/**
+ * Host as written, lowercased, port removed, trailing dots kept.
+ * WHATWG drops the dot on `127.0.0.1.` and keeps it on `localhost.`, so the
+ * allowlist cannot use `URL.hostname`.
+ *
+ * @param {string} url
+ * @returns {string}
+ */
+function rawHost(url) {
+  const scheme = schemeOf(url);
+  const afterScheme = url.slice(scheme.length + 1);
+  const authority = afterScheme.startsWith("//") ? afterScheme.slice(2) : afterScheme;
+  const end = authority.search(/[/?#]/);
+  const auth = end === -1 ? authority : authority.slice(0, end);
+  if (!auth) return "";
+  if (auth.startsWith("[")) {
+    const bracket = auth.indexOf("]");
+    return (bracket === -1 ? auth : auth.slice(0, bracket + 1)).toLowerCase();
+  }
+  const colon = auth.lastIndexOf(":");
+  const host =
+    colon !== -1 && /^\d+$/.test(auth.slice(colon + 1)) ? auth.slice(0, colon) : auth;
+  return host.toLowerCase();
 }
 
 function isMemoryUrl(url) {
@@ -132,7 +159,9 @@ function refusal(reason, hostname) {
  *
  * `\` and `@` are refused before parsing. WHATWG reads `localhost\@evil.com`
  * as localhost, and libsql does not, so a host check on `new URL` is not
- * enough. A parsed username or password is refused too.
+ * enough. A parsed username or password is refused too. The local allowlist
+ * compares the raw host, so `localhost.` and `127.0.0.1.` are not local.
+ * Trailing dots are stripped only for the production-host check.
  *
  * @param {string | undefined | null} rawUrl
  * @returns {SeedTarget}
@@ -149,18 +178,32 @@ export function assertLocalSeedTarget(rawUrl) {
   if (!scheme) return { ok: true, url: `file:${raw}` };
 
   const parsed = parsedDbUrl(raw);
-  const hostname = hostnameOf(parsed);
-  if (hostname && isProductionDbHost(hostname)) return refusal("production", hostname);
+  const productionHost = hostnameOf(parsed);
+  if (productionHost && isProductionDbHost(productionHost)) {
+    return refusal("production", productionHost);
+  }
   if (parsed && (parsed.username !== "" || parsed.password !== "")) {
     return refusal("remote", null);
   }
   if (scheme === "file") return { ok: true, url: raw };
-  if (LOCAL_HOSTS.has(hostname)) return { ok: true, url: raw };
-  return refusal("remote", hostname);
+  const host = rawHost(raw);
+  if (LOCAL_HOSTS.has(host)) return { ok: true, url: raw };
+  return refusal("remote", host);
 }
 
 function nonempty(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Where the capture-job env file is written. `STORE_SHOT_ENV_PATH` overrides
+ * the default `apps/web/.store-shot.env`. A blank override is ignored.
+ *
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {string}
+ */
+export function storeShotEnvPath(env = process.env) {
+  return nonempty(env.STORE_SHOT_ENV_PATH) || STORE_SHOT_ENV_PATH;
 }
 
 /**
@@ -252,11 +295,14 @@ function openLocalClient(url, env) {
 
 /**
  * Insert or update Alex. Idempotent: one user, fixture XP, streak, and the
- * four board lessons. Does not write a coach (`progress.data` has no settings),
- * and marks the profile onboarded so the app keeps the default coach.
+ * four board lessons. An existing row with this email keeps its id. Otherwise
+ * the fixed test id is inserted, or updated when that id already exists.
+ * Does not write a coach (`progress.data` has no settings), and marks the
+ * profile onboarded so the app keeps the default coach.
  *
  * @param {{ execute: Function, batch: Function }} client
  * @param {{ email: string, password: string }} [login]
+ * @returns {Promise<string>} user id that was written
  */
 export async function seedTestUser(client, login = storeShotLogin()) {
   const existing = await client.execute(
@@ -272,6 +318,12 @@ export async function seedTestUser(client, login = storeShotLogin()) {
   const today = isoDay(now);
   const { email, password } = login;
   const passwordHash = await hashPassword(password);
+  const found = await client.execute({
+    sql: "SELECT id FROM users WHERE email = ?",
+    args: [email],
+  });
+  const existingId = found.rows[0]?.id;
+  const userId = existingId == null ? TEST_USER_ID : String(existingId);
   /** @type {Record<string, number>} */
   const activityDays = {};
   const lessons = ALEX_LESSONS.map((lesson, index) => {
@@ -296,7 +348,7 @@ export async function seedTestUser(client, login = storeShotLogin()) {
               email = excluded.email,
               password_hash = excluded.password_hash,
               name = excluded.name`,
-      args: [TEST_USER_ID, email, passwordHash, TEST_USER_NAME, now],
+      args: [userId, email, passwordHash, TEST_USER_NAME, now],
     },
     {
       sql: `INSERT INTO profiles (
@@ -357,6 +409,7 @@ export async function seedTestUser(client, login = storeShotLogin()) {
   });
 
   await client.batch(statements, "write");
+  return userId;
 }
 
 /**
@@ -376,9 +429,9 @@ export async function main(env = process.env) {
       await client.execute("PRAGMA busy_timeout = 5000");
     }
     const login = storeShotLogin(env);
-    await seedTestUser(client, login);
-    writeStoreShotEnv(STORE_SHOT_ENV_PATH, login);
-    console.log(`test user seeded ${TEST_USER_ID}`);
+    const userId = await seedTestUser(client, login);
+    writeStoreShotEnv(storeShotEnvPath(env), login);
+    console.log(`test user seeded ${userId}`);
     return 0;
   } catch (err) {
     console.error(redact(err, env));
