@@ -14,13 +14,7 @@ export type CoachCharacterId = (typeof COACH_CHARACTER_IDS)[number];
 export type CoachPersonality = CoachCharacterId;
 
 export type CoachAvatarState =
-  | "idle"
-  | "breathe"
-  | "speak"
-  | "success"
-  | "miss"
-  | "think"
-  | "signature";
+  "idle" | "breathe" | "speak" | "success" | "miss" | "think" | "signature";
 
 /** Exact Voice Lab / API voice settings — do not invent these. */
 export type ElevenLabsVoiceSettings = {
@@ -64,7 +58,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
   anxious_nerd: {
     id: "anxious_nerd",
     name: "Otto",
-    theme: "Anxious / Nerd",
+    theme: "Careful / Nerd",
     gender: "male",
     elevenLabsVoiceId: "mrQhZWGbb2k9qWJb5qeA",
     elevenLabsModelId: "eleven_multilingual_v2",
@@ -199,5 +193,7 @@ export function coachCharacterOf(id: unknown): CoachCharacter {
 }
 
 export function isCoachCharacterId(id: unknown): id is CoachCharacterId {
-  return typeof id === "string" && (COACH_CHARACTER_IDS as readonly string[]).includes(id);
+  return (
+    typeof id === "string" && (COACH_CHARACTER_IDS as readonly string[]).includes(id)
+  );
 }

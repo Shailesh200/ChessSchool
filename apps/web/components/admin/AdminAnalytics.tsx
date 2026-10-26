@@ -62,7 +62,11 @@ const FALLBACK_THEME: ChartTheme = {
   font: "Fredoka, ui-sans-serif, system-ui, sans-serif",
 };
 
-function readToken(styles: CSSStyleDeclaration, name: string, fallback: string): string {
+function readToken(
+  styles: CSSStyleDeclaration,
+  name: string,
+  fallback: string,
+): string {
   const v = styles.getPropertyValue(name).trim();
   return v || fallback;
 }
@@ -195,13 +199,21 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Stat label="Users" value={data.users.total} hint={`${data.users.students} students`} />
+        <Stat
+          label="Users"
+          value={data.users.total}
+          hint={`${data.users.students} students`}
+        />
         <Stat
           label="Page views 7d"
           value={data.pages.views7d}
           hint={`${fmt(data.pages.views30d)} in 30d`}
         />
-        <Stat label="Active 7d" value={data.activity.activeLast7d} hint="Lesson activity" />
+        <Stat
+          label="Active 7d"
+          value={data.activity.activeLast7d}
+          hint="Lesson activity"
+        />
         <Stat
           label="Signups 30d"
           value={data.users.signedUpLast30d}
@@ -300,7 +312,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
             <Stat label="Views 30d" value={data.pages.views30d} />
             <Stat label="Views 7d" value={data.pages.views7d} />
             <Stat label="Sessions 30d" value={data.pages.sessions30d} />
-            <Stat label="Visitors 30d" value={data.pages.users30d} hint="Authed users" />
+            <Stat
+              label="Visitors 30d"
+              value={data.pages.users30d}
+              hint="Authed users"
+            />
             <Stat
               label="Pages / session"
               value={data.pages.avgPagesPerSession}
@@ -341,7 +357,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
               ) : (
                 <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={areaBars} layout="vertical" margin={{ left: 8, right: 8 }}>
+                    <BarChart
+                      data={areaBars}
+                      layout="vertical"
+                      margin={{ left: 8, right: 8 }}
+                    >
                       <CartesianGrid
                         stroke={theme.hairline}
                         strokeDasharray="3 3"
@@ -349,7 +369,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                       />
                       <XAxis
                         type="number"
-                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 10,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={{ stroke: theme.hairline }}
                         tickLine={false}
                       />
@@ -357,7 +381,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                         type="category"
                         dataKey="name"
                         width={88}
-                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 10,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={false}
                         tickLine={false}
                       />
@@ -397,7 +425,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                       />
                       <XAxis
                         type="number"
-                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 10,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={{ stroke: theme.hairline }}
                         tickLine={false}
                       />
@@ -405,7 +437,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                         type="category"
                         dataKey="name"
                         width={120}
-                        tick={{ fontSize: 9, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 9,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={false}
                         tickLine={false}
                       />
@@ -603,7 +639,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                       />
                       <XAxis
                         type="number"
-                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 10,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={{ stroke: theme.hairline }}
                         tickLine={false}
                       />
@@ -611,7 +651,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                         type="category"
                         dataKey="name"
                         width={80}
-                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 10,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={false}
                         tickLine={false}
                       />
@@ -671,7 +715,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
               ) : (
                 <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={eventBars} layout="vertical" margin={{ left: 8, right: 8 }}>
+                    <BarChart
+                      data={eventBars}
+                      layout="vertical"
+                      margin={{ left: 8, right: 8 }}
+                    >
                       <CartesianGrid
                         stroke={theme.hairline}
                         strokeDasharray="3 3"
@@ -679,7 +727,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                       />
                       <XAxis
                         type="number"
-                        tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 10,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={{ stroke: theme.hairline }}
                         tickLine={false}
                       />
@@ -687,7 +739,11 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
                         type="category"
                         dataKey="name"
                         width={110}
-                        tick={{ fontSize: 9, fill: theme.inkMuted, fontFamily: theme.font }}
+                        tick={{
+                          fontSize: 9,
+                          fill: theme.inkMuted,
+                          fontFamily: theme.font,
+                        }}
                         axisLine={false}
                         tickLine={false}
                       />
@@ -807,7 +863,9 @@ export function AdminAnalytics({ data }: { data: Analytics }) {
           <Card className="overflow-hidden p-0">
             <div className="border-hairline border-b px-4 py-3">
               <h3 className="text-ink text-sm font-extrabold">Recent users</h3>
-              <p className="text-ink-500 text-[11px] font-semibold">Newest accounts first</p>
+              <p className="text-ink-500 text-[11px] font-semibold">
+                Newest accounts first
+              </p>
             </div>
             <DataTable
               columns={["Joined", "Name", "Email", "Auth", "Role", "Onboarded", "XP"]}
@@ -868,7 +926,11 @@ function LineArea({
               <stop offset="100%" stopColor={color} stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke={theme.hairline} strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid
+            stroke={theme.hairline}
+            strokeDasharray="3 3"
+            vertical={false}
+          />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 10, fill: theme.inkMuted, fontFamily: theme.font }}
@@ -942,7 +1004,9 @@ function ChartTooltip({
       }}
     >
       {label != null && label !== "" ? (
-        <div style={{ color: theme.inkMuted, marginBottom: 4, fontWeight: 700 }}>{label}</div>
+        <div style={{ color: theme.inkMuted, marginBottom: 4, fontWeight: 700 }}>
+          {label}
+        </div>
       ) : null}
       <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
         {payload.map((p, i) => (
@@ -1028,27 +1092,23 @@ function DataTable({
   );
 }
 
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-}) {
+function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
     <div className="rounded-card border-hairline bg-surface-card border p-3 text-center">
       <div className="text-ink text-xl font-extrabold tabular-nums">{fmt(value)}</div>
       <div className="text-ink-500 text-[10px] font-semibold">{label}</div>
-      {hint ? <div className="text-ink-300 mt-0.5 text-[9px] font-semibold">{hint}</div> : null}
+      {hint ? (
+        <div className="text-ink-300 mt-0.5 text-[9px] font-semibold">{hint}</div>
+      ) : null}
     </div>
   );
 }
 
 function Empty({ children }: { children: ReactNode }) {
   return (
-    <p className="text-ink-500 px-4 py-8 text-center text-xs font-semibold">{children}</p>
+    <p className="text-ink-500 px-4 py-8 text-center text-xs font-semibold">
+      {children}
+    </p>
   );
 }
 

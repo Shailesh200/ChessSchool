@@ -24,9 +24,9 @@ describe("routePattern", () => {
   });
 
   it("collapses UUIDs", () => {
-    expect(
-      routePattern("/play/online/550e8400-e29b-41d4-a716-446655440000"),
-    ).toBe("/play/online/:id");
+    expect(routePattern("/play/online/550e8400-e29b-41d4-a716-446655440000")).toBe(
+      "/play/online/:id",
+    );
   });
 
   it("strips query strings", () => {

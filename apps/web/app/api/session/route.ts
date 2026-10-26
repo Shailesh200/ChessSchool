@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
 
-  const limited = enforceRateLimit(
+  const limited = await enforceRateLimit(
     req,
     "session:create",
     { limit: 30, windowMs: 60_000 },

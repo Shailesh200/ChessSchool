@@ -56,6 +56,11 @@ export function voicePreviewText(
   personality: CoachPersonality,
 ): string {
   const id = normalizeCoachVoice(voiceId);
-  if (id === "auto") return PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
-  return VOICE_PREVIEW[id] ?? PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
+  if (id === "auto")
+    return PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
+  return (
+    VOICE_PREVIEW[id] ??
+    PERSONALITY_PREVIEW[personality] ??
+    PERSONALITY_PREVIEW.sarcastic
+  );
 }

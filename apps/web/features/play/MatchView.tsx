@@ -342,13 +342,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           : outcomeFromWinner(winner, playerColor);
       const endBase = {
         channel: channel as "bot" | "pass" | "shadow" | "arena",
-        opponent: (active.mode === "pass" || isShadow
-          ? "human"
-          : "bot") as "bot" | "human",
+        opponent: (active.mode === "pass" || isShadow ? "human" : "bot") as
+          "bot" | "human",
         humanKind:
-          active.mode === "pass" || isShadow
-            ? ("same_device" as const)
-            : undefined,
+          active.mode === "pass" || isShadow ? ("same_device" as const) : undefined,
         targetElo: isBot ? active.targetElo : null,
         timeMin: active.timeControlMin,
         fromHomework: Boolean(active.fromHomework),

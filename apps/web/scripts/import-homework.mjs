@@ -3,8 +3,15 @@
  * dedicated `homework_lessons` pool — distinct from the curriculum puzzles, so
  * daily homework is never a replay of the school lessons you're grinding.
  *
+ *   node scripts/import-homework.mjs
+ *       reads <repo>/data/chess-school-puzzles.csv.gz, independent of cwd
  *   node scripts/import-homework.mjs lichess_db_puzzle.csv.zst
- *   pnpm db:dump && pnpm db:remote
+ *   node scripts/import-homework.mjs --samples
+ *       explicit only: derive homework from the seeded curriculum
+ *       (`pnpm db:fresh` / `db:seed-homework` call seed-homework.mjs directly)
+ *
+ * A missing CSV is an error. Sample homework is never a silent fallback.
+ * Accepts .csv, .csv.gz, and .csv.zst (zst streams through `zstd -dc`).
  *
  * Disjointness: per type we SKIP the first `SKIP_PER_TYPE` matching puzzles (the
  * high-popularity head the curriculum import takes) and collect the next batch.
@@ -15,24 +22,73 @@ import { spawn } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { createGunzip } from "node:zlib";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import Database from "better-sqlite3";
 import { Chess } from "chess.js";
 
-// Defaults to OUR committed curated set; pass the raw Lichess file to re-curate.
-const INPUT = process.argv[2] ?? "data/chess-school-puzzles.csv.gz";
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+/** Monorepo root (`apps/web/scripts` → repo). */
+export const REPO_ROOT = join(SCRIPT_DIR, "../../..");
+/** Committed curated puzzle set. Resolved from this file, not `process.cwd()`. */
+export const DEFAULT_PUZZLE_CSV = join(REPO_ROOT, "data/chess-school-puzzles.csv.gz");
 
-// No puzzle file? Derive the homework pool from the already-seeded curriculum
-// (zero downloads) — same as `db:seed-homework`.
-if (!existsSync(INPUT)) {
-  if (!process.argv[2]) {
-    console.log(
-      `ℹ ${INPUT} not found — deriving homework from the already-seeded curriculum instead.`,
-    );
-    await import("./seed-homework.mjs");
-    process.exit(0);
+const USAGE =
+  "Usage: node scripts/import-homework.mjs [--samples | puzzle.csv[.gz|.zst]]";
+
+/**
+ * @param {string[]} argv
+ * @param {{ cwd?: string, exists?: (path: string) => boolean }} [options]
+ */
+export function parseHomeworkArgs(argv, options = {}) {
+  const cwd = options.cwd ?? process.cwd();
+  const exists = options.exists ?? existsSync;
+  const args = argv.slice(2);
+  const flags = args.filter((arg) => arg.startsWith("--"));
+  const positional = args.filter((arg) => !arg.startsWith("--"));
+  const unknown = flags.filter((flag) => flag !== "--samples");
+  if (unknown.length) {
+    return {
+      ok: false,
+      exitCode: 1,
+      message: `✗ Unknown option: ${unknown.join(" ")}\n${USAGE}`,
+    };
   }
-  console.error(`✗ File not found: ${INPUT}`);
-  process.exit(1);
+  if (flags.includes("--samples")) {
+    if (positional.length) {
+      return {
+        ok: false,
+        exitCode: 1,
+        message: `✗ --samples does not take a puzzle file.\n${USAGE}`,
+      };
+    }
+    return { ok: true, mode: "samples" };
+  }
+  if (positional.length > 1) {
+    return {
+      ok: false,
+      exitCode: 1,
+      message: `✗ Expected at most one puzzle file.\n${USAGE}`,
+    };
+  }
+  const input = positional.length
+    ? isAbsolute(positional[0])
+      ? positional[0]
+      : resolve(cwd, positional[0])
+    : DEFAULT_PUZZLE_CSV;
+  if (!exists(input)) {
+    return {
+      ok: false,
+      exitCode: 1,
+      message: [
+        `✗ Puzzle CSV not found: ${input}`,
+        "Homework import does not fall back to sample puzzles.",
+        "Pass a puzzle CSV path, or re-run with --samples to build homework from the seeded curriculum.",
+        `Default file: ${DEFAULT_PUZZLE_CSV}`,
+      ].join("\n"),
+    };
+  }
+  return { ok: true, mode: "import", input };
 }
 
 const PUZZLES_PER = 4; // puzzles in one homework session
@@ -205,101 +261,143 @@ function buildSteps(fen, movesStr, label) {
   return steps.length ? steps : null;
 }
 
-// ── Scan + bucket ─────────────────────────────────────────────────────────────
-const seen = new Map(); // type -> count matched (for skipping the head)
-const picked = new Map(); // type -> puzzles[]
-const NEED = (MAX_SESSIONS + 2) * PUZZLES_PER;
-for (const t of Object.keys(TYPES)) {
-  seen.set(t, 0);
-  picked.set(t, []);
-}
-const done = () => Object.keys(TYPES).every((t) => picked.get(t).length >= NEED);
-
-let scanned = 0;
-console.log(`Reading ${INPUT} … homework pool`);
-const rl = lineStream(INPUT);
-let header = true;
-for await (const line of rl) {
-  if (header) {
-    header = false;
-    continue;
+/** @param {string} input absolute or cwd-resolved puzzle CSV (.csv, .csv.gz, or .csv.zst) */
+async function importFromCsv(input) {
+  // ── Scan + bucket ─────────────────────────────────────────────────────────────
+  const seen = new Map(); // type -> count matched (for skipping the head)
+  const picked = new Map(); // type -> puzzles[]
+  const NEED = (MAX_SESSIONS + 2) * PUZZLES_PER;
+  for (const t of Object.keys(TYPES)) {
+    seen.set(t, 0);
+    picked.set(t, []);
   }
-  scanned++;
-  if (scanned % 500000 === 0)
-    process.stdout.write(`\r  scanned ${scanned.toLocaleString()}…`);
-  if (done() || scanned > 6_000_000) break;
-  const c = line.split(",");
-  if (c.length < 8) continue;
-  const rating = Number(c[3]);
-  const popularity = Number(c[5]);
-  if (!rating || popularity < MIN_POPULARITY) continue;
-  const themes = c[7].split(" ");
-  const type = typeFor(themes, rating);
-  if (!type) continue;
-  const n = seen.get(type) + 1;
-  seen.set(type, n);
-  if (n <= SKIP_PER_TYPE) continue; // skip the curriculum's head
-  const arr = picked.get(type);
-  if (arr.length >= NEED) continue;
-  arr.push({ id: c[0], fen: c[1], moves: c[2], rating, concept: conceptOf(themes) });
-}
-console.log(`\nScanned ${scanned.toLocaleString()} rows.`);
+  const done = () => Object.keys(TYPES).every((t) => picked.get(t).length >= NEED);
 
-// ── Build homework lessons ────────────────────────────────────────────────────
-if (!existsSync("local.db")) {
-  console.error("✗ local.db not found. Run `pnpm db:fresh` first.");
-  process.exit(1);
-}
-const db = new Database("local.db");
-db.exec(`CREATE TABLE IF NOT EXISTS homework_lessons (
+  let scanned = 0;
+  console.log(`Reading ${input} … homework pool`);
+  const rl = lineStream(input);
+  let header = true;
+  for await (const line of rl) {
+    if (header) {
+      header = false;
+      continue;
+    }
+    scanned++;
+    if (scanned % 500000 === 0)
+      process.stdout.write(`\r  scanned ${scanned.toLocaleString()}…`);
+    if (done() || scanned > 6_000_000) break;
+    const c = line.split(",");
+    if (c.length < 8) continue;
+    const rating = Number(c[3]);
+    const popularity = Number(c[5]);
+    if (!rating || popularity < MIN_POPULARITY) continue;
+    const themes = c[7].split(" ");
+    const type = typeFor(themes, rating);
+    if (!type) continue;
+    const n = seen.get(type) + 1;
+    seen.set(type, n);
+    if (n <= SKIP_PER_TYPE) continue; // skip the curriculum's head
+    const arr = picked.get(type);
+    if (arr.length >= NEED) continue;
+    arr.push({ id: c[0], fen: c[1], moves: c[2], rating, concept: conceptOf(themes) });
+  }
+  console.log(`\nScanned ${scanned.toLocaleString()} rows.`);
+
+  // ── Build homework lessons ────────────────────────────────────────────────────
+  if (!existsSync("local.db")) {
+    console.error(
+      `✗ local.db not found in ${process.cwd()}. Run \`pnpm db:fresh\` from apps/web first.`,
+    );
+    process.exit(1);
+  }
+  const db = new Database("local.db");
+  db.exec(`CREATE TABLE IF NOT EXISTS homework_lessons (
   id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, subtitle TEXT NOT NULL DEFAULT '',
   emoji TEXT NOT NULL DEFAULT '♟️', tag TEXT NOT NULL DEFAULT 'drill', xp INTEGER NOT NULL DEFAULT 20,
   steps TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0
 );`);
-db.exec("DELETE FROM homework_lessons");
-const insert = db.prepare(
-  "INSERT INTO homework_lessons (id, type, title, subtitle, emoji, tag, xp, steps, sort_order) VALUES (?,?,?,?,?,?,?,?,?)",
-);
+  db.exec("DELETE FROM homework_lessons");
+  const insert = db.prepare(
+    "INSERT INTO homework_lessons (id, type, title, subtitle, emoji, tag, xp, steps, sort_order) VALUES (?,?,?,?,?,?,?,?,?)",
+  );
 
-let total = 0;
-for (const [type, meta] of Object.entries(TYPES)) {
-  const pool = picked.get(type);
-  // Single-concept sessions so each can be filtered to topics the student has learned.
-  const byConcept = new Map();
-  for (const pz of pool) {
-    if (!byConcept.has(pz.concept)) byConcept.set(pz.concept, []);
-    byConcept.get(pz.concept).push(pz);
-  }
-  let made = 0;
-  for (const [concept, puzzles] of byConcept) {
-    for (let i = 0; i + 2 <= puzzles.length && made < MAX_SESSIONS; i += PUZZLES_PER) {
-      const chunk = [];
-      for (const pz of puzzles.slice(i, i + PUZZLES_PER)) {
-        const steps = buildSteps(pz.fen, pz.moves, meta.label);
-        if (steps) chunk.push(steps);
-      }
-      if (chunk.length < 2) break;
-      const steps = chunk.flatMap((s, k) =>
-        s.map((x, j) => ({ ...x, id: `s${k}_${j}` })),
-      );
-      insert.run(
-        `hw-${type}-${made + 1}`,
-        type,
-        `${meta.label}: ${concept}`,
-        `${chunk.length}-puzzle ${concept} session`,
-        meta.emoji,
-        concept, // tag = topic, for "already learned" filtering
-        15,
-        JSON.stringify(steps),
-        made,
-      );
-      made++;
-      total++;
+  let total = 0;
+  for (const [type, meta] of Object.entries(TYPES)) {
+    const pool = picked.get(type);
+    // Single-concept sessions so each can be filtered to topics the student has learned.
+    const byConcept = new Map();
+    for (const pz of pool) {
+      if (!byConcept.has(pz.concept)) byConcept.set(pz.concept, []);
+      byConcept.get(pz.concept).push(pz);
     }
+    let made = 0;
+    for (const [concept, puzzles] of byConcept) {
+      for (
+        let i = 0;
+        i + 2 <= puzzles.length && made < MAX_SESSIONS;
+        i += PUZZLES_PER
+      ) {
+        const chunk = [];
+        for (const pz of puzzles.slice(i, i + PUZZLES_PER)) {
+          const steps = buildSteps(pz.fen, pz.moves, meta.label);
+          if (steps) chunk.push(steps);
+        }
+        if (chunk.length < 2) break;
+        const steps = chunk.flatMap((s, k) =>
+          s.map((x, j) => ({ ...x, id: `s${k}_${j}` })),
+        );
+        insert.run(
+          `hw-${type}-${made + 1}`,
+          type,
+          `${meta.label}: ${concept}`,
+          `${chunk.length}-puzzle ${concept} session`,
+          meta.emoji,
+          concept, // tag = topic, for "already learned" filtering
+          15,
+          JSON.stringify(steps),
+          made,
+        );
+        made++;
+        total++;
+      }
+    }
+    console.log(`  ${meta.emoji} ${type}: ${made} sessions (${pool.length} puzzles)`);
   }
-  console.log(`  ${meta.emoji} ${type}: ${made} sessions (${pool.length} puzzles)`);
+  console.log(
+    `✅ Imported ${total} homework lessons into local.db. Next: pnpm db:dump && pnpm db:remote`,
+  );
+  db.close();
 }
-console.log(
-  `✅ Imported ${total} homework lessons into local.db. Next: pnpm db:dump && pnpm db:remote`,
-);
-db.close();
+
+export async function main(argv = process.argv) {
+  const plan = parseHomeworkArgs(argv);
+  if (!plan.ok) {
+    console.error(plan.message);
+    process.exit(plan.exitCode ?? 1);
+  }
+  if (plan.mode === "samples") {
+    console.log(
+      "Using --samples: deriving homework from the already-seeded curriculum.",
+    );
+    await import("./seed-homework.mjs");
+    return;
+  }
+  if (!plan.input) {
+    console.error(`✗ No puzzle CSV resolved.\n${USAGE}`);
+    process.exit(1);
+  }
+  await importFromCsv(plan.input);
+}
+
+function invokedDirectly() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(resolve(entry)).href;
+}
+
+if (invokedDirectly()) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
