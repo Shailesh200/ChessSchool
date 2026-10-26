@@ -223,13 +223,14 @@ export function storeShotEnvPath(env = process.env) {
 
 /**
  * An existing capture-job file may be replaced only when every non-blank line
- * is `STORE_SHOT_EMAIL=` or `STORE_SHOT_PASSWORD=`. Anything else (a mobile
+ * is `STORE_SHOT_EMAIL=` or `STORE_SHOT_PASSWORD=`. Line breaks are LF, CR,
+ * or CRLF, so a lone CR cannot hide another key. Anything else (a mobile
  * `.env`, `prod.env`, comments) is left untouched.
  *
  * @param {string} content
  */
 function isReplaceableStoreShotEnv(content) {
-  for (const line of content.split(/\r?\n/)) {
+  for (const line of content.split(/\r\n|\r|\n/)) {
     if (line.trim() === "") continue;
     if (
       line.startsWith("STORE_SHOT_EMAIL=") ||

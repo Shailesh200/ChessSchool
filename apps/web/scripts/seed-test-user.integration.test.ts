@@ -35,6 +35,7 @@ import {
   seedTestUser,
   storeShotEnvPath,
   storeShotLogin,
+  resolveStoreShotEnvPath,
   writeStoreShotEnv,
 } from "./seed-test-user.mjs";
 
@@ -583,6 +584,21 @@ describe("test-user seed guard", () => {
       vi.resetModules();
     }
   }, 90_000);
+
+  it("refuses a lone CR that hides another key on one line", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-cr-"));
+    const envPath = path.join(dir, "shot.env");
+    const body = Buffer.from("STORE_SHOT_EMAIL=a\rSECRET=x");
+    try {
+      writeFileSync(envPath, body);
+      expect(() => resolveStoreShotEnvPath({ STORE_SHOT_ENV_PATH: envPath })).toThrow(
+        /already holds other content/,
+      );
+      expect(readFileSync(envPath)).toEqual(body);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 
   it("replaces a pre-existing 0644 file with mode 0600", () => {
     const realBefore = snapshotRealStoreShotEnv();
