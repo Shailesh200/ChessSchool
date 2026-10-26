@@ -8,11 +8,18 @@
  * That refuses chess-school.vercel.app, -git-main and -git-staging builds,
  * other projects' *.vercel.app hosts, and lookalikes.
  *
- * The store-shot workflow points the app at http://10.0.2.2:<port> and runs
- * this guard on that URL before it captures. The store-shot seed then allows
- * only localhost, 127.0.0.1, and 10.0.2.2, so a preview host cannot be used
- * for that job. Never register against production.
+ * Jimbe's emulator job (branch jimbe/e-native-store-shots) points the app at
+ * http://10.0.2.2:<port> and runs this guard on that URL before it captures.
+ * This branch does not add that workflow. The test-user seed then allows only
+ * localhost, 127.0.0.1, and 10.0.2.2, so a preview host cannot be used for
+ * that seed. Never register against production.
+ *
+ *   node apps/mobile/store-assets/play-store/capture-host.mjs --self-test
+ *   node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"
  */
+
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 /** Branch preview only: chess-school-git-<branch>.vercel.app, never main or staging. */
 const CAPTURE_PREVIEW_HOST = /^chess-school-git-([a-z0-9-]+)\.vercel\.app$/;
@@ -39,5 +46,95 @@ export function assertSafeCaptureHost(url) {
     throw new Error(
       `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, 10.0.2.2, or chess-school-git-<branch>.vercel.app for a branch other than main or staging.`,
     );
+  }
+}
+
+/** Local sqlite only. The error does not include the URL. */
+export function assertLocalDatabaseUrl(raw) {
+  if (raw == null || String(raw).trim() === "") return;
+  const value = String(raw).trim();
+  if (value.startsWith("file:")) {
+    if (value.slice("file:".length).includes("://")) {
+      throw new Error("Refusing a remote DATABASE_URL.");
+    }
+    return;
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    throw new Error("Refusing a remote DATABASE_URL.");
+  }
+}
+
+function isDirectRun() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(resolve(entry)).href;
+}
+
+function selfTest() {
+  for (const ok of [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://10.0.2.2:3210",
+    "https://chess-school-git-lane-f-f12-shailesh200.vercel.app",
+  ]) {
+    assertSafeCaptureHost(ok);
+  }
+  for (const bad of [
+    "https://chess-school-git-main.vercel.app",
+    "https://chess-school-git-main-shailesh200.vercel.app",
+    "https://chess-school-git-staging.vercel.app",
+    "https://chess-school-git-staging-x.vercel.app",
+    "https://evil-git-x.vercel.app",
+    "https://chess-school.vercel.app",
+    "https://chess-school.in",
+    "https://www.chess-school.in",
+    "https://chess-school-git-x.vercel.app.evil.com",
+  ]) {
+    let threw = false;
+    try {
+      assertSafeCaptureHost(bad);
+    } catch (err) {
+      threw = true;
+      const message = err instanceof Error ? err.message : String(err);
+      if (/password|secret|token/i.test(message)) {
+        throw new Error("host guard included a secret in an error");
+      }
+    }
+    if (!threw) throw new Error(`expected reject for ${bad}`);
+  }
+  assertLocalDatabaseUrl(undefined);
+  assertLocalDatabaseUrl("");
+  assertLocalDatabaseUrl("file:local.db");
+  assertLocalDatabaseUrl("file:/tmp/local.db");
+  for (const bad of ["libsql://example.turso.io", "https://example.turso.io"]) {
+    let threw = false;
+    try {
+      assertLocalDatabaseUrl(bad);
+    } catch (err) {
+      threw = true;
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("turso") || message.includes("libsql") || message.includes("example")) {
+        throw new Error("database guard echoed the remote URL");
+      }
+    }
+    if (!threw) throw new Error("expected database reject for a remote URL");
+  }
+  process.stdout.write("capture-host self-test passed\n");
+}
+
+if (isDirectRun()) {
+  const arg = process.argv[2];
+  try {
+    if (arg === "--self-test") {
+      selfTest();
+    } else {
+      const raw = arg || process.env.EXPO_PUBLIC_API_URL;
+      assertSafeCaptureHost(raw);
+      assertLocalDatabaseUrl(process.env.DATABASE_URL);
+      process.stdout.write(`Host guard passed for ${new URL(raw).hostname}\n`);
+    }
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
   }
 }

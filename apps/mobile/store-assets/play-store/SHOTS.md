@@ -6,7 +6,7 @@ The flow signs in as a made-up local student whose display name is **Alex**. Eve
 
 The app default coach is still Ash (`sarcastic`) until `lane-f/f3-default-coach` (PR #21) lands. That change has to land before the listing goes out. Lesson bubbles prefix the curriculum line with the active coach's opener. The lines below are what Ash shows today. The flow does not switch coaches.
 
-The manual workflow [`.github/workflows/store-shots.yml`](../../../../.github/workflows/store-shots.yml) runs this flow. It is `workflow_dispatch` only. It does not run on push or pull request. Jimbe reviews that workflow.
+Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is manual (`workflow_dispatch` only). This branch does not add a GitHub Actions workflow.
 
 ## Shot list
 
@@ -56,33 +56,29 @@ The manual workflow [`.github/workflows/store-shots.yml`](../../../../.github/wo
 - **Must show:** The replay board for that game, the move label (`replay-move-label`), and the move chips for 1.e4 plus Vera’s real reply. The in-game Review button passes `gameId` while this screen reads `id`, so the flow uses the review list instead.
 - **Coach copy:** None on a resigned replay. The move label is the line on screen.
 
-## How to run it
+## How Jimbe's job runs it
 
-On GitHub, open **Actions → Store shots → Run workflow** and choose this branch. Nothing else starts the job. It does not run when you push or open a pull request.
+The emulator job is his, on `jimbe/e-native-store-shots` (`.github/workflows/play-store-screenshots.yml`). Trigger: **Actions → Play Store screenshots → Run workflow**. The default flow path is `apps/mobile/maestro/store-shots.yaml`. This branch does not contain that workflow.
 
-The job, on `ubuntu-latest`:
+His job builds a release APK on the runner, with no EAS and no Play signing key. The emulator reaches the API at `10.0.2.2` (his job uses port `3210`). It seeds the curriculum with `pnpm db:provision` (the loader script owns the seed file; the job does not read `seed.sql`). It then creates Alex with `pnpm --filter web db:seed:test-user`.
 
-1. Runs `assertSafeCaptureHost` on `http://10.0.2.2:3000` and stops unless that host is exactly `10.0.2.2`. It does not use production, staging, or any Vercel host.
-2. Builds a throwaway local database with `pnpm --filter web db:fresh` (that is `db:reset`, `db:push`, `db:seed`, and `db:seed-homework`). It does not read `seed.sql`.
-3. Runs `pnpm --filter web db:seed-store-shot`, which inserts Alex (streak 4, 240 XP) into that local file. The email is `alex.<run id>@example.com`. The password is random. Neither is printed. GitHub masks both, and the login link, before Maestro runs.
-4. Builds the API with `next build` and starts it on the runner with `next start` (port 3000, bound for the emulator).
-5. Builds a release APK on the runner with `expo prebuild` and `gradlew :app:assembleRelease`. No EAS and no Play signing key. The generated manifest on the runner allows cleartext HTTP so the APK can call `http://10.0.2.2:3000`. That flag is not committed.
-6. Starts an Android emulator with KVM (`reactivecircus/android-emulator-runner`), installs the APK, runs `apps/mobile/maestro/store-shots.yaml`, and uploads `store-shot-screenshots/*.png` as the artifact `play-store-screenshots`.
-
-The emulator job was not run in this change. See the pull request notes for what was validated locally.
+That script is the source of Alex's email and password. It does not print them. His job must pass the same pair into Maestro under the names below.
 
 ## Env vars
 
-The workflow sets these itself. Do not commit them. Do not point them at production (`https://www.chess-school.in`, `chess-school.vercel.app`, or a `main` / `staging` preview).
+Do not commit them. Do not point the app at production (`https://www.chess-school.in`, `chess-school.vercel.app`, or a `main` / `staging` preview).
 
-| Variable | When | Value |
-|----------|------|--------|
-| `STORE_SHOT_API_URL` | Before the seed and before capture | `http://10.0.2.2:3000` in the workflow. The host guard must pass, and the workflow also requires the host to be `10.0.2.2`. |
-| `EXPO_PUBLIC_API_URL` | Bundle time, before the release APK is built | Same local API, `http://10.0.2.2:3000`. `10.0.2.2` is the emulator’s name for the host machine. |
-| `EXPO_PUBLIC_PARITY` | Bundle time | `1`. Required so the login deep link auto-submits. A release build uses `EXPO_PUBLIC_API_URL` as given. |
-| `DATABASE_URL` | Seed and API | `file:local.db` on the runner. The seed script refuses `libsql:` and `http(s):` databases. |
-| `STORE_SHOT_EMAIL` | Seed script, then Maestro | Made-up `@example.com` address. The workflow generates it and does not print it. |
-| `STORE_SHOT_PASSWORD` | Seed script, then Maestro | Random password. Not printed. |
-| `LOGIN_LINK` | Maestro `-e` | `chessschool:///login?email=<urlencoded STORE_SHOT_EMAIL>&password=<urlencoded STORE_SHOT_PASSWORD>`. Maestro 2.6 does not expand `${STORE_SHOT_EMAIL}` inside `openLink`, so the runner builds this full URL and masks it. |
+| Variable | Who sets it | What it is |
+|----------|-------------|------------|
+| `STORE_SHOT_EMAIL` | Jimbe's job, for the seed and for Maestro | Alex's email. If both this and `STORE_SHOT_PASSWORD` are unset, `db:seed:test-user` uses the made-up defaults in `apps/web/scripts/seed-test-user.mjs`. If the job sets them, the script uses those values instead. The Maestro login URL reads this name. |
+| `STORE_SHOT_PASSWORD` | Jimbe's job, for the seed and for Maestro | Password for that same account. Not printed. The Maestro login URL reads this name. |
+| `EXPO_PUBLIC_API_URL` | Jimbe's job, before the seed and at bundle time | `http://10.0.2.2:<port>`. `10.0.2.2` is the emulator's name for the host machine. The host guard must pass. |
+| `EXPO_PUBLIC_PARITY` | Jimbe's job, at bundle time | `1`. Without it the login deep link does not auto-submit. A release build uses `EXPO_PUBLIC_API_URL` as given. |
 
-`pnpm db:seed-store-shot` calls `assertSafeCaptureHost` before it writes Alex. After the guard, that script still only accepts localhost, `127.0.0.1`, or `10.0.2.2`, so a branch preview cannot be used for this seed. Alex is a normal student, display name Alex, onboarding already finished, no avatar upload, and not a child profile. There is no in-progress match, so shot 04 starts a new Vera game.
+The login step in `apps/mobile/maestro/store-shots.yaml` is:
+
+`chessschool:///login?email=${STORE_SHOT_EMAIL}&password=${STORE_SHOT_PASSWORD}`
+
+Maestro 2.6 does not expand `${...}` inside `openLink`. Before `maestro test`, substitute `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` into that URL (same idea as the parity harness materializing `LOGIN_LINK`). Do not print the result.
+
+`pnpm --filter web db:seed:test-user` calls `assertSafeCaptureHost` on `EXPO_PUBLIC_API_URL`, then still only accepts localhost, `127.0.0.1`, or `10.0.2.2`. It refuses `libsql:` and `http(s):` databases. Alex is a normal student, display name Alex, streak 4, 240 XP, onboarding already finished, no avatar upload, and not a child profile. There is no in-progress match, so shot 04 starts a new Vera game.
