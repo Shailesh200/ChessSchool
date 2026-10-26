@@ -11,7 +11,8 @@ does not run it. Nobody runs the full reseed on production.
 ## What it updates
 
 Two `lessons.steps` values, and only when the stored JSON still equals the
-staging `seed.sql` text exactly (full column match, no `LIKE`):
+committed seed snapshot (`seed.sql.gz`, via `readSeedSql()`) exactly (full
+column match, no `LIKE`):
 
 - `lessons.id = 'pre-game-goal'`
 - `lessons.id = 'pre-notation-practice'`

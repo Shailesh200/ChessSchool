@@ -1,10 +1,11 @@
-import { createReadStream, existsSync, readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
-import { createInterface } from "node:readline";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient, type Client, type Row } from "@libsql/client";
 import { describe, expect, it, beforeAll, afterEach } from "vitest";
+import { readSeedSql } from "../seed-file.mjs";
 
 const SOURCE_SHA = "f7a74c2";
 const FULL_SHA = "f7a74c2f50038b7044c45a977d8e0b9ffe3f56e5";
@@ -25,7 +26,6 @@ function webRoot(): string {
 }
 
 const SQL_PATH = () => join(webRoot(), "db/oneoff/2026-10-starter-rename.sql");
-const SEED_PATH = () => join(webRoot(), "db/seed.sql");
 
 type Update = { id: string; next: string; prev: string };
 type Snap = Record<string, Record<string, string | number | null>[]>;
@@ -101,22 +101,18 @@ function parseValueList(input: string): string[] {
   return vals;
 }
 
-async function stepsFromSeed(lessonId: string): Promise<string> {
+function stepsFromSeed(sql: string, lessonId: string): string {
   const needle = `VALUES ('${lessonId}',`;
-  const rl = createInterface({
-    input: createReadStream(SEED_PATH()),
-    crlfDelay: Infinity,
-  });
-  for await (const line of rl) {
-    if (!line.includes(needle)) continue;
-    rl.close();
-    const start = line.indexOf("VALUES (");
-    const vals = parseValueList(line.slice(start + "VALUES (".length));
-    const steps = vals[9];
-    if (!steps?.startsWith("[")) throw new Error(`steps missing for ${lessonId}`);
-    return steps;
-  }
-  throw new Error(`seed.sql has no ${lessonId}`);
+  const idx = sql.indexOf(needle);
+  if (idx < 0) throw new Error(`committed seed has no ${lessonId}`);
+  const lineStart = sql.lastIndexOf("\n", idx) + 1;
+  const lineEnd = sql.indexOf("\n", idx);
+  const line = sql.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
+  const start = line.indexOf("VALUES (");
+  const vals = parseValueList(line.slice(start + "VALUES (".length));
+  const steps = vals[9];
+  if (!steps?.startsWith("[")) throw new Error(`steps missing for ${lessonId}`);
+  return steps;
 }
 
 function coachWith(steps: string, needle: string): string {
@@ -381,12 +377,13 @@ describe("starter rename fallback sql", () => {
   let seeded: Record<string, string> = {};
   const cleanups: Array<() => Promise<void>> = [];
 
-  beforeAll(async () => {
+  beforeAll(() => {
     script = readFileSync(SQL_PATH(), "utf8");
     updates = parseUpdates(script);
+    const seedSql = readSeedSql();
     seeded = {
-      "pre-game-goal": await stepsFromSeed("pre-game-goal"),
-      "pre-notation-practice": await stepsFromSeed("pre-notation-practice"),
+      "pre-game-goal": stepsFromSeed(seedSql, "pre-game-goal"),
+      "pre-notation-practice": stepsFromSeed(seedSql, "pre-notation-practice"),
     };
   });
 
@@ -394,7 +391,7 @@ describe("starter rename fallback sql", () => {
     while (cleanups.length) await cleanups.pop()?.();
   });
 
-  it("matches staging seed.sql and the f7a74c2 coach sentences exactly", () => {
+  it("matches the committed seed snapshot and the f7a74c2 coach sentences exactly", () => {
     expect(script).toContain(SOURCE_SHA);
     expect(script).toContain(FULL_SHA);
     expect(updates.map((row) => row.id)).toEqual([...TARGETS]);
@@ -475,6 +472,9 @@ describe("starter rename fallback sql", () => {
     expect(pkg.scripts["db:fresh"]).not.toContain("oneoff");
     expect(pkg.scripts["db:fresh"]).not.toContain("starter-rename");
     expect(existsSync(join(webRoot(), "db/migrations"))).toBe(false);
+    expect(
+      execSync("git ls-files apps/web/db/seed.sql", { encoding: "utf8" }).trim(),
+    ).toBe("");
   });
 
   it("rewrites the two old rows, leaves every other cell, and is idempotent", async () => {
