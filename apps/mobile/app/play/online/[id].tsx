@@ -8,12 +8,13 @@ import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
-import { API_URL, api, getToken } from "@/api";
+import { API_URL, ApiError, api, getToken } from "@/api";
 import {
   ABLY_DROP_EVENTS,
   createAblyPollingFallback,
   createGameAblyAuth,
 } from "@/ablyAuth";
+import { sessionStateFromPost } from "@/sessionPost";
 import { mutateProgress } from "@/progressStore";
 import { prependRecentGame, isoDay } from "@/progression";
 import { markHomeworkActivity } from "@/homeworkRoutine";
@@ -202,11 +203,28 @@ export default function OnlineGameScreen() {
     if (state.turn === "b" && b <= 0) void flagTimeout();
   }, [clocks, state]);
 
-  async function flagTimeout() {
+  async function postSession(body: Record<string, unknown>) {
     try {
-      const s = await api<Session>(`/api/session/${sid}`, { method: "POST", body: { action: "timeout", color: myColor, seatToken: token } });
+      const s = await api<Session>(`/api/session/${sid}`, { method: "POST", body });
       if (!s.error) applyState(s);
-    } catch { /* ignore */ }
+      return;
+    } catch (e) {
+      // 409 carries the current row. Applying it drops the optimistic move.
+      const row = e instanceof ApiError ? sessionStateFromPost(e.status, e.body) : null;
+      if (row) {
+        applyState(row as Session);
+        return;
+      }
+      if (!(e instanceof ApiError) || e.status !== 409) return;
+      try {
+        const fresh = await api<Session>(`/api/session/${sid}`);
+        if (!fresh.error) applyState(fresh);
+      } catch { /* poll/ably reconciles */ }
+    }
+  }
+
+  async function flagTimeout() {
+    await postSession({ action: "timeout", color: myColor, seatToken: token });
   }
 
   function handleMove(from: string, to: string, promotion: "q" | "r" | "b" | "n" = "q"): boolean {
@@ -222,17 +240,11 @@ export default function OnlineGameScreen() {
   }
 
   async function postMove(from: string, to: string, promotion: "q" | "r" | "b" | "n") {
-    try {
-      const s = await api<Session>(`/api/session/${sid}`, { method: "POST", body: { action: "move", color: myColor, seatToken: token, from, to, promotion } });
-      if (!s.error) applyState(s);
-    } catch { /* poll/ably reconciles */ }
+    await postSession({ action: "move", color: myColor, seatToken: token, from, to, promotion });
   }
 
   async function confirmResign() {
-    try {
-      const s = await api<Session>(`/api/session/${sid}`, { method: "POST", body: { action: "resign", color: myColor, seatToken: token } });
-      if (!s.error) applyState(s);
-    } catch { /* ignore */ }
+    await postSession({ action: "resign", color: myColor, seatToken: token });
   }
 
   useEffect(() => {
