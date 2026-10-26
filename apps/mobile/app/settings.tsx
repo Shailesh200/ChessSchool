@@ -192,6 +192,21 @@ export default function SettingsScreen() {
           </>
         )}
 
+        <Text style={styles.section}>About</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="About and licences"
+          onPress={() => router.push("/licences")}
+          style={styles.card}
+        >
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>About & licences</Text>
+              <Text style={styles.rowHint}>Stockfish, GPL-3.0, and source code</Text>
+            </View>
+          </View>
+        </Pressable>
+
         <Text style={styles.version}>ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}</Text>
       </ScrollView>
 

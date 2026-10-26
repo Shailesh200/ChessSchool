@@ -34,7 +34,7 @@ const GREETING: Record<CoachPersonality, { sameSeat: string[]; flipped: string[]
     ],
     flipped: [
       "Swap seats. Feel {name}'s problems defending.",
-      "Your old moves chase you. Calculate resources.",
+      "Your old moves are coming back. Find a defense.",
     ],
   },
   egoistic: {

@@ -13,7 +13,7 @@ export async function DELETE(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const limited = enforceRateLimit(
+  const limited = await enforceRateLimit(
     req,
     "account:delete",
     { limit: 5, windowMs: 60_000 },

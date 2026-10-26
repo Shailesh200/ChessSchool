@@ -1,6 +1,7 @@
 {
   "name": "chess-school",
   "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "packageManager": "pnpm@10.30.0",
   "scripts": {
@@ -15,6 +16,7 @@
     "mobile": "pnpm --filter mobile",
     "mobile:release:check": "pnpm --filter mobile release:check",
     "verify:milestone": "bash scripts/verify-milestone.sh",
+    "verify:seed": "node scripts/verify-seed-artifact.mjs",
     "verify:web": "bash scripts/verify-web-seo.sh && bash scripts/verify-web-lighthouse.sh",
     "verify:web-seo": "bash scripts/verify-web-seo.sh",
     "verify:web-lighthouse": "bash scripts/verify-web-lighthouse.sh",

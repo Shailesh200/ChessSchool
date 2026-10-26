@@ -35,7 +35,7 @@ const TIME: Opt[] = [
   { value: "competitive", label: "90+ min/day", emoji: "🏆" },
 ];
 const COACH: Opt[] = [
-  { value: "anxious_nerd", label: "Otto · Anxious / Nerd", emoji: "🤓" },
+  { value: "anxious_nerd", label: "Otto · Careful Nerd", emoji: "🤓" },
   { value: "genz", label: "Kira · GenZ", emoji: "✨" },
   { value: "sassy", label: "Skye · Sassy", emoji: "💅" },
   { value: "sarcastic", label: "Ash · Sarcastic", emoji: "😏" },

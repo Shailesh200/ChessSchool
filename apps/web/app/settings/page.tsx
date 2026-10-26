@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettings } from "@/core/store/settings.store";
@@ -231,8 +232,13 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <p className="text-ink-300 pb-4 text-center text-xs font-semibold lg:text-left">
+        <p className="text-ink-300 pb-1 text-center text-xs font-semibold lg:text-left">
           ChessSchool v3.0 · {user ? user.name : "Guest mode"}
+        </p>
+        <p className="pb-4 text-center text-xs font-bold lg:text-left">
+          <Link href="/about#licences" className="text-ink-500 hover:text-ink">
+            About & licences
+          </Link>
         </p>
       </div>
     </AppShell>

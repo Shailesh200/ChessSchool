@@ -24,7 +24,7 @@ const bodySchema = z.object({
 /** Cloud TTS for coach / bot chat bubbles (ElevenLabs → Edge fallback). */
 export async function POST(req: Request) {
   const user = await getApiUser(req);
-  const limited = enforceRateLimit(
+  const limited = await enforceRateLimit(
     req,
     "tts",
     user ? { limit: 90, windowMs: 60_000 } : { limit: 24, windowMs: 60_000 },
