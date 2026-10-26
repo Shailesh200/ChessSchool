@@ -7,7 +7,13 @@ import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 
 /** Marketing shell — no bottom nav; academy lives under /academy. */
-export function LandingShell({ children }: { children: React.ReactNode }) {
+export function LandingShell({
+  children,
+  sourceUrl = "https://github.com/Shailesh200/ChessSchool",
+}: {
+  children: React.ReactNode;
+  sourceUrl?: string;
+}) {
   const authed = useSession((s) => s.authed);
   const rehydrateReady = useRehydrateReady();
   // null = ProgressSync still validating cookie — don't flash Enroll for logged-in users.
@@ -48,9 +54,21 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">{children}</main>
       <footer className="border-hairline border-t px-5 py-8">
         <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-ink-500 text-xs font-semibold">
-            © {new Date().getFullYear()} ChessSchool · Free chess academy
-          </p>
+          <div>
+            <p className="text-ink-500 text-xs font-semibold">
+              © {new Date().getFullYear()} ChessSchool · Free chess academy
+            </p>
+            <p className="text-ink-500 mt-1 text-xs font-semibold">
+              Uses Stockfish, licensed under GPL-3.0.{" "}
+              <a href={sourceUrl} className="hover:text-ink underline">
+                Source
+              </a>
+              {" · "}
+              <Link href="/about#licences" className="hover:text-ink underline">
+                Licences
+              </Link>
+            </p>
+          </div>
           <nav className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold">
             <Link href="/academy" className="text-brand hover:underline">
               Academy
