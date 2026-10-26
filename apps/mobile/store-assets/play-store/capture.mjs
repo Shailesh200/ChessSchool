@@ -382,6 +382,28 @@ const REVIEW_PACK_CSS = `
   body[data-capture="review"] [id*="-square-"] > span {
     display: none !important;
   }
+  body[data-capture="review"] div:has(> input[aria-label="Scrub moves"]) {
+    width: var(--cap-board, 396px) !important;
+    max-width: var(--cap-board, 396px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    align-self: center !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+  }
+  body[data-capture="review"] div:has(> input[aria-label="Scrub moves"]) > button {
+    width: 32px !important;
+    min-width: 0 !important;
+    flex: 0 0 32px !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  body[data-capture="review"] input[aria-label="Scrub moves"] {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+  }
 `;
 
 async function installPackStyles(page) {
@@ -937,6 +959,8 @@ async function packReview(page) {
     const piece = square?.querySelector("img");
     const notation = document.querySelector('[id*="-square-"] > span');
     const notationStyle = notation ? getComputedStyle(notation) : null;
+    const slider = document.querySelector('input[aria-label="Scrub moves"]');
+    const scrub = slider?.parentElement ?? null;
     return {
       board: rect(document.querySelector('[id$="-board"]')),
       a8: rect(document.querySelector('[id$="-square-a8"]')),
@@ -948,6 +972,9 @@ async function packReview(page) {
       innerWidth: window.innerWidth,
       pieceRatio: square && piece ? piece.getBoundingClientRect().width / square.getBoundingClientRect().width : 0,
       notationHidden: !notation || notationStyle.display === "none" || notationStyle.visibility === "hidden",
+      scrub: rect(scrub),
+      slider: rect(slider),
+      firstBtn: rect(scrub?.querySelector("button") ?? null),
     };
   });
   if (last.labelText !== "6. O-O") throw new Error(`review label is ${last.labelText}`);
@@ -963,6 +990,18 @@ async function packReview(page) {
   }
   if (!last.notationHidden) throw new Error("review notation still visible");
   if (last.pieceRatio < 0.9) throw new Error(`review pieces inset at ${last.pieceRatio}`);
+  if (
+    !last.scrub ||
+    !last.slider ||
+    !last.firstBtn ||
+    Math.abs(last.scrub.left - last.board.left) > 4 ||
+    Math.abs(last.scrub.right - last.board.right) > 4 ||
+    last.slider.right > last.scrub.right + 1 ||
+    last.firstBtn.left < last.scrub.left - 1 ||
+    last.slider.width < 48
+  ) {
+    throw new Error(`review controls overflow ${JSON.stringify({ scrub: last.scrub, slider: last.slider, firstBtn: last.firstBtn, board: last.board })}`);
+  }
   return last;
 }
 
