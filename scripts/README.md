@@ -26,6 +26,16 @@ Runs, in order:
 
 **Milestone handoffs:** paste the verification report gate table. Include the **Lighthouse summary + CWV table** on every **5th milestone merge**; otherwise note `SKIP_LIGHTHOUSE=1` and owner approval.
 
+## Curriculum seed diffs
+
+GitHub cannot show a readable diff of `apps/web/db/seed.sql.gz`. Any pull request that changes that file must paste the output of `check-seed-diff` into the PR description. From the repo root:
+
+```bash
+node apps/web/db/oneoff/check-seed-diff.mjs staging
+```
+
+The script is `apps/web/db/oneoff/check-seed-diff.mjs`. `staging` is the default base ref.
+
 ## Escape hatches (document in milestone handoff if used)
 
 | Env var | Effect |
