@@ -22,9 +22,11 @@ appId: com.chessschool.app
     visible:
       id: "tab-Academy"
     timeout: 120000
+# Guest subtitle is "Enroll to the academy..." until PR #42, then
+# "Enroll in the academy...". The regex matches either wording.
 - extendedWaitUntil:
     visible:
-      text: "Enroll to the academy to track your progress."
+      text: "Enroll (to|in) the academy to track your progress\\."
     timeout: 120000
 # Filename matches SHOTS.md. This guest frame is not the signed-in campus shot.
 - takeScreenshot: 01-campus

@@ -121,7 +121,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
 
       - uses: actions/setup-java@v4
@@ -301,11 +301,19 @@ jobs:
           exit 1
 
       - name: Install Maestro
-        env:
-          MAESTRO_VERSION: "2.11.0"
         run: |
           set -euo pipefail
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          version="2.11.0"
+          # sha256 of maestro.zip from the cli-2.11.0 checksums_sha256.txt asset.
+          checksum="5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
+          archive="$RUNNER_TEMP/maestro.zip"
+          curl -fsSL -o "$archive" \
+            "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${version}/maestro.zip"
+          echo "${checksum}  ${archive}" | sha256sum -c -
+          rm -rf "$HOME/.maestro"
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/maestro" "$HOME/.maestro"
+          rm -f "$archive"
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
 
