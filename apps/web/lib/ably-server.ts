@@ -10,6 +10,11 @@ function getRest(): Ably.Rest | null {
   return rest;
 }
 
+/** Realtime channel for one online game. Token capability must use this name. */
+export function gameChannel(id: string): string {
+  return `game:${id}`;
+}
+
 /**
  * Push the latest game-session state to subscribers on `game:<id>` so the
  * opponent sees moves instantly (no waiting for a poll). No-op when Ably isn't
@@ -19,7 +24,7 @@ export async function publishSession(id: string, state: unknown): Promise<void> 
   const c = getRest();
   if (!c) return;
   try {
-    await c.channels.get(`game:${id}`).publish("state", state);
+    await c.channels.get(gameChannel(id)).publish("state", state);
   } catch {
     // best-effort realtime; polling is the safety net
   }
