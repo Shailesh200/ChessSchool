@@ -10,6 +10,8 @@
  *   node apps/mobile/store-assets/play-store/capture.mjs graphic
  *
  * BASE_URL defaults to http://localhost:3000. Use localhost, not 127.0.0.1.
+ * assertSafeCaptureHost refuses /api/auth/register unless the host is
+ * localhost, 127.0.0.1, or a *.vercel.app preview.
  *
  * `screens` signs in as a made-up local user named Alex, captures six phone
  * frames, and composites each one under screenshots/caption-frame.html.
@@ -22,7 +24,7 @@ import { chromium } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Chess } from "../../../web/node_modules/chess.js/dist/esm/chess.js";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -30,6 +32,22 @@ const shotDir = path.join(dir, "screenshots");
 const rawDir = path.join(shotDir, ".raw");
 const captionHtml = path.join(shotDir, "caption-frame.html");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+
+/** Hosts where the script may create the throwaway Alex account. */
+export function assertSafeCaptureHost(url) {
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    throw new Error(`Refusing to register a capture user: BASE_URL is not a valid URL (${url})`);
+  }
+  const allowed = host === "localhost" || host === "127.0.0.1" || host.endsWith(".vercel.app");
+  if (!allowed) {
+    throw new Error(
+      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or a *.vercel.app preview.`,
+    );
+  }
+}
 
 const CSS_W = 432;
 const CSS_H = 656;
@@ -133,6 +151,7 @@ async function hideDevChrome(context) {
 }
 
 async function signIn(context) {
+  assertSafeCaptureHost(BASE);
   const password = `Aa1-${randomUUID()}`;
   const email = `alex.${Date.now()}.${randomUUID().slice(0, 8)}@example.com`;
   const probe = await context.request.post(BASE + "/api/auth/register", {
@@ -1237,16 +1256,25 @@ async function captureScreens(browser) {
   }
 }
 
-const mode = process.argv[2] ?? "screens";
-const browser = await chromium.launch({
-  channel: "chrome",
-  headless: true,
-  args: ["--disable-dev-shm-usage"],
-});
-compositeBrowser = browser;
-try {
-  if (mode === "graphic" || mode === "all") await captureGraphic(browser);
-  if (mode === "screens" || mode === "all") await captureScreens(browser);
-} finally {
-  await browser.close();
+function isDirectRun() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(path.resolve(entry)).href;
+}
+
+if (isDirectRun()) {
+  const mode = process.argv[2] ?? "screens";
+  if (mode === "screens" || mode === "all") assertSafeCaptureHost(BASE);
+  const browser = await chromium.launch({
+    channel: "chrome",
+    headless: true,
+    args: ["--disable-dev-shm-usage"],
+  });
+  compositeBrowser = browser;
+  try {
+    if (mode === "graphic" || mode === "all") await captureGraphic(browser);
+    if (mode === "screens" || mode === "all") await captureScreens(browser);
+  } finally {
+    await browser.close();
+  }
 }
