@@ -16,7 +16,7 @@ function isAblyTokenPayload(value: unknown): value is AblyTokenPayload {
 
 export type AblyTokenFetch = (
   url: string,
-  init: { headers: { authorization: string } },
+  init: { headers: Record<string, string> },
 ) => Promise<{ ok: boolean; json: () => Promise<unknown> }>;
 
 export type AblyAuthCallback = (
@@ -32,21 +32,26 @@ export function ablyTokenUrl(apiUrl: string, gameId: string): string {
   return `${base}/api/ably-token?game=${encodeURIComponent(gameId)}`;
 }
 
-/** One token mint. Throws when there is no session or the endpoint is not OK. */
+/** One token mint. Throws when there is no session or seat, or the endpoint is not OK. */
 export async function fetchAblyTokenRequest(opts: {
   apiUrl: string;
   gameId: string;
   getToken: () => Promise<string | null>;
+  /** Guest seat token from #33. Used only when `getToken()` returns nothing. */
+  getSeatToken?: () => Promise<string | null>;
   fetchImpl?: AblyTokenFetch;
 }): Promise<AblyTokenPayload> {
   const sessionToken = await opts.getToken();
-  if (!sessionToken) {
+  const rawSeat = sessionToken ? null : await opts.getSeatToken?.();
+  const seatToken = rawSeat?.trim() || null;
+  if (!sessionToken && !seatToken) {
     throw new Error("login required");
   }
+  const headers: Record<string, string> = {};
+  if (sessionToken) headers.authorization = `Bearer ${sessionToken}`;
+  else if (seatToken) headers["x-seat-token"] = seatToken;
   const doFetch = opts.fetchImpl ?? fetch;
-  const res = await doFetch(ablyTokenUrl(opts.apiUrl, opts.gameId), {
-    headers: { authorization: `Bearer ${sessionToken}` },
-  });
+  const res = await doFetch(ablyTokenUrl(opts.apiUrl, opts.gameId), { headers });
   if (!res.ok) {
     throw new Error("ably token request failed");
   }
@@ -60,13 +65,15 @@ export async function fetchAblyTokenRequest(opts: {
 /**
  * Ably `authCallback`. Each call, including token renewal, reads a fresh
  * session token and passes the endpoint JSON (TokenRequest or TokenDetails)
- * through. No token or a non-OK response calls `onAuthError` and the callback
+ * through. With no session, each call reads the guest seat token instead.
+ * No credential or a non-OK response calls `onAuthError` and the callback
  * with an error so the connection does not stay up on a bad credential.
  */
 export function createGameAblyAuth(opts: {
   apiUrl: string;
   gameId: string;
   getToken: () => Promise<string | null>;
+  getSeatToken?: () => Promise<string | null>;
   fetchImpl?: AblyTokenFetch;
   onAuthError: () => void;
   isCancelled?: () => boolean;

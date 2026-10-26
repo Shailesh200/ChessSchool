@@ -117,6 +117,42 @@ describe("createGameAblyAuth", () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
+  it("sends the guest seat token again on renewal", async () => {
+    const getToken = vi.fn<() => Promise<string | null>>().mockResolvedValue(null);
+    const getSeatToken = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValueOnce("w.seat-old")
+      .mockResolvedValueOnce("w.seat-new");
+    const first = { keyName: "app.key", mac: "one" };
+    const second = { keyName: "app.key", mac: "two" };
+    const fetchImpl = vi
+      .fn<AblyTokenFetch>()
+      .mockResolvedValueOnce(tokenResponse(first))
+      .mockResolvedValueOnce(tokenResponse(second));
+    const onAuthError = vi.fn();
+    const auth = createGameAblyAuth({
+      apiUrl: API,
+      gameId: GAME,
+      getToken,
+      getSeatToken,
+      fetchImpl,
+      onAuthError,
+    });
+
+    const opened = await authorize(auth);
+    const renewed = await authorize(auth);
+
+    expect(getToken).toHaveBeenCalledTimes(2);
+    expect(getSeatToken).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0]?.[1].headers.authorization).toBeUndefined();
+    expect(fetchImpl.mock.calls[0]?.[1].headers["x-seat-token"]).toBe("w.seat-old");
+    expect(fetchImpl.mock.calls[1]?.[1].headers["x-seat-token"]).toBe("w.seat-new");
+    expect(fetchImpl.mock.calls[1]?.[0]).toBe(ablyTokenUrl(API, GAME));
+    expect(opened).toEqual({ error: null, tokenRequest: first });
+    expect(renewed).toEqual({ error: null, tokenRequest: second });
+    expect(onAuthError).not.toHaveBeenCalled();
+  });
+
   it("errors without fetching when the session token is gone", async () => {
     const dropToPolling = vi.fn();
     const fetchImpl = vi.fn<AblyTokenFetch>();

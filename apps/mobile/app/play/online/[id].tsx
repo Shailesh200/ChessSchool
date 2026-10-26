@@ -140,15 +140,17 @@ export default function OnlineGameScreen() {
   useEffect(() => {
     let client: { close: () => void } | null = null;
     let cancelled = false;
-    // No session token → stay on the poll loop. authCallback (not authHeaders)
-    // reads getToken() on every mint, including renewal.
+    // No session and no guest seat token → stay on the poll loop.
+    // authCallback reads getToken() on every mint, including renewal, and
+    // falls back to the seat token when the session is gone.
     const dropToPolling = createAblyPollingFallback({
       ablyRef,
       close: () => client?.close(),
     });
     void (async () => {
       const sessionToken = await getToken();
-      if (!sessionToken || cancelled) {
+      if (cancelled) return;
+      if (!sessionToken && !token) {
         ablyRef.current = false;
         return;
       }
@@ -161,6 +163,7 @@ export default function OnlineGameScreen() {
             apiUrl: API_URL,
             gameId: sid,
             getToken,
+            getSeatToken: async () => token || null,
             isCancelled: () => cancelled,
             onAuthError: dropToPolling,
           }),
@@ -185,7 +188,7 @@ export default function OnlineGameScreen() {
       cancelled = true;
       try { client?.close(); } catch { /* ignore */ }
     };
-  }, [sid]);
+  }, [sid, token]);
 
   useEffect(() => {
     if (!state || state.status !== "active") return;
