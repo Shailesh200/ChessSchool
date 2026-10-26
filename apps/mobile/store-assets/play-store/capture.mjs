@@ -11,7 +11,8 @@
  *
  * BASE_URL defaults to http://localhost:3000. Use localhost, not 127.0.0.1.
  * assertSafeCaptureHost refuses /api/auth/register unless the host is
- * localhost, 127.0.0.1, or a *.vercel.app preview.
+ * localhost, 127.0.0.1, or a Vercel preview whose hostname contains `-git-`.
+ * The production alias chess-school.vercel.app is refused by name.
  *
  * `screens` signs in as a made-up local user named Alex, captures six phone
  * frames, and composites each one under screenshots/caption-frame.html.
@@ -33,6 +34,9 @@ const rawDir = path.join(shotDir, ".raw");
 const captionHtml = path.join(shotDir, "caption-frame.html");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 
+/** Production hostname on Vercel. Previews look like chess-school-git-f12.vercel.app. */
+const PRODUCTION_VERCEL_HOST = "chess-school.vercel.app";
+
 /** Hosts where the script may create the throwaway Alex account. */
 export function assertSafeCaptureHost(url) {
   let host = "";
@@ -41,10 +45,16 @@ export function assertSafeCaptureHost(url) {
   } catch {
     throw new Error(`Refusing to register a capture user: BASE_URL is not a valid URL (${url})`);
   }
-  const allowed = host === "localhost" || host === "127.0.0.1" || host.endsWith(".vercel.app");
+  if (host === PRODUCTION_VERCEL_HOST) {
+    throw new Error(
+      `Refusing to register a capture user on ${host}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git-.`,
+    );
+  }
+  const preview = host.endsWith(".vercel.app") && host.includes("-git-");
+  const allowed = host === "localhost" || host === "127.0.0.1" || preview;
   if (!allowed) {
     throw new Error(
-      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or a *.vercel.app preview.`,
+      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git-.`,
     );
   }
 }
