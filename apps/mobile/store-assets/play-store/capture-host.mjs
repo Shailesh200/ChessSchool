@@ -10,9 +10,9 @@
  *
  * Jimbe's emulator job (branch jimbe/e-native-store-shots) points the app at
  * http://10.0.2.2:<port> and runs this guard on that URL before it captures.
- * This branch does not add that workflow. The test-user seed then allows only
- * localhost, 127.0.0.1, and 10.0.2.2, so a preview host cannot be used for
- * that seed. Never register against production.
+ * This branch does not add that workflow. Alex's account is Luffy's fixture
+ * (db:seed:test-user, name may change), not this branch. Never register
+ * against production.
  *
  *   node apps/mobile/store-assets/play-store/capture-host.mjs --self-test
  *   node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"

@@ -4,10 +4,10 @@
 # apps/mobile/store-assets/play-store/SHOTS.md.
 # Do not put a real email, password, or production host in this file.
 #
-# Jimbe's job sets STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD to the account
-# created by `pnpm --filter web db:seed:test-user`.
-# Maestro 2.6 does not expand ${...} inside openLink. Substitute these two
-# names in the login URL before `maestro test`.
+# Alex and the credentials come from Luffy's db:seed:test-user (name may change).
+# Jimbe's job passes them as STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD.
+# Do not print them. Maestro 2.6 does not expand ${...} inside openLink.
+# His job substitutes these two names into the login URL before `maestro test`.
 appId: com.chessschool.app
 ---
 - extendedWaitUntil:

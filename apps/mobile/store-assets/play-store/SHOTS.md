@@ -21,7 +21,7 @@ Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is m
 
 ### 01 Campus
 
-- **State:** Signed-in academy, scrolled until the stage heading `stage-preschool` is on screen. The store-shot seed gives Alex streak **4** and **240** XP, so the greeting reads “Day 4 at the academy” and the subtitle is “Graduate through classes. Become a stronger player.” The guest enroll line is not this screen. Placement is already marked done, so the placement card is not in the way.
+- **State:** Signed-in academy, scrolled until the stage heading `stage-preschool` is on screen. Alex comes from Luffy's fixture. The flow waits for “Day 4 at the academy” and the subtitle “Graduate through classes. Become a stronger player.” The guest enroll line is not this screen. The placement card needs to be out of the way.
 - **Must show:** The stage name **Starter** (stage id `preschool`). The Elementary semester titled Foundations is a different label and is not this heading.
 - **Coach copy:** None. This screen has no lesson coach bubble.
 
@@ -60,9 +60,9 @@ Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is m
 
 The emulator job is his, on `jimbe/e-native-store-shots` (`.github/workflows/play-store-screenshots.yml`). Trigger: **Actions → Play Store screenshots → Run workflow**. The default flow path is `apps/mobile/maestro/store-shots.yaml`. This branch does not contain that workflow.
 
-His job builds a release APK on the runner, with no EAS and no Play signing key. The emulator reaches the API at `10.0.2.2` (his job uses port `3210`). It seeds the curriculum with `pnpm db:provision` (the loader script owns the seed file; the job does not read `seed.sql`). It then creates Alex with `pnpm --filter web db:seed:test-user`.
+His job builds a release APK on the runner, with no EAS and no Play signing key. The emulator reaches the API at `10.0.2.2` (his job uses port `3210`).
 
-That script is the source of Alex's email and password. It does not print them. His job must pass the same pair into Maestro under the names below.
+Alex, and the email and password for that account, come from Luffy's `db:seed:test-user` (lane B). The script name may change. This branch does not include that fixture and does not commit the credentials. Never print the email or password.
 
 ## Env vars
 
@@ -70,15 +70,15 @@ Do not commit them. Do not point the app at production (`https://www.chess-schoo
 
 | Variable | Who sets it | What it is |
 |----------|-------------|------------|
-| `STORE_SHOT_EMAIL` | Jimbe's job, for the seed and for Maestro | Alex's email. If both this and `STORE_SHOT_PASSWORD` are unset, `db:seed:test-user` uses the made-up defaults in `apps/web/scripts/seed-test-user.mjs`. If the job sets them, the script uses those values instead. The Maestro login URL reads this name. |
-| `STORE_SHOT_PASSWORD` | Jimbe's job, for the seed and for Maestro | Password for that same account. Not printed. The Maestro login URL reads this name. |
-| `EXPO_PUBLIC_API_URL` | Jimbe's job, before the seed and at bundle time | `http://10.0.2.2:<port>`. `10.0.2.2` is the emulator's name for the host machine. The host guard must pass. |
-| `EXPO_PUBLIC_PARITY` | Jimbe's job, at bundle time | `1`. Without it the login deep link does not auto-submit. A release build uses `EXPO_PUBLIC_API_URL` as given. |
+| `STORE_SHOT_EMAIL` | Jimbe's job, from Luffy's fixture | Alex's email. The Maestro login URL reads this name. Never print it. |
+| `STORE_SHOT_PASSWORD` | Jimbe's job, from Luffy's fixture | Password for that same account. The Maestro login URL reads this name. Never print it. |
+| `EXPO_PUBLIC_API_URL` | Jimbe's job, at bundle time | `http://10.0.2.2:<port>`. `10.0.2.2` is the emulator's name for the host machine. The host guard must pass. |
+| `EXPO_PUBLIC_PARITY` | Jimbe's job, at bundle time | `1`. The login screen already auto-submits a deep link when this is set. A release build uses `EXPO_PUBLIC_API_URL` as given. |
 
 The login step in `apps/mobile/maestro/store-shots.yaml` is:
 
 `chessschool:///login?email=${STORE_SHOT_EMAIL}&password=${STORE_SHOT_PASSWORD}`
 
-Maestro 2.6 does not expand `${...}` inside `openLink`. Before `maestro test`, substitute `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` into that URL (same idea as the parity harness materializing `LOGIN_LINK`). Do not print the result.
+Maestro 2.6 does not expand `${...}` inside `openLink`. Before `maestro test`, Jimbe's job substitutes `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` into that URL. Do not print the result.
 
-`pnpm --filter web db:seed:test-user` calls `assertSafeCaptureHost` on `EXPO_PUBLIC_API_URL`, then still only accepts localhost, `127.0.0.1`, or `10.0.2.2`. It refuses `libsql:` and `http(s):` databases. Alex is a normal student, display name Alex, streak 4, 240 XP, onboarding already finished, no avatar upload, and not a child profile. There is no in-progress match, so shot 04 starts a new Vera game.
+There is no in-progress match, so shot 04 starts a new Vera game.
