@@ -374,6 +374,32 @@ jobs:
       - name: Require 1080x1920 RGB screenshots
         if: success()
         run: |
+          set -euo pipefail
+          # Maestro also writes step-*.png (and other files) beside the named
+          # shots. Remove those before normalizing and log each path. The
+          # normalizer stays strict: a store shot whose name is not one of the
+          # six SHOTS.md names still fails this step.
+          stray=0
+          while IFS= read -r -d '' shot; do
+            base=$(basename "$shot")
+            case "$base" in
+              01-campus.png|02-class-journey.png|03-lesson.png|04-bot-game.png|05-tactic.png|06-review.png)
+                ;;
+              step-*.png)
+                echo "Removed Maestro step shot: $shot"
+                rm -f "$shot"
+                ;;
+              *)
+                echo "Removed non-store screenshot: $shot"
+                rm -f "$shot"
+                stray=1
+                ;;
+            esac
+          done < <(find "$RUNNER_TEMP/maestro-raw" -type f -name '*.png' -print0)
+          if [ "$stray" -ne 0 ]; then
+            echo "A screenshot name is not one of the six store shots."
+            exit 1
+          fi
           node scripts/normalize-store-screenshots.mjs --self-test
           node scripts/normalize-store-screenshots.mjs "$RUNNER_TEMP/maestro-raw" play-store-screenshots
 
