@@ -99,12 +99,21 @@ if (target.kind === "remote" && !allowRemote) {
   process.exit(1);
 }
 
+if (target.kind === "remote" && !target.host) {
+  console.error("");
+  console.error(
+    "Refusing to write: DATABASE_URL is not a local database and has no confirmable host.",
+  );
+  console.error("No connection was opened.");
+  process.exit(1);
+}
+
 if (target.kind === "remote" && !process.env.DATABASE_AUTH_TOKEN) {
   console.error("DATABASE_AUTH_TOKEN is required to connect to a remote database.");
   process.exit(1);
 }
 
-if (target.kind === "local" && !existsSync(target.path)) {
+if (target.kind === "local" && target.path && !existsSync(target.path)) {
   console.error(
     `No local database at ${target.display}. Refusing to stamp a missing file. Use pnpm db:migrate or pnpm db:fresh so 0000 creates the tables.`,
   );

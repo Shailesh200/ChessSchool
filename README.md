@@ -378,7 +378,7 @@ export DATABASE_AUTH_TOKEN=$(turso db tokens create chessschool)
 # 2. Empty Turso database: apply committed migrations, then seed.
 #    The live chess-school database already has tables — do NOT do this there.
 #    Record 0000 first (plans/M-073_WEB_GA_LAUNCH.md), then db:migrate.
-pnpm --filter web db:migrate
+pnpm --filter web db:migrate -- --yes-remote=<turso-host>
 pnpm --filter web db:seed       # inserts the 1,610 lessons into Turso
 # 3. Vercel: import the repo, set env DATABASE_URL + DATABASE_AUTH_TOKEN, deploy.
 ```

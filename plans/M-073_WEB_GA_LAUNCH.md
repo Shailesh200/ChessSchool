@@ -99,7 +99,9 @@ export DATABASE_AUTH_TOKEN='…'            # never commit; the script does not 
 pnpm db:baseline -- --apply --allow-remote
 
 # Later migrations only. 0000 is skipped.
-pnpm db:migrate
+# A non-local URL does not connect unless this flag matches the host exactly,
+# or an interactive terminal types that same host.
+pnpm db:migrate -- --yes-remote=chessschool-shailesh200.aws-ap-south-1.turso.io
 ```
 
 The script aborts unless the 12 tables from `db/seed.sql` already exist, so an empty database is not stamped (use `db:migrate` there). It refuses a remote URL unless `--apply --allow-remote` are both present, and it opens no connection on a dry-run.

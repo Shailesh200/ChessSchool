@@ -12,10 +12,15 @@ import { baselineCovers, baselineMeta, resolveDbTarget } from "./drizzle-baselin
 
 const target = resolveDbTarget();
 
-if (target.kind === "remote") {
-  console.log(
-    "✓ Remote DATABASE_URL set — skipping local migrate/seed. Apply schema with pnpm db:baseline, then pnpm db:migrate.",
-  );
+if (target.kind !== "local" || !target.path) {
+  if (target.kind !== "local") {
+    console.log(
+      "✓ Remote DATABASE_URL set — skipping local migrate/seed. Apply schema with pnpm db:baseline, then pnpm db:migrate.",
+    );
+    process.exit(0);
+  }
+  console.log("⚙️  Applying migrations…");
+  execSync("pnpm db:migrate", { stdio: "inherit" });
   process.exit(0);
 }
 
