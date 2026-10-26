@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { Chess } from "chess.js";
 import { db } from "@/db";
-import { gameSessions } from "@/db/schema";
+import { gameSessions, type DBGameSession } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { publishSession } from "@/lib/ably-server";
 import { seatColorForUser } from "@/lib/game-session";
@@ -10,6 +10,7 @@ import { formatSeatToken, verifySeatToken } from "@/lib/session-secret";
 import { sessionPostSchema } from "@/lib/api-schemas";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
+import { sessionWriteBarrier } from "@/lib/session-write-barrier";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,90 @@ async function load(id: string) {
   )[0];
 }
 
+/**
+ * Same JSON as GET /api/session/:id for this viewer: the game row, clocks,
+ * seat ids, and this viewer's color and seat token. `error` is only set on 409.
+ * Realtime publish stays the raw row so a seat token is not broadcast.
+ */
+function sessionView(
+  s: DBGameSession,
+  user: { id: string } | null,
+  opts: { claimed?: boolean; error?: string } = {},
+) {
+  const myColor = user ? (seatColorForUser(s, user.id) ?? undefined) : undefined;
+  return {
+    ...s,
+    claimed: opts.claimed ?? false,
+    color: myColor,
+    seatToken: myColor && user ? formatSeatToken(s.id, myColor, user.id) : undefined,
+    ...(opts.error ? { error: opts.error } : {}),
+  };
+}
+
 /** Load the latest state, push it to realtime subscribers, and return it. */
-async function respond(id: string) {
+async function respond(id: string, user: { id: string }) {
   const state = await load(id);
   await publishSession(id, state);
-  return NextResponse.json(state);
+  return NextResponse.json(sessionView(state, user));
+}
+
+/**
+ * Moves, resignations, and flag claims are accepted only while the game is
+ * active, both seats are filled, and no result is stored yet.
+ * Moves and timeouts also match the fen and turn that were read. There is no
+ * move-count column; that pair is the position, so a second move cannot
+ * overwrite the first. Resign does not match fen/turn: it stays valid after
+ * the opponent's move. inPlayWhere still stops a resign from replacing a mate,
+ * flag, or any other stored result. No lock and no transaction.
+ */
+function isInPlay(s: DBGameSession): boolean {
+  return (
+    s.status === "active" &&
+    s.blackJoined === 1 &&
+    s.whiteUserId != null &&
+    s.blackUserId != null &&
+    s.result == null
+  );
+}
+
+function inPlayWhere(id: string) {
+  return and(
+    eq(gameSessions.id, id),
+    eq(gameSessions.status, "active"),
+    eq(gameSessions.blackJoined, 1),
+    isNotNull(gameSessions.whiteUserId),
+    isNotNull(gameSessions.blackUserId),
+    isNull(gameSessions.result),
+  );
+}
+
+function writeWhere(id: string, read: Pick<DBGameSession, "fen" | "turn">) {
+  return and(
+    inPlayWhere(id),
+    eq(gameSessions.fen, read.fen),
+    eq(gameSessions.turn, read.turn),
+  );
+}
+
+function wroteOne(res: unknown): boolean {
+  return (res as { rowsAffected?: number }).rowsAffected === 1;
+}
+
+/** Current row plus an error code so the caller can replace its local board. */
+function conflict(state: DBGameSession, user: { id: string }) {
+  const error = isInPlay(state) ? "conflict" : "game not active";
+  return NextResponse.json(sessionView(state, user, { error }), { status: 409 });
+}
+
+async function appliedOrConflict(
+  id: string,
+  res: unknown,
+  user: { id: string },
+): Promise<NextResponse> {
+  if (wroteOne(res)) return respond(id, user);
+  const current = await load(id);
+  if (!current) return NextResponse.json({ error: "not found" }, { status: 404 });
+  return conflict(current, user);
 }
 
 /** Get session state. `?join=1` claims Black for the authenticated user. */
@@ -38,11 +118,10 @@ export async function GET(
   const user = await getApiUser(req);
   const join = new URL(req.url).searchParams.get("join") === "1";
   let claimed = false;
-  let myColor: "w" | "b" | undefined;
 
   if (join) {
     if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
-    myColor = seatColorForUser(s, user.id) ?? undefined;
+    const myColor = seatColorForUser(s, user.id) ?? undefined;
     if (!myColor && !s.blackJoined && s.whiteUserId !== user.id) {
       const res = await db
         .update(gameSessions)
@@ -52,12 +131,18 @@ export async function GET(
           status: "active",
           updatedAt: Date.now(),
         })
-        .where(and(eq(gameSessions.id, id), eq(gameSessions.blackJoined, 0)));
+        .where(
+          and(
+            eq(gameSessions.id, id),
+            eq(gameSessions.blackJoined, 0),
+            eq(gameSessions.status, "waiting"),
+            isNull(gameSessions.result),
+          ),
+        );
       claimed = (res as { rowsAffected?: number }).rowsAffected === 1;
       if (claimed) {
         s = (await load(id))!;
         await publishSession(id, s);
-        myColor = "b";
         void insertAnalyticsEvents([
           {
             name: "online_game_join",
@@ -67,16 +152,9 @@ export async function GET(
         ]).catch(() => void 0);
       }
     }
-  } else if (user) {
-    myColor = seatColorForUser(s, user.id) ?? undefined;
   }
 
-  return NextResponse.json({
-    ...s,
-    claimed,
-    color: myColor,
-    seatToken: myColor && user ? formatSeatToken(id, myColor, user.id) : undefined,
-  });
+  return NextResponse.json(sessionView(s, user, { claimed }));
 }
 
 export async function POST(
@@ -93,7 +171,7 @@ export async function POST(
   const seat = seatColorForUser(s, user.id);
   if (!seat) return NextResponse.json({ error: "not a participant" }, { status: 403 });
 
-  const limited = enforceRateLimit(
+  const limited = await enforceRateLimit(
     req,
     "session:move",
     { limit: 180, windowMs: 60_000 },
@@ -115,12 +193,18 @@ export async function POST(
     return NextResponse.json({ error: "invalid seat" }, { status: 403 });
   }
 
+  if (!isInPlay(s)) return conflict(s, user);
+
+  // Tests hold both writers here, after the read and before the UPDATE.
+  if (sessionWriteBarrier.wait) await sessionWriteBarrier.wait(body.action);
+
   if (body.action === "resign") {
-    await db
+    // Position is not part of the predicate: the opponent's move may land first.
+    const res = await db
       .update(gameSessions)
       .set({ status: "over", result: `resign:${seat}`, updatedAt: Date.now() })
-      .where(eq(gameSessions.id, id));
-    return respond(id);
+      .where(inPlayWhere(id));
+    return appliedOrConflict(id, res, user);
   }
 
   if (body.action === "timeout") {
@@ -147,7 +231,7 @@ export async function POST(
             ? "b"
             : "w";
     const winner = flagged === "w" ? "b" : "w";
-    await db
+    const res = await db
       .update(gameSessions)
       .set({
         status: "over",
@@ -156,8 +240,8 @@ export async function POST(
         blackMs,
         updatedAt: now,
       })
-      .where(eq(gameSessions.id, id));
-    return respond(id);
+      .where(writeWhere(id, s));
+    return appliedOrConflict(id, res, user);
   }
 
   // move — mover color comes from the authenticated seat, not the client body
@@ -181,7 +265,7 @@ export async function POST(
     if (seat === "w") whiteMs = Math.max(0, whiteMs - elapsed);
     else blackMs = Math.max(0, blackMs - elapsed);
     if ((seat === "w" && whiteMs <= 0) || (seat === "b" && blackMs <= 0)) {
-      await db
+      const res = await db
         .update(gameSessions)
         .set({
           status: "over",
@@ -190,8 +274,8 @@ export async function POST(
           blackMs,
           updatedAt: now,
         })
-        .where(eq(gameSessions.id, id));
-      return respond(id);
+        .where(writeWhere(id, s));
+      return appliedOrConflict(id, res, user);
     }
   }
 
@@ -215,7 +299,7 @@ export async function POST(
         : "1-0"
       : "1/2-1/2"
     : null;
-  await db
+  const res = await db
     .update(gameSessions)
     .set({
       fen: g.fen(),
@@ -229,6 +313,6 @@ export async function POST(
       blackMs,
       updatedAt: now,
     })
-    .where(eq(gameSessions.id, id));
-  return respond(id);
+    .where(writeWhere(id, s));
+  return appliedOrConflict(id, res, user);
 }

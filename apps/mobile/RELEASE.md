@@ -236,6 +236,23 @@ Device smoke checklist: [`store-assets/play-store/SMOKE_QA.md`](store-assets/pla
 - Feature graphic 1024×500 — `feature-graphic-1024x500.png`
 - Phone screenshots × 6 — `screenshots/01-academy.png` … `06-profile.png`
 
+**Screenshot login (made up, test-only).** The Maestro screenshot job signs in as
+a fictional student, Alex. Alex is not a real account and is not in the curriculum
+seed. Seed the CI runner's local API database with `pnpm db:seed:test-user`
+(see `apps/web/db/README.md`). The script refuses production and any non-local
+database.
+
+Set `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` to choose the login. When either
+is unset or blank, the script uses that variable's made-up default. It does not
+print the values. After a successful seed it removes any existing
+`apps/web/.store-shot.env` and writes a new file with mode `0600` (gitignored)
+as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
+
+| Variable | Default when unset |
+| --- | --- |
+| `STORE_SHOT_EMAIL` | `alex@test.chessschool.local` |
+| `STORE_SHOT_PASSWORD` | `AlexTestOnly1` |
+
 **Review notes:** Provide a test account email/password for Google reviewers.
 
 ---

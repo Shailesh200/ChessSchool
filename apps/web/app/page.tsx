@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LandingShell } from "@/components/landing/LandingShell";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { getCurriculumSkeleton } from "@/features/school/curriculum-skeleton.server";
+import { appSourceUrl, webBuildRevision } from "@/lib/licences";
 import { HOME_DESCRIPTION, HOME_TITLE, SEO_KEYWORDS, socialMeta } from "@/lib/seo";
 
 export const revalidate = 3600;
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 export default async function MarketingHomePage() {
   const stats = await getCurriculumSkeleton();
   return (
-    <LandingShell>
+    <LandingShell sourceUrl={appSourceUrl(webBuildRevision())}>
       <LandingPage stats={stats} />
     </LandingShell>
   );

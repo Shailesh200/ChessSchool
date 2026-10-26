@@ -10,19 +10,27 @@ describe("enrollPrompt", () => {
   it("counts lessons with at least one attempt", () => {
     expect(
       lessonsAttemptedCount({
-        a: { attempts: 1, mastery: 1, lastSeen: 0, dueAt: 0 },
-        b: { attempts: 0, mastery: 0, lastSeen: 0, dueAt: 0 },
+        a: { attempts: 1 },
+        b: { attempts: 0 },
       }),
     ).toBe(1);
   });
 
   it("shows for guests after first lesson unless dismissed", () => {
-    const base = { authed: false as const, lessonsAttempted: 1, now: 1_000_000 };
+    // Dismiss timestamps are epoch ms. `now` must sit after the snooze window
+    // or `dismissedAt` underflows to <= 0 and is treated as "never dismissed".
+    const now = ENROLL_PROMPT_DISMISS_MS + 1_000_000;
+    const base = {
+      authed: false as const,
+      lessonsAttempted: 1,
+      dismissedAt: null,
+      now,
+    };
     expect(shouldShowEnrollPrompt(base)).toBe(true);
     expect(
       shouldShowEnrollPrompt({
         ...base,
-        dismissedAt: base.now - ENROLL_PROMPT_DISMISS_MS + 1,
+        dismissedAt: now - ENROLL_PROMPT_DISMISS_MS + 1,
       }),
     ).toBe(false);
     expect(shouldAutoOpenEnrollPrompt(base)).toBe(true);

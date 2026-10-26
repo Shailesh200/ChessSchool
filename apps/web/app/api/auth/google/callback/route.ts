@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 /** Google OAuth callback — exchanges code, links account, sets session cookie. */
 export async function GET(req: Request) {
-  const limited = enforceRateLimit(req, "auth:google-callback", {
+  const limited = await enforceRateLimit(req, "auth:google-callback", {
     limit: 30,
     windowMs: 60_000,
   });
