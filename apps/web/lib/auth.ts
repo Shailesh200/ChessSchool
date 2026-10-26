@@ -27,6 +27,7 @@ import {
   revokeSessionByRawToken,
 } from "@/lib/session-store";
 import { isUsersEmailUniqueViolation } from "@/lib/sqlite-errors";
+import { hashPassword as hashPasswordImpl } from "./password-hash.mjs";
 
 const COOKIE = "chessschool_session";
 const SESSION_DAYS = 30;
@@ -45,8 +46,9 @@ export type SessionUser = {
   role: string;
 };
 
+/** Bcrypt hash shared with signup and the local test-user fixture. */
 export async function hashPassword(pw: string): Promise<string> {
-  return bcrypt.hash(pw, 10);
+  return hashPasswordImpl(pw);
 }
 
 function makeStudentNo(): string {
