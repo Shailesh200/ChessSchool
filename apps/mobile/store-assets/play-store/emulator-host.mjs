@@ -14,15 +14,25 @@ import { resolve } from "node:path";
 
 const ALLOWED_HOSTS = new Set(["localhost", "127.0.0.1", "10.0.2.2"]);
 
+function refuseConfusableAuthority(raw) {
+  // `new URL("http://localhost\\@evil.com")` reports host localhost. Some
+  // clients still connect to evil.com. Userinfo is the same class of trick.
+  if (raw.includes("\\") || raw.includes("@")) {
+    throw new Error("Refusing API URL with a backslash or userinfo.");
+  }
+}
+
 export function assertLocalCaptureHost(raw) {
   if (raw == null || String(raw).trim() === "") {
     throw new Error(
       "API host is missing. Set EXPO_PUBLIC_API_URL to http://10.0.2.2:<port>.",
     );
   }
+  const value = String(raw).trim();
+  refuseConfusableAuthority(value);
   let url;
   try {
-    url = new URL(String(raw).trim());
+    url = new URL(value);
   } catch {
     throw new Error("API host is not a valid URL.");
   }
@@ -44,6 +54,9 @@ export function assertLocalCaptureHost(raw) {
 export function assertLocalDatabaseUrl(raw) {
   if (raw == null || String(raw).trim() === "") return;
   const value = String(raw).trim();
+  if (value.includes("\\") || value.includes("@")) {
+    throw new Error("Refusing non-local DATABASE_URL.");
+  }
   if (value.startsWith("file:")) {
     const path = value.slice("file:".length);
     if (path.includes("://")) {
@@ -82,6 +95,9 @@ function selfTest() {
     "http://0.0.0.0:3210",
     "ftp://127.0.0.1",
     "http://user:secret@127.0.0.1:3210",
+    "http://localhost\\@evil.com",
+    "http://10.0.2.2\\@evil.com",
+    "http://user:pw@10.0.2.2:3210",
   ]) {
     let threw = false;
     try {
@@ -89,7 +105,7 @@ function selfTest() {
     } catch (err) {
       threw = true;
       const message = err instanceof Error ? err.message : String(err);
-      if (/secret|user:|password/i.test(message)) {
+      if (/secret|user:|password|evil\.com|\bpw\b/i.test(message)) {
         throw new Error("host guard included credentials in an error");
       }
     }
@@ -101,14 +117,26 @@ function selfTest() {
   assertLocalDatabaseUrl("file:local.db");
   assertLocalDatabaseUrl("file:/tmp/local.db");
   assertLocalDatabaseUrl("local.db");
-  for (const bad of ["libsql://example.turso.io", "https://example.turso.io", "http://127.0.0.1:8080"]) {
+  for (const bad of [
+    "libsql://example.turso.io",
+    "https://example.turso.io",
+    "http://127.0.0.1:8080",
+    "http://10.0.2.2\\@evil.com",
+    "http://user:pw@10.0.2.2:3210",
+  ]) {
     let threw = false;
     try {
       assertLocalDatabaseUrl(bad);
     } catch (err) {
       threw = true;
       const message = err instanceof Error ? err.message : String(err);
-      if (message.includes("turso") || message.includes("libsql") || message.includes("8080")) {
+      if (
+        message.includes("turso") ||
+        message.includes("libsql") ||
+        message.includes("8080") ||
+        message.includes("evil.com") ||
+        /\bpw\b/.test(message)
+      ) {
         throw new Error("database guard echoed the remote URL");
       }
     }
