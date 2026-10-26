@@ -6,6 +6,8 @@ The phone screenshots are the **web** app in a phone-sized browser window, not a
 
 Each screenshot is a local test account created on the dev database at capture time. The display name is Alex. The account is a normal student profile. No email address, real name, or child profile is in any frame.
 
+Vera's moves in `04-bot-game.png` are scripted by `capture.mjs`, not chosen by the bot. The fork arrows in `05-tactic.png` are drawn by that script over the board. The capture browser forces Otto (`anxious_nerd`). The app default is still Ash until `lane-f/f3-default-coach` (PR #21) lands, and that has to happen before this listing goes out.
+
 Captions are drawn from `screenshots/caption-frame.html` (Fredoka, the same brand colours as `feature-graphic.html`) and composited on top. Final phone PNGs are 1080×1920 with no alpha.
 
 ## How to regenerate the phone screenshots

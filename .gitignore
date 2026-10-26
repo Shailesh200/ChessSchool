@@ -85,5 +85,8 @@ parity-shots/
 apps/web/parity-shots/
 apps/web/storybook-static/
 
+# play listing capture intermediates
+apps/mobile/store-assets/play-store/screenshots/.raw/
+
 *storybook.log
 parity/maestro/flows/undefined.png

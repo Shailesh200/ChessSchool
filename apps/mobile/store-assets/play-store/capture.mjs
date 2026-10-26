@@ -11,10 +11,11 @@
  *
  * BASE_URL defaults to http://localhost:3000. Use localhost, not 127.0.0.1.
  * assertSafeCaptureHost refuses /api/auth/register unless the host is
- * localhost, 127.0.0.1, or a Vercel preview whose hostname contains `-git-`
- * and does not contain `-git-main-`. The production alias
- * chess-school.vercel.app is refused by name. A `-git-main-` hostname is the
- * production build and is refused too.
+ * localhost, 127.0.0.1, or a hostname matching
+ * ^chess-school-git-[a-z0-9-]+\.vercel\.app$ whose branch part is not
+ * main or staging and does not start with main- or staging-.
+ * That refuses chess-school.vercel.app, -git-main and -git-staging builds,
+ * other projects' *.vercel.app hosts, and lookalikes.
  *
  * `screens` signs in as a made-up local user named Alex, captures six phone
  * frames, and composites each one under screenshots/caption-frame.html.
@@ -36,8 +37,18 @@ const rawDir = path.join(shotDir, ".raw");
 const captionHtml = path.join(shotDir, "caption-frame.html");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 
-/** Production hostname on Vercel. Previews look like chess-school-git-f12.vercel.app. */
-const PRODUCTION_VERCEL_HOST = "chess-school.vercel.app";
+/** Branch preview only: chess-school-git-<branch>.vercel.app, never main or staging. */
+const CAPTURE_PREVIEW_HOST = /^chess-school-git-([a-z0-9-]+)\.vercel\.app$/;
+
+function isAllowedCaptureHost(host) {
+  if (host === "localhost" || host === "127.0.0.1") return true;
+  const match = CAPTURE_PREVIEW_HOST.exec(host);
+  if (!match) return false;
+  const branch = match[1];
+  if (branch === "main" || branch === "staging") return false;
+  if (branch.startsWith("main-") || branch.startsWith("staging-")) return false;
+  return true;
+}
 
 /** Hosts where the script may create the throwaway Alex account. */
 export function assertSafeCaptureHost(url) {
@@ -47,16 +58,9 @@ export function assertSafeCaptureHost(url) {
   } catch {
     throw new Error(`Refusing to register a capture user: BASE_URL is not a valid URL (${url})`);
   }
-  if (host === PRODUCTION_VERCEL_HOST || host.includes("-git-main-")) {
+  if (!isAllowedCaptureHost(host)) {
     throw new Error(
-      `Refusing to register a capture user on ${host}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git- but not -git-main-.`,
-    );
-  }
-  const preview = host.endsWith(".vercel.app") && host.includes("-git-") && !host.includes("-git-main-");
-  const allowed = host === "localhost" || host === "127.0.0.1" || preview;
-  if (!allowed) {
-    throw new Error(
-      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git- but not -git-main-.`,
+      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or chess-school-git-<branch>.vercel.app for a branch other than main or staging.`,
     );
   }
 }
