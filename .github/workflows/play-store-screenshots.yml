@@ -385,7 +385,9 @@ jobs:
 
       - name: Require 1080x1920 RGB screenshots
         if: success()
-        run: node scripts/normalize-store-screenshots.mjs "$RUNNER_TEMP/maestro-raw" play-store-screenshots
+        run: |
+          node scripts/normalize-store-screenshots.mjs --self-test
+          node scripts/normalize-store-screenshots.mjs "$RUNNER_TEMP/maestro-raw" play-store-screenshots
 
       - name: Upload screenshots
         if: success()
@@ -393,6 +395,8 @@ jobs:
         with:
           name: play-store-screenshots
           # PNGs only. The test APK and the substituted flow are not artifacts.
+          # Names match SHOTS.md: 01-campus, 02-class-journey, 03-lesson,
+          # 04-bot-game, 05-tactic, 06-review. The guest smoke writes 01-campus.
           path: play-store-screenshots/*.png
           if-no-files-found: error
 

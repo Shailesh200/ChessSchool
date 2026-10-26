@@ -6,11 +6,83 @@
  * It flattens any alpha channel and rejects a frame that is not already
  * 1080×1920.
  *
+ * Names match apps/mobile/store-assets/play-store/SHOTS.md on the store-shot
+ * lane. Retired names such as 01-academy.png and 04-play.png are rejected.
+ *
+ *   node scripts/normalize-store-screenshots.mjs --self-test
  *   node scripts/normalize-store-screenshots.mjs <raw-dir> <out-dir>
  */
 import { readdirSync, mkdirSync, readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import sharp from "sharp";
+
+/** File names the flow writes. Keep this list identical to SHOTS.md. */
+export const STORE_SHOT_FILES = Object.freeze([
+  "01-campus.png",
+  "02-class-journey.png",
+  "03-lesson.png",
+  "04-bot-game.png",
+  "05-tactic.png",
+  "06-review.png",
+]);
+
+const ALLOWED = new Set(STORE_SHOT_FILES);
+const RETIRED = new Set([
+  "01-academy.png",
+  "04-play.png",
+  "05-review.png",
+  "06-profile.png",
+]);
+
+export function canonicalShotName(file) {
+  const name = basename(file);
+  if (RETIRED.has(name)) {
+    throw new Error(
+      `${name} is a retired Play screenshot name. Use ${STORE_SHOT_FILES.join(", ")}.`,
+    );
+  }
+  if (!ALLOWED.has(name)) {
+    throw new Error(
+      `${name} is not a Play screenshot name. Expected ${STORE_SHOT_FILES.join(", ")}.`,
+    );
+  }
+  return name;
+}
+
+function selfTest() {
+  for (const name of STORE_SHOT_FILES) {
+    if (canonicalShotName(name) !== name) throw new Error(`expected to keep ${name}`);
+  }
+  for (const name of RETIRED) {
+    let threw = false;
+    try {
+      canonicalShotName(name);
+    } catch (err) {
+      threw = true;
+      const message = err instanceof Error ? err.message : String(err);
+      if (!message.includes("retired")) throw new Error("retired name was not rejected");
+    }
+    if (!threw) throw new Error(`expected reject for ${name}`);
+  }
+  let threw = false;
+  try {
+    canonicalShotName("07-extra.png");
+  } catch {
+    threw = true;
+  }
+  if (!threw) throw new Error("expected reject for an unknown name");
+  console.log("✓ normalize-store-screenshots self-test");
+}
+
+if (process.argv[2] === "--self-test") {
+  try {
+    selfTest();
+  } catch (err) {
+    console.error(`✗ ${err instanceof Error ? err.message : err}`);
+    process.exit(1);
+  }
+  process.exit(0);
+}
 
 const src = process.argv[2];
 const dest = process.argv[3];
@@ -74,7 +146,14 @@ for (const file of files) {
     );
     process.exit(1);
   }
-  const out = join(dest, basename(file));
+  let name;
+  try {
+    name = canonicalShotName(file);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
+  const out = join(dest, name);
   await sharp(file).flatten({ background: "#ffffff" }).png({ compressionLevel: 9 }).toFile(out);
   const after = await sharp(out).metadata();
   const colorType = pngColorType(out);

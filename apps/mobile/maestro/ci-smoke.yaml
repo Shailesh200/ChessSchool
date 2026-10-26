@@ -22,4 +22,5 @@ appId: com.chessschool.app
     visible:
       text: "Enroll to the academy to track your progress."
     timeout: 120000
-- takeScreenshot: 01-academy
+# Filename matches SHOTS.md. This guest frame is not the signed-in campus shot.
+- takeScreenshot: 01-campus
