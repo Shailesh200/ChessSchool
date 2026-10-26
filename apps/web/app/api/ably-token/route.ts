@@ -24,6 +24,13 @@ const TOKEN_TTL_MS = 60 * 60 * 1000;
  */
 const TOKEN_RATE = { limit: 30, windowMs: 60_000 } as const;
 
+/**
+ * Guests only. Stops one IP from rotating seat tokens past the per-seat
+ * bucket. Keyed by `clientIp` inside `enforceRateLimit` (no user id).
+ * Keep the limit in sync with `ably-token.integration.test.ts`.
+ */
+const GUEST_IP_RATE = { limit: 60, windowMs: 60_000 } as const;
+
 /** Guest credential from #33. Not a session bearer. Never logged. */
 const SEAT_TOKEN_HEADER = "x-seat-token";
 const MAX_SEAT_TOKEN_LEN = 256;
@@ -63,8 +70,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "login required" }, { status: 401 });
   }
 
-  // Await before the game-id check. Guests are keyed by a hash of the seat
-  // token. With no seat identity, `enforceRateLimit` falls back to IP.
+  // Both guest limits run before the game-id check, the DB read, and
+  // verifySeatToken. Signed-in callers skip the IP bucket.
+  if (!user) {
+    const ipLimited = await enforceRateLimit(req, "ably:token:guest-ip", GUEST_IP_RATE);
+    if (ipLimited) return ipLimited;
+  }
+
   const limited = await enforceRateLimit(
     req,
     "ably:token",

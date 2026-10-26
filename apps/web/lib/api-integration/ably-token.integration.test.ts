@@ -7,6 +7,8 @@ const PW = "testpass123";
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 /** Matches TOKEN_RATE.limit in app/api/ably-token/route.ts */
 const TOKEN_RATE_LIMIT = 30;
+/** Matches GUEST_IP_RATE.limit in app/api/ably-token/route.ts */
+const GUEST_IP_RATE_LIMIT = 60;
 
 const { createTokenRequest } = vi.hoisted(() => ({
   createTokenRequest: vi.fn(
@@ -372,6 +374,32 @@ describe("ably token API integration", () => {
     expect(await readJson<{ error: string }>(res)).toEqual({
       error: "login required",
     });
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
+  it("rate limits one IP that rotates guest seat tokens", async () => {
+    const ip = "203.0.113.60";
+    for (let i = 0; i < GUEST_IP_RATE_LIMIT; i++) {
+      const res = await getToken(
+        new Request(tokenUrl(null), {
+          headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": ip },
+        }),
+      );
+      expect(res.status).toBe(400);
+    }
+    const blocked = await getToken(
+      new Request(tokenUrl(null), {
+        headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": ip },
+      }),
+    );
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("Retry-After")).toBeTruthy();
+    const otherIp = await getToken(
+      new Request(tokenUrl(null), {
+        headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": "203.0.113.61" },
+      }),
+    );
+    expect(otherIp.status).toBe(400);
     expect(createTokenRequest).not.toHaveBeenCalled();
   });
 
