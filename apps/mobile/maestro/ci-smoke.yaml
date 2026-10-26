@@ -1,0 +1,25 @@
+appId: com.chessschool.app
+---
+# Guest smoke for the screenshot job. One portrait frame, no account.
+# The store-shot list lives at apps/mobile/maestro/store-shots.yaml (separate
+# lane) and signs in as Alex from that lane's fixture. This file does not.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    timeout: 180000
+- tapOn:
+    id: "orientation-skip"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Enroll to the academy to track your progress."
+    timeout: 120000
+- takeScreenshot: 01-academy

@@ -1,0 +1,321 @@
+name: Play Store screenshots
+
+# Manual only. Builds a release APK on the runner, seeds a local database,
+# boots an Android emulator, and uploads screenshots. Nothing is committed
+# and nothing is published.
+#
+# Actions → Play Store screenshots → Run workflow.
+# Default flow: apps/mobile/maestro/store-shots.yaml
+#   That file is owned separately. If it is not on the branch, the job stops
+#   with a clear error before the build.
+# Smoke: set maestro_flow to apps/mobile/maestro/ci-smoke.yaml (guest, one shot).
+# Artifact: play-store-screenshots on the run (1080×1920 RGB, no alpha).
+#
+# Phone frames come from the pixel_2 profile (1080×1920, 420 dpi). The job
+# also sets wm size/density to those values. It does not resize. Alpha is stripped.
+
+on:
+  workflow_dispatch:
+    inputs:
+      maestro_flow:
+        description: Maestro flow path, relative to the repo root
+        required: false
+        default: apps/mobile/maestro/store-shots.yaml
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: play-store-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Android emulator screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CI: true
+      API_PORT: "3210"
+      # Fixed local fixture. Not a production secret. Do not print it.
+      SESSION_TOKEN_SECRET: e2e-test-session-token-secret
+      DATABASE_URL: file:${{ github.workspace }}/apps/web/local.db
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      EXPO_NO_TELEMETRY: "1"
+      NODE_OPTIONS: --max-old-space-size=6144
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require KVM
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::/dev/kvm is missing. This job needs a GitHub-hosted Linux runner with KVM."
+            exit 1
+          fi
+          echo "KVM is available"
+
+      - name: Choose Maestro flow
+        env:
+          MAESTRO_FLOW_INPUT: ${{ inputs.maestro_flow }}
+        run: |
+          set -euo pipefail
+          FLOW="${MAESTRO_FLOW_INPUT}"
+          if [ -z "$FLOW" ]; then
+            FLOW="apps/mobile/maestro/store-shots.yaml"
+          fi
+          case "$FLOW" in
+            ./*) FLOW="${FLOW#./}" ;;
+          esac
+          if ! printf '%s' "$FLOW" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+            echo "::error::Maestro flow path must be a repo-relative path with no '..'."
+            exit 1
+          fi
+          case "$FLOW" in
+            /*|*..*)
+              echo "::error::Maestro flow path must stay inside the repo."
+              exit 1
+              ;;
+          esac
+          if [ ! -f "$FLOW" ]; then
+            echo "::error title=Maestro flow not found::${FLOW}"
+            echo "The default is apps/mobile/maestro/store-shots.yaml (store-shot lane)."
+            echo "To smoke this job, re-run with maestro_flow=apps/mobile/maestro/ci-smoke.yaml."
+            exit 1
+          fi
+          echo "MAESTRO_FLOW=${FLOW}" >> "$GITHUB_ENV"
+          echo "Using Maestro flow ${FLOW}"
+
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Point the app at the local emulator host
+        run: |
+          set -euo pipefail
+          echo "EXPO_PUBLIC_API_URL=http://10.0.2.2:${API_PORT}" >> "$GITHUB_ENV"
+
+      - name: Refuse a non-local API host
+        run: |
+          set -euo pipefail
+          unset DATABASE_AUTH_TOKEN || true
+          node apps/mobile/store-assets/play-store/capture-host.mjs --self-test
+          node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Seed local curriculum
+        working-directory: apps/web
+        run: |
+          set -euo pipefail
+          unset DATABASE_AUTH_TOKEN || true
+          # db:provision → db:reset, db:push, db:load-seed.
+          # The loader script reads the seed file. Do not open seed.sql here;
+          # it is moving to seed.sql.gz and the script owns that.
+          pnpm db:provision
+
+      - name: Seed test user
+        run: |
+          set -euo pipefail
+          unset DATABASE_AUTH_TOKEN || true
+          PKG=""
+          if node -e 'const s=require("./apps/web/package.json").scripts||{}; if(!s["db:seed:test-user"]) process.exit(1)'; then
+            PKG="web"
+          elif node -e 'const s=require("./package.json").scripts||{}; if(!s["db:seed:test-user"]) process.exit(1)'; then
+            PKG="root"
+          fi
+          if [ -z "$PKG" ]; then
+            if [ "$MAESTRO_FLOW" = "apps/mobile/maestro/ci-smoke.yaml" ]; then
+              echo "::warning::db:seed:test-user is not on this branch yet. Alex is not seeded. ci-smoke.yaml runs as a guest so this pipeline can still be proven. A store-shot flow that signs in needs that script."
+              exit 0
+            fi
+            echo "::error::db:seed:test-user is not on this branch. Alex is created by that test-only script. This workflow does not invent the account. Add the script, or re-run with maestro_flow=apps/mobile/maestro/ci-smoke.yaml."
+            exit 1
+          fi
+          if [ "$PKG" = "web" ]; then
+            pnpm --filter web db:seed:test-user
+          else
+            pnpm db:seed:test-user
+          fi
+
+      - name: Build local API
+        run: |
+          set -euo pipefail
+          unset DATABASE_AUTH_TOKEN || true
+          pnpm --filter web build
+
+      - name: Build release APK
+        run: |
+          set -euo pipefail
+          unset DATABASE_AUTH_TOKEN || true
+          node apps/mobile/store-assets/play-store/capture-host.mjs "$EXPO_PUBLIC_API_URL"
+          cd apps/mobile
+          pnpm exec expo prebuild --platform android --no-install
+          node "$GITHUB_WORKSPACE/apps/mobile/store-assets/play-store/enable-emulator-cleartext.mjs" \
+            "$GITHUB_WORKSPACE/apps/mobile/android/app/src/main/AndroidManifest.xml"
+          # Capture APK only: the emulator is x86_64. This is the generated project, not app source.
+          PROPS=android/gradle.properties
+          if [ -f "$PROPS" ] && grep -q '^reactNativeArchitectures=' "$PROPS"; then
+            sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=x86_64/' "$PROPS"
+          elif [ -f "$PROPS" ]; then
+            echo 'reactNativeArchitectures=x86_64' >> "$PROPS"
+          fi
+          if [ -f "$PROPS" ]; then
+            sed -i 's/-Xmx2048m/-Xmx4096m/' "$PROPS"
+          fi
+
+          if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+            if [ -n "${ANDROID_HOME:-}" ]; then
+              ANDROID_SDK_ROOT="$ANDROID_HOME"
+            elif [ -d /usr/local/lib/android/sdk ]; then
+              ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+            fi
+          fi
+          if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+            echo "::error::ANDROID_SDK_ROOT is not set and /usr/local/lib/android/sdk is missing."
+            exit 1
+          fi
+          export ANDROID_SDK_ROOT
+          export ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          fi
+          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "::error::sdkmanager not found under ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-"(unset)"}"
+            exit 1
+          fi
+          node "$GITHUB_WORKSPACE/scripts/android-sdk-packages.mjs" --self-test
+          SDK_LIST="$(node "$GITHUB_WORKSPACE/scripts/android-sdk-packages.mjs" android)"
+          mapfile -t SDK_PACKAGES <<< "$SDK_LIST"
+          if [ "${#SDK_PACKAGES[@]}" -eq 0 ]; then
+            echo "::error::No Android SDK packages resolved."
+            exit 1
+          fi
+          echo "Installing Android SDK packages: ${SDK_PACKAGES[*]}"
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          set -o pipefail
+          "$SDKMANAGER" "${SDK_PACKAGES[@]}"
+
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease \
+            -PreactNativeArchitectures=x86_64 \
+            --no-daemon \
+            --no-configure-on-demand \
+            -Dorg.gradle.configureondemand=false \
+            --console=plain
+          APK="$GITHUB_WORKSPACE/apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::error::Release APK was not produced."
+            ls -la "$GITHUB_WORKSPACE/apps/mobile/android/app/build/outputs/apk/release" || true
+            exit 1
+          fi
+          if ! grep -R -a -q -F "10.0.2.2" "$GITHUB_WORKSPACE/apps/mobile/android/app/build"; then
+            echo "::error::Release build does not reference the emulator host 10.0.2.2."
+            exit 1
+          fi
+          cp "$APK" "$RUNNER_TEMP/app-release.apk"
+          ls -lh "$APK"
+
+      - name: Start local API
+        working-directory: apps/web
+        run: |
+          set -euo pipefail
+          unset DATABASE_AUTH_TOKEN || true
+          node scripts/ensure-db.mjs
+          nohup pnpm exec next start -H 0.0.0.0 -p "$API_PORT" > "$RUNNER_TEMP/api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/api.pid"
+          disown || true
+          for _ in $(seq 1 90); do
+            if curl -sf "http://127.0.0.1:${API_PORT}/api/campus" >/dev/null; then
+              echo "Local API is ready on port ${API_PORT}"
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/api.pid")" 2>/dev/null; then
+              echo "::error::API process exited before it was ready."
+              tail -n 40 "$RUNNER_TEMP/api.log" || true
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Local API did not become ready."
+          tail -n 40 "$RUNNER_TEMP/api.log" || true
+          exit 1
+
+      - name: Install Maestro
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Boot emulator and run Maestro
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          avd-name: play_store_shots
+          force-avd-creation: true
+          disable-animations: true
+          disable-linux-hw-accel: "false"
+          ram-size: 3072M
+          heap-size: 512M
+          cores: 2
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot-save -gpu swiftshader_indirect -camera-back none -camera-front none -no-metrics
+          script: |
+            set -euo pipefail
+            export PATH="$PATH:$HOME/.maestro/bin"
+            adb wait-for-device
+            adb shell wm size 1080x1920
+            adb shell wm density 420
+            echo "Display size:"
+            adb shell wm size
+            echo "Display density:"
+            adb shell wm density
+            adb install -r -t "$RUNNER_TEMP/app-release.apk"
+            mkdir -p "$RUNNER_TEMP/maestro-raw"
+            maestro test --test-output-dir "$RUNNER_TEMP/maestro-raw" "$GITHUB_WORKSPACE/$MAESTRO_FLOW"
+            if ! find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print -quit | grep -q .; then
+              if [ -d "$HOME/.maestro" ]; then
+                find "$HOME/.maestro" -name '*.png' -exec cp -t "$RUNNER_TEMP/maestro-raw" {} +
+              fi
+            fi
+            if ! find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print -quit | grep -q .; then
+              echo "Maestro finished without writing a PNG screenshot."
+              exit 1
+            fi
+            find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print
+
+      - name: Require 1080x1920 RGB screenshots
+        if: success()
+        run: node scripts/normalize-store-screenshots.mjs "$RUNNER_TEMP/maestro-raw" play-store-screenshots
+
+      - name: Upload screenshots
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-store-screenshots
+          path: play-store-screenshots/*.png
+          if-no-files-found: error
+
+      - name: API log
+        if: failure()
+        run: tail -n 60 "$RUNNER_TEMP/api.log" || true
