@@ -1,12 +1,12 @@
 # Play phone screenshots
 
-These six frames are captured from the real Android app (`com.chessschool.app`) by [`apps/mobile/maestro/store-shots.yaml`](../../../maestro/store-shots.yaml). They are not web screenshots, and this folder does not commit the PNGs.
+These six frames are captured from the real Android app (`com.chessschool.app`) by [`apps/mobile/maestro/store-shots.yaml`](../../../maestro/store-shots.yaml). Jimbe's native capture job in [PR #53](https://github.com/Shailesh200/ChessSchool/pull/53) runs that flow. Until that job has been run, this repo intentionally has no phone screenshots. The old web PNGs were retired.
 
 The flow signs in as a made-up local student whose display name is **Alex**. Every shot below is that signed-in account. None of them is a guest frame. No email, password, student number, or child profile is on screen.
 
 The app default coach is still Ash (`sarcastic`) until `lane-f/f3-default-coach` (PR #21) lands. That change has to land before the listing goes out. Lesson bubbles prefix the curriculum line with the active coach's opener. The lines below are what Ash shows today. The flow does not switch coaches.
 
-Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is manual (`workflow_dispatch` only). This branch does not add a GitHub Actions workflow.
+Jimbe runs this flow from [PR #53](https://github.com/Shailesh200/ChessSchool/pull/53) (`jimbe/e-native-store-shots`). That job is manual (`workflow_dispatch` only). This branch does not add a GitHub Actions workflow. Until #53 has produced the six frames, the repo intentionally has no phone screenshots.
 
 ## Shot list
 
@@ -58,11 +58,11 @@ Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is m
 
 ## How Jimbe's job runs it
 
-The emulator job is his, on `jimbe/e-native-store-shots` (`.github/workflows/play-store-screenshots.yml`). Trigger: **Actions → Play Store screenshots → Run workflow**. The default flow path is `apps/mobile/maestro/store-shots.yaml`. This branch does not contain that workflow.
+The emulator job is his, in [PR #53](https://github.com/Shailesh200/ChessSchool/pull/53) (`.github/workflows/play-store-screenshots.yml` on `jimbe/e-native-store-shots`). Trigger: **Actions → Play Store screenshots → Run workflow**. The default flow path is `apps/mobile/maestro/store-shots.yaml`. This branch does not contain that workflow. The six phone screenshots come from that run. Until then, this repo intentionally has no phone screenshots; the old web PNGs were retired.
 
 His job builds a release APK on the runner, with no EAS and no Play signing key. The emulator reaches the API at `10.0.2.2` (his job uses port `3210`).
 
-Alex, and the email and password for that account, come from Luffy's `db:seed:test-user` (lane B). The script name may change. This branch does not include that fixture and does not commit the credentials. Luffy's seed writes the two values to gitignored `apps/web/.store-shot.env`. Never print the email or password. The job must never print the flow file after those values have been substituted in.
+Alex, and the email and password for that account, come from Luffy's `db:seed:test-user` (lane B). The script name may change. This branch does not include that fixture and does not commit the credentials. Luffy's seed writes the two values to gitignored `apps/web/.store-shot.env`. Both this PR and Luffy's #54 add that `.gitignore` line. Whichever lands second keeps only one line. Never print the email or password. The job must never print the flow file after those values have been substituted in.
 
 ## Env vars
 
