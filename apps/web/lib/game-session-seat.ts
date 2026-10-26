@@ -1,4 +1,5 @@
 import type { DBGameSession } from "@/db/schema";
+import { verifySeatToken } from "@/lib/session-secret";
 
 export type SeatColor = "w" | "b";
 
@@ -14,4 +15,28 @@ export function seatColorForUser(
 
 export function isParticipant(session: DBGameSession, userId: string): boolean {
   return seatColorForUser(session, userId) !== null;
+}
+
+/**
+ * Same check as POST /api/session/[id]: `verifySeatToken` for a seat's user.
+ * A guest presents the token without a session, so both seats are tried.
+ * The token format is unchanged (`color` + HMAC of id, color, and user id).
+ */
+export function seatTokenMatchesSession(
+  session: Pick<DBGameSession, "id" | "whiteUserId" | "blackUserId">,
+  token: string,
+): boolean {
+  if (
+    session.whiteUserId &&
+    verifySeatToken(session.id, "w", session.whiteUserId, token)
+  ) {
+    return true;
+  }
+  if (
+    session.blackUserId &&
+    verifySeatToken(session.id, "b", session.blackUserId, token)
+  ) {
+    return true;
+  }
+  return false;
 }

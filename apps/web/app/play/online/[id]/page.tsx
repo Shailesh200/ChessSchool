@@ -23,6 +23,7 @@ import {
   trackMatchStart,
 } from "@/lib/analytics/matchEvents";
 import { consumeSessionPost } from "@/features/play/sessionPostResult";
+import { useSession } from "@/core/store/session.store";
 
 interface SessionState {
   id: string;
@@ -85,6 +86,11 @@ export default function OnlineSessionPage({
   useEffect(() => {
     colorRef.current = color;
   }, [color]);
+  const authed = useSession((s) => s.authed);
+  // Logged-in players authenticate with the session cookie. Guests have no
+  // session, so the #33 seat token is sent on the probe and on every authUrl
+  // renewal. It is not put on the URL.
+  const guestSeatToken = authed === false ? seatToken : null;
 
   // Tick for the live clock countdown — only while a clock is actually running,
   // so we don't re-render the board 4x/second (and disturb clicks) otherwise.
@@ -200,15 +206,25 @@ export default function OnlineSessionPage({
   useEffect(() => {
     let client: AblyRealtime | null = null;
     let cancelled = false;
+    if (authed === false && !guestSeatToken) {
+      ablyRef.current = false;
+      return;
+    }
     const tokenUrl = `/api/ably-token?game=${encodeURIComponent(id)}`;
+    const seatHeaders = guestSeatToken ? { "x-seat-token": guestSeatToken } : undefined;
     // Probe first so we don't load the Ably bundle / connect when it's not set up.
-    // Same-origin fetch sends the httpOnly session cookie.
-    void fetch(tokenUrl)
+    // Same-origin fetch sends the httpOnly session cookie. Guests send the seat
+    // token header instead; Ably repeats authHeaders on every authUrl renewal.
+    void fetch(tokenUrl, seatHeaders ? { headers: seatHeaders } : undefined)
       .then((r) => (r.ok ? import("ably") : null))
       .then((mod) => {
         if (!mod || cancelled) return;
         const { Realtime } = mod;
-        const rt = new Realtime({ authUrl: tokenUrl, autoConnect: true });
+        const rt = new Realtime({
+          authUrl: tokenUrl,
+          ...(seatHeaders ? { authHeaders: seatHeaders } : {}),
+          autoConnect: true,
+        });
         if (cancelled) {
           rt.close();
           return;
@@ -248,7 +264,7 @@ export default function OnlineSessionPage({
         /* ignore */
       }
     };
-  }, [id, applyState]);
+  }, [id, applyState, authed, guestSeatToken]);
 
   // Poll: fast while waiting on the opponent, but just a slow backstop once
   // realtime is connected.
