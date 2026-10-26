@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, isoDay } from "@chess-school/progression";
+import { addDays, isCalendarDay, isoDay } from "@chess-school/progression";
 import { progressPushSchema, type ProgressPushBody } from "@/lib/api-schemas";
 import {
   mergeExtraData,
@@ -11,8 +11,8 @@ import {
   STREAK_ACTIVE_DAY_LIMIT,
   STREAK_GRACE_WINDOW,
   isInsideStreakGraceWindow,
-  isRealIsoDay,
   parseStreakGrace,
+  recomputeStreakFromActiveDays,
   readStoredStreakGrace,
   recordableActivityDay,
   serverUtcDay,
@@ -76,9 +76,9 @@ describe("streak grace window", () => {
   });
 
   it("rejects dates that are not real calendar days", () => {
-    expect(isRealIsoDay("2026-10-22")).toBe(true);
-    expect(isRealIsoDay("2026-02-30")).toBe(false);
-    expect(isRealIsoDay("10/22/2026")).toBe(false);
+    expect(isCalendarDay("2026-10-22")).toBe(true);
+    expect(isCalendarDay("2026-02-30")).toBe(false);
+    expect(isCalendarDay("10/22/2026")).toBe(false);
     expect(isInsideStreakGraceWindow("not-a-day", START)).toBe(false);
     expect(recordableActivityDay("2026-02-30", T)).toBeNull();
     expect(recordableActivityDay(T, T)).toBe(T);
@@ -124,6 +124,22 @@ describe("streak grace window", () => {
 });
 
 describe("active-day streak", () => {
+  it("recomputes the streak from the server's stored active days", () => {
+    expect(
+      recomputeStreakFromActiveDays([addDays(T, -2), T], T, { allowGrace: true }),
+    ).toEqual({ streak: 3, coveredDay: addDays(T, -1) });
+    expect(
+      recomputeStreakFromActiveDays([addDays(T, -2), T], T, {
+        allowGrace: false,
+        graceCoveredDay: addDays(T, -1),
+      }),
+    ).toEqual({ streak: 3, coveredDay: addDays(T, -1) });
+    expect(recomputeStreakFromActiveDays([addDays(T, -1), T], T)).toEqual({
+      streak: 2,
+    });
+    expect(recomputeStreakFromActiveDays([T], "not-a-day")).toEqual({ streak: 0 });
+  });
+
   it("seeds old rows from lastActiveDay and streak, then bridges one gap", () => {
     const merged = mergeProgressPush(
       push({ xp: 20, streak: 1, lastActiveDay: T }),

@@ -1,4 +1,5 @@
 import {
+  isCalendarDay,
   mergeProgressSnapshots,
   normalizeProgressPush,
   type Snap,
@@ -6,7 +7,6 @@ import {
 import type { ProgressPushBody } from "@/lib/api-schemas";
 import {
   clockForServerDay,
-  isRealIsoDay,
   parseStreakGrace,
   readStoredStreakGrace,
   reconcileActiveStreak,
@@ -361,7 +361,7 @@ export function mergeProgressPush(
   );
   const mergedExtra = mergeExtraData(server.extra, extraFromPush(incoming));
   const played =
-    isRealIsoDay(utcToday) &&
+    isCalendarDay(utcToday) &&
     recordsStreakActivity(
       {
         xp: incoming.xp,
@@ -380,7 +380,7 @@ export function mergeProgressPush(
     );
   const parsed = parseStreakGrace(server.extra.streakGrace);
   const reconciled =
-    isRealIsoDay(utcToday) && (played || parsed.hasActiveDays)
+    isCalendarDay(utcToday) && (played || parsed.hasActiveDays)
       ? reconcileActiveStreak({
           hasActiveDays: parsed.hasActiveDays,
           activeDays: parsed.grace?.activeDays,

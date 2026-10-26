@@ -1,7 +1,7 @@
 import {
   addDays,
+  calendarDay,
   isCalendarDay,
-  isoDay,
   resolveRequestedDay,
 } from "@chess-school/progression";
 
@@ -74,13 +74,9 @@ export function recordsStreakActivity(
   return hasNewGame(incoming.recentGames, stored.recentGames);
 }
 
-export function isRealIsoDay(value: string): boolean {
-  return isCalendarDay(value);
-}
-
-/** UTC calendar day. Vercel is UTC; this does not follow the host zone. */
+/** UTC calendar day. Same clock as `resolveRequestedDay` and `lastActiveDayBeyondServer`. */
 export function serverUtcDay(now = new Date()): string {
-  return isoDay(now, "UTC");
+  return calendarDay(now, "UTC");
 }
 
 /** Noon UTC on a server day, so the merge clamp and grace share one calendar. */
@@ -95,17 +91,17 @@ export function clockForServerDay(today: string): Date {
 export function streakGraceStart(override?: string): string | null {
   const candidate = override !== undefined ? override : process.env.STREAK_GRACE_START;
   const trimmed = candidate?.trim() ?? "";
-  return trimmed && isRealIsoDay(trimmed) ? trimmed : null;
+  return trimmed && isCalendarDay(trimmed) ? trimmed : null;
 }
 
 export function isInsideStreakGraceWindow(day: string, start: string): boolean {
-  if (!isRealIsoDay(day) || !isRealIsoDay(start)) return false;
+  if (!isCalendarDay(day) || !isCalendarDay(start)) return false;
   const end = addDays(start, STREAK_GRACE_WINDOW.lengthDays - 1);
   return day >= start && day <= end;
 }
 
 function realDay(value: unknown): string | undefined {
-  return typeof value === "string" && isRealIsoDay(value) ? value : undefined;
+  return typeof value === "string" && isCalendarDay(value) ? value : undefined;
 }
 
 export type ParsedStreakGrace = {
@@ -233,11 +229,11 @@ export function reconcileActiveStreak(
     !graceUsedAt &&
     !!start &&
     isInsideStreakGraceWindow(anchor, start);
-  // A covered hole is not stored in the set. Count it so a later recompute
-  // keeps the graced length, without recording the hole as a played day.
-  const countingDays = covered && !days.includes(covered) ? [...days, covered] : days;
-  const computed = streakFromActiveDays(countingDays, anchor, allowGrace);
-  if (computed.coveredDay) {
+  const computed = recomputeStreakFromActiveDays(days, anchor, {
+    allowGrace,
+    graceCoveredDay: covered,
+  });
+  if (computed.coveredDay && computed.coveredDay !== covered) {
     graceUsedAt = anchor;
     covered = computed.coveredDay;
   }
@@ -285,8 +281,45 @@ function boundActiveDays(days: string[], today: string): string[] {
   return uniqueDays(days).filter((day) => day >= earliest && day <= today);
 }
 
-function uniqueDays(days: string[]): string[] {
+function uniqueDays(days: readonly string[]): string[] {
   return [...new Set(days.filter((day) => isCalendarDay(day)))].sort();
+}
+
+export type ActiveDayStreak = {
+  streak: number;
+  /** Missed day grace is bridging. Absent when the run has no hole. */
+  coveredDay?: string;
+};
+
+/**
+ * Streak implied by the server's stored active days.
+ *
+ * #44 calls this. It does not read a client streak. The run ends on `today`,
+ * or on the previous day when `today` is empty. `allowGrace` counts exactly
+ * one hole whose previous day is present. `graceCoveredDay` still counts
+ * after grace was already spent, and does not open a second hole.
+ */
+export function recomputeStreakFromActiveDays(
+  activeDays: readonly string[],
+  today: string,
+  options?: { allowGrace?: boolean; graceCoveredDay?: string },
+): ActiveDayStreak {
+  if (!isCalendarDay(today)) return { streak: 0 };
+  const days = uniqueDays(activeDays);
+  const covered =
+    options?.graceCoveredDay &&
+    isCalendarDay(options.graceCoveredDay) &&
+    !days.includes(options.graceCoveredDay)
+      ? options.graceCoveredDay
+      : undefined;
+  const counting = covered ? [...days, covered] : days;
+  const computed = streakFromActiveDays(
+    counting,
+    today,
+    Boolean(options?.allowGrace) && !covered,
+  );
+  if (covered) return { streak: computed.streak, coveredDay: covered };
+  return computed;
 }
 
 /**
