@@ -357,37 +357,7 @@ jobs:
           cores: 2
           emulator-boot-timeout: 900
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot-save -gpu swiftshader_indirect -camera-back none -camera-front none -no-metrics
-          script: |
-            # This action runs the script with /bin/sh (dash). pipefail is not available.
-            set -eu
-            export PATH="$PATH:$HOME/.maestro/bin"
-            adb wait-for-device
-            adb shell wm size 1080x1920
-            adb shell wm density 420
-            echo "Display size:"
-            adb shell wm size
-            echo "Display density:"
-            adb shell wm density
-            adb install -r -t "$RUNNER_TEMP/app-release.apk"
-            mkdir -p "$RUNNER_TEMP/maestro-raw"
-            scrub_maestro_output() {
-              if [ -d "$RUNNER_TEMP/maestro-raw" ]; then
-                find "$RUNNER_TEMP/maestro-raw" -type f ! -name '*.png' -delete || true
-              fi
-            }
-            trap scrub_maestro_output EXIT
-            maestro test --test-output-dir "$RUNNER_TEMP/maestro-raw" "$MAESTRO_FLOW_FILE"
-            if ! find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print -quit | grep -q .; then
-              if [ -d "$HOME/.maestro" ]; then
-                find "$HOME/.maestro" -name '*.png' -exec cp -t "$RUNNER_TEMP/maestro-raw" {} +
-              fi
-            fi
-            scrub_maestro_output
-            if ! find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print -quit | grep -q .; then
-              echo "Maestro finished without writing a PNG screenshot."
-              exit 1
-            fi
-            find "$RUNNER_TEMP/maestro-raw" -name '*.png' -print
+          script: bash apps/mobile/store-assets/play-store/run-capture.sh
 
       - name: Delete test-only APK and login flow
         if: always()
