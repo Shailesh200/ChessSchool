@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChessEngine } from "@chess-school/core";
+import { ChessEngine, pickLessonHint } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
 import { Button } from "@/Button";
 import { Icon } from "@/Icon";
@@ -56,18 +56,8 @@ type Step = {
   visualSquare?: string;
   visualSquares?: [string, string];
 };
-type Lesson = { id: string; title: string; xp: number; steps: Step[]; classId?: string | null; exam?: boolean };
+type Lesson = { id: string; title: string; xp: number; steps: Step[]; classId?: string | null; exam?: boolean; tag?: string | null };
 type LessonClass = { id: string; title: string; lessonIds: string[] };
-
-const LESSON_TIPS: Record<string, string> = {
-  capture: "Scan for enemy pieces that aren't defended — you can win them for free.",
-  check: "A check forces a reply. Look for the most forcing move first.",
-  checkmate: "Checkmate = the king is attacked with no legal escape square.",
-  mate: "Checkmate = the king is attacked with no legal escape square.",
-  fork: "A knight fork hits two pieces at once — aim at the king and a big piece.",
-  promotion: "Reach the last rank to promote — usually a queen, but a knight can fork!",
-  opening: "In the opening: develop your pieces, control the centre, and castle early.",
-};
 
 function findReply(fenA: string, fenB: string): { from: string; to: string } | null {
   try {
@@ -659,8 +649,7 @@ export default function LessonScreen() {
           ? "think"
           : "idle";
   const showContinue = step.kind === "info" || step.kind === "observe" || (step.kind === "quiz" && phase === "correct");
-  const tagTip = step.tag ? LESSON_TIPS[step.tag] : undefined;
-  const hint = step.hint ?? tagTip ?? "Take your time and calculate before you move.";
+  const hint = pickLessonHint({ stepHint: step.hint, stepTag: step.tag, lessonTag: lesson.tag });
   const solvable = step.kind === "move" && phase === "playing" && !lesson.exam;
   const isObserving = step.kind === "observe" && !observeReady;
   const preschool = isPreschoolLesson(lesson.id);
