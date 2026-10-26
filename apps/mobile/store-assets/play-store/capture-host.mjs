@@ -1,11 +1,17 @@
 /**
- * Hosts where capture.mjs may call /api/auth/register.
+ * Hosts allowed to register the made-up store-shot student (display name Alex).
  *
  * Allowed: localhost, 127.0.0.1, or a hostname matching
  * ^chess-school-git-[a-z0-9-]+\.vercel\.app$ whose branch part is not
  * main or staging and does not start with main- or staging-.
  * That refuses chess-school.vercel.app, -git-main and -git-staging builds,
  * other projects' *.vercel.app hosts, and lookalikes.
+ *
+ * The Android emulator reaches the host as 10.0.2.2. That alias is not an
+ * allowlisted registration host. A seed script registers against localhost
+ * (or an allowed preview). The app bundle's EXPO_PUBLIC_API_URL may still be
+ * http://10.0.2.2:<port> so the emulator hits that same local server.
+ * Never register against production.
  */
 
 /** Branch preview only: chess-school-git-<branch>.vercel.app, never main or staging. */

@@ -234,7 +234,7 @@ Device smoke checklist: [`store-assets/play-store/SMOKE_QA.md`](store-assets/pla
 
 - App icon 512×512 — `icon-512.png`
 - Feature graphic 1024×500 — `feature-graphic.png`
-- Phone screenshots × 6 — `screenshots/01-campus.png` … `screenshots/06-review.png`
+- Phone screenshots × 6 — device captures from `maestro/store-shots.yaml` (`01-campus` … `06-review`; see `store-assets/play-store/SHOTS.md`). Not checked in.
 
 **Screenshot login (made up, test-only).** The Maestro screenshot job signs in as
 a fictional student, Alex. Alex is not a real account and is not in the curriculum

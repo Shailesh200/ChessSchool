@@ -280,7 +280,7 @@ export function CampusMap({ stages }: { stages: CampusStage[] }) {
               <Icon name={emojiToIcon(stage.emoji)} size={20} color={colors.brand} duotone />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.stageName} numberOfLines={1}>{stage.name}</Text>
+                  <Text testID={`stage-${stage.id}`} style={styles.stageName} numberOfLines={1}>{stage.name}</Text>
                   {stage.optional && (
                     <Text style={styles.optionalPill}>Optional</Text>
                   )}
