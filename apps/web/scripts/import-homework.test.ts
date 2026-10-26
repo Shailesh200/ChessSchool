@@ -8,6 +8,7 @@ import {
   DEFAULT_PUZZLE_CSV,
   LOCAL_DB_PATH,
   parseHomeworkArgs,
+  resolveHomeworkDbPath,
 } from "./import-homework.mjs";
 
 /** jsdom's URL is not a Node URL, so `fileURLToPath` rejects it. */
@@ -30,11 +31,12 @@ function tempDir(prefix: string) {
   return dir;
 }
 
-function runImport(args: string[], cwd: string) {
+function runImport(args: string[], cwd: string, extraEnv: Record<string, string> = {}) {
   return new Promise<{ code: number | null; stdout: string; stderr: string }>(
     (resolveRun, reject) => {
       const child = spawn(process.execPath, [scriptPath, ...args], {
         cwd,
+        env: { ...process.env, ...extraEnv },
         stdio: ["ignore", "pipe", "pipe"],
       });
       let stdout = "";
@@ -63,6 +65,21 @@ describe("import-homework local.db path", () => {
       process.chdir(dir);
       expect(LOCAL_DB_PATH).toBe(resolve(pathFromMeta(".."), "local.db"));
       expect(LOCAL_DB_PATH).not.toBe(resolve(dir, "local.db"));
+      expect(resolveHomeworkDbPath({})).toEqual({ path: LOCAL_DB_PATH });
+      expect(resolveHomeworkDbPath({ CHESS_SCHOOL_LOCAL_DB: "" })).toEqual({
+        path: LOCAL_DB_PATH,
+      });
+      const custom = join(dir, "custom.db");
+      expect(resolveHomeworkDbPath({ CHESS_SCHOOL_LOCAL_DB: custom })).toEqual({
+        path: custom,
+      });
+      expect(
+        resolveHomeworkDbPath({
+          CHESS_SCHOOL_LOCAL_DB: "libsql://example.invalid/db",
+        }),
+      ).toEqual({
+        error: "✗ CHESS_SCHOOL_LOCAL_DB must be a local SQLite file path.",
+      });
     } finally {
       process.chdir(previous);
     }
@@ -134,9 +151,11 @@ describe("import-homework CSV path", () => {
 
 describe("import-homework CLI", () => {
   it("reads the repo .csv.gz when started from other directories", async () => {
-    expect(existsSync(LOCAL_DB_PATH)).toBe(false);
+    const missingDb = join(tempDir("hw-missing-db-"), "local.db");
     const dirs = ["hw-cli-a-", "hw-cli-b-"].map((prefix) => tempDir(prefix));
-    const runs = await Promise.all(dirs.map((dir) => runImport([], dir)));
+    const runs = await Promise.all(
+      dirs.map((dir) => runImport([], dir, { CHESS_SCHOOL_LOCAL_DB: missingDb })),
+    );
     const paths = runs.map((run, index) => {
       expect(run.code).toBe(1);
       expect(run.stdout).toContain(`Reading ${repoCsv} … homework pool`);
@@ -145,8 +164,9 @@ describe("import-homework CLI", () => {
       expect(run.stdout).not.toMatch(/Using --samples/);
       expect(run.stdout).not.toMatch(/Seeded \d+ homework/);
       expect(run.stderr).toMatch(/local\.db not found/);
-      expect(run.stderr).toContain(LOCAL_DB_PATH);
+      expect(run.stderr).toContain(missingDb);
       expect(run.stderr).not.toContain(dirs[index]);
+      expect(run.stderr).not.toContain(LOCAL_DB_PATH);
       return run.stdout.match(/Reading (.+) … homework pool/)?.[1];
     });
     expect(paths).toEqual([repoCsv, repoCsv]);
