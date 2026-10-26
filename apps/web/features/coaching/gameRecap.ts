@@ -104,7 +104,7 @@ export function buildMatchRecap(input: GameRecapInput): string {
       ],
       anxious_nerd: [
         `Well played vs ${botName}. ${statLine} Study the finish.`,
-        `You earned this vs ${botName}. ${checkLine || "Calc those lines again."}`,
+        `You earned this vs ${botName}. ${checkLine || "Replay those lines once more."}`,
       ],
       egoistic: [
         `Crushed ${botName}! ${statLine} ${checkLine}`,
@@ -126,7 +126,7 @@ export function buildMatchRecap(input: GameRecapInput): string {
       ],
       anxious_nerd: [
         `Loss vs ${botName} — ${statLine} Replay the attack.`,
-        `${botName} outcalculated you. ${checkLine || statLine}`,
+        `${botName} saw further this time. ${checkLine || statLine}`,
       ],
       egoistic: [
         `${botName} finished the attack. ${statLine} Hunt the tactic.`,
@@ -164,7 +164,7 @@ export function buildMatchRecap(input: GameRecapInput): string {
       ],
       anxious_nerd: [
         `Time trouble win vs ${botName}. ${statLine}`,
-        `Flag win. ${statLine}`,
+        `Won on time. ${statLine}`,
       ],
       egoistic: [`${botName} flagged — ${statLine}`, `Speed kill vs ${botName}.`],
       sassy: [`Won on time vs ${botName}. ${statLine}`, `Flag win — ${statLine}`],
@@ -175,7 +175,10 @@ export function buildMatchRecap(input: GameRecapInput): string {
         `Clock got you — try longer control.`,
       ],
       sarcastic: [`Lost on time. ${statLine}`, `Flagged. Budget middlegame time.`],
-      anxious_nerd: [`Time loss vs ${botName}. ${statLine}`, `Flag loss. ${statLine}`],
+      anxious_nerd: [
+        `Time loss vs ${botName}. ${statLine}`,
+        `Ran out of time. ${statLine}`,
+      ],
       egoistic: [`${botName} won on time. ${statLine}`, `Too slow — ${statLine}`],
       sassy: [`Ran out of time vs ${botName}. ${statLine}`, `Flagged. ${statLine}`],
     },
@@ -183,8 +186,8 @@ export function buildMatchRecap(input: GameRecapInput): string {
       genz: [`${botName} resigned — ${statLine}`, `Win — they resigned. ${statLine}`],
       sarcastic: [`Resignation win. ${statLine}`, `Point earned. ${statLine}`],
       anxious_nerd: [
-        `${botName} resigned. ${statLine} Winning plan.`,
-        `Resign win. ${statLine}`,
+        `${botName} resigned. ${statLine} Your plan worked.`,
+        `They resigned — you win. ${statLine}`,
       ],
       egoistic: [
         `${botName} quit — you had them. ${statLine}`,
@@ -195,7 +198,10 @@ export function buildMatchRecap(input: GameRecapInput): string {
     "resign loss": {
       genz: [`You resigned vs ${botName}. ${statLine}`, `Resigned — ${statLine}`],
       sarcastic: [`Resignation. ${statLine}`, `You resigned. ${statLine}`],
-      anxious_nerd: [`Resigned vs ${botName}. ${statLine}`, `Resign loss. ${statLine}`],
+      anxious_nerd: [
+        `Resigned vs ${botName}. ${statLine}`,
+        `You resigned. ${statLine}`,
+      ],
       egoistic: [`You resigned to ${botName}. ${statLine}`, `Resignation. ${statLine}`],
       sassy: [`Resigned vs ${botName}. ${statLine}`, `Resigned — ${statLine}`],
     },

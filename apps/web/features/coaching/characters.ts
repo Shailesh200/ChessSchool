@@ -58,7 +58,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
   anxious_nerd: {
     id: "anxious_nerd",
     name: "Otto",
-    theme: "Anxious / Nerd",
+    theme: "Careful / Nerd",
     gender: "male",
     elevenLabsVoiceId: "mrQhZWGbb2k9qWJb5qeA",
     elevenLabsModelId: "eleven_multilingual_v2",
