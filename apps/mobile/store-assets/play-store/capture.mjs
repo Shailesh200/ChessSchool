@@ -11,8 +11,10 @@
  *
  * BASE_URL defaults to http://localhost:3000. Use localhost, not 127.0.0.1.
  * assertSafeCaptureHost refuses /api/auth/register unless the host is
- * localhost, 127.0.0.1, or a Vercel preview whose hostname contains `-git-`.
- * The production alias chess-school.vercel.app is refused by name.
+ * localhost, 127.0.0.1, or a Vercel preview whose hostname contains `-git-`
+ * and does not contain `-git-main-`. The production alias
+ * chess-school.vercel.app is refused by name. A `-git-main-` hostname is the
+ * production build and is refused too.
  *
  * `screens` signs in as a made-up local user named Alex, captures six phone
  * frames, and composites each one under screenshots/caption-frame.html.
@@ -45,16 +47,16 @@ export function assertSafeCaptureHost(url) {
   } catch {
     throw new Error(`Refusing to register a capture user: BASE_URL is not a valid URL (${url})`);
   }
-  if (host === PRODUCTION_VERCEL_HOST) {
+  if (host === PRODUCTION_VERCEL_HOST || host.includes("-git-main-")) {
     throw new Error(
-      `Refusing to register a capture user on ${host}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git-.`,
+      `Refusing to register a capture user on ${host}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git- but not -git-main-.`,
     );
   }
-  const preview = host.endsWith(".vercel.app") && host.includes("-git-");
+  const preview = host.endsWith(".vercel.app") && host.includes("-git-") && !host.includes("-git-main-");
   const allowed = host === "localhost" || host === "127.0.0.1" || preview;
   if (!allowed) {
     throw new Error(
-      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git-.`,
+      `Refusing to register a capture user on ${host || url}. BASE_URL must be localhost, 127.0.0.1, or a Vercel preview hostname containing -git- but not -git-main-.`,
     );
   }
 }

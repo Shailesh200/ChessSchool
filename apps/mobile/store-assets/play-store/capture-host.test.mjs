@@ -16,5 +16,9 @@ describe("assertSafeCaptureHost", () => {
       /Refusing to register a capture user on chess-school\.vercel\.app/,
     );
     assert.throws(() => assertSafeCaptureHost("https://example.com/play"), /Refusing to register a capture user on example\.com/);
+    assert.throws(
+      () => assertSafeCaptureHost("https://chess-school-git-main-shailesh200.vercel.app"),
+      /Refusing to register a capture user on chess-school-git-main-shailesh200\.vercel\.app/,
+    );
   });
 });
