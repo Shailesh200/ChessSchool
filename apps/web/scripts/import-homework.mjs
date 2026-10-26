@@ -37,7 +37,7 @@ export const LOCAL_DB_PATH = join(SCRIPT_DIR, "..", "local.db");
  * Default is {@link LOCAL_DB_PATH}. `CHESS_SCHOOL_LOCAL_DB` may point at another
  * local file (tests). Remote URLs are rejected and not opened.
  *
- * @param {NodeJS.ProcessEnv} [env]
+ * @param {{ CHESS_SCHOOL_LOCAL_DB?: string }} [env]
  * @returns {{ path: string } | { error: string }}
  */
 export function resolveHomeworkDbPath(env = process.env) {
