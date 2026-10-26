@@ -22,6 +22,7 @@ import {
   trackMatchEnd,
   trackMatchStart,
 } from "@/lib/analytics/matchEvents";
+import { consumeSessionPost } from "@/features/play/sessionPostResult";
 
 interface SessionState {
   id: string;
@@ -177,6 +178,21 @@ export default function OnlineSessionPage({
       setExpired(true);
     }
   }, []);
+
+  // A settled POST never keeps the optimistic piece. A 409 row replaces the
+  // board; a 409 without a row is refetched so the local board matches the server.
+  const consumePost = useCallback(
+    (res: Response) =>
+      consumeSessionPost<SessionState>(res, {
+        apply: (row) => applyState(row),
+        dropOptimistic: () => {
+          optimisticRef.current = null;
+          setOptimistic(null);
+        },
+        refetch: () => fetch(`/api/session/${id}`, { credentials: "include" }),
+      }),
+    [applyState, id],
+  );
 
   // Realtime push via Ably (instant). Any non-200 from the token endpoint
   // (logged out, no seat, Ably unset) leaves polling in charge.
@@ -390,16 +406,14 @@ export default function OnlineSessionPage({
           promotion: move.promotion,
         }),
       })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((s: SessionState | null) => {
-          if (s && !s.error)
-            applyState(s); // authoritative post-move state clears the optimistic overlay
-          else setOptimistic(null); // server rejected → revert to the live state
-        })
-        .catch(() => setOptimistic(null));
+        .then((res) => consumePost(res))
+        .catch(() => {
+          optimisticRef.current = null;
+          setOptimistic(null);
+        });
       return true; // keep the piece where the player dropped it
     },
-    [session, color, seatToken, optimistic, id, applyState],
+    [session, color, seatToken, optimistic, id, consumePost],
   );
 
   function shareLink() {
@@ -423,7 +437,9 @@ export default function OnlineSessionPage({
       headers: { "content-type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ action: "resign", color, seatToken }),
-    }).then(() => void 0);
+    })
+      .then((res) => consumePost(res))
+      .catch(() => void 0);
   }
 
   const waiting = session?.status === "waiting";
@@ -485,8 +501,13 @@ export default function OnlineSessionPage({
         seat: colorRef.current,
         seatToken,
       }),
-    }).catch(() => void 0);
-  }, [active, hasClock, wMs, bMs, id]);
+    })
+      .then((res) => consumePost(res))
+      .catch(() => {
+        optimisticRef.current = null;
+        setOptimistic(null);
+      });
+  }, [active, hasClock, wMs, bMs, id, consumePost]);
 
   const myClock = color === "b" ? bMs : wMs;
   const oppClock = color === "b" ? wMs : bMs;
