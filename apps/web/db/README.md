@@ -61,3 +61,8 @@ writes nothing. It never prints `DATABASE_URL` or the auth token. Local targets:
 It also refuses production hosts from `production-db-hosts.mjs`
 (`isProductionDbHost`), including a `file:` URL whose hostname is that
 production host. Any other remote URL is refused even when it is not production.
+
+A URL containing `\` or `@` is refused before it is parsed. After parsing, a
+URL with a username or password is refused. Those refusals exit non-zero and
+do not open the database or write `.store-shot.env`. The characters are not
+printed. `10.0.2.2` is not a local host.

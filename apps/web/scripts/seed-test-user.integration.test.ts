@@ -182,8 +182,8 @@ describe("test-user seed guard", () => {
 
   it("refuses a production host even on a file URL, without leaking secrets", () => {
     const urls = [
-      `libsql://ignored:${TOKEN}@${PROD}/chessschool?authToken=${TOKEN}`,
-      `https://user:${TOKEN}@${PROD}./db`,
+      `libsql://${PROD}/chessschool?authToken=${TOKEN}`,
+      `https://${PROD}./db`,
       `file://${PROD}/tmp/alex.db`,
     ];
     for (const url of urls) {
@@ -214,15 +214,13 @@ describe("test-user seed guard", () => {
       expect(decision.message).not.toMatch(/production host/);
       expectNoSecrets(decision.message, url);
     }
-    const named = assertLocalSeedTarget(
-      "libsql://ignored:fixture-token-do-not-print@staging-preview.example.net/chess",
-    );
+    const named = assertLocalSeedTarget("libsql://staging-preview.example.net/chess");
     if (named.ok) throw new Error("remote host should be refused");
     expect(named.hostname).toBe("staging-preview.example.net");
   });
 
   it("the CLI exits non-zero for a production host and does not print secrets", async () => {
-    const url = `libsql://ignored:${TOKEN}@${PROD}/chessschool?authToken=${TOKEN}`;
+    const url = `libsql://${PROD}/chessschool?authToken=${TOKEN}`;
     const result = await runScript(
       scriptEnv({ DATABASE_URL: url, DATABASE_AUTH_TOKEN: TOKEN }),
     );
@@ -233,7 +231,7 @@ describe("test-user seed guard", () => {
   });
 
   it("the CLI exits non-zero for a non-local remote URL and does not print secrets", async () => {
-    const url = `libsql://ignored:${TOKEN}@staging-preview.example.net/chess`;
+    const url = "libsql://staging-preview.example.net/chess";
     const result = await runScript(
       scriptEnv({ DATABASE_URL: url, DATABASE_AUTH_TOKEN: TOKEN }),
     );
@@ -242,6 +240,46 @@ describe("test-user seed guard", () => {
     expect(result.stderr).toContain("staging-preview.example.net");
     expect(result.stderr).not.toMatch(/production host/);
     expectNoSecrets(`${result.stdout}\n${result.stderr}`, url);
+  });
+
+  it("refuses backslash hosts and userinfo before they can look local", async () => {
+    const urls = [
+      String.raw`libsql://localhost\@evil.com`,
+      String.raw`http://localhost\@evil.com`,
+      "libsql://user:pass@localhost",
+    ];
+    for (const url of urls) {
+      const decision = assertLocalSeedTarget(url);
+      expect(decision.ok, url).toBe(false);
+      if (decision.ok) continue;
+      expect(decision.reason).toBe("remote");
+      expect(decision.hostname).toBeNull();
+      expect(decision.message).toMatch(/not a local database/);
+      expect(decision.message).not.toMatch(/production host/);
+      expect(decision.message).not.toContain(url);
+      expect(decision.message).not.toContain("evil.com");
+      expect(decision.message).not.toContain("pass");
+      expect(decision.message).not.toContain("\\");
+      expect(decision.message).not.toContain("@");
+    }
+
+    const sentinel = "SENTINEL=1\n";
+    writeFileSync(STORE_SHOT_ENV_PATH, sentinel, { mode: 0o644 });
+    try {
+      const url = String.raw`libsql://localhost\@evil.com`;
+      const result = await runScript(
+        scriptEnv({ DATABASE_URL: url, DATABASE_AUTH_TOKEN: TOKEN }),
+      );
+      expect(result.code).toBe(1);
+      expect(result.stderr).toMatch(/not a local database/);
+      const output = `${result.stdout}\n${result.stderr}`;
+      expect(output).not.toContain(url);
+      expect(output).not.toContain("evil.com");
+      expect(output).not.toContain(TOKEN);
+      expect(readFileSync(STORE_SHOT_ENV_PATH, "utf8")).toBe(sentinel);
+    } finally {
+      rmSync(STORE_SHOT_ENV_PATH, { force: true });
+    }
   });
 
   it("falls back to the made-up defaults when the shot env vars are unset", () => {

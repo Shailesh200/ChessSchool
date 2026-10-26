@@ -77,16 +77,21 @@ function schemeOf(url) {
   return match ? match[0].slice(0, -1).toLowerCase() : "";
 }
 
-function hostnameOf(url) {
-  let parseable = url;
-  if (url.toLowerCase().startsWith("libsql:")) {
-    parseable = `https:${url.slice("libsql:".length)}`;
-  }
+/** libsql: is not a WHATWG scheme. Rewrite only for parsing, never for connecting. */
+function parsedDbUrl(url) {
+  const parseable = url.toLowerCase().startsWith("libsql:")
+    ? `https:${url.slice("libsql:".length)}`
+    : url;
   try {
-    return new URL(parseable).hostname.toLowerCase().replace(/\.+$/, "");
+    return new URL(parseable);
   } catch {
-    return "";
+    return null;
   }
+}
+
+function hostnameOf(parsed) {
+  if (!parsed) return "";
+  return parsed.hostname.toLowerCase().replace(/\.+$/, "");
 }
 
 function isMemoryUrl(url) {
@@ -125,6 +130,10 @@ function refusal(reason, hostname) {
  * is a local file path (same as the app). Hosted URLs must be localhost or
  * 127.0.0.1. Production hosts are refused even on a `file:` URL.
  *
+ * `\` and `@` are refused before parsing. WHATWG reads `localhost\@evil.com`
+ * as localhost, and libsql does not, so a host check on `new URL` is not
+ * enough. A parsed username or password is refused too.
+ *
  * @param {string | undefined | null} rawUrl
  * @returns {SeedTarget}
  */
@@ -132,13 +141,19 @@ export function assertLocalSeedTarget(rawUrl) {
   const raw = (rawUrl ?? "").trim();
   if (!raw) return { ok: true, url: DEFAULT_LOCAL_DATABASE_URL };
 
+  if (raw.includes("\\") || raw.includes("@")) return refusal("remote", null);
+
   if (isMemoryUrl(raw)) return { ok: true, url: raw };
 
   const scheme = schemeOf(raw);
   if (!scheme) return { ok: true, url: `file:${raw}` };
 
-  const hostname = hostnameOf(raw);
+  const parsed = parsedDbUrl(raw);
+  const hostname = hostnameOf(parsed);
   if (hostname && isProductionDbHost(hostname)) return refusal("production", hostname);
+  if (parsed && (parsed.username !== "" || parsed.password !== "")) {
+    return refusal("remote", null);
+  }
   if (scheme === "file") return { ok: true, url: raw };
   if (LOCAL_HOSTS.has(hostname)) return { ok: true, url: raw };
   return refusal("remote", hostname);
