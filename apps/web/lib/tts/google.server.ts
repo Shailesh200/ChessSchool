@@ -2,6 +2,7 @@ import "server-only";
 import { JWT } from "google-auth-library";
 import { TTS_MAX_CHARS, TTS_VOICES, COACH_SPEECH_RATE_MULTIPLIER } from "./voices";
 import type { CoachPersonality } from "@/core/store/settings.store";
+import { DEFAULT_COACH_CHARACTER } from "@/features/coaching/characters";
 
 type ServiceAccount = {
   client_email: string;
@@ -36,6 +37,11 @@ export function googleTtsConfigured(): boolean {
   return Boolean(getJwt());
 }
 
+/** Google Neural2 profile, or the default coach when the id is unknown. */
+export function googleVoiceFor(personality: CoachPersonality) {
+  return TTS_VOICES[personality]?.google ?? TTS_VOICES[DEFAULT_COACH_CHARACTER].google;
+}
+
 /** Synthesize MP3 via Google Cloud Text-to-Speech (Neural2 / WaveNet). */
 export async function synthesizeGoogleSpeech(
   text: string,
@@ -47,7 +53,7 @@ export async function synthesizeGoogleSpeech(
   const client = getJwt();
   if (!client) return null;
 
-  const voice = TTS_VOICES[personality]?.google ?? TTS_VOICES.sarcastic.google;
+  const voice = googleVoiceFor(personality);
   const token = await client.getAccessToken();
   if (!token) return null;
 

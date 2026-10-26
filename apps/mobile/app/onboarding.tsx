@@ -4,6 +4,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
 import { settings } from "@/settings";
+import {
+  DEFAULT_COACH_CHARACTER,
+  normalizeCoachCharacter,
+  type CoachCharacterId,
+} from "@/coachCharacters";
 import { saveOnboardingToServer } from "@/profile";
 import { mutateProgress } from "@/progressStore";
 import { Button } from "@/Button";
@@ -13,6 +18,11 @@ import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { AVATAR_OPTIONS, emojiToIcon } from "@/iconMaps";
 import type { FlatAvatarId } from "@/flatAvatars/catalog";
 import { colors, font, radius, space, type } from "@/theme";
+
+/** Empty onboarding pick. Saved ids pass through normalizeCoachCharacter. */
+export function onboardingCoachChoice(coach: string): CoachCharacterId {
+  return normalizeCoachCharacter(coach || DEFAULT_COACH_CHARACTER);
+}
 
 type Opt = { value: string; label: string; emoji: string };
 const GOALS: Opt[] = [
@@ -86,7 +96,7 @@ export default function OnboardingScreen() {
     settings.set("goal", goal);
     settings.set("targetElo", Number(elo) || 600);
     settings.set("planTier", (time || "standard") as never);
-    settings.set("coachCharacter", (coach || "sarcastic") as never);
+    settings.set("coachCharacter", onboardingCoachChoice(coach));
     settings.set("appTheme", theme || "default");
     settings.set("avatar", displayAvatar);
     try {

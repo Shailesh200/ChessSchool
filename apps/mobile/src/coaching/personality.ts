@@ -1,5 +1,5 @@
 import type { CoachCharacterId } from "@/coachCharacters";
-import { normalizeCoachCharacter } from "@/coachCharacters";
+import { DEFAULT_COACH_CHARACTER, normalizeCoachCharacter } from "@/coachCharacters";
 
 /** @deprecated Prefer CoachCharacterId */
 export type CoachPersonality = CoachCharacterId;
@@ -286,9 +286,13 @@ export function quizUiLabels(
   };
 }
 
+/** Persona table lookup. An id that is not a coach uses the default coach. */
+export function personaById(id: string): Persona {
+  return PERSONAS[id as CoachCharacterId] ?? PERSONAS[DEFAULT_COACH_CHARACTER];
+}
+
 export function personaOf(p: CoachCharacterId | string): Persona {
-  const id = normalizeCoachCharacter(p);
-  return PERSONAS[id] ?? PERSONAS.sarcastic;
+  return personaById(normalizeCoachCharacter(p));
 }
 
 const GENERIC_SUCCESS = /^(correct|nice|solved|good|promoted|well done)/i;
