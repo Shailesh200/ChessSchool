@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertSafeCaptureHost } from "./capture-host.mjs";
+import { assertLocalDatabaseUrl, assertSafeCaptureHost } from "./capture-host.mjs";
 
 describe("assertSafeCaptureHost", () => {
   it("allows localhost, loopback, the emulator alias, and a branch preview", () => {
@@ -30,6 +30,36 @@ describe("assertSafeCaptureHost", () => {
         new RegExp(`Refusing to register a capture user on ${host.replaceAll(".", "\\.")}`),
         url,
       );
+    }
+  });
+});
+
+describe("assertLocalDatabaseUrl", () => {
+  it("allows a local sqlite file", () => {
+    for (const url of [undefined, "", "   ", "file:local.db", "file:/tmp/local.db", "local.db", "localhost"]) {
+      assert.doesNotThrow(() => assertLocalDatabaseUrl(url), String(url));
+    }
+  });
+
+  it("refuses remote hosts and prod-looking urls without echoing them", () => {
+    const refused = [
+      "libsql://example.turso.io",
+      "https://example.turso.io",
+      "http://127.0.0.1:8080",
+      "https://localhost:8080",
+      "https://www.chess-school.in",
+      "https://chess-school.in",
+      "https://chess-school.vercel.app",
+    ];
+    for (const url of refused) {
+      assert.throws(() => assertLocalDatabaseUrl(url), /Refusing a remote DATABASE_URL/);
+      try {
+        assertLocalDatabaseUrl(url);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        assert.equal(message, "Refusing a remote DATABASE_URL.");
+        assert.equal(message.includes(url), false);
+      }
     }
   });
 });

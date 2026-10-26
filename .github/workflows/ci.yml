@@ -47,7 +47,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Capture host guard
-        run: node --test apps/mobile/store-assets/play-store/capture-host.test.mjs
+        run: node --test apps/mobile/store-assets/play-store/capture-host.test.mjs scripts/generate-play-store-assets.test.mjs
 
       - name: Puzzle-school validate
         run: pnpm puzzle-school:validate

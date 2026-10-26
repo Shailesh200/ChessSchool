@@ -85,8 +85,8 @@ parity-shots/
 apps/web/parity-shots/
 apps/web/storybook-static/
 
-# play listing capture intermediates
-apps/mobile/store-assets/play-store/screenshots/.raw/
+# credentials written by db:seed:test-user. Never commit.
+apps/web/.store-shot.env
 
 *storybook.log
 parity/maestro/flows/undefined.png

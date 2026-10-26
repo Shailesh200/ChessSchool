@@ -21,7 +21,7 @@ Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is m
 
 ### 01 Campus
 
-- **State:** Signed-in academy, scrolled until the stage heading `stage-preschool` is on screen. Alex comes from Luffy's fixture. The flow waits for “Day 4 at the academy” and the subtitle “Graduate through classes. Become a stronger player.” The guest enroll line is not this screen. The placement card needs to be out of the way.
+- **State:** Signed-in academy, scrolled until the stage heading `stage-preschool` is on screen. Alex comes from Luffy's fixture. The flow waits for “Day 4 at the academy” (`store-shots.yaml`) and the subtitle “Graduate through classes. Become a stronger player.” That “Day 4” line depends on Luffy's `db:seed:test-user` account state (a streak that renders that greeting). The guest enroll line is not this screen. The placement card needs to be out of the way.
 - **Must show:** The stage name **Starter** (stage id `preschool`). The Elementary semester titled Foundations is a different label and is not this heading.
 - **Coach copy:** None. This screen has no lesson coach bubble.
 
@@ -52,8 +52,8 @@ Jimbe runs this flow from his branch `jimbe/e-native-store-shots`. That job is m
 
 ### 06 Game review
 
-- **State:** The flow resigns the Vera game from shot 04 (“Resigned — Vera wins”), opens the review list, and opens the row “vs Bot · 1600”. The shot is the replay screen, not the review index (that index shows Cody).
-- **Must show:** The replay board for that game, the move label (`replay-move-label`), and the move chips for 1.e4 plus Vera’s real reply. The in-game Review button passes `gameId` while this screen reads `id`, so the flow uses the review list instead.
+- **State:** The flow resigns the Vera game from shot 04 (“Resigned — Vera wins”), opens the review list, and opens the row “vs Bot · 1600”. The shot is the replay screen, not the review index (that index shows Cody). The first “vs Bot · 1600” row the flow taps depends on Luffy's `db:seed:test-user` account state: that row has to be the game this flow just resigned.
+- **Must show:** The replay board for that game, the move label (`replay-move-label`), and the move chips for 1.e4 plus Vera’s real reply.
 - **Coach copy:** None on a resigned replay. The move label is the line on screen.
 
 ## How Jimbe's job runs it
@@ -62,7 +62,7 @@ The emulator job is his, on `jimbe/e-native-store-shots` (`.github/workflows/pla
 
 His job builds a release APK on the runner, with no EAS and no Play signing key. The emulator reaches the API at `10.0.2.2` (his job uses port `3210`).
 
-Alex, and the email and password for that account, come from Luffy's `db:seed:test-user` (lane B). The script name may change. This branch does not include that fixture and does not commit the credentials. Never print the email or password.
+Alex, and the email and password for that account, come from Luffy's `db:seed:test-user` (lane B). The script name may change. This branch does not include that fixture and does not commit the credentials. Luffy's seed writes the two values to gitignored `apps/web/.store-shot.env`. Never print the email or password. The job must never print the flow file after those values have been substituted in.
 
 ## Env vars
 
@@ -79,6 +79,6 @@ The login step in `apps/mobile/maestro/store-shots.yaml` is:
 
 `chessschool:///login?email=${STORE_SHOT_EMAIL}&password=${STORE_SHOT_PASSWORD}`
 
-Maestro 2.6 does not expand `${...}` inside `openLink`. Before `maestro test`, Jimbe's job substitutes `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` into that URL. Do not print the result.
+Maestro 2.6 does not expand `${...}` inside `openLink`. Before `maestro test`, Jimbe's job substitutes `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` into that URL. Do not print the result, and do not print the filled-in flow file.
 
 There is no in-progress match, so shot 04 starts a new Vera game.
