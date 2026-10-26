@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const limited = enforceRateLimit(
+  const limited = await enforceRateLimit(
     req,
     "progress:push",
     { limit: 120, windowMs: 60_000 },

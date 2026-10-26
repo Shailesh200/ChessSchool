@@ -52,6 +52,10 @@ export const PRESCHOOL_LESSON_TOPICS = {
   "pre-pawn-two-step": "move-pawn-two",
   "pre-pawn-capture-step": "move-pawn-capture",
   "pre-pawn-quiz": "move-pawn-capture",
+  // e2–e4 is a pawn move. It sits with the pawn quiz (after the double-step
+  // and capture lessons) and must stay before castling. Requiring castling
+  // here is a spine regression — castling is a later special move.
+  "pre-moves-e4": "move-pawn-capture",
   "pre-knight-see-l": "move-knight-shape",
   "pre-knight-jump-empty": "move-knight-jump",
   "pre-knight-basics": "move-knight-jump",

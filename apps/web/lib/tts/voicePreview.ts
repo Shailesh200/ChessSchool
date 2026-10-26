@@ -1,5 +1,8 @@
 import type { CoachPersonality, CoachVoiceId } from "@/core/store/settings.store";
-import { COACH_CHARACTERS } from "@/features/coaching/characters";
+import {
+  COACH_CHARACTERS,
+  DEFAULT_COACH_CHARACTER,
+} from "@/features/coaching/characters";
 import { COACH_VOICE_GROUPS, normalizeCoachVoice } from "./voices";
 
 /** Character sample — used when voice is `auto`. */
@@ -56,6 +59,14 @@ export function voicePreviewText(
   personality: CoachPersonality,
 ): string {
   const id = normalizeCoachVoice(voiceId);
-  if (id === "auto") return PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
-  return VOICE_PREVIEW[id] ?? PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW.sarcastic;
+  if (id === "auto") {
+    return (
+      PERSONALITY_PREVIEW[personality] ?? PERSONALITY_PREVIEW[DEFAULT_COACH_CHARACTER]
+    );
+  }
+  return (
+    VOICE_PREVIEW[id] ??
+    PERSONALITY_PREVIEW[personality] ??
+    PERSONALITY_PREVIEW[DEFAULT_COACH_CHARACTER]
+  );
 }

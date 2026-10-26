@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { Button } from "@/components/ui/Button";
@@ -120,17 +120,21 @@ function MateReviewSession({
     return { from: frame.from, to: frame.to };
   }, [safeIdx, frame]);
 
-  function clearTimer() {
+  const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }
+  }, []);
 
-  function schedule(fn: () => void, ms: number) {
-    clearTimer();
-    timerRef.current = window.setTimeout(fn, ms);
-  }
+  // Stable so the replay effect can depend on it without restarting every render.
+  const schedule = useCallback(
+    (fn: () => void, ms: number) => {
+      clearTimer();
+      timerRef.current = window.setTimeout(fn, ms);
+    },
+    [clearTimer],
+  );
 
   const restartLoopRef = useRef<() => void>(() => {});
   const advanceRef = useRef<() => void>(() => {});
@@ -193,7 +197,7 @@ function MateReviewSession({
       cancelledRef.current = true;
       clearTimer();
     };
-  }, [steps]);
+  }, [steps, schedule, clearTimer]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

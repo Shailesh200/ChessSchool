@@ -43,7 +43,7 @@ const TIME: Opt[] = [
   { value: "competitive", label: "90+ min/day", emoji: "🏆" },
 ];
 const COACH: Opt[] = [
-  { value: "anxious_nerd", label: "Otto · Anxious / Nerd", emoji: "🤓" },
+  { value: "anxious_nerd", label: "Otto · Careful Nerd", emoji: "🤓" },
   { value: "genz", label: "Kira · GenZ", emoji: "✨" },
   { value: "sassy", label: "Skye · Sassy", emoji: "💅" },
   { value: "sarcastic", label: "Ash · Sarcastic", emoji: "😏" },
@@ -202,7 +202,7 @@ export function OnboardingWizard({ name }: { name: string }) {
                 />
                 <span>
                   We&apos;ll recommend our optional{" "}
-                  <span className="text-ink font-extrabold">Pre-School</span> first —
+                  <span className="text-ink font-extrabold">Starter</span> stage first —
                   board, pieces &amp; notation. Skip anytime if you prefer.
                 </span>
               </p>

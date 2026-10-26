@@ -17,7 +17,7 @@ const bodySchema = z.object({
 
 /** Complete enrollment wizard — mirrors `saveOnboarding` for mobile Bearer auth. */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "profile:onboarding", {
+  const limited = await enforceRateLimit(req, "profile:onboarding", {
     limit: 20,
     windowMs: 60_000,
   });

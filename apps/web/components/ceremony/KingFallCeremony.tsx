@@ -154,7 +154,10 @@ export function KingFallCeremony({
             className="absolute overflow-visible"
             style={{ ...cell, backgroundColor: cover }}
           >
-            <div className="relative mx-auto h-[88%] w-[88%]" style={{ marginTop: "6%" }}>
+            <div
+              className="relative mx-auto h-[88%] w-[88%]"
+              style={{ marginTop: "6%" }}
+            >
               {reducedMotion ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

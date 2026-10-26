@@ -34,6 +34,7 @@ import { EnrollPrompt, EnrollPromptBanner } from "@/components/auth/EnrollPrompt
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { pickLessonHint } from "@chess-school/core";
 import {
   deriveTutorialVisuals,
   formatCoachText,
@@ -59,16 +60,6 @@ type LessonCeremony =
   | null;
 
 type Phase = "playing" | "correct" | "wrong" | "complete";
-
-const LESSON_TIPS: Record<string, string> = {
-  capture: "Scan for enemy pieces that aren't defended — you can win them for free.",
-  check: "A check forces a reply. Look for the most forcing move first.",
-  checkmate: "Checkmate = the king is attacked with no legal escape square.",
-  mate: "Checkmate = the king is attacked with no legal escape square.",
-  fork: "A knight fork hits two pieces at once — aim at the king and a big piece.",
-  promotion: "Reach the last rank to promote — usually a queen, but a knight can fork!",
-  opening: "In the opening: develop your pieces, control the centre, and castle early.",
-};
 
 /** The single legal move that turns fenA into fenB (the opponent's reply), or null. */
 function findReply(fenA: string, fenB: string): { from: Square; to: Square } | null {
@@ -643,9 +634,7 @@ export function LessonPlayer({
             <div className="rounded-card border-hairline bg-surface-card/70 hidden w-full items-start gap-2 border px-3 py-2 lg:flex">
               <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
               <p className="text-ink-500 text-[11px] leading-snug font-semibold">
-                {LESSON_TIPS[step.tag ?? ""] ??
-                  LESSON_TIPS[lesson.tag] ??
-                  "Take your time and calculate before you move."}
+                {pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag })}
               </p>
             </div>
           )}
@@ -740,9 +729,7 @@ export function LessonPlayer({
             <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2 lg:hidden">
               <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
               <p className="text-ink-500 text-[11px] leading-snug font-semibold">
-                {LESSON_TIPS[step.tag ?? ""] ??
-                  LESSON_TIPS[lesson.tag] ??
-                  "Take your time and calculate before you move."}
+                {pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag })}
               </p>
             </div>
           )}

@@ -11,7 +11,10 @@ export const dynamic = "force-dynamic";
 
 /** Start Google OAuth — redirects to Google's consent screen. */
 export async function GET(req: Request) {
-  const limited = enforceRateLimit(req, "auth:google", { limit: 30, windowMs: 60_000 });
+  const limited = await enforceRateLimit(req, "auth:google", {
+    limit: 30,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   if (!googleOAuthConfigured()) {

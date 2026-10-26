@@ -30,9 +30,7 @@ export function coachTextAlreadyQueued(text: string): boolean {
 }
 
 function activeCharacter(settings = useSettings.getState()): CoachCharacterId {
-  return normalizeCoachCharacter(
-    settings.coachCharacter ?? settings.coachPersonality,
-  );
+  return normalizeCoachCharacter(settings.coachCharacter ?? settings.coachPersonality);
 }
 
 function cacheKey(
@@ -72,9 +70,21 @@ function playUrl(url: string, volume: number, gen: number): Promise<void> {
   });
 }
 
+/**
+ * Chrome deprecates `speechSynthesis.speak()` before a user gesture and
+ * Lighthouse scores that as a best-practices failure. Cloud TTS is unaffected.
+ */
+function browserSpeechAllowed(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const activation = navigator.userActivation;
+  if (activation && !activation.hasBeenActive) return false;
+  return true;
+}
+
 function speakWithBrowser(text: string, volume: number, gen: number): Promise<void> {
   if (typeof window === "undefined" || !window.speechSynthesis)
     return Promise.resolve();
+  if (!browserSpeechAllowed()) return Promise.resolve();
   window.speechSynthesis.cancel();
   if (gen !== speakGen) return Promise.resolve();
 
@@ -212,9 +222,7 @@ export async function previewCoachCharacter(
   const settings = useSettings.getState();
   if (!settings.sound) return;
 
-  const character = normalizeCoachCharacter(
-    characterId ?? activeCharacter(settings),
-  );
+  const character = normalizeCoachCharacter(characterId ?? activeCharacter(settings));
   const line = coachCharacterOf(character).previewLine;
   stopCoachSpeech();
   const gen = speakGen;

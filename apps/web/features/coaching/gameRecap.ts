@@ -1,4 +1,5 @@
 import type { CoachPersonality } from "@/core/store/settings.store";
+import { DEFAULT_COACH_CHARACTER } from "@/features/coaching/characters";
 import type { EndReason } from "@/core/db/db";
 import type { VerboseMove } from "@/core/types/chess";
 import { applyCoachLine } from "./personality";
@@ -104,7 +105,7 @@ export function buildMatchRecap(input: GameRecapInput): string {
       ],
       anxious_nerd: [
         `Well played vs ${botName}. ${statLine} Study the finish.`,
-        `You earned this vs ${botName}. ${checkLine || "Calc those lines again."}`,
+        `You earned this vs ${botName}. ${checkLine || "Replay those lines once more."}`,
       ],
       egoistic: [
         `Crushed ${botName}! ${statLine} ${checkLine}`,
@@ -126,7 +127,7 @@ export function buildMatchRecap(input: GameRecapInput): string {
       ],
       anxious_nerd: [
         `Loss vs ${botName} — ${statLine} Replay the attack.`,
-        `${botName} outcalculated you. ${checkLine || statLine}`,
+        `${botName} saw further this time. ${checkLine || statLine}`,
       ],
       egoistic: [
         `${botName} finished the attack. ${statLine} Hunt the tactic.`,
@@ -157,23 +158,17 @@ export function buildMatchRecap(input: GameRecapInput): string {
       ],
     },
     "flag win": {
-      genz: [
-        `You won on time vs ${botName}! ${statLine}`,
-        `Clock win — ${statLine}`,
-      ],
+      genz: [`You won on time vs ${botName}! ${statLine}`, `Clock win — ${statLine}`],
       sarcastic: [
         `Flag fall — win. ${statLine}`,
         `Won on time. Manage the clock better too.`,
       ],
       anxious_nerd: [
         `Time trouble win vs ${botName}. ${statLine}`,
-        `Flag win. ${statLine}`,
+        `Won on time. ${statLine}`,
       ],
       egoistic: [`${botName} flagged — ${statLine}`, `Speed kill vs ${botName}.`],
-      sassy: [
-        `Won on time vs ${botName}. ${statLine}`,
-        `Flag win — ${statLine}`,
-      ],
+      sassy: [`Won on time vs ${botName}. ${statLine}`, `Flag win — ${statLine}`],
     },
     "flag loss": {
       genz: [
@@ -183,56 +178,40 @@ export function buildMatchRecap(input: GameRecapInput): string {
       sarcastic: [`Lost on time. ${statLine}`, `Flagged. Budget middlegame time.`],
       anxious_nerd: [
         `Time loss vs ${botName}. ${statLine}`,
-        `Flag loss. ${statLine}`,
+        `Ran out of time. ${statLine}`,
       ],
       egoistic: [`${botName} won on time. ${statLine}`, `Too slow — ${statLine}`],
-      sassy: [
-        `Ran out of time vs ${botName}. ${statLine}`,
-        `Flagged. ${statLine}`,
-      ],
+      sassy: [`Ran out of time vs ${botName}. ${statLine}`, `Flagged. ${statLine}`],
     },
     "resign win": {
-      genz: [
-        `${botName} resigned — ${statLine}`,
-        `Win — they resigned. ${statLine}`,
-      ],
+      genz: [`${botName} resigned — ${statLine}`, `Win — they resigned. ${statLine}`],
       sarcastic: [`Resignation win. ${statLine}`, `Point earned. ${statLine}`],
       anxious_nerd: [
-        `${botName} resigned. ${statLine} Winning plan.`,
-        `Resign win. ${statLine}`,
+        `${botName} resigned. ${statLine} Your plan worked.`,
+        `They resigned — you win. ${statLine}`,
       ],
       egoistic: [
         `${botName} quit — you had them. ${statLine}`,
         `Resignation. ${statLine}`,
       ],
-      sassy: [
-        `${botName} resigned. ${statLine}`,
-        `Win — they quit. ${statLine}`,
-      ],
+      sassy: [`${botName} resigned. ${statLine}`, `Win — they quit. ${statLine}`],
     },
     "resign loss": {
-      genz: [
-        `You resigned vs ${botName}. ${statLine}`,
-        `Resigned — ${statLine}`,
-      ],
-      sarcastic: [
-        `Resignation. ${statLine}`,
-        `You resigned. ${statLine}`,
-      ],
+      genz: [`You resigned vs ${botName}. ${statLine}`, `Resigned — ${statLine}`],
+      sarcastic: [`Resignation. ${statLine}`, `You resigned. ${statLine}`],
       anxious_nerd: [
         `Resigned vs ${botName}. ${statLine}`,
-        `Resign loss. ${statLine}`,
+        `You resigned. ${statLine}`,
       ],
       egoistic: [`You resigned to ${botName}. ${statLine}`, `Resignation. ${statLine}`],
-      sassy: [
-        `Resigned vs ${botName}. ${statLine}`,
-        `Resigned — ${statLine}`,
-      ],
+      sassy: [`Resigned vs ${botName}. ${statLine}`, `Resigned — ${statLine}`],
     },
   };
 
   const base = pick(
-    pools[outcome]?.[personality] ?? pools.draw.sarcastic ?? pools.draw.anxious_nerd!,
+    pools[outcome]?.[personality] ??
+      pools[outcome]?.[DEFAULT_COACH_CHARACTER] ??
+      pools.draw[DEFAULT_COACH_CHARACTER]!,
     seed,
   );
   const tail = buildRecapEpilogue(botName, personality, tier, playerWon, seed);

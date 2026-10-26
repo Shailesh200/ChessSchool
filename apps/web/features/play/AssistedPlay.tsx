@@ -61,11 +61,7 @@ function CoachBubble({
   const character = useSettings((s) => s.coachCharacter);
   return (
     <div className="border-hairline bg-surface-card text-ink flex h-[5.5rem] items-center gap-3 overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
-      <CoachAvatar
-        character={character}
-        state={loading ? "think" : "idle"}
-        size={48}
-      />
+      <CoachAvatar character={character} state={loading ? "think" : "idle"} size={48} />
       <div className="min-w-0 flex-1">
         <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
           Coach
@@ -172,8 +168,7 @@ function AssistedFullGame({ rating }: { rating: number }) {
     if (!e.isGameOver() || endedRef.current) return;
     endedRef.current = true;
     const status = e.status();
-    const winner =
-      status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    const winner = status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
     const result =
       winner === "w" ? "1-0" : winner === "b" ? "0-1" : ("1/2-1/2" as const);
     trackMatchEnd({
