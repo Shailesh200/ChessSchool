@@ -35,7 +35,7 @@ export type CoachCharacter = {
 };
 
 const LEGACY: Record<string, CoachCharacterId> = {
-  friendly: "genz",
+  friendly: DEFAULT_COACH_CHARACTER,
   strict: "sarcastic",
   mentor: "anxious_nerd",
   tactical: "egoistic",

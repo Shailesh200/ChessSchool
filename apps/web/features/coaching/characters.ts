@@ -172,7 +172,7 @@ export const COACH_CHARACTER_LIST = COACH_CHARACTER_IDS.map(
 );
 
 const LEGACY_PERSONALITY: Record<string, CoachCharacterId> = {
-  friendly: "genz",
+  friendly: DEFAULT_COACH_CHARACTER,
   strict: "sarcastic",
   mentor: "anxious_nerd",
   tactical: "egoistic",

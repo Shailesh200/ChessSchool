@@ -59,9 +59,9 @@ import { hydrateSettings, settings } from "./settings";
 const KEY = "chessschool.settings";
 const unknown = "not-a-coach" as CoachPersonality;
 
-/** Resolutions that existed before the default coach changed to Otto. */
+/** Legacy saved ids. friendly resolves to Otto; strict stays sarcastic. */
 const LEGACY_SAVED_COACH = {
-  friendly: "genz",
+  friendly: "anxious_nerd",
   strict: "sarcastic",
   mentor: "anxious_nerd",
   tactical: "egoistic",
@@ -144,6 +144,12 @@ describe("default coach fallbacks", () => {
     }
   });
 
+  it("stored friendly personality rehydrates to Otto", () => {
+    hydrateSettings({ coachPersonality: "friendly" } as never);
+    expect(settings.get().coachCharacter).toBe("anxious_nerd");
+    expect(settings.get().coachPersonality).toBe("anxious_nerd");
+  });
+
   it("bogus coachCharacter with friendly personality resolves to the default coach", () => {
     hydrateSettings({
       coachCharacter: "bogus",
@@ -156,7 +162,7 @@ describe("default coach fallbacks", () => {
   it("F4 onboarding empty pick uses the default coach", () => {
     expect(onboardingCoachChoice("")).toBe(DEFAULT_COACH_CHARACTER);
     expect(onboardingCoachChoice(undefined as never)).toBe(DEFAULT_COACH_CHARACTER);
-    expect(onboardingCoachChoice("friendly")).toBe("genz");
+    expect(onboardingCoachChoice("friendly")).toBe("anxious_nerd");
     expect(onboardingCoachChoice("not-a-coach")).toBe(DEFAULT_COACH_CHARACTER);
     expect(onboardingCoachChoice("sarcastic")).toBe("sarcastic");
   });
@@ -164,7 +170,7 @@ describe("default coach fallbacks", () => {
   it("F6 normalizeCoachCharacter uses the default coach", () => {
     expect(normalizeCoachCharacter(undefined)).toBe(DEFAULT_COACH_CHARACTER);
     expect(normalizeCoachCharacter("not-a-coach")).toBe(DEFAULT_COACH_CHARACTER);
-    expect(normalizeCoachCharacter("friendly")).toBe("genz");
+    expect(normalizeCoachCharacter("friendly")).toBe("anxious_nerd");
     expect(normalizeCoachCharacter("strict")).toBe("sarcastic");
     expect(normalizeCoachCharacter("sarcastic")).toBe("sarcastic");
   });
@@ -174,7 +180,7 @@ describe("default coach fallbacks", () => {
     expect(personaById("not-a-coach")).not.toBe(PERSONAS.sarcastic);
     expect(personaOf(undefined as never)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
     expect(personaOf(unknown)).toBe(PERSONAS[DEFAULT_COACH_CHARACTER]);
-    expect(personaOf("friendly")).toBe(PERSONAS.genz);
+    expect(personaOf("friendly")).toBe(PERSONAS.anxious_nerd);
     expect(personaById("sarcastic")).toBe(PERSONAS.sarcastic);
   });
 
