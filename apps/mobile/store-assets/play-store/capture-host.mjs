@@ -51,11 +51,12 @@ export function assertSafeCaptureHost(url) {
   }
 }
 
-const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "10.0.2.2"]);
+const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 /**
- * Fail closed. Allowed: empty, `file:` (not a nested URL), `:memory:`,
- * or a URL whose host is exactly localhost, 127.0.0.1, or 10.0.2.2.
+ * Fail closed. This runs on the CI runner, so 10.0.2.2 is not local here.
+ * Allowed: empty, `file:` (not a nested URL), `:memory:`,
+ * or a URL whose host is exactly localhost or 127.0.0.1.
  * The error does not include the URL.
  */
 export function assertLocalDatabaseUrl(raw) {
@@ -123,13 +124,14 @@ function selfTest() {
   assertLocalDatabaseUrl("file:/tmp/local.db");
   assertLocalDatabaseUrl(":memory:");
   assertLocalDatabaseUrl("http://127.0.0.1:8080");
-  assertLocalDatabaseUrl("http://10.0.2.2:3210");
   for (const bad of [
     "libsql://example.turso.io",
     "https://example.turso.io",
     "example.turso.io",
     "libsql-host.example.com:8080",
     "localhost.evil.com",
+    "http://10.0.2.2",
+    "libsql://10.0.2.2",
   ]) {
     let threw = false;
     try {

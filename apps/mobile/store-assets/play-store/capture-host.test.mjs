@@ -67,7 +67,6 @@ describe("assertLocalDatabaseUrl", () => {
       "http://localhost:8080",
       "https://localhost:8080",
       "http://127.0.0.1:8080",
-      "http://10.0.2.2:3210",
     ]) {
       assert.doesNotThrow(() => assertLocalDatabaseUrl(url), String(url));
     }
@@ -85,6 +84,9 @@ describe("assertLocalDatabaseUrl", () => {
       "https://chess-school.in",
       "https://chess-school.vercel.app",
       "http://10.0.2.3",
+      "http://10.0.2.2",
+      "http://10.0.2.2:3210",
+      "libsql://10.0.2.2",
       "http://10.0.2.2.evil.com",
     ];
     for (const url of refused) {
