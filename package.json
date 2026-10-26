@@ -29,6 +29,7 @@
     "parity:android": "bash scripts/parity-android.sh",
     "parity:semantic": "pnpm --filter web exec playwright test e2e/parity-matrix.spec.ts",
     "verify:coverage": "bash scripts/verify-test-coverage.sh",
+    "db:seed:test-user": "pnpm --filter web db:seed:test-user",
     "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs",
     "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate"
   },

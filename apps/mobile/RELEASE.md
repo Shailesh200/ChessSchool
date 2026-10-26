@@ -203,6 +203,17 @@ Device smoke checklist: [`store-assets/play-store/SMOKE_QA.md`](store-assets/pla
 - Feature graphic 1024×500 — `feature-graphic-1024x500.png`
 - Phone screenshots × 6 — `screenshots/01-academy.png` … `06-profile.png`
 
+**Screenshot login (made up, test-only).** The Maestro screenshot job signs in as
+a fictional student, Alex. Alex is not a real account and is not in the curriculum
+seed. Seed the CI runner's local API database with `pnpm db:seed:test-user`
+(see `apps/web/db/README.md`). The script refuses production and any non-local
+database.
+
+| | |
+| --- | --- |
+| Email | `alex@test.chessschool.local` |
+| Password | `AlexTestOnly1` |
+
 **Review notes:** Provide a test account email/password for Google reviewers.
 
 ---
