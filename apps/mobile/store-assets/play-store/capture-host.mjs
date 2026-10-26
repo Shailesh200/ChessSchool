@@ -51,17 +51,30 @@ export function assertSafeCaptureHost(url) {
   }
 }
 
-/** Local sqlite only. The error does not include the URL. */
+const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "10.0.2.2"]);
+
+/**
+ * Fail closed. Allowed: empty, `file:` (not a nested URL), `:memory:`,
+ * or a URL whose host is exactly localhost, 127.0.0.1, or 10.0.2.2.
+ * The error does not include the URL.
+ */
 export function assertLocalDatabaseUrl(raw) {
   if (raw == null || String(raw).trim() === "") return;
   const value = String(raw).trim();
+  if (value === ":memory:" || LOCAL_DB_HOSTS.has(value)) return;
   if (value.startsWith("file:")) {
     if (value.slice("file:".length).includes("://")) {
       throw new Error("Refusing a remote DATABASE_URL.");
     }
     return;
   }
-  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
+  let host = "";
+  try {
+    host = new URL(value).hostname;
+  } catch {
+    throw new Error("Refusing a remote DATABASE_URL.");
+  }
+  if (!LOCAL_DB_HOSTS.has(host)) {
     throw new Error("Refusing a remote DATABASE_URL.");
   }
 }
@@ -108,7 +121,16 @@ function selfTest() {
   assertLocalDatabaseUrl("");
   assertLocalDatabaseUrl("file:local.db");
   assertLocalDatabaseUrl("file:/tmp/local.db");
-  for (const bad of ["libsql://example.turso.io", "https://example.turso.io"]) {
+  assertLocalDatabaseUrl(":memory:");
+  assertLocalDatabaseUrl("http://127.0.0.1:8080");
+  assertLocalDatabaseUrl("http://10.0.2.2:3210");
+  for (const bad of [
+    "libsql://example.turso.io",
+    "https://example.turso.io",
+    "example.turso.io",
+    "libsql-host.example.com:8080",
+    "localhost.evil.com",
+  ]) {
     let threw = false;
     try {
       assertLocalDatabaseUrl(bad);

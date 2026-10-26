@@ -55,21 +55,37 @@ describe("assertSafeCaptureHost", () => {
 });
 
 describe("assertLocalDatabaseUrl", () => {
-  it("allows a local sqlite file", () => {
-    for (const url of [undefined, "", "   ", "file:local.db", "file:/tmp/local.db", "local.db", "localhost"]) {
+  it("allows a local sqlite file, memory, and an exact local host", () => {
+    for (const url of [
+      undefined,
+      "",
+      "   ",
+      "file:local.db",
+      "file:/tmp/local.db",
+      ":memory:",
+      "localhost",
+      "http://localhost:8080",
+      "https://localhost:8080",
+      "http://127.0.0.1:8080",
+      "http://10.0.2.2:3210",
+    ]) {
       assert.doesNotThrow(() => assertLocalDatabaseUrl(url), String(url));
     }
   });
 
-  it("refuses remote hosts and prod-looking urls without echoing them", () => {
+  it("refuses scheme-less hosts, remote hosts, and prod-looking urls without echoing them", () => {
     const refused = [
+      "example.turso.io",
+      "libsql-host.example.com:8080",
+      "localhost.evil.com",
+      "local.db",
       "libsql://example.turso.io",
       "https://example.turso.io",
-      "http://127.0.0.1:8080",
-      "https://localhost:8080",
       "https://www.chess-school.in",
       "https://chess-school.in",
       "https://chess-school.vercel.app",
+      "http://10.0.2.3",
+      "http://10.0.2.2.evil.com",
     ];
     for (const url of refused) {
       assert.throws(() => assertLocalDatabaseUrl(url), /Refusing a remote DATABASE_URL/);
