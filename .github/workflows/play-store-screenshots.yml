@@ -14,6 +14,10 @@ name: Play Store screenshots
 # Phone frames come from the pixel_2 profile (1080×1920, 420 dpi). The job
 # also sets wm size/density to those values. It does not resize. Alpha is stripped.
 #
+# TEMPORARY push trigger below is one proof of the seeded store-shot flow.
+# Remove it after that run. A push has no workflow input, so it uses
+# apps/mobile/maestro/store-shots.yaml.
+#
 # EXPO_PUBLIC_PARITY=1 is capture-only. The test APK stays in RUNNER_TEMP and
 # is deleted after the emulator step. Only normalized PNGs are uploaded.
 # A store-shot login link is substituted into a mode-600 flow in RUNNER_TEMP
@@ -27,6 +31,10 @@ on:
         required: false
         default: apps/mobile/maestro/store-shots.yaml
         type: string
+  # TEMPORARY: one proof run. Remove after it finishes.
+  push:
+    branches:
+      - jimbe/e-native-store-shots
 
 permissions:
   contents: read
