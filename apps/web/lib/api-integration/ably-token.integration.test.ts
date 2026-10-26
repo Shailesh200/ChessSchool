@@ -219,6 +219,39 @@ describe("ably token API integration", () => {
     ]);
   });
 
+  it("returns a scoped token when the rate limiter does not fire", async () => {
+    const token = await register(`ably-allow-${Date.now()}@test.dev`, 106);
+    const id = await createGame(token, 107);
+    const res = await getToken(
+      new Request(tokenUrl(id), { headers: authed(token, 108) }),
+    );
+    expect(res.status).toBe(200);
+    const body = await readJson<TokenBody>(res);
+    expect(JSON.parse(body.capability)).toEqual({
+      [`game:${id}`]: ["subscribe"],
+    });
+    expect(createTokenRequest).toHaveBeenCalledWith({
+      ttl: TOKEN_TTL_MS,
+      capability: { [`game:${id}`]: ["subscribe"] },
+    });
+  });
+
+  it("returns 429 when the rate limiter fires", async () => {
+    const token = await register(`ably-block-${Date.now()}@test.dev`, 109);
+    const headers = authed(token, 110);
+    for (let i = 0; i < TOKEN_RATE_LIMIT; i++) {
+      const res = await getToken(new Request(tokenUrl(null), { headers }));
+      expect(res.status).toBe(400);
+    }
+    const blocked = await getToken(new Request(tokenUrl(null), { headers }));
+    expect(blocked.status).toBe(429);
+    expect(await readJson<{ error: string }>(blocked)).toEqual({
+      error: "rate_limited",
+    });
+    expect(blocked.headers.get("Retry-After")).toBeTruthy();
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
   it("rate limits token requests per user", async () => {
     const token = await register(`ably-rate-${Date.now()}@test.dev`, 98);
     const headers = authed(token, 99);

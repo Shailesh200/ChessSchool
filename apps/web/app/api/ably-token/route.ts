@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "login required" }, { status: 401 });
   }
 
-  const limited = enforceRateLimit(req, "ably:token", TOKEN_RATE, user.id);
+  const limited = await enforceRateLimit(req, "ably:token", TOKEN_RATE, user.id);
   if (limited) return limited;
 
   const gameParam = new URL(req.url).searchParams.get("game");
