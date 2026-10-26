@@ -7,9 +7,29 @@ describe("assertSafeCaptureHost", () => {
     assert.doesNotThrow(() => assertSafeCaptureHost("http://localhost:3000"));
     assert.doesNotThrow(() => assertSafeCaptureHost("http://127.0.0.1:3000"));
     assert.doesNotThrow(() => assertSafeCaptureHost("http://10.0.2.2:3000"));
+    assert.doesNotThrow(() => assertSafeCaptureHost("http://10.0.2.2"));
     assert.doesNotThrow(() =>
       assertSafeCaptureHost("https://chess-school-git-lane-f-f12-shailesh200.vercel.app"),
     );
+  });
+
+  it("allows 10.0.2.2 only as an exact host", () => {
+    assert.doesNotThrow(() => assertSafeCaptureHost("http://10.0.2.2:3210"));
+    const refused = [
+      "http://10.0.2.3",
+      "http://10.0.0.1",
+      "http://10.1.2.3",
+      "http://10.255.255.255",
+      "http://10.0.2.2.evil.com",
+    ];
+    for (const url of refused) {
+      const host = new URL(url).hostname;
+      assert.throws(
+        () => assertSafeCaptureHost(url),
+        new RegExp(`Refusing to register a capture user on ${host.replaceAll(".", "\\.")}`),
+        url,
+      );
+    }
   });
 
   it("refuses production, main, staging, and lookalike hosts", () => {

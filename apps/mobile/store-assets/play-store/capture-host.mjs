@@ -1,8 +1,9 @@
 /**
  * Hosts allowed to register the made-up store-shot student (display name Alex).
  *
- * Allowed: localhost, 127.0.0.1, 10.0.2.2 (the Android emulator's name for
- * the host machine), or a hostname matching
+ * Allowed: localhost, 127.0.0.1, and 10.0.2.2 as exact host matches
+ * (the emulator's name for this machine — not a 10.x range or a suffix),
+ * or a hostname matching
  * ^chess-school-git-[a-z0-9-]+\.vercel\.app$ whose branch part is not
  * main or staging and does not start with main- or staging-.
  * That refuses chess-school.vercel.app, -git-main and -git-staging builds,
@@ -25,6 +26,7 @@ import { pathToFileURL } from "node:url";
 const CAPTURE_PREVIEW_HOST = /^chess-school-git-([a-z0-9-]+)\.vercel\.app$/;
 
 function isAllowedCaptureHost(host) {
+  // Exact strings only. No wildcard and no 10.x range.
   if (host === "localhost" || host === "127.0.0.1" || host === "10.0.2.2") return true;
   const match = CAPTURE_PREVIEW_HOST.exec(host);
   if (!match) return false;
