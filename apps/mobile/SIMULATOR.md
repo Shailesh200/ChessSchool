@@ -30,31 +30,25 @@ If that happens:
 
 ---
 
-## 1. Generate the native project + add the Stockfish engine
-The `ios/` folder is gitignored (generated). The Stockfish engine source + NNUE nets
-(`modules/stockfish/ios/engine/`, ~66 MB, GPLv3) are gitignored too — fetch them locally:
+## 1. Fetch Stockfish, then generate the native project
+The `ios/` folder is gitignored (generated). The Stockfish 18 sources and NNUE nets
+(`modules/stockfish/ios/engine/`, ~108 MiB, GPLv3) are gitignored too. Fetch them with
+the pinned, checksummed script — do not copy a Stockfish release by hand:
 
 ```bash
 cd apps/mobile
 
-# (a) generate ios/ and autolink modules/stockfish
+# (a) download sf_18 + both NNUE nets into modules/stockfish/ios/engine/
+#     (same script EAS runs on iOS). Must happen before pod install.
+bash scripts/fetch-stockfish.sh
+
+# (b) generate ios/ and autolink modules/stockfish
 npx expo prebuild -p ios
-
-# (b) drop in the Stockfish 16.1 source + the two NNUE nets it references
-cd modules/stockfish/ios && mkdir -p engine && cd engine
-curl -L https://github.com/official-stockfish/Stockfish/archive/refs/tags/sf_16.1.tar.gz | tar xz
-cp Stockfish-sf_16.1/src/*.cpp Stockfish-sf_16.1/src/*.h .
-cp -r Stockfish-sf_16.1/src/nnue Stockfish-sf_16.1/src/incbin Stockfish-sf_16.1/src/syzygy .
-curl -L -o nn-b1a57edbea57.nnue https://tests.stockfishchess.org/api/nn/nn-b1a57edbea57.nnue   # big net (~65 MB)
-curl -L -o nn-baff1ede1f90.nnue https://tests.stockfishchess.org/api/nn/nn-baff1ede1f90.nnue   # small net (~3.5 MB)
-rm -rf Stockfish-sf_16.1
-cd ../../../..   # back to apps/mobile
-
-# (c) re-run pod install so the podspec picks up the engine sources
-(cd ios && pod install)
 ```
-(If the office proxy blocks the downloads, grab them on a personal network. The net
-filenames come from `evaluate.h` → `EvalFileDefaultName{Big,Small}`.)
+
+Pins, checksums, and the EAS hook are in [`STOCKFISH.md`](STOCKFISH.md). If `ios/`
+already exists, run `(cd ios && pod install)` after the fetch so CocoaPods sees the
+new sources. EAS does this itself via `eas-build-pre-install`.
 
 ## 2. Build + run
 ```bash
@@ -91,7 +85,8 @@ fell back to the JS engine (e.g. the native module didn't load).
   Stockfish's UCI loop on a background thread with stdin/stdout rewired to pipes, and
   streams each output line to JS as a `stockfish-output` event.
 - **`Stockfish.podspec`** — compiles `engine/**` with `-Dmain=stockfish_cpp_main` and
-  `-I engine` (so `incbin` finds the bundled NNUE nets); exposes the C entry via the
+  `-I engine` (so `incbin` embeds the fetched NNUE nets; they are not copied into the
+  app bundle a second time); exposes the C entry via the
   framework umbrella (`public_header_files`). `stockfish-shim.cpp` re-exports the renamed
   C++ `main` as the C symbol `stockfish_main` the Swift bridge links against.
 - **`src/stockfish.ts`** — the JS adapter: `eloToUci` (UCI_Elo ≥1320 / Skill Level below),
