@@ -358,7 +358,8 @@ jobs:
           emulator-boot-timeout: 900
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot-save -gpu swiftshader_indirect -camera-back none -camera-front none -no-metrics
           script: |
-            set -euo pipefail
+            # This action runs the script with /bin/sh (dash). pipefail is not available.
+            set -eu
             export PATH="$PATH:$HOME/.maestro/bin"
             adb wait-for-device
             adb shell wm size 1080x1920

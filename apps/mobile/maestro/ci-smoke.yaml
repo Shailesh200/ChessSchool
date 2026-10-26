@@ -5,12 +5,16 @@ appId: com.chessschool.app
 # lane) and signs in as Alex from that lane's fixture. This file does not.
 - launchApp:
     clearState: true
+# Capture builds set EXPO_PUBLIC_PARITY=1, which can leave orientation
+# before this id is shown. Tap it when it is there.
 - extendedWaitUntil:
     visible:
       id: "orientation-skip"
-    timeout: 180000
+    optional: true
+    timeout: 30000
 - tapOn:
     id: "orientation-skip"
+    optional: true
 - tapOn:
     text: "Not Now"
     optional: true
