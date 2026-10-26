@@ -38,8 +38,8 @@ login looks it up. The defaults are made up and test-only:
 Success logs only `test user seeded` and the user id (`user-alex-play-store`).
 The email and password are not printed.
 
-After a successful seed the script overwrites `apps/web/.store-shot.env` (file
-mode `0600`, gitignored) with the values it used:
+After a successful seed the script removes any existing `apps/web/.store-shot.env`
+(a missing file is fine) and writes a new one with mode `0600` (gitignored):
 
 ```
 STORE_SHOT_EMAIL=...

@@ -2,7 +2,14 @@
  * @vitest-environment node
  */
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -254,16 +261,19 @@ describe("test-user seed guard", () => {
     });
   });
 
-  it("writes STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD with mode 0600", () => {
+  it("replaces a pre-existing 0644 file with mode 0600", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "store-shot-"));
     const file = path.join(dir, ".store-shot.env");
     try {
-      writeFileSync(file, "OLD=1\n", { mode: 0o644 });
+      writeFileSync(file, "OLD=1\n");
+      chmodSync(file, 0o644);
+      expect(statSync(file).mode & 0o777).toBe(0o644);
       writeStoreShotEnv(file, {
         email: "shot.user@store-shot.test",
         password: "StoreShotEnv1",
       });
       assertStoreShotFile(file, "shot.user@store-shot.test", "StoreShotEnv1");
+      expect(statSync(file).mode & 0o777).toBe(0o600);
       expect(readFileSync(file, "utf8")).not.toContain("OLD=");
     } finally {
       rmSync(dir, { recursive: true, force: true });

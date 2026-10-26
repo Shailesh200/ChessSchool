@@ -211,8 +211,9 @@ database.
 
 Set `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD` to choose the login. When either
 is unset or blank, the script uses that variable's made-up default. It does not
-print the values. After a successful seed it writes them to `apps/web/.store-shot.env`
-(mode `0600`, gitignored) as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
+print the values. After a successful seed it removes any existing
+`apps/web/.store-shot.env` and writes a new file with mode `0600` (gitignored)
+as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
 
 | Variable | Default when unset |
 | --- | --- |

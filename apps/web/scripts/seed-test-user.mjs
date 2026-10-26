@@ -15,7 +15,7 @@
  * Requires the local schema (`pnpm --filter web db:push` or `db:fresh`).
  */
 import { createClient } from "@libsql/client";
-import { chmodSync, writeFileSync } from "node:fs";
+import { chmodSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isProductionDbHost } from "../db/production-db-hosts.mjs";
@@ -165,8 +165,9 @@ export function storeShotLogin(env = process.env) {
 }
 
 /**
- * Overwrite the capture-job env file with the values this seed used.
- * Mode 0600. Does not print the values.
+ * Replace the capture-job env file with the values this seed used.
+ * An existing file is removed first so a looser mode cannot stick.
+ * The new file is mode 0600. Does not print the values.
  *
  * @param {string} filePath
  * @param {{ email: string, password: string }} login
@@ -178,6 +179,11 @@ export function writeStoreShotEnv(filePath, login) {
     );
   }
   const body = `STORE_SHOT_EMAIL=${login.email}\nSTORE_SHOT_PASSWORD=${login.password}\n`;
+  try {
+    unlinkSync(filePath);
+  } catch (error) {
+    if (/** @type {NodeJS.ErrnoException} */ (error).code !== "ENOENT") throw error;
+  }
   writeFileSync(filePath, body, { encoding: "utf8", mode: 0o600, flag: "w" });
   chmodSync(filePath, 0o600);
 }
