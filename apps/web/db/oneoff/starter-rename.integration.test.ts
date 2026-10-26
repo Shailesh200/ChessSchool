@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -222,6 +222,36 @@ async function snapshot(client: Client): Promise<Snap> {
     snap[name] = rows.rows.map((row) => plain(row, rows.columns));
   }
   return snap;
+}
+
+/** `db:fresh` plus every `pnpm` script that command calls. */
+function freshScriptChain(scripts: Record<string, string>): string[] {
+  const seen = new Set<string>();
+  const order: string[] = [];
+  const visit = (name: string) => {
+    if (seen.has(name)) return;
+    const command = scripts[name];
+    if (command === undefined) throw new Error(`package.json has no script ${name}`);
+    seen.add(name);
+    order.push(name);
+    for (const match of command.matchAll(/\bpnpm\s+(?:run\s+)?([A-Za-z0-9:_-]+)/g)) {
+      const next = match[1];
+      if (next !== undefined && next in scripts) visit(next);
+    }
+  };
+  visit("db:fresh");
+  return order;
+}
+
+/** Local files a package script starts. `drizzle-kit` reads drizzle.config.ts. */
+function filesRunBy(command: string): string[] {
+  const files: string[] = [];
+  for (const match of command.matchAll(/\bnode\s+(\S+)/g)) {
+    const path = match[1];
+    if (path !== undefined) files.push(path);
+  }
+  if (/\bdrizzle-kit\b/.test(command)) files.push("drizzle.config.ts");
+  return files;
 }
 
 function maskSteps(snap: Snap): Snap {
@@ -469,9 +499,24 @@ describe("starter rename fallback sql", () => {
     const pkg = JSON.parse(readFileSync(join(webRoot(), "package.json"), "utf8")) as {
       scripts: Record<string, string>;
     };
-    expect(pkg.scripts["db:fresh"]).not.toContain("oneoff");
-    expect(pkg.scripts["db:fresh"]).not.toContain("starter-rename");
-    expect(existsSync(join(webRoot(), "db/migrations"))).toBe(false);
+    const chain = freshScriptChain(pkg.scripts);
+    expect(chain).toEqual(
+      expect.arrayContaining([
+        "db:fresh",
+        "db:reset",
+        "db:push",
+        "db:seed",
+        "db:seed-homework",
+      ]),
+    );
+    for (const name of chain) {
+      const command = pkg.scripts[name]!;
+      expect(command).not.toContain("oneoff");
+      for (const rel of filesRunBy(command)) {
+        const text = readFileSync(join(webRoot(), rel), "utf8");
+        expect(text).not.toContain("db/oneoff/");
+      }
+    }
     expect(
       execSync("git ls-files apps/web/db/seed.sql", { encoding: "utf8" }).trim(),
     ).toBe("");
