@@ -19,4 +19,9 @@ export async function createGameSessionId(): Promise<string> {
   throw new Error("failed to allocate game session id");
 }
 
-export { isParticipant, seatColorForUser, type SeatColor } from "./game-session-seat";
+export {
+  isParticipant,
+  seatColorForUser,
+  seatTokenMatchesSession,
+  type SeatColor,
+} from "./game-session-seat";

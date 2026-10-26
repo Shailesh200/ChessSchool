@@ -23,6 +23,7 @@ import {
   trackMatchStart,
 } from "@/lib/analytics/matchEvents";
 import { consumeSessionPost } from "@/features/play/sessionPostResult";
+import { useSession } from "@/core/store/session.store";
 
 interface SessionState {
   id: string;
@@ -58,6 +59,11 @@ export default function OnlineSessionPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  // Join must run once per id; a fresh router object must not re-claim the seat.
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
   const [boardBox, boardSize] = useSquareSize();
   const [session, setSession] = useState<SessionState | null>(null);
   const [color, setColor] = useState<"w" | "b" | "spectator" | null>(null);
@@ -85,6 +91,11 @@ export default function OnlineSessionPage({
   useEffect(() => {
     colorRef.current = color;
   }, [color]);
+  const authed = useSession((s) => s.authed);
+  // Logged-in players authenticate with the session cookie. Guests have no
+  // session, so the #33 seat token is sent on the probe and on every authUrl
+  // renewal. It is not put on the URL.
+  const guestSeatToken = authed === false ? seatToken : null;
 
   // Tick for the live clock countdown — only while a clock is actually running,
   // so we don't re-render the board 4x/second (and disturb clicks) otherwise.
@@ -118,7 +129,7 @@ export default function OnlineSessionPage({
     fetch(`/api/session/${id}?join=1`, { credentials: "include" })
       .then((r) => {
         if (r.status === 401) {
-          router.push(`/login?next=/play/online/${id}`);
+          routerRef.current.push(`/login?next=/play/online/${id}`);
           return null;
         }
         return r.ok ? r.json() : null;
@@ -200,15 +211,25 @@ export default function OnlineSessionPage({
   useEffect(() => {
     let client: AblyRealtime | null = null;
     let cancelled = false;
+    if (authed === false && !guestSeatToken) {
+      ablyRef.current = false;
+      return;
+    }
     const tokenUrl = `/api/ably-token?game=${encodeURIComponent(id)}`;
+    const seatHeaders = guestSeatToken ? { "x-seat-token": guestSeatToken } : undefined;
     // Probe first so we don't load the Ably bundle / connect when it's not set up.
-    // Same-origin fetch sends the httpOnly session cookie.
-    void fetch(tokenUrl)
+    // Same-origin fetch sends the httpOnly session cookie. Guests send the seat
+    // token header instead; Ably repeats authHeaders on every authUrl renewal.
+    void fetch(tokenUrl, seatHeaders ? { headers: seatHeaders } : undefined)
       .then((r) => (r.ok ? import("ably") : null))
       .then((mod) => {
         if (!mod || cancelled) return;
         const { Realtime } = mod;
-        const rt = new Realtime({ authUrl: tokenUrl, autoConnect: true });
+        const rt = new Realtime({
+          authUrl: tokenUrl,
+          ...(seatHeaders ? { authHeaders: seatHeaders } : {}),
+          autoConnect: true,
+        });
         if (cancelled) {
           rt.close();
           return;
@@ -248,7 +269,7 @@ export default function OnlineSessionPage({
         /* ignore */
       }
     };
-  }, [id, applyState]);
+  }, [id, applyState, authed, guestSeatToken]);
 
   // Poll: fast while waiting on the opponent, but just a slow backstop once
   // realtime is connected.
@@ -507,7 +528,7 @@ export default function OnlineSessionPage({
         optimisticRef.current = null;
         setOptimistic(null);
       });
-  }, [active, hasClock, wMs, bMs, id, consumePost]);
+  }, [active, hasClock, wMs, bMs, id, consumePost, seatToken]);
 
   const myClock = color === "b" ? bMs : wMs;
   const oppClock = color === "b" ? wMs : bMs;

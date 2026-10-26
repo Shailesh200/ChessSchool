@@ -1,5 +1,15 @@
 import Link from "next/link";
 import { BackButton } from "@/components/ui/BackButton";
+import {
+  STOCKFISH_AUTHORS_CREDIT,
+  STOCKFISH_JS_SOURCE_URL,
+  STOCKFISH_JS_TAG,
+  STOCKFISH_NOTICE,
+  STOCKFISH_UPSTREAM_TAG,
+  STOCKFISH_UPSTREAM_URL,
+  appSourceUrl,
+  webBuildRevision,
+} from "@/lib/licences";
 
 export const metadata = {
   title: "About ChessSchool",
@@ -8,6 +18,8 @@ export const metadata = {
 };
 
 export default function AboutPage() {
+  const revision = webBuildRevision();
+  const appSource = appSourceUrl(revision);
   return (
     <div className="bg-surface min-h-dvh px-5 py-8">
       <div className="mx-auto max-w-2xl">
@@ -63,6 +75,61 @@ export default function AboutPage() {
               </Link>
               .
             </p>
+          </section>
+
+          <section id="licences">
+            <h2 className="text-ink text-lg font-extrabold">Licences</h2>
+            <p>{STOCKFISH_NOTICE}.</p>
+            <p>
+              {STOCKFISH_AUTHORS_CREDIT} The engine shipped here is stockfish.js{" "}
+              {STOCKFISH_JS_TAG}, a lite single-threaded WebAssembly build. Its
+              corresponding source is that stockfish.js commit. Official Stockfish{" "}
+              {STOCKFISH_UPSTREAM_TAG} is the upstream origin of the port, not the
+              binary in /engine. The GPL-3.0 text and author list are published beside
+              the engine.
+            </p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>
+                <a
+                  href={STOCKFISH_JS_SOURCE_URL}
+                  className="text-brand-500 font-bold underline"
+                >
+                  Shipped engine source
+                </a>{" "}
+                (stockfish.js {STOCKFISH_JS_TAG})
+              </li>
+              <li>
+                <a
+                  href={STOCKFISH_UPSTREAM_URL}
+                  className="text-brand-500 font-bold underline"
+                >
+                  Stockfish origin
+                </a>{" "}
+                (official Stockfish {STOCKFISH_UPSTREAM_TAG})
+              </li>
+              <li>
+                <a
+                  href="/engine/Copying.txt"
+                  className="text-brand-500 font-bold underline"
+                >
+                  GNU GPL-3.0 (Copying.txt)
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/engine/AUTHORS"
+                  className="text-brand-500 font-bold underline"
+                >
+                  Stockfish AUTHORS
+                </a>
+              </li>
+              <li>
+                <a href={appSource} className="text-brand-500 font-bold underline">
+                  ChessSchool source
+                </a>
+                {revision ? ` (${revision.slice(0, 12)})` : " (repository root)"}
+              </li>
+            </ul>
           </section>
         </article>
 

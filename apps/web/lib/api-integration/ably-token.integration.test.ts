@@ -7,6 +7,8 @@ const PW = "testpass123";
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 /** Matches TOKEN_RATE.limit in app/api/ably-token/route.ts */
 const TOKEN_RATE_LIMIT = 30;
+/** Matches GUEST_IP_RATE.limit in app/api/ably-token/route.ts */
+const GUEST_IP_RATE_LIMIT = 60;
 
 const { createTokenRequest } = vi.hoisted(() => ({
   createTokenRequest: vi.fn(
@@ -44,6 +46,10 @@ function tokenUrl(game: string | null, extra = ""): string {
 
 function authed(token: string, slot: number): Record<string, string> {
   return { ...bearer(token), ...testIp(slot) };
+}
+
+function guest(seatToken: string, slot: number): Record<string, string> {
+  return { "x-seat-token": seatToken, ...testIp(slot) };
 }
 
 describe("ably token API integration", () => {
@@ -86,6 +92,14 @@ describe("ably token API integration", () => {
   }
 
   async function createGame(token: string, slot: number): Promise<string> {
+    const seated = await createSeated(token, slot);
+    return seated.id;
+  }
+
+  async function createSeated(
+    token: string,
+    slot: number,
+  ): Promise<{ id: string; seatToken: string }> {
     const res = await postSession(
       new Request("http://test/api/session", {
         method: "POST",
@@ -93,8 +107,7 @@ describe("ably token API integration", () => {
       }),
     );
     expect(res.status).toBe(200);
-    const { id } = await readJson<{ id: string }>(res);
-    return id;
+    return readJson<{ id: string; seatToken: string }>(res);
   }
 
   it("returns 401 for anonymous callers", async () => {
@@ -276,6 +289,139 @@ describe("ably token API integration", () => {
     expect(await readJson<{ error: string }>(res)).toEqual({
       error: "ably_not_configured",
     });
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns a game-scoped token for a guest seat token", async () => {
+    const stamp = Date.now();
+    const white = await register(`ably-guest-w-${stamp}@test.dev`, 120);
+    const black = await register(`ably-guest-b-${stamp}@test.dev`, 121);
+    const seated = await createSeated(white, 122);
+    const hostile = `&capability=${encodeURIComponent('{"*":["*"]}')}&ttl=999999999`;
+
+    const whiteRes = await getToken(
+      new Request(tokenUrl(seated.id, hostile), {
+        headers: guest(seated.seatToken, 123),
+      }),
+    );
+    expect(whiteRes.status).toBe(200);
+    const whiteBody = await readJson<TokenBody>(whiteRes);
+    expect(JSON.parse(whiteBody.capability)).toEqual({
+      [`game:${seated.id}`]: ["subscribe"],
+    });
+    expect(whiteBody.ttl).toBe(TOKEN_TTL_MS);
+    expect(JSON.stringify(whiteBody)).not.toContain(seated.seatToken);
+    expect(createTokenRequest).toHaveBeenCalledWith({
+      ttl: TOKEN_TTL_MS,
+      capability: { [`game:${seated.id}`]: ["subscribe"] },
+    });
+
+    const join = await getSession(
+      new Request(`http://test/api/session/${seated.id}?join=1`, {
+        headers: bearer(black),
+      }),
+      { params: Promise.resolve({ id: seated.id }) },
+    );
+    expect(join.status).toBe(200);
+    const joined = await readJson<{ seatToken: string }>(join);
+    const blackRes = await getToken(
+      new Request(tokenUrl(seated.id), { headers: guest(joined.seatToken, 124) }),
+    );
+    expect(blackRes.status).toBe(200);
+    const blackBody = await readJson<TokenBody>(blackRes);
+    expect(JSON.parse(blackBody.capability)).toEqual({
+      [`game:${seated.id}`]: ["subscribe"],
+    });
+    expect(JSON.stringify(blackBody)).not.toContain(joined.seatToken);
+  });
+
+  it("returns 403 for a seat token from another game", async () => {
+    const stamp = Date.now();
+    const white = await register(`ably-guest-other-${stamp}@test.dev`, 125);
+    const home = await createSeated(white, 126);
+    const other = await createSeated(white, 127);
+    const res = await getToken(
+      new Request(tokenUrl(other.id), { headers: guest(home.seatToken, 128) }),
+    );
+    expect(res.status).toBe(403);
+    expect(await readJson<{ error: string }>(res)).toEqual({
+      error: "not a participant",
+    });
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
+  it("rejects a forged seat token", async () => {
+    const white = await register(`ably-guest-forge-${Date.now()}@test.dev`, 129);
+    const seated = await createSeated(white, 130);
+    const forged = `${seated.seatToken.slice(0, -4)}xxxx`;
+    const res = await getToken(
+      new Request(tokenUrl(seated.id), { headers: guest(forged, 131) }),
+    );
+    expect(res.status).toBe(403);
+    const body = await readJson<{ error: string }>(res);
+    expect(body).toEqual({ error: "not a participant" });
+    expect(JSON.stringify(body)).not.toContain(forged);
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when neither a session nor a seat token is sent", async () => {
+    const white = await register(`ably-guest-none-${Date.now()}@test.dev`, 132);
+    const seated = await createSeated(white, 133);
+    const res = await getToken(
+      new Request(tokenUrl(seated.id), { headers: testIp(134) }),
+    );
+    expect(res.status).toBe(401);
+    expect(await readJson<{ error: string }>(res)).toEqual({
+      error: "login required",
+    });
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
+  it("rate limits one IP that rotates guest seat tokens", async () => {
+    const ip = "203.0.113.60";
+    for (let i = 0; i < GUEST_IP_RATE_LIMIT; i++) {
+      const res = await getToken(
+        new Request(tokenUrl(null), {
+          headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": ip },
+        }),
+      );
+      expect(res.status).toBe(400);
+    }
+    const blocked = await getToken(
+      new Request(tokenUrl(null), {
+        headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": ip },
+      }),
+    );
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("Retry-After")).toBeTruthy();
+    const otherIp = await getToken(
+      new Request(tokenUrl(null), {
+        headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": "203.0.113.61" },
+      }),
+    );
+    expect(otherIp.status).toBe(400);
+    expect(createTokenRequest).not.toHaveBeenCalled();
+  });
+
+  it("rate limits guest seat token mints", async () => {
+    const white = await register(`ably-guest-rate-${Date.now()}@test.dev`, 135);
+    const seated = await createSeated(white, 136);
+    const other = await createSeated(white, 137);
+    const headers = guest(seated.seatToken, 138);
+    for (let i = 0; i < TOKEN_RATE_LIMIT; i++) {
+      const res = await getToken(new Request(tokenUrl(null), { headers }));
+      expect(res.status).toBe(400);
+    }
+    const blocked = await getToken(new Request(tokenUrl(null), { headers }));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("Retry-After")).toBeTruthy();
+    const text = await blocked.text();
+    expect(text).toContain("rate_limited");
+    expect(text).not.toContain(seated.seatToken);
+    const freshSeat = await getToken(
+      new Request(tokenUrl(null), { headers: guest(other.seatToken, 139) }),
+    );
+    expect(freshSeat.status).toBe(400);
     expect(createTokenRequest).not.toHaveBeenCalled();
   });
 

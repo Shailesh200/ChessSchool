@@ -16,4 +16,7 @@ pnpm --filter web exec vitest run --coverage --exclude "**/*.integration.test.ts
 echo "→ Mobile unit tests + coverage (apps/mobile, min ${MIN}%)"
 pnpm --filter mobile exec vitest run --coverage
 
+echo "→ Progression unit tests + coverage (packages/progression/src)"
+pnpm --filter @chess-school/progression exec vitest run --coverage
+
 echo "✓ Test coverage gates passed"
