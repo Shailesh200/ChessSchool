@@ -13,7 +13,9 @@
  * seed the values used are written to apps/web/.store-shot.env (mode 0600),
  * or to STORE_SHOT_ENV_PATH when that is set. The path is resolved first:
  * its filename must end in `.env` and its directory must already exist.
- * A bad path exits before the database is opened.
+ * An existing file is replaced only when it is empty or holds only
+ * STORE_SHOT_EMAIL= / STORE_SHOT_PASSWORD= lines. A directory at the path
+ * is refused. A bad path exits before the database is opened.
  *
  * Requires the local schema (`pnpm --filter web db:push` or `db:fresh`).
  */
@@ -22,6 +24,7 @@ import {
   accessSync,
   chmodSync,
   constants,
+  readFileSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -217,6 +220,27 @@ export function storeShotEnvPath(env = process.env) {
 }
 
 /**
+ * An existing capture-job file may be replaced only when every non-blank line
+ * is `STORE_SHOT_EMAIL=` or `STORE_SHOT_PASSWORD=`. Anything else (a mobile
+ * `.env`, `prod.env`, comments) is left untouched.
+ *
+ * @param {string} content
+ */
+function isReplaceableStoreShotEnv(content) {
+  for (const line of content.split(/\r?\n/)) {
+    if (line.trim() === "") continue;
+    if (
+      line.startsWith("STORE_SHOT_EMAIL=") ||
+      line.startsWith("STORE_SHOT_PASSWORD=")
+    ) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+/**
  * Resolve the capture-job env file and refuse a path that cannot be written.
  * Call this before opening the database. Does not print the path.
  *
@@ -270,6 +294,19 @@ export function resolveStoreShotEnvPath(env = process.env) {
       );
     }
     throw error;
+  }
+  let content;
+  try {
+    content = readFileSync(filePath, "utf8");
+  } catch {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH cannot be written. No rows were written.",
+    );
+  }
+  if (!isReplaceableStoreShotEnv(content)) {
+    throw new Error(
+      "Refusing to seed the test user: STORE_SHOT_ENV_PATH already holds other content. No rows were written.",
+    );
   }
   return filePath;
 }

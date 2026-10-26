@@ -41,12 +41,13 @@ Success logs only `test user seeded` and the user id (`user-alex-play-store`).
 The email and password are not printed. A different account that already uses
 the email is left unchanged, and `.store-shot.env` is not written.
 
-After a successful seed the script removes any existing env file (a missing file
-is fine) and writes a new one with mode `0600`. The path is `STORE_SHOT_ENV_PATH`
-when that is set, and `apps/web/.store-shot.env` otherwise (gitignored). The
-filename must end in `.env`, and its directory must already exist. That path is
-resolved before the database is opened. A bad path exits non-zero and writes
-nothing:
+After a successful seed the script writes an env file with mode `0600`. The path
+is `STORE_SHOT_ENV_PATH` when that is set, and `apps/web/.store-shot.env`
+otherwise (gitignored). The filename must end in `.env`, and its directory must
+already exist. An existing file is left untouched unless it is empty or contains
+only `STORE_SHOT_EMAIL=` and `STORE_SHOT_PASSWORD=` lines (blank lines are fine).
+A directory at that path is refused. The path is resolved before the database is
+opened. A refusal exits non-zero and writes nothing:
 
 ```
 STORE_SHOT_EMAIL=...

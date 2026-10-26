@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import {
   chmodSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -372,7 +373,11 @@ describe("test-user seed guard", () => {
     expect(storeShotEnvPath({ STORE_SHOT_ENV_PATH: override })).toBe(override);
   });
 
-  async function expectBadEnvPathLeavesDbUntouched(envPath: string, message: RegExp) {
+  async function expectBadEnvPathLeavesDbUntouched(
+    envPath: string,
+    message: RegExp,
+    options?: { preserved?: Buffer; directory?: boolean; hidden?: string[] },
+  ) {
     vi.resetModules();
     const previousUrl = process.env.DATABASE_URL;
     const realBefore = snapshotRealStoreShotEnv();
@@ -404,7 +409,16 @@ describe("test-user seed guard", () => {
       expect(output).not.toContain(TEST_USER_EMAIL);
       expect(output).not.toContain(TEST_USER_PASSWORD);
       expect(output).not.toContain(passwordHash);
-      expect(existsSync(envPath)).toBe(false);
+      for (const hidden of options?.hidden ?? []) {
+        expect(output).not.toContain(hidden);
+      }
+      if (options?.preserved) {
+        expect(readFileSync(envPath)).toEqual(options.preserved);
+      } else if (options?.directory) {
+        expect(statSync(envPath).isDirectory()).toBe(true);
+      } else {
+        expect(existsSync(envPath)).toBe(false);
+      }
       expectRealStoreShotEnvUnchanged(realBefore);
       expect(await accountSnapshot(client, sentinelId)).toEqual(before);
       const users = await client.execute("SELECT COUNT(*) AS c FROM users");
@@ -440,6 +454,72 @@ describe("test-user seed guard", () => {
       expect(existsSync(path.dirname(envPath))).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  }, 90_000);
+
+  it("leaves a sentinel .env with other content byte-identical and does not write the database", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-sentinel-"));
+    const envPath = path.join(dir, ".env");
+    const sentinel = Buffer.from("OTHER_SECRET=do-not-print\n");
+    writeFileSync(envPath, sentinel);
+    try {
+      await expectBadEnvPathLeavesDbUntouched(envPath, /already holds other content/, {
+        preserved: sentinel,
+        hidden: ["OTHER_SECRET", "do-not-print"],
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 90_000);
+
+  it("refuses a directory at STORE_SHOT_ENV_PATH", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-dir-"));
+    const envPath = path.join(dir, ".env");
+    mkdirSync(envPath);
+    try {
+      await expectBadEnvPathLeavesDbUntouched(envPath, /cannot be written/, {
+        directory: true,
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 90_000);
+
+  it("replaces an env file that holds only STORE_SHOT lines", async () => {
+    vi.resetModules();
+    const previousUrl = process.env.DATABASE_URL;
+    const realBefore = snapshotRealStoreShotEnv();
+    const dir = mkdtempSync(path.join(tmpdir(), "store-shot-replace-"));
+    const envPath = path.join(dir, "prod.env");
+    const prior = Buffer.from("STORE_SHOT_EMAIL=\n\nSTORE_SHOT_PASSWORD=\n");
+    writeFileSync(envPath, prior);
+    let env: Awaited<ReturnType<typeof bootApiTestEnv>> | undefined;
+    try {
+      env = await bootApiTestEnv();
+      const result = await runScript(
+        scriptEnv({
+          DATABASE_URL: process.env.DATABASE_URL,
+          DATABASE_AUTH_TOKEN: undefined,
+          STORE_SHOT_EMAIL: undefined,
+          STORE_SHOT_PASSWORD: undefined,
+          STORE_SHOT_ENV_PATH: envPath,
+        }),
+      );
+      expect(result.code).toBe(0);
+      expect(result.stdout.trim()).toBe(`test user seeded ${TEST_USER_ID}`);
+      const output = `${result.stdout}\n${result.stderr}`;
+      expect(output).not.toContain(envPath);
+      expect(output).not.toContain(TEST_USER_EMAIL);
+      expect(output).not.toContain(TEST_USER_PASSWORD);
+      assertStoreShotFile(envPath, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+      expect(readFileSync(envPath)).not.toEqual(prior);
+      expectRealStoreShotEnvUnchanged(realBefore);
+    } finally {
+      env?.teardown();
+      rmSync(dir, { recursive: true, force: true });
+      if (previousUrl === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = previousUrl;
+      vi.resetModules();
     }
   }, 90_000);
 
