@@ -37,6 +37,9 @@ function useStandalonePwa(): boolean {
   return standalone;
 }
 
+/** Slightly more than the banner's height (card + gap) so focus clears it. */
+export const INSTALL_BANNER_SCROLL_PADDING = "5rem";
+
 /**
  * One-time, dismissable install banner. Mobile web only — hidden on desktop and
  * when the app is already installed (standalone PWA).
@@ -51,37 +54,52 @@ export function InstallPrompt() {
 
   const show = mobileWeb && !standalone && canInstall && !dismissed;
 
+  // The banner overlays the bottom ~70px of `main` while it is shown. Keep that
+  // strip out of the scrollport so keyboard focus / scrollIntoView never lands
+  // underneath it. Removed again as soon as the banner is hidden or dismissed.
+  useEffect(() => {
+    if (!show) return;
+    const main = document.getElementById("main-content");
+    if (!main) return;
+    main.style.scrollPaddingBottom = INSTALL_BANNER_SCROLL_PADDING;
+    return () => {
+      main.style.removeProperty("scroll-padding-bottom");
+    };
+  }, [show]);
+
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, y: -12, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -12 }}
-          className="rounded-card border-brand-100 bg-brand-50 mb-4 flex items-center gap-2 border p-3 lg:hidden"
-        >
-          <Logo withText={false} />
-          <div className="flex-1">
-            <p className="text-ink text-sm font-extrabold">Install ChessSchool</p>
-            <p className="text-ink-500 text-xs font-semibold">
-              Add to your home screen — works fully offline.
-            </p>
-          </div>
-          <Button size="sm" onClick={() => void promptInstall()}>
-            Install
-          </Button>
-          <button
-            aria-label="Dismiss install prompt"
-            onClick={() => {
-              haptics.fire("select");
-              dismiss();
-            }}
-            className="text-ink-500 hover:bg-surface-sunken hover:text-ink flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+    <div className="pointer-events-none absolute inset-x-0 bottom-full z-40 mx-auto w-full max-w-2xl px-5 pb-2 lg:hidden">
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12 }}
+            className="rounded-card border-brand-100 bg-brand-50 pointer-events-auto flex items-center gap-2 border p-3 shadow-lg"
           >
-            ✕
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <Logo withText={false} />
+            <div className="flex-1">
+              <p className="text-ink text-sm font-extrabold">Install ChessSchool</p>
+              <p className="text-ink-500 text-xs font-semibold">
+                Add to your home screen — works fully offline.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => void promptInstall()}>
+              Install
+            </Button>
+            <button
+              aria-label="Dismiss install prompt"
+              onClick={() => {
+                haptics.fire("select");
+                dismiss();
+              }}
+              className="text-ink-500 hover:bg-surface-sunken hover:text-ink flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

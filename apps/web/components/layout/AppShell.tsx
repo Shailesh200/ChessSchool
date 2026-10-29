@@ -36,10 +36,14 @@ export function AppShell({
           id="main-content"
           className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto overscroll-contain px-5 py-5 lg:max-w-none lg:px-8 lg:py-6 xl:max-w-6xl"
         >
-          <InstallPrompt />
           {children}
         </main>
-        <BottomNav />
+        {/* The install banner overlays the page from just above the bottom nav,
+            so it never moves `main` (CLS) when `beforeinstallprompt` fires late. */}
+        <div className="relative">
+          <InstallPrompt />
+          <BottomNav />
+        </div>
       </div>
     </div>
   );
