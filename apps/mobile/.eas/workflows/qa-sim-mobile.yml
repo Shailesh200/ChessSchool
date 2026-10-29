@@ -1,0 +1,135 @@
+# DRAFT. ANDROID ONLY (Free plan, iOS deferred). qa-sim only. Builds with the qa-sim profile, then runs
+# the web server AND the emulator on the SAME worker inside one custom job.
+# Uses custom jobs (steps), not `type: maestro`, because Maestro jobs are
+# not on the Free plan per expo.dev/pricing. Nothing here submits or updates.
+name: qa-sim-mobile
+# One run at a time (the free plan has 60 CI minutes): a second dispatch waits for the first (queue: single keeps only the newest
+# waiting run) and never cancels a run in progress.
+concurrency:
+  group: qa-sim
+  cancel_in_progress: false
+  queue: single
+on:
+  workflow_dispatch:
+    inputs:
+      git_commit_sha:
+        type: string
+        required: true
+defaults:
+  tools:
+    node: 22.23.4
+    pnpm: 10.30.0
+    corepack: true
+jobs:
+  guard:
+    runs_on: linux-medium
+    image: sdk-54 # the same image as e2e_android, so a Python/venv surprise on this image shows here, before the build
+    environment: development # Arc: never the production default. EAS env vars of "development" only.
+    env:
+      DATABASE_URL: file:local.db # qa-sim-guard.sh requires a file: URL
+      QA_SHA: ${{ inputs.git_commit_sha }} # passed through env, never interpolated into the shell text
+    steps:
+      - uses: eas/checkout
+      - name: Env var NAMES (never values); stop on TURSO_*, VERCEL*, DATABASE_AUTH_TOKEN, *PROD*, EXPO_PUBLIC_QA_SIM
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-env-names.sh guard
+      - name: Pin, clean tree, UTC window (not 22:30-00:30 UTC), onboarding avatar testID, eas.json profiles
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-preflight.sh guard
+      - name: Repo guard and commit pin (no TURSO vars, file DB)
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-pin-commit.sh "$QA_SHA"
+          bash scripts/qa-sim-guard.sh
+      # The steps below are in the guard job on purpose: build_android `needs: [guard]`, so if the venv, the PyYAML install or the flow guard fails, the build (and the single run) is never started.
+      # The venv is a fresh `python3 -m venv` in a mktemp -d folder under ${TMPDIR:-/tmp}, never inside the repo or qa-sim-artifacts/ (scripts/qa-sim-venv.sh checks the physical path and fails if it is inside the repo).
+      - name: Create a fresh venv outside the repo and install the pinned PyYAML into it (sha256-checked, wheels only, no dependencies, no user-site fallback); a failure stops the run before the build
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-venv.sh create
+      - name: Flow guard with the venv's python (manifest, password units, no screenshot or AI command beside a password, no duplicate YAML keys); a failure stops the run before the build
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          [ -n "${QA_SIM_PY:-}" ] && [ -x "$QA_SIM_PY" ] || { echo "QA_SIM_PY is unset or not executable: the venv step did not run" >&2; exit 1; }
+          "$QA_SIM_PY" scripts/qa-sim-flow-guard.py
+      - name: Delete the venv folder this job created
+        if: ${{ always() }}
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-venv.sh cleanup
+
+  build_android:
+    needs: [guard]
+    type: build
+    environment: development
+    params: { platform: android, profile: qa-sim }
+
+  e2e_android:
+    needs: [build_android]
+    environment: development
+    runs_on: linux-medium-nested-virtualization # needed for the emulator (KVM)
+    image: sdk-54
+    timeout_minutes: 40
+    env:
+      DATABASE_URL: file:local.db
+      QA_SHA: ${{ inputs.git_commit_sha }}
+      QA_BUILD_SHA: ${{ needs.build_android.outputs.git_commit_hash }}
+    steps:
+      - uses: eas/checkout
+      - name: Env var NAMES (never values); stop before the build is downloaded or anything is installed
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-env-names.sh e2e
+      - name: Same commit as dispatched and as built, clean tree
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-preflight.sh e2e
+      # The e2e worker is a different machine from the guard job's: qa-sim-maestro.sh runs the flow guard again on it and needs PyYAML here too: same fresh venv outside the repo, same pinned, hash-checked install; QA_SIM_PY is passed to the later steps with set-env.
+      - name: Create a fresh venv outside the repo and install the pinned PyYAML into it (sha256-checked, wheels only, no dependencies, no user-site fallback) for the flow guard that qa-sim-maestro.sh runs on this worker
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-venv.sh create
+      - uses: eas/download_build
+        id: app
+        with:
+          build_id: ${{ needs.build_android.outputs.build_id }}
+          extensions: [apk]
+      - name: Server + emulator + Maestro on this worker
+        run: |
+          # resolve the APK path BEFORE changing directory (it may be relative to this step's working directory); fail loudly if it is missing
+          apk=$(realpath "${{ steps.app.outputs.artifact_path }}") || exit 1
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          [ -n "${QA_SIM_PY:-}" ] && [ -x "$QA_SIM_PY" ] || { echo "QA_SIM_PY is unset or not executable: the venv step did not run" >&2; exit 1; }
+          bash scripts/qa-sim-e2e-android.sh "$apk"
+      - name: Final image purge (before the check and the upload), delete every image/video and symlink outside the non-secret units' folders, FAIL the run if there was any
+        if: ${{ always() }} # runs after a killed or timed-out e2e step too; the e2e script's own sweep cannot run after SIGKILL
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-final-sweep.sh
+      - name: Fail loudly if qa-sim-artifacts/ is missing or has no files (prints the file count)
+        if: ${{ always() }} # same condition as the upload, so a failed e2e still gets its evidence checked and uploaded
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          [ -d qa-sim-artifacts ] || { echo "qa-sim-artifacts/ is missing at $top" >&2; exit 1; }
+          n=$(find qa-sim-artifacts -type f ! -path '*/.*' | wc -l)   # dotfiles are not matched by the upload glob, so they are not counted
+          echo "qa-sim-artifacts: $n files"
+          [ "$n" -gt 0 ] || { echo "qa-sim-artifacts/ has no files" >&2; exit 1; }
+      - uses: eas/upload_artifact
+        if: ${{ always() }}
+        with:
+          type: other
+          name: qa-sim-android
+          # Expected base: the repo-root checkout, so `qa-sim-artifacts/**/*` should match (eas-cli globs from <workingdir>/build, the repo root).
+          # `../../qa-sim-artifacts/**/*` is the fallback if the base is apps/mobile; exactly one of the two matches, the other only warns.
+          # If this step's log shows "Found 0 paths matching" for BOTH lines, the run is INCOMPLETE (nothing uploaded), whatever the job status says.
+          # The first real run must show "Found N paths matching" with N > 0.
+          path: |
+            qa-sim-artifacts/**/*
+            ../../qa-sim-artifacts/**/*
+      - name: Delete the venv folder this job created (last step)
+        if: ${{ always() }}
+        run: |
+          top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+          bash scripts/qa-sim-venv.sh cleanup

@@ -1,0 +1,48 @@
+appId: com.chessschool.app
+name: "M-51 (subset) part A: register in app, fill the enrollment wizard up to the avatar step"
+tags:
+  - M-51
+---
+# Part A of 2 (this part taps avatar-0 by testID, which exists from Frenkie's 2a6bea9 / slot 14a; part B then taps Enroll).
+# Subset only: no email verification (M-51 second half) is exercised. Uses E2E_SIGNUP_EMAIL / MAESTRO_E2E_PASSWORD / E2E_NAME (fresh each run, passed with -e by the runner).
+- runFlow: _common/boot-guest.yaml
+- openLink: "chessschool:///login"
+- extendedWaitUntil:
+    visible:
+      id: "login-mode-register"
+    timeout: 90000
+- tapOn:
+    id: "login-mode-register"
+- tapOn: "Full name"
+- inputText: ${E2E_NAME}
+- tapOn:
+    id: "login-email"
+- inputText: ${E2E_SIGNUP_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_E2E_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+# onboarding wizard: 5 option steps + avatar
+- extendedWaitUntil:
+    visible: "Let's tailor your studies.*"
+    timeout: 90000
+- tapOn: "Beat my friends"
+- tapOn: "Continue"
+- tapOn: "Brand new"
+- tapOn: "Continue"
+- tapOn: "10–15 min/day"
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Pick your coach"
+    timeout: 30000
+- tapOn: "Otto.*"
+- tapOn: "Continue"
+- tapOn: "Classic"
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Pick your avatar"
+    timeout: 30000
+- tapOn:
+    id: "avatar-0"

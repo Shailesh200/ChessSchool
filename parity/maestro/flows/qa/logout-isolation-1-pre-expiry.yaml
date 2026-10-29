@@ -1,0 +1,196 @@
+# Logout isolation, part 1 of 2 (before the session expiry). Replace BOTH files together (see PORTING-NOTES.md).
+# A has lesson XP on the server (A_XP, seeded through the API by the runner). A edits the pace, signs out, B signs in
+# and must show none of A's progress (neither A's XP nor A's 130 goal); A signs back in and gets it all back.
+# The runner then checks the server: B's XP/lessons are B's own baseline and did not grow by A_XP.
+# Needs env: A_EMAIL MAESTRO_A_PASSWORD B_EMAIL MAESTRO_B_PASSWORD A_XP B_XP (B_XP = B's own XP today, read from the API).
+# Real login form, no parity deep links (they need EXPO_PUBLIC_PARITY=1, not set in qa-sim).
+# Each login goes through _common/sign-in-form.yaml, which finishes the onboarding wizard when it shows (when: visible).
+# XP asserts: a Daily goal card (Academy) and a Today's goal card (Homework) both read "<XP today>/<goal> XP".
+# Ends with A signed in on Homework (Competitive, 130 XP/day): part 2 starts from that state, after the runner expires A.
+appId: com.chessschool.app
+name: "logout isolation 1/2: B sees none of A's progress"
+tags:
+  - logout-isolation
+---
+- assertTrue: ${typeof A_EMAIL !== 'undefined' && typeof MAESTRO_A_PASSWORD !== 'undefined' && typeof B_EMAIL !== 'undefined' && typeof MAESTRO_B_PASSWORD !== 'undefined'}
+- assertTrue: ${typeof A_XP !== 'undefined' && typeof B_XP !== 'undefined' && A_XP !== B_XP}
+- assertTrue: ${A_EMAIL !== B_EMAIL}
+
+# ---- 0. Clean start: no session left over from an earlier flow ----
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    timeout: 60000
+    optional: true
+- tapOn:
+    id: "orientation-skip"
+    optional: true
+- tapOn:
+    text: "Open academy →"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 60000
+- openLink: "chessschool:///account"
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    when:
+      visible:
+        id: "account-title"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Log out"
+      - tapOn: "Log out"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+# ---- 1. Sign in as A: A's lesson XP from the server is on screen ----
+- runFlow:
+    file: _common/sign-in-form.yaml
+    env:
+      SI_EMAIL: ${A_EMAIL}
+      SI_PASSWORD: ${MAESTRO_A_PASSWORD}
+- assertVisible:
+    text: ".*/50 XP"
+- assertVisible:
+    text: "${A_XP}/50 XP"
+
+# ---- 2. A makes a progress edit: Competitive pace -> daily goal 130 XP ----
+- openLink: "chessschool:///homework"
+- extendedWaitUntil:
+    visible:
+      id: "pace-competitive"
+    timeout: 30000
+- tapOn:
+    id: "pace-competitive"
+- extendedWaitUntil:
+    visible:
+      text: ".*Goal: 130 XP/day.*"
+    timeout: 15000
+# Let the edit reach the server before signing out (needed for the "A signs back in" check).
+- extendedWaitUntil:
+    visible:
+      text: "This text is never on screen"
+    timeout: 5000
+    optional: true
+- openLink: "chessschool:///academy"
+- extendedWaitUntil:
+    visible:
+      text: ".*/130 XP"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      text: "${A_XP}/130 XP"
+    timeout: 15000
+
+# ---- 3. Sign out A ----
+- openLink: "chessschool:///account"
+- extendedWaitUntil:
+    visible:
+      id: "account-title"
+    timeout: 30000
+- assertVisible:
+    text: ${A_EMAIL}
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+- tapOn: "Log out"
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible:
+      id: "login-submit"
+    timeout: 30000
+
+# ---- 4. Sign in as B ----
+- runFlow:
+    file: _common/sign-in-form.yaml
+    env:
+      SI_EMAIL: ${B_EMAIL}
+      SI_PASSWORD: ${MAESTRO_B_PASSWORD}
+
+# ---- 5. B shows none of A's progress ----
+# B's own XP (B_XP, the value the API reports for B) and B's default goal. Not A's XP, not A's goal.
+- assertVisible:
+    text: ".*/50 XP"
+- assertVisible:
+    text: "${B_XP}/50 XP"
+- assertNotVisible:
+    text: "${A_XP}/50 XP"
+- assertNotVisible:
+    text: ".*/130 XP"
+# Let any late sync for A settle, then re-check (a late A response must not repaint B or write into B).
+- extendedWaitUntil:
+    visible:
+      text: "This text is never on screen"
+    timeout: 5000
+    optional: true
+- assertVisible:
+    text: ".*/50 XP"
+- assertVisible:
+    text: "${B_XP}/50 XP"
+- assertNotVisible:
+    text: "${A_XP}/50 XP"
+- assertNotVisible:
+    text: ".*/130 XP"
+# The pace screen is B's: Standard, not A's Competitive.
+- openLink: "chessschool:///homework"
+- extendedWaitUntil:
+    visible:
+      id: "pace-standard"
+    timeout: 30000
+- assertVisible:
+    text: ".*Goal: 50 XP/day.*"
+- assertNotVisible:
+    text: ".*Goal: 130 XP/day.*"
+# Homework's "Today's goal" card shows the same XP: B's own, not A's.
+- assertVisible:
+    text: "${B_XP}/50 XP"
+- assertNotVisible:
+    text: "${A_XP}/50 XP"
+- openLink: "chessschool:///account"
+- extendedWaitUntil:
+    visible:
+      id: "account-title"
+    timeout: 30000
+- assertVisible:
+    text: ${B_EMAIL}
+- assertNotVisible:
+    text: ${A_EMAIL}
+
+# ---- 6. A signs back in and everything is still there ----
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+- tapOn: "Log out"
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    file: _common/sign-in-form.yaml
+    env:
+      SI_EMAIL: ${A_EMAIL}
+      SI_PASSWORD: ${MAESTRO_A_PASSWORD}
+- extendedWaitUntil:
+    visible:
+      text: ".*/130 XP"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "${A_XP}/130 XP"
+    timeout: 30000
+- assertNotVisible:
+    text: ".*/50 XP"
+- openLink: "chessschool:///homework"
+- extendedWaitUntil:
+    visible:
+      id: "pace-competitive"
+    timeout: 30000
+- assertVisible:
+    text: ".*Goal: 130 XP/day.*"
+- assertVisible:
+    text: "${A_XP}/130 XP"

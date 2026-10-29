@@ -1,0 +1,15 @@
+# unit_id	needs_server	files	secret	description
+# needs_server: yes = FAIL (never PASS, never SKIPPED) when the qa-sim server is not up. Parts of one unit run in order, fail-fast.
+# secret: yes = some flow of this unit (or a _common flow it runs) types a MAESTRO_*_PASSWORD value. Fail closed: such a unit runs WITHOUT --test-output-dir, its flows may not contain takeScreenshot/startRecording, and every image or video file under its Maestro debug dir is deleted right after the unit (before the password scrub); any image left = FAIL. scripts/qa-sim-flow-guard.py fails the run if a flow that references a *PASSWORD variable is in a unit not marked yes (so this flag cannot drift).
+# Read by the runner (scripts/qa-sim-maestro.sh) and by scripts/qa-sim-flow-guard.py. Step words: file.yaml, tap-*, net-off/on, assert-xp+10, a-earn-xp, snapshot-b, expire-a, assert-isolation:<A goal>, require:<unit> (SKIPPED unless that unit PASSED).
+m01-guest-launch-campus	no	m01-guest-launch-campus.yaml	no	guest cold boot, every tab renders
+m15-lesson-step	no	m15-lesson-step.yaml	no	guest lesson step and completion
+m30-promo-underpromote	no	m30a-promo-open.yaml>tap-promo-n>m30b-promo-underpromote.yaml	no	promotion picker, knight is wrong
+m31-promo-queen	no	m30a-promo-open.yaml>tap-promo-q>m31b-promo-queen.yaml	no	promotion picker, queen is right
+mset-coach-default-otto	no	mset-coach-default-otto.yaml	no	Settings coach grid shows Otto and Kira
+m10-progress-save-reload	yes	m10-progress-save-reload.yaml>assert-xp+10	yes	signed in lesson saved, XP exact, relaunch keeps it
+m50-signin-persist	yes	m50-signin-persist.yaml	yes	sign in, still signed in after relaunch
+m51-signup-enroll	yes	m51a-signup-wizard.yaml>m51b-signup-enroll.yaml	yes	register, wizard, Enroll
+m11-offline-queue	yes	m11a-offline-prepare.yaml>net-off>m11b-offline-lesson.yaml>net-on>m11c-online-after.yaml>assert-xp+10	yes	offline lesson syncs once after reconnect
+logout-isolation-1-pre-expiry	yes	require-utc>a-earn-xp>snapshot-b>logout-isolation-1-pre-expiry.yaml>assert-isolation:130	yes	A has lesson XP; B sees none of A's XP or goal; server: B unchanged
+logout-isolation-2-post-expiry	yes	require:logout-isolation-1-pre-expiry>require-utc>expire-a>logout-isolation-2-post-expiry.yaml>assert-isolation:130	yes	POST /api/qa/expire-session as A, then the same checks (real 401)

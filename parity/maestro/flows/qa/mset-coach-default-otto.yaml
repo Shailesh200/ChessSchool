@@ -1,0 +1,19 @@
+appId: com.chessschool.app
+name: "M-SET (proposed id) guest Settings: coach default is Otto"
+tags:
+  - M-SET-COACH
+---
+# Selection state is not in the a11y tree. The box harness checked it by screenshot colour (coach_selected.py); that check is
+# NOT ported (needs PIL, unverified on the worker). This flow only proves Otto and Kira are on screen. See PORTING-NOTES.md.
+- runFlow: _common/boot-guest.yaml
+- openLink: "chessschool:///settings"
+- extendedWaitUntil:
+    visible: "Coach character"
+    timeout: 90000
+- scrollUntilVisible:
+    element:
+      text: "Otto"
+    timeout: 60000
+- takeScreenshot: mset-coach-grid
+- assertVisible: "Otto"
+- assertVisible: "Kira"

@@ -1,0 +1,15 @@
+appId: com.chessschool.app
+name: "M-31 promotion: queen chosen -> correct"
+tags:
+  - M-31
+---
+# Part B after the runner tapped the QUEEN button.
+- extendedWaitUntil:
+    visible: "Promotion! Your pawn becomes a queen."
+    timeout: 60000
+- takeScreenshot: m31-after-queen
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "XP earned"
+    timeout: 90000
+- assertVisible: "\\+15"

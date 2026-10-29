@@ -1,0 +1,39 @@
+appId: com.chessschool.app
+name: "M-10/M-16 (subset) signed in: complete a lesson, XP shown; relaunch keeps it"
+tags:
+  - M-10
+  - M-16
+  - M-12
+---
+# Subset: online path only; streak-reset-on-missed-day (M-16 clock part) is NOT covered. The runner checks
+# GET /api/progress afterwards (qa-sim-api.py assert: lesson saved, XP = baseline + 10 exactly).
+- runFlow: _common/boot-guest.yaml
+- runFlow: _common/login-typed.yaml
+- openLink: "chessschool:///lesson/pre-square-d5"
+- extendedWaitUntil:
+    visible: "Where is the square d5?"
+    timeout: 90000
+- tapOn: "File d, rank 5.*"
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "XP earned"
+    timeout: 90000
+- assertVisible: "\\+10"
+- assertNotVisible: "Retry save"
+- tapOn: "Back to campus"
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 60000
+# reload from server: relaunch, progress still reflected on Profile
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 90000
+- tapOn:
+    id: "tab-Profile"
+- extendedWaitUntil:
+    visible: "Day streak"
+    timeout: 60000

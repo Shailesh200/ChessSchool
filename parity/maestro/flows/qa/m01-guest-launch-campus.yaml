@@ -1,0 +1,33 @@
+appId: com.chessschool.app
+name: "M-01 guest cold boot, campus, every tab renders"
+tags:
+  - M-01
+---
+- runFlow: _common/boot-guest.yaml
+- takeScreenshot: m01-academy
+- tapOn:
+    id: "tab-Play"
+- extendedWaitUntil:
+    visible:
+      id: "play-start-match"
+    timeout: 60000
+- takeScreenshot: m01-play
+- tapOn:
+    id: "tab-Review"
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: m01-review
+- tapOn:
+    id: "tab-Profile"
+- extendedWaitUntil:
+    visible:
+      id: "profile-enroll-cta"
+    timeout: 60000
+- takeScreenshot: m01-profile
+# still alive (no crash to launcher), tab bar present
+- assertVisible:
+    id: "tab-Academy"
+- tapOn:
+    id: "tab-Academy"
+- assertVisible:
+    text: "Welcome to ChessSchool!"

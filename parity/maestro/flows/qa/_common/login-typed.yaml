@@ -1,0 +1,22 @@
+# Shared: from a guest campus, open the login screen and sign in by typing (E2E_EMAIL / MAESTRO_E2E_PASSWORD from -e).
+# Account is registered fresh each run in the throwaway local DB by qa-sim-e2e-android.sh (qa-sim-api.py provision).
+appId: com.chessschool.app
+---
+- openLink: "chessschool:///login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 90000
+- tapOn:
+    id: "login-email"
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_E2E_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 90000

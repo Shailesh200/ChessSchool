@@ -193,7 +193,7 @@ TODO: record the IPA size from the first iOS EAS build.
 
 ## QA simulator (manual Maestro)
 
-One manual EAS workflow run per promotion candidate. The workflow file is `apps/mobile/.eas/workflows/qa-sim.yml`. Its only trigger is `workflow_dispatch`.
+One manual EAS workflow run per promotion candidate. The workflow file is `apps/mobile/.eas/workflows/qa-sim-mobile.yml`. It is Android only (the Free plan has no `maestro` jobs, and iOS is deferred), built from custom job steps. Its only trigger is `workflow_dispatch`.
 
 The `qa-sim` profile in `eas.json` is an internal build with no update channel and no submit block. `distribution` is set on the profile and again on `ios` and `android`. EAS fills a platform object that omits `distribution` with `store`, and that value overrides the profile. iOS sets `ios.simulator` and `withoutCredentials` (a simulator `.app` does not use an Apple distribution certificate). Android builds an APK with the same Gradle workaround as `preview`. `EXPO_PUBLIC_API_URL` is set per platform and inlined into `src/api.ts` at bundle time:
 
@@ -202,12 +202,11 @@ The `qa-sim` profile in `eas.json` is an internal build with no update channel a
 | iOS Simulator    | `http://localhost:3108` |
 | Android Emulator | `http://10.0.2.2:3108`  |
 
-Trigger it from the app directory on the candidate ref. `platform` is `both` (the default), `ios`, or `android`. Leave `git_commit_sha` empty to build the commit this run checked out. A value must be the full 40-character SHA and must already be HEAD. The job does not fetch or check out a different commit.
+Trigger it from the app directory on the candidate ref. `git_commit_sha` is required: the full 40-character SHA, and it must already be HEAD. The job does not fetch or check out a different commit.
 
 ```bash
 cd apps/mobile
-eas workflow:run .eas/workflows/qa-sim.yml \
-  -F platform=both \
+eas workflow:run .eas/workflows/qa-sim-mobile.yml \
   -F git_commit_sha="$(git rev-parse HEAD)"
 ```
 
@@ -217,8 +216,8 @@ What the run guards:
 
 - The first step exits if any `TURSO_*` variable is set, or if `DATABASE_URL` does not start with `file:`. Values are not printed. Jobs use the `development` environment and set `DATABASE_URL=file:local.db`.
 - The profile sets `EXPO_PUBLIC_QA_SIM=1`. That flag drops the production host fallback and the apex-to-www rewrite from the bundle. A `qa-sim` build fails unless `EXPO_PUBLIC_API_URL` is exactly `http://localhost:3108` or `http://10.0.2.2:3108` and `EXPO_PUBLIC_QA_SIM` is exactly `1`. After the JS bundle is built, `eas-build-on-success` greps it and fails if `chess-school.in` appears.
-- On the Maestro runner (the same machine that drives the simulator), `scripts/qa-sim-web.sh` runs `pnpm db:provision` in `apps/web` (`db:reset`, `db:push`, `db:load-seed` from `db/seed.sql.gz`), then `next build` and `next start -p 3108`.
-- Maestro runs `parity/maestro/flows/qa/` (see that directory's README). Logs and screenshots upload as `qa-sim-ios-maestro` and `qa-sim-android-maestro`.
+- On the `e2e_android` worker (the same machine that runs the emulator), `scripts/qa-sim-e2e-android.sh` calls `scripts/qa-sim-web.sh`, which runs `pnpm db:provision` in `apps/web` (`db:reset`, `db:push`, `db:load-seed` from `db/seed.sql.gz`), then `next build` and `next start -p 3108`.
+- Maestro runs `parity/maestro/flows/qa/` (see that directory's README). Results, logs and screenshots are written to the repo-root `qa-sim-artifacts/` and upload as `qa-sim-android`.
 
 Android sets `withoutCredentials`, so the APK is debug-signed and does not use a remote keystore. The build log must confirm that no remote keystore was downloaded. This profile does not submit to Play or the App Store.
 
@@ -329,7 +328,7 @@ pnpm build:android:prod
 pnpm submit:android:internal
 pnpm submit:android:store
 pnpm update:production -- --message "Your changelog"
-eas workflow:run .eas/workflows/qa-sim.yml -F platform=both
+eas workflow:run .eas/workflows/qa-sim-mobile.yml -F git_commit_sha="$(git rev-parse HEAD)"
 eas build:list
 eas credentials
 ```

@@ -1,0 +1,136 @@
+# Logout isolation, part 2 of 2 (after the session expiry). Replace BOTH files together (see PORTING-NOTES.md).
+# Before this file the runner called POST /api/qa/expire-session as A (Bearer token, over HTTP, token never printed).
+# That revoked every session of A, so the app, still showing A as signed in, gets a real 401 on its next sync.
+# Starts from the end of part 1: app open as A on Homework (Competitive, 130 XP/day).
+# A edits once more (that push gets the 401; the app keeps the edit as a copy that belongs to A), then B signs in
+# fresh. B must show B's own XP, none of A's XP (A_XP), and neither A's 130 nor A's new 30 goal. B logs out, A signs
+# back in: A's account is intact and shows the server state (A_XP, 130). The Casual edit made after the expiry is NOT
+# expected back: B's sign-in dropped the copy (it was not B's), and an explicit logout drops it too.
+# The runner then checks the server: B's XP/lessons are B's baseline and did not grow by A_XP (Imu's restart leak).
+# Needs env: A_EMAIL MAESTRO_A_PASSWORD B_EMAIL MAESTRO_B_PASSWORD A_XP B_XP.
+appId: com.chessschool.app
+name: "logout isolation 2/2: after A's session expires, B sees none of A's progress"
+tags:
+  - logout-isolation
+  - session-expiry
+---
+- assertTrue: ${typeof A_EMAIL !== 'undefined' && typeof MAESTRO_A_PASSWORD !== 'undefined' && typeof B_EMAIL !== 'undefined' && typeof MAESTRO_B_PASSWORD !== 'undefined'}
+- assertTrue: ${typeof A_XP !== 'undefined' && typeof B_XP !== 'undefined' && A_XP !== B_XP}
+- assertTrue: ${A_EMAIL !== B_EMAIL}
+- openLink: "chessschool:///homework"
+- extendedWaitUntil:
+    visible:
+      id: "pace-competitive"
+    timeout: 30000
+- assertVisible:
+    text: ".*Goal: 130 XP/day.*"
+# A's own XP is on the Homework card too.
+- assertVisible:
+    text: "${A_XP}/130 XP"
+# ===== EXPIRY CASE (Sanji's replacement goes in this file) =====
+# A (still "signed in" in the app, session already revoked on the server) edits once more. The push gets a 401.
+- tapOn:
+    id: "pace-casual"
+- extendedWaitUntil:
+    visible:
+      text: ".*Goal: 30 XP/day.*"
+    timeout: 15000
+# Give the push time to be sent and rejected (no on-screen signal for it).
+- extendedWaitUntil:
+    visible:
+      text: "This text is never on screen"
+    timeout: 5000
+    optional: true
+# The app has dropped the dead session. Sign in as B through the form.
+- runFlow:
+    file: _common/sign-in-form.yaml
+    env:
+      SI_EMAIL: ${B_EMAIL}
+      SI_PASSWORD: ${MAESTRO_B_PASSWORD}
+# B is fresh: B's own XP, and nothing of A's (A_XP, 130 from before, 30 from the edit that got the 401).
+- assertVisible:
+    text: ".*/50 XP"
+- assertVisible:
+    text: "${B_XP}/50 XP"
+- assertNotVisible:
+    text: "${A_XP}/50 XP"
+- assertNotVisible:
+    text: ".*/130 XP"
+- assertNotVisible:
+    text: ".*/30 XP"
+- extendedWaitUntil:
+    visible:
+      text: "This text is never on screen"
+    timeout: 5000
+    optional: true
+- assertVisible:
+    text: ".*/50 XP"
+- assertVisible:
+    text: "${B_XP}/50 XP"
+- assertNotVisible:
+    text: "${A_XP}/50 XP"
+- assertNotVisible:
+    text: ".*/130 XP"
+- assertNotVisible:
+    text: ".*/30 XP"
+- openLink: "chessschool:///homework"
+- extendedWaitUntil:
+    visible:
+      id: "pace-standard"
+    timeout: 30000
+- assertVisible:
+    text: ".*Goal: 50 XP/day.*"
+- assertNotVisible:
+    text: ".*Goal: 30 XP/day.*"
+- assertNotVisible:
+    text: ".*Goal: 130 XP/day.*"
+# Homework's "Today's goal" card: B's own XP, not A's.
+- assertVisible:
+    text: "${B_XP}/50 XP"
+- assertNotVisible:
+    text: "${A_XP}/50 XP"
+- openLink: "chessschool:///account"
+- extendedWaitUntil:
+    visible:
+      id: "account-title"
+    timeout: 30000
+- assertVisible:
+    text: ${B_EMAIL}
+- assertNotVisible:
+    text: ${A_EMAIL}
+# ===== end of expiry case =====
+# B logs out; A signs back in. A's account was kept, so A gets the server state (A_XP, 130).
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+- tapOn: "Log out"
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    file: _common/sign-in-form.yaml
+    env:
+      SI_EMAIL: ${A_EMAIL}
+      SI_PASSWORD: ${MAESTRO_A_PASSWORD}
+- extendedWaitUntil:
+    visible:
+      text: ".*/130 XP"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "${A_XP}/130 XP"
+    timeout: 30000
+- assertNotVisible:
+    text: ".*/50 XP"
+- assertNotVisible:
+    text: ".*/30 XP"
+- openLink: "chessschool:///homework"
+- extendedWaitUntil:
+    visible:
+      id: "pace-competitive"
+    timeout: 30000
+- assertVisible:
+    text: ".*Goal: 130 XP/day.*"
+- assertNotVisible:
+    text: ".*Goal: 30 XP/day.*"
+- assertVisible:
+    text: "${A_XP}/130 XP"

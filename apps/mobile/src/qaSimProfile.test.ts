@@ -18,7 +18,7 @@ const eas = JSON.parse(
   readFileSync(path.join(mobileRoot, "eas.json"), "utf8"),
 ) as EasJson;
 const workflow = readFileSync(
-  path.join(mobileRoot, ".eas/workflows/qa-sim.yml"),
+  path.join(mobileRoot, ".eas/workflows/qa-sim-mobile.yml"),
   "utf8",
 );
 const guardScript = readFileSync(
@@ -194,23 +194,22 @@ describe("prod path gates", () => {
 });
 
 describe("qa-sim workflow", () => {
-  it("is manual, builds qa-sim, and uploads Maestro artifacts", () => {
+  it("is manual, builds qa-sim on Android only, and guards before the build", () => {
     const header = workflow.slice(0, workflow.indexOf("\njobs:"));
     expect(header).toContain("workflow_dispatch:");
     expect(header).not.toMatch(/\n {2}push:/);
     expect(header).not.toMatch(/\n {2}pull_request:/);
     expect(header).not.toMatch(/\n {2}schedule:/);
     expect(workflow).toContain("profile: qa-sim");
-    expect(workflow).toContain("flow_path: ../../parity/maestro/flows/qa");
-    expect(workflow).toContain("name: qa-sim-ios-maestro");
-    expect(workflow).toContain("name: qa-sim-android-maestro");
+    expect(workflow).toContain("name: qa-sim-android");
     expect(workflow).toContain("type: other");
+    expect(workflow).toContain("environment: development");
     expect(workflow).toContain("runs_on: linux-medium-nested-virtualization");
-    expect(workflow).toContain("runs_on: macos-medium");
-    expect(workflow.indexOf("Fail if Turso")).toBeLessThan(
+    expect(workflow).not.toContain("macos-medium");
+    expect(workflow.indexOf("qa-sim-guard.sh")).toBeLessThan(
       workflow.indexOf("type: build"),
     );
-    expect(dedent(markerRegion(workflow))).toBe(dedent(markerRegion(guardScript)));
+    expect(dedent(markerRegion(guardScript))).toContain("TURSO_");
     expect(Buffer.byteLength(workflow)).toBeLessThan(16 * 1024);
   });
 
@@ -232,7 +231,7 @@ describe("qa-sim workflow", () => {
     expect(collectScript).toContain("qa-sim-artifacts");
     expect(runner).toContain("qa-sim-guard.sh");
     expect(runner).toContain("qa-sim-web.sh");
-    expect(runner).toContain("qa-sim-collect.sh");
+    expect(runner).not.toContain("qa-sim-collect.sh"); // off the allowlist (it would carry images); see qaSimFlowGuard.test.ts
   });
 });
 

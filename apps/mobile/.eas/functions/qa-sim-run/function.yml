@@ -21,7 +21,7 @@ runs:
         set -euo pipefail
         name="${QA_SIM_SCRIPT}"
         case "${name}" in
-          qa-sim-guard.sh|qa-sim-pin-commit.sh|qa-sim-web.sh|qa-sim-collect.sh) ;;
+          qa-sim-guard.sh|qa-sim-pin-commit.sh|qa-sim-web.sh) ;;
           *)
             echo "Unexpected QA sim script." >&2
             exit 1

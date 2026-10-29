@@ -1,0 +1,33 @@
+# Used only when the onboarding wizard appears after a login (the runner onboards A and B through the API, so this
+# is a safety net). Same steps as m51a/m51b. Avatar tap uses testID avatar-0 (needs 2a6bea9 in the SHA under test).
+# UNVERIFIED (never run on a device).
+appId: com.chessschool.app
+---
+- extendedWaitUntil:
+    visible: "Let's tailor your studies.*"
+    timeout: 30000
+- tapOn: "Beat my friends"
+- tapOn: "Continue"
+- tapOn: "Brand new"
+- tapOn: "Continue"
+- tapOn: "20–30 min/day"   # standard tier, 50 XP/day: the logout-isolation asserts expect Goal 50
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Pick your coach"
+    timeout: 30000
+- tapOn: "Otto.*"
+- tapOn: "Continue"
+- tapOn: "Classic"
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Pick your avatar"
+    timeout: 30000
+# avatar-N testIDs come from Frenkie's 2a6bea9 (slot 14a), which is in the same stable SHA as the logout fixes.
+- tapOn:
+    id: "avatar-0"
+- tapOn: "Enroll"
+- extendedWaitUntil:
+    visible:
+      id: "account-title"
+    timeout: 90000
+- openLink: "chessschool:///academy"

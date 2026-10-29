@@ -1,0 +1,31 @@
+appId: com.chessschool.app
+name: "M-15 (guest) open a lesson, answer the step, complete it"
+tags:
+  - M-15
+  - M-01
+---
+- runFlow: _common/boot-guest.yaml
+- openLink: "chessschool:///lesson/pre-square-d5"
+- extendedWaitUntil:
+    visible: "Where is the square d5?"
+    timeout: 90000
+- takeScreenshot: m15-question
+- tapOn: "File d, rank 5.*"
+- extendedWaitUntil:
+    visible:
+      id: "lesson-coach"
+    timeout: 60000
+- takeScreenshot: m15-answered
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "XP earned"
+    timeout: 90000
+- assertVisible: "\\+10"
+- takeScreenshot: m15-complete
+# guest: nothing to save remotely; must NOT show a save error
+- assertNotVisible: "Retry save"
+- tapOn: "Back to campus"
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 60000

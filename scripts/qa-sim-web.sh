@@ -22,7 +22,7 @@ cd "${root}/apps/web"
 pnpm db:provision
 pnpm exec next build
 
-log_dir="${root}/apps/mobile/qa-sim-artifacts"
+log_dir="${root}/qa-sim-artifacts"
 mkdir -p "${log_dir}"
 log="${log_dir}/next.log"
 # QA_SIM=1 turns on POST /api/qa/expire-session (apps/web/lib/qa-sim.ts); only here.

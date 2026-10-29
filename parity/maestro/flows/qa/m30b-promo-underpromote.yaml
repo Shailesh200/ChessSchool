@@ -1,0 +1,13 @@
+appId: com.chessschool.app
+name: "M-30 promotion: knight chosen -> marked wrong, step not completed"
+tags:
+  - M-30
+---
+# Part B after the runner tapped the KNIGHT button. Expect the failure coach line and no completion.
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: m30-after-knight
+- assertNotVisible: "Promotion! Your pawn becomes a queen."
+- assertNotVisible: "XP earned"
+- assertVisible:
+    id: "lesson-coach"

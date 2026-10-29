@@ -1,0 +1,38 @@
+appId: com.chessschool.app
+name: "M-50 (subset) sign in with local account; M-54 still signed in after relaunch"
+tags:
+  - M-50
+  - M-54
+---
+# Subset only: forgot-password / reset link (rest of M-50) is not covered.
+- runFlow: _common/boot-guest.yaml
+- runFlow: _common/login-typed.yaml
+- tapOn:
+    id: "tab-Profile"
+- extendedWaitUntil:
+    visible: "Log out"
+    timeout: 60000
+- assertNotVisible:
+    id: "profile-enroll-cta"
+# M-54: kill + relaunch WITHOUT clearing state -> still signed in
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    optional: true
+    timeout: 90000
+- tapOn:
+    id: "orientation-skip"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 90000
+- tapOn:
+    id: "tab-Profile"
+- extendedWaitUntil:
+    visible: "Log out"
+    timeout: 60000
+- assertNotVisible:
+    id: "profile-enroll-cta"

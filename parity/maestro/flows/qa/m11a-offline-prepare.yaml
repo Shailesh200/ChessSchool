@@ -1,0 +1,8 @@
+appId: com.chessschool.app
+name: "M-11..M-13 offline queue, part A: signed in, online, idle on campus"
+tags:
+  - M-11
+  - M-12
+---
+- runFlow: _common/boot-guest.yaml
+- runFlow: _common/login-typed.yaml

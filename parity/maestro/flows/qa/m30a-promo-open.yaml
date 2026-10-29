@@ -1,0 +1,23 @@
+appId: com.chessschool.app
+name: "M-30/M-31 promotion step: open lesson, move e7-e8, picker shown"
+tags:
+  - M-30
+  - M-31
+  - M-35
+---
+# Part A of 2. The runner then taps a piece with scripts/qa-sim-ui-tap.py (buttons are unlabeled, see M-61/M-63) and runs part B.
+- runFlow: _common/boot-guest.yaml
+- openLink: "chessschool:///lesson/pre-moves-promotion"
+- extendedWaitUntil:
+    visible:
+      id: "sq-e7"
+    timeout: 90000
+- takeScreenshot: m30-board
+- tapOn:
+    id: "sq-e7"
+- tapOn:
+    id: "sq-e8"
+- extendedWaitUntil:
+    visible: "Promote to"
+    timeout: 30000
+- takeScreenshot: m30-picker

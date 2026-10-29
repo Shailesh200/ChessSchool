@@ -1,0 +1,15 @@
+appId: com.chessschool.app
+name: "M-12 after reconnect: app still healthy (server sync asserted by the runner)"
+tags:
+  - M-12
+---
+# Part C after the runner turned the network back on. No app action is taken here on purpose (M-12: sync with no user action),
+# we only wait ~30 s and prove the app is alive. The runner then asserts server-side lesson + exact XP.
+- extendedWaitUntil:
+    visible:
+      id: "tab-Profile"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 30000
+- assertVisible:
+    id: "tab-Academy"

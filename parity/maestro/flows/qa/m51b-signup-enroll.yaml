@@ -1,0 +1,12 @@
+appId: com.chessschool.app
+name: "M-51 (subset) part B: Enroll, land on the account page signed in"
+tags:
+  - M-51
+---
+# Part B after part A tapped id avatar-0. Selected avatar needs no assertion; Enroll must succeed against the local API.
+- tapOn: "Enroll"
+- extendedWaitUntil:
+    visible:
+      id: "account-title"
+    timeout: 90000
+- assertNotVisible: "Try again"

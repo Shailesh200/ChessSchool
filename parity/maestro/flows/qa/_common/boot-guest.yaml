@@ -1,0 +1,26 @@
+# Shared: clean install state -> cold start -> skip orientation -> guest campus (Academy tab) visible.
+# Timeouts: first launch of a release build on the EAS (KVM) emulator.
+appId: com.chessschool.app
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    optional: true
+    timeout: 120000
+- tapOn:
+    id: "orientation-skip"
+    optional: true
+- tapOn:
+    text: "Open academy →"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Welcome to ChessSchool!"
+    timeout: 120000

@@ -63,7 +63,7 @@ describe("QA_SIM wiring", () => {
       "apps/web/vercel.json",
       "apps/web/.env.example",
       "apps/mobile/eas.json",
-      "apps/mobile/.eas/workflows/qa-sim.yml",
+      "apps/mobile/.eas/workflows/qa-sim-mobile.yml",
       ...readdirSync(path.join(root, ".github/workflows")).map(
         (f) => `.github/workflows/${f}`,
       ),
