@@ -18,6 +18,10 @@ name: Play Store screenshots
 # is deleted after the emulator step. Only normalized PNGs are uploaded.
 # A store-shot login link is substituted into a mode-600 flow in RUNNER_TEMP
 # from apps/web/.store-shot.env. That file is not created for the guest smoke.
+#
+# TEMPORARY push trigger below is one proof of the seeded store-shot flow.
+# Remove it after that run. A push has no workflow input, so it uses
+# apps/mobile/maestro/store-shots.yaml.
 
 on:
   workflow_dispatch:
@@ -27,6 +31,10 @@ on:
         required: false
         default: apps/mobile/maestro/store-shots.yaml
         type: string
+  # TEMPORARY: one proof run. Remove after it finishes.
+  push:
+    branches:
+      - jimbe/e-native-store-shots
 
 permissions:
   contents: read
