@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { asc, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { homeworkLessons } from "@/db/schema";
-import { isoDay } from "@chess-school/progression";
+import { resolveRequestedDay } from "@chess-school/progression";
 import type { LessonStep } from "@/features/lessons/types";
 import {
   firstMoveStep,
@@ -24,7 +24,10 @@ type PoolEntry = {
 /** Calculation-trainer position from the homework tactics pool. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const day = url.searchParams.get("day")?.slice(0, 10) || isoDay();
+  const day = resolveRequestedDay(url.searchParams.get("day"));
+  if (day === null) {
+    return NextResponse.json({ error: "invalid_day" }, { status: 400 });
+  }
   const offset = Math.max(0, Number(url.searchParams.get("n") ?? 0) || 0);
 
   const rows = await db

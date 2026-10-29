@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lastActiveDayBeyondServer } from "@chess-school/progression";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { progress, lessonRecords } from "@/db/schema";
@@ -95,10 +96,20 @@ export async function POST(req: Request) {
     );
   }
 
+  const incomingDay = parsed.data.lastActiveDay;
+  const dayRejected = lastActiveDayBeyondServer(incomingDay);
+  if (dayRejected && typeof incomingDay === "string") {
+    console.warn(`progress day rejected user=${user.id} day=${incomingDay}`);
+  }
+
   const { lessonCount } = await applyProgressPush(
     user.id,
     parsed.data,
     db as LibSQLDatabase<typeof schema>,
   );
-  return NextResponse.json({ ok: true, count: lessonCount });
+  return NextResponse.json(
+    dayRejected
+      ? { ok: true, count: lessonCount, dayRejected: true }
+      : { ok: true, count: lessonCount },
+  );
 }

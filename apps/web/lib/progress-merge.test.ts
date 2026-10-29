@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   mergeExtraData,
   mergeProgressPush,
@@ -46,6 +46,31 @@ describe("mergeProgressPush", () => {
     const merged = mergeProgressPush(push({ xp: 100, streak: 2 }), server);
     expect(merged.xp).toBe(500);
     expect(merged.streak).toBe(7);
+  });
+
+  it("rejects a client lastActiveDay more than one day past the server UTC day", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-15T12:00:00.000Z"));
+    const server = { ...emptyServer, lastActiveDay: "2026-07-14", streak: 3 };
+    const merged = mergeProgressPush(
+      push({ lastActiveDay: "2026-07-17", streak: 9 }),
+      server,
+    );
+    expect(merged.lastActiveDay).toBe("2026-07-14");
+    expect(merged.streak).toBe(9);
+
+    const neither = mergeProgressPush(push({ lastActiveDay: "9999-12-31" }), {
+      ...emptyServer,
+      lastActiveDay: "2027-07-15",
+    });
+    expect(neither.lastActiveDay).toBeNull();
+
+    const allowed = mergeProgressPush(push({ lastActiveDay: "2026-07-16" }), {
+      ...emptyServer,
+      lastActiveDay: "2026-07-14",
+    });
+    expect(allowed.lastActiveDay).toBe("2026-07-16");
+    vi.useRealTimers();
   });
 
   it("incoming XP/streak above server are kept", () => {

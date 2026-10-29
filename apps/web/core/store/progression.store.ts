@@ -2,8 +2,15 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { mergeProgressSnapshots } from "@chess-school/progression";
+import {
+  advanceStreak,
+  isCalendarDay,
+  isoDay,
+  mergeProgressSnapshots,
+} from "@chess-school/progression";
 import type { ArenaRunRecord } from "@/features/play/arena";
+
+export { isoDay };
 
 export interface MistakeEntry {
   fen: string;
@@ -247,10 +254,21 @@ export const useProgression = create<ProgressionState>()(
 
       registerActivity: (today) =>
         set((s) => {
-          if (s.lastActiveDay === today) return s;
-          const yesterday = addDays(today, -1);
-          const streak = s.lastActiveDay === yesterday ? s.streak + 1 : 1;
-          return { streak, lastActiveDay: today, todayKey: today, todayXp: 0 };
+          if (!isCalendarDay(today)) return s;
+          const next = advanceStreak(s.lastActiveDay, today, s.streak);
+          const day = next.day ?? s.lastActiveDay;
+          // Same logical day (including a +1 UTC key pulled back to today):
+          // move the daily-XP key without zeroing XP already earned.
+          if (next.streak === s.streak) {
+            if (day === s.lastActiveDay && s.todayKey === today) return s;
+            return { lastActiveDay: day, todayKey: today };
+          }
+          return {
+            streak: next.streak,
+            lastActiveDay: day,
+            todayKey: today,
+            todayXp: 0,
+          };
         }),
 
       graduateClass: (classId) =>
@@ -328,13 +346,3 @@ export const useProgression = create<ProgressionState>()(
     },
   ),
 );
-
-export function isoDay(d = new Date()): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function addDays(iso: string, delta: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
-}

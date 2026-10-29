@@ -2,14 +2,17 @@ import { NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { homeworkLessons } from "@/db/schema";
-import { dailyPuzzleId, isoDay } from "@chess-school/progression";
+import { dailyPuzzleId, resolveRequestedDay } from "@chess-school/progression";
 
 export const revalidate = 3600;
 
 /** Deterministic daily puzzle from the homework practice pool. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const day = url.searchParams.get("day")?.slice(0, 10) || isoDay();
+  const day = resolveRequestedDay(url.searchParams.get("day"));
+  if (day === null) {
+    return NextResponse.json({ error: "invalid_day" }, { status: 400 });
+  }
 
   const rows = await db
     .select({

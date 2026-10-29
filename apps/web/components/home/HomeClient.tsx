@@ -19,6 +19,7 @@ import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import {
   dueLessonIds,
   isDailyPuzzleDone,
+  isoDay,
   lessonsAttemptedCount,
   needsPlacementTest,
   shouldRecommendPreschool,
@@ -88,7 +89,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const [daily, setDaily] = useState<DailyPuzzle | null>(null);
 
   useEffect(() => {
-    fetch("/api/daily-puzzle")
+    fetch(`/api/daily-puzzle?day=${isoDay()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setDaily(d))
       .catch(() => void 0);

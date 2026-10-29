@@ -1,7 +1,8 @@
 /**
  * Characterization tests for today's progression reducers.
- * Names marked [D-3], [D-4], or [D-5] lock known behaviour a later fix will flip:
- * D-3 max-merge, D-4 UTC day boundaries, D-5 server-first merge.
+ * Names marked [D-3] or [D-5] lock known behaviour a later fix will flip:
+ * D-3 max-merge, D-5 server-first merge.
+ * D-4 (UTC day keys) was flipped by the local calendar day: these assert that.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -20,6 +21,17 @@ import {
 
 const FROZEN = new Date("2026-06-15T15:00:00.000Z");
 const FROZEN_DAY = "2026-06-15";
+const IST_0355 = new Date("2026-06-15T22:25:00.000Z"); // 03:55 IST on 2026-06-16
+const IST_DAY = "2026-06-16";
+const RealDateTimeFormat = Intl.DateTimeFormat;
+
+function useDeviceZone(timeZone: string) {
+  vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+    const opts: Intl.DateTimeFormatOptions = { ...options };
+    if (!opts.timeZone) opts.timeZone = timeZone;
+    return new RealDateTimeFormat(locales, opts);
+  });
+}
 
 function mistake(fen: string, at: number, played = "e2e4"): Mistake {
   return { fen, played, best: "d2d4", tag: "fork", at };
@@ -31,38 +43,46 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
 describe("isoDay", () => {
-  // D-4: the calendar day is the UTC date, so a local evening can be tomorrow.
-  it("[D-4 current behaviour] isoDay is the UTC calendar date", () => {
-    expect(isoDay(new Date("2026-01-15T23:30:00.000Z"))).toBe("2026-01-15");
-    // 23:30 in US Eastern is already the next UTC day.
-    expect(isoDay(new Date("2026-01-15T23:30:00.000-05:00"))).toBe("2026-01-16");
-    // 00:30 in India is still the previous UTC day.
-    expect(isoDay(new Date("2026-01-15T00:30:00.000+05:30"))).toBe("2026-01-14");
+  it("follows the IANA zone instead of the UTC date", () => {
+    expect(isoDay(new Date("2026-01-15T23:30:00.000Z"), "UTC")).toBe("2026-01-15");
+    // 23:30 US Eastern is still Jan 15 locally; UTC is already Jan 16.
+    expect(isoDay(new Date("2026-01-15T23:30:00.000-05:00"), "America/New_York")).toBe(
+      "2026-01-15",
+    );
+    // 00:30 IST is Jan 15 locally; UTC is still Jan 14.
+    expect(isoDay(new Date("2026-01-15T00:30:00.000+05:30"), "Asia/Kolkata")).toBe(
+      "2026-01-15",
+    );
   });
 
-  // D-4: the default day is whatever UTC day the clock is in.
-  it("[D-4 current behaviour] reads the UTC clock when no date is passed", () => {
-    expect(isoDay()).toBe(FROZEN_DAY);
+  it("reads the device zone when no date is passed", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
+    expect(isoDay()).toBe(IST_DAY);
+    expect(new Date().toISOString().slice(0, 10)).toBe(FROZEN_DAY);
   });
 });
 
 describe("awardXp", () => {
-  // D-4: today's XP bucket key is the UTC day, not the local calendar day.
-  it("[D-4 current behaviour] adds the amount to total xp and the current UTC day bucket", () => {
-    const s = awardXp({ xp: 10, activityDays: { "2026-06-14": 5 } }, 20);
+  it("adds the amount to total xp and the device-local day bucket", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
+    const s = awardXp({ xp: 10, activityDays: { [FROZEN_DAY]: 5 } }, 20);
     expect(s.xp).toBe(30);
-    expect(s.activityDays).toEqual({ "2026-06-14": 5, [FROZEN_DAY]: 20 });
+    expect(s.activityDays).toEqual({ [FROZEN_DAY]: 5, [IST_DAY]: 20 });
   });
 
-  // D-4: a second award the same UTC instant stays in that same UTC bucket.
-  it("[D-4 current behaviour] accumulates further awards into the same UTC day bucket", () => {
+  it("accumulates further awards into the same local day bucket", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
     const s = awardXp(awardXp({ xp: 0 }, 15), 5);
     expect(s.xp).toBe(20);
-    expect(s.activityDays?.[FROZEN_DAY]).toBe(20);
+    expect(s.activityDays?.[IST_DAY]).toBe(20);
   });
 });
 
@@ -155,28 +175,30 @@ describe("updateRating", () => {
 });
 
 describe("applyLessonComplete", () => {
-  // D-4: completion stamps lastActiveDay and the XP bucket from the UTC clock.
-  it("[D-4 current behaviour] records mastery, xp, the UTC day, and a perfect-lesson achievement", () => {
+  it("records mastery, xp, the local day, and a perfect-lesson achievement", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
     const s = applyLessonComplete(
       {},
       { lessonId: "board-basics", correct: 4, total: 4, mistakes: 0, xp: 20 },
     );
     expect(s.xp).toBe(20);
     expect(s.streak).toBe(1);
-    expect(s.lastActiveDay).toBe(FROZEN_DAY);
+    expect(s.lastActiveDay).toBe(IST_DAY);
     expect(s.lessons?.["board-basics"]?.mastery).toBe(1);
-    expect(s.activityDays?.[FROZEN_DAY]).toBe(20);
+    expect(s.activityDays?.[IST_DAY]).toBe(20);
     expect(s.unlockedAchievements).toEqual(["first-step", "perfect"]);
   });
 
-  // D-4: "yesterday" is the previous UTC day, and today is the frozen UTC day.
-  it("[D-4 current behaviour] continues yesterday's streak and unlocks the 3-day achievement", () => {
+  it("continues the previous local day and unlocks the 3-day achievement", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
     const s = applyLessonComplete(
-      { streak: 2, lastActiveDay: "2026-06-14" },
+      { streak: 2, lastActiveDay: FROZEN_DAY },
       { lessonId: "board-basics", correct: 1, total: 1, mistakes: 0, xp: 10 },
     );
     expect(s.streak).toBe(3);
-    expect(s.lastActiveDay).toBe(FROZEN_DAY);
+    expect(s.lastActiveDay).toBe(IST_DAY);
     expect(s.unlockedAchievements).toEqual(["first-step", "perfect", "streak-3"]);
   });
 
@@ -202,26 +224,28 @@ describe("applyLessonComplete", () => {
 });
 
 describe("applyMatchEnd", () => {
-  // D-4: a win registers activity and XP on the UTC day from the clock.
-  it("[D-4 current behaviour] a win raises rating, grants 40 xp, and registers the UTC day", () => {
+  it("a win raises rating, grants 40 xp, and registers the local day", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
     const s = applyMatchEnd({ rating: 800 }, { botElo: 800, result: "win" });
     expect(s.rating).toBe(816);
     expect(s.xp).toBe(40);
     expect(s.botWins).toBe(1);
     expect(s.streak).toBe(1);
-    expect(s.lastActiveDay).toBe(FROZEN_DAY);
-    expect(s.activityDays?.[FROZEN_DAY]).toBe(40);
+    expect(s.lastActiveDay).toBe(IST_DAY);
+    expect(s.activityDays?.[IST_DAY]).toBe(40);
     expect(s.unlockedAchievements).toEqual(["first-win"]);
   });
 
-  // D-4: a loss still stamps lastActiveDay from the UTC clock.
-  it("[D-4 current behaviour] a loss changes rating without granting xp and stamps the UTC day", () => {
+  it("a loss changes rating without granting xp and stamps the local day", () => {
+    useDeviceZone("Asia/Kolkata");
+    vi.setSystemTime(IST_0355);
     const s = applyMatchEnd({ rating: 800, xp: 15 }, { botElo: 800, result: "loss" });
     expect(s.rating).toBe(784);
     expect(s.xp).toBe(15);
     expect(s.botWins).toBe(0);
     expect(s.streak).toBe(1);
-    expect(s.lastActiveDay).toBe(FROZEN_DAY);
+    expect(s.lastActiveDay).toBe(IST_DAY);
     expect(s.unlockedAchievements).toBeUndefined();
   });
 
