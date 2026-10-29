@@ -354,7 +354,7 @@ export default function GameScreen() {
         <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
-        <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
+        <Text testID="play-game-title" style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
         <Pressable
           style={styles.circle}
           onPress={() => {
@@ -368,6 +368,7 @@ export default function GameScreen() {
         </Pressable>
         <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}><Icon name="flip" size={18} color={colors.ink} /></Pressable>
         <Pressable
+          testID="play-resign"
           style={styles.resign}
           accessibilityLabel="Resign game"
           accessibilityRole="button"
@@ -485,6 +486,7 @@ export default function GameScreen() {
         title="Resign?"
         message={`${bot.name} will win if you resign.`}
         confirmLabel="Resign"
+        confirmTestID="play-resign-confirm"
         tone="danger"
         onCancel={() => setResignOpen(false)}
         onConfirm={() => {
