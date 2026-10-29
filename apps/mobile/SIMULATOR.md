@@ -50,6 +50,8 @@ Pins, checksums, and the EAS hook are in [`STOCKFISH.md`](STOCKFISH.md). If `ios
 already exists, run `(cd ios && pod install)` after the fetch so CocoaPods sees the
 new sources. EAS does this itself via `eas-build-pre-install`.
 
+The runtime fingerprint does **not** hash `engine/`. It hashes `scripts/fetch-stockfish.sh`, which is the only place the Stockfish 18 checksum pins live. Changing a pin changes the runtime, so ship a new store build.
+
 ## 2. Build + run
 ```bash
 cd apps/mobile

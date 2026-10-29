@@ -8,7 +8,7 @@
     "scheme": "chessschool",
     "userInterfaceStyle": "automatic",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "checkAutomatically": "ON_ERROR_RECOVERY",
