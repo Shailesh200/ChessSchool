@@ -31,7 +31,7 @@ import { thinkingMatchGreeting } from "@/features/coaching/thinkingPrompt";
 import { stopCoachSpeech, speakCoachText } from "@/core/audio/coachSpeech";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { useSettings } from "@/core/store/settings.store";
-import { useProgression } from "@/core/store/progression.store";
+import { isoDay, useProgression } from "@/core/store/progression.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { toast } from "@/core/store/toast.store";
@@ -61,11 +61,7 @@ function CoachBubble({
   const character = useSettings((s) => s.coachCharacter);
   return (
     <div className="border-hairline bg-surface-card text-ink flex h-[5.5rem] items-center gap-3 overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold [box-shadow:var(--shadow-card)]">
-      <CoachAvatar
-        character={character}
-        state={loading ? "think" : "idle"}
-        size={48}
-      />
+      <CoachAvatar character={character} state={loading ? "think" : "idle"} size={48} />
       <div className="min-w-0 flex-1">
         <span className="text-ink-500 block text-[10px] font-extrabold tracking-wide uppercase">
           Coach
@@ -172,8 +168,7 @@ function AssistedFullGame({ rating }: { rating: number }) {
     if (!e.isGameOver() || endedRef.current) return;
     endedRef.current = true;
     const status = e.status();
-    const winner =
-      status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
+    const winner = status === "checkmate" ? (e.turn() === "w" ? "b" : "w") : null;
     const result =
       winner === "w" ? "1-0" : winner === "b" ? "0-1" : ("1/2-1/2" as const);
     trackMatchEnd({
@@ -488,7 +483,7 @@ function AssistedPuzzleDrill({
   useEffect(() => {
     let cancelled = false;
     // Phase is set to "loading" by the Next-puzzle click handler (and initial state).
-    fetch(`/api/think?n=${offset}`, { cache: "no-store" })
+    fetch(`/api/think?n=${offset}&day=${isoDay()}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: { puzzle: CalculationPuzzle }) => {
         if (cancelled) return;

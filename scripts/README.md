@@ -8,6 +8,8 @@ Run before every milestone **owner approval** and **merge to main**.
 pnpm verify:milestone
 ```
 
+Also runs `node scripts/verify-seed-artifact.mjs` first: `apps/web/db/seed.sql.gz` must be gzip and at most 90 MB, and no uncompressed `seed.sql` may be committed (`pnpm verify:seed`).
+
 Runs, in order:
 
 1. `pnpm typecheck`
@@ -19,10 +21,20 @@ Runs, in order:
 7. `bash scripts/verify-web-seo.sh` — static SEO baseline (Next.js)
 8. `pnpm --filter web db:fresh`
 9. `pnpm e2e` — Playwright smoke + route tests
-10. `node scripts/verify-home-js-budget.mjs` — home route JS ≤320 KB gzip (app chunks; includes Sentry client)
+10. `node scripts/verify-home-js-budget.mjs` — home route first-load JS ≤320 KB gzip (same `/` script tags Playwright loads; `noModule` polyfill excluded)
 11. `bash scripts/verify-web-lighthouse.sh` — Lighthouse + CWV on every route *(local / separate GHA workflow `Lighthouse`; every 5th milestone merge; owner may skip intervening slices)*
 
 **Milestone handoffs:** paste the verification report gate table. Include the **Lighthouse summary + CWV table** on every **5th milestone merge**; otherwise note `SKIP_LIGHTHOUSE=1` and owner approval.
+
+## Curriculum seed diffs
+
+GitHub cannot show a readable diff of `apps/web/db/seed.sql.gz`. Any pull request that changes that file must paste the output of `check-seed-diff` into the PR description. From the repo root:
+
+```bash
+node apps/web/db/oneoff/check-seed-diff.mjs staging
+```
+
+The script is `apps/web/db/oneoff/check-seed-diff.mjs`. `staging` is the default base ref.
 
 ## Escape hatches (document in milestone handoff if used)
 

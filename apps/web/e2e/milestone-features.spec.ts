@@ -15,17 +15,17 @@ test("calculation trainer loads at /play/think", async ({ page }) => {
   await expect(page.getByText(/coach/i).first()).toBeVisible();
 });
 
-test("settings coach voice picker shows coach and narrator groups", async ({
-  page,
-}) => {
+test("settings shows coach speech and the coach character list", async ({ page }) => {
   await page.goto("/settings");
-  const coachSpeech = page.getByRole("switch", { name: /coach voice/i });
+  const coachSpeech = page.getByRole("switch", { name: /coach speech/i });
+  await expect(coachSpeech).toBeVisible();
   if (!(await coachSpeech.isChecked())) {
     await coachSpeech.click();
   }
-  await expect(page.getByText("Coaches")).toBeVisible();
-  await expect(page.getByText("Narrators")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Grant/i })).toBeVisible();
+  await expect(page.getByText("Coach character")).toBeVisible();
+  for (const name of ["Otto", "Kira", "Skye", "Ash", "Rex"]) {
+    await expect(page.getByRole("button", { name: new RegExp(name) })).toBeVisible();
+  }
 });
 
 test("pre-school meet-the-pawn lesson renders", async ({ page }) => {

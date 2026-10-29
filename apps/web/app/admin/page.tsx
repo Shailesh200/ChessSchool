@@ -43,7 +43,10 @@ export default async function AdminPage() {
         tag: lessons.tag,
       })
       .from(lessons),
-    db.select({ id: users.id }).from(users).then((rows) => rows.length),
+    db
+      .select({ id: users.id })
+      .from(users)
+      .then((rows) => rows.length),
     getAdminAnalytics(),
   ]);
   const adminLessons = allLessons.filter((l) => l.tag === "admin");

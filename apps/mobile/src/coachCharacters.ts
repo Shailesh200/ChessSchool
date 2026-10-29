@@ -10,6 +10,9 @@ export const COACH_CHARACTER_IDS = [
 
 export type CoachCharacterId = (typeof COACH_CHARACTER_IDS)[number];
 
+/** New accounts and unknown ids. Saved choices are never rewritten to this. */
+export const DEFAULT_COACH_CHARACTER: CoachCharacterId = "anxious_nerd";
+
 export type CoachAvatarState =
   | "idle"
   | "breathe"
@@ -32,7 +35,7 @@ export type CoachCharacter = {
 };
 
 const LEGACY: Record<string, CoachCharacterId> = {
-  friendly: "genz",
+  friendly: DEFAULT_COACH_CHARACTER,
   strict: "sarcastic",
   mentor: "anxious_nerd",
   tactical: "egoistic",
@@ -46,14 +49,14 @@ const LEGACY: Record<string, CoachCharacterId> = {
 
 export function normalizeCoachCharacter(id: unknown): CoachCharacterId {
   if (typeof id === "string" && id in LEGACY) return LEGACY[id]!;
-  return "sarcastic";
+  return DEFAULT_COACH_CHARACTER;
 }
 
 export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
   anxious_nerd: {
     id: "anxious_nerd",
     name: "Otto",
-    theme: "Anxious / Nerd",
+    theme: "Careful / Nerd",
     elevenLabsVoiceId: "mrQhZWGbb2k9qWJb5qeA",
     accent: "#818cf8",
     successMotion: "nod",

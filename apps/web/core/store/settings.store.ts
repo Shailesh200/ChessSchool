@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { normalizeCoachVoice } from "@/lib/tts/voices";
 import {
+  DEFAULT_COACH_CHARACTER,
   type CoachCharacterId,
   normalizeCoachCharacter,
 } from "@/features/coaching/characters";
@@ -113,8 +114,8 @@ const defaults = {
   schoolTheme: "university" as SchoolTheme,
   appTheme: "default",
   pieceTheme: "classic" as PieceTheme,
-  coachCharacter: "sarcastic" as CoachCharacterId,
-  coachPersonality: "sarcastic" as CoachCharacterId,
+  coachCharacter: DEFAULT_COACH_CHARACTER,
+  coachPersonality: DEFAULT_COACH_CHARACTER,
   diagnostics: false,
   sharePerformance: true,
   shareAnalytics: true,
@@ -123,9 +124,7 @@ const defaults = {
   enrollPromptDismissedAt: null as number | null,
 };
 
-function syncCoachFields(
-  patch: Partial<SettingsState>,
-): Partial<SettingsState> {
+function syncCoachFields(patch: Partial<SettingsState>): Partial<SettingsState> {
   if (patch.coachCharacter !== undefined) {
     const c = normalizeCoachCharacter(patch.coachCharacter);
     return { ...patch, coachCharacter: c, coachPersonality: c };
@@ -205,13 +204,13 @@ export const useSettings = create<SettingsState>()(
         // v10 -> v11: named coach characters
         if (version < 11) {
           const from =
-            s.coachCharacter ?? s.coachPersonality ?? defaults.coachCharacter;
+            s.coachCharacter ?? s.coachPersonality ?? DEFAULT_COACH_CHARACTER;
           const c = normalizeCoachCharacter(from);
           s.coachCharacter = c;
           s.coachPersonality = c;
         } else {
           const c = normalizeCoachCharacter(
-            s.coachCharacter ?? s.coachPersonality ?? defaults.coachCharacter,
+            s.coachCharacter ?? s.coachPersonality ?? DEFAULT_COACH_CHARACTER,
           );
           s.coachCharacter = c;
           s.coachPersonality = c;

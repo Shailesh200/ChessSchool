@@ -1,5 +1,8 @@
 import type { CoachPersonality, CoachVoiceId } from "@/core/store/settings.store";
-import { COACH_CHARACTERS } from "@/features/coaching/characters";
+import {
+  COACH_CHARACTERS,
+  DEFAULT_COACH_CHARACTER,
+} from "@/features/coaching/characters";
 
 export interface EdgeVoiceProfile {
   name: string;
@@ -190,7 +193,11 @@ export const COACH_VOICE_OPTIONS: {
 /** Character → Edge/Google profiles when ElevenLabs unavailable / voice is `auto`. */
 export const TTS_VOICES: Record<CoachPersonality, TtsVoiceProfile> = {
   anxious_nerd: {
-    edge: { name: COACH_CHARACTERS.anxious_nerd.edgeVoiceFallback, rate: 1.0, pitch: "+0Hz" },
+    edge: {
+      name: COACH_CHARACTERS.anxious_nerd.edgeVoiceFallback,
+      rate: 1.0,
+      pitch: "+0Hz",
+    },
     google: {
       name: "en-US-Neural2-J",
       languageCode: "en-US",
@@ -217,7 +224,11 @@ export const TTS_VOICES: Record<CoachPersonality, TtsVoiceProfile> = {
     },
   },
   sarcastic: {
-    edge: { name: COACH_CHARACTERS.sarcastic.edgeVoiceFallback, rate: 0.95, pitch: "-2Hz" },
+    edge: {
+      name: COACH_CHARACTERS.sarcastic.edgeVoiceFallback,
+      rate: 0.95,
+      pitch: "-2Hz",
+    },
     google: {
       name: "en-US-Neural2-D",
       languageCode: "en-US",
@@ -226,7 +237,11 @@ export const TTS_VOICES: Record<CoachPersonality, TtsVoiceProfile> = {
     },
   },
   egoistic: {
-    edge: { name: COACH_CHARACTERS.egoistic.edgeVoiceFallback, rate: 1.0, pitch: "+0Hz" },
+    edge: {
+      name: COACH_CHARACTERS.egoistic.edgeVoiceFallback,
+      rate: 1.0,
+      pitch: "+0Hz",
+    },
     google: {
       name: "en-US-Neural2-A",
       languageCode: "en-US",
@@ -248,8 +263,9 @@ export function resolveEdgeVoice(
   const id = normalizeCoachVoice(voiceId);
   const base =
     id !== "auto"
-      ? (COACH_VOICE_OPTIONS.find((o) => o.id === id)?.edge ?? TTS_VOICES.sarcastic.edge)
-      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES.sarcastic.edge);
+      ? (COACH_VOICE_OPTIONS.find((o) => o.id === id)?.edge ??
+        TTS_VOICES[DEFAULT_COACH_CHARACTER].edge)
+      : (TTS_VOICES[personality]?.edge ?? TTS_VOICES[DEFAULT_COACH_CHARACTER].edge);
   return {
     ...base,
     rate: Math.min(2.5, base.rate * COACH_SPEECH_RATE_MULTIPLIER),

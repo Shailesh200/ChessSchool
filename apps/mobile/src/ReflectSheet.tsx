@@ -5,6 +5,7 @@ import { mutateProgress } from "./progressStore";
 import { haptics } from "./haptics";
 import { sfx } from "./sfx";
 import { colors, font, radius, shadowCard, space, type } from "./theme";
+import { isoDay } from "./progression";
 import { trackEvent } from "@/productAnalytics/track";
 
 export type JournalKind = "lesson" | "match" | "review" | "exam" | "reflection";
@@ -22,10 +23,6 @@ export type JournalEntry = {
 };
 
 const CONFIDENCE = ["😣", "😕", "😐", "🙂", "😄"];
-
-function isoDay() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /** Post-activity reflection — confidence + note, synced via progress API. */
 export function ReflectSheet({

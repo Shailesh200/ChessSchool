@@ -138,6 +138,15 @@ body {
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
 }
+
+/* Phone /play: let the chooser fill the tab scrollport so its CTA can pin
+   above the bottom nav without covering the options. Desktop/tablet unchanged. */
+@media (width < 48rem) {
+  main:has(.play-chooser) {
+    display: flex;
+    flex-direction: column;
+  }
+}
 .min-h-dvh {
   min-height: 100dvh;
 }

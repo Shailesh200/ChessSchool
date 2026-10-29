@@ -20,7 +20,7 @@ import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import type { CoachAvatarState } from "@/features/coaching/characters";
 import { useCoachSpeech } from "@/core/hooks/useCoachSpeech";
 import { useSettings } from "@/core/store/settings.store";
-import { useProgression } from "@/core/store/progression.store";
+import { isoDay, useProgression } from "@/core/store/progression.store";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { toast } from "@/core/store/toast.store";
@@ -70,7 +70,7 @@ function CalculationTrainerSession({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/think?n=${offset}`, { cache: "no-store" })
+    fetch(`/api/think?n=${offset}&day=${isoDay()}`, { cache: "no-store" })
       .then((res) => {
         if (!res.ok) throw new Error("fetch");
         return res.json() as Promise<{ puzzle: CalculationPuzzle }>;

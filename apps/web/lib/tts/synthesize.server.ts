@@ -1,10 +1,7 @@
 import "server-only";
 import { synthesizeEdgeSpeech } from "./edge.server";
 import { googleTtsConfigured, synthesizeGoogleSpeech } from "./google.server";
-import {
-  elevenLabsConfigured,
-  synthesizeElevenLabsSpeech,
-} from "./elevenlabs.server";
+import { elevenLabsConfigured, synthesizeElevenLabsSpeech } from "./elevenlabs.server";
 import type { CoachVoiceId } from "@/core/store/settings.store";
 import {
   normalizeCoachCharacter,

@@ -21,7 +21,10 @@ export function DeleteAccountButton() {
 
     setBusy(true);
     setError(null);
-    pulseTrack("account_delete", { role: useSession.getState().user?.role, platform: "web" });
+    pulseTrack("account_delete", {
+      role: useSession.getState().user?.role,
+      platform: "web",
+    });
     try {
       const res = await fetch("/api/account", {
         method: "DELETE",

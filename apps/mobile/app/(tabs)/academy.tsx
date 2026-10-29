@@ -175,7 +175,7 @@ export default function AcademyScreen() {
             </Text>
             <Text style={styles.subtitle}>
               {guest
-                ? "Enroll to the academy to track your progress."
+                ? "Enroll in the academy to track your progress."
                 : "Graduate through classes. Become a stronger player."}
             </Text>
           </View>
@@ -208,13 +208,13 @@ export default function AcademyScreen() {
               <View style={styles.placementOptional}>
                 <View style={styles.cardTitleRow}>
                   <Icon name="seedling" size={18} color={colors.brand} duotone />
-                  <Text style={styles.placementTitle}>Optional: Pre-School for complete beginners</Text>
+                  <Text style={styles.placementTitle}>Optional: the Starter stage for complete beginners</Text>
                 </View>
                 <Text style={styles.placementSub}>
                   Learn the board, pieces, and notation (d6, Nf3, Qd5) — skip anytime if you know the rules.
                 </Text>
                 <View style={{ marginTop: space[3], alignSelf: "flex-start" }}>
-                  <Button label="Start Pre-School →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
+                  <Button label="Start here →" size="sm" variant="outline" onPress={() => router.push("/class/class-pre-board")} />
                 </View>
               </View>
             )}

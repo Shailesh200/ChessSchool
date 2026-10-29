@@ -19,6 +19,7 @@ import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import {
   dueLessonIds,
   isDailyPuzzleDone,
+  isoDay,
   lessonsAttemptedCount,
   needsPlacementTest,
   shouldRecommendPreschool,
@@ -88,7 +89,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
   const [daily, setDaily] = useState<DailyPuzzle | null>(null);
 
   useEffect(() => {
-    fetch("/api/daily-puzzle")
+    fetch(`/api/daily-puzzle?day=${isoDay()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setDaily(d))
       .catch(() => void 0);
@@ -117,7 +118,7 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
             </h1>
             <p className="text-ink-500 text-sm font-semibold">
               {authedResolved === false
-                ? "Enroll to the academy to track your progress."
+                ? "Enroll in the academy to track your progress."
                 : "Graduate through classes. Become a stronger player."}
             </p>
           </div>
@@ -145,14 +146,14 @@ export function HomeClient({ catalog }: { catalog: Catalog }) {
           <div className="rounded-card border-hairline bg-surface-sunken/80 border p-4">
             <p className="text-ink inline-flex items-center gap-1.5 text-sm font-extrabold">
               <Icon name="seedling" size={16} className="text-brand shrink-0" />
-              Optional: Pre-School for complete beginners
+              Optional: the Starter stage for complete beginners
             </p>
             <p className="text-ink-500 mt-1 text-xs font-semibold">
               Learn the board, pieces, and notation (d6, Nf3, Qd5) at your own pace —
               skip anytime if you already know the rules.
             </p>
             <NavButton href="/class/class-pre-board" size="sm" className="mt-3">
-              Start Pre-School →
+              Start here <span aria-hidden="true">→</span>
             </NavButton>
           </div>
         )}

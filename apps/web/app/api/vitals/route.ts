@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 /** Accept batched Core Web Vitals from the client (sendBeacon-friendly). */
 export async function POST(req: Request) {
-  const limited = enforceRateLimit(req, "vitals", { limit: 60, windowMs: 60_000 });
+  const limited = await enforceRateLimit(req, "vitals", {
+    limit: 60,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const raw = await req.json().catch(() => null);

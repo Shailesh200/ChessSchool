@@ -160,4 +160,60 @@ describe("progress API integration", () => {
     expect(body.xp).toBe(60);
     expect(body.lessons["keep-me"]).toBeTruthy();
   });
+
+  it("returns 200 and dayRejected when lastActiveDay is past server UTC+1", async () => {
+    const token = await registerToken(postRegister, 60);
+    const headers = {
+      "content-type": "application/json",
+      ...bearer(token),
+      ...testIp(61),
+    };
+    const rejectedDay = "9999-12-31";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      const push = await postProgress(
+        new Request("http://test/api/progress", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(
+            pushBody({
+              xp: 25,
+              streak: 4,
+              lastActiveDay: rejectedDay,
+              lessons: {
+                "kept-lesson": { mastery: 0.7, attempts: 1, lastSeen: 5, dueAt: 6 },
+              },
+            }),
+          ),
+        }),
+      );
+      expect(push.status).toBe(200);
+      const pushed = await readJson<{ ok: boolean; dayRejected?: boolean }>(push);
+      expect(pushed.ok).toBe(true);
+      expect(pushed.dayRejected).toBe(true);
+
+      const pull = await getProgress(
+        new Request("http://test/api/progress", { headers: bearer(token) }),
+      );
+      const saved = await readJson<{
+        user: { id: string; email: string };
+        xp: number;
+        streak: number;
+        lastActiveDay: string | null;
+        lessons: Record<string, { mastery: number }>;
+      }>(pull);
+      expect(saved.xp).toBe(25);
+      expect(saved.streak).toBe(4);
+      expect(saved.lastActiveDay).toBeNull();
+      expect(saved.lessons["kept-lesson"]?.mastery).toBe(0.7);
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]).toEqual([
+        `progress day rejected user=${saved.user.id} day=${rejectedDay}`,
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });

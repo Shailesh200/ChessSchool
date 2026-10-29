@@ -10,17 +10,14 @@ export const COACH_CHARACTER_IDS = [
 
 export type CoachCharacterId = (typeof COACH_CHARACTER_IDS)[number];
 
+/** New accounts and unknown ids. Saved choices are never rewritten to this. */
+export const DEFAULT_COACH_CHARACTER: CoachCharacterId = "anxious_nerd";
+
 /** @deprecated Use CoachCharacterId — kept for gradual rename. */
 export type CoachPersonality = CoachCharacterId;
 
 export type CoachAvatarState =
-  | "idle"
-  | "breathe"
-  | "speak"
-  | "success"
-  | "miss"
-  | "think"
-  | "signature";
+  "idle" | "breathe" | "speak" | "success" | "miss" | "think" | "signature";
 
 /** Exact Voice Lab / API voice settings — do not invent these. */
 export type ElevenLabsVoiceSettings = {
@@ -64,7 +61,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
   anxious_nerd: {
     id: "anxious_nerd",
     name: "Otto",
-    theme: "Anxious / Nerd",
+    theme: "Careful / Nerd",
     gender: "male",
     elevenLabsVoiceId: "mrQhZWGbb2k9qWJb5qeA",
     elevenLabsModelId: "eleven_multilingual_v2",
@@ -175,7 +172,7 @@ export const COACH_CHARACTER_LIST = COACH_CHARACTER_IDS.map(
 );
 
 const LEGACY_PERSONALITY: Record<string, CoachCharacterId> = {
-  friendly: "genz",
+  friendly: DEFAULT_COACH_CHARACTER,
   strict: "sarcastic",
   mentor: "anxious_nerd",
   tactical: "egoistic",
@@ -191,7 +188,7 @@ export function normalizeCoachCharacter(id: unknown): CoachCharacterId {
   if (typeof id === "string" && id in LEGACY_PERSONALITY) {
     return LEGACY_PERSONALITY[id]!;
   }
-  return "sarcastic";
+  return DEFAULT_COACH_CHARACTER;
 }
 
 export function coachCharacterOf(id: unknown): CoachCharacter {
@@ -199,5 +196,7 @@ export function coachCharacterOf(id: unknown): CoachCharacter {
 }
 
 export function isCoachCharacterId(id: unknown): id is CoachCharacterId {
-  return typeof id === "string" && (COACH_CHARACTER_IDS as readonly string[]).includes(id);
+  return (
+    typeof id === "string" && (COACH_CHARACTER_IDS as readonly string[]).includes(id)
+  );
 }

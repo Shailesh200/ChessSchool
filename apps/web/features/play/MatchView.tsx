@@ -342,13 +342,10 @@ export function MatchView({ active }: { active: ActiveMatch }) {
           : outcomeFromWinner(winner, playerColor);
       const endBase = {
         channel: channel as "bot" | "pass" | "shadow" | "arena",
-        opponent: (active.mode === "pass" || isShadow
-          ? "human"
-          : "bot") as "bot" | "human",
+        opponent: (active.mode === "pass" || isShadow ? "human" : "bot") as
+          "bot" | "human",
         humanKind:
-          active.mode === "pass" || isShadow
-            ? ("same_device" as const)
-            : undefined,
+          active.mode === "pass" || isShadow ? ("same_device" as const) : undefined,
         targetElo: isBot ? active.targetElo : null,
         timeMin: active.timeControlMin,
         fromHomework: Boolean(active.fromHomework),
@@ -571,7 +568,6 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     [
       isBot,
       autoOpponent,
-      shadowOffBook,
       persist,
       checkOver,
       runOpponentTurn,
@@ -616,7 +612,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
 
       return commitMove(move);
     },
-    [thinking, thinkingGame, isBot, commitMove],
+    [thinking, autoOpponent, playerColor, thinkingGame, isBot, commitMove],
   );
 
   const confirmPending = useCallback(() => {
@@ -633,11 +629,19 @@ export function MatchView({ active }: { active: ActiveMatch }) {
     showCalculationPrompt();
   }, [showCalculationPrompt]);
 
+  // Mount-only resume reads these refs; listing them as deps would replay the opponent turn.
+  const resumeTurnRef = useRef({ playerColor, autoOpponent, runOpponentTurn });
+  useEffect(() => {
+    resumeTurnRef.current = { playerColor, autoOpponent, runOpponentTurn };
+  }, [playerColor, autoOpponent, runOpponentTurn]);
+
   // Resume: if it's the opponent's turn on mount (e.g. after refresh), let them move.
   useEffect(() => {
     const e = engineRef.current;
-    if (!e.isGameOver() && e.turn() !== playerColor && autoOpponent) runOpponentTurn();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const resume = resumeTurnRef.current;
+    if (!e.isGameOver() && e.turn() !== resume.playerColor && resume.autoOpponent) {
+      resume.runOpponentTurn();
+    }
   }, []);
 
   // Warn on refresh/close while a game is unfinished.

@@ -1,4 +1,5 @@
 import type { CoachPersonality } from "@/core/store/settings.store";
+import { DEFAULT_COACH_CHARACTER } from "@/features/coaching/characters";
 import type { VerboseMove } from "@/core/types/chess";
 import type { BotTier } from "./matchCommentary";
 import { tierForElo } from "./matchCommentary";
@@ -104,6 +105,20 @@ type LineCtx = {
   moveNumber: number;
 };
 
+/** Unknown personality, missing kind, then missing quiet line — all use the default coach. */
+export function coachCommentPool<T>(
+  tables: Partial<Record<string, Partial<Record<string, T>> | undefined>>,
+  personality: string,
+  kind: string,
+): T {
+  const fallback = tables[DEFAULT_COACH_CHARACTER];
+  const table = tables[personality] ?? fallback;
+  return (table?.[kind] ??
+    fallback?.[kind] ??
+    table?.quiet_middlegame ??
+    fallback?.quiet_middlegame)!;
+}
+
 function templates(
   personality: CoachPersonality,
   kind: MoveCommentKind,
@@ -114,11 +129,11 @@ function templates(
   const tables: Record<CoachPersonality, Partial<Record<MoveCommentKind, string[]>>> = {
     genz: {
       mate: reacting
-        ? [`You mated ${b}! Lowkey iconic finish. W.`, `Checkmate on ${b}! Save that line.`]
-        : [
-            `${b} got the mate. Run it back.`,
-            `Mate from ${b}. Every player eats one.`,
-          ],
+        ? [
+            `You mated ${b}! Lowkey iconic finish. W.`,
+            `Checkmate on ${b}! Save that line.`,
+          ]
+        : [`${b} got the mate. Run it back.`, `Mate from ${b}. Every player eats one.`],
       check: reacting
         ? [`You checked ${b}! Keep the pressure.`, `Check! ${b} has to scramble.`]
         : [
@@ -126,7 +141,10 @@ function templates(
             `Check from ${b}. Still bites if you shrug.`,
           ],
       capture_queen: reacting
-        ? [`You took ${b}'s queen! Vibe shift.`, `Queen grab — ${b} is rethinking everything.`]
+        ? [
+            `You took ${b}'s queen! Vibe shift.`,
+            `Queen grab — ${b} is rethinking everything.`,
+          ]
         : [
             `${b} snagged your queen. Where did she lose guards?`,
             `${b} won your queen. Loose majors get punished.`,
@@ -144,7 +162,10 @@ function templates(
             `${b} wins the ${p}. Don't donate another.`,
           ],
       capture_pawn: reacting
-        ? [`You took ${b}'s pawn. Little bites add up.`, `Pawn grab! Balance shifts on ${b}.`]
+        ? [
+            `You took ${b}'s pawn. Little bites add up.`,
+            `Pawn grab! Balance shifts on ${b}.`,
+          ]
         : [
             `${b} ate that. Main character energy rn.`,
             `${b} ate your pawn. Patch the weakness.`,
@@ -164,11 +185,11 @@ function templates(
         `En passant from ${b}. Chess is weird.`,
       ],
       develop: reacting
-        ? [`You're developing vs ${b}. Pieces before ego.`, `Piece out! Tempo still wins.`]
-        : [
-            `${b} developed. Mirror the energy.`,
-            `${b} gets a piece out. Match it.`,
-          ],
+        ? [
+            `You're developing vs ${b}. Pieces before ego.`,
+            `Piece out! Tempo still wins.`,
+          ]
+        : [`${b} developed. Mirror the energy.`, `${b} gets a piece out. Match it.`],
       center: reacting
         ? [`You fought for the centre vs ${b}.`, `Central pawn! ${b} can't ignore it.`]
         : [
@@ -194,19 +215,28 @@ function templates(
     },
     sarcastic: {
       mate: reacting
-        ? [`You mated ${b}. Note which square was naked.`, `Checkmate vs ${b}. ${b} isn't immortal.`]
+        ? [
+            `You mated ${b}. Note which square was naked.`,
+            `Checkmate vs ${b}. ${b} isn't immortal.`,
+          ]
         : [
             `${b} mated you. King safety was a choice.`,
             `They hung nothing. You hung everything. Fascinating.`,
           ],
       check: reacting
-        ? [`You checked ${b}. Hope is not a plan.`, `Check. ${b} must defend. Don't waste tempo.`]
+        ? [
+            `You checked ${b}. Hope is not a plan.`,
+            `Check. ${b} must defend. Don't waste tempo.`,
+          ]
         : [
             `${b} checks you. Best square. Move on.`,
             `In check from ${b}. Accuracy beats pride.`,
           ],
       capture_queen: reacting
-        ? [`You took ${b}'s queen. About time.`, `Queen from ${b} is yours. Don't give it back.`]
+        ? [
+            `You took ${b}'s queen. About time.`,
+            `Queen from ${b} is yours. Don't give it back.`,
+          ]
         : [
             `${b} wins your queen. That was loose.`,
             `${b} snagged your queen. Majors need babysitters.`,
@@ -224,13 +254,19 @@ function templates(
             `${b} wins your ${p}. Loose pieces lose games.`,
           ],
       capture_pawn: reacting
-        ? [`Pawn from ${b} is yours. Make it count.`, `You grabbed ${b}'s pawn. Structural damage.`]
+        ? [
+            `Pawn from ${b} is yours. Make it count.`,
+            `You grabbed ${b}'s pawn. Structural damage.`,
+          ]
         : [
             `${b} grabs a pawn. Structural damage still hurts.`,
             `${b} ate your pawn. Respect the structure.`,
           ],
       castle: reacting
-        ? [`You castled vs ${b}. Acceptable king safety.`, `Castle against ${b}. Revolutionary safety.`]
+        ? [
+            `You castled vs ${b}. Acceptable king safety.`,
+            `Castle against ${b}. Revolutionary safety.`,
+          ]
         : [
             `${b} castled. Predictable and correct. Punish pawns.`,
             `${b} tucked the king. Boring. Effective.`,
@@ -244,13 +280,19 @@ function templates(
         `En passant from ${b}. Chess rules are a prank.`,
       ],
       develop: reacting
-        ? [`You develop vs ${b}. Pieces before ego.`, `Piece out against ${b}. Still a thing.`]
+        ? [
+            `You develop vs ${b}. Pieces before ego.`,
+            `Piece out against ${b}. Still a thing.`,
+          ]
         : [
             `${b} developed. Mirror or fall behind.`,
             `${b} gets a piece out. Find yours.`,
           ],
       center: reacting
-        ? [`You fought for the centre vs ${b}.`, `Central pawn. ${b} noticed. Pretend they didn't.`]
+        ? [
+            `You fought for the centre vs ${b}.`,
+            `Central pawn. ${b} noticed. Pretend they didn't.`,
+          ]
         : [
             `${b} claimed central space. Contest it.`,
             `${b} stakes the middle. Space matters.`,
@@ -274,46 +316,67 @@ function templates(
     },
     anxious_nerd: {
       mate: reacting
-        ? [`You mated ${b}! Replay the forcing moves.`, `Checkmate vs ${b}! I checked twice.`]
+        ? [
+            `You mated ${b}! Replay the forcing moves.`,
+            `Checkmate vs ${b}! I checked twice.`,
+          ]
         : [
-            `${b} mated you. Study where shelter broke.`,
+            `${b} mated you. Let's find where your king got exposed.`,
             `Mate from ${b}. The idea started earlier.`,
           ],
       check: reacting
-        ? [`You checked ${b}. Good tempo. What's their defense?`, `Check vs ${b}. Improve, don't just poke.`]
+        ? [
+            `You checked ${b}. Good tempo. What's their defense?`,
+            `Check vs ${b}! What's your follow-up?`,
+          ]
         : [
             `${b} checks you. Which escape keeps options?`,
-            `In check from ${b}. Calm squares beat fast.`,
+            `In check from ${b}. Breathe, then pick a safe square.`,
           ],
       capture_queen: reacting
-        ? [`You won ${b}'s queen! Walk through the conversion.`, `Queen from ${b} is yours. We're fine. Probably.`]
+        ? [
+            `You won ${b}'s queen! Now use her carefully.`,
+            `Queen from ${b} is yours! Okay. We're fine.`,
+          ]
         : [
             `Oh no — ${b} took your queen. We can fix this.`,
-            `Losing the queen to ${b}. Where did she lose guards?`,
+            `${b} took your queen. Where was she unprotected?`,
           ],
       capture_rook: reacting
-        ? [`You took ${b}'s rook! Open files. We're okay.`, `Rook capture vs ${b}. Verify the reply.`]
+        ? [
+            `You took ${b}'s rook! Open files. We're okay.`,
+            `Rook capture vs ${b}. Verify the reply.`,
+          ]
         : [
             `Oh no they took your rook. We can fix this.`,
-            `${b} wins your rook. Deep breath. File discipline.`,
+            `${b} wins your rook. Deep breath. Check what's unguarded.`,
           ],
       capture_minor: reacting
-        ? [`You picked off ${b}'s ${p}. I double-checked. Solid.`, `${b}'s ${p} is gone. Keep improving.`]
+        ? [
+            `You picked off ${b}'s ${p}. I double-checked. Solid.`,
+            `${b}'s ${p} is gone. Keep improving.`,
+          ]
         : [
             `Oh no — ${b} captured your ${p}. Scan for tactics.`,
-            `${b} wins the ${p}. Don't donate another.`,
+            `${b} wins the ${p}. Let's keep the rest guarded.`,
           ],
       capture_pawn: reacting
-        ? [`You took ${b}'s pawn. Little bite. Verified.`, `Pawn from ${b} is yours. Stay with me.`]
+        ? [
+            `You took ${b}'s pawn. Little bite. Verified.`,
+            `Pawn from ${b} is yours. Stay with me.`,
+          ]
         : [
-            `Oh no they took something. We can fix this.`,
+            `${b} took a pawn. No panic — we can fix this.`,
             `${b} ate your pawn. Structure still matters.`,
           ],
       castle: reacting
-        ? [`You castled vs ${b}! I can unclench a little.`, `Castle against ${b}. Kings belong tucked.`]
+        ? [
+            `You castled vs ${b}! I can relax a little.`,
+            `Castle against ${b}. Kings belong tucked.`,
+          ]
         : [
-            `${b} castled. Plan against pawns, not panic.`,
-            `${b} tucked the king. Calculate your development.`,
+            `${b} castled. Make a calm plan.`,
+            `${b} tucked the king. Bring your pieces out next.`,
           ],
       promote: [
         `Oh no — ${b} promoted. Stop the next one.`,
@@ -324,19 +387,25 @@ function templates(
         `En passant from ${b}. Weird rule, real threat.`,
       ],
       develop: reacting
-        ? [`You're developing vs ${b}. Pieces before random pushes.`, `Piece out! Development still wins.`]
+        ? [
+            `You're developing vs ${b}. Pieces before random pushes.`,
+            `Piece out! Development still wins.`,
+          ]
         : [
-            `${b} developed. Mirror tempo — falling behind scares me.`,
+            `${b} developed. Your turn — bring a piece out.`,
             `${b} gets a piece out. Find yours.`,
           ],
       center: reacting
-        ? [`You fought for the centre vs ${b}. Good habit.`, `Central pawn from you. ${b} can't ignore it.`]
+        ? [
+            `You fought for the centre vs ${b}. Good habit.`,
+            `Central pawn from you. ${b} can't ignore it.`,
+          ]
         : [
-            `${b} claimed the middle. Contest it or regret it.`,
+            `${b} claimed the middle. Push back with a pawn or piece.`,
             `${b} stakes the centre. Space matters.`,
           ],
       escape_check: [
-        `${b} slipped out of check. Reload or regroup?`,
+        `${b} escaped check. Attack again or regroup?`,
         `${b} found a king square. Not gone. Breathe.`,
       ],
       quiet_opening: [
@@ -344,12 +413,12 @@ function templates(
         `Subtle start. What's your best piece doing?`,
       ],
       quiet_middlegame: [
-        `Middlegame vs ${b}. Trade ahead, improve when equal.`,
+        `Middlegame vs ${b}. Ahead? Trade pieces. Even? Improve one.`,
         `${b} plays slowly. Find the hidden weakness.`,
       ],
       quiet_endgame: [
         `Endgame vs ${b}. Activate your king first.`,
-        `Few pieces left. One slip still hurts.`,
+        `Few pieces left. Every move counts — go slow.`,
       ],
     },
     egoistic: {
@@ -360,37 +429,49 @@ function templates(
             `Mate from ${b}. King doomed long before the mark.`,
           ],
       check: reacting
-        ? [`You checked ${b}! Keep that king uncomfortable.`, `Check! Pressure anyway. You're built for this.`]
-        : [
-            `${b} checks you. Hunt the counterattack.`,
-            `They scored. Answer harder.`,
-          ],
+        ? [
+            `You checked ${b}! Keep that king uncomfortable.`,
+            `Check! Pressure anyway. You're built for this.`,
+          ]
+        : [`${b} checks you. Hunt the counterattack.`, `They scored. Answer harder.`],
       capture_queen: reacting
-        ? [`Queen hunt successful — ${b}'s king stands alone.`, `You took ${b}'s queen. Finish it.`]
+        ? [
+            `Queen hunt successful — ${b}'s king stands alone.`,
+            `You took ${b}'s queen. Finish it.`,
+          ]
         : [
             `${b} wins your queen. Counterplay or die slowly.`,
             `${b} snagged your queen. Loose pieces lose.`,
           ],
       capture_rook: reacting
-        ? [`You took ${b}'s rook. Dominate the file.`, `Rook from ${b} is yours. Convert.`]
+        ? [
+            `You took ${b}'s rook. Dominate the file.`,
+            `Rook from ${b} is yours. Convert.`,
+          ]
         : [
             `They scored. Answer harder.`,
             `Your rook falls to ${b}. File control isn't optional.`,
           ],
       capture_minor: reacting
-        ? [`You win ${b}'s ${p}. Stack the pressure.`, `${b}'s ${p} is gone. Keep going.`]
+        ? [
+            `You win ${b}'s ${p}. Stack the pressure.`,
+            `${b}'s ${p} is gone. Keep going.`,
+          ]
         : [
             `${b} captures your ${p}. Strike back.`,
             `${b} wins the ${p}. Still in this fight.`,
           ],
       capture_pawn: reacting
-        ? [`You grabbed ${b}'s pawn. Stack every point.`, `Pawn from ${b} is yours. Take it.`]
-        : [
-            `They scored. Answer harder.`,
-            `Pawn loss to ${b}. Tactics, not hope.`,
-          ],
+        ? [
+            `You grabbed ${b}'s pawn. Stack every point.`,
+            `Pawn from ${b} is yours. Take it.`,
+          ]
+        : [`They scored. Answer harder.`, `Pawn loss to ${b}. Tactics, not hope.`],
       castle: reacting
-        ? [`You castled vs ${b}. King safe — win the middle.`, `Castle! ${b} works harder now.`]
+        ? [
+            `You castled vs ${b}. King safe — win the middle.`,
+            `Castle! ${b} works harder now.`,
+          ]
         : [
             `${b} castled. Attack the pawns, not fear.`,
             `${b} tucked the king. Punish something else.`,
@@ -410,7 +491,10 @@ function templates(
             `${b} gets a piece out. Lagging loses.`,
           ],
       center: reacting
-        ? [`You fought for the centre vs ${b}. Champion chess.`, `Central pawn from you. ${b} can't ignore you.`]
+        ? [
+            `You fought for the centre vs ${b}. Champion chess.`,
+            `Central pawn from you. ${b} can't ignore you.`,
+          ]
         : [
             `${b} claimed the middle. Contest it.`,
             `${b} stakes the centre. Take some back.`,
@@ -434,43 +518,64 @@ function templates(
     },
     sassy: {
       mate: reacting
-        ? [`You mated ${b}. Game over. As it should be.`, `Checkmate vs ${b}. Correct. Fine.`]
+        ? [
+            `You mated ${b}. Game over. As it should be.`,
+            `Checkmate vs ${b}. Correct. Fine.`,
+          ]
         : [
             `${b} mated you. Embarrassing. Fix the king.`,
             `Mate from ${b}. Your defense still folded.`,
           ],
       check: reacting
-        ? [`You checked ${b}! Make them sweat.`, `Check vs ${b}. Keep that king uncomfortable.`]
+        ? [
+            `You checked ${b}! Make them sweat.`,
+            `Check vs ${b}. Keep that king uncomfortable.`,
+          ]
         : [
             `${b} checks you. No panic moves, darling.`,
             `In check from ${b}. Calm square. Probably fine.`,
           ],
       capture_queen: reacting
-        ? [`You took ${b}'s queen! ${b} got humbled.`, `Queen grab — ${b} donated like a gift shop.`]
+        ? [
+            `You took ${b}'s queen! ${b} got humbled.`,
+            `Queen grab — ${b} donated like a gift shop.`,
+          ]
         : [
             `They took free stuff. Embarrassing. Fix it.`,
             `${b} wins your queen. Majors need guards.`,
           ],
       capture_rook: reacting
-        ? [`You ate ${b}'s rook. Your playground now.`, `Rook from ${b} is yours. Don't give it back.`]
+        ? [
+            `You ate ${b}'s rook. Your playground now.`,
+            `Rook from ${b} is yours. Don't give it back.`,
+          ]
         : [
             `They took free stuff. Embarrassing. Fix it.`,
             `Your rook falls to ${b}. What was it doing?`,
           ],
       capture_minor: reacting
-        ? [`You picked off ${b}'s ${p}. Still counts.`, `${b}'s ${p} is gone. Keep pressing.`]
+        ? [
+            `You picked off ${b}'s ${p}. Still counts.`,
+            `${b}'s ${p} is gone. Keep pressing.`,
+          ]
         : [
             `${b} captured your ${p}. Loose piece energy.`,
             `${b} wins the ${p}. Don't donate another.`,
           ],
       capture_pawn: reacting
-        ? [`You took ${b}'s pawn. Little bite. Satisfying.`, `Pawn from ${b} is yours. Stack the shade.`]
+        ? [
+            `You took ${b}'s pawn. Little bite. Satisfying.`,
+            `Pawn from ${b} is yours. Stack the shade.`,
+          ]
         : [
             `They took free stuff. Embarrassing. Fix it.`,
             `Pawn loss to ${b}. Patch the hole.`,
           ],
       castle: reacting
-        ? [`You castled vs ${b}. King tucked — be annoying.`, `Castle! ${b} works harder now.`]
+        ? [
+            `You castled vs ${b}. King tucked — be annoying.`,
+            `Castle! ${b} works harder now.`,
+          ]
         : [
             `${b} castled. Boring safety. Attack something else.`,
             `${b} tucked the king. Plan the pawns.`,
@@ -484,13 +589,16 @@ function templates(
         `En passant from ${b}. Chess is weird. Deal.`,
       ],
       develop: reacting
-        ? [`You're developing vs ${b}. Pieces out first.`, `Piece out! Tempo still wins.`]
-        : [
-            `${b} developed. Match the energy.`,
-            `${b} gets a piece out. Don't stall.`,
-          ],
+        ? [
+            `You're developing vs ${b}. Pieces out first.`,
+            `Piece out! Tempo still wins.`,
+          ]
+        : [`${b} developed. Match the energy.`, `${b} gets a piece out. Don't stall.`],
       center: reacting
-        ? [`You fought for the centre vs ${b}. Bully the middle.`, `Central pawn from you. ${b} can't ignore it.`]
+        ? [
+            `You fought for the centre vs ${b}. Bully the middle.`,
+            `Central pawn from you. ${b} can't ignore it.`,
+          ]
         : [
             `${b} claimed the middle. Contest it.`,
             `${b} stakes the centre. Take some back.`,
@@ -514,13 +622,16 @@ function templates(
     },
   };
 
-  const table = tables[personality] ?? tables.sarcastic;
-  const pool =
-    table[kind] ??
-    tables.sarcastic[kind] ??
-    table.quiet_middlegame ??
-    tables.sarcastic.quiet_middlegame!;
-  return pool;
+  return coachCommentPool(tables, personality, kind);
+}
+
+/** Lines from a coach's table, after the default-coach fallback. */
+export function coachCommentLines(
+  personality: string,
+  kind: string,
+  reacting = false,
+): string[] {
+  return templates(personality as CoachPersonality, kind as MoveCommentKind, reacting);
 }
 
 /** Full coach+bot move line — personality tone × named opponent character. */
@@ -562,7 +673,7 @@ export function buildMatchGreeting(
         `Back against ${botName}. Neither should you.`,
       ],
       anxious_nerd: [
-        `Welcome back to ${botName}. Scan before you touch.`,
+        `Welcome back. ${botName} is waiting. Look before you move.`,
         `Paused mid-fight with ${botName}. Okay. Plan?`,
       ],
       egoistic: [
@@ -610,9 +721,9 @@ export function buildMatchGreeting(
     casual: `Casual band — ideas beat memorized theory.`,
     developing: `Developing — punish hangs, watch traps.`,
     club: `Club level — ${botName} spots loose pieces fast.`,
-    expert: `Expert — small slips become lectures.`,
-    master: `Master band — ${botName} punishes everything.`,
-    elite: `Elite — ${botName} doesn't do friendly inaccuracies.`,
+    expert: `Expert — ${botName} is stronger and notices small mistakes.`,
+    master: `Master — ${botName} is very strong and rarely misses.`,
+    elite: `Elite — ${botName} is the strongest. Take your time.`,
   };
 
   const base = pick(open[personality], seed);
@@ -637,17 +748,14 @@ export function buildRecapEpilogue(
       ` You beat ${botName}. Don't confuse luck with ceiling.`,
     ],
     anxious_nerd: [
-      ` Strong result vs ${botName}. Write one move down.`,
-      ` Win against ${botName}. Notice what came before tactics.`,
+      ` Strong result vs ${botName}. Remember one move that worked.`,
+      ` Win against ${botName}. Notice how you set it up.`,
     ],
     egoistic: [
       ` You took down ${botName}! Next rating band.`,
       ` Win vs ${botName}. Champions finish.`,
     ],
-    sassy: [
-      ` Beat ${botName}. As you should.`,
-      ` Win vs ${botName}. Don't get cocky.`,
-    ],
+    sassy: [` Beat ${botName}. As you should.`, ` Win vs ${botName}. Don't get cocky.`],
   };
   const lost: Record<CoachPersonality, string[]> = {
     genz: [
@@ -660,7 +768,7 @@ export function buildRecapEpilogue(
     ],
     anxious_nerd: [
       ` Loss to ${botName}. Study one turning point.`,
-      ` ${botName} outplayed you. Deep breath.`,
+      ` ${botName} won this one. Deep breath — you'll get the next.`,
     ],
     egoistic: [
       ` ${botName} turned it — find the missed tactic.`,
@@ -671,7 +779,8 @@ export function buildRecapEpilogue(
       ` Defeat vs ${botName}. Learn or don't bother.`,
     ],
   };
-  return pick(playerWon ? won[personality] : lost[personality], seed);
+  const table = (playerWon ? won : lost) as Record<string, string[] | undefined>;
+  return pick(table[personality] ?? table[DEFAULT_COACH_CHARACTER]!, seed);
 }
 
 /** Thinking-mode opener — bot + coach + calculation framing. */

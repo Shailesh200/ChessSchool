@@ -19,8 +19,7 @@ function deviceId(): string {
 
 /** Umami website id — override with NEXT_PUBLIC_PULSE_WEBSITE_ID. */
 export const PULSE_WEBSITE_ID =
-  process.env.NEXT_PUBLIC_PULSE_WEBSITE_ID ??
-  "4bb7a0af-823c-4a21-a4ab-509a7815cf02";
+  process.env.NEXT_PUBLIC_PULSE_WEBSITE_ID ?? "4bb7a0af-823c-4a21-a4ab-509a7815cf02";
 
 export const PULSE_ORIGIN =
   process.env.NEXT_PUBLIC_PULSE_ORIGIN ?? "https://pulse.shaileshjha.in";
@@ -35,8 +34,7 @@ export function pulseAllowed(): boolean {
 }
 
 export function pulseDomains(): string | undefined {
-  const vercelEnv =
-    process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV;
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV;
   if (process.env.NODE_ENV !== "production") {
     return "chess-school.in,www.chess-school.in,localhost,127.0.0.1";
   }
@@ -51,7 +49,11 @@ function flatten(props?: Record<string, unknown>): TrackProps | undefined {
   const out: TrackProps = {};
   for (const [key, value] of Object.entries(props)) {
     if (value === null || value === undefined) continue;
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
       out[key] = value;
     }
   }

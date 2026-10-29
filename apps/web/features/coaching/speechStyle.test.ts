@@ -6,9 +6,7 @@ describe("speechStyle", () => {
     const styled = styleCoachSpeechForTts(
       "[playfully] Welcome to Chess School. [chuckles] Try not to hang your queen.",
     );
-    expect(styled).toBe(
-      "Welcome to Chess School. Try not to hang your queen.",
-    );
+    expect(styled).toBe("Welcome to Chess School. Try not to hang your queen.");
     expect(plainSpeechText(styled)).not.toMatch(/\[/);
   });
 
