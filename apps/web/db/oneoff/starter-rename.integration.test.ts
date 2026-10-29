@@ -451,13 +451,13 @@ describe("starter rename fallback sql", () => {
     expect(script).toContain("read-only SELECT");
 
     const byId = Object.fromEntries(updates.map((row) => [row.id, row]));
-    expect(byId["pre-game-goal"]!.prev).toBe(seeded["pre-game-goal"]);
-    expect(byId["pre-notation-practice"]!.prev).toBe(seeded["pre-notation-practice"]);
+    expect(seeded["pre-game-goal"]).toBe(byId["pre-game-goal"]!.next);
+    expect(seeded["pre-notation-practice"]).toBe(byId["pre-notation-practice"]!.next);
     expect(byId["pre-game-goal"]!.next).toBe(
-      seeded["pre-game-goal"]!.replace(GOAL_OLD_COACH, GOAL_NEW_COACH),
+      byId["pre-game-goal"]!.prev.replace(GOAL_OLD_COACH, GOAL_NEW_COACH),
     );
     expect(byId["pre-notation-practice"]!.next).toBe(
-      seeded["pre-notation-practice"]!.replace(FINISH_OLD_COACH, FINISH_NEW_COACH),
+      byId["pre-notation-practice"]!.prev.replace(FINISH_OLD_COACH, FINISH_NEW_COACH),
     );
     expect(coachWith(byId["pre-game-goal"]!.prev, "Pre-School")).toBe(GOAL_OLD_COACH);
     expect(coachWith(byId["pre-game-goal"]!.next, "Starter")).toBe(GOAL_NEW_COACH);
@@ -483,7 +483,7 @@ describe("starter rename fallback sql", () => {
 
   it("records that the stage display name is not a database row", () => {
     const school = readFileSync(join(webRoot(), "content/data/school.mjs"), "utf8");
-    expect(school).toMatch(/id:\s*"preschool"[\s\S]*?name:\s*"Pre-School"/);
+    expect(school).toMatch(/id:\s*"preschool"[\s\S]*?name:\s*"Starter"/);
     const schema = readFileSync(join(webRoot(), "db/schema.ts"), "utf8");
     expect(schema).not.toContain('sqliteTable("stages"');
     expect(script).toContain("stage-name source: apps/web/content/data/school.mjs:5");
