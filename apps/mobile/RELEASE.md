@@ -220,7 +220,7 @@ What the run guards:
 - On the Maestro runner (the same machine that drives the simulator), `scripts/qa-sim-web.sh` runs `pnpm db:provision` in `apps/web` (`db:reset`, `db:push`, `db:load-seed` from `db/seed.sql.gz`), then `next build` and `next start -p 3108`.
 - Maestro runs `parity/maestro/flows/qa/` (see that directory's README). Logs and screenshots upload as `qa-sim-ios-maestro` and `qa-sim-android-maestro`.
 
-Android signing still uses the Expo project's existing Android credentials when someone runs the workflow. This profile does not submit to Play or the App Store.
+Android sets `withoutCredentials`, so the APK is debug-signed and does not use a remote keystore. The build log must confirm that no remote keystore was downloaded. This profile does not submit to Play or the App Store.
 
 ## OTA updates (EAS Update)
 

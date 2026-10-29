@@ -68,6 +68,7 @@
       },
       "android": {
         "distribution": "internal",
+        "withoutCredentials": true,
         "buildType": "apk",
         "image": "sdk-54",
         "resourceClass": "medium",

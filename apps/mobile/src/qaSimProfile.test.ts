@@ -135,6 +135,7 @@ describe("qa-sim build profile", () => {
     };
     const android = qa.android as {
       distribution: string;
+      withoutCredentials: boolean;
       buildType: string;
       env: { EXPO_PUBLIC_API_URL: string };
     };
@@ -142,6 +143,7 @@ describe("qa-sim build profile", () => {
     expect(ios.distribution).toBe("internal");
     expect(ios.withoutCredentials).toBe(true);
     expect(android.distribution).toBe("internal");
+    expect(android.withoutCredentials).toBe(true);
     expect(ios.env.EXPO_PUBLIC_API_URL).toBe("http://localhost:3108");
     expect(android.buildType).toBe("apk");
     expect(android.env.EXPO_PUBLIC_API_URL).toBe("http://10.0.2.2:3108");
