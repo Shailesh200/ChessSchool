@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+// Next.js dev (react-refresh / Turbopack) compiles via eval. Production
+// bundles do not. Stockfish still compiles WASM inside a classic worker
+// whose response is covered by this header, so production allows only that.
+const scriptSrcEval =
+  process.env.NODE_ENV === "production" ? "'wasm-unsafe-eval'" : "'unsafe-eval'";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
@@ -35,7 +41,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://pulse.shaileshjha.in",
+              `script-src 'self' 'unsafe-inline' ${scriptSrcEval} https://va.vercel-scripts.com https://pulse.shaileshjha.in`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
