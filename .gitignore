@@ -85,8 +85,5 @@ parity-shots/
 apps/web/parity-shots/
 apps/web/storybook-static/
 
-# credentials written by db:seed:test-user. Never commit.
-apps/web/.store-shot.env
-
 *storybook.log
 parity/maestro/flows/undefined.png
