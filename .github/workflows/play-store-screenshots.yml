@@ -428,6 +428,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: maestro-hierarchy
+          # ALLOW-LIST only: screen-hierarchy/*.json, commands.json, manifest.json.
+          # logs/ (device-logcat.txt, maestro.log) is not copied.
           path: ${{ runner.temp }}/maestro-hierarchy
           if-no-files-found: warn
 

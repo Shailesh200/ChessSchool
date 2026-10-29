@@ -160,17 +160,11 @@ appId: com.chessschool.app
     id: "sq-e2"
 - tapOn:
     id: "sq-e4"
+# moves.length is 1 while the bot thinks and stays at 2 after the reply.
 - extendedWaitUntil:
     visible:
-      id: "play-coach-line"
-    timeout: 20000
-- extendedWaitUntil:
-    visible:
-      text: "Thinking…"
-    timeout: 20000
-- extendedWaitUntil:
-    notVisible:
-      text: "Thinking…"
+      id: "play-move-count"
+      text: "2"
     timeout: 90000
 - takeScreenshot: 04-bot-game
 - tapOn:

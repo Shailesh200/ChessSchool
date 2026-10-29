@@ -10,14 +10,22 @@ scrub_maestro_output() {
   fi
 }
 
-# Copy Maestro's debug dump out before the screenshot dir is reduced to PNGs.
-# Login links are redacted. The workflow uploads this directory with if: always().
+# ALLOW-LIST copied before the screenshot dir is reduced to PNGs:
+#   screen-hierarchy/*.json
+#   commands.json
+#   manifest.json
+# Login links in those files are redacted. logs/ is not copied
+# (no device-logcat.txt, no maestro.log).
 preserve_hierarchy() {
   local src="$RUNNER_TEMP/maestro-raw"
   local dest="$RUNNER_TEMP/maestro-hierarchy"
   [ -d "$src" ] || return 0
   mkdir -p "$dest"
-  find "$src" -type f ! -name '*.png' ! -name '*.yaml' ! -name '*.yml' -print0 |
+  find "$src" -type f \( \
+      -path '*/screen-hierarchy/*.json' -o \
+      -name 'commands.json' -o \
+      -name 'manifest.json' \
+    \) -print0 |
     while IFS= read -r -d '' file; do
       rel="${file#"$src"/}"
       mkdir -p "$dest/$(dirname "$rel")"

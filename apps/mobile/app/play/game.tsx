@@ -436,6 +436,7 @@ export default function GameScreen() {
           <Text style={styles.scrubIcon}>⏪</Text>
         </Pressable>
         <Text style={styles.scrubLabel}>{viewing ? `move ${viewPly}/${frames.length - 1}` : "● live"}</Text>
+        <Text testID="play-move-count" style={styles.scrubLabel}>{moves.length}</Text>
         <Pressable style={styles.scrubBtn} onPress={() => setViewPly((v) => { if (v === null) return null; const n = v + 1; return n >= frames.length - 1 ? null : n; })}>
           <Text style={styles.scrubIcon}>⏩</Text>
         </Pressable>
