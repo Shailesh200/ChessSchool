@@ -63,7 +63,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
     signatureMotion: "nervous",
     previewLine:
       "Okay. Stay with me. Let's play safe.",
-    image: require("../assets/coaches/otto-premium.png"),
+    image: require("../assets/coaches/otto-premium.webp"),
   },
   genz: {
     id: "genz",
@@ -74,7 +74,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
     successMotion: "celebrate",
     signatureMotion: "hype",
     previewLine: "Yo. Lock in. Let's cook.",
-    image: require("../assets/coaches/kira-premium.png"),
+    image: require("../assets/coaches/kira-premium.webp"),
   },
   sassy: {
     id: "sassy",
@@ -86,7 +86,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
     signatureMotion: "smug",
     previewLine:
       "Welcome, baby. Try not to hang anything.",
-    image: require("../assets/coaches/skye-premium.png"),
+    image: require("../assets/coaches/skye-premium.webp"),
   },
   sarcastic: {
     id: "sarcastic",
@@ -98,7 +98,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
     signatureMotion: "deadpan",
     previewLine:
       "Bold of you to show up. Let's begin.",
-    image: require("../assets/coaches/ash-premium.png"),
+    image: require("../assets/coaches/ash-premium.webp"),
   },
   egoistic: {
     id: "egoistic",
@@ -110,7 +110,7 @@ export const COACH_CHARACTERS: Record<CoachCharacterId, CoachCharacter> = {
     signatureMotion: "alpha",
     previewLine:
       "Obviously you picked the right coach. Play.",
-    image: require("../assets/coaches/rex-premium.png"),
+    image: require("../assets/coaches/rex-premium.webp"),
   },
 };
 
