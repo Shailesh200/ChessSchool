@@ -30,6 +30,15 @@ function gzipLength(buf) {
   return zlib.gzipSync(buf).length;
 }
 
+/** Pathname of a script URL, without query or hash, so network URLs match document URLs. */
+function scriptPathname(url) {
+  const pathname =
+    url.startsWith("http://") || url.startsWith("https://")
+      ? new URL(url).pathname
+      : url.split("?")[0].split("#")[0];
+  return decodeURIComponent(pathname);
+}
+
 function decodeAttr(value) {
   return value
     .replace(/&amp;/g, "&")
@@ -148,6 +157,8 @@ module.exports = {
   HOME_JS_BUDGET_KB,
   HOME_HTML,
   NEXT_DIR,
+  gzipLength,
+  scriptPathname,
   firstLoadScriptUrls,
   measureFirstLoadJs,
   measureBuiltHome,
