@@ -7,3 +7,9 @@ export function assertQaSimApiUrl(raw: string | undefined): void {
     "qa-sim build requires EXPO_PUBLIC_API_URL to be http://localhost:3108 or http://10.0.2.2:3108.",
   );
 }
+
+/** The host-elimination flag must travel with the qa-sim URL. */
+export function assertQaSimFlag(raw: string | undefined): void {
+  if (raw === "1") return;
+  throw new Error("qa-sim build requires EXPO_PUBLIC_QA_SIM to be 1.");
+}

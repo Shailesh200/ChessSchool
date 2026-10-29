@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertQaSimApiUrl } from "./qaSimApiUrl";
+import { assertQaSimApiUrl, assertQaSimFlag } from "./qaSimApiUrl";
 
 const repoRoot = path.resolve(__dirname, "../../..");
 const mobileRoot = path.resolve(__dirname, "..");
@@ -131,13 +131,13 @@ describe("qa-sim build profile", () => {
       distribution: string;
       simulator: boolean;
       withoutCredentials: boolean;
-      env: { EXPO_PUBLIC_API_URL: string };
+      env: { EXPO_PUBLIC_API_URL: string; EXPO_PUBLIC_QA_SIM: string };
     };
     const android = qa.android as {
       distribution: string;
       withoutCredentials: boolean;
       buildType: string;
-      env: { EXPO_PUBLIC_API_URL: string };
+      env: { EXPO_PUBLIC_API_URL: string; EXPO_PUBLIC_QA_SIM: string };
     };
     expect(ios.simulator).toBe(true);
     expect(ios.distribution).toBe("internal");
@@ -145,8 +145,13 @@ describe("qa-sim build profile", () => {
     expect(android.distribution).toBe("internal");
     expect(android.withoutCredentials).toBe(true);
     expect(ios.env.EXPO_PUBLIC_API_URL).toBe("http://localhost:3108");
+    expect(ios.env.EXPO_PUBLIC_QA_SIM).toBe("1");
     expect(android.buildType).toBe("apk");
     expect(android.env.EXPO_PUBLIC_API_URL).toBe("http://10.0.2.2:3108");
+    expect(android.env.EXPO_PUBLIC_QA_SIM).toBe("1");
+    for (const name of ["development", "preview", "production"] as const) {
+      expect(JSON.stringify(eas.build[name])).not.toContain("EXPO_PUBLIC_QA_SIM");
+    }
   });
 });
 
@@ -347,6 +352,11 @@ describe("qa-sim API URL", () => {
     const config = readFileSync(path.join(mobileRoot, "app.config.ts"), "utf8");
     expect(config).toContain('EAS_BUILD_PROFILE === "qa-sim"');
     expect(config).toContain("assertQaSimApiUrl");
+    expect(config).toContain("assertQaSimFlag");
+    expect(() => assertQaSimFlag("1")).not.toThrow();
+    expect(() => assertQaSimFlag(undefined)).toThrow(/EXPO_PUBLIC_QA_SIM/);
+    expect(() => assertQaSimFlag("")).toThrow(/EXPO_PUBLIC_QA_SIM/);
+    expect(() => assertQaSimFlag("true")).toThrow(/EXPO_PUBLIC_QA_SIM/);
     const pkg = readFileSync(path.join(mobileRoot, "package.json"), "utf8");
     expect(pkg).toContain(
       '"eas-build-on-success": "bash scripts/qa-sim-assert-bundle.sh"',

@@ -63,7 +63,8 @@
         "simulator": true,
         "withoutCredentials": true,
         "env": {
-          "EXPO_PUBLIC_API_URL": "http://localhost:3108"
+          "EXPO_PUBLIC_API_URL": "http://localhost:3108",
+          "EXPO_PUBLIC_QA_SIM": "1"
         }
       },
       "android": {
@@ -75,6 +76,7 @@
         "gradleCommand": ":app:assembleRelease --no-configure-on-demand -Dorg.gradle.configureondemand=false",
         "env": {
           "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3108",
+          "EXPO_PUBLIC_QA_SIM": "1",
           "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Xmx4096m"
         }
       }
