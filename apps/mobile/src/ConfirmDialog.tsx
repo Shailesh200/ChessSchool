@@ -10,6 +10,7 @@ export function ConfirmDialog({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   tone = "primary",
+  confirmTestID,
   onConfirm,
   onCancel,
 }: {
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: "primary" | "danger";
+  confirmTestID?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -34,6 +36,7 @@ export function ConfirmDialog({
             </View>
             <View style={{ flex: 1 }}>
               <Button
+                testID={confirmTestID}
                 label={confirmLabel}
                 variant={tone === "danger" ? "danger" : "primary"}
                 onPress={onConfirm}

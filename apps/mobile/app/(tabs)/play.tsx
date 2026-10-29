@@ -175,7 +175,7 @@ export default function PlaySetupScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.h1}>New match</Text>
+        <Text testID="play-setup-title" style={styles.h1}>New match</Text>
 
         {canResumeAnyMatch() && resumeMatch && (
           <View style={styles.resumeCard}>
@@ -275,6 +275,7 @@ export default function PlaySetupScreen() {
                   return (
                     <Pressable
                       key={e}
+                      testID={`play-elo-${e}`}
                       style={[styles.pill, on && styles.pillOn, styles.pillWithAvatar]}
                       onPress={() => {
                         setAdaptive(false);
@@ -292,7 +293,7 @@ export default function PlaySetupScreen() {
               <View style={styles.personaRow}>
                 <BotAvatar elo={effectiveElo} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.personaName}>{botProfile(effectiveElo).name}</Text>
+                  <Text testID="play-opponent-name" style={styles.personaName}>{botProfile(effectiveElo).name}</Text>
                   <Text style={styles.persona}>{botProfile(effectiveElo).blurb}</Text>
                 </View>
               </View>
@@ -306,6 +307,7 @@ export default function PlaySetupScreen() {
                   return (
                     <Pressable
                       key={t.id}
+                      testID={`play-time-${t.id}`}
                       style={[styles.pill, on && styles.pillOn]}
                       onPress={() => {
                         setTime(t.id);

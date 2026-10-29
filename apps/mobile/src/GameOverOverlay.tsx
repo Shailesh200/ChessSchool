@@ -16,6 +16,7 @@ export function GameOverOverlay({
   onNewGame,
   onExit,
   exitLabel = "← Back to academy",
+  titleTestID,
 }: {
   visible: boolean;
   title: string;
@@ -29,6 +30,7 @@ export function GameOverOverlay({
   onNewGame: () => void;
   onExit: () => void;
   exitLabel?: string;
+  titleTestID?: string;
 }) {
   if (!visible) return null;
 
@@ -39,7 +41,7 @@ export function GameOverOverlay({
       {win && <Confetti count={28} />}
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>{title.replace(/\s*[🏆⏱️]\s*$/u, "").trim()}</Text>
+          <Text testID={titleTestID} style={styles.title}>{title.replace(/\s*[🏆⏱️]\s*$/u, "").trim()}</Text>
           {!!subtitle && <Text style={styles.sub}>{subtitle}</Text>}
           {showRating && (
             <View style={[styles.ratingPill, ratingDelta! < 0 && styles.ratingPillLoss]}>

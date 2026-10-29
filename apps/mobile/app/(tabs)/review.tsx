@@ -157,7 +157,7 @@ export default function ReviewScreen() {
             return (
               <Pressable
                 key={g.id}
-                testID={`game-${g.id}`}
+                testID={i === 0 ? "review-latest" : `game-${g.id}`}
                 style={styles.card}
                 onPress={() => router.push({ pathname: "/replay/[index]", params: { index: "0", id: g.id } })}
               >
