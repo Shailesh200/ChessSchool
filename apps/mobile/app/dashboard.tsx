@@ -11,6 +11,7 @@ import { emojiToIcon } from "@/iconMaps";
 import { AppShell } from "@/AppShell";
 import { useType } from "@/typography";
 import { colors, font, radius, shadowCard, space } from "@/theme";
+import { isoDay } from "@/progression";
 
 const SKILL_AREAS = ["Openings", "Tactics", "Strategy", "Endgames", "Calculation"];
 const TAG_AREA: Record<string, string> = {
@@ -58,7 +59,7 @@ function StreakHeatmap({ activityDays }: { activityDays: Record<string, number> 
   for (let i = 0; i < WEEKS * 7; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    cells.push(activityDays[d.toISOString().slice(0, 10)] ?? 0);
+    cells.push(activityDays[isoDay(d)] ?? 0);
   }
   return (
     <View style={{ flexDirection: "row", gap: 3 }}>

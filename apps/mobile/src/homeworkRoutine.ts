@@ -1,4 +1,4 @@
-import { isoDay } from "@/progression";
+import { advanceStreak, isoDay } from "@/progression";
 
 /** Daily routine step ids — matches web ROUTINE_STEPS. */
 export const ROUTINE_STEP_IDS = [
@@ -11,12 +11,6 @@ export const ROUTINE_STEP_IDS = [
 ] as const;
 
 export type RoutineStepId = (typeof ROUTINE_STEP_IDS)[number];
-
-function addDay(iso: string, delta: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
-}
 
 /** Mark a homework routine step done for today; bump streak when all six are complete. */
 export function markHomeworkActivity(
@@ -35,9 +29,9 @@ export function markHomeworkActivity(
 
   const allDone = ROUTINE_STEP_IDS.every((id) => todayDone.has(id));
   if (allDone && homeworkLastDay !== today) {
-    const yesterday = addDay(today, -1);
-    homeworkStreak = homeworkLastDay === yesterday ? homeworkStreak + 1 : 1;
-    homeworkLastDay = today;
+    const next = advanceStreak(homeworkLastDay, today, homeworkStreak);
+    homeworkStreak = next.streak;
+    homeworkLastDay = next.day ?? homeworkLastDay;
   }
 
   return { ...snap, homeworkDone: hd, homeworkStreak, homeworkLastDay };
