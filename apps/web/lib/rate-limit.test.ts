@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HeadersAdapter } from "next/dist/server/web/spec-extension/adapters/headers";
+import { NextRequest } from "next/server";
 import {
   checkRateLimit,
+  clientIp,
+  clientIpFromHeaders,
   enforceRateLimit,
   enforceRateLimitHeaders,
   rateLimitKey,
@@ -529,6 +533,68 @@ describe("checkRateLimit", () => {
     expect((await checkRateLimit(key, opts)).ok).toBe(true);
     expect((await checkRateLimit(key, opts)).ok).toBe(false);
     expect(redisState.limit).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads x-real-ip from a Next headers() object whose headers property has no get", () => {
+    // HeadersAdapter (what `headers()` seals) has a callable `.get` and a
+    // plain `.headers` object that does not. The old `"headers" in input`
+    // branch calls `.get` on that plain object and throws.
+    const nextHeaders = HeadersAdapter.seal(
+      HeadersAdapter.from({
+        "x-real-ip": "203.0.113.10",
+        "x-forwarded-for": "1.1.1.1, 2.2.2.2",
+      }),
+    );
+    const inner = (nextHeaders as unknown as { headers?: { get?: unknown } }).headers;
+    expect(typeof nextHeaders.get).toBe("function");
+    expect(typeof inner?.get).not.toBe("function");
+    expect(clientIpFromHeaders(nextHeaders)).toBe("203.0.113.10");
+  });
+
+  it("reads x-real-ip from a Headers instance", () => {
+    const headers = new Headers({
+      "x-real-ip": "198.51.100.20",
+      "x-forwarded-for": "9.9.9.9, 10.0.0.1",
+    });
+    expect(clientIpFromHeaders(headers)).toBe("198.51.100.20");
+  });
+
+  it("reads x-real-ip from a Request-like headers bag and from NextRequest", () => {
+    const requestLike = {
+      headers: new Headers({
+        "x-real-ip": "198.51.100.7",
+        "x-forwarded-for": "203.0.113.8, 10.0.0.1",
+      }),
+    };
+    expect(clientIp(requestLike as Request)).toBe("198.51.100.7");
+
+    const nextReq = new NextRequest("http://test/api/auth/login", {
+      headers: {
+        "x-real-ip": "192.0.2.10",
+        "x-forwarded-for": "8.8.8.8, 10.0.0.2",
+      },
+    });
+    expect(clientIp(nextReq)).toBe("192.0.2.10");
+  });
+
+  it("does not treat x-forwarded-for as the client address", () => {
+    const forwardedOnly = new Request("http://test", {
+      headers: { "x-forwarded-for": "203.0.113.8, 10.0.0.1" },
+    });
+    expect(clientIp(forwardedOnly)).toBe("unknown");
+
+    const both = new Request("http://test", {
+      headers: {
+        "x-forwarded-for": "203.0.113.8, 10.0.0.1",
+        "x-real-ip": " 198.51.100.8 ",
+      },
+    });
+    expect(clientIp(both)).toBe("198.51.100.8");
+
+    const nextForwarded = HeadersAdapter.seal(
+      HeadersAdapter.from({ "x-forwarded-for": "203.0.113.8, 10.0.0.1" }),
+    );
+    expect(clientIpFromHeaders(nextForwarded)).toBe("unknown");
   });
 
   it("forgets a cached Redis client after resetRateLimitsForTests", async () => {

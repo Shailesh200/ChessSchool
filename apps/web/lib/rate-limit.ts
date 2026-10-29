@@ -187,9 +187,22 @@ function readClientIp(input: Request | Headers): string {
   } catch {
     // Off Vercel the helper is best-effort and must not fail the request.
   }
-  const headers = "headers" in input ? input.headers : input;
-  const real = headers.get("x-real-ip")?.trim();
+  const real = headerBag(input).get("x-real-ip")?.trim();
   return real || "unknown";
+}
+
+/**
+ * Use `input` when it has a callable `.get`. Next's `headers()` value is a
+ * HeadersAdapter: it has `.get`, and also a `.headers` plain object that does
+ * not. A Request has no `.get`; its bag is `.headers`.
+ */
+function headerBag(input: Request | Headers): Headers {
+  if (hasCallableGet(input)) return input;
+  return input.headers;
+}
+
+function hasCallableGet(input: Request | Headers): input is Headers {
+  return typeof (input as { get?: unknown }).get === "function";
 }
 
 export function clientIp(req: Request): string {
