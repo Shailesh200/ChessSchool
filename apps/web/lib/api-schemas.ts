@@ -1,4 +1,39 @@
+import { canonicalTimeZone, isCalendarDay } from "@chess-school/progression";
 import { z } from "zod";
+
+const calendarDayOrNull = z
+  .string()
+  .nullable()
+  .refine((day) => day === null || isCalendarDay(day), {
+    message: "invalid calendar day",
+  });
+
+/** Integer ms. Below 0 is rejected. A future stamp is clamped to now. */
+const writerStamp = z
+  .number()
+  .int()
+  .min(0)
+  .transform((stamp) => Math.min(stamp, Date.now()));
+
+const timeZoneField = z
+  .string()
+  .max(64)
+  .transform((zone, ctx) => {
+    const canonical = canonicalTimeZone(zone);
+    if (!canonical) {
+      ctx.addIssue({ code: "custom", message: "invalid IANA time zone" });
+      return z.NEVER;
+    }
+    return canonical;
+  });
+
+function numericMap(maxKeys: number) {
+  return z
+    .record(z.string(), z.number())
+    .refine((map) => Object.keys(map).length <= maxKeys, {
+      message: `at most ${maxKeys} keys`,
+    });
+}
 
 export const authCredentialsSchema = z.object({
   email: z.string().email().max(254),
@@ -20,7 +55,7 @@ const lessonRecSchema = z.object({
 export const progressPushSchema = z.object({
   xp: z.number().int().min(0).max(10_000_000),
   streak: z.number().int().min(0).max(10_000),
-  lastActiveDay: z.string().nullable(),
+  lastActiveDay: calendarDayOrNull,
   graduatedClasses: z.array(z.string().max(64)).max(200),
   lessons: z.record(z.string().max(64), lessonRecSchema),
   rating: z.number().int().min(0).max(4000).optional(),
@@ -28,11 +63,14 @@ export const progressPushSchema = z.object({
   dailyGoalXp: z.number().int().min(1).max(10_000).optional(),
   unlockedAchievements: z.array(z.string().max(64)).max(200).optional(),
   schoolExamsPassed: z.array(z.string().max(64)).max(50).optional(),
-  weaknesses: z.record(z.string(), z.number()).optional(),
-  activityDays: z.record(z.string(), z.number()).optional(),
+  weaknesses: numericMap(200).optional(),
+  activityDays: numericMap(2000).optional(),
   mistakeLog: z.array(z.unknown()).max(500).optional(),
   homeworkStreak: z.number().int().min(0).max(10_000).optional(),
-  homeworkLastDay: z.string().nullable().optional(),
+  homeworkLastDay: calendarDayOrNull.optional(),
+  ratingUpdatedAt: writerStamp.optional(),
+  goalUpdatedAt: writerStamp.optional(),
+  tz: timeZoneField.optional(),
   recentGames: z.array(z.unknown()).max(50).optional(),
   dailyPuzzleDay: z.string().max(16).nullable().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),

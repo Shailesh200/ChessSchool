@@ -15,6 +15,7 @@ import {
 } from "@/core/db/db";
 import {
   accountProgressEmpty,
+  deviceTimeZone,
   localProgressPresent,
   normalizeSyncGame,
 } from "@chess-school/progression";
@@ -82,6 +83,7 @@ export function fullSnapshot() {
     ...p,
     homeworkStreak: plan.homeworkStreak,
     homeworkLastDay: plan.homeworkLastDay,
+    tz: deviceTimeZone(),
     settings: settingsPayload,
   };
 }

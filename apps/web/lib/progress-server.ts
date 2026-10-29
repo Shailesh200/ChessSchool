@@ -3,7 +3,11 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { progress, lessonRecords } from "@/db/schema";
 import type * as schema from "@/db/schema";
 import type { ProgressPushBody } from "@/lib/api-schemas";
-import { mergeProgressPush, serverStateFromRow } from "@/lib/progress-merge";
+import {
+  mergeProgressPush,
+  serverStateFromRow,
+  type MergedProgressWrite,
+} from "@/lib/progress-merge";
 
 type Db = LibSQLDatabase<typeof schema>;
 
@@ -12,7 +16,7 @@ export async function applyProgressPush(
   userId: string,
   body: ProgressPushBody,
   database: Db,
-): Promise<{ lessonCount: number }> {
+): Promise<{ lessonCount: number; merged: MergedProgressWrite }> {
   const now = Date.now();
 
   return database.transaction(async (tx) => {
@@ -79,6 +83,6 @@ export async function applyProgressPush(
       }
     }
 
-    return { lessonCount: lessonEntries.length };
+    return { lessonCount: lessonEntries.length, merged };
   });
 }

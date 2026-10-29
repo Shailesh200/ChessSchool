@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
+import { recomputeStreakFromActiveDays } from "./streak-grace";
 import {
   mergeExtraData,
   mergeProgressPush,
+  progressPushResponseBody,
   type ServerProgressState,
 } from "./progress-merge";
 import type { ProgressPushBody } from "@/lib/api-schemas";
@@ -73,7 +75,7 @@ describe("mergeProgressPush", () => {
     vi.useRealTimers();
   });
 
-  it("keeps a higher incoming XP and leaves the streak at the server value", () => {
+  it("incoming XP above server is kept and the client streak is ignored", () => {
     const server = { ...emptyServer, xp: 100, streak: 2 };
     const merged = mergeProgressPush(push({ xp: 250, streak: 5 }), server);
     expect(merged.xp).toBe(250);
@@ -247,7 +249,7 @@ describe("mergeProgressPush", () => {
       server,
     );
     expect(merged.data.weaknesses).toEqual({ fork: 1, pin: 3 });
-    expect(merged.data.homeworkStreak).toBe(5);
+    expect(merged.data.homeworkStreak).toBe(2);
   });
 });
 
@@ -307,5 +309,100 @@ describe("progress parsers", () => {
     );
     expect(state.lessons.x?.mastery).toBe(1);
     expect(state.xp).toBe(10);
+  });
+});
+
+describe("recency fields beside the server streak", () => {
+  const today = "2026-10-22";
+
+  it("stores recomputeStreakFromActiveDays and ignores body.streak", () => {
+    const merged = mergeProgressPush(
+      push({ xp: 5, streak: 99, lastActiveDay: today }),
+      {
+        ...emptyServer,
+        xp: 1,
+        streak: 2,
+        lastActiveDay: "2026-10-21",
+        extra: { streakGrace: { activeDays: ["2026-10-20", "2026-10-21"] } },
+      },
+      { today, graceStart: "2099-01-01" },
+    );
+    const days = merged.data.streakGrace?.activeDays ?? [];
+    expect(days).toEqual(["2026-10-20", "2026-10-21", today]);
+    expect(merged.streak).toBe(recomputeStreakFromActiveDays(days, today).streak);
+    expect(merged.streak).toBe(3);
+    expect(merged.streak).not.toBe(99);
+  });
+
+  it("keeps the server homework streak and the newer homework day", () => {
+    const merged = mergeProgressPush(
+      push({
+        homeworkStreak: 9,
+        homeworkLastDay: today,
+        rating: 1100,
+        ratingUpdatedAt: 5_000,
+        dailyGoalXp: 30,
+        goalUpdatedAt: 5_000,
+      }),
+      {
+        ...emptyServer,
+        extra: {
+          homeworkStreak: 2,
+          homeworkLastDay: "2026-10-20",
+          rating: 1600,
+          ratingUpdatedAt: 1_000,
+          dailyGoalXp: 80,
+          goalUpdatedAt: 1_000,
+        },
+      },
+      { today, graceStart: "2099-01-01" },
+    );
+    expect(merged.data.homeworkStreak).toBe(2);
+    expect(merged.data.homeworkLastDay).toBe(today);
+    expect(merged.data.rating).toBe(1100);
+    expect(merged.data.ratingUpdatedAt).toBe(5_000);
+    expect(merged.dailyGoalXp).toBe(30);
+    expect(progressPushResponseBody(1, merged)).toMatchObject({
+      homeworkStreak: 2,
+      homeworkLastDay: today,
+      rating: 1100,
+      ratingUpdatedAt: 5_000,
+      dailyGoalXp: 30,
+      goalUpdatedAt: 5_000,
+    });
+  });
+
+  it("clamps a future writer stamp and rejects a negative one", () => {
+    const before = Date.now();
+    const merged = mergeProgressPush(
+      push({
+        rating: 900,
+        ratingUpdatedAt: before + 60_000,
+        dailyGoalXp: 40,
+        goalUpdatedAt: -5,
+      }),
+      {
+        ...emptyServer,
+        extra: {
+          rating: 1400,
+          ratingUpdatedAt: 1_000,
+          dailyGoalXp: 80,
+          goalUpdatedAt: 2_000,
+        },
+      },
+    );
+    const after = Date.now();
+    expect(merged.data.rating).toBe(900);
+    expect(merged.data.ratingUpdatedAt).toBeGreaterThanOrEqual(before);
+    expect(merged.data.ratingUpdatedAt).toBeLessThanOrEqual(after);
+    expect(merged.dailyGoalXp).toBe(80);
+    expect(merged.data.goalUpdatedAt).toBe(2_000);
+  });
+
+  it("stores a canonical time zone", () => {
+    const merged = mergeProgressPush(push({ tz: "Asia/Calcutta" }), emptyServer);
+    expect(
+      merged.data.tz === "Asia/Kolkata" || merged.data.tz === "Asia/Calcutta",
+    ).toBe(true);
   });
 });
