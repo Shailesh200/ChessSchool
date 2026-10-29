@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { assertQaSimApiUrl } from "./qaSimApiUrl";
 
 const repoRoot = path.resolve(__dirname, "../../..");
 const mobileRoot = path.resolve(__dirname, "..");
@@ -322,5 +323,64 @@ describe("qa-sim commit pin", () => {
     const script = readFileSync(pinScript, "utf8");
     expect(script).not.toContain("git fetch");
     expect(script).not.toContain("git checkout");
+  });
+});
+
+describe("qa-sim API URL", () => {
+  const bundleScript = path.join(mobileRoot, "scripts/qa-sim-assert-bundle.sh");
+
+  it("accepts only the two simulator API URLs", () => {
+    expect(() => assertQaSimApiUrl("http://localhost:3108")).not.toThrow();
+    expect(() => assertQaSimApiUrl("http://10.0.2.2:3108")).not.toThrow();
+    for (const bad of [
+      undefined,
+      "",
+      "http://localhost:3108/",
+      "http://10.0.2.2:3108/",
+      "https://www.chess-school.in",
+      "http://localhost:3000",
+    ]) {
+      expect(() => assertQaSimApiUrl(bad)).toThrow(/EXPO_PUBLIC_API_URL/);
+    }
+    const config = readFileSync(path.join(mobileRoot, "app.config.ts"), "utf8");
+    expect(config).toContain('EAS_BUILD_PROFILE === "qa-sim"');
+    expect(config).toContain("assertQaSimApiUrl");
+    const pkg = readFileSync(path.join(mobileRoot, "package.json"), "utf8");
+    expect(pkg).toContain('"eas-build-on-success": "bash scripts/qa-sim-assert-bundle.sh"');
+  });
+
+  it("fails when a built bundle contains the production host", () => {
+    const env = commandEnv();
+    const skipped = spawnSync("bash", [bundleScript], {
+      cwd: tmpdir(),
+      env,
+      encoding: "utf8",
+    });
+    expect(skipped.status).toBe(0);
+
+    const clean = mkdtempSync(path.join(tmpdir(), "qa-sim-bundle-"));
+    writeFileSync(path.join(clean, "index.android.bundle"), "http://localhost:3108\n");
+    mkdirSync(path.join(clean, "node_modules"));
+    writeFileSync(
+      path.join(clean, "node_modules", "vendor.bundle"),
+      "https://www.chess-school.in\n",
+    );
+    const ok = spawnSync("bash", [bundleScript, clean], { env, encoding: "utf8" });
+    expect(ok.status, ok.stderr).toBe(0);
+
+    const dirty = mkdtempSync(path.join(tmpdir(), "qa-sim-bundle-"));
+    writeFileSync(
+      path.join(dirty, "main.jsbundle"),
+      "var host = 'https://www.chess-school.in';\n",
+    );
+    const bad = spawnSync("bash", [bundleScript, dirty], { env, encoding: "utf8" });
+    expect(bad.status).toBe(1);
+    expect(bad.stderr).toContain("main.jsbundle");
+    expect(bad.stderr).toContain("chess-school.in");
+
+    const empty = mkdtempSync(path.join(tmpdir(), "qa-sim-bundle-"));
+    const missing = spawnSync("bash", [bundleScript, empty], { env, encoding: "utf8" });
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toContain("no JS bundle was found");
   });
 });

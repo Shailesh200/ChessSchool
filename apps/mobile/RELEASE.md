@@ -216,6 +216,7 @@ Dispatch the run on the candidate commit (the CLI checkout, or the workflow API 
 What the run guards:
 
 - The first step exits if any `TURSO_*` variable is set, or if `DATABASE_URL` does not start with `file:`. Values are not printed. Jobs use the `development` environment and set `DATABASE_URL=file:local.db`.
+- A `qa-sim` build fails unless `EXPO_PUBLIC_API_URL` is exactly `http://localhost:3108` or `http://10.0.2.2:3108`. After the JS bundle is built, `eas-build-on-success` greps it and fails if `chess-school.in` appears.
 - On the Maestro runner (the same machine that drives the simulator), `scripts/qa-sim-web.sh` runs `pnpm db:provision` in `apps/web` (`db:reset`, `db:push`, `db:load-seed` from `db/seed.sql.gz`), then `next build` and `next start -p 3108`.
 - Maestro runs `parity/maestro/flows/qa/` (see that directory's README). Logs and screenshots upload as `qa-sim-ios-maestro` and `qa-sim-android-maestro`.
 
