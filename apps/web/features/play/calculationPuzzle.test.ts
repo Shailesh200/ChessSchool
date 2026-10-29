@@ -14,6 +14,16 @@ describe("calculationPuzzle", () => {
       true,
     );
     expect(moveMatchesSolution({ from: "d2", to: "d4" }, ["e2:e4"])).toBe(false);
+    expect(
+      moveMatchesSolution({ from: "e7", to: "e8", promotion: "n" }, ["e7:e8"], {
+        promotion: "q",
+      }),
+    ).toBe(false);
+    expect(
+      moveMatchesSolution({ from: "e7", to: "e8", promotion: "q" }, ["e7:e8"], {
+        promotion: "q",
+      }),
+    ).toBe(true);
     expect(moveKey({ from: "a1", to: "a8" })).toBe("a1:a8");
   });
 

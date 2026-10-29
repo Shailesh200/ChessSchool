@@ -15,6 +15,7 @@ import { useProgress } from "@/progressStore";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
 import { trackMatchStart } from "@/productAnalytics/matchEvents";
+import { matchesSolution } from "@chess-school/progression";
 
 type Puzzle = {
   lessonId: string;
@@ -24,15 +25,12 @@ type Puzzle = {
   orientation: "white" | "black";
   solutionKey: string;
   allSolutions: string[];
+  promotion?: "q" | "r" | "b" | "n";
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
   coach: string;
   successText: string;
   failText: string;
 };
-
-function moveMatches(move: { from: string; to: string }, solutions: string[]): boolean {
-  const key = `${move.from}:${move.to}`;
-  return solutions.includes(key);
-}
 
 export default function LessonTrainerScreen() {
   const router = useRouter();
@@ -95,7 +93,10 @@ export default function LessonTrainerScreen() {
       setPending(true);
       sfx.play(applied.captured ? "capture" : "move");
 
-      const correct = moveMatches({ from, to }, puzzle.allSolutions);
+      const correct = matchesSolution(
+        { solution: puzzle.allSolutions, promotion: puzzle.promotion, promotions: puzzle.promotions },
+        { from, to, promotion },
+      );
       if (correct) {
         setCoach(puzzle.successText);
         setPhase("done");

@@ -4,7 +4,12 @@ import { db } from "@/db";
 import { lessons } from "@/db/schema";
 import { CURRICULUM_CACHE_TAG } from "@/features/school/curriculum-skeleton.server";
 
-export type PlacementPuzzle = { fen: string; solution: string[] };
+export type PlacementPuzzle = {
+  fen: string;
+  solution: string[];
+  promotion?: "q" | "r" | "b" | "n";
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
+};
 
 const POOL_SIZE = 48;
 const DRAW_SIZE = 8;
@@ -24,10 +29,17 @@ async function buildPlacementPool(): Promise<PlacementPuzzle[]> {
         kind?: string;
         fen?: string;
         solution?: string[];
+        promotion?: "q" | "r" | "b" | "n";
+        promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
       }[]) {
         if (s.kind === "move" && s.fen && s.solution?.length && !seenFen.has(s.fen)) {
           seenFen.add(s.fen);
-          all.push({ fen: s.fen, solution: s.solution });
+          all.push({
+            fen: s.fen,
+            solution: s.solution,
+            ...(s.promotion ? { promotion: s.promotion } : {}),
+            ...(s.promotions ? { promotions: s.promotions } : {}),
+          });
           break;
         }
       }
@@ -41,7 +53,7 @@ async function buildPlacementPool(): Promise<PlacementPuzzle[]> {
 
 const getCachedPlacementPool = unstable_cache(
   buildPlacementPool,
-  ["placement-pool-v2"],
+  ["placement-pool-v3"],
   { tags: [CURRICULUM_CACHE_TAG], revalidate: 3600 },
 );
 

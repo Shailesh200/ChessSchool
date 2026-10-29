@@ -37,9 +37,11 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { pickLessonHint } from "@chess-school/core";
 import {
   deriveTutorialVisuals,
+  expectedPromotion,
   formatCoachText,
   isPreschoolLesson,
   lessonsAttemptedCount,
+  matchesSolution,
   shouldAutoOpenEnrollPrompt,
   shouldShowEnrollPrompt,
 } from "@chess-school/progression";
@@ -159,7 +161,8 @@ export function LessonPlayer({
       const t = window.setTimeout(
         () => {
           const [from, to] = mv.split(":");
-          const applied = engine.move({ from: from!, to: to!, promotion: "q" });
+          const piece = expectedPromotion(step, `${from}:${to}`) ?? "q";
+          const applied = engine.move({ from: from!, to: to!, promotion: piece });
           setDisplayFen(engine.fen());
           if (applied) audio.play(applied.captured ? "capture" : "move");
           if (i === step.moves!.length - 1) setObserveDone(true);
@@ -421,8 +424,7 @@ export function LessonPlayer({
     const engine = new ChessEngine(step.fen);
     const applied = engine.move(move);
     if (!applied) return false;
-    const key = `${move.from}:${move.to}`;
-    if (step.solution?.includes(key)) {
+    if (matchesSolution(step, move)) {
       correctRef.current += 1;
       setDisplayFen(engine.fen());
       setCorrectCount(correctRef.current);

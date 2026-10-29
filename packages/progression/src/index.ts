@@ -114,6 +114,7 @@ export * from "./formatCoach";
 export * from "./boardGrid";
 export * from "./preschool";
 export * from "./enrollPrompt";
+export * from "./matchesSolution";
 export { normalizeBoardThemeId, normalizePieceThemeId, SELECTABLE_BOARD_THEMES } from "./themeIds";
 
 /** Enrolled users with low XP see the placement CTA; guests never do. */

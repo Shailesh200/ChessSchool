@@ -12,6 +12,7 @@ import { Confetti } from "@/Confetti";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
 import { EXAM_PASS_RATIO } from "@/classExam";
+import { matchesSolution } from "@chess-school/progression";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, space, type } from "@/theme";
@@ -25,7 +26,14 @@ const STAGE_NAME: Record<string, string> = {
   master: "Master Program",
 };
 
-type Step = { id: string; fen: string; solution: string[]; coach?: string };
+type Step = {
+  id: string;
+  fen: string;
+  solution: string[];
+  coach?: string;
+  promotion?: "q" | "r" | "b" | "n";
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
+};
 
 export default function SchoolExamScreen() {
   const { stage } = useLocalSearchParams<{ stage: string }>();
@@ -109,7 +117,7 @@ export default function SchoolExamScreen() {
     const e = new ChessEngine(step.fen);
     const mv = e.move({ from, to, promotion });
     if (!mv) return false; // illegal — board snaps back
-    const ok = step.solution.includes(`${from}:${to}`);
+    const ok = matchesSolution(step, { from, to, promotion });
     setDisplayFen(e.fen());
     setLastMove({ from, to });
     sfx.play(mv.captured ? "capture" : "move");
