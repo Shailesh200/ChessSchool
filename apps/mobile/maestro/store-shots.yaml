@@ -87,16 +87,15 @@ appId: com.chessschool.app
     timeout: 30000
 - tapOn:
     id: "lesson-continue"
+# Watching… is only the label between the 450ms advance lock and the 800ms
+# observe move, so it is gone before the next command. lesson-observe-ready
+# stays once that beat has finished.
 - extendedWaitUntil:
     visible:
-      text: "Watching…"
-    timeout: 20000
-- extendedWaitUntil:
-    notVisible:
-      text: "Watching…"
-    timeout: 20000
+      id: "lesson-observe-ready"
+    timeout: 30000
 - tapOn:
-    id: "lesson-continue"
+    id: "lesson-observe-ready"
 - extendedWaitUntil:
     visible:
       id: "lesson-turn"

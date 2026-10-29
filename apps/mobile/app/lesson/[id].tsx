@@ -774,7 +774,11 @@ export default function LessonScreen() {
       <View style={styles.bottom}>
         {showContinue ? (
           <Button
-            testID="lesson-continue"
+            testID={
+              step.kind === "observe" && observeReady && !advancing && !resolvingNext
+                ? "lesson-observe-ready"
+                : "lesson-continue"
+            }
             label={advancing || resolvingNext ? "Loading…" : step.kind === "observe" && !observeReady ? "Watching…" : "Continue"}
             variant="success"
             disabled={advancing || resolvingNext || (step.kind === "observe" && !observeReady)}

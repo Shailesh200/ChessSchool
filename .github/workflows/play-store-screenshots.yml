@@ -373,9 +373,15 @@ jobs:
           fi
 
       - name: Require 1080x1920 RGB screenshots
-        if: success()
+        if: always()
         run: |
           set -euo pipefail
+          # Runs after a failed Maestro step too, so the shots taken before
+          # the failure can still be normalized and uploaded.
+          if [ ! -d "$RUNNER_TEMP/maestro-raw" ]; then
+            echo "No Maestro screenshot directory."
+            exit 0
+          fi
           # Maestro also writes step-*.png (and other files) beside the named
           # shots. Remove those before normalizing and log each path. The
           # normalizer stays strict: a store shot whose name is not one of the
@@ -405,7 +411,7 @@ jobs:
           node scripts/normalize-store-screenshots.mjs "$RUNNER_TEMP/maestro-raw" play-store-screenshots
 
       - name: Upload screenshots
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: play-store-screenshots
