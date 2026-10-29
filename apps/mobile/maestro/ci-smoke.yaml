@@ -1,0 +1,31 @@
+appId: com.chessschool.app
+---
+# Guest smoke for the screenshot job. One portrait frame, no account.
+# The store-shot list lives at apps/mobile/maestro/store-shots.yaml (separate
+# lane) and signs in as Alex from that lane's fixture. This file does not.
+- launchApp:
+    clearState: true
+# Capture builds set EXPO_PUBLIC_PARITY=1, which can leave orientation
+# before this id is shown. Tap it when it is there.
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    optional: true
+    timeout: 30000
+- tapOn:
+    id: "orientation-skip"
+    optional: true
+- tapOn:
+    text: "Not now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 120000
+# Guest subtitle is academy-subtitle: "Enroll in the academy to track your progress."
+- extendedWaitUntil:
+    visible:
+      id: "academy-subtitle"
+    timeout: 120000
+# Filename matches SHOTS.md. This guest frame is not the signed-in campus shot.
+- takeScreenshot: 01-campus

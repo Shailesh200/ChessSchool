@@ -1,0 +1,220 @@
+# Play listing shots of the real Android app (com.chessschool.app).
+#
+# This is not a web capture. Env vars are documented in
+# apps/mobile/store-assets/play-store/SHOTS.md.
+# Do not put a real email, password, or production host in this file.
+#
+# Alex and the credentials come from Luffy's db:seed:test-user (name may change).
+# Jimbe's job passes them as STORE_SHOT_EMAIL and STORE_SHOT_PASSWORD.
+# Do not print them. Maestro 2.6 does not expand ${...} inside openLink.
+# His job substitutes these two names into the login URL before `maestro test`.
+#
+# Selectors are ids and text that exist on this branch. The campus frame is
+# the signed-in greeting, taken before any scroll. The stage heading is not
+# used: its display name is "Starter" (stage id preschool) and it sits below
+# the fold. Lesson coach copy is an opener plus the curriculum sentence, so
+# those frames wait on lesson-coach, lesson-turn, and lesson-hint.
+appId: com.chessschool.app
+---
+- extendedWaitUntil:
+    visible:
+      id: "orientation-skip"
+    optional: true
+    timeout: 120000
+- tapOn:
+    id: "orientation-skip"
+    optional: true
+- tapOn:
+    text: "Open academy →"
+    optional: true
+- tapOn:
+    text: "Not now"
+    optional: true
+- openLink: "chessschool:///login?email=${STORE_SHOT_EMAIL}&password=${STORE_SHOT_PASSWORD}"
+- tapOn:
+    text: "Not now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "academy-title"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Day 4 at the academy"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "academy-subtitle"
+    timeout: 30000
+- openLink: "chessschool:///academy"
+- extendedWaitUntil:
+    visible:
+      id: "tab-Academy"
+    timeout: 60000
+- takeScreenshot: 01-campus
+- openLink: "chessschool:///class/class-pre-board"
+- extendedWaitUntil:
+    visible:
+      id: "class-title"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      text: "The Chess Board"
+    timeout: 30000
+- takeScreenshot: 02-class-journey
+- openLink: "chessschool:///lesson/pawn-power"
+- extendedWaitUntil:
+    visible:
+      id: "lesson-coach"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "lesson-turn"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "White to move"
+    timeout: 30000
+- takeScreenshot: 03-lesson
+- openLink: "chessschool:///lesson/fork-master"
+- extendedWaitUntil:
+    visible:
+      id: "lesson-coach"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "lesson-continue"
+    timeout: 30000
+- tapOn:
+    id: "lesson-continue"
+# Watching… is only the label between the 450ms advance lock and the 800ms
+# observe move, so it is gone before the next command. lesson-observe-ready
+# stays once that beat has finished.
+- extendedWaitUntil:
+    visible:
+      id: "lesson-observe-ready"
+    timeout: 30000
+- tapOn:
+    id: "lesson-observe-ready"
+- extendedWaitUntil:
+    visible:
+      id: "lesson-turn"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "White to move"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "lesson-hint"
+    timeout: 30000
+- takeScreenshot: 05-tactic
+- openLink: "chessschool:///play"
+- extendedWaitUntil:
+    visible:
+      id: "play-setup-title"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      text: "New match"
+    timeout: 30000
+- tapOn:
+    id: "play-elo-1600"
+- extendedWaitUntil:
+    visible:
+      id: "play-opponent-name"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      text: "Vera"
+    timeout: 15000
+# Time control and Start match sit under the opponent card, below the fold
+# once Vera is on screen. The pills are already mounted; they need a scroll.
+- scrollUntilVisible:
+    element:
+      id: "play-time-5"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 100
+    centerElement: true
+- tapOn:
+    id: "play-time-5"
+- scrollUntilVisible:
+    element:
+      id: "play-start-match"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 100
+    centerElement: true
+- tapOn:
+    id: "play-start-match"
+- extendedWaitUntil:
+    visible:
+      id: "play-game-title"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "vs Vera · 1600"
+    timeout: 30000
+- tapOn:
+    id: "sq-e2"
+- tapOn:
+    id: "sq-e4"
+- extendedWaitUntil:
+    visible:
+      id: "play-coach-line"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      text: "Thinking…"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      text: "Thinking…"
+    timeout: 90000
+- takeScreenshot: 04-bot-game
+- tapOn:
+    id: "play-resign"
+- tapOn:
+    id: "play-resign-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "play-result"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "Resigned — Vera wins"
+    timeout: 30000
+- openLink: "chessschool:///review"
+# The history row can sit under the recommendation card. Scroll until the
+# row itself is on screen, then read it.
+- scrollUntilVisible:
+    element:
+      id: "review-latest"
+    direction: DOWN
+    timeout: 45000
+    visibilityPercentage: 100
+    centerElement: true
+- extendedWaitUntil:
+    visible:
+      id: "review-latest"
+    timeout: 45000
+- extendedWaitUntil:
+    visible:
+      text: "vs Bot · 1600"
+    timeout: 15000
+- tapOn:
+    id: "review-latest"
+# The move label is under the board, controls, and slider.
+- scrollUntilVisible:
+    element:
+      id: "replay-move-label"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 100
+    centerElement: true
+- extendedWaitUntil:
+    visible:
+      id: "replay-move-label"
+    timeout: 30000
+- takeScreenshot: 06-review
