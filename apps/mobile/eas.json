@@ -88,8 +88,8 @@
     },
     "play-store": {
       "android": {
-        "track": "production",
-        "releaseStatus": "completed"
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }

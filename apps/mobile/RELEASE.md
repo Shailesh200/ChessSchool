@@ -148,13 +148,14 @@ pnpm submit:android:internal:local
 4. Upload `apps/mobile/dist/chessschool-release.aab`
 5. Roll out to internal testers
 
-**Production track** (after internal QA passes):
+**Play submit stays a draft on the internal track.** The `play-store` profile sets `track: internal` and `releaseStatus: draft`, so `pnpm submit:android:store` cannot publish a completed production release. Promote that draft in Play Console after QA.
 
 ```bash
 pnpm submit:android:store
 ```
 
-Or promote the internal release in Play Console → Production.
+`eas.json` has no `submit` `ios` block, so nothing here auto-releases to TestFlight or the App Store. The `production` submit profile is unchanged (`track: internal`, `releaseStatus: completed`) and is what `pnpm submit:android:internal` uses.
+
 ---
 
 ## iOS builds and Stockfish

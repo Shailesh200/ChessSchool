@@ -147,6 +147,44 @@ describe("qa-sim build profile", () => {
   });
 });
 
+describe("prod path gates", () => {
+  it("keeps Play submit on an internal draft and has no iOS auto-release", () => {
+    const production = eas.submit.production as {
+      android: { track: string; releaseStatus: string };
+      ios?: unknown;
+    };
+    const playStore = eas.submit["play-store"] as {
+      android: { track: string; releaseStatus: string };
+      ios?: unknown;
+    };
+    expect(production.android).toEqual({
+      track: "internal",
+      releaseStatus: "completed",
+    });
+    expect(playStore.android).toEqual({ track: "internal", releaseStatus: "draft" });
+    expect(production.ios).toBeUndefined();
+    expect(playStore.ios).toBeUndefined();
+    expect(JSON.stringify(eas.submit)).not.toContain('"ios"');
+  });
+
+  it("runs production-API iOS parity only when target_prod is true", () => {
+    const yaml = readFileSync(
+      path.join(repoRoot, ".github/workflows/parity-ios.yml"),
+      "utf8",
+    );
+    expect(yaml).toContain("target_prod:");
+    expect(yaml).toContain("type: boolean");
+    expect(yaml).toContain("default: false");
+    const job = yaml.slice(yaml.indexOf("  parity-ios-prod:"));
+    expect(job.startsWith("  parity-ios-prod:")).toBe(true);
+    expect(job.indexOf("if: inputs.target_prod == true")).toBeGreaterThan(0);
+    expect(job.indexOf("if: inputs.target_prod == true")).toBeLessThan(
+      job.indexOf("runs-on:"),
+    );
+    expect(yaml).not.toMatch(/\n\s+needs:/);
+  });
+});
+
 describe("qa-sim workflow", () => {
   it("is manual, builds qa-sim, and uploads Maestro artifacts", () => {
     const header = workflow.slice(0, workflow.indexOf("\njobs:"));
