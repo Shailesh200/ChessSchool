@@ -160,11 +160,12 @@ appId: com.chessschool.app
     id: "sq-e2"
 - tapOn:
     id: "sq-e4"
-# moves.length is 1 while the bot thinks and stays at 2 after the reply.
+# The count is the accessibility name of a zero-size probe. It stays at 2
+# after the bot replies. The scrub bar's visible label is still "● live".
 - extendedWaitUntil:
     visible:
       id: "play-move-count"
-      text: "2"
+      text: "move count 2"
     timeout: 90000
 - takeScreenshot: 04-bot-game
 - tapOn:

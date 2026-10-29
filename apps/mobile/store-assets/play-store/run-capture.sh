@@ -12,10 +12,9 @@ scrub_maestro_output() {
 
 # ALLOW-LIST copied before the screenshot dir is reduced to PNGs:
 #   screen-hierarchy/*.json
-#   commands.json
 #   manifest.json
-# Login links in those files are redacted. logs/ is not copied
-# (no device-logcat.txt, no maestro.log).
+# Login links in those files are redacted. commands.json is not copied
+# (it records inputText). logs/ is not copied (no device-logcat.txt, no maestro.log).
 preserve_hierarchy() {
   local src="$RUNNER_TEMP/maestro-raw"
   local dest="$RUNNER_TEMP/maestro-hierarchy"
@@ -23,7 +22,6 @@ preserve_hierarchy() {
   mkdir -p "$dest"
   find "$src" -type f \( \
       -path '*/screen-hierarchy/*.json' -o \
-      -name 'commands.json' -o \
       -name 'manifest.json' \
     \) -print0 |
     while IFS= read -r -d '' file; do

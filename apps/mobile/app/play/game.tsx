@@ -35,6 +35,7 @@ import { KingFallCeremony } from "@/KingFallCeremony";
 import { BotAvatar } from "@/BotAvatar";
 import { trackEvent } from "@/productAnalytics/track";
 import { scoreFromWinner, trackMatchEnd } from "@/productAnalytics/matchEvents";
+import { MatchScrubBar } from "@/matchScrubBar";
 import { CoachAvatar } from "@/CoachAvatar";
 import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { resolveAvatar } from "@/iconMaps";
@@ -431,16 +432,20 @@ export default function GameScreen() {
         />
       </View>
 
-      <View style={styles.scrubber}>
-        <Pressable style={styles.scrubBtn} onPress={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}>
-          <Text style={styles.scrubIcon}>⏪</Text>
-        </Pressable>
-        <Text style={styles.scrubLabel}>{viewing ? `move ${viewPly}/${frames.length - 1}` : "● live"}</Text>
-        <Text testID="play-move-count" style={styles.scrubLabel}>{moves.length}</Text>
-        <Pressable style={styles.scrubBtn} onPress={() => setViewPly((v) => { if (v === null) return null; const n = v + 1; return n >= frames.length - 1 ? null : n; })}>
-          <Text style={styles.scrubIcon}>⏩</Text>
-        </Pressable>
-      </View>
+      <MatchScrubBar
+        viewing={viewing}
+        viewPly={viewPly}
+        frameCount={frames.length}
+        moveCount={moves.length}
+        onBack={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
+        onForward={() =>
+          setViewPly((v) => {
+            if (v === null) return null;
+            const n = v + 1;
+            return n >= frames.length - 1 ? null : n;
+          })
+        }
+      />
 
       <GameOverOverlay
         visible={!!over && !mateReviewOpen && !kingFall}
@@ -520,8 +525,4 @@ const styles = StyleSheet.create({
   bubble: { flex: 1, backgroundColor: colors.surfaceCard, borderRadius: radius.card, borderBottomLeftRadius: 4, paddingHorizontal: space[4], paddingVertical: space[3], borderWidth: 1, borderColor: colors.hairline, ...shadowCard },
   bubbleLabel: { ...type.xs, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", marginBottom: 2 },
   bubbleText: { ...type.base, fontFamily: font.semibold, color: colors.ink },
-  scrubber: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[3], marginTop: space[3], marginBottom: space[2] },
-  scrubBtn: { minWidth: 56, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceCard, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: colors.hairline },
-  scrubIcon: { fontSize: 16, color: colors.ink },
-  scrubLabel: { minWidth: 88, textAlign: "center", ...type.xs, fontFamily: font.bold, color: colors.ink500 },
 });
