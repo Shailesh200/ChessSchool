@@ -1,23 +1,21 @@
 import "server-only";
-import { synthesizeEdgeSpeech } from "./edge.server";
 import { googleTtsConfigured, synthesizeGoogleSpeech } from "./google.server";
 import { elevenLabsConfigured, synthesizeElevenLabsSpeech } from "./elevenlabs.server";
-import type { CoachVoiceId } from "@/core/store/settings.store";
 import {
   normalizeCoachCharacter,
   type CoachCharacterId,
 } from "@/features/coaching/characters";
 import { plainSpeechText } from "@/features/coaching/speechStyle";
 
-/** Cloud TTS is always available via Edge; ElevenLabs / Google when configured. */
+/** Cloud TTS when ElevenLabs or Google (`TTS_PROVIDER=google`) is configured. */
 export function ttsConfigured(): boolean {
-  return true;
+  if (elevenLabsConfigured()) return true;
+  return process.env.TTS_PROVIDER === "google" && googleTtsConfigured();
 }
 
 export async function synthesizeCoachSpeech(
   text: string,
   characterOrPersonality: CoachCharacterId | string,
-  voiceId: CoachVoiceId = "auto",
 ): Promise<Buffer | null> {
   const character = normalizeCoachCharacter(characterOrPersonality);
   const plain = plainSpeechText(text);
@@ -32,5 +30,6 @@ export async function synthesizeCoachSpeech(
     if (google) return google;
   }
 
-  return synthesizeEdgeSpeech(plain, character, voiceId);
+  // No Edge Read Aloud path. Callers use on-device speech when this returns null.
+  return null;
 }

@@ -23,9 +23,9 @@ Launch go-live steps: [`plans/M-073_WEB_GA_LAUNCH.md`](../plans/M-073_WEB_GA_LAU
 | `UPSTASH_REDIS_REST_TOKEN` | Optional | Upstash Redis REST token paired with `UPSTASH_REDIS_REST_URL`. Never commit. |
 | `KV_REST_API_URL` | Optional | Legacy KV / Marketplace alias for the Redis REST URL. Used only when the `UPSTASH_REDIS_REST_*` pair is not both set. |
 | `KV_REST_API_TOKEN` | Optional | REST token paired with `KV_REST_API_URL`. Never commit. |
-| `ELEVENLABS_API_KEY` | Optional | ElevenLabs TTS for named coach characters. Uses each voice’s saved Voice Lab settings + preferred model (e.g. Skye/Aerisita → Turbo v2.5). **Library/professional voices require a paid ElevenLabs plan for API calls** — Free can preview in Voice Lab but `/v1/text-to-speech` returns `paid_plan_required` and the app falls back to Edge (will not match Voice Lab). When unset or blocked, Edge Read Aloud is used. |
+| `ELEVENLABS_API_KEY` | Optional | ElevenLabs TTS for named coach characters. Uses each voice’s saved Voice Lab settings + preferred model (e.g. Skye/Aerisita → Turbo v2.5). **Library/professional voices require a paid ElevenLabs plan for API calls** — Free can preview in Voice Lab but `/v1/text-to-speech` returns `paid_plan_required` and the app falls back to on-device speech (will not match Voice Lab). When unset or blocked, the browser or device speaks the line. |
 | `GOOGLE_TTS_CREDENTIALS` | Optional | JSON for Google Cloud TTS |
-| `TTS_PROVIDER` | Optional | Set `google` to prefer Cloud TTS after ElevenLabs; default Edge Read Aloud when ElevenLabs unset |
+| `TTS_PROVIDER` | Optional | Set `google` to use Cloud TTS after ElevenLabs. When neither ElevenLabs nor Google is available, coach lines use on-device speech. |
 | `EMAIL_PROVIDER` | Prod email | Transactional provider. `resend` sends with the Resend HTTP API when `RESEND_API_KEY` and `EMAIL_FROM` are also set. Otherwise the console transport is used in dev, test, CI, and any `VERCEL_ENV` other than `production` (preview included), even when `NODE_ENV` is production. Fails closed when `VERCEL_ENV=production`, or when `VERCEL_ENV` is unset and `NODE_ENV=production`. `CI` does not change that. |
 | `RESEND_API_KEY` | Prod email | Resend API key. Required together with `EMAIL_PROVIDER=resend` and `EMAIL_FROM`. |
 | `EMAIL_FROM` | Prod email | From address for transactional mail. Required together with `EMAIL_PROVIDER=resend` and `RESEND_API_KEY`. |
@@ -61,7 +61,7 @@ Production example: `https://chess-school.in/api/auth/google/callback`
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 SESSION_TOKEN_SECRET=dev-session-token-secret-at-least-32-chars
 # DATABASE_URL unset → local.db
-# Optional: coach character TTS (matches Voice Lab voice settings); without it → Edge
+# Optional: coach character TTS (matches Voice Lab voice settings); without it → on-device speech
 # ELEVENLABS_API_KEY=
 # Optional transactional email. Unset → console transport in dev, test, CI, and Vercel preview.
 # Production fails closed: VERCEL_ENV=production, or NODE_ENV=production when VERCEL_ENV is unset.
