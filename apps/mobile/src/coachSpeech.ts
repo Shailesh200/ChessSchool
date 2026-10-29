@@ -186,7 +186,7 @@ export async function speakCoachText(text: string): Promise<void> {
   const after = settings.get();
   if (!after.sound || !after.coachSpeech) return;
   if (!uri) {
-    // Cloud TTS carries personality→Edge voice (same as web). Local OS TTS varies by locale.
+    // Cloud audio was unavailable. On-device speech varies by locale.
     await speakLocalFallback(plainSpeechText(line), gen, voice);
     return;
   }
