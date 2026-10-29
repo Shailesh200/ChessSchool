@@ -57,7 +57,7 @@ describe("mergeProgressPush", () => {
       server,
     );
     expect(merged.lastActiveDay).toBe("2026-07-14");
-    expect(merged.streak).toBe(9);
+    expect(merged.streak).toBe(3);
 
     const neither = mergeProgressPush(push({ lastActiveDay: "9999-12-31" }), {
       ...emptyServer,
@@ -73,11 +73,11 @@ describe("mergeProgressPush", () => {
     vi.useRealTimers();
   });
 
-  it("incoming XP/streak above server are kept", () => {
+  it("keeps a higher incoming XP and leaves the streak at the server value", () => {
     const server = { ...emptyServer, xp: 100, streak: 2 };
     const merged = mergeProgressPush(push({ xp: 250, streak: 5 }), server);
     expect(merged.xp).toBe(250);
-    expect(merged.streak).toBe(5);
+    expect(merged.streak).toBe(2);
   });
 
   it("keeps higher server mastery when client sends a stale lower value", () => {
