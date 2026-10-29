@@ -65,9 +65,11 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong>Coach voice (TTS):</strong> lesson and play coach lines you hear
-                may be synthesized by sending the spoken text to Microsoft Edge Read
-                Aloud (default) or, when configured, Google Cloud Text-to-Speech. Only
-                the text to be spoken is sent — not your full profile.
+                may be synthesized by sending the spoken text to ElevenLabs or, when
+                configured, Google Cloud Text-to-Speech. When those providers are unset
+                or fail, the line is spoken on your device and is not sent to a speech
+                service. Only the text to be spoken is sent to a cloud provider — not
+                your full profile.
               </li>
               <li>
                 <strong>Usage analytics (optional):</strong> when enabled in Settings,

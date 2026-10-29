@@ -18,10 +18,11 @@ const bodySchema = z.object({
   character: z.enum(COACH_CHARACTER_IDS).optional(),
   /** Legacy personality key — mapped to a character. */
   personality: z.string().optional(),
+  /** Accepted from existing clients. Server synthesis no longer selects an Edge voice. */
   voice: z.enum(COACH_VOICE_IDS).optional().default("auto"),
 });
 
-/** Cloud TTS for coach / bot chat bubbles (ElevenLabs → Edge fallback). */
+/** Cloud TTS for coach / bot chat bubbles (ElevenLabs, then Google when configured). */
 export async function POST(req: Request) {
   const user = await getApiUser(req);
   const limited = await enforceRateLimit(
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   const character = normalizeCoachCharacter(body.character ?? body.personality);
-  const audio = await synthesizeCoachSpeech(body.text, character, body.voice);
+  const audio = await synthesizeCoachSpeech(body.text, character);
   if (!audio) {
     return NextResponse.json({ error: "synthesis_failed" }, { status: 502 });
   }
