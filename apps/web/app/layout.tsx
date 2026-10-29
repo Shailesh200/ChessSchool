@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Fredoka } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -15,10 +15,14 @@ import {
   socialMeta,
 } from "@/lib/seo";
 
-const fredoka = Fredoka({
+// Latin variable face. Weights 400–700 are the ones the UI uses
+// (body, font-medium, font-semibold, font-bold). No Google fetch.
+const fredoka = localFont({
+  src: "./fonts/Fredoka-latin.woff2",
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 const rootSocial = socialMeta({
