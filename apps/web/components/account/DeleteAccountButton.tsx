@@ -6,6 +6,7 @@ import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { pulseTrack } from "@/lib/pulse";
+import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
 
 export function DeleteAccountButton() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export function DeleteAccountButton() {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
+      await clearRuntimeCaches();
       useProgression.getState().reset();
       useSession.getState().setSession(false, null);
       useSettings.getState().set("targetElo", 600);

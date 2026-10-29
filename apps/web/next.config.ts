@@ -1,6 +1,34 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+/** Routes whose response depends on the signed-in user (cookie or Bearer token). */
+const PRIVATE_SOURCES = [
+  // pages
+  "/account",
+  "/account/:path*",
+  "/admin",
+  "/admin/:path*",
+  "/library",
+  "/placement",
+  "/onboarding",
+  "/login",
+  "/register",
+  // APIs that call getApiUser()
+  "/api/progress",
+  "/api/profile",
+  "/api/profile/:path*",
+  "/api/campus",
+  "/api/next-lesson",
+  "/api/library",
+  "/api/class/:id",
+  "/api/session",
+  "/api/session/:id",
+  "/api/ably-token",
+  "/api/events",
+  "/api/account",
+  "/api/auth/:path*",
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
@@ -21,6 +49,19 @@ const nextConfig: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
+      // Signed-in HTML and per-user API data must never be stored by the browser,
+      // a proxy, or the service worker (W-H4). Dynamic pages already send this from
+      // Next; the explicit rule keeps it true if a page is ever made static, and
+      // gives GET route handlers (which send no Cache-Control at all) the header.
+      ...PRIVATE_SOURCES.map((source) => ({
+        source,
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, max-age=0, must-revalidate",
+          },
+        ],
+      })),
       {
         source: "/(.*)",
         headers: [

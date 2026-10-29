@@ -5,6 +5,7 @@ import {
 } from "@/core/store/progression.store";
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
+import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
 import { useSettings, type SettingsState } from "@/core/store/settings.store";
 import {
   listJournal,
@@ -118,8 +119,15 @@ export async function pullProgress(): Promise<{
   } catch {
     return null;
   }
+  if (!r.ok) {
+    // Drain the unused body: for a Cache-Control: no-store response Chrome keeps the
+    // request pending until it is consumed, which stalls `networkidle`.
+    void r.body?.cancel().catch(() => undefined);
+  }
   if (r.status === 401) {
     const session = useSession.getState();
+    // Session expired / revoked elsewhere: same as a logout for cache purposes.
+    if (session.authed === true) void clearRuntimeCaches();
     if (session.authed !== false) useSession.getState().setSession(false, null);
     return null;
   }

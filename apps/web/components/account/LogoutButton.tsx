@@ -8,6 +8,7 @@ import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { usePlan } from "@/core/store/plan.store";
 import { pulseTrack } from "@/lib/pulse";
+import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
 
 /**
  * Logout that also wipes client-side personal state, so the next user/guest never
@@ -21,11 +22,15 @@ export function LogoutButton() {
     if (busy) return;
     setBusy(true);
     pulseTrack("logout", { platform: "web" });
+    // Drop service-worker caches first: logoutAction() redirects, which can unmount
+    // this component before any code after the await runs.
+    await clearRuntimeCaches();
     try {
       await logoutAction();
     } catch {
       // server already best-effort; continue clearing the client either way
     }
+    await clearRuntimeCaches(); // again, in case a request re-cached something mid-logout
     useProgression.getState().reset();
     usePlan.setState({
       routineDay: null,
