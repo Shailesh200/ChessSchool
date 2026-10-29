@@ -151,7 +151,7 @@ describe("qa-sim build profile", () => {
 });
 
 describe("prod path gates", () => {
-  it("keeps Play submit on an internal draft and has no iOS auto-release", () => {
+  it("keeps every submit profile on an internal draft and has no iOS auto-release", () => {
     const production = eas.submit.production as {
       android: { track: string; releaseStatus: string };
       ios?: unknown;
@@ -162,7 +162,7 @@ describe("prod path gates", () => {
     };
     expect(production.android).toEqual({
       track: "internal",
-      releaseStatus: "completed",
+      releaseStatus: "draft",
     });
     expect(playStore.android).toEqual({ track: "internal", releaseStatus: "draft" });
     expect(production.ios).toBeUndefined();
@@ -348,7 +348,9 @@ describe("qa-sim API URL", () => {
     expect(config).toContain('EAS_BUILD_PROFILE === "qa-sim"');
     expect(config).toContain("assertQaSimApiUrl");
     const pkg = readFileSync(path.join(mobileRoot, "package.json"), "utf8");
-    expect(pkg).toContain('"eas-build-on-success": "bash scripts/qa-sim-assert-bundle.sh"');
+    expect(pkg).toContain(
+      '"eas-build-on-success": "bash scripts/qa-sim-assert-bundle.sh"',
+    );
   });
 
   it("fails when a built bundle contains the production host", () => {

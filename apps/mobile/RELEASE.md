@@ -154,7 +154,7 @@ pnpm submit:android:internal:local
 pnpm submit:android:store
 ```
 
-`eas.json` has no `submit` `ios` block, so nothing here auto-releases to TestFlight or the App Store. The `production` submit profile is unchanged (`track: internal`, `releaseStatus: completed`) and is what `pnpm submit:android:internal` uses.
+`eas.json` has no `submit` `ios` block, so nothing here auto-releases to TestFlight or the App Store. The `production` submit profile is also `track: internal` and `releaseStatus: draft`, so `pnpm submit:android:internal` cannot roll out a completed release either.
 
 ---
 
