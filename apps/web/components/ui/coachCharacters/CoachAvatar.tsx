@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import {
   coachCharacterOf,
   type CoachAvatarState,
   type CoachCharacterId,
 } from "@/features/coaching/characters";
+
+const DeferredCoachImage = dynamic(() => import("./CoachAvatarImage"), {
+  ssr: false,
+  loading: () => <span className="coach-avatar__img" aria-hidden />,
+});
 
 const SIZE = {
   sm: 40,
@@ -22,6 +28,11 @@ type Props = {
   size?: CoachAvatarSize;
   className?: string;
   alt?: string;
+  /**
+   * Keep the sized frame in the first paint and fetch the portrait after mount.
+   * Settings uses this so the coach line is not stuck behind the portrait preloads.
+   */
+  deferImage?: boolean;
 };
 
 export function CoachAvatar({
@@ -30,6 +41,7 @@ export function CoachAvatar({
   size = "md",
   className = "",
   alt,
+  deferImage = false,
 }: Props) {
   const c = coachCharacterOf(character);
   const px = typeof size === "number" ? size : SIZE[size];
@@ -58,15 +70,23 @@ export function CoachAvatar({
       data-state={state}
     >
       <span className="coach-avatar__ring" aria-hidden />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        className="coach-avatar__img"
-        src={c.imageSrc}
-        alt={alt ?? `${c.name}, ${c.theme} coach`}
-        width={px}
-        height={px}
-        draggable={false}
-      />
+      {deferImage ? (
+        <DeferredCoachImage
+          src={c.imageSrc}
+          alt={alt ?? `${c.name}, ${c.theme} coach`}
+          px={px}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="coach-avatar__img"
+          src={c.imageSrc}
+          alt={alt ?? `${c.name}, ${c.theme} coach`}
+          width={px}
+          height={px}
+          draggable={false}
+        />
+      )}
     </span>
   );
 }

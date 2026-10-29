@@ -9,7 +9,7 @@ import { useSession } from "@/core/store/session.store";
 import { BackButton } from "@/components/ui/BackButton";
 import { audio } from "@/core/audio/audioEngine";
 import { DataSection } from "@/features/settings/DataSection";
-import { CoachCharacterPicker } from "@/features/settings/CoachCharacterPicker";
+import { SettingsCoachField } from "@/features/settings/CoachCharacterPicker";
 import {
   SettingsNav,
   SettingsPanel,
@@ -112,16 +112,10 @@ export default function SettingsPage() {
                   label="Coach speech"
                 />
               </Row>
-              <div className="border-hairline -mx-1 border-t py-4">
-                <p className="text-ink text-sm font-extrabold">Coach character</p>
-                <p className="text-ink-500 mt-0.5 mb-3 text-xs font-semibold">
-                  One coach for lessons and matches — tap to preview their voice.
-                </p>
-                <CoachCharacterPicker
-                  value={s.coachCharacter}
-                  onChange={(id) => s.set("coachCharacter", id as CoachCharacterId)}
-                />
-              </div>
+              <SettingsCoachField
+                value={s.coachCharacter}
+                onChange={(id) => s.set("coachCharacter", id as CoachCharacterId)}
+              />
               <Row label="Haptics" hint="Vibration on supported devices">
                 <Toggle
                   checked={s.haptics}

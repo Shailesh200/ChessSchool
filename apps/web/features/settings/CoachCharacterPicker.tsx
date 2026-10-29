@@ -9,6 +9,25 @@ import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import { previewCoachCharacter, stopCoachSpeech } from "@/core/audio/coachSpeech";
 import { trackEvent } from "@/core/analytics/track";
 
+/** Sound-section copy plus the picker. The sentence is in the first HTML paint. */
+export function SettingsCoachField({
+  value,
+  onChange,
+}: {
+  value: CoachCharacterId;
+  onChange: (id: CoachCharacterId) => void;
+}) {
+  return (
+    <div className="border-hairline -mx-1 border-t py-4">
+      <p className="text-ink text-sm font-extrabold">Coach character</p>
+      <p className="text-ink-500 mt-0.5 mb-3 text-xs font-semibold">
+        One coach for lessons and matches — tap to preview their voice.
+      </p>
+      <CoachCharacterPicker value={value} onChange={onChange} />
+    </div>
+  );
+}
+
 export function CoachCharacterPicker({
   value,
   onChange,
@@ -56,6 +75,7 @@ export function CoachCharacterPicker({
               character={c.id}
               state={busy ? "speak" : on ? "idle" : "breathe"}
               size="md"
+              deferImage
             />
             <span className="min-w-0 flex-1">
               <span className="block font-semibold text-[var(--ink)]">{c.name}</span>
