@@ -13,6 +13,7 @@
     "generate:pieces": "node scripts/generate-piece-assets.mjs",
     "fetch-stockfish": "bash scripts/fetch-stockfish.sh",
     "eas-build-pre-install": "bash scripts/fetch-stockfish.sh",
+    "eas-build-on-success": "bash scripts/qa-sim-assert-bundle.sh",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "doctor": "npx expo-doctor",

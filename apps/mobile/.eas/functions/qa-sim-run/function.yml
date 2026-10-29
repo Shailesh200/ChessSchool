@@ -1,0 +1,47 @@
+name: Run a QA sim shell script
+
+description: Runs one allowlisted script from the repo scripts/ directory.
+
+inputs:
+  - name: script
+    type: string
+    required: true
+  - name: sha
+    type: string
+    required: false
+    default_value: ""
+
+runs:
+  steps:
+    - name: Run QA sim script
+      env:
+        QA_SIM_SCRIPT: ${{ inputs.script }}
+        QA_SIM_SHA: ${{ inputs.sha }}
+      run: |
+        set -euo pipefail
+        name="${QA_SIM_SCRIPT}"
+        case "${name}" in
+          qa-sim-guard.sh|qa-sim-pin-commit.sh|qa-sim-web.sh|qa-sim-collect.sh) ;;
+          *)
+            echo "Unexpected QA sim script." >&2
+            exit 1
+            ;;
+        esac
+        script=""
+        if [ -f "scripts/${name}" ]; then
+          script="scripts/${name}"
+        elif [ -f "../../scripts/${name}" ]; then
+          script="../../scripts/${name}"
+        elif git rev-parse --show-toplevel >/dev/null 2>&1; then
+          root="$(git rev-parse --show-toplevel)"
+          script="${root}/scripts/${name}"
+        fi
+        if [ ! -f "${script}" ]; then
+          echo "${name} not found." >&2
+          exit 1
+        fi
+        if [ "${name}" = "qa-sim-pin-commit.sh" ]; then
+          bash "${script}" "${QA_SIM_SHA:-}"
+        else
+          bash "${script}"
+        fi

@@ -64,13 +64,13 @@ pnpm parity:semantic
 
 Defined in [`scripts/parity-routes.json`](../scripts/parity-routes.json) — 18 screens covering tabs, class, lesson, play, settings, auth-only hubs, etc.
 
-| Field | Meaning |
-|-------|---------|
-| `auth: guest \| user` | Guest browse vs parity fixture login |
-| `threshold` | `default` 8% · `strict` 4% · `semanticOnly` skip visual diff |
-| `semantic` | Copy/labels that must appear on **both** surfaces |
-| `web.path` | PWA route |
-| `native.steps` | Maestro navigation (tabs, hub testIDs, deep links) |
+| Field                 | Meaning                                                      |
+| --------------------- | ------------------------------------------------------------ |
+| `auth: guest \| user` | Guest browse vs parity fixture login                         |
+| `threshold`           | `default` 8% · `strict` 4% · `semanticOnly` skip visual diff |
+| `semantic`            | Copy/labels that must appear on **both** surfaces            |
+| `web.path`            | PWA route                                                    |
+| `native.steps`        | Maestro navigation (tabs, hub testIDs, deep links)           |
 
 Add a screen: edit the JSON → `pnpm parity:generate` → extend `apps/web/e2e/parity-matrix.spec.ts` (auto-loops manifest) → add mobile `testID`s if needed.
 
@@ -78,14 +78,16 @@ Add a screen: edit the JSON → `pnpm parity:generate` → extend `apps/web/e2e/
 
 [`.github/workflows/parity-ios.yml`](../.github/workflows/parity-ios.yml) + [`.github/workflows/parity-android.yml`](../.github/workflows/parity-android.yml):
 
-| Job | Runner | When | Blocks merge |
-|-----|--------|------|--------------|
-| `parity-semantic` | Ubuntu | PR + push | Yes (fails on copy/structure regressions) |
-| `parity-ios` | macOS | schedule / `workflow_dispatch` | Fails the job when drift > `thresholdRatio` |
-| `parity-ios-prod` | macOS | Nightly cron | No (artifact only) |
-| `parity-android-scripts` | Ubuntu | PR/push (parity paths) + dispatch | Yes — scripts, coverage, threshold honesty |
+| Job                      | Runner | When                                          | Blocks merge                                |
+| ------------------------ | ------ | --------------------------------------------- | ------------------------------------------- |
+| `parity-semantic`        | Ubuntu | PR + push                                     | Yes (fails on copy/structure regressions)   |
+| `parity-ios`             | macOS  | schedule / `workflow_dispatch`                | Fails the job when drift > `thresholdRatio` |
+| `parity-ios-prod`        | macOS  | Manual dispatch with `target_prod: true` only | No (artifact only)                          |
+| `parity-android-scripts` | Ubuntu | PR/push (parity paths) + dispatch             | Yes — scripts, coverage, threshold honesty  |
 
-Set GitHub secrets for nightly prod: `PARITY_EMAIL`, `PARITY_PASSWORD`.
+A normal manual run leaves `target_prod` false, so `parity-ios-prod` is skipped and the iOS jobs stay on `http://localhost:3210`. Pass `target_prod: true` to also hit `https://chess-school.in`. Nothing in the workflow `needs` that job, so skipping it does not cancel the localhost jobs.
+
+Set GitHub secrets before a production-API run: `PARITY_EMAIL`, `PARITY_PASSWORD`.
 
 ## Reports
 

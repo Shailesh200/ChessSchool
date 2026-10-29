@@ -7,6 +7,12 @@ name: Parity iOS
 
 on:
   workflow_dispatch:
+    inputs:
+      target_prod:
+        description: Run iOS parity against the production API. Leave false for localhost only.
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: parity-ios-${{ github.ref }}
@@ -95,7 +101,8 @@ jobs:
 
   parity-ios-prod:
     name: PWA ↔ iOS (production API)
-    if: github.event_name == 'workflow_dispatch'
+    # No other job needs this one. A skipped run still finishes the localhost jobs.
+    if: inputs.target_prod == true
     runs-on: macos-latest
     timeout-minutes: 60
     env:
