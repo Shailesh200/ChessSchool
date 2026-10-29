@@ -368,6 +368,8 @@ jobs:
           if [ -d "$GITHUB_WORKSPACE/apps/mobile/android" ]; then
             find "$GITHUB_WORKSPACE/apps/mobile/android" -name '*.apk' -delete
           fi
+          # Hierarchy files were copied to maestro-hierarchy before this.
+          # Screenshot dir stays PNG-only. Do not delete the hierarchy copy.
           if [ -d "$RUNNER_TEMP/maestro-raw" ]; then
             find "$RUNNER_TEMP/maestro-raw" -type f ! -name '*.png' -delete
           fi
@@ -420,6 +422,14 @@ jobs:
           # 04-bot-game, 05-tactic, 06-review. The guest smoke writes 01-campus.
           path: play-store-screenshots/*.png
           if-no-files-found: error
+
+      - name: Upload Maestro hierarchy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-hierarchy
+          path: ${{ runner.temp }}/maestro-hierarchy
+          if-no-files-found: warn
 
       - name: API log
         if: failure()

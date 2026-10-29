@@ -128,8 +128,24 @@ appId: com.chessschool.app
     visible:
       text: "Vera"
     timeout: 15000
+# Time control and Start match sit under the opponent card, below the fold
+# once Vera is on screen. The pills are already mounted; they need a scroll.
+- scrollUntilVisible:
+    element:
+      id: "play-time-5"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: "play-time-5"
+- scrollUntilVisible:
+    element:
+      id: "play-start-match"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: "play-start-match"
 - extendedWaitUntil:
@@ -170,6 +186,15 @@ appId: com.chessschool.app
       text: "Resigned — Vera wins"
     timeout: 30000
 - openLink: "chessschool:///review"
+# The history row can sit under the recommendation card. Scroll until the
+# row itself is on screen, then read it.
+- scrollUntilVisible:
+    element:
+      id: "review-latest"
+    direction: DOWN
+    timeout: 45000
+    visibilityPercentage: 100
+    centerElement: true
 - extendedWaitUntil:
     visible:
       id: "review-latest"
@@ -180,6 +205,14 @@ appId: com.chessschool.app
     timeout: 15000
 - tapOn:
     id: "review-latest"
+# The move label is under the board, controls, and slider.
+- scrollUntilVisible:
+    element:
+      id: "replay-move-label"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 100
+    centerElement: true
 - extendedWaitUntil:
     visible:
       id: "replay-move-label"
