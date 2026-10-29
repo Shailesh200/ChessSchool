@@ -50,6 +50,9 @@ function runHook(profile: string | undefined, flag: string | undefined) {
   const env: Record<string, string | undefined> = { ...process.env };
   restoreKey(env, "EAS_BUILD_PROFILE", profile);
   restoreKey(env, "EXPO_PUBLIC_PARITY", flag);
+  // fetch-stockfish.sh downloads when this is unset. These tests only check
+  // the parity exit codes, so use the script's own non-iOS skip.
+  env.EAS_BUILD_PLATFORM = "android";
   const childEnv: Record<string, string> = {};
   for (const [key, value] of Object.entries(env)) {
     if (typeof value === "string") childEnv[key] = value;
