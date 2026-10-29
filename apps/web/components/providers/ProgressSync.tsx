@@ -6,6 +6,7 @@ import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { pullProgress, fullSnapshotAsync } from "@/core/sync/pullProgress";
+import { applyServerProgressAck } from "@/core/sync/applyProgressAck";
 import { progressSnapshot } from "@/core/store/progression.store";
 import { localProgressPresent } from "@chess-school/progression";
 import { onSyncTrigger } from "@/core/sync/syncTrigger";
@@ -42,7 +43,12 @@ export function ProgressSync() {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body,
-              }).catch(() => void 0);
+              })
+                .then(async (res) => {
+                  if (!res.ok) return;
+                  applyServerProgressAck(await res.json().catch(() => null));
+                })
+                .catch(() => void 0);
               toast("Your progress is now saved to your account ✓", {
                 tone: "success",
                 icon: "check",
@@ -79,7 +85,12 @@ export function ProgressSync() {
           method: "POST",
           headers: { "content-type": "application/json" },
           body,
-        }).catch(() => void 0);
+        })
+          .then(async (res) => {
+            if (!res.ok) return;
+            applyServerProgressAck(await res.json().catch(() => null));
+          })
+          .catch(() => void 0);
       }, 1500);
     };
     const unsubP = useProgression.subscribe(schedule);

@@ -1,6 +1,9 @@
 import {
+  addDays,
+  canonicalTimeZone,
   isCalendarDay,
   mergeProgressSnapshots,
+  newerCalendarDay,
   normalizeProgressPush,
   type Snap,
 } from "@chess-school/progression";
@@ -41,6 +44,12 @@ export type ExtraProgressData = {
   homeworkDone?: Record<string, string[]>;
   placementDone?: boolean;
   journalEntries?: unknown[];
+  /** Last writer of `rating`. Lives in progress.data. Absent when neither side sent one. */
+  ratingUpdatedAt?: number;
+  /** Last writer of `dailyGoalXp`. Lives in progress.data. */
+  goalUpdatedAt?: number;
+  /** Canonical IANA zone from the client. Stored for a later day key. Not used yet. */
+  tz?: string;
   /**
    * Server-owned streak days and one-time grace. Merge never copies a
    * client-sent `streakGrace`. The first push of any kind seeds `activeDays`
@@ -138,7 +147,7 @@ function snapFromServer(
     lastActiveDay: state.lastActiveDay,
     graduatedClasses: state.graduatedClasses,
     lessons: state.lessons,
-    dailyGoalXp: state.dailyGoalXp,
+    dailyGoalXp: state.extra.dailyGoalXp ?? state.dailyGoalXp,
     rating: state.extra.rating,
     botWins: state.extra.botWins,
     unlockedAchievements: state.extra.unlockedAchievements,
@@ -154,6 +163,9 @@ function snapFromServer(
     placementDone: state.extra.placementDone,
     journalEntries: state.extra.journalEntries,
     settings: state.extra.settings,
+    ratingUpdatedAt: state.extra.ratingUpdatedAt,
+    goalUpdatedAt: state.extra.goalUpdatedAt,
+    tz: state.extra.tz,
   });
 }
 
@@ -180,6 +192,9 @@ function snapFromPush(body: ProgressPushBody): Snap & { placementDone?: boolean 
     placementDone: body.placementDone,
     journalEntries: body.journalEntries,
     settings: body.settings,
+    ratingUpdatedAt: body.ratingUpdatedAt,
+    goalUpdatedAt: body.goalUpdatedAt,
+    tz: body.tz,
   });
 }
 
@@ -264,15 +279,16 @@ export function mergeExtraData(
     mistakeLog: hasIncoming("mistakeLog")
       ? (incoming.mistakeLog ?? prev.mistakeLog)
       : prev.mistakeLog,
-    homeworkStreak: Math.max(
-      prev.homeworkStreak ?? 0,
-      incoming.homeworkStreak ?? prev.homeworkStreak ?? 0,
-    ),
-    homeworkLastDay: incoming.homeworkLastDay ?? prev.homeworkLastDay ?? null,
+    // Placeholder. `mergeProgressPush` replaces both from the day sequence.
+    homeworkStreak: prev.homeworkStreak,
+    homeworkLastDay: prev.homeworkLastDay,
     recentGames: hasIncoming("recentGames")
       ? mergeRecentGames(prev.recentGames, incoming.recentGames)
       : prev.recentGames,
-    dailyPuzzleDay: incoming.dailyPuzzleDay ?? prev.dailyPuzzleDay ?? null,
+    dailyPuzzleDay: hasIncoming("dailyPuzzleDay")
+      ? newerCalendarDay(incoming.dailyPuzzleDay, prev.dailyPuzzleDay)
+      : prev.dailyPuzzleDay,
+    tz: canonicalStoredZone(incoming.tz, prev.tz),
     settings:
       incoming.settings !== undefined
         ? { ...(prev.settings ?? {}), ...incoming.settings }
@@ -308,7 +324,57 @@ function extraFromPush(body: ProgressPushBody): ExtraProgressData {
     homeworkDone: body.homeworkDone,
     placementDone: body.placementDone,
     journalEntries: body.journalEntries,
+    ratingUpdatedAt: body.ratingUpdatedAt,
+    goalUpdatedAt: body.goalUpdatedAt,
+    tz: body.tz,
   };
+}
+
+/**
+ * Homework streak from the stored day and the incoming day. The client count
+ * is ignored. A day outside the server UTC day ±1 is rejected, and an earlier
+ * day does not move the stored day backwards.
+ */
+export function nextHomeworkStreak(input: {
+  storedStreak: number;
+  storedDay: string | null;
+  incomingDay: string | null | undefined;
+  utcToday: string;
+}): { streak: number; day: string | null } {
+  const storedDay =
+    input.storedDay && isCalendarDay(input.storedDay) ? input.storedDay : null;
+  const storedStreak = Number.isFinite(input.storedStreak)
+    ? Math.max(0, Math.floor(input.storedStreak))
+    : 0;
+  const claimed = homeworkDayWithinServerSkew(input.incomingDay, input.utcToday);
+  if (!claimed) return { streak: storedStreak, day: storedDay };
+  if (!storedDay) return { streak: 1, day: claimed };
+  if (claimed <= storedDay) return { streak: storedStreak, day: storedDay };
+  if (claimed === addDays(storedDay, 1)) {
+    return { streak: storedStreak + 1, day: claimed };
+  }
+  return { streak: 1, day: claimed };
+}
+
+/** Real calendar day inside the server UTC day ±1. Further ahead is rejected. */
+function homeworkDayWithinServerSkew(
+  day: string | null | undefined,
+  utcToday: string,
+): string | null {
+  if (!day || !isCalendarDay(day) || !isCalendarDay(utcToday)) return null;
+  if (day < addDays(utcToday, -1) || day > addDays(utcToday, 1)) return null;
+  return day;
+}
+
+function canonicalStoredZone(
+  incoming: unknown,
+  prev: string | undefined,
+): string | undefined {
+  if (typeof incoming === "string") {
+    const canonical = canonicalTimeZone(incoming);
+    if (canonical) return canonical;
+  }
+  return prev;
 }
 
 export type MergeProgressOptions = {
@@ -340,14 +406,15 @@ export type MergeProgressOptions = {
  * the server UTC day ±1 and is not earlier than the newest stored day, and
  * may spend grace on one hole on or after the window start.
  *
- * Once the set exists, every push recomputes the streak from it. The streak
- * that is stored is the run those days support, at most 60. When there is
- * nothing to seed and no day to add, the stored streak stays the server's
- * number. The object written on the row is always the server's.
+ * Once the set exists, every push recomputes the streak from it by calling
+ * `recomputeStreakFromActiveDays` on the server's stored active days. The
+ * streak that is stored is the run those days support, at most 60. When there
+ * is nothing to seed and no day to add, the stored streak stays the server's
+ * number. `body.streak` and `body.homeworkStreak` are never stored. The object
+ * written on the row is always the server's.
  *
- * The corrected streak is what gets stored. POST /api/progress still replies
- * `{ ok, count }` only, and neither web ProgressSync nor mobile mutateProgress
- * copies a merged streak out of that response. Clients pick it up on the next GET.
+ * POST /api/progress returns the merged streak, homework day, and writer
+ * timestamps so another device can adopt them.
  */
 export function mergeProgressPush(
   incoming: ProgressPushBody,
@@ -407,11 +474,27 @@ export function mergeProgressPush(
     mistakeLog: mergedCore.mistakeLog,
     dailyPuzzleDay: mergedCore.dailyPuzzleDay as string | null | undefined,
     placementDone: Boolean(mergedCore.placementDone ?? mergedExtra.placementDone),
+    dailyGoalXp: Number(mergedCore.dailyGoalXp ?? server.dailyGoalXp ?? 50),
   };
+  if (typeof mergedCore.ratingUpdatedAt === "number") {
+    data.ratingUpdatedAt = mergedCore.ratingUpdatedAt;
+  } else delete data.ratingUpdatedAt;
+  if (typeof mergedCore.goalUpdatedAt === "number") {
+    data.goalUpdatedAt = mergedCore.goalUpdatedAt;
+  } else delete data.goalUpdatedAt;
   if (reconciled) {
     data.streakGrace = reconciled.streakGrace;
   }
+  const homework = nextHomeworkStreak({
+    storedStreak: server.extra.homeworkStreak ?? 0,
+    storedDay: server.extra.homeworkLastDay ?? null,
+    incomingDay: incoming.homeworkLastDay,
+    utcToday,
+  });
+  data.homeworkStreak = homework.streak;
+  data.homeworkLastDay = homework.day;
 
+  // No set to seed and no day to add: keep the server number. Never `body.streak`.
   const streak = reconciled ? reconciled.streak : server.streak;
 
   return {
@@ -422,5 +505,45 @@ export function mergeProgressPush(
     graduatedClasses: (mergedCore.graduatedClasses as string[] | undefined) ?? [],
     data,
     lessons: (mergedCore.lessons ?? {}) as Record<string, LessonRec>,
+  };
+}
+
+/** Merged fields POST /api/progress returns so another device can adopt them. */
+export function progressPushResponseBody(
+  lessonCount: number,
+  merged: MergedProgressWrite,
+  extra?: { dayRejected?: boolean },
+): {
+  ok: true;
+  count: number;
+  streak: number;
+  lastActiveDay: string | null;
+  rating: number;
+  ratingUpdatedAt: number | null;
+  dailyGoalXp: number;
+  goalUpdatedAt: number | null;
+  homeworkStreak: number;
+  homeworkLastDay: string | null;
+  dayRejected?: true;
+} {
+  return {
+    ok: true,
+    count: lessonCount,
+    streak: merged.streak,
+    lastActiveDay: merged.lastActiveDay,
+    rating: merged.data.rating ?? 800,
+    ratingUpdatedAt:
+      typeof merged.data.ratingUpdatedAt === "number"
+        ? merged.data.ratingUpdatedAt
+        : null,
+    dailyGoalXp: merged.dailyGoalXp,
+    goalUpdatedAt:
+      typeof merged.data.goalUpdatedAt === "number" ? merged.data.goalUpdatedAt : null,
+    homeworkStreak: merged.data.homeworkStreak ?? 0,
+    homeworkLastDay:
+      typeof merged.data.homeworkLastDay === "string"
+        ? merged.data.homeworkLastDay
+        : null,
+    ...(extra?.dayRejected ? { dayRejected: true as const } : {}),
   };
 }

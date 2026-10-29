@@ -204,6 +204,7 @@ describe("progress API integration", () => {
         lessons: Record<string, { mastery: number }>;
       }>(pull);
       expect(saved.xp).toBe(25);
+      // The client streak number is not stored. This row has no active-day set yet.
       expect(saved.streak).toBe(0);
       expect(saved.lastActiveDay).toBeNull();
       expect(saved.lessons["kept-lesson"]?.mastery).toBe(0.7);

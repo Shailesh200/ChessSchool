@@ -939,14 +939,13 @@ export function MatchView({ active }: { active: ActiveMatch }) {
                   {isBot && !isArena && over.ratingDelta !== 0 && (
                     <div className="rounded-pill bg-surface-sunken mt-3 inline-flex items-center gap-2 px-4 py-1.5">
                       <span className="text-ink-500 text-xs font-bold">Rating</span>
-                      <span
-                        className={`text-sm font-extrabold ${over.ratingDelta > 0 ? "text-success" : "text-danger"}`}
-                      >
-                        {over.ratingDelta > 0 ? "+" : ""}
-                        {over.ratingDelta}
-                      </span>
+                      {over.ratingDelta > 0 ? (
+                        <span className="text-success text-sm font-extrabold">
+                          +{over.ratingDelta}
+                        </span>
+                      ) : null}
                       <span className="text-ink text-sm font-extrabold">
-                        → {over.newRating}
+                        {over.ratingDelta > 0 ? `→ ${over.newRating}` : over.newRating}
                       </span>
                     </div>
                   )}

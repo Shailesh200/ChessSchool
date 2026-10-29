@@ -1,7 +1,9 @@
 /**
  * Characterization tests for today's progression reducers.
- * Names marked [D-3] or [D-5] lock known behaviour a later fix will flip:
- * D-3 max-merge, D-5 server-first merge.
+ * Names marked [D-3] lock the max-merge that remains when writer stamps are absent,
+ * and the streak max inside this shared snapshot. The server push does not store
+ * that streak number; it recomputes from its active days.
+ * D-5 mistakeLog and dailyPuzzleDay were flipped to a newest-wins union.
  * D-4 (UTC day keys) was flipped by the local calendar day: these assert that.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -347,8 +349,7 @@ describe("mergeProgressSnapshots current behaviour", () => {
     expect(mergeProgressSnapshots({ dailyGoalXp: 20 }, {}).dailyGoalXp).toBe(50);
   });
 
-  // D-5: server mistakes are listed first, and a shared fen|at keeps the server copy.
-  it("[D-5 current behaviour] mistakeLog keeps server entries first", () => {
+  it("unions mistakeLog by fen|at and orders the newest first", () => {
     const merged = mergeProgressSnapshots(
       {
         mistakeLog: [
@@ -366,13 +367,12 @@ describe("mergeProgressSnapshots current behaviour", () => {
 
     expect(merged.mistakeLog).toEqual([
       mistake("server-only", 3, "c2c3"),
-      mistake("shared", 1, "server-move"),
       mistake("local-only", 2, "a2a3"),
+      mistake("shared", 1, "server-move"),
     ]);
   });
 
-  // D-5: the 30-item cap drops the local tail and keeps the server prefix.
-  it("[D-5 current behaviour] mistakeLog stays capped at 30 with the server prefix kept", () => {
+  it("keeps the newest 30 mistakes", () => {
     const serverLog = Array.from({ length: 20 }, (_, i) => mistake(`s${i}`, i));
     const localLog = Array.from({ length: 15 }, (_, i) => mistake(`l${i}`, 100 + i));
     const merged = mergeProgressSnapshots(
@@ -382,19 +382,21 @@ describe("mergeProgressSnapshots current behaviour", () => {
 
     expect(merged.mistakeLog).toHaveLength(30);
     expect(merged.mistakeLog?.map((m) => m.fen)).toEqual([
-      ...serverLog.map((m) => m.fen),
-      ...localLog.slice(0, 10).map((m) => m.fen),
+      ...[...localLog].reverse().map((m) => m.fen),
+      ...[...serverLog]
+        .slice(5)
+        .reverse()
+        .map((m) => m.fen),
     ]);
   });
 
-  // D-5: a server dailyPuzzleDay wins even when the local day is later. Null falls through.
-  it("[D-5 current behaviour] dailyPuzzleDay prefers the server day", () => {
+  it("dailyPuzzleDay keeps the newer calendar day", () => {
     expect(
       mergeProgressSnapshots(
         { dailyPuzzleDay: "2026-06-15" },
         { dailyPuzzleDay: "2026-01-01" },
       ).dailyPuzzleDay,
-    ).toBe("2026-01-01");
+    ).toBe("2026-06-15");
     expect(
       mergeProgressSnapshots({ dailyPuzzleDay: "2026-06-15" }, { dailyPuzzleDay: null })
         .dailyPuzzleDay,
