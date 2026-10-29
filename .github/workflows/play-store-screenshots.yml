@@ -27,6 +27,9 @@ on:
         required: false
         default: apps/mobile/maestro/store-shots.yaml
         type: string
+  push:
+    branches:
+      - jimbe/e-native-store-shots-v2
 
 permissions:
   contents: read
