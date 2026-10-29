@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChessSchool feature graphic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1024px;
+        height: 500px;
+        overflow: hidden;
+        background: #fbfaff;
+      }
+      #graphic {
+        box-sizing: border-box;
+        width: 1024px;
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 36px;
+        padding: 40px 56px 40px 52px;
+        background:
+          radial-gradient(520px 320px at 88% 50%, rgba(91, 91, 214, 0.1), transparent 70%),
+          #fbfaff;
+        font-family: Fredoka, "Avenir Next", "Segoe UI", sans-serif;
+        color: #1c1b2e;
+      }
+      .copy {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+      }
+      .mark {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .mark svg {
+        width: 84px;
+        height: 84px;
+        flex: none;
+        filter: drop-shadow(0 8px 16px rgba(59, 53, 160, 0.22));
+      }
+      h1 {
+        margin: 0;
+        font-size: 58px;
+        line-height: 0.95;
+        font-weight: 700;
+        letter-spacing: -1.2px;
+      }
+      h1 span {
+        color: #5b5bd6;
+      }
+      .tagline {
+        margin: 22px 0 0;
+        font-size: 28px;
+        line-height: 1.25;
+        font-weight: 600;
+        color: #3a3850;
+      }
+      .path {
+        margin: 14px 0 0;
+        font-size: 20px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: #4b46c4;
+      }
+      .board-frame {
+        flex: none;
+        padding: 12px;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.8) inset,
+          0 16px 40px rgba(28, 27, 46, 0.16);
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(8, 46px);
+        grid-template-rows: repeat(8, 46px);
+        width: 368px;
+        height: 368px;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .sq {
+        position: relative;
+        width: 46px;
+        height: 46px;
+      }
+      .sq.light {
+        background: #eef0f4;
+      }
+      .sq.dark {
+        background: #7c8aa5;
+      }
+      .sq.hot::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(123, 224, 179, 0.55);
+      }
+      .sq img {
+        position: relative;
+        z-index: 1;
+        width: 42px;
+        height: 42px;
+        margin: 2px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="graphic">
+      <div class="copy">
+        <div class="mark">
+          <!-- App icon: apps/web/public/icons/icon.svg -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
+            <defs>
+              <linearGradient id="iconBg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7b6ff0" />
+                <stop offset="100%" stop-color="#4b46c4" />
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="128" fill="url(#iconBg)" />
+            <path d="M150 320 Q256 285 256 320 Q256 285 362 320 V388 Q256 352 256 388 Q256 352 150 388 Z" fill="#ece9ff" />
+            <path d="M256 320 V388" stroke="#4b46c4" stroke-width="6" />
+            <path d="M256 150 L370 196 L256 242 L142 196 Z" fill="#2a2546" />
+            <path d="M300 224 v44 c0 22 -88 22 -88 0 v-44" fill="#3a3850" />
+            <circle cx="370" cy="196" r="11" fill="#f6c343" />
+            <path d="M370 196 v52" stroke="#f6c343" stroke-width="7" />
+            <circle cx="370" cy="252" r="11" fill="#f6c343" />
+          </svg>
+          <h1>Chess<span>School</span></h1>
+        </div>
+        <p class="tagline">Lessons, puzzles, and matches.</p>
+        <p class="path">From Starter to University</p>
+      </div>
+      <div class="board-frame">
+        <div class="board" id="board"></div>
+      </div>
+    </div>
+    <script>
+      // Italian Game, after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5. Edit the FEN to change the board.
+      const FEN = "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R";
+      const HOT = new Set(["e4", "e5"]);
+      const PIECE_DIR = "../../../../apps/web/public/pieces/cburnett";
+      const files = "abcdefgh";
+      const ranks = FEN.split(" ")[0].split("/");
+      const board = document.getElementById("board");
+      ranks.forEach((rank, row) => {
+        let file = 0;
+        for (const ch of rank) {
+          const empty = ch >= "1" && ch <= "8";
+          const span = empty ? Number(ch) : 1;
+          for (let i = 0; i < span; i += 1) {
+            const rankNumber = 8 - row;
+            const square = files[file] + rankNumber;
+            const light = (file + rankNumber) % 2 === 0;
+            const cell = document.createElement("div");
+            cell.className =
+              "sq " + (light ? "light" : "dark") + (HOT.has(square) ? " hot" : "");
+            if (!empty) {
+              const color = ch === ch.toUpperCase() ? "w" : "b";
+              const img = document.createElement("img");
+              img.alt = "";
+              img.src = PIECE_DIR + "/" + color + ch.toUpperCase() + ".svg";
+              cell.appendChild(img);
+            }
+            board.appendChild(cell);
+            file += 1;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -162,7 +162,7 @@ export default function ReplayScreen() {
           <Slider value={ply} min={0} max={Math.max(frames.length - 1, 0)} step={1} onChange={(v) => goToPly(v)} />
         </View>
 
-        <Text style={styles.moveLabel}>{sanLabel}</Text>
+        <Text testID="replay-move-label" style={styles.moveLabel}>{sanLabel}</Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moveList}>
           {frames.slice(1).map((f, i) => {
