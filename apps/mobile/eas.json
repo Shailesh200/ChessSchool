@@ -52,6 +52,31 @@
         "resourceClass": "medium",
         "gradleCommand": ":app:bundleRelease --no-configure-on-demand -Dorg.gradle.configureondemand=false"
       }
+    },
+    "qa-sim": {
+      "distribution": "internal",
+      "node": "22.23.4",
+      "pnpm": "10.30.0",
+      "corepack": true,
+      "ios": {
+        "distribution": "internal",
+        "simulator": true,
+        "withoutCredentials": true,
+        "env": {
+          "EXPO_PUBLIC_API_URL": "http://localhost:3108"
+        }
+      },
+      "android": {
+        "distribution": "internal",
+        "buildType": "apk",
+        "image": "sdk-54",
+        "resourceClass": "medium",
+        "gradleCommand": ":app:assembleRelease --no-configure-on-demand -Dorg.gradle.configureondemand=false",
+        "env": {
+          "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3108",
+          "GRADLE_OPTS": "-Dorg.gradle.configureondemand=false -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Xmx4096m"
+        }
+      }
     }
   },
   "submit": {
