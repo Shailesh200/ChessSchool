@@ -28,6 +28,7 @@ The web client ID (`EXPO_PUBLIC_GOOGLE_CLIENT_ID`) is **not** valid as an Androi
 In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (same project as web):
 
 ### Android OAuth client (required for the native account picker)
+
 - Application type: **Android**
 - Package name: `com.chessschool.app`
 - SHA-1 for **local Gradle release APKs** (current `android/app` debug keystore used for release signing):
@@ -40,12 +41,14 @@ In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (sa
 - In the app / EAS env you still set **`EXPO_PUBLIC_GOOGLE_CLIENT_ID`** to the **Web** client ID (needed for the ID token). Creating the Android client in Google Cloud with package + SHA-1 is what authorizes the APK — you do **not** paste the Android client ID over the Web client ID.
 
 ### iOS OAuth client (when shipping iOS)
+
 - Application type: **iOS**
 - Bundle ID: `com.chessschool.app`
 - Copy the **iOS client ID** → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
 - Add the plugin option `iosUrlScheme` (reversed iOS client ID) if you ship an iOS build.
 
 ### Server (Vercel)
+
 Ensure `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` includes the **Web** client (token `aud`). Optionally add `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` for extra audiences. See `apps/web/.env.example` and `docs/ENV.md`.
 
 Putting the **Web** client ID into `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` breaks sign-in — those must be platform-native clients when used.
@@ -56,11 +59,11 @@ Rebuild the native app after changing Google OAuth env vars or adding the Google
 
 ## Release channels
 
-| Channel | Build profile | Use |
-|---------|---------------|-----|
-| `development` | `development` | Dev client + simulator |
-| `preview` | `preview` | Internal APK for device QA |
-| `production` | `production` | Play Store AAB + OTA to store users |
+| Channel       | Build profile | Use                                 |
+| ------------- | ------------- | ----------------------------------- |
+| `development` | `development` | Dev client + simulator              |
+| `preview`     | `preview`     | Internal APK for device QA          |
+| `production`  | `production`  | Play Store AAB + OTA to store users |
 
 **Runtime version:** tied to `app.json` → `expo.version` (`0.2.0`). Bump `version` when you ship a **native** change (new native module, SDK upgrade). JS-only fixes go out via **OTA** without a store update.
 
@@ -145,13 +148,14 @@ pnpm submit:android:internal:local
 4. Upload `apps/mobile/dist/chessschool-release.aab`
 5. Roll out to internal testers
 
-**Production track** (after internal QA passes):
+**Play submit stays a draft on the internal track.** The `play-store` profile sets `track: internal` and `releaseStatus: draft`, so `pnpm submit:android:store` cannot publish a completed production release. Promote that draft in Play Console after QA.
 
 ```bash
 pnpm submit:android:store
 ```
 
-Or promote the internal release in Play Console → Production.
+`eas.json` has no `submit` `ios` block, so nothing here auto-releases to TestFlight or the App Store. The `production` submit profile is also `track: internal` and `releaseStatus: draft`, so `pnpm submit:android:internal` cannot roll out a completed release either.
+
 ---
 
 ## iOS builds and Stockfish
@@ -187,6 +191,37 @@ TODO: record the IPA size from the first iOS EAS build.
 
 ---
 
+## QA simulator (manual Maestro)
+
+One manual EAS workflow run per promotion candidate. The workflow file is `apps/mobile/.eas/workflows/qa-sim.yml`. Its only trigger is `workflow_dispatch`.
+
+The `qa-sim` profile in `eas.json` is an internal build with no update channel and no submit block. `distribution` is set on the profile and again on `ios` and `android`. EAS fills a platform object that omits `distribution` with `store`, and that value overrides the profile. iOS sets `ios.simulator` and `withoutCredentials` (a simulator `.app` does not use an Apple distribution certificate). Android builds an APK with the same Gradle workaround as `preview`. `EXPO_PUBLIC_API_URL` is set per platform and inlined into `src/api.ts` at bundle time:
+
+| Platform         | API base                |
+| ---------------- | ----------------------- |
+| iOS Simulator    | `http://localhost:3108` |
+| Android Emulator | `http://10.0.2.2:3108`  |
+
+Trigger it from the app directory on the candidate ref. `platform` is `both` (the default), `ios`, or `android`. Leave `git_commit_sha` empty to build the commit this run checked out. A value must be the full 40-character SHA and must already be HEAD. The job does not fetch or check out a different commit.
+
+```bash
+cd apps/mobile
+eas workflow:run .eas/workflows/qa-sim.yml \
+  -F platform=both \
+  -F git_commit_sha="$(git rev-parse HEAD)"
+```
+
+Dispatch the run on the candidate commit (the CLI checkout, or the workflow API `gitRef`) so the workflow file and the binary are that commit.
+
+What the run guards:
+
+- The first step exits if any `TURSO_*` variable is set, or if `DATABASE_URL` does not start with `file:`. Values are not printed. Jobs use the `development` environment and set `DATABASE_URL=file:local.db`.
+- The profile sets `EXPO_PUBLIC_QA_SIM=1`. That flag drops the production host fallback and the apex-to-www rewrite from the bundle. A `qa-sim` build fails unless `EXPO_PUBLIC_API_URL` is exactly `http://localhost:3108` or `http://10.0.2.2:3108` and `EXPO_PUBLIC_QA_SIM` is exactly `1`. After the JS bundle is built, `eas-build-on-success` greps it and fails if `chess-school.in` appears.
+- On the Maestro runner (the same machine that drives the simulator), `scripts/qa-sim-web.sh` runs `pnpm db:provision` in `apps/web` (`db:reset`, `db:push`, `db:load-seed` from `db/seed.sql.gz`), then `next build` and `next start -p 3108`.
+- Maestro runs `parity/maestro/flows/qa/` (see that directory's README). Logs and screenshots upload as `qa-sim-ios-maestro` and `qa-sim-android-maestro`.
+
+Android sets `withoutCredentials`, so the APK is debug-signed and does not use a remote keystore. The build log must confirm that no remote keystore was downloaded. This profile does not submit to Play or the App Store.
+
 ## OTA updates (EAS Update)
 
 Ship JavaScript/asset fixes **without** a new Play Store review:
@@ -205,13 +240,13 @@ Users see **“Update ready — tap to restart”** at the top of the app after 
 
 ### When OTA is enough vs when you need a new store build
 
-| Change | OTA | New AAB |
-|--------|-----|---------|
-| UI copy, styles, lesson logic (JS) | ✅ | |
-| New npm dependency with **no** native code | ✅ | |
-| New native module, permission, SDK bump | | ✅ |
-| `app.json` version bump for store listing | | ✅ |
-| Icon / splash / adaptive icon | | ✅ |
+| Change                                     | OTA | New AAB |
+| ------------------------------------------ | --- | ------- |
+| UI copy, styles, lesson logic (JS)         | ✅  |         |
+| New npm dependency with **no** native code | ✅  |         |
+| New native module, permission, SDK bump    |     | ✅      |
+| `app.json` version bump for store listing  |     | ✅      |
+| Icon / splash / adaptive icon              |     | ✅      |
 
 ---
 
@@ -220,15 +255,15 @@ Users see **“Update ready — tap to restart”** at the top of the app after 
 Copy + Data safety answers: [`store-assets/play-store/LISTING.md`](store-assets/play-store/LISTING.md)  
 Device smoke checklist: [`store-assets/play-store/SMOKE_QA.md`](store-assets/play-store/SMOKE_QA.md)
 
-| Field | Value |
-|-------|-------|
-| App name | ChessSchool |
-| Short description | Graduate through chess classes, puzzles, and matches. |
-| Privacy policy URL | `https://chess-school.in/privacy` |
-| Category | Education |
-| Content rating | Complete IARC → likely Everyone |
-| Target audience | 13+ (accounts + online play) |
-| Data safety | Email, name, gameplay progress; encrypted in transit; deletion available |
+| Field              | Value                                                                    |
+| ------------------ | ------------------------------------------------------------------------ |
+| App name           | ChessSchool                                                              |
+| Short description  | Graduate through chess classes, puzzles, and matches.                    |
+| Privacy policy URL | `https://chess-school.in/privacy`                                        |
+| Category           | Education                                                                |
+| Content rating     | Complete IARC → likely Everyone                                          |
+| Target audience    | 13+ (accounts + online play)                                             |
+| Data safety        | Email, name, gameplay progress; encrypted in transit; deletion available |
 
 **Assets (ready in `store-assets/play-store/`):**
 
@@ -248,10 +283,10 @@ print the values. After a successful seed it removes any existing
 `apps/web/.store-shot.env` and writes a new file with mode `0600` (gitignored)
 as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
 
-| Variable | Default when unset |
-| --- | --- |
-| `STORE_SHOT_EMAIL` | `alex@test.chessschool.local` |
-| `STORE_SHOT_PASSWORD` | `AlexTestOnly1` |
+| Variable              | Default when unset            |
+| --------------------- | ----------------------------- |
+| `STORE_SHOT_EMAIL`    | `alex@test.chessschool.local` |
+| `STORE_SHOT_PASSWORD` | `AlexTestOnly1`               |
 
 **Review notes:** Provide a test account email/password for Google reviewers.
 
@@ -267,16 +302,16 @@ as `STORE_SHOT_EMAIL` and `STORE_SHOT_PASSWORD`.
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `No Next.js` / monorepo build fails on Vercel | Web only — mobile uses EAS, not Vercel |
-| EAS build can't resolve `@chess-school/core` | Run build from `apps/mobile`; pnpm workspace is auto-detected |
+| Issue                                                                      | Fix                                                                                                                                                                  |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `No Next.js` / monorepo build fails on Vercel                              | Web only — mobile uses EAS, not Vercel                                                                                                                               |
+| EAS build can't resolve `@chess-school/core`                               | Run build from `apps/mobile`; pnpm workspace is auto-detected                                                                                                        |
 | EAS Gradle / KSP failure (`IncompatibleClassChangeError`, kotlin metadata) | Do **not** set `expo-build-properties.android.kotlinVersion` — let Expo SDK 54 pick the toolchain. Keep `gradleCommand` + `GRADLE_OPTS` with configure-on-demand off |
-| Preview APK instant crash on open | Pin Expo SDK-compatible natives (`expo-speech@~14` for SDK 54). Rebuild after `expo install` — stale wrong ABI builds crash at module load |
-| OTA not applying | Run `eas update:configure`; production build must use `channel: production` |
-| Updates disabled in dev | Expected — OTA only runs in release builds |
-| Play rejection: missing deletion | Account screen → Delete account |
-| Play rejection: privacy | Ensure `/privacy` is deployed on production |
+| Preview APK instant crash on open                                          | Pin Expo SDK-compatible natives (`expo-speech@~14` for SDK 54). Rebuild after `expo install` — stale wrong ABI builds crash at module load                           |
+| OTA not applying                                                           | Run `eas update:configure`; production build must use `channel: production`                                                                                          |
+| Updates disabled in dev                                                    | Expected — OTA only runs in release builds                                                                                                                           |
+| Play rejection: missing deletion                                           | Account screen → Delete account                                                                                                                                      |
+| Play rejection: privacy                                                    | Ensure `/privacy` is deployed on production                                                                                                                          |
 
 ---
 
@@ -294,6 +329,7 @@ pnpm build:android:prod
 pnpm submit:android:internal
 pnpm submit:android:store
 pnpm update:production -- --message "Your changelog"
+eas workflow:run .eas/workflows/qa-sim.yml -F platform=both
 eas build:list
 eas credentials
 ```

@@ -3,14 +3,17 @@ import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import { shouldRetryApiFailure } from "./sessionPost";
 
-/** Canonical host — apex 308-redirects to www; prefer www to avoid redirect races on Android. */
-const PRODUCTION = "https://www.chess-school.in";
-
 function normalizeUrl(raw: string): string {
   const trimmed = raw.trim().replace(/\/+$/, "");
   // Prefer www so production builds never depend on apex→www 308 behaviour.
-  if (/^https?:\/\/chess-school\.in(?:\/|$)/i.test(trimmed)) {
-    return trimmed.replace(/^(https?:\/\/)chess-school\.in/i, "$1www.chess-school.in");
+  // The host literal lives only in this branch so a qa-sim bundle can drop it.
+  if (process.env.EXPO_PUBLIC_QA_SIM !== "1") {
+    if (/^https?:\/\/chess-school\.in(?:\/|$)/i.test(trimmed)) {
+      return trimmed.replace(
+        /^(https?:\/\/)chess-school\.in/i,
+        "$1www.chess-school.in",
+      );
+    }
   }
   return /^https?:\/\//.test(trimmed) ? trimmed : `http://${trimmed}`;
 }
@@ -55,7 +58,8 @@ function resolveApiUrl(): string {
   }
 
   if (envUrl) return normalizeUrl(envUrl);
-  return PRODUCTION;
+  if (process.env.EXPO_PUBLIC_QA_SIM === "1") return "http://localhost:3108";
+  return "https://www.chess-school.in";
 }
 
 /**
@@ -81,7 +85,9 @@ function requestSignal(ms: number): AbortSignal {
 export const getToken = async (): Promise<string | null> => {
   try {
     if (isWeb) {
-      return typeof localStorage !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+      return typeof localStorage !== "undefined"
+        ? localStorage.getItem(TOKEN_KEY)
+        : null;
     }
     return await SecureStore.getItemAsync(TOKEN_KEY);
   } catch {
@@ -121,7 +127,10 @@ export function setUnauthorizedHandler(fn: (() => void) | null): void {
   onUnauthorized = fn;
 }
 
-async function fetchOnce<T>(path: string, opts: { method?: string; body?: unknown; token: string | null }): Promise<T> {
+async function fetchOnce<T>(
+  path: string,
+  opts: { method?: string; body?: unknown; token: string | null },
+): Promise<T> {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (opts.token) headers.authorization = `Bearer ${opts.token}`;
   const res = await fetch(`${API_URL}${path}`, {
@@ -150,7 +159,10 @@ async function fetchOnce<T>(path: string, opts: { method?: string; body?: unknow
  * Bearer-token fetch. Each attempt aborts after REQUEST_TIMEOUT_MS (45_000, 45s).
  * Retries once on network failure or timeout, except a session POST on timeout.
  */
-export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  opts: { method?: string; body?: unknown } = {},
+): Promise<T> {
   const token = await getToken();
   try {
     return await fetchOnce<T>(path, { ...opts, token });

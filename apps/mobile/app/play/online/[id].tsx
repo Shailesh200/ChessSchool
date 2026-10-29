@@ -32,7 +32,10 @@ import {
 } from "@/productAnalytics/matchEvents";
 
 const JOIN_WINDOW_MS = 3 * 60 * 1000;
-const WEB_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://www.chess-school.in";
+const WEB_BASE =
+  process.env.EXPO_PUBLIC_QA_SIM === "1"
+    ? (process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3108")
+    : (process.env.EXPO_PUBLIC_API_URL ?? "https://www.chess-school.in");
 
 type Session = {
   id: string;
