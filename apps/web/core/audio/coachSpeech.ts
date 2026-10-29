@@ -22,6 +22,15 @@ import { plainSpeechText } from "@/features/coaching/speechStyle";
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
 let speakGen = 0;
+/**
+ * Speak/preview wait for /api/tts before speechSynthesis.
+ * There is no shared TTS timeout elsewhere in the app.
+ */
+export const COACH_TTS_TIMEOUT_MS = 8000;
+/** Speak/preview fetch only. Aborted when the user stops or skips playback. */
+let playbackAbort: AbortController | null = null;
+/** Active speak/preview timeout. Cleared on success, failure, and stop. */
+let playbackTimer: ReturnType<typeof setTimeout> | null = null;
 /** Dedupes hook-triggered speech when a handler already queued the same line. */
 let lastQueuedCoachText = "";
 
@@ -98,36 +107,116 @@ function speakWithBrowser(text: string, volume: number, gen: number): Promise<vo
   });
 }
 
+function errorName(err: unknown): string {
+  if (typeof err !== "object" || err === null || !("name" in err)) return "";
+  const name = (err as { name: unknown }).name;
+  return typeof name === "string" ? name : "";
+}
+
+/** Abort, timeout signal, or network failure — no HTTP response to read. */
+function isCloudTtsTransportFailure(err: unknown): boolean {
+  const name = errorName(err);
+  if (name === "AbortError" || name === "TimeoutError" || name === "NetworkError") {
+    return true;
+  }
+  if (err instanceof TypeError) return true;
+  if (typeof err === "object" && err !== null && "reason" in err) {
+    const reasonName = errorName((err as { reason?: unknown }).reason);
+    return reasonName === "AbortError" || reasonName === "TimeoutError";
+  }
+  return false;
+}
+
 async function fetchCloudAudio(
   text: string,
   character: CoachCharacterId,
   voice: CoachVoiceId,
+  signal?: AbortSignal,
 ): Promise<string | null> {
   const resolved = normalizeCoachVoice(voice);
   const key = cacheKey(text, character, resolved);
   const hit = audioCache.get(key);
   if (hit) return hit;
 
-  const res = await fetch("/api/tts", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, character, personality: character, voice: resolved }),
-  });
-  if (!res.ok) return null;
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        character,
+        personality: character,
+        voice: resolved,
+      }),
+      signal,
+    });
+    if (!res.ok) return null;
 
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  audioCache.set(key, url);
-  if (audioCache.size > 80) {
-    const first = audioCache.keys().next().value;
-    if (first) {
-      const old = audioCache.get(first);
-      audioCache.delete(first);
-      if (old && old !== url) URL.revokeObjectURL(old);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    audioCache.set(key, url);
+    if (audioCache.size > 80) {
+      const first = audioCache.keys().next().value;
+      if (first) {
+        const old = audioCache.get(first);
+        audioCache.delete(first);
+        if (old && old !== url) URL.revokeObjectURL(old);
+      }
     }
+    return url;
+  } catch (err) {
+    // User stop/skip aborts `signal` and bumps speakGen, so callers stay silent.
+    // Any other abort, timeout signal, or network failure falls back like !res.ok.
+    if (signal?.aborted || isCloudTtsTransportFailure(err)) return null;
+    throw err;
   }
-  return url;
+}
+
+function timeoutError(): DOMException {
+  return new DOMException("The operation was aborted due to timeout", "TimeoutError");
+}
+
+/** Forward `source` into `target`. AbortSignal.any is missing on Safari 16.4. */
+function forwardAbort(source: AbortSignal, target: AbortController) {
+  if (source.aborted) {
+    if (!target.signal.aborted) target.abort(source.reason);
+    return;
+  }
+  source.addEventListener(
+    "abort",
+    () => {
+      if (!target.signal.aborted) target.abort(source.reason);
+    },
+    { once: true },
+  );
+}
+
+/**
+ * Stop signal plus a client timeout for speak/preview.
+ * Prefetch is not tied to this controller, so a new line does not cancel its warm-up.
+ */
+async function withPlaybackSignal<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const stop = new AbortController();
+  const timeout = new AbortController();
+  const combined = new AbortController();
+  playbackAbort = stop;
+  forwardAbort(stop.signal, combined);
+  forwardAbort(timeout.signal, combined);
+  const timer = setTimeout(() => {
+    if (playbackTimer === timer) playbackTimer = null;
+    if (!timeout.signal.aborted) timeout.abort(timeoutError());
+  }, COACH_TTS_TIMEOUT_MS);
+  playbackTimer = timer;
+  try {
+    return await run(combined.signal);
+  } finally {
+    clearTimeout(timer);
+    if (playbackTimer === timer) playbackTimer = null;
+    if (playbackAbort === stop) playbackAbort = null;
+  }
 }
 
 /** Warm the TTS cache so the next speak starts without waiting on the network. */
@@ -149,6 +238,12 @@ export async function prefetchCoachText(text: string): Promise<void> {
 /** Stop any in-flight coach speech (e.g. on unmount or voice switch). */
 export function stopCoachSpeech() {
   speakGen++;
+  if (playbackTimer !== null) {
+    clearTimeout(playbackTimer);
+    playbackTimer = null;
+  }
+  playbackAbort?.abort();
+  playbackAbort = null;
   stopCurrent();
   if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 }
@@ -177,7 +272,9 @@ export async function speakCoachText(text: string): Promise<void> {
     return;
   }
 
-  const url = await fetchCloudAudio(line, character, voice);
+  const url = await withPlaybackSignal((signal) =>
+    fetchCloudAudio(line, character, voice, signal),
+  );
   if (gen !== speakGen) return;
   // Re-check mute after the network round-trip — mute mid-fetch must stay silent.
   const after = useSettings.getState();
@@ -205,7 +302,9 @@ export async function previewCoachVoice(
   stopCoachSpeech();
   const gen = speakGen;
   const resolved = normalizeCoachVoice(voice);
-  const url = await fetchCloudAudio(line, character, resolved);
+  const url = await withPlaybackSignal((signal) =>
+    fetchCloudAudio(line, character, resolved, signal),
+  );
   if (gen !== speakGen) return;
 
   if (url) {
@@ -226,7 +325,9 @@ export async function previewCoachCharacter(
   const line = coachCharacterOf(character).previewLine;
   stopCoachSpeech();
   const gen = speakGen;
-  const url = await fetchCloudAudio(line, character, "auto");
+  const url = await withPlaybackSignal((signal) =>
+    fetchCloudAudio(line, character, "auto", signal),
+  );
   if (gen !== speakGen) return;
   if (url) {
     await playUrl(url, settings.volume, gen);
