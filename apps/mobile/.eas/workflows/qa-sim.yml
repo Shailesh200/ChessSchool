@@ -7,7 +7,7 @@ on:
       git_commit_sha:
         type: string
         required: false
-        description: Full 40-character commit SHA to build. Empty uses the commit this run checked out.
+        description: Full 40-character SHA that must already be HEAD. Empty keeps the checked-out commit. Dispatch this workflow on the candidate ref.
       platform:
         type: choice
         required: false

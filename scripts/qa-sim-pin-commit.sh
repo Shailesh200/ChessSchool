@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Pin the QA sim job to a full commit SHA, or keep the checkout when no SHA is given.
+# Assert the checked-out commit. Does not fetch or check out another ref.
+# The workflow is dispatched on the candidate ref.
 # Usage: qa-sim-pin-commit.sh [sha]
 set -euo pipefail
 
@@ -20,24 +21,18 @@ if ! printf '%s' "${sha}" | grep -Eq '^[0-9a-fA-F]{40}$'; then
 fi
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "Cannot check out the requested commit because this job has no git repository." >&2
+  echo "Cannot read HEAD because this job has no git repository." >&2
   exit 1
 fi
 
 root="$(git rev-parse --show-toplevel)"
 cd "${root}"
 
+sha="$(printf '%s' "${sha}" | tr '[:upper:]' '[:lower:]')"
 current="$(git rev-parse HEAD)"
-if [ "${current}" = "${sha}" ]; then
-  echo "Using checked-out commit ${current}."
-  exit 0
-fi
-
-git fetch --depth 1 origin "${sha}"
-git checkout --detach "${sha}"
-actual="$(git rev-parse HEAD)"
-if [ "${actual}" != "${sha}" ]; then
-  echo "Checkout ended on ${actual}, not the requested commit." >&2
+if [ "${current}" != "${sha}" ]; then
+  echo "Refusing to run: HEAD is ${current}, not the git_commit_sha for this run. Dispatch the workflow on the candidate ref." >&2
   exit 1
 fi
-echo "Using checked-out commit ${actual}."
+
+echo "Using checked-out commit ${current}."

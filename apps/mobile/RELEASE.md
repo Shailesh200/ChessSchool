@@ -202,7 +202,7 @@ The `qa-sim` profile in `eas.json` is an internal build with no update channel a
 | iOS Simulator    | `http://localhost:3108` |
 | Android Emulator | `http://10.0.2.2:3108`  |
 
-Trigger it from the app directory. `platform` is `both` (the default), `ios`, or `android`. Leave `git_commit_sha` empty to build the commit the run checked out. A value must be the full 40-character SHA; the job fetches that commit before installing dependencies.
+Trigger it from the app directory on the candidate ref. `platform` is `both` (the default), `ios`, or `android`. Leave `git_commit_sha` empty to build the commit this run checked out. A value must be the full 40-character SHA and must already be HEAD. The job does not fetch or check out a different commit.
 
 ```bash
 cd apps/mobile

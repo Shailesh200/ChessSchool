@@ -304,5 +304,23 @@ describe("qa-sim commit pin", () => {
     });
     expect(pinned.status, pinned.stderr).toBe(0);
     expect(pinned.stdout).toContain(sha);
+
+    const other = "0123456789abcdef0123456789abcdef01234567";
+    const mismatch = spawnSync("bash", [pinScript, other], {
+      cwd: dir,
+      env,
+      encoding: "utf8",
+    });
+    expect(mismatch.status).toBe(1);
+    expect(mismatch.stderr).toContain("Dispatch the workflow on the candidate ref.");
+    const after = spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: dir,
+      env,
+      encoding: "utf8",
+    }).stdout.trim();
+    expect(after).toBe(sha);
+    const script = readFileSync(pinScript, "utf8");
+    expect(script).not.toContain("git fetch");
+    expect(script).not.toContain("git checkout");
   });
 });
