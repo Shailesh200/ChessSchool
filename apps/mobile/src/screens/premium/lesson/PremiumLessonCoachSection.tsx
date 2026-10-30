@@ -21,7 +21,7 @@ export function PremiumLessonCoachSection({ badge, title, coachLine, coachCharac
       <View style={{ alignItems: "center", gap: space["2"] }}>
         <View
           style={{
-            backgroundColor: colors.brand50,
+            backgroundColor: colors.coachGlow,
             paddingHorizontal: space["3"],
             paddingVertical: space["1"],
             borderRadius: radius.pill,
@@ -32,10 +32,10 @@ export function PremiumLessonCoachSection({ badge, title, coachLine, coachCharac
             adjustsFontSizeToFit
             minimumFontScale={0.75}
             style={{
-              fontFamily: font.displaySemibold,
-              fontSize: type.xs.fontSize,
-              lineHeight: type.xs.lineHeight,
-              color: colors.brand,
+              fontFamily: font.uiBold,
+              fontSize: type.caption.fontSize,
+              lineHeight: type.caption.lineHeight,
+              color: colors.brand700,
               textAlign: "center",
             }}
           >
@@ -48,8 +48,8 @@ export function PremiumLessonCoachSection({ badge, title, coachLine, coachCharac
           minimumFontScale={0.72}
           style={{
             fontFamily: font.displayBold,
-            fontSize: type.xl.fontSize,
-            lineHeight: type.xl.lineHeight,
+            fontSize: type.h2.fontSize,
+            lineHeight: type.h2.lineHeight,
             color: colors.ink,
             textAlign: "center",
             letterSpacing: -0.3,
@@ -77,9 +77,9 @@ export function PremiumLessonCoachSection({ badge, title, coachLine, coachCharac
         >
           <Text
             style={{
-              fontFamily: font.displayMedium,
-              fontSize: type.sm.fontSize,
-              lineHeight: type.sm.lineHeight,
+              fontFamily: font.uiMedium,
+              fontSize: type["body-sm"].fontSize,
+              lineHeight: type["body-sm"].lineHeight,
               color: colors.ink,
               flexShrink: 1,
             }}
