@@ -24,8 +24,16 @@ import {
   coachCharacterOf,
 } from "@/coachCharacters";
 import { trackEvent } from "@/productAnalytics/track";
+import { useUiKit } from "@/components/kit/useUiKit";
+import { PremiumSettingsScreen } from "@/screens/premium/PremiumSettingsScreen";
 
 export default function SettingsScreen() {
+  const kit = useUiKit();
+  if (kit === "premium") return <PremiumSettingsScreen />;
+  return <LegacySettingsScreen />;
+}
+
+function LegacySettingsScreen() {
   const router = useRouter();
   const { guest, exitGuest, user } = useAuth();
   const { colors } = useAppTheme();
@@ -211,12 +219,15 @@ export default function SettingsScreen() {
           <Pressable
             accessibilityRole="link"
             onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
-            style={styles.supportLink}
+            style={{ marginTop: space[4], alignItems: "center" }}
           >
             <Text style={styles.privacyLink}>{SUPPORT_EMAIL}</Text>
           </Pressable>
         ) : null}
-        <Text style={[styles.version, !SUPPORT_EMAIL && styles.versionAlone]}>ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}</Text>
+
+        <Text style={[styles.version, !SUPPORT_EMAIL && styles.versionAlone]}>
+          ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}
+        </Text>
       </ScrollView>
 
       <ConfirmDialog
@@ -344,15 +355,7 @@ function makeStyles(type: ReturnType<typeof useType>, colors: ReturnType<typeof 
     guestTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
     guestCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: type.sm.lineHeight },
     privacyLink: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-    supportLink: { alignItems: "center", marginTop: space[6] },
-    versionAlone: { marginTop: space[6] },
-    version: {
-      ...type.xs,
-      fontFamily: font.medium,
-      color: colors.ink300,
-      textAlign: "center",
-      marginTop: space[2],
-      marginBottom: space[2],
-    },
+    version: { ...type.xs, fontFamily: font.medium, color: colors.ink300, textAlign: "center", marginTop: space[6], marginBottom: space[2] },
+    versionAlone: { marginTop: space[8] },
   });
 }

@@ -2,6 +2,8 @@ import { Tabs } from "expo-router";
 import { Pressable } from "react-native";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { Icon, type IconName } from "@/Icon";
+import { KitTabBar } from "@/components/kit";
+import { useUiKit } from "@/components/kit/useUiKit";
 import { useAppTheme } from "@/ThemeProvider";
 import { font } from "@/theme";
 
@@ -17,9 +19,11 @@ function tabButton(testID: string) {
 
 export default function TabsLayout() {
   const { colors } = useAppTheme();
+  const kit = useUiKit();
   return (
     <Tabs
       initialRouteName="academy"
+      tabBar={kit === "premium" ? (props) => <KitTabBar {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
@@ -30,7 +34,11 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="academy"
-        options={{ title: "Academy", tabBarIcon: tabIcon("learn"), tabBarButton: tabButton("tab-Academy") }}
+        options={{
+          title: kit === "premium" ? "Learn" : "Academy",
+          tabBarIcon: tabIcon("learn"),
+          tabBarButton: tabButton(kit === "premium" ? "tab-Learn" : "tab-Academy"),
+        }}
       />
       <Tabs.Screen name="play" options={{ title: "Play", tabBarIcon: tabIcon("play"), tabBarButton: tabButton("tab-Play") }} />
       <Tabs.Screen
