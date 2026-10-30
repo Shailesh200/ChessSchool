@@ -43,6 +43,7 @@ import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/match
 import { useCoachSpeech } from "@/useCoachSpeech";
 import { stopCoachSpeech } from "@/coachSpeech";
 import { iconCircleA11y } from "@/iconControlA11y";
+import { useConfirmLeave } from "@/useConfirmLeave";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type OverState = {
@@ -129,6 +130,8 @@ export default function GameScreen() {
   const [over, setOver] = useState<OverState | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
+  const matchInProgress = !over;
+  const { leaveOpen, setLeaveOpen } = useConfirmLeave(matchInProgress);
   const [flipped, setFlipped] = useState(false);
   const [coachText, setCoachText] = useState("");
   const [mateReviewOpen, setMateReviewOpen] = useState(false);
@@ -365,7 +368,7 @@ export default function GameScreen() {
       <View style={styles.header}>
         <Pressable
           style={styles.circle}
-          onPress={() => router.back()}
+          onPress={() => (matchInProgress ? setLeaveOpen(true) : router.back())}
           {...iconCircleA11y("Go back")}
         >
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
@@ -515,6 +518,19 @@ export default function GameScreen() {
         onConfirm={() => {
           setResignOpen(false);
           void endGame(moves, "loss", `Resigned — ${bot.name} wins`, false);
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave match?"
+        message="This game is still in progress. Leave anyway?"
+        confirmLabel="Leave"
+        tone="danger"
+        onCancel={() => setLeaveOpen(false)}
+        onConfirm={() => {
+          setLeaveOpen(false);
+          router.back();
         }}
       />
     </SafeAreaView>
