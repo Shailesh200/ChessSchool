@@ -460,7 +460,7 @@ export const PRESCHOOL_EXTRA = [
         id: "diag-info",
         kind: "info",
         coach:
-          "Bishops slide on diagonals only. This bishop on c1 stays on light squares its whole life. It cannot hop to a dark square.",
+          "Bishops slide on diagonals only. This bishop on c1 stays on dark squares its whole life. It cannot hop to a light square.",
         fen: BISHOP_C1,
         highlight: ["c1", "f4"],
         arrows: [{ startSquare: "c1", endSquare: "f4", color: "#7c5cd6" }],
