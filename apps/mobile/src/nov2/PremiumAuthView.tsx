@@ -78,7 +78,17 @@ export function PremiumAuthView({
         <View style={styles.logoFrame}>
           <KitLogo withText size={24} />
         </View>
-        <CoachRow slug="otto" mood="happy" text="Welcome back! Ready for one small win today?" />
+        <CoachRow
+          slug="otto"
+          mood={isErrors ? "encouraging" : isSignup ? "happy" : "happy"}
+          text={
+            isErrors
+              ? "Almost. Check the fields and try once more."
+              : isSignup
+                ? "Let's get you enrolled — it only takes a minute."
+                : "Welcome back! Ready for one small win today?"
+          }
+        />
         <Text style={styles.h1}>{title}</Text>
         <Text style={styles.muted}>{subtitle}</Text>
 

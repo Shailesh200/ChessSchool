@@ -4,7 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Icon } from "@/Icon";
 import { coachCharacterIdFromPremiumSlug } from "@/coachCharacters";
-import { settings } from "@/settings";
+import { getAppTheme } from "@/appThemes";
+import { settings, useSettings } from "@/settings";
 import { CoachHead } from "@/nov2/CoachRow";
 import { KitButton, KitTopBar } from "@/components/kit";
 import { usePremiumKitTheme } from "@/components/kit";
@@ -38,7 +39,8 @@ const OPPONENTS: {
 /** 12-play-hub — premium Play tab (390 layout). */
 export function PlayHubPremium() {
   const router = useRouter();
-  const { colors, space, radius, font, type } = usePremiumKitTheme();
+  const { appTheme } = useSettings();
+  const { colors } = usePremiumKitTheme();
   const [mode, setMode] = useState<PlayMode>("coach");
   const [opp, setOpp] = useState<OpponentId>("kira");
   const [ashOn, setAshOn] = useState(false);
@@ -59,7 +61,11 @@ export function PlayHubPremium() {
       router.push("/play/pass");
       return;
     }
-    router.push({ pathname: "/play/game", params: { elo: String(selected.elo), coach: heroCoach, mode } });
+    const dark = getAppTheme(appTheme ?? "default").dark === true || ashOn;
+    router.push({
+      pathname: "/play/game",
+      params: { elo: String(selected.elo), coach: heroCoach, mode, dark: dark ? "1" : "0" },
+    });
   }
 
   return (

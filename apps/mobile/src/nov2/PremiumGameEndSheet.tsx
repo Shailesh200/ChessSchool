@@ -1,20 +1,37 @@
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Confetti } from "@/Confetti";
-import { CoachHead, CoachRow } from "@/nov2/CoachRow";
-import { KitButton } from "@/components/kit";
-import { type CoachSlug } from "@/nov2/coachArt";
-import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
+import { KitButton, KitCard, KitCoachAvatar, KitIcon, KitSheet, usePremiumKitTheme } from "@/components/kit";
+import { CoachHead } from "@/nov2/CoachRow";
+import { slugToCharacterId, coachMoodToAvatarState } from "@/nov2/coachKit";
+import { coachDisplayName, type CoachSlug } from "@/nov2/coachArt";
 
-/** 12-play-won / 12-play-lost — in-board result card (premium kit). */
+const LOST_LINES: Partial<Record<CoachSlug, string>> = {
+  skye: "Not your best stroke. Try again, darling.",
+  kira: "Good fight. Want a rematch?",
+  rex: "A rare defeat. We rise again.",
+  ash: "You learn more from a loss. Again?",
+  otto: "Good fight. Want a rematch?",
+};
+
+const WON_LINES: Partial<Record<CoachSlug, string>> = {
+  skye: "You played like art today!",
+  kira: "Yesss, clean win!",
+  rex: "A rare defeat. We rise again.",
+  ash: "Well earned.",
+  otto: "Nice work out there!",
+};
+
+/** 12-play-won / 12-play-lost — KitSheet result (390). */
 export function PremiumGameEndSheet({
   visible,
   win,
   opponentName,
   coachSlug,
-  xpEarned = 50,
+  xpEarned,
   coachLine,
   onRematch,
   onBack,
+  onReplayLine,
 }: {
   visible: boolean;
   win: boolean;
@@ -24,49 +41,47 @@ export function PremiumGameEndSheet({
   coachLine?: string;
   onRematch: () => void;
   onBack: () => void;
+  onReplayLine?: () => void;
 }) {
-  if (!visible) return null;
-
+  const { colors, space, font, type } = usePremiumKitTheme();
+  const xp = xpEarned ?? (win ? 50 : 20);
   const title = win ? `You beat ${opponentName}!` : `${opponentName} won this one`;
-  const line = coachLine ?? (win ? "A rare defeat. We rise again." : "Good fight. Want a rematch?");
-  const sub = win
-    ? `Great game. You earned ${xpEarned} XP.`
-    : "Every game teaches something. Ready when you are.";
+  const line =
+    coachLine ??
+    (win ? WON_LINES[coachSlug] ?? "A rare defeat. We rise again." : LOST_LINES[coachSlug] ?? "Good fight. Want a rematch?");
+  const sub = win ? `Great game. You earned ${xp} XP.` : `You earned ${xp} XP for playing.`;
+  const mood = win ? "happy" : "encouraging";
+  const avatarState = coachMoodToAvatarState(win ? "happy" : "encouraging");
 
   return (
-    <Modal visible transparent animationType="fade">
-      {win ? <Confetti count={24} /> : null}
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <CoachHead slug={coachSlug} mood={win ? "happy" : "encouraging"} size={112} />
-          <Text style={styles.title}>{title}</Text>
-          <CoachRow slug={coachSlug} mood={win ? "happy" : "encouraging"} text={line} size={56} />
-          <Text style={styles.sub}>{sub}</Text>
+    <>
+      {visible && win ? <Confetti count={24} /> : null}
+      <KitSheet open={visible} onClose={onBack} title={title}>
+        <View style={{ gap: space["3"], alignItems: "center" }}>
+          <KitCoachAvatar character={slugToCharacterId(coachSlug)} state={avatarState} size={112} />
+          <KitCard variant="paper" style={{ width: "100%" }}>
+            <View style={[styles.coachRow, { gap: space["3"] }]}>
+              <CoachHead slug={coachSlug} mood={mood} size={56} />
+              <View style={[styles.bubble, { borderColor: colors.hairline, flex: 1 }]}>
+                <Text style={{ fontFamily: font.uiRegular, fontSize: type.base.fontSize, color: colors.ink, flex: 1 }}>{line}</Text>
+                {onReplayLine ? (
+                  <Pressable onPress={onReplayLine} accessibilityLabel="Play coach line again" hitSlop={8}>
+                    <KitIcon name="volume2" size={18} color={colors.ink} />
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          </KitCard>
+          <Text style={{ fontFamily: font.uiRegular, fontSize: type.sm.fontSize, color: colors.ink500, textAlign: "center" }}>{sub}</Text>
           <KitButton label="Rematch" variant="accent" onPress={onRematch} />
           <KitButton label="Back to Play" variant="outline" onPress={onBack} />
         </View>
-      </View>
-    </Modal>
+      </KitSheet>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: premiumColors.overlay,
-    justifyContent: "center",
-    padding: premiumSpace[4],
-  },
-  card: {
-    backgroundColor: premiumColors.surface,
-    borderRadius: premiumRadius.xl,
-    padding: premiumSpace[5],
-    gap: premiumSpace[3],
-    alignItems: "center",
-    maxWidth: 360,
-    width: "100%",
-    alignSelf: "center",
-  },
-  title: { ...premiumType.h2, fontFamily: premiumFont.display, color: premiumColors.text, textAlign: "center" },
-  sub: { ...premiumType.body, fontFamily: premiumFont.ui, color: premiumColors.textMuted, textAlign: "center" },
+  coachRow: { flexDirection: "row", alignItems: "flex-start" },
+  bubble: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.5, borderRadius: 16, padding: 12 },
 });

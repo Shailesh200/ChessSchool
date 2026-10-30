@@ -8,9 +8,19 @@ import { ChessBoard } from "@/ChessBoard";
 import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
 import { PremiumGameEndSheet } from "@/nov2/PremiumGameEndSheet";
-import { PremiumMatchChrome } from "@/nov2/PremiumMatchChrome";
+import {
+  PremiumBoardCaption,
+  PremiumBoardFrame,
+  PremiumMatchHeader,
+  PremiumMovesPanel,
+  PremiumPlayerBar,
+  PremiumScrubber,
+  buildMoveRows,
+} from "@/nov2/PremiumMatchLayout";
+import { getAppTheme } from "@/appThemes";
 import { useUiKit } from "@/components/kit/useUiKit";
 import type { CoachSlug } from "@/nov2/coachArt";
+import { coachDisplayName } from "@/nov2/coachArt";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
 import { haptics } from "@/haptics";
@@ -111,7 +121,6 @@ export default function GameScreen() {
     dark?: string;
   }>();
   const kit = useUiKit();
-  const matchDark = darkParam === "1" || darkParam === "true";
   const coachSlug = (["otto", "kira", "rex", "skye", "ash"] as const).includes(coachParam as CoachSlug)
     ? (coachParam as CoachSlug)
     : "otto";
@@ -119,8 +128,10 @@ export default function GameScreen() {
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
   const bot = botProfile(elo);
-  const { avatar, coachCharacter, coachPersonality, sound } = useSettings();
+  const { avatar, coachCharacter, coachPersonality, sound, appTheme } = useSettings();
   const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
+  const matchDark =
+    darkParam === "1" || darkParam === "true" || getAppTheme(appTheme ?? "default").dark === true;
   const { width, fontScale } = useWindowDimensions();
   // UI-M-017: the board is sized from the space really left between the header/coach
   // and the scrubber (measured), never below BOARD_MIN; the middle region scrolls
@@ -197,6 +208,7 @@ export default function GameScreen() {
   });
 
   const frames = useMemo(() => buildFrames(moves), [moves]);
+  const moveRows = useMemo(() => buildMoveRows(moves, viewPly), [moves, viewPly]);
   const viewing = viewPly !== null;
   const shownFen = viewing ? frames[viewPly]! : fen;
   const view = useMemo(() => new ChessEngine(shownFen), [shownFen]);
@@ -381,7 +393,7 @@ export default function GameScreen() {
       edges={["top"]}
     >
       {kit === "premium" ? (
-        <PremiumMatchChrome
+        <PremiumMatchHeader
           coachSlug={coachSlug}
           bubbleText={bubbleText}
           thinking={thinking}
@@ -457,6 +469,53 @@ export default function GameScreen() {
         }}
         testID="game-scroll"
       >
+        {kit === "premium" ? (
+          <>
+            <PremiumPlayerBar
+              name={`${coachDisplayName(coachSlug)} · ${elo}`}
+              botElo={elo}
+              advantage={Math.max(0, mat.b - mat.w)}
+              active={thinking && !over}
+              clockMs={timeMs > 0 ? blackMs : undefined}
+              dark={matchDark}
+            />
+            <PremiumBoardFrame dark={matchDark}>
+              <View style={{ width: boardSize, height: boardSize }}>
+                <ChessBoard
+                  fen={shownFen}
+                  size={boardSize}
+                  orientation={flipped ? "black" : "white"}
+                  onMove={handleMove}
+                  interactive={!over && !thinking && !viewing && !kingFall}
+                  lastMove={viewing ? null : lastMove}
+                  checkSquare={checkSquare}
+                />
+                <KingFallCeremony
+                  open={kingFall !== null}
+                  square={kingFall?.square ?? null}
+                  orientation={flipped ? "black" : "white"}
+                  loserColor={kingFall?.color ?? "b"}
+                  boardSize={boardSize}
+                  onComplete={finishKingFall}
+                />
+              </View>
+            </PremiumBoardFrame>
+            <PremiumBoardCaption
+              turnLabel={turn === "w" && !over ? "Your turn · you play White" : over ? "Game over" : "Opponent thinking…"}
+              moveNum={Math.max(1, Math.ceil(moves.length / 2))}
+              dark={matchDark}
+            />
+            <PremiumPlayerBar
+              name="You"
+              avatarId={avatar}
+              advantage={Math.max(0, mat.w - mat.b)}
+              active={!thinking && !over && !viewing && turn === "w"}
+              clockMs={timeMs > 0 ? whiteMs : undefined}
+              dark={matchDark}
+            />
+          </>
+        ) : (
+          <>
         <PlayerBar
           name={`${bot.name} · ${elo}`}
           botElo={elo}
@@ -494,8 +553,29 @@ export default function GameScreen() {
           active={!thinking && !over && !viewing && turn === "w"}
           clockMs={timeMs > 0 ? whiteMs : undefined}
         />
+          </>
+        )}
       </ScrollView>
 
+      {kit === "premium" ? (
+        <>
+          <PremiumMovesPanel rows={moveRows} dark={matchDark} />
+          <PremiumScrubber
+            viewing={viewing}
+            viewPly={viewPly}
+            frameCount={frames.length}
+            dark={matchDark}
+            onBack={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
+            onForward={() =>
+              setViewPly((v) => {
+                if (v === null) return null;
+                const n = v + 1;
+                return n >= frames.length - 1 ? null : n;
+              })
+            }
+          />
+        </>
+      ) : (
       <View style={styles.scrubber}>
         <Pressable style={styles.scrubBtn} onPress={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}>
           <Text style={styles.scrubIcon}>⏪</Text>
@@ -505,6 +585,7 @@ export default function GameScreen() {
           <Text style={styles.scrubIcon}>⏩</Text>
         </Pressable>
       </View>
+      )}
 
       {kit === "premium" ? (
         <PremiumGameEndSheet
@@ -514,7 +595,7 @@ export default function GameScreen() {
           coachSlug={coachSlug}
           onRematch={() => {
             setOver(null);
-            router.replace({ pathname: "/play/game", params: { elo: String(elo), coach: coachSlug } });
+            router.replace({ pathname: "/play/game", params: { elo: String(elo), coach: coachSlug, dark: matchDark ? "1" : "0" } });
           }}
           onBack={() => {
             setOver(null);
