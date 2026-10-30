@@ -44,7 +44,7 @@ export function PremiumSettingsScreen() {
           <div className="gl">Privacy</div>
           <div className="srow">
             <span className="rt">
-              <b>Share usage analytics</b>
+              <b id="settings-share-analytics">Share usage analytics</b>
               <span>Anonymous product events</span>
             </span>
             <button
@@ -52,12 +52,13 @@ export function PremiumSettingsScreen() {
               className="tg"
               role="switch"
               aria-checked={s.shareAnalytics}
+              aria-labelledby="settings-share-analytics"
               onClick={() => s.set("shareAnalytics", !s.shareAnalytics)}
             />
           </div>
           <div className="srow">
             <span className="rt">
-              <b>Share performance data</b>
+              <b id="settings-share-performance">Share performance data</b>
               <span>Anonymous Web Vitals</span>
             </span>
             <button
@@ -65,13 +66,18 @@ export function PremiumSettingsScreen() {
               className="tg"
               role="switch"
               aria-checked={s.sharePerformance}
+              aria-labelledby="settings-share-performance"
               onClick={() => s.set("sharePerformance", !s.sharePerformance)}
             />
           </div>
         </section>
         <section className="grp" aria-label="Reminders">
           <div className="gl">Reminders</div>
-          <Link className="srow" href="/notify" style={{ textDecoration: "none", color: "inherit" }}>
+          <Link
+            className="srow"
+            href="/notify"
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
             <span className="rt">
               <b>Daily reminder</b>
               <span>Set time &amp; opt in</span>
