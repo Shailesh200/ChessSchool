@@ -3,7 +3,6 @@ import { forgotPasswordSchema } from "@/lib/api-schemas";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { requestPasswordReset } from "@/lib/password-reset";
 import { PASSWORD_RESET_GENERIC_MESSAGE } from "@/lib/password-reset-messages";
-import { appOrigin } from "@/lib/google-oauth.server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +22,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid email" }, { status: 400 });
   }
 
-  await requestPasswordReset(parsed.data.email, appOrigin(req));
+  await requestPasswordReset(parsed.data.email);
   return NextResponse.json(GENERIC);
 }
