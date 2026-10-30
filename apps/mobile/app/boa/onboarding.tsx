@@ -54,7 +54,7 @@ export default function BoaOnboardingScreen() {
             <KitButton
               label="Test out instead"
               variant="ghost"
-              onPress={() => router.push("/placement")}
+              onPress={() => router.push("/boa/test-out")}
               style={{ marginTop: premiumSpace[2] }}
             />
             <KitButton
