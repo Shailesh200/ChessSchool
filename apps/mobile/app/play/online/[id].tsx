@@ -23,6 +23,7 @@ import { buildSyncGame, winnerFromPlayerResult } from "@/gameHistory";
 import { clock, onlineOutcome } from "@/chess-utils";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
+import { useConfirmLeave } from "@/useConfirmLeave";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
 import {
@@ -75,6 +76,8 @@ export default function OnlineGameScreen() {
   const [clocks, setClocks] = useState({ w: 0, b: 0 });
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
+  const matchInProgress = state != null && state.status !== "over";
+  const { leaveOpen, setLeaveOpen } = useConfirmLeave(matchInProgress);
   const overRef = useRef(false);
   const prevStatus = useRef<string>("");
   const movesRef = useRef<string[]>([]);
@@ -342,7 +345,11 @@ export default function OnlineGameScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.circle} onPress={() => router.replace("/(tabs)/play")} hitSlop={8}>
+        <Pressable
+          style={styles.circle}
+          onPress={() => (matchInProgress ? setLeaveOpen(true) : router.replace("/(tabs)/play"))}
+          hitSlop={8}
+        >
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
         <Text style={styles.title}>Online · {sid}</Text>
@@ -411,6 +418,19 @@ export default function OnlineGameScreen() {
         onConfirm={() => {
           setResignOpen(false);
           void confirmResign();
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave match?"
+        message="This online game is still in progress. Leave anyway?"
+        confirmLabel="Leave"
+        tone="danger"
+        onCancel={() => setLeaveOpen(false)}
+        onConfirm={() => {
+          setLeaveOpen(false);
+          router.replace("/(tabs)/play");
         }}
       />
     </SafeAreaView>

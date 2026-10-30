@@ -26,6 +26,7 @@ import {
   trackMatchStart,
 } from "@/productAnalytics/matchEvents";
 import { trackEvent } from "@/productAnalytics/track";
+import { useConfirmLeave } from "@/useConfirmLeave";
 
 function PlayerBar({
   name,
@@ -82,6 +83,8 @@ export default function PassPlayScreen() {
   const [over, setOver] = useState<OverState | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
+  const matchInProgress = !over;
+  const { leaveOpen, setLeaveOpen } = useConfirmLeave(matchInProgress);
 
   useEffect(() => {
     trackMatchStart({
@@ -206,7 +209,7 @@ export default function PassPlayScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
+        <Pressable style={styles.circle} onPress={() => (matchInProgress ? setLeaveOpen(true) : router.back())} hitSlop={8}>
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
         <Text style={styles.title}>Pass &amp; play</Text>
@@ -257,6 +260,19 @@ export default function PassPlayScreen() {
         onConfirm={() => {
           setResignOpen(false);
           confirmResign();
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave match?"
+        message="This game is still in progress. Leave anyway?"
+        confirmLabel="Leave"
+        tone="danger"
+        onCancel={() => setLeaveOpen(false)}
+        onConfirm={() => {
+          setLeaveOpen(false);
+          router.back();
         }}
       />
     </SafeAreaView>

@@ -8,6 +8,7 @@ import { isoDay } from "@/progression";
 import { ChessBoard } from "@/ChessBoard";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
+import { ConfirmDialog } from "@/ConfirmDialog";
 import { Cody } from "@/Cody";
 import { ScreenLoader } from "@/ScreenLoader";
 import { haptics } from "@/haptics";
@@ -16,6 +17,7 @@ import { useProgress } from "@/progressStore";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
 import { trackMatchStart } from "@/productAnalytics/matchEvents";
+import { useConfirmLeave } from "@/useConfirmLeave";
 import { matchesSolution } from "@chess-school/progression";
 
 type Puzzle = {
@@ -47,6 +49,9 @@ export default function LessonTrainerScreen() {
   const [pending, setPending] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [displayFen, setDisplayFen] = useState<string | null>(null);
+
+  const puzzleSessionActive = Boolean(puzzle) && phase === "calc" && !pending && !loading;
+  const { leaveOpen, setLeaveOpen } = useConfirmLeave(puzzleSessionActive);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +144,7 @@ export default function LessonTrainerScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={styles.header}>
-          <BackButton label="Play" />
+          <BackButton label="Play" onPress={() => (puzzleSessionActive ? setLeaveOpen(true) : router.replace("/(tabs)/play"))} />
           <Text style={styles.h1}>Lesson trainer</Text>
         </View>
         <View style={styles.center}>
@@ -156,7 +161,7 @@ export default function LessonTrainerScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <BackButton label="Play" />
+        <BackButton label="Play" onPress={() => (puzzleSessionActive ? setLeaveOpen(true) : router.replace("/(tabs)/play"))} />
         <View style={{ flex: 1 }}>
           <Text style={styles.h1}>Lesson trainer</Text>
           <Text style={styles.muted}>
@@ -199,6 +204,18 @@ export default function LessonTrainerScreen() {
           </Pressable>
         )}
       </View>
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave puzzle?"
+        message="This puzzle is still in progress. Leave anyway?"
+        confirmLabel="Leave"
+        tone="danger"
+        onCancel={() => setLeaveOpen(false)}
+        onConfirm={() => {
+          setLeaveOpen(false);
+          router.replace("/(tabs)/play");
+        }}
+      />
     </SafeAreaView>
   );
 }
