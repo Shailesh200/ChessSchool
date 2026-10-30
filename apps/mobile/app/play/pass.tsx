@@ -18,6 +18,7 @@ import { clock as fmtClock } from "@/chess-utils";
 import { parseTimeControl, useChessClock } from "@/useChessClock";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
+import { iconCircleA11y } from "@/iconControlA11y";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 import {
   passOutcome,
@@ -206,7 +207,11 @@ export default function PassPlayScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
+        <Pressable
+          style={styles.circle}
+          onPress={() => router.back()}
+          {...iconCircleA11y("Go back")}
+        >
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
         <Text style={styles.title}>Pass &amp; play</Text>
@@ -263,7 +268,7 @@ export default function PassPlayScreen() {
   );
 }
 
-const CIRCLE = 40;
+const CIRCLE = 44;
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[4], paddingTop: 6 },

@@ -31,6 +31,7 @@ import { markHomeworkActivities, markHomeworkActivity } from "@/homeworkRoutine"
 import { settings } from "@/settings";
 import { useType } from "@/typography";
 import { colors, font, radius, shadowCard, space } from "@/theme";
+import { iconCircleA11y } from "@/iconControlA11y";
 import { trackEvent } from "@/productAnalytics/track";
 
 type Step = {
@@ -692,7 +693,11 @@ export default function LessonScreen() {
           <>
             {/* Top bar: back · progress · counter · flip */}
             <View style={styles.topBar}>
-              <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
+              <Pressable
+                style={styles.circle}
+                onPress={() => router.back()}
+                {...iconCircleA11y("Go back")}
+              >
                 <View style={{ transform: [{ rotate: "180deg" }] }}>
                   <Icon name="chevronRight" size={20} color={colors.ink} />
                 </View>
@@ -703,10 +708,18 @@ export default function LessonScreen() {
               <Text style={styles.counter}>
                 {index + 1}/{total}
               </Text>
-              <Pressable style={styles.circle} onPress={() => setLessonSound((v) => !v)} hitSlop={8} accessibilityLabel={lessonSound ? "Mute lesson sounds" : "Unmute lesson sounds"}>
+              <Pressable
+                style={styles.circle}
+                onPress={() => setLessonSound((v) => !v)}
+                {...iconCircleA11y(lessonSound ? "Mute lesson sounds" : "Unmute lesson sounds")}
+              >
                 <Icon name={lessonSound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
               </Pressable>
-              <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
+              <Pressable
+                style={styles.circle}
+                onPress={() => setFlipped((f) => !f)}
+                {...iconCircleA11y("Flip board")}
+              >
                 <Icon name="flip" size={18} color={colors.ink} />
               </Pressable>
             </View>
