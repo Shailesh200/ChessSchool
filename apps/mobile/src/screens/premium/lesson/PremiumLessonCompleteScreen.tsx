@@ -50,21 +50,21 @@ export function PremiumLessonCompleteScreen({
           <Text
             style={{
               fontFamily: font.displayBold,
-              fontSize: type["2xl"].fontSize,
-              lineHeight: type["2xl"].lineHeight,
+              fontSize: type.h1.fontSize,
+              lineHeight: type.h1.lineHeight,
               color: colors.ink,
               textAlign: "center",
             }}
           >
             Lesson complete!
           </Text>
-          <Text style={{ fontFamily: font.displaySemibold, fontSize: type.sm.fontSize, color: colors.ink500 }}>
+          <Text style={{ fontFamily: font.uiBold, fontSize: type["body-sm"].fontSize, color: colors.ink500 }}>
             {lessonTitle}
           </Text>
           <Text
             style={{
-              fontFamily: font.displayMedium,
-              fontSize: type.sm.fontSize,
+              fontFamily: font.uiMedium,
+              fontSize: type["body-sm"].fontSize,
               fontStyle: "italic",
               color: colors.ink500,
               textAlign: "center",
@@ -87,12 +87,12 @@ export function PremiumLessonCompleteScreen({
                 }}
               >
                 <KitIcon name="sparkles" size={18} color={colors.ink} />
-                <Text style={{ fontFamily: font.displayBold, fontSize: type.lg.fontSize, color: colors.ink }}>
+                <Text style={{ fontFamily: font.uiBold, fontSize: type.h3.fontSize, color: colors.ink }}>
                   +{xp} XP
                 </Text>
               </View>
               {xpLine ? (
-                <Text style={{ fontFamily: font.displayMedium, fontSize: type.xs.fontSize, color: colors.ink500 }}>
+                <Text style={{ fontFamily: font.uiMedium, fontSize: type.caption.fontSize, color: colors.ink500 }}>
                   {xpLine}
                 </Text>
               ) : null}
@@ -110,17 +110,17 @@ export function PremiumLessonCompleteScreen({
               key={stat.label}
               style={{
                 flex: 1,
-                backgroundColor: colors.brand50,
+                backgroundColor: colors.coachGlow,
                 borderRadius: radius.lg,
                 paddingVertical: space["3"],
                 alignItems: "center",
                 gap: 4,
               }}
             >
-              <Text style={{ fontFamily: font.displayBold, fontSize: type.lg.fontSize, color: colors.ink }}>
+              <Text style={{ fontFamily: font.displayBold, fontSize: type.number.fontSize, color: colors.ink }}>
                 {stat.value}
               </Text>
-              <Text style={{ fontFamily: font.displaySemibold, fontSize: type.xs.fontSize, color: colors.brand }}>
+              <Text style={{ fontFamily: font.uiBold, fontSize: type.caption.fontSize, color: colors.brand700 }}>
                 {stat.label}
               </Text>
             </View>
@@ -151,7 +151,7 @@ export function PremiumLessonCompleteScreen({
               <KitIcon name="flame" size={24} color={colors.chipStreakInk} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: font.displayBold, fontSize: type.xl.fontSize, color: colors.chipStreakInk }}>
+              <Text style={{ fontFamily: font.displayBold, fontSize: type.h2.fontSize, color: colors.chipStreakInk }}>
                 {streak} day streak
               </Text>
             </View>
@@ -163,7 +163,7 @@ export function PremiumLessonCompleteScreen({
                 borderRadius: radius.pill,
               }}
             >
-              <Text style={{ fontFamily: font.displayBold, fontSize: type.xs.fontSize, color: colors.chipStreakInk }}>
+              <Text style={{ fontFamily: font.uiBold, fontSize: type.caption.fontSize, color: colors.chipStreakInk }}>
                 +1 today
               </Text>
             </View>
@@ -172,7 +172,7 @@ export function PremiumLessonCompleteScreen({
 
         <View
           style={{
-            backgroundColor: colors.brand50,
+            backgroundColor: colors.coachGlow,
             borderRadius: radius.pill,
             paddingVertical: space["3"],
             paddingHorizontal: space["4"],
@@ -181,8 +181,8 @@ export function PremiumLessonCompleteScreen({
             gap: space["2"],
           }}
         >
-          <KitIcon name="sparkles" size={18} color={colors.brand} />
-          <Text style={{ fontFamily: font.displaySemibold, fontSize: type.sm.fontSize, color: colors.brand, flex: 1 }}>
+          <KitIcon name="sparkles" size={18} color={colors.brand700} />
+          <Text style={{ fontFamily: font.uiBold, fontSize: type["body-sm"].fontSize, color: colors.brand700, flex: 1 }}>
             Daily goal: 1 of 1 lesson done
           </Text>
         </View>

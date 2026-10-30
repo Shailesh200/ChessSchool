@@ -40,15 +40,15 @@ export function PremiumLessonHintSection({
                 paddingHorizontal: space["3"],
                 paddingVertical: space["1.5"],
                 borderRadius: radius.pill,
-                backgroundColor: s.active ? colors.accent : s.done ? colors.brand50 : colors.surfaceSunken,
+                backgroundColor: s.active ? colors.accent : s.done ? colors.coachGlow : colors.surfaceSunken,
               }}
             >
-              {s.done && !s.active ? <KitIcon name="check" size={12} color={colors.brand} /> : null}
+              {s.done && !s.active ? <KitIcon name="check" size={12} color={colors.brand700} /> : null}
               <Text
                 style={{
-                  fontFamily: font.displaySemibold,
-                  fontSize: type.xs.fontSize,
-                  color: s.active ? colors.surfaceCard : colors.brand,
+                  fontFamily: font.uiBold,
+                  fontSize: type.caption.fontSize,
+                  color: s.active ? colors.surfaceCard : colors.brand700,
                 }}
               >
                 {s.n} {s.label}
@@ -61,9 +61,9 @@ export function PremiumLessonHintSection({
           <Text
             style={{
               flex: 1,
-              fontFamily: font.displayMedium,
-              fontSize: type.xs.fontSize,
-              lineHeight: type.xs.lineHeight,
+              fontFamily: font.uiMedium,
+              fontSize: type.caption.fontSize,
+              lineHeight: type.caption.lineHeight,
               color: colors.ink500,
               textAlign: "center",
             }}
@@ -86,19 +86,19 @@ export function PremiumLessonHintSection({
           flexDirection: "row",
           alignItems: "center",
           gap: space["2"],
-          backgroundColor: colors.brand50,
+          backgroundColor: colors.coachGlow,
           paddingHorizontal: space["4"],
           paddingVertical: space["2"],
           borderRadius: radius.pill,
         }}
       >
-        <KitIcon name="info" size={16} color={colors.brand} />
-        <Text style={{ fontFamily: font.displayBold, fontSize: type.sm.fontSize, color: colors.brand }}>
+        <KitIcon name="info" size={16} color={colors.brand700} />
+        <Text style={{ fontFamily: font.uiBold, fontSize: type["body-sm"].fontSize, color: colors.brand700 }}>
           Hint {Math.min(hintLevel + 1, 3)} of 3
         </Text>
       </Pressable>
       {turnCue ? (
-        <Text style={{ fontFamily: font.displayMedium, fontSize: type.xs.fontSize, color: colors.ink500 }}>
+        <Text style={{ fontFamily: font.uiMedium, fontSize: type.caption.fontSize, color: colors.ink500 }}>
           {turnCue}
         </Text>
       ) : null}

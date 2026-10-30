@@ -55,7 +55,7 @@ export function PremiumWhyQuizPanel({
                 borderRadius: radius.lg,
                 borderWidth: 2,
                 borderColor: selected ? colors.brand : colors.hairline,
-                backgroundColor: selected ? colors.brand50 : colors.surfaceCard,
+                backgroundColor: selected ? colors.coachGlow : colors.surfaceCard,
               }}
             >
               <View
@@ -71,7 +71,7 @@ export function PremiumWhyQuizPanel({
                 <Text style={{ fontSize: 18 }}>{opt.emoji ?? "♟"}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: font.displayBold, fontSize: type.sm.fontSize, color: colors.ink }}>
+                <Text style={{ fontFamily: font.uiBold, fontSize: type["body-sm"].fontSize, color: colors.ink }}>
                   {opt.label}
                 </Text>
               </View>

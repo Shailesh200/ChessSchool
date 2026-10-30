@@ -70,9 +70,9 @@ export function PremiumLessonHeader({ progressPct, onClose, style }: Props) {
       </View>
       <Text
         style={{
-          fontFamily: font.displayBold,
-          fontSize: type.xs.fontSize,
-          lineHeight: type.xs.lineHeight,
+          fontFamily: font.uiBold,
+          fontSize: type.caption.fontSize,
+          lineHeight: type.caption.lineHeight,
           color: colors.ink500,
           minWidth: 36,
           textAlign: "right",
