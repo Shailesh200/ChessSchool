@@ -32,6 +32,7 @@ const plugin = require("../plugins/withQaSimNetworkSecurity.js") as {
 
 const ENV_KEYS = [
   "EAS_BUILD_PROFILE",
+  "APP_VARIANT",
   "EXPO_PUBLIC_API_URL",
   "EXPO_PUBLIC_QA_SIM",
 ] as const;
@@ -78,7 +79,7 @@ describe("qa-sim cleartext: only the qa-sim build allows plain HTTP", () => {
     expect(buildProps?.[1].android).not.toHaveProperty("usesCleartextTraffic");
   });
 
-  for (const name of ["development", "preview", "production"]) {
+  for (const name of ["development", "production"]) {
     it(`${name} keeps the app.json plugins, with no network security config or cleartext flag`, () => {
       const resolved = resolve(name, profileEnv(name));
       expect(resolved.plugins).toEqual(appJson.expo.plugins);
@@ -88,6 +89,18 @@ describe("qa-sim cleartext: only the qa-sim build allows plain HTTP", () => {
       expect(resolved.android).not.toHaveProperty("usesCleartextTraffic");
     });
   }
+
+  it("preview keeps the app.json plugins when the API URL is not production", () => {
+    const resolved = resolve("preview", {
+      ...profileEnv("preview"),
+      EXPO_PUBLIC_API_URL: "https://chess-school-test.vercel.app",
+    });
+    expect(resolved.plugins).toEqual(appJson.expo.plugins);
+    expect(JSON.stringify(resolved)).not.toMatch(
+      /cleartext|networkSecurityConfig|withQaSimNetworkSecurity/i,
+    );
+    expect(resolved.android).not.toHaveProperty("usesCleartextTraffic");
+  });
 
   it("leaves the plugins alone when no EAS profile is set", () => {
     const resolved = resolve(undefined);
@@ -119,10 +132,13 @@ describe("qa-sim cleartext: only the qa-sim build allows plain HTTP", () => {
   });
 
   it("ignores EXPO_PUBLIC_QA_SIM when the profile is not qa-sim", () => {
-    for (const name of [undefined, "development", "preview", "production"]) {
+    for (const name of [undefined, "development", "preview", "production"] as const) {
       const resolved = resolve(name, {
         ...(name ? profileEnv(name) : {}),
         EXPO_PUBLIC_QA_SIM: "1",
+        ...(name === "preview"
+          ? { EXPO_PUBLIC_API_URL: "https://chess-school-test.vercel.app" }
+          : {}),
       });
       expect(resolved.plugins, String(name)).toEqual(appJson.expo.plugins);
     }
