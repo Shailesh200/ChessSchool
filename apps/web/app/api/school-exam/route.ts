@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { lessons, classes, semesters } from "@/db/schema";
+import { stripLessonStepsForClient } from "@/lib/lesson-public";
 
 export const dynamic = "force-dynamic";
 
@@ -50,5 +51,5 @@ export async function GET(req: Request) {
   const steps = moveSteps
     .slice(0, 8)
     .map((s, i) => ({ ...(s as object), id: `ex${i}`, tag: "exam" }));
-  return NextResponse.json({ steps });
+  return NextResponse.json({ steps: stripLessonStepsForClient(steps as import("@/features/lessons/types").LessonStep[]) });
 }
