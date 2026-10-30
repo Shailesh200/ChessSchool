@@ -1,11 +1,16 @@
 import { deriveGridHighlights } from "./boardGrid";
 
-/** Stable Pre-School ids — keep in sync with apps/web/content/data/school.mjs */
+/** Stable Pre-School ids — keep in sync with apps/web/content/data/preschool-curriculum.mjs */
 export const PRESCHOOL_STAGE_ID = "preschool";
 export const PRESCHOOL_CLASS_IDS = [
   "class-pre-board",
-  "class-pre-pieces",
-  "class-pre-moves",
+  "class-pre-meet-pieces",
+  "class-pre-pawn-moves",
+  "class-pre-knight-moves",
+  "class-pre-rook-moves",
+  "class-pre-bishop-moves",
+  "class-pre-queen-moves",
+  "class-pre-king-moves",
   "class-pre-capture",
   "class-pre-special",
   "class-pre-endings",
@@ -16,22 +21,40 @@ export const PRESCHOOL_CLASS_IDS = [
 
 export const PRESCHOOL_CLASS_LESSONS: Record<(typeof PRESCHOOL_CLASS_IDS)[number], string[]> = {
   "class-pre-board": ["pre-board-intro", "pre-board-setup", "pre-square-d5", "pre-square-e4"],
-  "class-pre-pieces": ["pre-pieces-roster", "pre-pieces-queen", "pre-pieces-king"],
-  "class-pre-moves": [
-    "pre-pawn-basics",
+  "class-pre-meet-pieces": [
+    "pre-meet-pawn",
+    "pre-meet-rook",
+    "pre-meet-knight",
+    "pre-meet-bishop",
+    "pre-meet-queen",
+    "pre-meet-king",
+  ],
+  "class-pre-pawn-moves": [
+    "pre-pawn-one-step",
+    "pre-pawn-two-step",
+    "pre-pawn-capture-step",
     "pre-pawn-quiz",
-    "pre-moves-e4",
+  ],
+  "class-pre-knight-moves": [
+    "pre-knight-see-l",
+    "pre-knight-jump-empty",
     "pre-knight-basics",
     "pre-knight-quiz",
+  ],
+  "class-pre-rook-moves": [
+    "pre-rook-up-file",
+    "pre-rook-side-rank",
     "pre-rook-basics",
     "pre-rook-quiz",
-    "pre-bishop-basics",
-    "pre-bishop-quiz",
+  ],
+  "class-pre-bishop-moves": ["pre-bishop-diagonal-info", "pre-bishop-basics", "pre-bishop-quiz"],
+  "class-pre-queen-moves": [
+    "pre-queen-on-rank",
+    "pre-queen-on-diagonal",
     "pre-queen-moves",
     "pre-queen-slide-quiz",
-    "pre-king-moves",
-    "pre-king-quiz",
   ],
+  "class-pre-king-moves": ["pre-king-one-square", "pre-king-moves", "pre-king-quiz"],
   "class-pre-capture": ["pre-capture-intro", "pre-rules-blocking"],
   "class-pre-special": [
     "pre-rules-promotion",

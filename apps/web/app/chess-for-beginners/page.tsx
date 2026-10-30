@@ -53,15 +53,15 @@ export default function ChessForBeginnersPage() {
                 emoji: "🗺️",
               },
               {
-                href: "/class/class-pre-pieces",
-                title: "The Pieces",
+                href: "/class/class-pre-meet-pieces",
+                title: "Meet the Pieces",
                 description: "Meet every piece and what it can do.",
                 emoji: "♞",
               },
               {
-                href: "/class/class-pre-moves",
-                title: "Piece Moves",
-                description: "Hands-on practice for every piece type.",
+                href: "/class/class-pre-pawn-moves",
+                title: "How Pawns Move",
+                description: "Hands-on pawn steps, captures, and a quick quiz.",
                 emoji: "♟️",
               },
               {
