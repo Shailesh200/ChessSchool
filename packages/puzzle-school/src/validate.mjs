@@ -1,4 +1,5 @@
 import { Chess } from "chess.js";
+import { validateQuizStep } from "./quiz-validate.mjs";
 
 /** @typedef {{ id: string, kind: string, fen?: string, solution?: string[], moves?: string[], coach?: string, question?: string, options?: unknown[], correct?: number }} LessonStep */
 
@@ -70,16 +71,8 @@ export function validateLessonSteps(lessonId, steps) {
         }
       }
     } else if (step.kind === "quiz") {
-      if (!step.question?.trim()) {
-        errors.push({ stepId: sid, reason: "quiz_no_question", detail: lessonId });
-      }
-      const opts = step.options ?? [];
-      if (opts.length < 2) {
-        errors.push({ stepId: sid, reason: "quiz_options", detail: "need ≥2 options" });
-      }
-      const c = step.correct ?? -1;
-      if (c < 0 || c >= opts.length) {
-        errors.push({ stepId: sid, reason: "quiz_correct", detail: `correct=${c} options=${opts.length}` });
+      for (const e of validateQuizStep(sid, step)) {
+        errors.push({ stepId: sid, reason: e.reason, detail: e.detail });
       }
     } else if (step.kind === "info") {
       if (!(step.coach ?? "").trim()) {
