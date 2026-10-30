@@ -4,9 +4,10 @@ Branch builds tier-1/2 **screen UIs** on **`origin/nov2/zoro-web-kit-rc`** (`2c1
 
 ## Password reset
 
-- **Email link (Luffy W-004):** `{origin}/account/reset?token=` — see `password-reset.ts` on `nov2/luffy-backend`.
-- **UI:** `/login/forgot` (19a dex), `/account/reset` (19b dex). `/login/reset` redirects to `/account/reset` (query + hash preserved).
-- **Client shim:** `apps/web/features/premium-ui/auth/resetApi.ts` (swap to `@/lib/auth/passwordReset.client` after luffy merge)
+- **Email link (Luffy `nov2/luffy-backend-rc`):** `{origin}/account/reset?token=` — routes live on that branch (`apps/web/app/account/reset/`, `apps/web/app/forgot-password/`); do not add those paths here.
+- **UI (sanji):** `/login/forgot` (19a dex), `/login/reset` (19b dex, `?token=` from email for local QA).
+- **After luffy merge:** in his route files, swap body to `<PremiumForgotPasswordScreen />` / `<PremiumResetPasswordScreen />` from `@/features/premium-ui/screens/passwordResetPremiumScreens`.
+- **Client shim:** `apps/web/features/premium-ui/auth/resetApi.ts` (then swap to `@/lib/auth/passwordReset.client` + `@/lib/auth/password-reset-path`)
   - `POST /api/auth/password/forgot` `{ email }`
   - `POST /api/auth/password/reset` `{ token, password }`
   - No GET validate (invalid link shown when POST returns 400).

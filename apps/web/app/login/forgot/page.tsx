@@ -1,4 +1,4 @@
-import { PremiumForgotPasswordScreen } from "@/features/premium-ui/screens/PremiumForgotPasswordScreen";
+import { PremiumForgotPasswordScreen } from "@/features/premium-ui/screens/passwordResetPremiumScreens";
 
 export const metadata = { title: "Forgot password" };
 
