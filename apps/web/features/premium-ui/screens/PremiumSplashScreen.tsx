@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { KitLottie } from "@/components/motion/KitLottie";
+import { useSettings } from "@/core/store/settings.store";
+import { resolvePremiumColorMode } from "@/core/themes/kitTokens";
 
 /** 01-splash — premium illustrated entry. */
 export function PremiumSplashScreen() {
   const router = useRouter();
+  const appTheme = useSettings((s) => s.appTheme);
+  const dark = resolvePremiumColorMode(appTheme) === "dark";
+  const splashId = dark ? "logo-splash-dark" : "logo-splash-light";
 
   return (
     <section className="screen on" id="s-splash" data-route="splash" data-screen="splash">
@@ -14,13 +20,7 @@ export function PremiumSplashScreen() {
           <div className="logo-lot lockup" role="img" aria-label="ChessSchool">
             <span className="markwrap">
               <span className="mglow" />
-              <img
-                src="/kit/logo/chessschool-horizontal-light.svg"
-                alt=""
-                width={280}
-                height={64}
-                className="block max-w-full"
-              />
+              <KitLottie id={splashId} className="h-24 w-24 max-w-[min(72vw,280px)]" />
             </span>
             <span className="wm" aria-hidden="true">
               <b>Chess</b>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Catalog } from "@/features/school/structure";
+import { KitRouteLoader } from "@/components/motion/KitRouteLoader";
 import type { PremiumMapState } from "./mapState";
 
 export function PremiumMapStatePanel({
@@ -16,12 +17,7 @@ export function PremiumMapStatePanel({
   if (state === "loading") {
     return (
       <div className="state" data-testid="map-state-loading">
-        <div className="lot loader-lot" data-lot="loader" data-loop="1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="lot__still" src="/premium/assets/lottie-ui/stills/loader.png" alt="" />
-        </div>
-        <h2 className="cs-h3">Loading your course map…</h2>
-        <p className="muted">One moment while we fetch your classes.</p>
+        <KitRouteLoader label="Loading your course map…" />
       </div>
     );
   }
