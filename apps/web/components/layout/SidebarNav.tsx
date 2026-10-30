@@ -62,21 +62,23 @@ export function SidebarNav() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4" aria-label="Main">
-        <button
-          type="button"
-          onClick={() => {
-            haptics.fire("select");
-            openCommandPalette();
-          }}
-          className="border-hairline bg-surface-sunken text-ink-500 hover:text-ink mb-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-bold transition-colors"
-          aria-label="Open search"
-        >
-          <Icon name="search" size={18} className="shrink-0" />
-          <span className="flex-1">Search</span>
-          <kbd className="text-ink-500 text-[10px] font-bold tabular-nums">
-            {modKey}K
-          </kbd>
-        </button>
+        {uiKit === "legacy" && (
+          <button
+            type="button"
+            onClick={() => {
+              haptics.fire("select");
+              openCommandPalette();
+            }}
+            className="border-hairline bg-surface-sunken text-ink-500 hover:text-ink mb-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-bold transition-colors"
+            aria-label="Open search"
+          >
+            <Icon name="search" size={18} className="shrink-0" />
+            <span className="flex-1">Search</span>
+            <kbd className="text-ink-500 text-[10px] font-bold tabular-nums">
+              {modKey}K
+            </kbd>
+          </button>
+        )}
         {NAV_TABS.map((tab) => {
           const active = isNavTabActive(pathname, tab.href);
           const loading = loadingHref === tab.href;
@@ -127,6 +129,7 @@ export function SidebarNav() {
         })}
       </nav>
 
+      {uiKit === "legacy" || authed === false ? (
       <div className="border-hairline border-t px-4 py-4">
         {!rehydrateReady ? (
           <div className="bg-surface-sunken h-16 rounded-xl" aria-hidden />
@@ -170,6 +173,7 @@ export function SidebarNav() {
           </div>
         )}
       </div>
+      ) : null}
     </aside>
   );
 }
