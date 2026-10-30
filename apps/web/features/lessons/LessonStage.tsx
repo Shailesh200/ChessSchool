@@ -52,8 +52,8 @@ export function LessonStage({
             <div className="lesson-stage-extras lx" aria-hidden />
           )}
         </div>
+        <div className="lesson-stage-footer barwrap pb-safe">{footer}</div>
       </div>
-      <div className="lesson-stage-footer barwrap pb-safe">{footer}</div>
     </div>
   );
 }
