@@ -6,10 +6,7 @@ import {
   PremiumAuthDexLayout,
   PremiumAuthDexRoot,
 } from "@/features/premium-ui/auth/PremiumAuthDexLayout";
-import {
-  requestPasswordReset,
-  resendPasswordReset,
-} from "@/lib/auth/passwordReset.client";
+import { postPasswordForgot } from "@/features/premium-ui/auth/resetApi";
 
 type View = "entry" | "sent" | "error";
 
@@ -30,14 +27,9 @@ export function PremiumForgotPasswordScreen() {
   const submit = useCallback(async () => {
     setPending(true);
     setFieldError(null);
-    const res = await requestPasswordReset(email);
+    const res = await postPasswordForgot(email);
     setPending(false);
     if (!res.ok) {
-      if (res.code === "invalid_email") {
-        setFieldError(res.message);
-        setView("error");
-        return;
-      }
       setFieldError(res.message);
       setView("error");
       return;
@@ -50,8 +42,13 @@ export function PremiumForgotPasswordScreen() {
   const resend = useCallback(async () => {
     if (resendIn > 0 || !sentEmail) return;
     setPending(true);
-    await resendPasswordReset(sentEmail);
+    const res = await postPasswordForgot(sentEmail);
     setPending(false);
+    if (!res.ok) {
+      setFieldError(res.message);
+      setView("error");
+      return;
+    }
     setResendIn(30);
   }, [resendIn, sentEmail]);
 

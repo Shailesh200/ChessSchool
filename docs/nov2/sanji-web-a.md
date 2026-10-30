@@ -4,12 +4,12 @@ Branch builds tier-1/2 **screen UIs** on **`origin/nov2/zoro-web-kit-rc`** (`2c1
 
 ## Password reset
 
-- **Email link (luffy / frenkie):** `{origin}/account/reset#{token}` — see `password-reset.ts` on `nov2/luffy-backend`.
-- **UI:** `/login/forgot` (19a dex), `/account/reset` (19b dex). `/login/reset` redirects to `/account/reset` (hash preserved).
-- **Client:** `apps/web/lib/auth/passwordReset.client.ts`
-  - `POST /api/auth/forgot-password`
-  - `POST /api/auth/reset-password` `{ token, password }`
-  - No GET validate (token checked on POST).
+- **Email link (Luffy W-004):** `{origin}/account/reset?token=` — see `password-reset.ts` on `nov2/luffy-backend`.
+- **UI:** `/login/forgot` (19a dex), `/account/reset` (19b dex). `/login/reset` redirects to `/account/reset` (query + hash preserved).
+- **Client shim:** `apps/web/features/premium-ui/auth/resetApi.ts` (swap to `@/lib/auth/passwordReset.client` after luffy merge)
+  - `POST /api/auth/password/forgot` `{ email }`
+  - `POST /api/auth/password/reset` `{ token, password }`
+  - No GET validate (invalid link shown when POST returns 400).
 
 ## Nav
 

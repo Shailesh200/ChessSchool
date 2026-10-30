@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import {
   PremiumAuthDexLayout,
   PremiumAuthDexRoot,
@@ -12,10 +12,9 @@ import {
   passwordsMatch,
 } from "@/features/premium-ui/auth/passwordStrength";
 import {
-  completePasswordReset,
-  readResetTokenFromLocation,
-  validatePasswordResetToken,
-} from "@/lib/auth/passwordReset.client";
+  postPasswordReset,
+  readResetTokenFromSearch,
+} from "@/features/premium-ui/auth/resetApi";
 
 function EyeToggle({
   pressed,
@@ -72,19 +71,15 @@ function PasswordStrengthBlock({
 }
 
 export function PremiumResetPasswordScreen() {
-  return (
-    <PremiumResetPasswordScreenInner />
-  );
+  return <PremiumResetPasswordScreenInner />;
 }
 
 function PremiumResetPasswordScreenInner() {
+  const router = useRouter();
   const params = useSearchParams();
-  const token = useMemo(
-    () => readResetTokenFromLocation(params.toString(), typeof window !== "undefined" ? window.location.hash : ""),
-    [params],
-  );
+  const token = useMemo(() => readResetTokenFromSearch(params.toString()), [params]);
 
-  const [phase, setPhase] = useState<"checking" | "expired" | "form" | "success">("checking");
+  const [phase, setPhase] = useState<"expired" | "form">(() => (token ? "form" : "expired"));
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -94,34 +89,12 @@ function PremiumResetPasswordScreenInner() {
   const [confError, setConfError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      if (!token) {
-        if (!cancelled) setPhase("expired");
-        return;
-      }
-      const v = await validatePasswordResetToken(token);
-      if (cancelled) return;
-      if (v.status === "valid") setPhase("form");
-      else if (v.status === "expired") setPhase("expired");
-      else if (v.status === "invalid") setPhase("expired");
-      else setPhase("form");
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
   const strength = analyzePasswordStrength(password);
-  const mood =
-    strength.level >= 4 ? "happy" : phase === "success" ? "happy" : "thinking";
+  const mood = strength.level >= 4 ? "happy" : "thinking";
   const line =
     strength.level >= 4
       ? "Nicely done. That one is strong."
-      : phase === "success"
-        ? "Password changed. Welcome back!"
-        : "Pick something you will remember. Longer is stronger.";
+      : "Pick something you will remember. Longer is stronger.";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -140,33 +113,21 @@ function PremiumResetPasswordScreenInner() {
     }
 
     setPending(true);
-    const res = await completePasswordReset(token, password);
+    const res = await postPasswordReset(token, password);
     setPending(false);
     if (res.ok) {
-      setPhase("success");
+      router.push("/login");
       return;
     }
-    if (res.code === "expired") {
+    if (res.code === "invalid_link") {
       setPhase("expired");
       return;
     }
+    if (res.code === "weak_password") {
+      setPwError(res.message);
+      return;
+    }
     setFormError(res.message);
-  }
-
-  if (phase === "checking") {
-    return (
-      <PremiumAuthDexRoot screen="19b-reset-password" state="entry">
-        <PremiumAuthDexLayout
-          screen="19b-reset-password"
-          state="entry"
-          mood="thinking"
-          title="Choose a new password"
-          muted="Checking your link…"
-        >
-          <p className="help">One moment.</p>
-        </PremiumAuthDexLayout>
-      </PremiumAuthDexRoot>
-    );
   }
 
   if (phase === "expired") {
@@ -191,34 +152,6 @@ function PremiumResetPasswordScreenInner() {
               Back to sign in
             </Link>
           </div>
-        </PremiumAuthDexLayout>
-      </PremiumAuthDexRoot>
-    );
-  }
-
-  if (phase === "success") {
-    return (
-      <PremiumAuthDexRoot screen="19b-reset-password" state="success">
-        <PremiumAuthDexLayout
-          screen="19b-reset-password"
-          state="success"
-          mood="happy"
-          bodyAccent="celebrating"
-          line="Password changed. Welcome back!"
-          title="Password changed"
-        >
-          <div className="sentbox" role="status">
-            <span className="mi" aria-hidden="true">
-              ✓
-            </span>
-            <p>You are all set. You were signed out on other devices to keep your account safe.</p>
-          </div>
-          <Link className="btn" href="/academy">
-            Continue to Learn
-          </Link>
-          <p className="help" style={{ textAlign: "center" }}>
-            <Link href="/login">Sign in with your new password</Link>
-          </p>
         </PremiumAuthDexLayout>
       </PremiumAuthDexRoot>
     );
