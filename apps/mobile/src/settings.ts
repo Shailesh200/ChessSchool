@@ -9,6 +9,12 @@ import {
   normalizeCoachCharacter,
   type CoachCharacterId,
 } from "./coachCharacters";
+import { DEFAULT_UI_KIT, type UiKit } from "./uiKit";
+import { NOTIFICATION_DEFAULTS } from "./notificationDefaults";
+import { normalizeThemeMode, type ThemeMode } from "./themeMode";
+
+export type { UiKit } from "./uiKit";
+export type { ThemeMode } from "./themeMode";
 
 export type BoardTheme =
   | "classic"
@@ -25,6 +31,8 @@ export type BoardTheme =
   | "slate"
   | "forest";
 export type Settings = {
+  /** Premium illustrated dex kit (default) vs legacy mobile chrome. */
+  uiKit: UiKit;
   haptics: boolean;
   sound: boolean;
   volume: number;
@@ -45,17 +53,23 @@ export type Settings = {
   boardTheme: BoardTheme;
   pieceTheme: PieceThemeId;
   appTheme: string;
+  /** Premium dex: system / forced light / forced dark appearance. */
+  themeMode: ThemeMode;
   schoolTheme: string;
   enrollPromptDismissedAt: number | null;
   diagnostics: boolean;
   textScale: number;
   /** Opt-in product analytics (page views, matches, features). Default on. */
   shareAnalytics: boolean;
+  notificationsEnabled: boolean;
+  notificationHour: number;
+  notificationMinute: number;
 };
 
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
 const DEFAULTS: Settings = {
+  uiKit: DEFAULT_UI_KIT,
   haptics: true,
   sound: true,
   volume: 1,
@@ -76,11 +90,13 @@ const DEFAULTS: Settings = {
   boardTheme: "classic",
   pieceTheme: "classic",
   appTheme: "default",
+  themeMode: "system",
   schoolTheme: "university",
   enrollPromptDismissedAt: null,
   diagnostics: false,
   textScale: 1,
   shareAnalytics: true,
+  ...NOTIFICATION_DEFAULTS,
 };
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
@@ -104,6 +120,13 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
       : next.schoolTheme ?? "university",
     shareAnalytics:
       next.shareAnalytics === undefined ? undefined : Boolean(next.shareAnalytics),
+    uiKit:
+      next.uiKit === "classic" || next.uiKit === "premium"
+        ? next.uiKit
+        : next.uiKit === undefined
+          ? undefined
+          : "premium",
+    themeMode: next.themeMode !== undefined ? normalizeThemeMode(next.themeMode) : next.themeMode,
   } as Partial<Settings>;
 }
 
@@ -170,12 +193,6 @@ export async function loadSettingsFromAccount() {
 
 export const settings = {
   get: () => state,
-  /**
-   * The wipe path (logout, a 401, delete: wipeUserData). It restores every default EXCEPT
-   * shareAnalytics, which stays off: DEFAULTS.shareAnalytics (true) is the fresh-install value, so
-   * resetting to it would track a user who had opted out until the next sign-in hydrates their
-   * account setting. DEFAULTS itself is not changed.
-   */
   reset: () => {
     state = { ...DEFAULTS, shareAnalytics: false };
     persist();
