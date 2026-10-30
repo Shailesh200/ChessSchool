@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { EXAM_PASS_RATIO } from "../../classExam";
 import { SEEDED_EXAM, seededExamPassMark } from "./premiumFixtures";
 import { buildPremiumTheme, premiumTokensJson } from "../../theme/premium";
@@ -251,24 +251,46 @@ describe("kit button colors", () => {
 });
 
 describe("premium preview route", () => {
-  it("is unreachable in the production variant and fails if that gate is removed", () => {
-    expect(
-      premiumPreviewDecision({ APP_VARIANT: "production", EXPO_PUBLIC_PREMIUM_PREVIEW: "1" }),
-    ).toBe("deny");
-    expect(premiumPreviewDecision({ APP_VARIANT: "production" })).toBe("deny");
-    expect(
-      premiumPreviewDecision({ APP_VARIANT: "development", EXPO_PUBLIC_PREMIUM_PREVIEW: "1" }),
-    ).toBe("allow");
-    expect(premiumPreviewDecision({ EXPO_PUBLIC_PREMIUM_PREVIEW: "1" })).toBe("allow");
-    expect(premiumPreviewDecision({})).toBe("deny");
+  const devGlobal = globalThis as { __DEV__?: boolean };
+  const originalDev = devGlobal.__DEV__;
+  const originalFlag = process.env.EXPO_PUBLIC_PREMIUM_PREVIEW;
 
+  afterEach(() => {
+    if (originalDev === undefined) delete devGlobal.__DEV__;
+    else devGlobal.__DEV__ = originalDev;
+    if (originalFlag === undefined) delete process.env.EXPO_PUBLIC_PREMIUM_PREVIEW;
+    else process.env.EXPO_PUBLIC_PREMIUM_PREVIEW = originalFlag;
+  });
+
+  it("redirects a release build even when the preview flag is 1", () => {
+    Object.assign(globalThis, { __DEV__: false });
+    process.env.EXPO_PUBLIC_PREMIUM_PREVIEW = "1";
+    expect(premiumPreviewDecision()).toBe("deny");
+  });
+
+  it("redirects in dev when the preview flag is unset or not exactly 1", () => {
+    Object.assign(globalThis, { __DEV__: true });
+    delete process.env.EXPO_PUBLIC_PREMIUM_PREVIEW;
+    expect(premiumPreviewDecision()).toBe("deny");
+    process.env.EXPO_PUBLIC_PREMIUM_PREVIEW = "true";
+    expect(premiumPreviewDecision()).toBe("deny");
+  });
+
+  it("opens in dev only when the preview flag is exactly 1", () => {
+    Object.assign(globalThis, { __DEV__: true });
+    process.env.EXPO_PUBLIC_PREMIUM_PREVIEW = "1";
+    expect(premiumPreviewDecision()).toBe("allow");
+
+    const model = readFileSync(path.resolve(__dirname, "premiumModel.ts"), "utf8");
     const route = readFileSync(path.resolve(__dirname, "../../../app/dev/premium-preview.tsx"), "utf8");
     const layout = readFileSync(path.resolve(__dirname, "../../../app/_layout.tsx"), "utf8");
-    expect(route).toContain("premiumPreviewDecision");
+    expect(model).toContain("__DEV__");
+    expect(model).not.toContain("APP_VARIANT");
+    expect(route).toContain("premiumPreviewDecision()");
     expect(route).toContain("<Redirect");
-    expect(route).toContain("previewDenied");
-    expect(layout).toContain("premiumPreviewDecision");
+    expect(route).not.toContain("APP_VARIANT");
+    expect(layout).toContain("premiumPreviewDecision()");
     expect(layout).toContain("onPremiumPreview");
-    expect(layout).toContain('APP_VARIANT: process.env.APP_VARIANT');
+    expect(layout).not.toContain("APP_VARIANT");
   });
 });
