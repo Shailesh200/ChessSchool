@@ -105,6 +105,10 @@ export function ChessBoard({
   successSquare,
   showNotation = false,
   onPieceDragActiveChange,
+  tappedSquares,
+  onSquareTap,
+  tapSelectionColor,
+  tapSelectionBorder,
 }: {
   fen: string;
   size: number;
@@ -128,6 +132,10 @@ export function ChessBoard({
    * while a piece is being dragged.
    */
   onPieceDragActiveChange?: (active: boolean) => void;
+  tappedSquares?: string[];
+  onSquareTap?: (square: string) => void;
+  tapSelectionColor?: string;
+  tapSelectionBorder?: string;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [promo, setPromo] = useState<{ from: string; to: string; color: "w" | "b" } | null>(null);
@@ -302,17 +310,27 @@ export function ChessBoard({
     if (!piece) setRenderFen(fen);
   }, [board, currentBoard, fen, lastMove, reducedMotion, renderFen]);
 
+  const boardHighlights = useMemo(() => {
+    const base = highlights ?? [];
+    if (!tappedSquares?.length) return base;
+    return [...new Set([...base, ...tappedSquares])];
+  }, [highlights, tappedSquares]);
+
+  const tapFill = tapSelectionColor ? hexToRgba(tapSelectionColor, 0.55) : undefined;
+  const tapBorder = tapSelectionBorder ?? tapSelectionColor;
+
   return (
     <View style={[styles.board, { width: size, height: size }]} {...(interactive && onMove ? pan.panHandlers : {})}>
       {ranks.map((rank, r) => (
-        <View key={rank} style={{ flexDirection: "row" }} pointerEvents="none">
+        <View key={rank} style={{ flexDirection: "row" }} pointerEvents={onSquareTap ? "box-none" : "none"}>
           {files.map((file, f) => {
             const sq = `${file}${rank}`;
             const piece = board[8 - rank]![FILES.indexOf(file)]!;
             const isLight = (r + f) % 2 === 0;
             const isSel = selected === sq;
             const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
-            const isHL = highlights?.includes(sq);
+            const isHL = boardHighlights?.includes(sq);
+            const isTapped = tappedSquares?.includes(sq);
             const isCheck = checkSquare === sq;
             const isSuccess = successSquare === sq;
             const hidden =
@@ -321,25 +339,30 @@ export function ChessBoard({
             const showRank = showNotation && file === (orientation === "white" ? "a" : "h");
             const coordColor = isLight ? "rgba(28,27,46,0.55)" : "rgba(255,255,255,0.75)";
             const tint = fileRankOverlay(sq);
-            return (
-              <View
-                key={sq}
-                testID={`sq-${sq}`}
-                style={[
-                  { width: cell, height: cell, backgroundColor: isLight ? LIGHT : DARK },
-                  styles.sq,
-                  isHL && [styles.highlight, { borderWidth: borderW, borderColor: colorblind ? "#f2c14e" : "rgba(91,91,214,0.7)" }],
-                  isCheck && { borderWidth: borderW, borderColor: checkBorder, borderRadius: 8 },
-                  isSuccess && {
-                    backgroundColor: successBg,
-                    borderWidth: borderW,
-                    borderColor: successBorder,
-                    borderRadius: 8,
-                  },
-                ]}
-              >
+            const cellStyle = [
+              { width: cell, height: cell, backgroundColor: isLight ? LIGHT : DARK },
+              styles.sq,
+              isHL && [styles.highlight, { borderWidth: borderW, borderColor: colorblind ? "#f2c14e" : "rgba(91,91,214,0.7)" }],
+              isCheck && { borderWidth: borderW, borderColor: checkBorder, borderRadius: 8 },
+              isSuccess && {
+                backgroundColor: successBg,
+                borderWidth: borderW,
+                borderColor: successBorder,
+                borderRadius: 8,
+              },
+            ];
+            const cellBody = (
+              <>
                 {tint ? <View style={[styles.fileRankOverlay, { backgroundColor: tint }]} /> : null}
                 {isSel ? <View style={[styles.fileRankOverlay, { backgroundColor: selectedTint }]} /> : null}
+                {isTapped && tapFill ? (
+                  <View
+                    style={[
+                      styles.fileRankOverlay,
+                      { backgroundColor: tapFill, borderWidth: 1, borderColor: tapBorder },
+                    ]}
+                  />
+                ) : null}
                 {showRank && (
                   <Text style={[styles.coord, styles.coordRank, { color: coordColor }]}>{rank}</Text>
                 )}
@@ -352,6 +375,25 @@ export function ChessBoard({
                 )}
                 {dots.has(sq) && <View style={[styles.dot, { backgroundColor: hintDot }]} />}
                 {piece && !hidden && <Piece type={piece.type} color={piece.color} size={cell * 0.86} gid={`p${sq}`} themeId={pieceTheme} />}
+              </>
+            );
+            if (onSquareTap) {
+              return (
+                <Pressable
+                  key={sq}
+                  testID={`sq-${sq}`}
+                  onPress={() => onSquareTap(sq)}
+                  style={cellStyle}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Square ${sq}`}
+                >
+                  {cellBody}
+                </Pressable>
+              );
+            }
+            return (
+              <View key={sq} testID={`sq-${sq}`} style={cellStyle}>
+                {cellBody}
               </View>
             );
           })}
