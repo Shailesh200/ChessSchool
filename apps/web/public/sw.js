@@ -5,7 +5,9 @@
  */
 // Bump this on any content/curriculum change to purge stale caches.
 // v9: signed-in HTML and /api/* are network-only; logout wipes runtime caches (W-H4).
-const VERSION = "chessschool-v9";
+// v10: precache the empty-state illustrations and the /offline mascot's optimised
+// /_next/image URLs so they render offline on first use (UI-W-017).
+const VERSION = "chessschool-v10";
 const APP_SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
@@ -89,6 +91,10 @@ const PRECACHE = [
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/mascots/cody-happy-v2.png",
+  // EmptyState illustrations (/library, /review): plain <img>, never fetched before
+  // the first offline visit unless they are precached.
+  "/svg/empty/empty-library.svg",
+  "/svg/empty/empty-review.svg",
 ];
 
 self.addEventListener("install", (event) => {
@@ -103,16 +109,17 @@ self.addEventListener("install", (event) => {
                 if (!isCacheable(res)) return;
                 // The offline page is hydrated by hashed static chunks; cache them too,
                 // otherwise the fallback renders the error boundary when truly offline.
-                const assets =
-                  path === "/offline"
-                    ? [
-                        ...new Set(
-                          (await res.clone().text()).match(
-                            /\/_next\/static\/[^"'\\\s)]+/g,
-                          ) ?? [],
-                        ),
-                      ]
-                    : [];
+                // It also renders the mascot through next/image, i.e. /_next/image?url=…
+                // URLs (src + srcset), which are cached under their exact URL (UI-W-017).
+                const html = path === "/offline" ? await res.clone().text() : "";
+                const assets = [
+                  ...new Set([
+                    ...(html.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? []),
+                    ...(html.match(/\/_next\/image\?[^"'\s,]+/g) ?? []).map((u) =>
+                      u.replace(/&amp;/g, "&"),
+                    ),
+                  ]),
+                ];
                 await cache.put(path, res);
                 await Promise.all(
                   assets.map((a) =>
@@ -223,8 +230,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: try cache, then network.
-  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+  // Everything else: try cache, then network. ignoreVary is scoped to /_next/image
+  // only: it answers with `Vary: Accept`, and the precache fetch's Accept differs
+  // from an <img>'s (UI-W-017). Nothing else gets the looser match.
+  const matchOptions =
+    url.pathname === "/_next/image" ? { ignoreVary: true } : undefined;
+  event.respondWith(
+    caches.match(request, matchOptions).then((cached) => cached || fetch(request)),
+  );
 });
 
 // Allow the page to trigger an immediate update.
