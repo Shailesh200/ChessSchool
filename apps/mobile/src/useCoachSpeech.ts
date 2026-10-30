@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { AppState } from "react-native";
 import { prefetchCoachText, speakCoachText, stopCoachSpeech } from "./coachSpeech";
 import { useSettings } from "./settings";
 
@@ -24,4 +25,11 @@ export function useCoachSpeech(text: string, enabled = true) {
   }, [text, enabled, sound, coachSpeech]);
 
   useEffect(() => () => stopCoachSpeech(), []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") stopCoachSpeech();
+    });
+    return () => sub.remove();
+  }, []);
 }
