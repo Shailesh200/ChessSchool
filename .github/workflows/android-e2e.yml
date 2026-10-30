@@ -69,25 +69,15 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-boot-timeout: 600
-          script: |
-            status=0
-            cd apps/mobile/android || status=$?
-            if [ "$status" -eq 0 ]; then
-              chmod +x ./gradlew
-              ./gradlew assembleDebug --no-daemon || status=$?
-            fi
-            if [ "$status" -eq 0 ]; then
-              cd "$GITHUB_WORKSPACE"
-              adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk || status=$?
-            fi
-            if [ "$status" -eq 0 ]; then
-              maestro test apps/mobile/.maestro || status=$?
-            fi
-            mkdir -p "$GITHUB_WORKSPACE/android-e2e-artifacts"
-            adb logcat -d > "$GITHUB_WORKSPACE/android-e2e-artifacts/logcat.txt" || true
-            if [ -d "$HOME/.maestro/tests" ]; then
-              cp -a "$HOME/.maestro/tests" "$GITHUB_WORKSPACE/android-e2e-artifacts/maestro" || true
-            fi
+          # android-emulator-runner runs each line in its own `sh -c`, so this stays one line.
+          script: >-
+            status=0;
+            cd apps/mobile/android && chmod +x ./gradlew && ./gradlew assembleDebug --no-daemon || status=$?;
+            if [ "$status" -eq 0 ]; then cd "$GITHUB_WORKSPACE" && adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk || status=$?; fi;
+            if [ "$status" -eq 0 ]; then maestro test apps/mobile/.maestro || status=$?; fi;
+            mkdir -p "$GITHUB_WORKSPACE/android-e2e-artifacts";
+            adb logcat -d > "$GITHUB_WORKSPACE/android-e2e-artifacts/logcat.txt" || true;
+            if [ -d "$HOME/.maestro/tests" ]; then cp -a "$HOME/.maestro/tests" "$GITHUB_WORKSPACE/android-e2e-artifacts/maestro" || true; fi;
             exit "$status"
 
       - name: Upload screenshots and logcat
