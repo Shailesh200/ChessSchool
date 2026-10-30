@@ -1,48 +1,55 @@
 # nov2/sanji-web-a — Premium screen migration
 
-Branch builds tier-1/2 **screen UIs** on top of **`nov2/zoro-web-kit`** (`origin/nov2/zoro-web-kit` @ 58e9108+). Uses kit tokens (`app/premium/*.css`), shared shell (`AppShell` + `SidebarNav` / `BottomNav` at 1024px), and `uiKit` (`premium` | `legacy`) — not a parallel `uiShell` or duplicate shell components.
+Branch builds tier-1/2 **screen UIs** on **`origin/nov2/zoro-web-kit-rc`** (`2c139c3` on `rc/nov2` `b30c2af`). Uses kit tokens, `AppShell`, and `uiKit` (`premium` | `legacy`).
 
-## Rebase notes
+## Password reset
 
-- **Base:** `origin/nov2/zoro-web-kit-rc` @ `2c139c3` (Zoro kit on `rc/nov2` `b30c2af`). Do not replay `58e9108` locally.
-- **Dropped duplicates:** `PremiumAppShell`, local `styles/premium/tokens.css` + `components.css`, duplicate fonts/logo/accents under `public/premium/assets` (art now under `public/kit/` where possible). Dex **bust/full** art remains under `public/premium/assets/dex/` until kit adds equivalents.
-
-## Password reset (19a / 19b)
-
-- Routes: `/login/forgot`, `/login/reset` (Suspense on reset for `useSearchParams`).
-- UI: `PremiumForgotPasswordScreen`, `PremiumResetPasswordScreen` + `PremiumAuthDexLayout` (`data-screen="19a-forgot-password"` / `19b-reset-password`).
-- **Client API only** (backend on `nov2/luffy-backend`): `apps/web/lib/auth/passwordReset.client.ts`
-  - `POST /api/auth/password/forgot`
-  - `GET /api/auth/password/reset?token=`
-  - `POST /api/auth/password/reset`
-  - 404 stubs allow UI dev until luffy lands.
+- **Email link (luffy / frenkie):** `{origin}/account/reset#{token}` — see `password-reset.ts` on `nov2/luffy-backend`.
+- **UI:** `/login/forgot` (19a dex), `/account/reset` (19b dex). `/login/reset` redirects to `/account/reset` (hash preserved).
+- **Client:** `apps/web/lib/auth/passwordReset.client.ts`
+  - `POST /api/auth/forgot-password`
+  - `POST /api/auth/reset-password` `{ token, password }`
+  - No GET validate (token checked on POST).
 
 ## Nav
 
-Four tabs only (kit shell): **Learn**, **Play**, **Review**, **Profile**.
+Learn · Play · Review · Profile (kit shell).
 
-## Screenshots (390 / 1280)
+## Screenshots vs design
 
-Design PNGs: extracted auth pack under `design-ref/` (local, not committed).
-
-| Screen | Route | Status |
-|--------|-------|--------|
-| Forgot entry | `/login/forgot` | **Owed** — capture vs `19a-forgot-password` PNG |
-| Reset form | `/login/reset?token=dev` | **Owed** — vs `19b-reset-password` PNG |
-| Splash | `/splash` | **Owed** |
-| Kit reference | `/dev/kit-showcase` | See `docs/nov2/zoro-web-kit.md` |
-
-Playwright Chromium was attempted in cloud VM; if install fails, capture locally:
+Captured under [`sanji-web-a/`](sanji-web-a/) (390×844 and 1280×800). Design PNGs: `design-ref/png/` (local). Regenerate:
 
 ```bash
 pnpm --filter web dev
-pnpm --filter web exec playwright install chromium
-pnpm --filter web exec playwright screenshot http://localhost:3000/login/forgot docs/nov2/sanji-forgot-390.png --viewport-size=390,844
-pnpm --filter web exec playwright screenshot http://localhost:3000/login/forgot docs/nov2/sanji-forgot-1280.png --viewport-size=1280,800
+node apps/web/scripts/capture-sanji-screenshots.mjs
 ```
 
-## Deviations (known)
+| App screenshot | Design reference | Deviations |
+|----------------|------------------|------------|
+| `01-splash-{390,1280}.png` | `01-splash*.png` | Uses kit horizontal logo; no Lottie hero loop yet. |
+| `16-auth-login-*` | `16-auth-*` | Premium dex auth on `/login`; errors/signup variants not shot separately. |
+| `19a-forgot-password-*` | `19a-forgot-password-*` | Matches dex layout; backend generic message when luffy not merged. |
+| `19b-reset-password-*` | `19b-reset-password-*` | Token in hash; strength meter live; no server validate until POST. |
+| `03-map-*` | `03-map*` | Normal/dark from catalog; other states via `?premiumMap=`; inside kit AppShell (not full mock sidebar duplicate). |
+| `04-class-detail-*` | `04-class-detail*` | Mastery sidebar simplified vs mock skill rows; exam row links real `/exam`. |
+| `09-class-exam-*` | `09-class-exam*` | Premium header chrome + real `LessonPlayer` (board layout differs from static mock). |
+| `13-profile-*` | `13-profile*` | Inside AppShell; no dark profile variant shot. |
+| `14-settings-*` | `14-settings*` | `uiKit` toggle mirrors Theme Studio. |
+| `15-notify-*` | `15-notify*` | Functional toggles; saved state on `/notify/saved` not in batch. |
 
-- Coach picker hidden in onboarding (`data-coach-picker="hidden"`), Otto default.
-- Profile/settings premium layouts render **inside** kit `AppShell` (no duplicate dex sidebar).
-- Some onboarding/academy loader stills use `public/premium/assets/lottie-ui` until kit Lottie wiring (M zoro follow-up).
+## Home JS budget
+
+Run after `pnpm --filter web build`:
+
+```bash
+node scripts/verify-home-js-budget.mjs
+```
+
+Budget: **320 KB gzip**. Last measure on this branch: **316.5 KB gzip** (`node scripts/verify-home-js-budget.mjs` after `pnpm --filter web build`).
+
+## Branches
+
+| Branch | Role |
+|--------|------|
+| `nov2/sanji-web-a-rc` | **Canonical** — kit-rc + screen commits |
+| `nov2/sanji-web-a` | Obsolete local replay (not pushed) |
