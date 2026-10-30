@@ -1,0 +1,18 @@
+Building replacement pools from CSV…
+  university:advantage: 5 candidates
+  university:endgame: 1 candidates
+  high:advantage: 4 candidates
+  high:endgame: 2 candidates
+  middle:advantage: 4 candidates
+  elementary:endgame: 2 candidates
+  elementary:advantage: 5 candidates
+  expert:advantage: 9 candidates
+  expert:endgame: 5 candidates
+  master:advantage: 4 candidates
+  novice:advantage: 5 candidates
+  novice:endgame: 1 candidates
+{
+  "replaced": 34,
+  "removed": 1262,
+  "keptDoubtful": 5518
+}
