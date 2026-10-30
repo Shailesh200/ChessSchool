@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
-import { useSettings } from "@/core/store/settings.store";
 import { pulseTrack } from "@/lib/pulse";
 import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
-import { clearGuestOwner, clearSignedInMarker } from "@/core/sync/guestOwner";
+import { resetLocalAccountState } from "@/core/sync/accountReset";
 
 export function DeleteAccountButton() {
   const router = useRouter();
@@ -37,11 +35,7 @@ export function DeleteAccountButton() {
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
       await clearRuntimeCaches();
-      clearGuestOwner(); // like a logout: no kept-copy tag for the deleted user stays
-      clearSignedInMarker();
-      useProgression.getState().reset();
-      useSession.getState().setSession(false, null);
-      useSettings.getState().set("targetElo", 600);
+      await resetLocalAccountState(); // like a logout: nothing of the deleted user stays
       router.replace("/login");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not delete account.");

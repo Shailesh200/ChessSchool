@@ -103,6 +103,14 @@ export function completeArenaIfDone(): ArenaRunRecord | null {
   return record;
 }
 
+/** Identity change: forget the run in memory and delete the saved one, awaited. */
+export async function resetArenaStore(): Promise<void> {
+  active = null;
+  hydrated = true; // the key is gone: nothing left to read
+  emit();
+  await writeRaw(null);
+}
+
 export function abandonArena(): void {
   active = null;
   void persist();

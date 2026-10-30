@@ -5,7 +5,11 @@ import { useProgression } from "@/core/store/progression.store";
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
-import { pullProgress, fullSnapshotAsync } from "@/core/sync/pullProgress";
+import {
+  pullProgress,
+  fullSnapshotAsync,
+  handleSessionExpired,
+} from "@/core/sync/pullProgress";
 import {
   applyServerProgressAck,
   type PushedProgress,
@@ -40,7 +44,15 @@ export function ProgressSync() {
           if (cancelled) return;
           if (user) {
             const generation = progressGeneration();
+            const owner = useSession.getState().user?.id;
             const snapshot = await fullSnapshotAsync();
+            // Logged out or switched user while the rows were read: they are not this one's.
+            if (
+              cancelled ||
+              generation !== progressGeneration() ||
+              useSession.getState().user?.id !== owner
+            )
+              return;
             const body = JSON.stringify(snapshot);
             lastPushed.current = body;
             if (guestHadProgress) {
@@ -50,6 +62,10 @@ export function ProgressSync() {
                 body,
               })
                 .then(async (res) => {
+                  if (res.status === 401) {
+                    if (generation === progressGeneration()) handleSessionExpired();
+                    return;
+                  }
                   if (!res.ok) return;
                   applyServerProgressAck(
                     await res.json().catch(() => null),
@@ -88,7 +104,15 @@ export function ProgressSync() {
       clearTimeout(timer);
       timer = setTimeout(async () => {
         const generation = progressGeneration();
+        const owner = useSession.getState().user?.id;
         const snapshot = await fullSnapshotAsync();
+        // Logged out or switched user while the rows were read: they are not this one's.
+        if (
+          generation !== progressGeneration() ||
+          useSession.getState().authed !== true ||
+          useSession.getState().user?.id !== owner
+        )
+          return;
         const body = JSON.stringify(snapshot);
         if (body === lastPushed.current) return;
         lastPushed.current = body;
@@ -98,6 +122,10 @@ export function ProgressSync() {
           body,
         })
           .then(async (res) => {
+            if (res.status === 401) {
+              if (generation === progressGeneration()) handleSessionExpired();
+              return;
+            }
             if (!res.ok) return;
             applyServerProgressAck(
               await res.json().catch(() => null),

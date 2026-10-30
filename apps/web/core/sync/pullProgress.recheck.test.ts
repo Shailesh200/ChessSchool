@@ -19,6 +19,7 @@ vi.mock("@/core/db/db", () => ({
   listGames: async () => [],
   replaceJournalEntries: dexie.replaceJournalEntries,
   replaceGamesFromSync: dexie.replaceGamesFromSync,
+  reconcileLocalRows: async () => undefined,
 }));
 
 import { pullProgress } from "@/core/sync/pullProgress";

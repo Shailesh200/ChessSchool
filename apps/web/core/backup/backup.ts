@@ -1,6 +1,7 @@
 "use client";
 
 import { db, type SavedGame, type JournalEntry } from "@/core/db/db";
+import { ownedBy, rowOwnerNow, withoutOwner } from "@/core/sync/rowOwner";
 
 /**
  * Local data ownership (#72/#73/#84). Export/import everything as one versioned
@@ -37,10 +38,14 @@ export async function exportAll(): Promise<BackupFile> {
       }
     }
   }
-  const [games, journal] = await Promise.all([
+  // Only the rows of whoever is signed in; the owner tag stays on the device.
+  const owner = rowOwnerNow();
+  const [allGames, allJournal] = await Promise.all([
     db.games.toArray(),
     db.journal.toArray(),
   ]);
+  const games = ownedBy(allGames, owner).map((g) => withoutOwner(g));
+  const journal = ownedBy(allJournal, owner).map((e) => withoutOwner(e));
   return {
     app: "chessschool",
     schema: BACKUP_SCHEMA,
@@ -105,8 +110,11 @@ export async function importAll(value: unknown): Promise<ImportPreview> {
   await db.transaction("rw", db.games, db.journal, async () => {
     await db.games.clear();
     await db.journal.clear();
-    if (b.games.length) await db.games.bulkPut(b.games);
-    if (b.journal.length) await db.journal.bulkPut(b.journal);
+    // Imported rows are the importing user's, whatever tag the file carries.
+    const owner = rowOwnerNow();
+    if (b.games.length) await db.games.bulkPut(b.games.map((g) => ({ ...g, owner })));
+    if (b.journal.length)
+      await db.journal.bulkPut(b.journal.map((e) => ({ ...e, owner })));
   });
   return preview;
 }

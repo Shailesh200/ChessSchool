@@ -643,6 +643,12 @@ export const progressStore = {
     });
     sessionGate = gate;
   },
+  /** Resolves when every guest-copy and games-cache write or drop already queued has landed. */
+  settled: async (): Promise<void> => {
+    await guestIo;
+    await gamesIo;
+    await guestIo;
+  },
   subscribe: (l: () => void) => {
     listeners.add(l);
     return () => listeners.delete(l);

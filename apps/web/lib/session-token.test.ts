@@ -26,5 +26,9 @@ describe("session token hashing", () => {
     const raw = newSessionToken();
     expect(isLegacySessionId(raw, raw)).toBe(true);
     expect(isLegacySessionId(hashSessionToken(raw), raw)).toBe(false);
+    // a stored digest presented as the token is never a legacy id (DP-X-003)
+    const digest = hashSessionToken(raw);
+    expect(isLegacySessionId(digest, digest)).toBe(false);
+    expect(isLegacySessionId("abc", "abc")).toBe(false);
   });
 });

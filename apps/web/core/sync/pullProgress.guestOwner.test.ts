@@ -12,6 +12,7 @@ vi.mock("@/core/db/db", () => ({
   listGames: async () => [],
   replaceJournalEntries: async () => undefined,
   replaceGamesFromSync: async () => undefined,
+  reconcileLocalRows: async () => undefined,
 }));
 
 import { clearSignedInMarker, getSignedInMarker } from "@/core/sync/guestOwner";

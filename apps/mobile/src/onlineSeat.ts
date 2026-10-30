@@ -57,3 +57,12 @@ export async function clearOnlineSeat(gameId: string): Promise<void> {
   delete map[gameId.toLowerCase()];
   await writeMap(map);
 }
+
+/** Identity change: forget every saved seat (they are credentials of the old user's games). */
+export async function clearAllOnlineSeats(): Promise<void> {
+  if (isWeb) {
+    if (typeof localStorage !== "undefined") localStorage.removeItem(KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(KEY);
+}

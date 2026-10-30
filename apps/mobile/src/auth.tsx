@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, setToken, clearToken, getToken, setUnauthorizedHandler } from "./api";
 import { progressStore, fetchProgress, syncProgressAfterAuth, clearGuestProgress } from "./progressStore";
-import { loadSettingsFromAccount, settings } from "./settings";
+import { loadSettingsFromAccount } from "./settings";
+import { wipeUserData } from "./wipeUserData";
 import { fetchProfile } from "./profile";
 import { getOrientationSeen } from "./orientationSeen";
 import { toast } from "./toast";
@@ -80,8 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Expired session → guest academy if orientation is done, else orientation.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      // Session expired: keep the in-flight edit as guest progress (no new generation).
-      progressStore.expire();
+      // Session expired: the same wipe as a logout, except the in-flight edit stays as
+      // guest progress (no new generation): wipeUserData({ expired }) calls expire().
+      void wipeUserData({ expired: true });
       void getOrientationSeen().then((done) => {
         if (done) void restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
         else {
@@ -217,8 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     await clearToken();
-    progressStore.clear();
-    settings.reset();
+    await wipeUserData();
     const oriented = await getOrientationSeen();
     if (oriented) await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
     else {
@@ -230,8 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async () => {
     await api("/api/account", { method: "DELETE" });
     await clearToken();
-    progressStore.clear();
-    settings.reset();
+    await wipeUserData();
     const oriented = await getOrientationSeen();
     if (oriented) await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
     else {

@@ -21,9 +21,11 @@ import {
   listJournal,
   replaceJournalEntries,
   replaceGamesFromSync,
+  reconcileLocalRows,
   listGames,
   type JournalEntry,
 } from "@/core/db/db";
+import { legacyOwner, withoutOwner } from "@/core/sync/rowOwner";
 import {
   accountProgressEmpty,
   capActivityDays,
@@ -108,9 +110,11 @@ export function fullSnapshot() {
 export async function fullSnapshotAsync() {
   const base = fullSnapshot();
   try {
-    const [journalEntries, games] = await Promise.all([listJournal(), listGames()]);
+    const [journal, games] = await Promise.all([listJournal(), listGames()]);
+    // Rows are already the signed-in user's only (db.ts); the owner tag never leaves the device.
+    const journalEntries = journal.map((e) => withoutOwner(e));
     const recentGames = games
-      .map((g) => normalizeSyncGame(g))
+      .map((g) => normalizeSyncGame(withoutOwner(g)))
       .filter((g): g is NonNullable<typeof g> => g !== null);
     return { ...base, journalEntries, recentGames };
   } catch {
@@ -127,6 +131,29 @@ function wipePersistedStore(): void {
     homeworkStreak: 0,
     homeworkLastDay: null,
   });
+}
+
+/**
+ * The server says the session is gone (a 401 on the pull or on a push): the same as a
+ * logout for cache purposes, but the edits stay as guest progress tagged with their owner
+ * (DP-W-002: a 401 on a push used to do nothing, so the next sign-in found the store as if
+ * it were its own).
+ */
+export function handleSessionExpired(): void {
+  const session = useSession.getState();
+  // The session store says signed in, or (a cold start, where the persisted session is
+  // missing or says signed out) the signed-in marker of the last successful pull does.
+  const marker = getSignedInMarker();
+  if (session.authed === true || marker !== null) {
+    // The edit stays as guest progress: remember whose it is. When the user is not
+    // known the tag matches nobody, so the copy is never merged. No marker and not
+    // signed in: a real guest, left untagged, it merges as before.
+    const known = session.authed === true ? session.user?.id : undefined;
+    setGuestOwner(known ?? marker ?? GUEST_OWNER_UNKNOWN);
+    clearSignedInMarker();
+    void clearRuntimeCaches();
+  }
+  if (session.authed !== false) useSession.getState().setSession(false, null);
 }
 
 /**
@@ -154,21 +181,7 @@ export async function pullProgress(): Promise<{
     void r.body?.cancel().catch(() => undefined);
   }
   if (r.status === 401) {
-    const session = useSession.getState();
-    // Session expired / revoked elsewhere: same as a logout for cache purposes.
-    // The session store says signed in, or (a cold start, where the persisted session is
-    // missing or says signed out) the signed-in marker of the last successful pull does.
-    const marker = getSignedInMarker();
-    if (session.authed === true || marker !== null) {
-      // The edit stays as guest progress: remember whose it is. When the user is not
-      // known the tag matches nobody, so the copy is never merged. No marker and not
-      // signed in: a real guest, left untagged, it merges as before.
-      const known = session.authed === true ? session.user?.id : undefined;
-      setGuestOwner(known ?? marker ?? GUEST_OWNER_UNKNOWN);
-      clearSignedInMarker();
-      void clearRuntimeCaches();
-    }
-    if (session.authed !== false) useSession.getState().setSession(false, null);
+    handleSessionExpired();
     return null;
   }
   if (!r.ok) return null;
@@ -178,6 +191,8 @@ export async function pullProgress(): Promise<{
 
   // Guest progress kept after a session expiry belongs to that user. A different user
   // signing in does not get it (same wipe as a logout); the same user keeps it.
+  // Who the untagged local rows belong to: read before the markers below are rewritten.
+  const legacy = legacyOwner();
   const owner = getGuestOwner();
   if (owner !== null) {
     clearGuestOwner();
@@ -247,9 +262,18 @@ export async function pullProgress(): Promise<{
     }
     useSettings.getState().applyPatch(patch);
   }
+  // Local journal / games / reviews: keep this user's (and a guest's, for a new account),
+  // drop everyone else's. Without this, A's journal stayed when B's own list was empty
+  // and went out with B's next push.
+  try {
+    await reconcileLocalRows(data.user.id, accountEmpty, legacy);
+  } catch {
+    /* rows stay owner-tagged: reads and pushes still filter them */
+  }
+  if (generation !== progressGeneration()) return null;
   if (Array.isArray(data.journalEntries) && data.journalEntries.length > 0) {
     try {
-      await replaceJournalEntries(data.journalEntries);
+      await replaceJournalEntries(data.journalEntries, data.user.id);
     } catch {
       /* ignore */
     }
@@ -258,7 +282,7 @@ export async function pullProgress(): Promise<{
   if (generation !== progressGeneration()) return null;
   if (Array.isArray(data.recentGames)) {
     try {
-      await replaceGamesFromSync(data.recentGames);
+      await replaceGamesFromSync(data.recentGames, data.user.id);
     } catch {
       /* ignore */
     }

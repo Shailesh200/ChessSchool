@@ -33,3 +33,8 @@ export function cacheInvalidatePrefix(prefix: string): void {
     if (k.startsWith(prefix)) store.delete(k);
   }
 }
+
+/** Drop every entry: the cached payloads belong to whoever was signed in (identity change). */
+export function cacheClear(): void {
+  store.clear();
+}

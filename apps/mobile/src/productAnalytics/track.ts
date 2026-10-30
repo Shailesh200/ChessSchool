@@ -70,6 +70,27 @@ async function analyticsSessionId(): Promise<string> {
   }
 }
 
+/**
+ * Identity change: start a new analytics session. The old id is forgotten in memory and on
+ * disk (the next event makes a new one) and events still queued are dropped, so nothing of
+ * the previous user is attributed to the next one.
+ */
+export async function rotateAnalyticsSession(): Promise<void> {
+  sessionId = null;
+  queue.length = 0;
+  if (timer) clearTimeout(timer);
+  timer = undefined;
+  try {
+    if (isWeb) {
+      if (typeof localStorage !== "undefined") localStorage.removeItem(SESSION_KEY);
+    } else {
+      await SecureStore.deleteItemAsync(SESSION_KEY);
+    }
+  } catch {
+    /* the in-memory id is already gone */
+  }
+}
+
 async function flush(): Promise<void> {
   timer = undefined;
   if (queue.length === 0) return;

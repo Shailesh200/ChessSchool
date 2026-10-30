@@ -197,6 +197,14 @@ export function finishBotMatch(): void {
   emit();
 }
 
+/** Identity change: forget the match in memory and delete the saved one, awaited. */
+export async function resetMatchStore(): Promise<void> {
+  active = null;
+  hydrated = true; // the key is gone: nothing left to read
+  emit();
+  await writeRaw(null);
+}
+
 export function clearBotMatch(): void {
   active = null;
   void persist();

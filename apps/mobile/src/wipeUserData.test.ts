@@ -1,0 +1,251 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// DP-M-001 (P0) / 002 / 003 / 004: one wipe for logout, deleteAccount and the 401 handler.
+// This file tests the wipe: it signs in as A, leaves A's data in every store, wipes, and fails
+// if any user key survives (ALLOWED lists what may stay). Who calls the wipe is pinned in
+// authWiring.test.ts.
+
+const disk = vi.hoisted(() => new Map<string, string>());
+vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
+vi.mock("expo-secure-store", () => ({
+  setItemAsync: vi.fn(async (k: string, v: string) => void disk.set(k, v)),
+  getItemAsync: vi.fn(async (k: string) => disk.get(k) ?? null),
+  deleteItemAsync: vi.fn(async (k: string) => void disk.delete(k)),
+}));
+vi.mock("./api", () => {
+  class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
+  }
+  return {
+    ApiError,
+    api: vi.fn(async () => ({})),
+    getToken: vi.fn(async () => "token"),
+  };
+});
+
+const settle = (ms = 25) => new Promise((r) => setTimeout(r, ms));
+
+/** Keys that may stay after a LOGOUT / DELETE wipe. Everything else under chessschool. must go. */
+const ALLOWED_AFTER_LOGOUT = [
+  "chessschool.token", // the session itself: clearToken() removes it, not the wipe
+  "chessschool.orientationSeen", // a device flag, not a user's data
+  "chessschool.settings", // rewritten with the defaults (checked below)
+];
+/** After an EXPIRY (401) the progress policy keeps these on purpose: owner-tagged, merged only for their owner. */
+const ALLOWED_AFTER_EXPIRY = [
+  ...ALLOWED_AFTER_LOGOUT,
+  "chessschool.guestProgress",
+  "chessschool.recentGamesCache",
+  "chessschool.lastUserId",
+];
+/** Every chessschool.* key the app source stores: a key not listed here is a new user key without a wipe. */
+const KNOWN_KEYS = [
+  ...ALLOWED_AFTER_EXPIRY,
+  "chessschool.activematch",
+  "chessschool.arena",
+  "chessschool.onlineSeats",
+  "chessschool.analytics.session",
+  "chessschool.lastUser", // cached signed-in user (DP-M-005 offline session): a user key, wiped on logout, delete AND expiry
+  "chessschool.guestProgressOwner", // (f)-era key: never written (see progressStore.ts)
+];
+
+/** A fresh process on A's device: new module state, A's data in every store. */
+async function boot() {
+  vi.resetModules();
+  const [store, settingsMod, cache, match, arena, seat, wipe] = await Promise.all([
+    import("./progressStore"),
+    import("./settings"),
+    import("./dataCache"),
+    import("./matchStore"),
+    import("./arenaStore"),
+    import("./onlineSeat"),
+    import("./wipeUserData"),
+  ]);
+  const defaults = { ...settingsMod.settings.get() };
+  disk.set("chessschool.token", "A-token");
+  disk.set("chessschool.orientationSeen", "1");
+  // A's data
+  store.progressStore.beginSession("A");
+  await settle();
+  disk.set(
+    "chessschool.recentGamesCache",
+    JSON.stringify({
+      chessGames: 2,
+      origin: "signed-in",
+      owner: "A",
+      games: [{ id: "A-game" }],
+    }),
+  );
+  disk.set(
+    "chessschool.guestProgress",
+    JSON.stringify({ chessGuest: 2, origin: "signed-in", owner: "A", snap: { xp: 5 } }),
+  );
+  settingsMod.settings.set("avatar", "ava-A");
+  settingsMod.settings.set("goal", "A's goal");
+  cache.cacheSet("learn-screen", { resume: "A-lesson" });
+  cache.cacheSet("lesson:7", { id: 7 });
+  match.startBotMatch(800, 5);
+  arena.startArena(800);
+  await seat.saveOnlineSeat("ABC", "w", "A-seat-token");
+  disk.set("chessschool.analytics.session", "A-session-id");
+  disk.set(
+    "chessschool.lastUser",
+    JSON.stringify({ id: "A", email: "a-secret@x.test" }),
+  );
+  await settle();
+  return { store, settingsMod, cache, match, arena, wipe, defaults };
+}
+type Rig = Awaited<ReturnType<typeof boot>>;
+
+const userKeys = () => [...disk.keys()].filter((k) => k.startsWith("chessschool."));
+
+function expectNothingLeft(r: Rig, allowed: string[]) {
+  const survivors = userKeys().filter((k) => !allowed.includes(k));
+  expect(
+    survivors,
+    `user keys that survived the wipe: ${survivors.join(", ")}`,
+  ).toEqual([]);
+  // memory
+  expect(r.match.getActiveMatch()).toBeNull();
+  expect(r.arena.getArenaRun()).toBeNull();
+  expect(r.cache.cachePeek("learn-screen")).toBeNull();
+  expect(r.cache.cachePeek("lesson:7")).toBeNull();
+  expect(r.store.progressStore.get()).toBeNull();
+  // settings are back to the defaults, in memory and in the saved copy
+  expect(r.settingsMod.settings.get()).toEqual(r.defaults);
+  const saved = disk.get("chessschool.settings");
+  if (saved) expect(JSON.parse(saved)).toEqual(r.defaults);
+  expect(JSON.stringify([...disk.values()])).not.toContain("A-seat-token");
+  expect(JSON.stringify([...disk.values()])).not.toContain("A-session-id");
+  expect(JSON.stringify([...disk.values()])).not.toContain("a-secret@x.test");
+}
+
+beforeEach(() => disk.clear());
+
+describe("wipeUserData: logout / delete account (DP-M-001, DP-M-004)", () => {
+  it("leaves no user key behind, only the allowed ones", async () => {
+    const r = await boot();
+    expect(userKeys().length).toBeGreaterThan(ALLOWED_AFTER_LOGOUT.length + 4); // the rig really stored A's data
+    await r.wipe.wipeUserData();
+    expectNothingLeft(r, ALLOWED_AFTER_LOGOUT);
+  });
+
+  it("drops the kept guest copy, the games cache and the last-user id", async () => {
+    const r = await boot();
+    await r.wipe.wipeUserData();
+    expect(disk.has("chessschool.guestProgress")).toBe(false);
+    expect(disk.has("chessschool.recentGamesCache")).toBe(false);
+    expect(disk.has("chessschool.lastUserId")).toBe(false);
+  });
+
+  it("rotates the analytics session: the old id is gone from disk and memory", async () => {
+    const r = await boot();
+    await r.wipe.wipeUserData();
+    expect(disk.has("chessschool.analytics.session")).toBe(false);
+  });
+
+  it("does not touch the session token or the orientation flag", async () => {
+    const r = await boot();
+    await r.wipe.wipeUserData();
+    expect(disk.get("chessschool.token")).toBe("A-token");
+    expect(disk.get("chessschool.orientationSeen")).toBe("1");
+  });
+});
+
+describe("wipeUserData: session expiry, a 401 (DP-M-002)", () => {
+  it("clears the same keys as a logout except the owner-tagged progress policy keys", async () => {
+    const r = await boot();
+    await r.wipe.wipeUserData({ expired: true });
+    expectNothingLeft(r, ALLOWED_AFTER_EXPIRY);
+    // what the (g)-(k) policy keeps is still tagged to A and unchanged
+    expect(JSON.parse(disk.get("chessschool.guestProgress")!).owner).toBe("A");
+    expect(JSON.parse(disk.get("chessschool.recentGamesCache")!).owner).toBe("A");
+  });
+
+  it("resets settings (A's avatar and goal do not survive into the next session)", async () => {
+    const r = await boot();
+    await r.wipe.wipeUserData({ expired: true });
+    expect(r.settingsMod.settings.get().avatar).toBe(r.defaults.avatar);
+    expect(r.settingsMod.settings.get().goal).toBe("");
+  });
+
+  it("expires the session: it does not start a new generation like a logout", async () => {
+    const r = await boot();
+    const gen = vi.spyOn(r.store.progressStore, "clear");
+    await r.wipe.wipeUserData({ expired: true });
+    expect(gen).not.toHaveBeenCalled();
+  });
+});
+
+describe("wipeUserData: chessschool.lastUser", () => {
+  it("is deleted on logout and on expiry", async () => {
+    for (const opts of [{}, { expired: true }]) {
+      const r = await boot();
+      await r.wipe.wipeUserData(opts);
+      expect(disk.has("chessschool.lastUser")).toBe(false);
+    }
+  });
+
+  it("a missing key or a delete error does not stop the wipe (fails closed)", async () => {
+    const r = await boot();
+    const ss = await import("expo-secure-store");
+    vi.mocked(ss.deleteItemAsync).mockImplementationOnce(async (k: string) => {
+      if (k === "chessschool.lastUser") throw new Error("keystore");
+      disk.delete(k);
+    });
+    await expect(r.wipe.wipeUserData()).resolves.toBeUndefined();
+    disk.delete("chessschool.lastUser");
+    await expect(r.wipe.wipeUserData()).resolves.toBeUndefined(); // key already missing
+    expect(disk.has("chessschool.activematch")).toBe(false);
+  });
+});
+
+describe("wipeUserData: the Academy data cache (DP-M-003)", () => {
+  it("is emptied, including every lesson:<id> entry", async () => {
+    const r = await boot();
+    await r.wipe.wipeUserData();
+    expect(r.cache.cachePeek("learn-screen")).toBeNull();
+    expect(r.cache.cachePeek("lesson:7")).toBeNull();
+  });
+});
+
+describe("every chessschool.* key the app stores is accounted for", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const files: string[] = [];
+  const walk = (d: string) => {
+    for (const n of readdirSync(d)) {
+      const p = join(d, n);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(ts|tsx)$/.test(n) && !/\.test\.tsx?$/.test(n)) files.push(p);
+    }
+  };
+  walk(root);
+  walk(join(root, "..", "app"));
+
+  it("a new storage key must be listed here (and wiped, or allowed) before it ships", () => {
+    const found = new Set<string>();
+    for (const f of files) {
+      // backup.ts: "chessschool.progression" is a field name inside the backup file, not a stored key
+      if (f.endsWith("/backup.ts")) continue;
+      for (const m of readFileSync(f, "utf8").matchAll(
+        /["'`](chessschool\.[A-Za-z][A-Za-z0-9.]*)["'`]/g,
+      )) {
+        found.add(m[1]);
+      }
+    }
+    // not storage keys: the bundle id / URL scheme
+    found.delete("chessschool.app");
+    const unknown = [...found].filter((k) => !KNOWN_KEYS.includes(k));
+    expect(
+      unknown,
+      `new storage keys without a wipe decision: ${unknown.join(", ")}`,
+    ).toEqual([]);
+  });
+});

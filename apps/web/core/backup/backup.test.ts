@@ -38,6 +38,7 @@ vi.mock("@/core/db/db", () => ({
   },
 }));
 
+import { useSession } from "@/core/store/session.store";
 import {
   exportAll,
   exportToFile,
@@ -89,6 +90,7 @@ describe("backup validation", () => {
 describe("backup export/import", () => {
   beforeEach(() => {
     localStorage.clear();
+    useSession.getState().setSession(false, null); // a signed-out visitor: owner "guest"
     mocks.gamesToArray.mockResolvedValue([{ id: "g1" }]);
     mocks.journalToArray.mockResolvedValue([{ id: "j1" }]);
     mocks.gamesClear.mockResolvedValue(undefined);
@@ -111,6 +113,37 @@ describe("backup export/import", () => {
     expect(data.localStorage["chessschool.progression"]).toBe("not-json");
     expect(data.games).toHaveLength(1);
     expect(data.journal).toHaveLength(1);
+  });
+
+  it("exports only the signed-in user's rows, without the owner tag", async () => {
+    useSession
+      .getState()
+      .setSession(true, { id: "B", email: "b@x.test", name: "B", role: "student" });
+    mocks.gamesToArray.mockResolvedValue([
+      { id: "gA", owner: "A" },
+      { id: "gB", owner: "B" },
+    ]);
+    mocks.journalToArray.mockResolvedValue([
+      { id: "jA", owner: "A" },
+      { id: "jB", owner: "B" },
+      { id: "jOld" }, // untagged: attributed to the device's last user, not B
+    ]);
+    const data = await exportAll();
+    expect(data.games).toEqual([{ id: "gB" }]);
+    expect(data.journal).toEqual([{ id: "jB" }]);
+  });
+
+  it("stamps imported rows with the importing user, whatever tag the file has", async () => {
+    useSession
+      .getState()
+      .setSession(true, { id: "B", email: "b@x.test", name: "B", role: "student" });
+    await importAll({
+      ...valid,
+      games: [{ id: "g1", owner: "A" }],
+      journal: [{ id: "j1" }],
+    });
+    expect(mocks.gamesBulkPut).toHaveBeenCalledWith([{ id: "g1", owner: "B" }]);
+    expect(mocks.journalBulkPut).toHaveBeenCalledWith([{ id: "j1", owner: "B" }]);
   });
 
   it("downloads a JSON backup file", async () => {

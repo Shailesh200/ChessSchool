@@ -62,6 +62,17 @@ describe("session-store integration", () => {
     expect(rows[0]!.id).toBe(hashSessionToken(raw));
   });
 
+  it("does not accept the stored hash as a credential (DP-X-003)", async () => {
+    const raw = await createSession(USER, db);
+    const stored = hashSessionToken(raw);
+    expect(await findSessionByRawToken(stored, db)).toBeNull();
+    // and presenting it must not migrate/rehash the real session away
+    const rows = await db.select().from(schema.sessions);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.id).toBe(stored);
+    expect((await findSessionByRawToken(raw, db))?.userId).toBe(USER);
+  });
+
   it("revokes by raw token (hashed + legacy)", async () => {
     const raw = await createSession(USER, db);
     await revokeSessionByRawToken(raw, db);

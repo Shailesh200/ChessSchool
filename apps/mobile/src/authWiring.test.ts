@@ -46,18 +46,32 @@ describe("auth.tsx wiring of progressStore", () => {
     });
   }
 
-  it("the 401 handler calls expire() and not clear()", () => {
+  // DP-M-001/002/004: logout, deleteAccount and the 401 handler share ONE wipe
+  // (wipeUserData). The wipe itself is tested in wipeUserData.test.ts; these pin each caller.
+  it("the 401 handler runs the shared wipe in expired mode (which expires, never clears)", () => {
     const handler = from(
       "setUnauthorizedHandler(() => {",
       "return () => setUnauthorizedHandler(null)",
     );
-    expect(handler).toContain("progressStore.expire()");
+    expect(handler).toContain("wipeUserData({ expired: true })");
     expect(handler).not.toContain("progressStore.clear()");
+    expect(handler).not.toContain("settings.reset()");
   });
 
-  it("clear() is only called from logout and deleteAccount", () => {
-    expect(src.match(/progressStore\.clear\(\)/g)).toHaveLength(2);
-    expect(from("const logout = ")).toContain("progressStore.clear()");
-    expect(from("const deleteAccount = ")).toContain("progressStore.clear()");
+  it("logout runs the shared wipe", () => {
+    const body = from("const logout = ");
+    expect(body).toContain("await wipeUserData()");
+    expect(body).not.toContain("expired");
+  });
+
+  it("deleteAccount runs the shared wipe", () => {
+    const body = from("const deleteAccount = ");
+    expect(body).toContain("await wipeUserData()");
+    expect(body).not.toContain("expired");
+  });
+
+  it("auth.tsx no longer clears progress or settings by hand (the wipe does)", () => {
+    expect(src).not.toMatch(/progressStore\.clear\(\)/);
+    expect(src).not.toMatch(/settings\.reset\(\)/);
   });
 });

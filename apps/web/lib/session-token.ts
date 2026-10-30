@@ -10,7 +10,13 @@ export function newSessionToken(): string {
   return randomUUID();
 }
 
-/** Pre-M-047 rows used the raw UUID as the primary key. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Pre-M-047 rows used the raw UUID as the primary key. Only a UUID-shaped value
+ * qualifies: a stored SHA-256 digest (64 hex) must never be accepted as a credential
+ * by the legacy fallback, or a leaked session table would double as valid logins (DP-X-003).
+ */
 export function isLegacySessionId(storedId: string, rawToken: string): boolean {
-  return storedId === rawToken;
+  return storedId === rawToken && UUID_RE.test(rawToken);
 }

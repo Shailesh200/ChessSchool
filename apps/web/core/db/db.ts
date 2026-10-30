@@ -3,10 +3,22 @@
 import Dexie, { type EntityTable } from "dexie";
 import { normalizeSyncGame } from "@chess-school/progression";
 import { syncTrigger } from "@/core/sync/syncTrigger";
+import {
+  legacyOwner,
+  ownedBy,
+  reconcileRows,
+  rowOwnerNow,
+  type Owned,
+} from "@/core/sync/rowOwner";
 
 /**
  * Local-first persistence (IndexedDB via Dexie). Holds finished games for the
  * review/replay history and the spaced-repetition review queue. Zero network.
+ *
+ * Every row is tagged with its `owner` (the user id when it was queued, see
+ * core/sync/rowOwner.ts) and is read, pushed or kept only for that user. A logout or an
+ * account deletion clears all three tables (clearLocalRows), and a sign-in drops what is
+ * not the user's (reconcileLocalRows). `owner` is not an index and never leaves the device.
  */
 
 export type EndReason =
@@ -28,6 +40,8 @@ export interface SavedGame {
   moveCount: number;
   elo: number | null;
   durationMs: number;
+  /** User id this row belongs to (see rowOwner.ts). Set when the row is queued. */
+  owner?: string;
 }
 
 export interface ReviewItem {
@@ -36,6 +50,7 @@ export interface ReviewItem {
   dueAt: number;
   tag: string;
   ease: number;
+  owner?: string;
 }
 
 export interface JournalEntry {
@@ -48,6 +63,7 @@ export interface JournalEntry {
   note: string;
   summary: string; // coach-generated
   ref: string | null; // lesson/game id
+  owner?: string;
 }
 
 const db = new Dexie("chessschool") as Dexie & {
@@ -75,16 +91,18 @@ db.version(3).stores({
 export { db };
 
 export async function saveGame(game: SavedGame): Promise<void> {
-  await db.games.put(game);
+  await db.games.put({ ...game, owner: rowOwnerNow() });
   syncTrigger();
 }
 
 export async function listGames(): Promise<SavedGame[]> {
-  return db.games.orderBy("updatedAt").reverse().toArray();
+  const rows = await db.games.orderBy("updatedAt").reverse().toArray();
+  return ownedBy(rows, rowOwnerNow());
 }
 
 export async function getGame(id: string): Promise<SavedGame | undefined> {
-  return db.games.get(id);
+  const row = await db.games.get(id);
+  return row && ownedBy([row], rowOwnerNow()).length ? row : undefined;
 }
 
 export async function deleteGame(id: string): Promise<void> {
@@ -92,30 +110,73 @@ export async function deleteGame(id: string): Promise<void> {
 }
 
 export async function dueReviews(now = Date.now()): Promise<ReviewItem[]> {
-  return db.reviews.where("dueAt").belowOrEqual(now).toArray();
+  const rows = await db.reviews.where("dueAt").belowOrEqual(now).toArray();
+  return ownedBy(rows, rowOwnerNow());
 }
 
 export async function upsertReview(item: ReviewItem): Promise<void> {
-  await db.reviews.put(item);
+  await db.reviews.put({ ...item, owner: rowOwnerNow() });
 }
 
 export async function addJournalEntry(entry: JournalEntry): Promise<void> {
-  await db.journal.put(entry);
+  await db.journal.put({ ...entry, owner: rowOwnerNow() });
   syncTrigger();
 }
 
 export async function listJournal(): Promise<JournalEntry[]> {
-  return db.journal.orderBy("date").reverse().toArray();
+  const rows = await db.journal.orderBy("date").reverse().toArray();
+  return ownedBy(rows, rowOwnerNow());
 }
 
-/** Replace local journal with account snapshot (pull sync). */
-export async function replaceJournalEntries(entries: JournalEntry[]): Promise<void> {
+/** Replace local journal with account snapshot (pull sync). The rows are `owner`'s. */
+export async function replaceJournalEntries(
+  entries: JournalEntry[],
+  owner: string,
+): Promise<void> {
   await db.journal.clear();
-  if (entries.length) await db.journal.bulkAdd(entries);
+  if (entries.length) await db.journal.bulkAdd(entries.map((e) => ({ ...e, owner })));
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {
   await db.journal.delete(id);
+}
+
+/** Logout or account deletion: nothing of the user's rows stays on the device. */
+export async function clearLocalRows(): Promise<void> {
+  await db.transaction("rw", db.games, db.reviews, db.journal, async () => {
+    await db.games.clear();
+    await db.reviews.clear();
+    await db.journal.clear();
+  });
+}
+
+/**
+ * `userId` signed in (a pull succeeded for them): keep their rows, and a guest's when the
+ * account is new (`adoptGuest`); delete everyone else's. `legacy` is who untagged rows
+ * belonged to, read before the session markers were rewritten. The rows that stay are
+ * tagged with `userId`, so an untagged row is never left to be claimed by the next user.
+ */
+export async function reconcileLocalRows(
+  userId: string,
+  adoptGuest: boolean,
+  legacy: string = legacyOwner(),
+): Promise<void> {
+  await db.transaction("rw", db.games, db.reviews, db.journal, async () => {
+    for (const table of [db.games, db.reviews, db.journal] as unknown as {
+      toArray(): Promise<(Owned & { id: string })[]>;
+      bulkDelete(ids: string[]): Promise<void>;
+      bulkPut(rows: (Owned & { id: string })[]): Promise<unknown>;
+    }[]) {
+      const { keep, drop } = reconcileRows(
+        await table.toArray(),
+        userId,
+        adoptGuest,
+        legacy,
+      );
+      if (drop.length) await table.bulkDelete(drop.map((r) => r.id));
+      if (keep.length) await table.bulkPut(keep);
+    }
+  });
 }
 
 function syncToSavedGame(g: ReturnType<typeof normalizeSyncGame>): SavedGame {
@@ -139,12 +200,15 @@ function syncToSavedGame(g: ReturnType<typeof normalizeSyncGame>): SavedGame {
 }
 
 /** Replace local game history with account snapshot (pull sync). */
-export async function replaceGamesFromSync(recentGames: unknown[]): Promise<void> {
+export async function replaceGamesFromSync(
+  recentGames: unknown[],
+  owner: string,
+): Promise<void> {
   const games = recentGames
     .map(normalizeSyncGame)
     .filter((g): g is NonNullable<typeof g> => g !== null);
   await db.transaction("rw", db.games, async () => {
     await db.games.clear();
-    for (const g of games) await db.games.put(syncToSavedGame(g));
+    for (const g of games) await db.games.put({ ...syncToSavedGame(g), owner });
   });
 }

@@ -3,13 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logoutAction } from "@/lib/auth-actions";
-import { useProgression } from "@/core/store/progression.store";
-import { useSession } from "@/core/store/session.store";
-import { useSettings } from "@/core/store/settings.store";
-import { usePlan } from "@/core/store/plan.store";
 import { pulseTrack } from "@/lib/pulse";
+import { resetLocalAccountState } from "@/core/sync/accountReset";
 import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
-import { clearGuestOwner, clearSignedInMarker } from "@/core/sync/guestOwner";
 
 /**
  * Logout that also wipes client-side personal state, so the next user/guest never
@@ -32,18 +28,7 @@ export function LogoutButton() {
       // server already best-effort; continue clearing the client either way
     }
     await clearRuntimeCaches(); // again, in case a request re-cached something mid-logout
-    useProgression.getState().reset();
-    // An explicit logout leaves no kept copy or owner tag behind, even for the same user.
-    clearGuestOwner();
-    clearSignedInMarker();
-    usePlan.setState({
-      routineDay: null,
-      routineDone: [],
-      homeworkStreak: 0,
-      homeworkLastDay: null,
-    });
-    useSession.getState().setSession(false, null);
-    useSettings.getState().set("targetElo", 600); // back to the default opponent
+    await resetLocalAccountState();
     router.replace("/login");
   }
 
