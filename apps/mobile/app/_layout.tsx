@@ -26,6 +26,7 @@ import { UpdateBanner } from "@/UpdateBanner";
 import { Diagnostics } from "@/Diagnostics";
 import { PageViewTracker } from "@/productAnalytics/PageViewTracker";
 import { wrapRoot } from "@/sentry";
+import { premiumPreviewDecision } from "@/screens/premium/premiumModel";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -58,6 +59,20 @@ function Gate() {
 
       const onParityAuth = root === "parity-auth";
       if (onParityAuth) return;
+      const routeSegments = [...segments] as string[];
+      const onPremiumPreview = routeSegments[0] === "dev" && routeSegments[1] === "premium-preview";
+      if (onPremiumPreview) {
+        if (
+          premiumPreviewDecision({
+            APP_VARIANT: process.env.APP_VARIANT,
+            EXPO_PUBLIC_PREMIUM_PREVIEW: process.env.EXPO_PUBLIC_PREMIUM_PREVIEW,
+          }) === "allow"
+        ) {
+          return;
+        }
+        router.replace("/");
+        return;
+      }
 
       // Parity deep-links arrive before orientation completes — enter guest and continue.
       // Never call this once a real session exists (account / signed-in captures).

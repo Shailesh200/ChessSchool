@@ -8,10 +8,12 @@ type Props = {
   size?: number;
   color?: string;
   strokeWidth?: NumberProp;
+  /** Filled glyph (current-node play mark). */
+  filled?: boolean;
 };
 
 /** Lucide icons from bundled kit SVGs (assets/kit/icons). */
-export function KitIcon({ name, size = 24, color, strokeWidth = 2 }: Props) {
+export function KitIcon({ name, size = 24, color, strokeWidth = 2, filled = false }: Props) {
   const { colors } = usePremiumKitTheme();
   const tint = color ?? colors.ink;
   const def = KIT_LUCIDE_ICONS[name];
@@ -25,7 +27,7 @@ export function KitIcon({ name, size = 24, color, strokeWidth = 2 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {def.paths.map((d, i) => (
-        <Path key={`p-${i}`} d={d} {...strokeProps} />
+        <Path key={`p-${i}`} d={d} fill={filled ? tint : "none"} {...strokeProps} />
       ))}
       {def.circles.map((c, i) => (
         <Circle key={`c-${i}`} cx={c.cx} cy={c.cy} r={c.r} {...strokeProps} />

@@ -1,0 +1,28 @@
+# Nov 2 premium mobile screens
+
+Cut from `rc/nov2` at `1038cdf`. Premium is the default kit. Classic screens stay when `settings.uiKit` is `classic`.
+
+390px Expo web shots and the matching design PNGs are artifacts, not files in this repo.
+
+## Screens
+
+- 03 map: normal, dark, loading, empty, error, offline. Gym is a Learn-rail row, not a tab. Review badge uses the due-lesson count.
+
+The design preview route is `app/dev/premium-preview.tsx`. It stays closed unless `EXPO_PUBLIC_PREMIUM_PREVIEW=1`, and `APP_VARIANT=production` always redirects home.
+
+
+## Gaps
+
+- Preview streak and XP chips are 0 because that session has no progress snapshot.
+- Learn tab uses the kit book icon. The HTML draws a house.
+- Gym puzzle tiles are a tint, not a mini board. The library payload has no FEN.
+- Class detail overline is the lesson count. The class payload has no stage index.
+- `loader.json` is vector-only (`assets` is empty), so the mobile bundle does not ship a loader still.
+
+## Expo web dev shim (not in this branch)
+
+Android and production bundles do not use it. `metro.config.js` on this branch is the rc/nov2 file.
+
+For local Expo web screenshots only, you can temporarily point web resolution of `@lottiefiles/dotlottie-react` at a one-file stub that exports `DotLottieReact` as a no-op, and pin `react` / `react-dom` to `apps/mobile` when `platform === "web"` and `NODE_ENV !== "production"`. Do not commit it.
+
+Remove that local edit by checking out `apps/mobile/metro.config.js` from this branch and deleting any untracked `src/shims/dotlottie-react.web.js`.
