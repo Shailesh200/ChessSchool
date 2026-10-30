@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "./Button";
+import { useModalFocus } from "./useModalFocus";
 
 /** In-house confirm modal — replaces native confirm() for a premium feel. */
 export function ConfirmDialog({
@@ -24,19 +25,14 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useModalFocus(open, containerRef, onCancel);
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
+          ref={containerRef}
           className="fixed inset-0 z-[80] flex items-center justify-center p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

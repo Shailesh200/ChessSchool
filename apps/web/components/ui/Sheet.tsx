@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useRef } from "react";
+import { useModalFocus } from "./useModalFocus";
 
 /** Accessible bottom sheet with backdrop + spring entrance. */
 export function Sheet({
@@ -15,19 +16,14 @@ export function Sheet({
   title: string;
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useModalFocus(open, containerRef, onClose);
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
+          ref={containerRef}
           className="fixed inset-0 z-50 flex items-end justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
