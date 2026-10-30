@@ -7,9 +7,11 @@ Cut from `rc/nov2` at `1038cdf`. Premium is the default kit. Classic screens sta
 ## Screens
 
 - 03 map: normal, dark, loading, empty, error, offline. Gym is a Learn-rail row, not a tab. Review badge uses the due-lesson count.
+- 20 Review tab and 10a `/review/queue`: due skills, needs-practice under 60% mastery. Start opens fix-mistakes when the mistake log has rows, otherwise the first due lesson. Match history stays on the tab.
 
 The design preview route is `app/dev/premium-preview.tsx`. It stays closed unless `EXPO_PUBLIC_PREMIUM_PREVIEW=1`, and `APP_VARIANT=production` always redirects home.
 
+Pass mark is `ceil(steps * 0.67)` (`examPassMark` / `EXAM_PASS_RATIO`). Six puzzles need five.
 
 ## Gaps
 

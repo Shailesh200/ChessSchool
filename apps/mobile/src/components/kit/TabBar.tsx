@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { usePremiumKitTheme } from "./kitThemeContext";
@@ -20,8 +20,8 @@ const TABS: {
   { routeName: "profile", href: "/(tabs)/profile", label: "Profile", icon: "userRound", testID: "tab-Profile" },
 ];
 
-function isTabActive(pathname: string, routeName: string): boolean {
-  return premiumTabActive(pathname, routeName);
+function isTabActive(pathname: string, routeName: string, previewId: string): boolean {
+  return premiumTabActive(pathname, routeName, previewId);
 }
 
 function ReviewBadge({ count }: { count: number }) {
@@ -74,6 +74,7 @@ export function KitTabBar(props: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors } = usePremiumKitTheme();
   const due = reviewDueCount(useProgress()?.lessons);
+  const previewId = String(useLocalSearchParams<{ id?: string }>().id ?? "");
 
   return (
     <View
@@ -87,7 +88,7 @@ export function KitTabBar(props: BottomTabBarProps) {
       ]}
     >
       {TABS.map((tab) => {
-        const active = isTabActive(pathname, tab.routeName);
+        const active = isTabActive(pathname, tab.routeName, previewId);
         const badge = tab.routeName === "review" ? reviewTabBadge(due) : null;
         return (
           <Pressable
@@ -117,6 +118,7 @@ export function KitBottomNav() {
   const insets = useSafeAreaInsets();
   const { colors } = usePremiumKitTheme();
   const due = reviewDueCount(useProgress()?.lessons);
+  const previewId = String(useLocalSearchParams<{ id?: string }>().id ?? "");
 
   return (
     <View
@@ -130,7 +132,7 @@ export function KitBottomNav() {
       ]}
     >
       {TABS.map((tab) => {
-        const active = isTabActive(pathname, tab.routeName);
+        const active = isTabActive(pathname, tab.routeName, previewId);
         const badge = tab.routeName === "review" ? reviewTabBadge(due) : null;
         return (
           <Pressable
