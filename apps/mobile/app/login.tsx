@@ -35,7 +35,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const type = useType();
-  const params = useLocalSearchParams<{ email?: string; password?: string; boaAuth?: string }>();
+  const params = useLocalSearchParams<{ email?: string; password?: string; captureAuth?: string }>();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -50,8 +50,8 @@ export default function LoginScreen() {
   const styles = useMemo(() => makeStyles(colors, type), [colors, type]);
 
   useEffect(() => {
-    if (process.env.EXPO_PUBLIC_BOA_CAPTURE !== "1") return;
-    const auth = typeof params.boaAuth === "string" ? params.boaAuth : undefined;
+    if (process.env.EXPO_PUBLIC_PREMIUM_CAPTURE !== "1") return;
+    const auth = typeof params.captureAuth === "string" ? params.captureAuth : undefined;
     if (auth === "signup") setMode("register");
     if (auth === "errors") {
       setMode("login");
@@ -59,7 +59,7 @@ export default function LoginScreen() {
       setPassword("short");
       setError("Check your email and password (minimum 8 characters).");
     }
-  }, [params.boaAuth]);
+  }, [params.captureAuth]);
 
   useEffect(() => {
     if (!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID?.trim()) return;
@@ -135,9 +135,9 @@ export default function LoginScreen() {
 
   if (premium) {
     const captureAuth =
-      process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" &&
-      (params.boaAuth === "signup" || params.boaAuth === "errors" || params.boaAuth === "signin")
-        ? params.boaAuth
+      process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" &&
+      (params.captureAuth === "signup" || params.captureAuth === "errors" || params.captureAuth === "signin")
+        ? params.captureAuth
         : null;
     const authMode: PremiumAuthMode =
       captureAuth ??

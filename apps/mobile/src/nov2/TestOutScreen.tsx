@@ -8,12 +8,12 @@ import { CoachRow } from "@/nov2/CoachRow";
 /** 02d-onboarding-testout — placement teaser (question 2 of 5). */
 const PLACEMENT_FEN = "7k/5ppp/8/8/8/8/6PP/R5K1 w - - 0 1";
 
-export function BoaTestOutScreen() {
+export function TestOutScreen() {
   const router = useRouter();
   const { colors, space, radius, font, type } = usePremiumKitTheme();
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top", "bottom"]} testID="boa-test-out">
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top", "bottom"]} testID="test-out-screen">
       <View style={[styles.lessonHead, { paddingHorizontal: space["4"], paddingTop: space["2"] }]}>
         <Pressable
           accessibilityRole="button"

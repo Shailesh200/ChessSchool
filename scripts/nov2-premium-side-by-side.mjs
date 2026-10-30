@@ -1,13 +1,12 @@
 #!/usr/bin/env node
-/** Build side-by-side PNGs (reference | implementation) at 390px width for docs/nov2/boa/. */
+/** Build side-by-side PNGs (reference | implementation) under /opt/cursor/artifacts/boa-captures/side-by-side/. */
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
-const root = path.resolve(import.meta.dirname, "..");
-const refDir = path.join(root, "docs/nov2/boa/reference");
-const implDir = path.join(root, "docs/nov2/boa/implement");
-const outDir = path.join(root, "docs/nov2/boa");
+const refDir = "/opt/cursor/artifacts/boa-captures/reference";
+const implDir = "/opt/cursor/artifacts/boa-captures/implement";
+const outDir = "/opt/cursor/artifacts/boa-captures/side-by-side";
 
 const pairs = [
   ["02d-onboarding-testout.png", "02d-onboarding-testout-390.png"],

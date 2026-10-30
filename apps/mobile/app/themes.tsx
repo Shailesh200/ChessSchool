@@ -111,7 +111,7 @@ export default function ThemesScreen() {
         </View>
 
         <Text style={styles.section}>Mobile UI kit</Text>
-        <Text style={styles.sectionNote}>Premium illustrated (BOA) vs classic Cody chrome.</Text>
+        <Text style={styles.sectionNote}>Premium illustrated kit vs classic Cody chrome.</Text>
         <View style={styles.grid}>
           {(
             [

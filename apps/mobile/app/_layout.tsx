@@ -17,7 +17,7 @@ import { ThemeProvider, useAppTheme } from "@/ThemeProvider";
 import { PremiumKitThemeProvider } from "@/components/kit";
 import { useKitFonts } from "@/theme/premium/kitFonts";
 import { AnimatedSplash } from "@/AnimatedSplash";
-import { BoaAnimatedSplash } from "@/nov2/BoaAnimatedSplash";
+import { PremiumAnimatedSplash } from "@/nov2/PremiumAnimatedSplash";
 import { settings } from "@/settings";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
@@ -48,7 +48,7 @@ function Gate() {
       const onOrientation = root === undefined || root === "index";
       const onLogin = root === "login";
       const onOnboarding = root === "onboarding";
-      const onBoa = root === "boa";
+      const onEntryGuest = root === "entry" || root === "test-out";
       const onForgot = root === "forgot-password";
       const onReset = root === "reset-password";
 
@@ -64,11 +64,11 @@ function Gate() {
       const onParityAuth = root === "parity-auth";
       if (onParityAuth) return;
 
-      // BOA doc captures: seed localStorage `chessschool.boaCaptureGuest=1` (web only).
+      // Screen-capture harness: seed localStorage `chessschool.premiumCaptureGuest=1` (web only).
       if (
-        process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" &&
+        process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" &&
         typeof localStorage !== "undefined" &&
-        localStorage.getItem("chessschool.boaCaptureGuest") === "1" &&
+        localStorage.getItem("chessschool.premiumCaptureGuest") === "1" &&
         !guest &&
         !(user && !guest)
       ) {
@@ -87,13 +87,13 @@ function Gate() {
       }
 
       if (guest && user) {
-        if (onLogin || onBoa || onForgot || onReset) return;
+        if (onLogin || onEntryGuest || onForgot || onReset) return;
         if (onOrientation || onOnboarding) router.replace(ACADEMY);
         return;
       }
 
       if (!orientationDone) {
-        if (onOrientation || onBoa || onLogin || onForgot || onReset) return;
+        if (onOrientation || onEntryGuest || onLogin || onForgot || onReset) return;
         router.replace("/");
         return;
       }
@@ -134,7 +134,7 @@ function ThemedStatusBar() {
 }
 
 function RootLayout() {
-  const [showSplash, setShowSplash] = useState(process.env.EXPO_PUBLIC_BOA_CAPTURE !== "1");
+  const [showSplash, setShowSplash] = useState(process.env.EXPO_PUBLIC_PREMIUM_CAPTURE !== "1");
   const [fontsTimedOut, setFontsTimedOut] = useState(false);
   const [fontsLoaded] = useFonts({
     Fredoka_400Regular,
@@ -168,7 +168,7 @@ function RootLayout() {
         <ErrorBoundary>
           <StatusBar style="dark" />
           {premiumSplash ? (
-            <BoaAnimatedSplash onFinish={finishSplash} />
+            <PremiumAnimatedSplash onFinish={finishSplash} />
           ) : (
             <AnimatedSplash onFinish={finishSplash} />
           )}

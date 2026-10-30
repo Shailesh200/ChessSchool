@@ -10,7 +10,7 @@ import { setOrientationSeen } from "@/orientationSeen";
 import { useAuth } from "@/auth";
 import { useSettings } from "@/settings";
 import { isPremiumLook } from "@/nov2/uiLook";
-import { BoaEntrySplash } from "@/nov2/BoaEntrySplash";
+import { EntrySplash } from "@/nov2/EntrySplash";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
 
@@ -63,7 +63,7 @@ const STEPS: Step[] = [
 /** First-run orientation — premium entry splash or classic Cody tour. */
 export default function OrientationScreen() {
   const { uiKit } = useSettings();
-  if (isPremiumLook({ uiKit })) return <BoaEntrySplash />;
+  if (isPremiumLook({ uiKit })) return <EntrySplash />;
   return <ClassicOrientationScreen />;
 }
 

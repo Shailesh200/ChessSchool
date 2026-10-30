@@ -36,7 +36,7 @@ const settle = (ms = 25) => new Promise((r) => setTimeout(r, ms));
 const ALLOWED_AFTER_LOGOUT = [
   "chessschool.token", // the session itself: clearToken() removes it, not the wipe
   "chessschool.orientationSeen", // a device flag, not a user's data
-  "chessschool.boaCaptureGuest", // web BOA capture harness only (localStorage seed)
+  "chessschool.premiumCaptureGuest", // web premium capture harness only (localStorage seed)
   "chessschool.settings", // rewritten with the defaults (checked below)
 ];
 /** After an EXPIRY (401) the progress policy keeps these on purpose: owner-tagged, merged only for their owner. */
@@ -73,7 +73,7 @@ async function boot() {
   const defaults = { ...settingsMod.settings.get() };
   disk.set("chessschool.token", "A-token");
   disk.set("chessschool.orientationSeen", "1");
-  disk.set("chessschool.boaCaptureGuest", "1");
+  disk.set("chessschool.premiumCaptureGuest", "1");
   // A's data
   store.progressStore.beginSession("A");
   await settle();
@@ -160,7 +160,7 @@ describe("wipeUserData: logout / delete account (DP-M-001, DP-M-004)", () => {
     await r.wipe.wipeUserData();
     expect(disk.get("chessschool.token")).toBe("A-token");
     expect(disk.get("chessschool.orientationSeen")).toBe("1");
-    expect(disk.get("chessschool.boaCaptureGuest")).toBe("1");
+    expect(disk.get("chessschool.premiumCaptureGuest")).toBe("1");
   });
 });
 

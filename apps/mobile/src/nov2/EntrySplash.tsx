@@ -6,13 +6,13 @@ import { KitButton, KitLogo, usePremiumKitTheme } from "@/components/kit";
 import { createSplashStyles } from "@/nov2/premiumKitStyles";
 
 /** 01-splash — illustrated entry with CTA to onboarding or login. */
-export function BoaEntrySplash() {
+export function EntrySplash() {
   const router = useRouter();
   const kit = usePremiumKitTheme();
   const styles = useMemo(() => createSplashStyles(kit), [kit]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]} testID="boa-entry-splash">
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]} testID="entry-splash">
       <View style={styles.inner}>
         <View style={styles.hero}>
           <KitLogo withText size={32} />
@@ -21,7 +21,7 @@ export function BoaEntrySplash() {
           <Text style={styles.h1}>Learn chess with a coach who has your back.</Text>
           <Text style={styles.sub}>Short lessons, kind feedback, no pressure.</Text>
           <View style={styles.btns}>
-            <KitButton label="Get started" variant="accent" onPress={() => router.push("/boa/onboarding")} testID="boa-get-started" />
+            <KitButton label="Get started" variant="accent" onPress={() => router.push("/entry/onboarding")} testID="entry-get-started" />
             <KitButton label="I already have an account" variant="ghost" onPress={() => router.push("/login")} />
           </View>
         </View>
