@@ -8,6 +8,8 @@ Cut from `rc/nov2` at `1038cdf`. Premium is the default kit. Classic screens sta
 
 - 03 map: normal, dark, loading, empty, error, offline. Gym is a Learn-rail row, not a tab. Review badge uses the due-lesson count.
 - 20 Review tab and 10a `/review/queue`: due skills, needs-practice under 60% mastery. Start opens fix-mistakes when the mistake log has rows, otherwise the first due lesson. Match history stays on the tab.
+- 04 class detail: same lesson and exam navigation as the journey screen.
+- 11 Gym at `/gym` from Learn. 18 empty, error, and offline sheets use `KitSheet`.
 
 The design preview route is `app/dev/premium-preview.tsx`. It stays closed unless `EXPO_PUBLIC_PREMIUM_PREVIEW=1`, and `APP_VARIANT=production` always redirects home.
 

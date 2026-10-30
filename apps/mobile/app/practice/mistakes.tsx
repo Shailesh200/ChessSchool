@@ -11,11 +11,14 @@ import { useProgress } from "@/progressStore";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
+import { KitCoachAvatar, KitIcon, usePremiumKitTheme, useUiKit } from "@/components/kit";
 
 type Mistake = { fen: string; played: string; best: string; tag: string; at: number };
 
 export default function MistakePracticeScreen() {
   const router = useRouter();
+  const kit = useUiKit();
+  const premium = usePremiumKitTheme();
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 24, 440);
   const progress = useProgress();
@@ -109,6 +112,54 @@ export default function MistakePracticeScreen() {
         { startSquare: item.best.split(":")[0]!, endSquare: item.best.split(":")[1]!, color: colors.success },
       ]
     : [];
+
+  if (kit === "premium") {
+    const pct = Math.round(((index + (feedback === "correct" ? 1 : 0)) / mistakes.length) * 100);
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: premium.colors.bg }]} edges={["top"]} testID="fix-mistakes">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16 }}>
+          <Pressable accessibilityLabel="Close lesson" onPress={() => router.back()}>
+            <KitIcon name="x" size={22} color={premium.colors.ink} />
+          </Pressable>
+          <View style={{ flex: 1, height: 8, borderRadius: 99, backgroundColor: premium.colors.surfaceSunken }}>
+            <View style={{ width: `${pct}%`, height: 8, backgroundColor: premium.colors.brand }} />
+          </View>
+        </View>
+        <Text style={{ marginTop: 12, marginHorizontal: 16, color: premium.colors.ink500, fontFamily: premium.font.uiBold }}>
+          Fix mistakes · {index + 1} of {mistakes.length}
+        </Text>
+        <Text style={{ marginHorizontal: 16, color: premium.colors.ink, fontFamily: premium.font.displayBold, fontSize: 22 }}>Here is what happened</Text>
+        <View style={{ flexDirection: "row", gap: 12, margin: 16, alignItems: "center" }}>
+          <KitCoachAvatar character="otto" state={feedback === "correct" ? "success" : feedback === "wrong" ? "miss" : "think"} size={72} />
+          <View style={{ flex: 1, backgroundColor: premium.colors.coachBubble, borderRadius: 16, padding: 12 }}>
+            <Text style={{ color: premium.colors.ink }}>
+              {feedback === "correct" ? "Correct — that's the best move." : feedback === "wrong" ? "Not that one. Try the position again." : `Find the best move for ${turn}.`}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.boardWrap}>
+          <ChessBoard
+            fen={displayFen ?? item.fen}
+            size={boardSize}
+            orientation={turn === "Black" ? "black" : "white"}
+            onMove={onMove}
+            interactive={!feedback}
+            lastMove={lastMove}
+            arrows={reviewArrows}
+          />
+        </View>
+        <View style={styles.footer}>
+          {feedback === "correct" ? (
+            <Button label={index + 1 >= mistakes.length ? "Finish practice" : "Next position →"} variant="success" onPress={next} />
+          ) : (
+            <Pressable style={styles.hint} onPress={() => setShowArrows(true)}>
+              <Text style={styles.hintText}>Show played vs best arrows</Text>
+            </Pressable>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
