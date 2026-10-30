@@ -49,7 +49,7 @@ export function SidebarNav() {
   const loadingHref = pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
-    <aside className="border-hairline bg-surface-card hidden w-[220px] shrink-0 flex-col border-r lg:flex">
+    <aside className="premium-sidebar hidden w-[220px] shrink-0 flex-col min-[1024px]:flex">
       <div className="border-hairline border-b px-5 py-5">
         <Link href="/" className="block" aria-label="ChessSchool home">
           <Logo withText />

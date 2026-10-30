@@ -46,7 +46,7 @@ export function Sheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
-            className="pb-safe border-hairline bg-surface-card relative w-full max-w-xl rounded-t-3xl border p-5"
+            className="premium-card pb-safe border-hairline bg-surface-card relative w-full max-w-xl rounded-t-[var(--cs-radius-sheet,1.75rem)] border p-5 [box-shadow:var(--cs-shadow-sheet,var(--shadow-pop))]"
           >
             <div className="rounded-pill bg-surface-sunken mx-auto mb-3 h-1.5 w-12" />
             <h2 className="text-ink mb-3 text-lg font-extrabold">{title}</h2>

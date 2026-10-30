@@ -70,6 +70,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     settings.boardTheme,
     settings.schoolTheme,
     settings.appTheme,
+    settings.uiKit,
   ]);
 
   // Unlock the audio context on the first user gesture (mobile requirement).

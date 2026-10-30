@@ -224,14 +224,20 @@ export function applyTheme(
   schoolThemeId: string,
   appThemeId = "default",
   colorblind: "none" | "deuteranopia" | boolean = "none",
+  uiKit: "premium" | "legacy" = "premium",
 ): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const board = resolveBoardTheme(boardThemeId, colorblind);
   root.dataset.boardTheme = board.id === "deuteranopia" ? boardThemeId : board.id;
-  root.dataset.schoolTheme = schoolThemeId;
-  root.dataset.appTheme = appThemeId;
-  root.style.colorScheme = getAppTheme(appThemeId).dark ? "dark" : "light";
+  if (uiKit === "legacy") {
+    root.dataset.schoolTheme = schoolThemeId;
+    root.dataset.appTheme = appThemeId;
+    root.style.colorScheme = getAppTheme(appThemeId).dark ? "dark" : "light";
+  } else {
+    delete root.dataset.schoolTheme;
+    root.dataset.appTheme = appThemeId;
+  }
   root.style.setProperty("--board-light", board.light);
   root.style.setProperty("--board-dark", board.dark);
   root.style.setProperty("--board-move", board.move);

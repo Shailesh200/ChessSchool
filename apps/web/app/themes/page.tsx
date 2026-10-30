@@ -43,6 +43,7 @@ export default function ThemesPage() {
   const pieceTheme = useSettings((s) => s.pieceTheme);
   const schoolTheme = useSettings((s) => s.schoolTheme);
   const appTheme = useSettings((s) => s.appTheme);
+  const uiKit = useSettings((s) => s.uiKit);
   const set = useSettings((s) => s.set);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -56,6 +57,42 @@ export default function ThemesPage() {
             Preview and switch instantly.
           </p>
         </div>
+
+        <section>
+          <h2 className="text-ink mb-2 text-sm font-extrabold">Interface kit</h2>
+          <p className="text-ink-500 mb-3 text-xs font-semibold">
+            Premium Illustrated is the default. Classic UI restores the pre-nov2 look.
+          </p>
+          <div className="grid max-w-md grid-cols-2 gap-3">
+            {(
+              [
+                { id: "premium", name: "Premium Illustrated", emoji: "✨" },
+                { id: "legacy", name: "Classic UI", emoji: "🎓" },
+              ] as const
+            ).map((t) => {
+              const active = uiKit === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    set("uiKit", t.id);
+                    haptics.fire("select");
+                    audio.play("transition");
+                  }}
+                  className={`btn-tactile rounded-card flex items-center gap-2 border-2 p-2.5 ${
+                    active
+                      ? "border-brand bg-brand-50"
+                      : "border-hairline bg-surface-card"
+                  }`}
+                >
+                  <ContentIcon emoji={t.emoji} size={18} variant="inline" />
+                  <span className="text-ink text-left text-xs font-extrabold">{t.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         <div className="lg:grid lg:grid-cols-[minmax(0,560px)_minmax(320px,1fr)] lg:items-start lg:gap-8">
           {/* Live preview — sticky left column on desktop */}

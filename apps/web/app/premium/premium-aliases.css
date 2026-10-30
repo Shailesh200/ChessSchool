@@ -1,0 +1,95 @@
+/*
+  Premium Illustrated — map legacy Tailwind token names to kit semantic tokens
+  so ~1,380 existing utility classes keep working when data-ui-kit="premium".
+*/
+html[data-ui-kit="premium"],
+html:not([data-ui-kit]) {
+  --brand-50: var(--cs-emerald-50);
+  --brand-100: var(--cs-emerald-100);
+  --brand-300: var(--cs-emerald-300);
+  --brand-500: var(--cs-brand);
+  --brand-600: var(--cs-brand-hover);
+  --brand-700: var(--cs-brand-edge);
+  --accent-400: var(--cs-coral-400);
+  --accent-500: var(--cs-accent);
+  --accent-600: var(--cs-accent-edge);
+  --success-400: var(--cs-emerald-400);
+  --success-500: var(--cs-success);
+  --success-600: var(--cs-emerald-600);
+  --danger-400: var(--cs-coral-400);
+  --danger-500: var(--cs-error);
+  --warning-400: var(--cs-sun-400);
+  --warning-500: var(--cs-sun-500);
+  --gold-500: var(--cs-xp);
+  --ink-900: var(--cs-text);
+  --ink-700: var(--cs-text-muted);
+  --ink-500: var(--cs-text-muted);
+  --ink-300: var(--cs-text-subtle);
+  --surface: var(--cs-bg);
+  --surface-card: var(--cs-surface);
+  --surface-sunken: var(--cs-bg-sunken);
+  --hairline: var(--cs-line);
+  --board-light: var(--cs-board-light);
+  --board-dark: var(--cs-board-dark);
+  --board-highlight: var(--cs-board-highlight);
+  --board-move: var(--cs-board-highlight);
+  --radius-sm: var(--cs-radius-sm);
+  --radius-md: var(--cs-radius-md);
+  --radius-lg: var(--cs-radius-lg);
+  --radius-xl: var(--cs-radius-xl);
+  --radius-pill: var(--cs-radius-pill);
+  --shadow-button: var(--cs-shadow-edge);
+  --shadow-button-accent: 0 4px 0 var(--cs-accent-edge);
+  --elev-1: var(--cs-shadow-1);
+  --elev-2: var(--cs-shadow-2);
+  --elev-3: var(--cs-shadow-3);
+  --shadow-card: var(--cs-shadow-2);
+  --shadow-pop: var(--cs-shadow-4);
+  --ease-spring: var(--cs-ease-overshoot);
+  --ease-out: var(--cs-ease-decelerate);
+  --dur-fast: var(--cs-dur-fast);
+  --dur-base: var(--cs-dur-base);
+  --dur-slow: var(--cs-dur-slow);
+  --school-radius-card: var(--cs-radius-lg);
+  --school-radius-badge: var(--cs-radius-pill);
+  --school-card-border: 1.5px solid var(--cs-line);
+  --school-card-shadow: var(--cs-shadow-2);
+  --school-header-bg: transparent;
+  --school-header-pattern: none;
+  --school-badge-tracking: 0.04em;
+  --school-progress-radius: var(--cs-radius-pill);
+  --font-display: var(--cs-font-display);
+  --font-ui: var(--cs-font-ui);
+  --cs-ts: 1;
+}
+
+html[data-ui-kit="premium"][data-contrast="high"],
+html:not([data-ui-kit])[data-contrast="high"] {
+  --cs-line: var(--cs-ink-400);
+  --cs-line-strong: var(--cs-ink-500);
+  --cs-text-muted: var(--cs-ink-700);
+  --cs-text-subtle: var(--cs-ink-600);
+  --hairline: var(--cs-line);
+  --ink-500: var(--cs-text-muted);
+  --ink-300: var(--cs-text-subtle);
+}
+
+html[data-ui-kit="premium"][data-cb="deuteranopia"],
+html:not([data-ui-kit])[data-cb="deuteranopia"] {
+  --cs-board-light: #e8eef7;
+  --cs-board-dark: #9bb8d3;
+  --cs-board-highlight: #f2c14e;
+  --board-light: #e8eef7;
+  --board-dark: #9bb8d3;
+  --board-highlight: #f2c14e;
+  --board-move: #5aa9e6;
+}
+
+html[data-ui-kit="premium"],
+html:not([data-ui-kit]) {
+  color-scheme: light;
+}
+html[data-ui-kit="premium"][data-theme="dark"],
+html:not([data-ui-kit])[data-theme="dark"] {
+  color-scheme: dark;
+}

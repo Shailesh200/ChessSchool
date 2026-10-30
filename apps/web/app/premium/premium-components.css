@@ -1,0 +1,175 @@
+/* Premium shell + shared component polish (subset of kit components.css). */
+html[data-ui-kit="premium"] body,
+html:not([data-ui-kit]) body {
+  font-family: var(--cs-font-ui);
+  font-size: var(--cs-type-body-size);
+  line-height: var(--cs-type-body-line);
+  font-weight: 500;
+  background: var(--cs-bg);
+  color: var(--cs-text);
+}
+
+html[data-ui-kit="premium"] :focus-visible,
+html:not([data-ui-kit]) :focus-visible {
+  outline: none;
+  box-shadow: var(--cs-shadow-focus);
+  border-radius: 4px;
+}
+
+html[data-ui-kit="premium"] .premium-tabbar,
+html:not([data-ui-kit]) .premium-tabbar {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.25rem;
+  background: var(--cs-surface);
+  border-top: 1.5px solid var(--cs-line);
+  padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  min-height: calc(var(--cs-size-tab-h) + 0.5rem);
+}
+
+html[data-ui-kit="premium"] .premium-tab,
+html:not([data-ui-kit]) .premium-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 6rem;
+  min-height: var(--cs-size-tab-h);
+  border-radius: var(--cs-radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1875rem;
+  font: 700 0.75rem/1.15 var(--cs-font-ui);
+  color: var(--cs-text-muted);
+  text-align: center;
+}
+
+html[data-ui-kit="premium"] .premium-tab[aria-current="page"],
+html:not([data-ui-kit]) .premium-tab[aria-current="page"] {
+  background: var(--cs-tab-active-bg);
+  color: var(--cs-tab-active-fg);
+}
+
+html[data-ui-kit="premium"] .premium-sidebar,
+html:not([data-ui-kit]) .premium-sidebar {
+  background: var(--cs-surface);
+  border-right: 1.5px solid var(--cs-line);
+}
+
+html[data-ui-kit="premium"] .premium-topbar,
+html:not([data-ui-kit]) .premium-topbar {
+  background: color-mix(in srgb, var(--cs-bg) 88%, transparent);
+  border-bottom: 1.5px solid var(--cs-line);
+}
+
+html[data-ui-kit="premium"] .cs-wordmark,
+html:not([data-ui-kit]) .cs-wordmark {
+  font-family: var(--cs-font-display);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--cs-brand);
+}
+
+html[data-ui-kit="premium"] .cs-wordmark b,
+html:not([data-ui-kit]) .cs-wordmark b {
+  color: var(--cs-accent);
+  font-weight: 800;
+}
+
+html[data-ui-kit="premium"][data-theme="dark"] .cs-wordmark,
+html:not([data-ui-kit])[data-theme="dark"] .cs-wordmark {
+  color: var(--cs-emerald-200);
+}
+
+html[data-ui-kit="premium"] .premium-progress,
+html:not([data-ui-kit]) .premium-progress {
+  height: var(--cs-size-progress-h);
+  background: var(--cs-line);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+html[data-ui-kit="premium"] .premium-progress > *,
+html:not([data-ui-kit]) .premium-progress > * {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--cs-accent);
+}
+
+html[data-ui-kit="premium"] .premium-progress--brand > *,
+html:not([data-ui-kit]) .premium-progress--brand > * {
+  background: var(--cs-brand);
+}
+
+html[data-ui-kit="premium"] .premium-card,
+html:not([data-ui-kit]) .premium-card {
+  background: var(--cs-surface);
+  border: 1.5px solid var(--cs-line);
+  border-radius: var(--cs-radius-lg);
+}
+
+html[data-ui-kit="premium"] .premium-chip,
+html:not([data-ui-kit]) .premium-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--cs-radius-pill);
+  background: var(--cs-surface);
+  border: 1.5px solid var(--cs-line);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+html[data-ui-kit="premium"] .logo-kit-light,
+html:not([data-ui-kit]) .logo-kit-light {
+  display: block;
+}
+html[data-ui-kit="premium"] .logo-kit-dark,
+html:not([data-ui-kit]) .logo-kit-dark {
+  display: none;
+}
+html[data-ui-kit="premium"][data-theme="dark"] .logo-kit-light,
+html:not([data-ui-kit])[data-theme="dark"] .logo-kit-light {
+  display: none;
+}
+html[data-ui-kit="premium"][data-theme="dark"] .logo-kit-dark,
+html:not([data-ui-kit])[data-theme="dark"] .logo-kit-dark {
+  display: block;
+}
+
+html[data-ui-kit="premium"] .cs-toast,
+html:not([data-ui-kit]) .cs-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--cs-radius-md);
+  background: var(--cs-text);
+  color: var(--cs-bg);
+  box-shadow: var(--cs-shadow-3);
+  max-width: min(90%, 28rem);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+html[data-ui-kit="premium"][data-theme="dark"] .cs-toast,
+html:not([data-ui-kit])[data-theme="dark"] .cs-toast {
+  background: var(--cs-cream-100);
+  color: var(--cs-ink-900);
+}
+
+html[data-ui-kit="premium"] .coach-avatar,
+html:not([data-ui-kit]) .coach-avatar {
+  border-radius: 50%;
+  background: var(--cs-brand-soft);
+  border: 2px solid var(--cs-surface);
+}
+
+html[data-ui-kit="premium"] .coach-avatar__img,
+html:not([data-ui-kit]) .coach-avatar__img {
+  box-shadow: var(--cs-shadow-2);
+}
