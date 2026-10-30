@@ -402,6 +402,7 @@ export default function GameScreen() {
 
   return (
     <SafeAreaView
+      testID={kit === "premium" ? "premium-match" : undefined}
       style={[styles.safe, { backgroundColor: kit === "premium" ? (matchDark ? "#0f1419" : premiumColors.bg) : colors.surface }]}
       edges={["top"]}
     >

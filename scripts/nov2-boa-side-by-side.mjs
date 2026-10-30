@@ -10,6 +10,7 @@ const implDir = path.join(root, "docs/nov2/boa/implement");
 const outDir = path.join(root, "docs/nov2/boa");
 
 const pairs = [
+  ["02d-onboarding-testout.png", "02d-onboarding-testout-390.png"],
   ["19a-forgot-password-390.png", "19a-forgot-password-entry-390.png"],
   ["19a-forgot-password-sent-390.png", "19a-forgot-password-sent-390.png"],
   ["19b-reset-password-390.png", "19b-reset-password-390.png"],

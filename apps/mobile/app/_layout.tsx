@@ -64,6 +64,17 @@ function Gate() {
       const onParityAuth = root === "parity-auth";
       if (onParityAuth) return;
 
+      // BOA doc captures: seed localStorage `chessschool.boaCaptureGuest=1` (web only).
+      if (
+        process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" &&
+        typeof localStorage !== "undefined" &&
+        localStorage.getItem("chessschool.boaCaptureGuest") === "1" &&
+        !guest &&
+        !(user && !guest)
+      ) {
+        enterGuestBrowse();
+      }
+
       // Parity deep-links arrive before orientation completes — enter guest and continue.
       // Never call this once a real session exists (account / signed-in captures).
       if (
