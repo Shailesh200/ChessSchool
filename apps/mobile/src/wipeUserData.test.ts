@@ -185,6 +185,31 @@ describe("wipeUserData: session expiry, a 401 (DP-M-002)", () => {
   });
 });
 
+describe("wipeUserData: an Academy fetch in flight across the wipe (bleed-a)", () => {
+  it("A's reply landing after the wipe is not cached; a fetch started afterwards is", async () => {
+    const r = await boot();
+    const startedAt = r.cache.cacheGeneration(); // A's fetch starts
+    await r.wipe.wipeUserData();
+    expect(r.cache.cacheSet("learn-screen", { resume: "A-late" }, startedAt)).toBe(
+      false,
+    );
+    expect(r.cache.cachePeek("learn-screen")).toBeNull();
+    expect(
+      r.cache.cacheSet("learn-screen", { resume: "B" }, r.cache.cacheGeneration()),
+    ).toBe(true);
+  });
+
+  it("the same on a 401 (expired mode)", async () => {
+    const r = await boot();
+    const startedAt = r.cache.cacheGeneration();
+    await r.wipe.wipeUserData({ expired: true });
+    expect(r.cache.cacheSet("learn-screen", { resume: "A-late" }, startedAt)).toBe(
+      false,
+    );
+    expect(r.cache.cachePeek("learn-screen")).toBeNull();
+  });
+});
+
 describe("wipeUserData: chessschool.lastUser", () => {
   it("is deleted on logout and on expiry", async () => {
     for (const opts of [{}, { expired: true }]) {

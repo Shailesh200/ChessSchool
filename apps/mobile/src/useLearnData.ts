@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { api } from "@/api";
 import { isoDay } from "@/progression";
-import { cacheInvalidate, cachePeek, cacheSet, cacheAge } from "@/dataCache";
+import { cacheInvalidate, cachePeek, cacheSet, cacheAge, cacheGeneration } from "@/dataCache";
 import { fetchProgress } from "@/progressStore";
 import type { CampusStage } from "@/CampusMap";
 
@@ -58,9 +58,12 @@ export function useLearnData() {
     if (mode === "pull") setPullRefreshing(true);
     else if (mode === "initial" && !cachePeek<LearnData>(CACHE_KEY)) setInitialLoading(true);
 
+    // Read before the fetch starts: a wipe (logout, 401, delete) while it is in flight bumps it.
+    const startedAt = cacheGeneration();
     try {
       const fresh = await fetchLearnBundle();
-      cacheSet(CACHE_KEY, fresh);
+      // The reply belongs to whoever was signed in when it started; drop it after a wipe.
+      if (!cacheSet(CACHE_KEY, fresh, startedAt)) return;
       setData(fresh);
       setError(null);
       void fetchProgress(false).catch(() => void 0);
