@@ -57,7 +57,6 @@ import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
 import { stopCoachSpeech, speakCoachText } from "@/coachSpeech";
-import { usePremiumKitTheme } from "@/components/kit";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type OverState = {
