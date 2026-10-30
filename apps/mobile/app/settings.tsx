@@ -24,8 +24,16 @@ import {
   coachCharacterOf,
 } from "@/coachCharacters";
 import { trackEvent } from "@/productAnalytics/track";
+import { useUiKit } from "@/components/kit/useUiKit";
+import { PremiumSettingsScreen } from "@/screens/premium/PremiumSettingsScreen";
 
 export default function SettingsScreen() {
+  const kit = useUiKit();
+  if (kit === "premium") return <PremiumSettingsScreen />;
+  return <LegacySettingsScreen />;
+}
+
+function LegacySettingsScreen() {
   const router = useRouter();
   const { guest, exitGuest, user } = useAuth();
   const { colors } = useAppTheme();

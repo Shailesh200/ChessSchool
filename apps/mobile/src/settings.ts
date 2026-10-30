@@ -10,6 +10,7 @@ import {
   type CoachCharacterId,
 } from "./coachCharacters";
 import { DEFAULT_UI_KIT, type UiKit } from "./uiKit";
+import { NOTIFICATION_DEFAULTS } from "./notificationDefaults";
 
 export type { UiKit } from "./uiKit";
 
@@ -56,6 +57,9 @@ export type Settings = {
   textScale: number;
   /** Opt-in product analytics (page views, matches, features). Default on. */
   shareAnalytics: boolean;
+  notificationsEnabled: boolean;
+  notificationHour: number;
+  notificationMinute: number;
 };
 
 const KEY = "chessschool.settings";
@@ -87,6 +91,7 @@ const DEFAULTS: Settings = {
   diagnostics: false,
   textScale: 1,
   shareAnalytics: true,
+  ...NOTIFICATION_DEFAULTS,
 };
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
