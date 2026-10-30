@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { lessons, classes, semesters } from "@/db/schema";
+import {
+  pickSchoolExamSteps,
+  SCHOOL_EXAM_STEP_COUNT,
+} from "@/features/school/classExam";
+import type { LessonStep } from "@/features/lessons/types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,24 +36,20 @@ export async function GET(req: Request) {
     .orderBy(sql`RANDOM()`)
     .limit(80);
 
-  const moveSteps: unknown[] = [];
+  const moveSteps: LessonStep[] = [];
   for (const l of les) {
     try {
-      for (const s of JSON.parse(l.steps)) {
-        if (s.kind === "move" && Array.isArray(s.solution) && s.solution.length)
-          moveSteps.push(s);
+      for (const s of JSON.parse(l.steps) as LessonStep[]) {
+        if (s.kind === "move") moveSteps.push(s);
       }
     } catch {
       /* skip */
     }
   }
-  // Shuffle and take 8.
-  for (let i = moveSteps.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [moveSteps[i], moveSteps[j]] = [moveSteps[j], moveSteps[i]];
-  }
-  const steps = moveSteps
-    .slice(0, 8)
-    .map((s, i) => ({ ...(s as object), id: `ex${i}`, tag: "exam" }));
+  const steps = pickSchoolExamSteps(moveSteps, SCHOOL_EXAM_STEP_COUNT).map((s, i) => ({
+    ...s,
+    id: `ex${i}`,
+    tag: "exam",
+  }));
   return NextResponse.json({ steps });
 }
