@@ -118,9 +118,11 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
     uiKit:
       next.uiKit === "classic" || next.uiKit === "premium"
         ? next.uiKit
-        : next.uiKit === undefined
-          ? undefined
-          : "premium",
+        : (next as { uiLook?: string }).uiLook === "classic" || (next as { uiLook?: string }).uiLook === "premium"
+          ? ((next as { uiLook: "classic" | "premium" }).uiLook as UiKit)
+          : next.uiKit === undefined && (next as { uiLook?: string }).uiLook === undefined
+            ? undefined
+            : DEFAULT_UI_KIT,
   } as Partial<Settings>;
 }
 

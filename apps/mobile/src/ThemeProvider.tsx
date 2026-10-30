@@ -35,15 +35,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const themeDef = getAppTheme(appThemeId);
   const uiKit = s.uiKit === "classic" ? "classic" : "premium";
   const premiumMode = scheme === "dark" || themeDef.dark ? "dark" : "light";
-  const premium = uiKit === "premium" ? buildPremiumTheme(premiumMode) : null;
+  const premiumTheme = uiKit === "premium" ? buildPremiumTheme(premiumMode) : null;
 
   // Classic ("default") stays light — premium follows system / Midnight app theme.
   const isDark = uiKit === "premium" ? premiumMode === "dark" : themeDef.dark === true;
 
   const resolved = useMemo(() => {
     let c = buildPalette(appThemeId, schoolThemeId, s.highContrast);
-    if (premium) {
-      c = { ...c, ...premium.colors };
+    if (premiumTheme) {
+      c = { ...c, ...premiumTheme.colors };
     }
     if (s.colorblind) {
       c = { ...c, success: COLORBLIND.success, danger: COLORBLIND.danger, warning: COLORBLIND.warning };
@@ -51,7 +51,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Keep module tokens in sync for legacy static StyleSheets, but screens should use useAppTheme().
     Object.assign(baseColors, c as Record<string, string>);
     return c;
-  }, [appThemeId, schoolThemeId, s.highContrast, s.colorblind, premium]);
+  }, [appThemeId, schoolThemeId, s.highContrast, s.colorblind, premiumTheme]);
 
   const value = useMemo(
     () => ({ colors: resolved, isDark, reducedMotion: s.reducedMotion, colorblind: s.colorblind, textScale: s.textScale }),
