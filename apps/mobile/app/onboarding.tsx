@@ -9,6 +9,7 @@ import {
   normalizeCoachCharacter,
   type CoachCharacterId,
 } from "@/coachCharacters";
+import { onboardingSettingsPatch } from "@/onboardingFinishOrder";
 import { saveOnboardingToServer } from "@/profile";
 import { mutateProgress } from "@/progressStore";
 import { Button } from "@/Button";
@@ -93,14 +94,16 @@ export default function OnboardingScreen() {
     if (finishing) return;
     setFinishing(true);
     setFinishError(null);
-    settings.set("goal", goal);
-    settings.set("targetElo", Number(elo) || 600);
-    settings.set("planTier", (time || "standard") as never);
-    settings.set("coachCharacter", onboardingCoachChoice(coach));
-    settings.set("appTheme", theme || "default");
-    settings.set("avatar", displayAvatar);
+    const coachChar = onboardingCoachChoice(coach);
     try {
       await saveOnboardingToServer(goal, displayAvatar);
+      const patch = onboardingSettingsPatch(goal, elo, time, coachChar, theme, displayAvatar);
+      settings.set("goal", String(patch.goal));
+      settings.set("targetElo", Number(patch.targetElo));
+      settings.set("planTier", (patch.planTier || "standard") as never);
+      settings.set("coachCharacter", coachChar);
+      settings.set("appTheme", String(patch.appTheme));
+      settings.set("avatar", String(patch.avatar));
       await mutateProgress((snap) => ({ ...snap, settings: settings.get() }));
       haptics.success();
       finishOnboarding();
