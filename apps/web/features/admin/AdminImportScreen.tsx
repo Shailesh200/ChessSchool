@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Chess } from "chess.js";
 import { importPuzzleJsonl } from "@/lib/admin-actions";
-import { KitIcon } from "./KitIcon";
+import { KitIcon } from "@/components/ui/KitIcon";
 
 type RowStatus = "ready" | "warning" | "fix";
 
@@ -216,7 +216,7 @@ export function AdminImportScreen({
   const jsonl = toJsonl(rows);
 
   return (
-    <div className="chopper adm">
+    <div className="illustrated adm">
       <header className="admtop">
         <span className="logo-h" role="img" aria-label="ChessSchool" />
         <span className="pill">Admin · Puzzle import</span>

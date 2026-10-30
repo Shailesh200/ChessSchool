@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { classes } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-import { AdminImportScreen } from "@/features/chopper/AdminImportScreen";
+import { AdminImportScreen } from "@/features/admin/AdminImportScreen";
 
 export const metadata = { title: "Puzzle import" };
 export const dynamic = "force-dynamic";

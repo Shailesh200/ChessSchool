@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
-import { MiniBoard } from "./MiniBoard";
+import { MiniBoard } from "@/features/gym/MiniBoard";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useProgression } from "@/core/store/progression.store";
-import { KitIcon } from "./KitIcon";
-import { FIX_FEN } from "./catalog";
+import { KitIcon } from "@/components/ui/KitIcon";
+import { FIX_FEN } from "./skills";
 
 /**
  * Design 10b. Live data is the newest mistake in the progression log.
@@ -28,7 +28,7 @@ export function FixMistakes({ fixture = false }: { fixture?: boolean }) {
       : "You slipped here before. Find the better move this time.";
 
   return (
-    <div className="chopper-lesson">
+    <div className="illustrated-lesson">
       <div className="lessonhead">
         <Link className="iconbtn" href="/review" aria-label="Close lesson">
           <KitIcon name="x" />

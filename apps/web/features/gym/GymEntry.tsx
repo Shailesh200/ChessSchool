@@ -29,7 +29,7 @@ export function GymEntry({
     );
   }
 
-  if (kind) {
+  if (kind && process.env.NODE_ENV !== "production") {
     return (
       <StateSheet
         kind={kind}

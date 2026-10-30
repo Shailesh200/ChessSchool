@@ -18,7 +18,8 @@ export function PlayScreen({ scene }: { scene?: string }) {
     if (active) return <MatchView active={active} />;
     return <MatchChooser />;
   }
-  if (known) return <PlayMatch scene={known} />;
+  if (known && process.env.NODE_ENV !== "production")
+    return <PlayMatch scene={known} />;
   if (active) return <PlayMatch scene="live" />;
   return <PlayHub />;
 }

@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useProgression } from "@/core/store/progression.store";
-import { KitIcon } from "./KitIcon";
-import { MiniBoard } from "./MiniBoard";
-import { DAILY_PUZZLE, GYM_PUZZLES, type GymPuzzle } from "./catalog";
+import { KitIcon } from "@/components/ui/KitIcon";
+import { MiniBoard } from "@/features/gym/MiniBoard";
+import { DAILY_PUZZLE, GYM_PUZZLES, type GymPuzzle } from "./puzzles";
 
 const SKILLS = ["All", "Forks", "Pins", "Skewers", "Mates", "Endgames"] as const;
 const LEVELS = ["All", "Easy", "Medium", "Hard"] as const;
@@ -33,7 +33,7 @@ export function GymScreen({ fixture = false }: { fixture?: boolean }) {
   }
 
   return (
-    <div className="chopper">
+    <div className="illustrated">
       <div className="pagehead">
         <h1>Gym</h1>
       </div>

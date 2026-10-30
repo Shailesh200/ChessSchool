@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Chess } from "chess.js";
 import { ChessBoard } from "@/features/board/ChessBoard";
-import { MiniBoard } from "./MiniBoard";
+import { MiniBoard } from "@/features/gym/MiniBoard";
 import { useMatch } from "@/core/store/match.store";
 import { useProgression } from "@/core/store/progression.store";
 import { saveGame, type EndReason } from "@/core/db/db";
 import { eloToConfig, getBotMove } from "@/features/chess-engine/bot";
 import type { MoveInput } from "@/core/types/chess";
-import { KitIcon } from "./KitIcon";
-import { MATCH_FEN, MATCH_MOVES, opponentById, type OpponentId } from "./catalog";
+import { KitIcon } from "@/components/ui/KitIcon";
+import { MATCH_FEN, MATCH_MOVES, opponentById, type OpponentId } from "./opponents";
 
 type Scene = "kira" | "ash" | "rex" | "skye" | "dark" | "won" | "lost" | "live";
 
@@ -65,7 +65,7 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
   const [oppId] = useState<OpponentId>(() => {
     if (fixture) return sceneOpponent(scene);
     if (typeof window === "undefined") return "kira";
-    const stored = sessionStorage.getItem("chopper-opp");
+    const stored = sessionStorage.getItem("play-opponent");
     if (
       stored === "skye" ||
       stored === "kira" ||
@@ -80,7 +80,7 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
     if (fixture) return false;
     if (active?.mode === "pass") return true;
     if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("chopper-mode") === "friend";
+    return sessionStorage.getItem("play-mode") === "friend";
   });
   const opp = opponentById(oppId);
 
@@ -223,7 +223,7 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
     : null;
 
   return (
-    <div className="chopper" data-theme={dark ? "dark" : undefined}>
+    <div className="illustrated" data-theme={dark ? "dark" : undefined}>
       <div className="match">
         <div className="m-head">
           <span className="head">
@@ -330,7 +330,7 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
                     fen={fen}
                     interactive
                     onMove={onMove}
-                    boardId="chopper-match"
+                    boardId="play-match"
                     showNotation
                   />
                 )}
