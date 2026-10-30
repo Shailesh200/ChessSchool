@@ -8,7 +8,7 @@ import { settings } from "@/settings";
 import { useAuth } from "@/auth";
 import { setOrientationSeen } from "@/orientationSeen";
 import { CoachRow } from "@/nov2/CoachRow";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton } from "@/components/kit";
 import { OptionList } from "@/nov2/OptionList";
 import { StepDots } from "@/nov2/StepDots";
 import { BOA_GOAL_OPTIONS, BOA_LEVEL_OPTIONS, mapBoaGoalToSettings } from "@/nov2/onboardingData";
@@ -43,7 +43,7 @@ export default function BoaOnboardingScreen() {
             <CoachRow slug="otto" text="Hi, I'm Otto! What would you like from chess?" strong size={72} />
             <Text style={styles.h2}>What brings you here?</Text>
             <OptionList options={BOA_GOAL_OPTIONS} value={goal} onChange={setGoal} accessibilityLabel="Your goal" />
-            <DexButton label="Continue" onPress={() => setStep(1)} />
+            <KitButton label="Continue" onPress={() => setStep(1)} />
           </>
         )}
         {step === 1 && (
@@ -51,13 +51,13 @@ export default function BoaOnboardingScreen() {
             <CoachRow slug="otto" text="No wrong answer. I'll fit the lessons to you." strong size={72} />
             <Text style={styles.h2}>How much chess do you know?</Text>
             <OptionList options={BOA_LEVEL_OPTIONS} value={level} onChange={setLevel} accessibilityLabel="Your level" />
-            <DexButton
+            <KitButton
               label="Test out instead"
               variant="ghost"
               onPress={() => router.push("/placement")}
               style={{ marginTop: premiumSpace[2] }}
             />
-            <DexButton
+            <KitButton
               label="Continue"
               onPress={() => {
                 void finishEntry();
