@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Icon } from "@/Icon";
 import { coachCharacterIdFromPremiumSlug } from "@/coachCharacters";
-import { getAppTheme } from "@/appThemes";
 import { settings, useSettings } from "@/settings";
+import { resolvePremiumColorMode } from "@/themeMode";
 import { CoachHead } from "@/nov2/CoachRow";
 import { KitButton, KitTopBar } from "@/components/kit";
 import { usePremiumKitTheme } from "@/components/kit";
@@ -39,7 +39,8 @@ const OPPONENTS: {
 /** 12-play-hub — premium Play tab (390 layout). */
 export function PlayHubPremium() {
   const router = useRouter();
-  const { appTheme } = useSettings();
+  const { themeMode } = useSettings();
+  const scheme = useColorScheme();
   const { colors } = usePremiumKitTheme();
   const [mode, setMode] = useState<PlayMode>("coach");
   const [opp, setOpp] = useState<OpponentId>("kira");
@@ -61,7 +62,7 @@ export function PlayHubPremium() {
       router.push("/play/pass");
       return;
     }
-    const dark = getAppTheme(appTheme ?? "default").dark === true || ashOn;
+    const dark = resolvePremiumColorMode(themeMode, scheme) === "dark" || ashOn;
     router.push({
       pathname: "/play/game",
       params: { elo: String(selected.elo), coach: heroCoach, mode, dark: dark ? "1" : "0" },
