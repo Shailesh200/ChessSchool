@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, setToken, clearToken, getToken, setUnauthorizedHandler } from "./api";
+import { api, setToken, clearToken, setUnauthorizedHandler } from "./api";
 import { progressStore, fetchProgress, syncProgressAfterAuth, clearGuestProgress } from "./progressStore";
 import { loadSettingsFromAccount } from "./settings";
 import { wipeUserData } from "./wipeUserData";
 import { fetchProfile } from "./profile";
 import { getOrientationSeen } from "./orientationSeen";
 import { toast } from "./toast";
+import { bootFromSavedToken, forgetUser, rememberUser, revalidateSession } from "./authBoot";
 
 export type User = { id: string; name: string; email: string; role: string };
 
@@ -58,6 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [orientationDone, setOrientationDone] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  /** Booted from the cached user because /api/auth/me was unreachable. */
+  const [needsRevalidate, setNeedsRevalidate] = useState(false);
 
   const afterAuth = useCallback(async (opts?: { isNewUser?: boolean }) => {
     void loadSettingsFromAccount();
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Session expired: the same wipe as a logout, except the in-flight edit stays as
       // guest progress (no new generation): wipeUserData({ expired }) calls expire().
       void wipeUserData({ expired: true });
+      setNeedsRevalidate(false);
       void getOrientationSeen().then((done) => {
         if (done) void restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
         else {
@@ -120,26 +124,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Resolve a saved session BEFORE seeding guest UI. Optimistic guest-first
       // raced with parity-auth adopt and could leave the suite stuck as guest.
-      const t = await getToken();
+      // Only a 401 ends the session; offline / timeout / 5xx keep the token (DP-M-005).
+      const outcome = await bootFromSavedToken();
       if (cancelled) return;
 
-      if (t) {
-        try {
-          const { user } = await api<{ user: User }>("/api/auth/me");
-          if (cancelled) return;
-          progressStore.beginSession(user.id);
-          setUser(user);
-          setGuest(false);
-          setNeedsOnboarding(false);
-          setLoading(false);
-          void loadSettingsFromAccount();
-          void fetchProgress(true).catch(() => void 0);
-          await applyOnboardingGate(setNeedsOnboarding);
-          return;
-        } catch {
-          await clearToken();
-        }
+      if (outcome.kind === "online") {
+        const { user } = outcome;
+        progressStore.beginSession(user.id);
+        setUser(user);
+        setGuest(false);
+        setNeedsOnboarding(false);
+        setLoading(false);
+        void loadSettingsFromAccount();
+        void fetchProgress(true).catch(() => void 0);
+        await applyOnboardingGate(setNeedsOnboarding);
+        return;
       }
+
+      if (outcome.kind === "offline") {
+        // Signed in from the last known user; /me is re-checked in the background.
+        const { user: cachedUser } = outcome;
+        progressStore.beginSession(cachedUser.id);
+        setUser(cachedUser);
+        setGuest(false);
+        setNeedsOnboarding(false);
+        setLoading(false);
+        setNeedsRevalidate(true);
+        void loadSettingsFromAccount();
+        void fetchProgress(true).catch(() => void 0);
+        return;
+      }
+
+      // A saved token with no cached user (first launch after update, offline): the
+      // guest UI below is only a placeholder until /api/auth/me answers.
+      if (outcome.kind === "unverified") setNeedsRevalidate(true);
 
       if (oriented) {
         setNeedsOnboarding(false);
@@ -159,9 +177,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Offline cold start: re-check /api/auth/me until the server answers. A 401 clears
+  // the token and runs the unauthorized handler (the session-expiry path) inside api().
+  useEffect(() => {
+    if (!needsRevalidate) return;
+    let stopped = false;
+    const tick = async () => {
+      const r = await revalidateSession();
+      if (stopped || r.kind === "retry") return;
+      if (r.kind === "stale") {
+        // The session changed under this check (logout / another sign-in): drop it, change nothing.
+        stopped = true;
+        clearInterval(timer);
+        setNeedsRevalidate(false);
+        return;
+      }
+      stopped = true;
+      clearInterval(timer);
+      setNeedsRevalidate(false);
+      if (r.kind === "online") {
+        // The full sign-in path, as at an online boot (also leaves guest mode).
+        progressStore.beginSession(r.user.id);
+        setUser(r.user);
+        setGuest(false);
+        setNeedsOnboarding(false);
+        setLoading(false);
+        void loadSettingsFromAccount();
+        void fetchProgress(true).catch(() => void 0);
+        await applyOnboardingGate(setNeedsOnboarding);
+      }
+    };
+    const timer = setInterval(() => void tick(), 30_000);
+    void tick();
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [needsRevalidate]);
+
   const adoptSessionToken = async (token: string) => {
     await setToken(token);
     const { user } = await api<{ user: User }>("/api/auth/me");
+    void rememberUser(user, token);
     progressStore.beginSession(user.id);
     setOrientationDone(true);
     setNeedsOnboarding(false);
@@ -176,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password },
     });
     await setToken(token);
+    await rememberUser(user, token);
     progressStore.beginSession(user.id);
     setGuest(false);
     setUser(user);
@@ -192,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { idToken },
     });
     await setToken(token);
+    await rememberUser(user, token);
     progressStore.beginSession(user.id);
     setGuest(false);
     setUser(user);
@@ -205,6 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password, name },
     });
     await setToken(token);
+    await rememberUser(user, token);
     progressStore.beginSession(user.id);
     setNeedsOnboarding(true);
     setGuest(false);
@@ -219,6 +279,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     await clearToken();
+    void forgetUser();
+    setNeedsRevalidate(false);
     await wipeUserData();
     const oriented = await getOrientationSeen();
     if (oriented) await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
@@ -231,6 +293,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async () => {
     await api("/api/account", { method: "DELETE" });
     await clearToken();
+    void forgetUser();
+    setNeedsRevalidate(false);
     await wipeUserData();
     const oriented = await getOrientationSeen();
     if (oriented) await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);

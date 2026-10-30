@@ -30,8 +30,8 @@ describe("auth.tsx wiring of progressStore", () => {
 
   for (const [name, text, next] of [
     [
-      "session restore (/api/auth/me)",
-      from('api<{ user: User }>("/api/auth/me")', "applyOnboardingGate"),
+      "session restore (bootFromSavedToken → /api/auth/me)",
+      from("await bootFromSavedToken()", "applyOnboardingGate"),
       "fetchProgress(",
     ],
     ["adoptSessionToken", from("const adoptSessionToken = "), "afterAuth("],
@@ -73,5 +73,23 @@ describe("auth.tsx wiring of progressStore", () => {
   it("auth.tsx no longer clears progress or settings by hand (the wipe does)", () => {
     expect(src).not.toMatch(/progressStore\.clear\(\)/);
     expect(src).not.toMatch(/settings\.reset\(\)/);
+  });
+
+  it("the boot effect never clears the token itself (DP-M-005: only a 401 may)", () => {
+    const boot = from("await bootFromSavedToken()", "if (oriented) {");
+    expect(boot).not.toContain("clearToken");
+    expect(boot).toContain('outcome.kind === "offline"');
+  });
+
+  it("an unverified start (token kept, no cached user) is re-checked, and /me OK runs the full sign-in path", () => {
+    const boot = from("await bootFromSavedToken()", "if (oriented) {");
+    expect(boot).toContain('outcome.kind === "unverified"');
+    expect(boot).toContain("setNeedsRevalidate(true)");
+    const tick = from("const r = await revalidateSession()", "[needsRevalidate]");
+    const online = tick.slice(tick.indexOf('r.kind === "online"'));
+    expect(online.indexOf("progressStore.beginSession(r.user.id)")).toBeGreaterThan(-1);
+    expect(online.indexOf("beginSession(r.user.id)")).toBeLessThan(online.indexOf("fetchProgress(true)"));
+    expect(online).toContain("setGuest(false)");
+    expect(online).toContain("applyOnboardingGate(setNeedsOnboarding)");
   });
 });
