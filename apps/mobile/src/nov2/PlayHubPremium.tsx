@@ -3,11 +3,11 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Icon } from "@/Icon";
-import { useProgress } from "@/progressStore";
 import { coachCharacterIdFromPremiumSlug } from "@/coachCharacters";
 import { settings } from "@/settings";
 import { CoachHead } from "@/nov2/CoachRow";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton, KitTopBar } from "@/components/kit";
+import { usePremiumKitTheme } from "@/components/kit";
 import { coachStill, type CoachSlug } from "@/nov2/coachArt";
 import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
 
@@ -38,9 +38,7 @@ const OPPONENTS: {
 /** 12-play-hub — premium Play tab (390 layout). */
 export function PlayHubPremium() {
   const router = useRouter();
-  const snap = useProgress() as { xp?: number; streak?: number } | null;
-  const streak = typeof snap?.streak === "number" ? snap.streak : 0;
-  const xp = typeof snap?.xp === "number" ? snap.xp : 0;
+  const { colors, space, radius, font, type } = usePremiumKitTheme();
   const [mode, setMode] = useState<PlayMode>("coach");
   const [opp, setOpp] = useState<OpponentId>("kira");
   const [ashOn, setAshOn] = useState(false);
@@ -65,19 +63,8 @@ export function PlayHubPremium() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]} testID="play-hub-premium">
-      <View style={styles.topbar}>
-        <View style={styles.chip}>
-          <Icon name="flame" size={16} color={premiumColors.accent} duotone />
-          <Text style={styles.chipBold}>{streak}</Text>
-          <Text style={styles.chipText}> day streak</Text>
-        </View>
-        <View style={styles.chip}>
-          <Icon name="sparkle" size={16} color={premiumColors.brand} duotone />
-          <Text style={styles.chipBold}>{xp.toLocaleString()}</Text>
-          <Text style={styles.chipText}> XP</Text>
-        </View>
-      </View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface, maxWidth: 390 }]} edges={["top"]} testID="play-hub-premium">
+      <KitTopBar />
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Play</Text>
@@ -160,7 +147,7 @@ export function PlayHubPremium() {
           <Text style={styles.startTitle}>{startLabel.title}</Text>
           <Text style={styles.startSub}>{startLabel.sub}</Text>
         </View>
-        <DexButton label="Start game" variant="accent" onPress={startGame} style={styles.startBtn} />
+        <KitButton label="Start game" variant="accent" onPress={startGame} style={styles.startBtn} />
       </View>
     </SafeAreaView>
   );

@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Icon } from "@/Icon";
 import { useSettings } from "@/settings";
 import { isPremiumLook } from "@/nov2/uiLook";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton } from "@/components/kit";
 import { FieldAlert, PasswordStrengthBlock, PremiumPasswordField } from "@/nov2/PremiumPasswordField";
 import { PremiumAuthShell, SentBox } from "@/nov2/PremiumAuthShell";
 import {
@@ -21,8 +21,8 @@ export function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ token?: string; email?: string }>();
   const token = (Array.isArray(params.token) ? params.token[0] : params.token)?.trim() ?? "";
   const emailHint = (Array.isArray(params.email) ? params.email[0] : params.email)?.trim() ?? "";
-  const { uiLook } = useSettings();
-  const premium = isPremiumLook({ uiLook });
+  const { uiKit } = useSettings();
+  const premium = isPremiumLook({ uiKit });
 
   const [phase, setPhase] = useState<Phase>(() => (token ? "form" : "expired"));
   const [password, setPassword] = useState("");
@@ -73,7 +73,7 @@ export function ResetPasswordScreen() {
       <PremiumAuthShell coachLine="Choose a new password." testID="reset-password-classic">
         <PremiumPasswordField label="New password" value={password} onChangeText={setPassword} />
         <PremiumPasswordField label="Confirm" value={confirm} onChangeText={setConfirm} />
-        <DexButton label="Save" onPress={() => void save()} loading={busy} />
+        <KitButton label="Save" onPress={() => void save()} loading={busy} />
       </PremiumAuthShell>
     );
   }
@@ -87,7 +87,7 @@ export function ResetPasswordScreen() {
           <Icon name="warning" size={22} color={premiumColors.warningText} duotone />
           <Text style={styles.alertWarnText}>Ask for a fresh link and we will send it right away.</Text>
         </View>
-        <DexButton label="Send me a new link" onPress={() => router.replace("/forgot-password")} />
+        <KitButton label="Send me a new link" onPress={() => router.replace("/forgot-password")} />
         <Pressable onPress={() => router.replace("/login")} style={styles.foot}>
           <Text style={styles.link}>Back to sign in</Text>
         </Pressable>
@@ -104,7 +104,7 @@ export function ResetPasswordScreen() {
             You are all set. You were signed out on other devices to keep your account safe.
           </Text>
         </SentBox>
-        <DexButton label="Continue to Learn" onPress={() => router.replace("/(tabs)/academy")} />
+        <KitButton label="Continue to Learn" onPress={() => router.replace("/(tabs)/academy")} />
         {!!emailHint && <Text style={[styles.help, styles.center]}>Signed in as {emailHint}</Text>}
       </PremiumAuthShell>
     );
@@ -147,7 +147,7 @@ export function ResetPasswordScreen() {
         <Text style={styles.help}>Matches.</Text>
       ) : null}
 
-      <DexButton label="Save new password" onPress={() => void save()} loading={busy} />
+      <KitButton label="Save new password" onPress={() => void save()} loading={busy} />
 
       <Pressable onPress={() => router.replace("/login")} style={styles.foot}>
         <Text style={styles.link}>Back to sign in</Text>

@@ -14,8 +14,7 @@ import { useRouter } from "expo-router";
 import { PasswordField } from "@/PasswordField";
 import { PRIVACY_URL } from "@/constants";
 import { CoachRow } from "./CoachRow";
-import { DexButton } from "./DexButton";
-import { PremiumWordmark } from "./PremiumWordmark";
+import { KitButton, KitLogo } from "@/components/kit";
 import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "./premiumTokens";
 
 type GoogleBtnProps = {
@@ -77,7 +76,7 @@ export function PremiumAuthView({
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.logoFrame}>
-          <PremiumWordmark compact />
+          <KitLogo withText size={24} />
         </View>
         <CoachRow slug="otto" mood="happy" text="Welcome back! Ready for one small win today?" />
         <Text style={styles.h1}>{title}</Text>
@@ -136,7 +135,7 @@ export function PremiumAuthView({
 
         {!isErrors && error ? <Text style={styles.errInline}>{error}</Text> : null}
 
-        <DexButton
+        <KitButton
           testID="login-submit"
           label={isSignup ? "Create account" : "Sign in"}
           onPress={onSubmit}
@@ -151,7 +150,7 @@ export function PremiumAuthView({
         </View>
 
         {GoogleBtn ? <GoogleBtn disabled={busy} onIdToken={onGoogle} onError={onGoogleError} /> : null}
-        <DexButton label="Continue as guest" variant="line" onPress={onGuest} disabled={busy} />
+        <KitButton label="Continue as guest" variant="outline" onPress={onGuest} disabled={busy} />
         <Text style={styles.helpCenter}>Your progress stays on this device. Make an account any time to save it.</Text>
 
         <View style={styles.foot}>

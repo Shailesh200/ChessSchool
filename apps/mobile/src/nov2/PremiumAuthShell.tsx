@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CoachHead, CoachRow } from "./CoachRow";
-import { PremiumWordmark } from "./PremiumWordmark";
+import { KitLogo } from "@/components/kit";
 import { premiumColors, premiumSpace } from "./premiumTokens";
 import type { CoachMood } from "./coachArt";
 
@@ -19,7 +19,7 @@ export function PremiumAuthShell({ children, coachLine, coachMood = "neutral", t
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]} testID={testID}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.logoFrame}>
-          <PremiumWordmark compact />
+          <KitLogo withText size={24} />
         </View>
         <CoachRow slug="otto" mood={coachMood} text={coachLine} size={64} />
         {children}
