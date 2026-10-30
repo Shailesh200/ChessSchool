@@ -171,3 +171,12 @@ export async function api<T>(
     return fetchOnce<T>(path, { ...opts, token });
   }
 }
+
+/**
+ * Revoke one session token server-side with the token the caller captured, not the one
+ * currently stored (logout has already cleared it). One attempt, no retry, no
+ * onUnauthorized: a 401 for a token we no longer hold never touches the current session.
+ */
+export async function revokeSessionToken(token: string): Promise<void> {
+  await fetchOnce("/api/auth/logout", { method: "POST", token });
+}

@@ -53,6 +53,7 @@ const KNOWN_KEYS = [
   "chessschool.onlineSeats",
   "chessschool.analytics.session",
   "chessschool.lastUser", // cached signed-in user (DP-M-005 offline session): a user key, wiped on logout, delete AND expiry
+  "chessschool.pendingRevoke", // tokens still to be revoked on the server (DP-M-006): not user data, must SURVIVE every wipe or an offline logout would never be revoked
   "chessschool.guestProgressOwner", // (f)-era key: never written (see progressStore.ts)
 ];
 

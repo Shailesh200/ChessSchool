@@ -6,6 +6,7 @@ import { wipeUserData } from "./wipeUserData";
 import { fetchProfile } from "./profile";
 import { getOrientationSeen } from "./orientationSeen";
 import { toast } from "./toast";
+import { logoutOnce, flushPendingRevokes } from "./sessionLogout";
 import { bootFromSavedToken, forgetUser, rememberUser, revalidateSession } from "./authBoot";
 
 export type User = { id: string; name: string; email: string; role: string };
@@ -125,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Resolve a saved session BEFORE seeding guest UI. Optimistic guest-first
       // raced with parity-auth adopt and could leave the suite stuck as guest.
       // Only a 401 ends the session; offline / timeout / 5xx keep the token (DP-M-005).
+      void flushPendingRevokes(); // revokes that failed while offline at an earlier logout
       const outcome = await bootFromSavedToken();
       if (cancelled) return;
 
@@ -273,15 +275,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      await api("/api/auth/logout", { method: "POST" });
-    } catch {
-      /* ignore */
-    }
-    await clearToken();
-    void forgetUser();
     setNeedsRevalidate(false);
-    await wipeUserData();
+    // Local first (DP-M-006): the token goes and the wipe runs now; the server revoke is fired
+    // in the background (queued for the next start if it fails), so a dead network can neither
+    // freeze this button nor keep the user signed in.
+    await logoutOnce(async () => {
+      void forgetUser();
+      await wipeUserData();
+    });
     const oriented = await getOrientationSeen();
     if (oriented) await restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
     else {

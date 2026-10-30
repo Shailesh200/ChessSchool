@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Linking, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,6 +28,20 @@ export default function AccountScreen() {
   const p = useProgress();
   const { avatar } = useSettings();
   const [deleting, setDeleting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const loggingOutRef = useRef(false);
+  // Double-tap guard: the ref flips synchronously, before React re-renders the disabled button.
+  const onLogout = useCallback(async () => {
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      loggingOutRef.current = false;
+      setLoggingOut(false);
+    }
+  }, [logout]);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const graduated = ((p?.graduatedClasses as string[]) ?? []).length;
   const rank = rankForClasses(graduated);
@@ -184,7 +198,7 @@ export default function AccountScreen() {
 
         <View style={{ gap: space[3], marginTop: space[2] }}>
           {user?.role === "admin" && <Button label="Browse the lesson library" variant="outline" onPress={() => router.push("/library")} />}
-          <Button label="Log out" variant="outline" onPress={logout} />
+          <Button label="Log out" variant="outline" onPress={() => void onLogout()} disabled={loggingOut} loading={loggingOut} />
           <Text style={styles.legalLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
             Privacy policy
           </Text>
