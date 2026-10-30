@@ -58,6 +58,7 @@ function Gate() {
 
       const onParityAuth = root === "parity-auth";
       if (onParityAuth) return;
+      if (root === "ace-preview" && process.env.EXPO_PUBLIC_ACE_PREVIEW === "1") return;
 
       // Parity deep-links arrive before orientation completes — enter guest and continue.
       // Never call this once a real session exists (account / signed-in captures).

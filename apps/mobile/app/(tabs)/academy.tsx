@@ -20,6 +20,8 @@ import { dueLessonIds, isDailyPuzzleDone, isoDay, needsPlacementTest, shouldReco
 import { allRoutineDoneToday, routineDoneToday, ROUTINE_STEP_IDS } from "@/homeworkRoutine";
 import { getActiveBotMatch, hydrateMatchStore, subscribeMatchStore } from "@/matchStore";
 import { font, radius, shadowCard, space } from "@/theme";
+import { useUiKit } from "@/components/kit";
+import { PremiumLearnScreen } from "@/screens/premium/PremiumLearnScreen";
 
 type Progress = {
   xp: number;
@@ -32,7 +34,7 @@ type Progress = {
   dailyPuzzleDay?: string | null;
 };
 
-export default function AcademyScreen() {
+function LegacyAcademyScreen() {
   const { guest } = useAuth();
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
@@ -381,4 +383,10 @@ export default function AcademyScreen() {
       </ScrollView>
     </ThemedSafeArea>
   );
+}
+
+export default function AcademyScreen() {
+  const kit = useUiKit();
+  if (kit === "premium") return <PremiumLearnScreen />;
+  return <LegacyAcademyScreen />;
 }
