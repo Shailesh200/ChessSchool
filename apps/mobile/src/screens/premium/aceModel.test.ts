@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { EXAM_PASS_RATIO } from "../../classExam";
+import { SEEDED_EXAM, seededExamPassMark } from "./aceFixtures";
 import { buildPremiumTheme, premiumTokensJson } from "../../theme/premium";
 import { kitButtonColors } from "../../components/kit/kitButtonColors";
 import {
@@ -202,8 +204,16 @@ describe("class, exam, gym, sheets", () => {
     expect(classDetailCaption({ tone: "locked", index: 3, mastery: 0, activeIndex: 2 })).toBe("Unlocks after lesson 3");
   });
 
-  it("uses the exam pass ratio so 6 puzzles need 5", () => {
+  it("pass mark is ceil(steps * 0.67) and fails if that rule is replaced", () => {
+    expect(EXAM_PASS_RATIO).toBe(0.67);
+    for (const steps of [1, 2, 3, 6, 8, 10]) {
+      expect(examPassMark(steps)).toBe(Math.ceil(steps * 0.67));
+    }
+    // floor(6 * 0.67) is 4 and round(2 * 0.67) is 1 — only ceil matches.
     expect(examPassMark(6)).toBe(5);
+    expect(examPassMark(2)).toBe(2);
+    expect(SEEDED_EXAM.puzzleTotal).toBe(6);
+    expect(seededExamPassMark()).toBe(Math.ceil(SEEDED_EXAM.puzzleTotal * 0.67));
     expect(examPipState(3, 6)).toEqual(["done", "done", "done", "current", "todo", "todo"]);
   });
 
