@@ -7,7 +7,6 @@ import { appOrigin } from "@/lib/google-oauth.server";
 import { hashPassword } from "@/lib/auth";
 import { hashSessionToken } from "@/lib/session-token";
 import { revokeSessionsForUser } from "@/lib/session-store";
-import { SUPPORT_EMAIL } from "@/lib/support";
 import { sendPasswordResetEmail } from "@/lib/email/send-password-reset";
 
 const RESET_TTL_MS = 45 * 60_000;
@@ -112,7 +111,7 @@ export async function resetPasswordWithToken(
     .update(passwordResetTokens)
     .set({ usedAt: now })
     .where(eq(passwordResetTokens.id, tokenHash));
-  await revokeAllSessionsForUser(row.userId, conn);
+  await revokeSessionsForUser(row.userId, conn);
   return { ok: true };
 }
 
