@@ -47,6 +47,8 @@ import {
   shouldShowEnrollPrompt,
 } from "@chess-school/progression";
 import { PreschoolQuiz } from "./PreschoolQuiz";
+import { LessonCompleteWeekStrip } from "./LessonCompleteExtras";
+import { formatLessonDurationMs, kitXpPopLottieId } from "./lessonKitXp";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
@@ -118,6 +120,11 @@ export function LessonPlayer({
   const [ceremony, setCeremony] = useState<LessonCeremony>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(0);
+  const hintsUsedRef = useRef(0);
+  const lessonStartedAt = useRef(Date.now());
+  const replyAfterCorrectRef = useRef<{ reply: { from: Square; to: Square }; fen: string } | null>(
+    null,
+  );
   const [movedTo, setMovedTo] = useState<Square | null>(null);
   const [oppMove, setOppMove] = useState<{ from: Square; to: Square } | null>(null);
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
@@ -448,18 +455,9 @@ export function LessonPlayer({
       const reply =
         next?.kind === "move" && next.fen ? findReply(engine.fen(), next.fen) : null;
       if (reply && next?.fen) {
-        timers.current.push(
-          window.setTimeout(() => {
-            setMovedTo(null);
-            setOppMove(reply);
-            setDisplayFen(next.fen); // board animates the opponent's reply
-            audio.play("move");
-          }, 850),
-        );
-        timers.current.push(window.setTimeout(() => advance(), 1850));
+        replyAfterCorrectRef.current = { reply, fen: next.fen };
       } else {
-        // Flash the square green, then auto-advance — no "tap to continue".
-        timers.current.push(window.setTimeout(() => advance(), 950));
+        replyAfterCorrectRef.current = null;
       }
       return true;
     }
@@ -481,13 +479,6 @@ export function LessonPlayer({
         at: Date.now(),
       });
     }
-    timers.current.push(
-      window.setTimeout(() => {
-        setDisplayFen(step.fen);
-        setMovedTo(null);
-        setPhase("playing");
-      }, 1300),
-    );
     return true; // keep the piece on the board; we control it via displayFen
   }
 
@@ -499,7 +490,6 @@ export function LessonPlayer({
     } else {
       wrongRef.current += 1;
       setPhase("wrong");
-      timers.current.push(window.setTimeout(() => setPhase("playing"), 900));
     }
   }
 
@@ -515,6 +505,9 @@ export function LessonPlayer({
         ceremony={ceremony}
         nextLessonId={nextLessonId}
         homeworkStep={homeworkStep}
+        durationMs={Date.now() - lessonStartedAt.current}
+        hintsUsed={hintsUsedRef.current}
+        interactiveSteps={scoredStepCount(lesson.steps) || 1}
         onDone={() => router.push("/academy")}
       />
     );
@@ -568,6 +561,12 @@ export function LessonPlayer({
   const boardHighlightRanks = preschool
     ? tutorial.highlightRanks
     : (step.highlightRanks ?? []);
+  const ringSquares: Square[] = [
+    ...(step.visualSquare ? [step.visualSquare as Square] : []),
+    ...((step.visualSquares ?? []) as Square[]),
+    ...(hintFrom ? [hintFrom] : []),
+    ...tutorial.highlight.filter((sq) => hintLevel >= 1 || step.kind === "quiz"),
+  ];
 
   const progressPct = Math.round(((index + (phase === "correct" ? 1 : 0)) / total) * 100);
   const stepTag =
@@ -595,10 +594,38 @@ export function LessonPlayer({
       ? step.failText
       : tipText;
 
-  function continueStep() {
+  function continueFromCorrect() {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
+    const pending = replyAfterCorrectRef.current;
+    if (pending) {
+      replyAfterCorrectRef.current = null;
+      setMovedTo(null);
+      setOppMove(pending.reply);
+      setDisplayFen(pending.fen);
+      audio.play("move");
+      timers.current.push(
+        window.setTimeout(() => {
+          setOppMove(null);
+          advance();
+        }, 850),
+      );
+      return;
+    }
     advance();
+  }
+
+  function tryAgainFromWrong() {
+    timers.current.forEach((t) => window.clearTimeout(t));
+    timers.current = [];
+    if (step?.fen) setDisplayFen(step.fen);
+    setMovedTo(null);
+    setPhase("playing");
+  }
+
+  function continueStep() {
+    if (phase === "correct") continueFromCorrect();
+    else advance();
   }
 
   function revealHintFromBar() {
@@ -607,7 +634,11 @@ export function LessonPlayer({
     timers.current = [];
     setDisplayFen(step.fen);
     setMovedTo(null);
-    setHintLevel((h) => Math.min(h + 1, 2));
+    setHintLevel((h) => {
+      const next = Math.min(h + 1, 2);
+      if (next > h) hintsUsedRef.current += 1;
+      return next;
+    });
     setPhase("playing");
     audio.play("notify");
     haptics.fire("tap");
@@ -719,6 +750,7 @@ export function LessonPlayer({
                 lastMove={oppMove}
                 successSquare={phase === "correct" ? movedTo : null}
                 checkSquare={phase === "wrong" ? movedTo : null}
+                ringSquares={ringSquares}
                 interactive={step.kind === "move" && phase === "playing"}
               />
             </div>
@@ -748,7 +780,11 @@ export function LessonPlayer({
                 <button
                   type="button"
                   onClick={() => {
-                    setHintLevel((h) => Math.min(h + 1, 2));
+                    setHintLevel((h) => {
+                      const next = Math.min(h + 1, 2);
+                      if (next > h) hintsUsedRef.current += 1;
+                      return next;
+                    });
                     audio.play("notify");
                     haptics.fire("tap");
                   }}
@@ -811,6 +847,7 @@ export function LessonPlayer({
           failWhy={failWhy}
           onContinue={continueStep}
           onShowHint={revealHintFromBar}
+          onTryAgain={tryAgainFromWrong}
         />
       }
     />
@@ -824,6 +861,9 @@ export function LessonComplete({
   ceremony,
   nextLessonId,
   homeworkStep,
+  durationMs,
+  hintsUsed,
+  interactiveSteps,
   onDone,
 }: {
   lesson: Lesson;
@@ -832,6 +872,9 @@ export function LessonComplete({
   ceremony: LessonCeremony;
   nextLessonId?: string | null;
   homeworkStep?: string;
+  durationMs: number;
+  hintsUsed: number;
+  interactiveSteps: number;
   onDone: () => void;
 }) {
   const [reflectOpen, setReflectOpen] = useState(false);
@@ -842,6 +885,15 @@ export function LessonComplete({
   const dismissedAt = useSettings((s) => s.enrollPromptDismissedAt);
   const coachCharacter = useSettings((s) => s.coachCharacter);
   const streak = useProgression((s) => s.streak);
+  const xpLottie = kitXpPopLottieId(lesson.xp);
+  const perPuzzle =
+    interactiveSteps > 0 ? Math.round(lesson.xp / interactiveSteps) : lesson.xp;
+  const completeQuote = applyCoachLine(
+    "Lesson done! That's real progress.",
+    coachCharacter,
+    "success",
+    `${lesson.id}:complete`,
+  );
   const lessonsAttempted = lessonsAttemptedCount(lessons);
   const showEnroll = shouldShowEnrollPrompt({
     authed,
@@ -918,18 +970,29 @@ export function LessonComplete({
             <h1 className="cs-h1">{headline}</h1>
             {subtitle ? <p className="cs-muted">{subtitle}</p> : null}
             <p className="cs-muted">{lesson.subtitle || lesson.title}</p>
-            <KitLottie id="xp-pop-20" className="xp-lot2" />
-            <p className="cs-muted xpsum">+{lesson.xp} XP</p>
+            <p className="quote" data-testid="lesson-complete-quote">
+              &ldquo;{completeQuote}&rdquo;
+            </p>
+            <KitLottie id={xpLottie} className="xp-lot2" />
+            <p className="cs-muted xpsum" data-testid="lesson-complete-xp-summary">
+              {interactiveSteps} puzzles × +{perPuzzle} XP = {lesson.xp} XP
+            </p>
           </div>
           <div className="r">
             <div className="cs-stats">
               <div className="cs-stat">
-                <span className="cs-num">{correct}</span>
-                <span>Correct</span>
+                <span className="cs-num">
+                  {correct}/{interactiveSteps}
+                </span>
+                <span>Puzzles</span>
               </div>
               <div className="cs-stat">
-                <span className="cs-num">{mistakes}</span>
-                <span>Mistakes</span>
+                <span className="cs-num">{hintsUsed}</span>
+                <span>Hint used</span>
+              </div>
+              <div className="cs-stat">
+                <span className="cs-num">{formatLessonDurationMs(durationMs)}</span>
+                <span>Time</span>
               </div>
             </div>
             <div className="cs-streakcard">
@@ -940,8 +1003,9 @@ export function LessonComplete({
                 <span className="cs-num">{streak}</span>
                 <b>day streak</b>
               </div>
-              <em>Keep it up</em>
+              <em>+1 today</em>
             </div>
+            <LessonCompleteWeekStrip lessonDoneToday />
 
           {showEnroll && (
             <EnrollPromptBanner
