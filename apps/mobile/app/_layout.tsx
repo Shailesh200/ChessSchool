@@ -17,6 +17,8 @@ import { ThemeProvider, useAppTheme } from "@/ThemeProvider";
 import { PremiumKitThemeProvider } from "@/components/kit";
 import { useKitFonts } from "@/theme/premium/kitFonts";
 import { AnimatedSplash } from "@/AnimatedSplash";
+import { BoaAnimatedSplash } from "@/nov2/BoaAnimatedSplash";
+import { settings } from "@/settings";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
 import { NetworkBanner } from "@/NetworkBanner";
@@ -46,6 +48,10 @@ function Gate() {
       const onOrientation = root === undefined || root === "index";
       const onLogin = root === "login";
       const onOnboarding = root === "onboarding";
+      const onBoa = root === "boa";
+      const onForgot = root === "forgot-password";
+      const onReset = root === "reset-password";
+
       const onWelcome = root === "welcome";
 
       if (user && !guest) {
@@ -70,14 +76,14 @@ function Gate() {
       }
 
       if (guest && user) {
-        // Guests must reach /login to enroll (My ID → login) — do not bounce them away.
-        if (onLogin) return;
+        if (onLogin || onBoa || onForgot || onReset) return;
         if (onOrientation || onOnboarding) router.replace(ACADEMY);
         return;
       }
 
       if (!orientationDone) {
-        if (!onOrientation) router.replace("/");
+        if (onOrientation || onBoa || onLogin || onForgot || onReset) return;
+        router.replace("/");
         return;
       }
 
@@ -145,11 +151,16 @@ function RootLayout() {
   }
 
   if (showSplash) {
+    const premiumSplash = settings.get().uiKit !== "classic";
     return (
       <SafeAreaProvider>
         <ErrorBoundary>
           <StatusBar style="dark" />
-          <AnimatedSplash onFinish={finishSplash} />
+          {premiumSplash ? (
+            <BoaAnimatedSplash onFinish={finishSplash} />
+          ) : (
+            <AnimatedSplash onFinish={finishSplash} />
+          )}
         </ErrorBoundary>
       </SafeAreaProvider>
     );
