@@ -10,6 +10,7 @@ import { Icon } from "@/Icon";
 import { progressStore } from "@/progressStore";
 import { movesFromSyncGame, normalizeSyncGame, type SyncGame } from "@/progression";
 import { sfx } from "@/sfx";
+import { iconCircleA11y } from "@/iconControlA11y";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type Game = SyncGame;
@@ -123,7 +124,7 @@ export default function ReplayScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => router.back()} {...iconCircleA11y("Go back to all games")}>
           <Text style={styles.back}>← All games</Text>
         </Pressable>
 
@@ -141,19 +142,19 @@ export default function ReplayScreen() {
         </View>
 
         <View style={styles.controls}>
-          <Pressable style={styles.ctrl} onPress={() => goToPly(0, false)}>
+          <Pressable style={styles.ctrl} onPress={() => goToPly(0, false)} {...iconCircleA11y("First move")}>
             <Text style={styles.ctrlText}>⏮</Text>
           </Pressable>
-          <Pressable style={styles.ctrl} onPress={() => goToPly(Math.max(0, ply - 1))}>
+          <Pressable style={styles.ctrl} onPress={() => goToPly(Math.max(0, ply - 1))} {...iconCircleA11y("Previous move")}>
             <Text style={styles.ctrlText}>◀</Text>
           </Pressable>
-          <Pressable style={styles.ctrl} onPress={() => setPlaying((p) => !p)}>
+          <Pressable style={styles.ctrl} onPress={() => setPlaying((p) => !p)} {...iconCircleA11y(playing ? "Pause replay" : "Play replay")}>
             <Text style={styles.ctrlText}>{playing ? "⏸" : "▶"}</Text>
           </Pressable>
-          <Pressable style={styles.ctrl} onPress={() => goToPly(Math.min(frames.length - 1, ply + 1))}>
+          <Pressable style={styles.ctrl} onPress={() => goToPly(Math.min(frames.length - 1, ply + 1))} {...iconCircleA11y("Next move")}>
             <Text style={styles.ctrlText}>▶</Text>
           </Pressable>
-          <Pressable style={styles.ctrl} onPress={() => goToPly(frames.length - 1)}>
+          <Pressable style={styles.ctrl} onPress={() => goToPly(frames.length - 1)} {...iconCircleA11y("Last move")}>
             <Text style={styles.ctrlText}>⏭</Text>
           </Pressable>
         </View>
