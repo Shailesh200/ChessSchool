@@ -32,6 +32,9 @@ import { settings } from "@/settings";
 import { useType } from "@/typography";
 import { colors, font, radius, shadowCard, space } from "@/theme";
 import { iconCircleA11y } from "@/iconControlA11y";
+import { shouldShowTutorialSaveRetry } from "@/lessonTutorialSave";
+import { ConfirmDialog } from "@/ConfirmDialog";
+import { useConfirmLeave } from "@/useConfirmLeave";
 import { trackEvent } from "@/productAnalytics/track";
 
 type Step = {
@@ -189,7 +192,7 @@ export default function LessonScreen() {
   useEffect(() => {
     setPieceDragActive(false);
   }, [id, index]);
-  const [phase, setPhase] = useState<"playing" | "correct" | "wrong" | "complete" | "exam-failed">("playing");
+  const [phase, setPhase] = useState<"playing" | "correct" | "wrong" | "complete" | "exam-failed" | "save-retry">("playing");
   const [flipped, setFlipped] = useState(false);
   const [displayFen, setDisplayFen] = useState<string | undefined>();
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
@@ -202,6 +205,13 @@ export default function LessonScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [lessonsAttempted, setLessonsAttempted] = useState(0);
+  const leaveSessionActive =
+    Boolean(lesson) &&
+    !loading &&
+    !loadError &&
+    phase !== "complete" &&
+    phase !== "exam-failed";
+  const { leaveOpen, setLeaveOpen } = useConfirmLeave(leaveSessionActive);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
   const mistakesRef = useRef<Mistake[]>([]);
@@ -291,6 +301,7 @@ export default function LessonScreen() {
     Boolean(step) &&
     phase !== "complete" &&
     phase !== "exam-failed" &&
+    phase !== "save-retry" &&
     !loadError &&
     !loading;
   const speechLine = (() => {
@@ -418,6 +429,7 @@ export default function LessonScreen() {
         }
       } catch (e) {
         setSaveError(e instanceof Error ? e.message : "Could not save progress");
+        setPhase("save-retry");
       } finally {
         setResolvingNext(false);
       }
@@ -538,6 +550,33 @@ export default function LessonScreen() {
   }
 
   const feedback = speechLine;
+
+  if (lesson && shouldShowTutorialSaveRetry(phase, saveError)) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <CoachAvatar character={coachCharacter} state="miss" size={140} />
+          <Text style={styles.doneTitle}>Could not save progress</Text>
+          <Text style={styles.doneSub}>{saveError}</Text>
+          <View style={{ marginTop: space[6], width: 280, gap: space[2] }}>
+            <Button
+              label="Retry save"
+              variant="accent"
+              disabled={resolvingNext}
+              onPress={() => {
+                setSaveError(null);
+                void finish();
+              }}
+            />
+            {resolvingNext ? (
+              <ActivityIndicator color={colors.brand} style={{ marginTop: space[2] }} />
+            ) : null}
+            <Button label="Back to campus" variant="outline" size="sm" onPress={() => router.back()} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (phase === "exam-failed") {
     const interactive = scoredStepCount(lesson.steps) || 1;
@@ -695,7 +734,7 @@ export default function LessonScreen() {
             <View style={styles.topBar}>
               <Pressable
                 style={styles.circle}
-                onPress={() => router.back()}
+                onPress={() => (leaveSessionActive ? setLeaveOpen(true) : router.back())}
                 {...iconCircleA11y("Go back")}
               >
                 <View style={{ transform: [{ rotate: "180deg" }] }}>
@@ -743,7 +782,7 @@ export default function LessonScreen() {
                 <PreschoolQuiz
                   key={step.id}
                   step={step}
-                  phase={phase}
+                  phase={phase === "save-retry" ? "playing" : phase}
                   onAnswer={(ok) => {
                     if (ok) setPhase("correct");
                     else {
@@ -819,6 +858,18 @@ export default function LessonScreen() {
             )}
           </View>
         }
+      />
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave lesson?"
+        message="You have not finished this lesson yet. Leave anyway?"
+        confirmLabel="Leave"
+        tone="danger"
+        onCancel={() => setLeaveOpen(false)}
+        onConfirm={() => {
+          setLeaveOpen(false);
+          router.back();
+        }}
       />
     </SafeAreaView>
   );
