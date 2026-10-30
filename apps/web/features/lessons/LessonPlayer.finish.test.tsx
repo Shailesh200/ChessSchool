@@ -67,4 +67,19 @@ describe("LessonPlayer finish (DP-W-006)", () => {
     expect(push).toHaveBeenCalledTimes(1);
     expect(push).toHaveBeenCalledWith("/lesson/w006-next");
   });
+
+  it("still awards XP for the next lesson when the same player instance is reused (/lesson/a -> /lesson/b)", () => {
+    const { rerender } = render(
+      <LessonPlayer lesson={TUTORIAL} nextLessonId="w006-b" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(useProgression.getState().xp).toBe(TUTORIAL.xp);
+
+    // router.push keeps the same player mounted and only swaps the lesson prop.
+    const second: Lesson = { ...TUTORIAL, id: "w006-b" };
+    rerender(<LessonPlayer lesson={second} nextLessonId="w006-next" />);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(useProgression.getState().xp).toBe(2 * TUTORIAL.xp);
+  });
 });
