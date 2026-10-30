@@ -194,12 +194,12 @@ export function PremiumLessonShell(props: Props) {
                 checkSquare={phase === "wrong" ? lastMove?.to ?? null : null}
                 tappedSquares={tapMode ? tappedSquares : undefined}
                 onSquareTap={tapMode && phase === "playing" ? onSquareTap : undefined}
-                tapSelectionColor={colors.brand50}
+                tapSelectionColor={colors.coachGlow}
                 tapSelectionBorder={colors.brand}
               />
               {tapMode ? (
-                <Text style={{ fontFamily: font.displaySemibold, fontSize: type.sm.fontSize, color: colors.ink500 }}>
-                  <Text style={{ fontFamily: font.displayBold, color: colors.ink }}>{tappedSquares.length}</Text>
+                <Text style={{ fontFamily: font.uiMedium, fontSize: type["body-sm"].fontSize, color: colors.ink500 }}>
+                  <Text style={{ fontFamily: font.uiBold, color: colors.ink }}>{tappedSquares.length}</Text>
                   {` of ${step.solution?.length ?? 0} squares selected`}
                 </Text>
               ) : null}

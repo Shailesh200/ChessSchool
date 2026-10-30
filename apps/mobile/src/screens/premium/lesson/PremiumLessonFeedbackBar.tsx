@@ -26,8 +26,8 @@ export function PremiumLessonFeedbackBar(props: Props) {
   const insets = useSafeAreaInsets();
   const { colors, radius, space, font, type } = usePremiumKitTheme();
   const wrong = props.variant === "wrong";
-  const bg = wrong ? colors.chipStreakBg : colors.brand50;
-  const titleColor = wrong ? colors.ink : colors.brand;
+  const bg = wrong ? colors.chipStreakBg : colors.coachGlow;
+  const titleColor = wrong ? colors.ink : colors.brand700;
   const bodyColor = wrong ? colors.ink700 : colors.brand700;
 
   return (
@@ -53,7 +53,7 @@ export function PremiumLessonFeedbackBar(props: Props) {
           }}
         >
           <KitIcon name="sparkles" size={14} color={colors.ink} />
-          <Text style={{ fontFamily: font.displayBold, fontSize: type.sm.fontSize, color: colors.ink }}>
+          <Text style={{ fontFamily: font.uiBold, fontSize: type["body-sm"].fontSize, color: colors.ink }}>
             +{props.xpDelta} XP
           </Text>
         </View>
@@ -88,8 +88,8 @@ export function PremiumLessonFeedbackBar(props: Props) {
             <Text
               style={{
                 fontFamily: font.displayBold,
-                fontSize: type.lg.fontSize,
-                lineHeight: type.lg.lineHeight,
+                fontSize: type.h3.fontSize,
+                lineHeight: type.h3.lineHeight,
                 color: titleColor,
               }}
             >
@@ -97,9 +97,9 @@ export function PremiumLessonFeedbackBar(props: Props) {
             </Text>
             <Text
               style={{
-                fontFamily: font.displayMedium,
-                fontSize: type.sm.fontSize,
-                lineHeight: type.sm.lineHeight,
+                fontFamily: font.uiMedium,
+                fontSize: type["body-sm"].fontSize,
+                lineHeight: type["body-sm"].lineHeight,
                 color: bodyColor,
               }}
             >
