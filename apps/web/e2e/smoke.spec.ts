@@ -55,8 +55,8 @@ test("lesson loads with coach narration", async ({ page }) => {
 
 test("play: choose a mode, start a match, and the bot replies", async ({ page }) => {
   await page.goto("/play");
-  await expect(page.getByText("New match")).toBeVisible();
-  await page.getByRole("button", { name: "Start match" }).click();
+  await expect(page.getByRole("heading", { name: "Play", level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "Start game" }).click();
 
   // Focus mode: top action bar shows Resign, nav is hidden.
   await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();

@@ -59,6 +59,23 @@ test("playground renders", async ({ page }) => {
   await expect(page).toHaveURL("/");
 });
 
+test("gym renders under Learn", async ({ page }) => {
+  await page.goto("/gym");
+  await expect(page.getByRole("heading", { name: "Gym", level: 1 })).toBeVisible();
+});
+
+test("review queue renders", async ({ page }) => {
+  await page.goto("/review/queue");
+  await expect(page.getByText("Review queue")).toBeVisible();
+});
+
+test("fix mistakes renders", async ({ page }) => {
+  await page.goto("/practice/mistakes");
+  await expect(
+    page.getByRole("heading", { name: "Here is what happened" }),
+  ).toBeVisible();
+});
+
 test("placement test entry renders", async ({ page }) => {
   await page.goto("/placement");
   await expect(page).toHaveURL(/\/login\?next=\/placement/);

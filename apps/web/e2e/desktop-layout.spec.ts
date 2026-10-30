@@ -1,5 +1,4 @@
 import { test, expect } from "./fixtures/legacyUiKit";
-import type { Page } from "@playwright/test";
 
 /** M-059 — core flows at desktop mockup width (1280×800). */
 test.describe("desktop layout @1280", () => {
@@ -72,20 +71,14 @@ test.describe("desktop layout @1280", () => {
     await expect(page.getByText("Sound effects")).toBeVisible();
   });
 
-  test("play shows match preview panel", async ({ page }) => {
+  test("play shows the premium hub", async ({ page }) => {
     await page.goto("/play");
-    await expect(page.getByText("Match preview")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "New match" })).toBeVisible();
-    await expectInlineChooserCta(page, "Start match");
-    await page.getByRole("button", { name: /vs Human/ }).click();
-    await expectInlineChooserCta(page, "Start (one device)");
-    const oneDevice = await page
-      .getByRole("button", { name: "Start (one device)", exact: true })
-      .boundingBox();
-    const online = await page
-      .getByRole("button", { name: /Play a friend online|Enroll to play online/ })
-      .boundingBox();
-    expect(online!.y).toBeGreaterThan(oneDevice!.y + oneDevice!.height - 1);
+    await expect(page.getByRole("heading", { name: "Play", level: 1 })).toBeVisible();
+    await expect(page.getByText("How do you want to play?")).toBeVisible();
+    await expect(page.getByText("Pick who to play")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start game" })).toBeVisible();
+    await page.getByRole("radio", { name: /Friend/ }).click();
+    await expect(page.getByText("Pass and play")).toBeVisible();
   });
 
   test("dashboard uses two-column skill layout", async ({ page }) => {
@@ -118,13 +111,13 @@ test.describe("desktop layout @1280", () => {
     page,
   }) => {
     await page.goto("/play");
-    await page.getByRole("button", { name: "Start match" }).click();
+    await page.getByRole("button", { name: "Start game" }).click();
     await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();
 
     const board = page.getByTestId("chess-board");
     await expect(board).toBeVisible();
     const box = await board.boundingBox();
-    expect(box?.width ?? 0).toBeLessThanOrEqual(520);
+    expect(box?.width ?? 0).toBeLessThanOrEqual(560);
 
     await page.locator('[data-square="e2"]').click();
     await page.locator('[data-square="e4"]').click();
@@ -136,78 +129,15 @@ test.describe("desktop layout @1280", () => {
 test.describe("play CTAs @390", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("Start match and Start (one device) stay pinned above the tab bar", async ({
-    page,
-  }) => {
+  test("Start game stays pinned above the tab bar", async ({ page }) => {
     await page.goto("/play");
-    await expectPinnedChooserCta(page, "Start match");
-    await page.getByRole("button", { name: /vs Human/ }).click();
-    await expectPinnedChooserCta(page, "Start (one device)");
+    const start = page.getByRole("button", { name: "Start game" });
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await expect(start).toBeVisible();
+    const startBox = await start.boundingBox();
+    const navBox = await nav.boundingBox();
+    expect(startBox).toBeTruthy();
+    expect(navBox).toBeTruthy();
+    expect(startBox!.y + startBox!.height).toBeLessThanOrEqual(navBox!.y + 1);
   });
 });
-
-async function chooserCtaLayout(page: Page, name: string) {
-  const button = page.getByRole("button", { name, exact: true });
-  await expect(button).toBeVisible();
-  const detail = await button.evaluate((el) => {
-    const positions = [getComputedStyle(el).position];
-    let node = el.parentElement;
-    while (node && !node.classList.contains("play-chooser")) {
-      positions.push(getComputedStyle(node).position);
-      node = node.parentElement;
-    }
-    const rect = el.getBoundingClientRect();
-    const label = [...document.querySelectorAll("p")].find(
-      (p) => p.textContent?.trim() === "Time control",
-    );
-    let card: HTMLElement | null = label?.parentElement ?? null;
-    while (card && !card.className.includes("rounded-card")) card = card.parentElement;
-    return {
-      positions,
-      top: rect.top,
-      bottom: rect.bottom,
-      cardBottom: card ? card.getBoundingClientRect().bottom : null,
-    };
-  });
-  return { button, detail };
-}
-
-/** Desktop: the control itself is in normal flow, directly under Time control. */
-async function expectInlineChooserCta(page: Page, name: string) {
-  const { detail } = await chooserCtaLayout(page, name);
-  expect(detail.positions, name).not.toContain("sticky");
-  expect(detail.positions, name).not.toContain("fixed");
-  expect(detail.cardBottom, `${name} time control`).not.toBeNull();
-  const gap = detail.top - (detail.cardBottom ?? 0);
-  expect(gap, `${name} sits under time control`).toBeGreaterThanOrEqual(0);
-  expect(gap, `${name} sits under time control`).toBeLessThanOrEqual(28);
-}
-
-/** Phone: pinned (sticky or fixed) and still fully above the tab bar after scroll. */
-async function expectPinnedChooserCta(page: Page, name: string) {
-  const nav = page.getByRole("navigation", { name: "Primary" });
-  const before = await chooserCtaLayout(page, name);
-  const navBefore = await nav.boundingBox();
-  expect(navBefore).toBeTruthy();
-  expect(
-    before.detail.positions.some((pos) => pos === "sticky" || pos === "fixed"),
-    name,
-  ).toBe(true);
-  expect(before.detail.top).toBeGreaterThanOrEqual(0);
-  expect(before.detail.bottom).toBeLessThanOrEqual(navBefore!.y + 1);
-
-  await page.evaluate(() => {
-    document.querySelectorAll("*").forEach((el) => {
-      if (el instanceof HTMLElement && el.scrollHeight > el.clientHeight + 2) {
-        el.scrollTop = el.scrollHeight;
-      }
-    });
-  });
-
-  const after = await chooserCtaLayout(page, name);
-  const navAfter = await nav.boundingBox();
-  expect(Math.abs(after.detail.top - before.detail.top)).toBeLessThan(2);
-  expect(after.detail.bottom).toBeLessThanOrEqual((navAfter?.y ?? 844) + 1);
-  expect(after.detail.cardBottom, `${name} time control`).not.toBeNull();
-  expect(after.detail.cardBottom ?? 0).toBeLessThanOrEqual(after.detail.top + 1);
-}

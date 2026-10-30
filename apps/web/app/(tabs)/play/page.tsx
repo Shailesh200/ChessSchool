@@ -1,15 +1,10 @@
-"use client";
+import { PlayScreen } from "@/features/chopper/PlayScreen";
 
-import { MatchChooser } from "@/features/play/MatchChooser";
-import { MatchView } from "@/features/play/MatchView";
-import { useMatch } from "@/core/store/match.store";
-
-export default function PlayPage() {
-  const active = useMatch((s) => s.active);
-
-  if (active) {
-    return <MatchView active={active} />;
-  }
-
-  return <MatchChooser />;
+export default async function PlayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scene?: string }>;
+}) {
+  const { scene } = await searchParams;
+  return <PlayScreen scene={scene} />;
 }
