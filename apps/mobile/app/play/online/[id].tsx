@@ -23,6 +23,7 @@ import { buildSyncGame, winnerFromPlayerResult } from "@/gameHistory";
 import { clock, onlineOutcome } from "@/chess-utils";
 import { haptics } from "@/haptics";
 import { sfx } from "@/sfx";
+import { iconCircleA11y } from "@/iconControlA11y";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
 import {
@@ -342,7 +343,11 @@ export default function OnlineGameScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.circle} onPress={() => router.replace("/(tabs)/play")} hitSlop={8}>
+        <Pressable
+          style={styles.circle}
+          onPress={() => router.replace("/(tabs)/play")}
+          {...iconCircleA11y("Leave online game")}
+        >
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
         <Text style={styles.title}>Online · {sid}</Text>
@@ -417,7 +422,7 @@ export default function OnlineGameScreen() {
   );
 }
 
-const CIRCLE = 40;
+const CIRCLE = 44;
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

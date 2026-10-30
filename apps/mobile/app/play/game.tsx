@@ -41,6 +41,7 @@ import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
 import { stopCoachSpeech } from "@/coachSpeech";
+import { iconCircleA11y } from "@/iconControlA11y";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type OverState = {
@@ -351,7 +352,11 @@ export default function GameScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
+        <Pressable
+          style={styles.circle}
+          onPress={() => router.back()}
+          {...iconCircleA11y("Go back")}
+        >
           <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
@@ -361,12 +366,13 @@ export default function GameScreen() {
             if (sound) stopCoachSpeech();
             settings.set("sound", !sound);
           }}
-          hitSlop={8}
-          accessibilityLabel={sound ? "Mute sound" : "Unmute sound"}
+          {...iconCircleA11y(sound ? "Mute sound" : "Unmute sound")}
         >
           <Icon name={sound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
         </Pressable>
-        <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}><Icon name="flip" size={18} color={colors.ink} /></Pressable>
+        <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} {...iconCircleA11y("Flip board")}>
+          <Icon name="flip" size={18} color={colors.ink} />
+        </Pressable>
         <Pressable
           style={styles.resign}
           accessibilityLabel="Resign game"
@@ -496,7 +502,7 @@ export default function GameScreen() {
   );
 }
 
-const CIRCLE = 40;
+const CIRCLE = 44;
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[4], paddingTop: 6 },
