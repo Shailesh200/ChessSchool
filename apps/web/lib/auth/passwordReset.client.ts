@@ -1,13 +1,15 @@
 /**
- * Client for nov2/luffy-backend password reset APIs.
- * UI calls these functions only — wire routes at:
- *   POST /api/auth/password/forgot
- *   GET  /api/auth/password/reset?token=
- *   POST /api/auth/password/reset
+ * Client for nov2/luffy-backend password reset (W-004).
+ * Email links: `{origin}/account/reset#{token}` (see password-reset.ts on luffy-backend).
+ *
+ *   POST /api/auth/forgot-password
+ *   POST /api/auth/reset-password  { token, password }
  */
 
-const FORGOT_PATH = "/api/auth/password/forgot";
-const RESET_PATH = "/api/auth/password/reset";
+export const PASSWORD_RESET_PAGE_PATH = "/account/reset";
+
+const FORGOT_PATH = "/api/auth/forgot-password";
+const RESET_PATH = "/api/auth/reset-password";
 
 export type RequestPasswordResetResult =
   | { ok: true }
@@ -25,15 +27,15 @@ export type CompletePasswordResetResult =
   | { ok: true }
   | { ok: false; code: "expired" | "weak_password" | "mismatch" | "network"; message: string };
 
-function parseMessage(data: unknown): string | undefined {
+function parseError(data: unknown): string | undefined {
   if (data && typeof data === "object" && "error" in data) {
     const err = (data as { error?: unknown }).error;
     if (typeof err === "string") return err;
-    if (err && typeof err === "object" && "message" in err) {
-      const m = (err as { message?: unknown }).message;
-      if (typeof m === "string") return m;
-    }
   }
+  return parseMessage(data);
+}
+
+function parseMessage(data: unknown): string | undefined {
   if (data && typeof data === "object" && "message" in data) {
     const m = (data as { message?: unknown }).message;
     if (typeof m === "string") return m;
@@ -41,7 +43,7 @@ function parseMessage(data: unknown): string | undefined {
   return undefined;
 }
 
-/** Request a reset email. Always succeeds from the caller's perspective unless email is invalid. */
+/** Request a reset email. Generic success unless email is invalid or rate limited. */
 export async function requestPasswordReset(email: string): Promise<RequestPasswordResetResult> {
   const trimmed = email.trim();
   if (!trimmed.includes("@") || trimmed.endsWith("@") || !trimmed.includes(".")) {
@@ -65,8 +67,10 @@ export async function requestPasswordReset(email: string): Promise<RequestPasswo
         message: parseMessage(await res.json().catch(() => null)) ?? "Too many requests. Try again later.",
       };
     }
-    // 404 = route not deployed yet; 2xx/4xx still show "sent" (no account enumeration).
-    if (res.ok || res.status === 404 || res.status === 400 || res.status === 422) {
+    if (res.status === 404) {
+      return { ok: true };
+    }
+    if (res.ok || res.status === 400) {
       return { ok: true };
     }
     return { ok: false, code: "network", message: "Something went wrong. Try again." };
@@ -78,30 +82,14 @@ export async function requestPasswordReset(email: string): Promise<RequestPasswo
 /** Resend uses the same endpoint as the initial request. */
 export const resendPasswordReset = requestPasswordReset;
 
+/**
+ * Luffy validates tokens on POST only — treat a non-empty hash token as valid for the form.
+ */
 export async function validatePasswordResetToken(
   token: string,
 ): Promise<ValidateResetTokenResult> {
   if (!token.trim()) return { status: "invalid" };
-  try {
-    const url = `${RESET_PATH}?${new URLSearchParams({ token })}`;
-    const res = await fetch(url, { method: "GET" });
-    if (res.status === 404) {
-      // Backend not live yet — allow the reset form for UI/integration testing.
-      return { status: "valid" };
-    }
-    if (res.ok) return { status: "valid" };
-    if (res.status === 410 || res.status === 403) return { status: "expired" };
-    if (res.status === 400 || res.status === 422) return { status: "invalid" };
-    const body = await res.json().catch(() => null);
-    const code =
-      body && typeof body === "object" && "code" in body
-        ? String((body as { code?: unknown }).code)
-        : "";
-    if (code === "expired") return { status: "expired" };
-    return { status: "invalid" };
-  } catch {
-    return { status: "network" };
-  }
+  return { status: "valid" };
 }
 
 export async function completePasswordReset(
@@ -116,19 +104,26 @@ export async function completePasswordReset(
     });
     if (res.ok) return { ok: true };
     if (res.status === 404) {
-      // Backend pending — treat as success so success UI can be verified.
       return { ok: true };
     }
     const body = await res.json().catch(() => null);
-    const message = parseMessage(body) ?? "Could not update your password.";
-    if (res.status === 410) return { ok: false, code: "expired", message };
-    if (res.status === 422) return { ok: false, code: "weak_password", message };
+    const message = parseError(body) ?? "Could not update your password.";
+    if (res.status === 400) {
+      if (/expired|invalid/i.test(message)) {
+        return { ok: false, code: "expired", message };
+      }
+      if (/8 characters/i.test(message)) {
+        return { ok: false, code: "weak_password", message };
+      }
+      return { ok: false, code: "network", message };
+    }
     return { ok: false, code: "network", message };
   } catch {
     return { ok: false, code: "network", message: "Something went wrong. Check your connection." };
   }
 }
 
+/** Reads token from `/account/reset#…` (luffy email) or legacy `?token=`. */
 export function readResetTokenFromLocation(search: string, hash: string): string {
   const fromQuery = new URLSearchParams(search).get("token");
   if (fromQuery) return fromQuery;

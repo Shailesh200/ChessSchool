@@ -1,12 +1,7 @@
-import { Suspense } from "react";
-import { PremiumResetPasswordScreen } from "@/features/premium-ui/screens/PremiumResetPasswordScreen";
+import { LoginResetRedirect } from "./LoginResetRedirect";
 
 export const metadata = { title: "Reset password" };
 
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={null}>
-      <PremiumResetPasswordScreen />
-    </Suspense>
-  );
+export default function LoginResetRedirectPage() {
+  return <LoginResetRedirect />;
 }
