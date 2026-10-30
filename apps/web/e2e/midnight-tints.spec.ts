@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
+import type { Page } from "@playwright/test";
 
 /**
  * UI-W-001: midnight's dark --brand-50/--brand-100 tints must win over every

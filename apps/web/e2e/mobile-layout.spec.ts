@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 
 /** M-059 — core flows at design mockup phone width (390×844). */
 test.describe("mobile layout @390", () => {

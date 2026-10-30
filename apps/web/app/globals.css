@@ -355,7 +355,7 @@ html[data-ui-kit="legacy"][data-app-theme="midnight"] {
   --ink-900: #ededf6;
   --ink-700: #c9c8de;
   --ink-500: #a8a8c8;
-  --ink-300: #a8a8cc;
+  --ink-300: #b2b2d8;
   /* Brand-coloured TEXT on dark surfaces (school brand-500 is only 2-3:1 here).
      The dark --brand-50/--brand-100 tints are declared after the school-theme
      blocks below, because school themes set the same variables. */
@@ -461,9 +461,9 @@ html[data-ui-kit="legacy"][data-school-theme="graduation"] {
   );
 }
 
-/* Midnight brand tints. MUST stay after every html[data-school-theme] block:
-   both selectors have the same specificity, so the later one wins, and the
-   school themes would otherwise paint light tints (bg-brand-50/100) on dark. */
+/* Midnight brand tints. MUST stay after every html[data-school-theme] block and
+   match (or beat) html[data-ui-kit="legacy"][data-school-theme] specificity. */
+html[data-app-theme="midnight"][data-ui-kit="legacy"][data-school-theme],
 html[data-app-theme="midnight"] {
   --brand-50: #2a2f57;
   --brand-100: #343c6e;
@@ -499,6 +499,9 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-success-600 {
 }
 html[data-app-theme="midnight"] span[class*="via-white"] .text-brand-700 {
   color: var(--brand-ink);
+}
+html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
+  color: #ffe9a8;
 }
 
 /* Campus / school chrome — consumes --school-* tokens (independent of app palette). */

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
+import type { Page } from "@playwright/test";
 
 /** M-059 — core flows at desktop mockup width (1280×800). */
 test.describe("desktop layout @1280", () => {

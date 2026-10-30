@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
+import type { Page } from "@playwright/test";
 
 /**
  * Lesson player layout cluster (UI-W-004, UI-W-005, UI-M-003/004/005/018 on web).

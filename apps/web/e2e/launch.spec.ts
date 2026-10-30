@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 import { SUPPORT_EMAIL } from "../lib/support";
 
 /** M-073 Web GA trust / marketing pages. */

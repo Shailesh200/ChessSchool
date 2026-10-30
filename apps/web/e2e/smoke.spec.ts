@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 
 test("campus map renders resume card, semesters and classes", async ({ page }) => {
   await page.goto("/academy");

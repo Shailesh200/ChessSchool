@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 
 /**
  * UI-W-017: offline, illustrations were broken images. The empty-state SVGs

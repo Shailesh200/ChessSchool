@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
+import type { Page } from "@playwright/test";
 
 /**
  * M-072 visual regression — guest-safe routes at Pixel 7 (playwright.config).

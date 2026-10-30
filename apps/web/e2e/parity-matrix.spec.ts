@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 // Playwright compiles specs as CJS — load JSON manifest without ESM node: imports.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const manifest = require("../../../scripts/parity-routes.json") as {

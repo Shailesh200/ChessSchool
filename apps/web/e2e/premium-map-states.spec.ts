@@ -13,7 +13,7 @@ test.describe("premium map states", () => {
   for (const state of ["offline", "empty", "loading", "error"] as const) {
     test(`academy premiumMap=${state}`, async ({ page }) => {
       await page.goto(`/academy?premiumMap=${state}`);
-      await expect(page.locator(`[data-screen="map-${state}"]`)).toBeVisible();
+      await expect(page.locator(`section[data-screen="map-${state}"]`)).toBeVisible();
     });
   }
 });

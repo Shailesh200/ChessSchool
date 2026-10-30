@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 import { SUPPORT_EMAIL } from "../lib/support";
 
 /** Route smoke tests — each route in scripts/web-e2e-routes.json must be covered (≥90%). */
