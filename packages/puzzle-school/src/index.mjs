@@ -130,6 +130,7 @@ export function validateCurriculum(input, opts = {}) {
 export { PRESCHOOL_TOPICS, preschoolTopicForLesson, topicIndex };
 export { emptyReport, printReportSummary, finalizeReport } from "./report.mjs";
 export { validateLessonSteps, validatePreschoolSpine } from "./validate.mjs";
+export { validateQuizStep, normalizeQuizLabel } from "./quiz-validate.mjs";
 export { loadBank, bucketPuzzles } from "./bank.mjs";
 export { validateBank } from "./validate-bank.mjs";
 export { bankStats, printBankStats } from "./stats.mjs";
