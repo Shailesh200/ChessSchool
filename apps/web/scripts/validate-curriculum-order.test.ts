@@ -27,7 +27,7 @@ describe("progression preschool spine sync", () => {
   });
 
   it("matches preschool-curriculum.mjs per-class lesson lists", () => {
-    for (const id of PRESCHOOL_CLASS_IDS) {
+    for (const id of PROGRESSION_CLASS_IDS) {
       expect(PROGRESSION_CLASS_LESSONS[id]).toEqual(PRESCHOOL_CLASS_LESSONS[id]);
     }
   });
