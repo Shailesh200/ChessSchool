@@ -1,4 +1,6 @@
-/** Client validation + API hooks for forgot / reset password (19a / 19b). */
+/** Client API hooks for forgot / reset password (19a / 19b).
+ * BACKEND (Luffy): wire POST /api/auth/forgot-password and /api/auth/reset-password on web.
+ * Until then, 404/501 are treated as success so mobile UI can be tested offline. */
 
 import { api, ApiError } from "@/api";
 
@@ -19,7 +21,7 @@ export async function requestPasswordResetEmail(email: string): Promise<{ ok: tr
     await api("/api/auth/forgot-password", { method: "POST", body: { email } });
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 501)) {
-      /* endpoint not deployed yet */
+      /* Luffy: endpoint not deployed — dev-only stub */
     }
   }
   return { ok: true };
@@ -35,6 +37,7 @@ export async function submitPasswordReset(token: string, password: string): Prom
     return { ok: true };
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 501)) {
+      /* Luffy: endpoint not deployed — dev-only stub */
       return { ok: true };
     }
     const msg = e instanceof Error ? e.message : "";

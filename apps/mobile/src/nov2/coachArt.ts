@@ -47,3 +47,22 @@ export function coachStill(slug: CoachSlug, mood: CoachMood = "neutral"): number
 export function coachBust(slug: CoachSlug): number {
   return bust[slug] ?? bust.kira!;
 }
+
+export const COACH_MATCH_PILL: Record<CoachSlug, string> = {
+  otto: "Coach",
+  kira: "Medium",
+  skye: "Easy",
+  rex: "Hard",
+  ash: "Strict",
+};
+
+export function coachDisplayName(slug: CoachSlug): string {
+  const names: Record<CoachSlug, string> = {
+    otto: "Otto",
+    kira: "Kira",
+    skye: "Skye",
+    ash: "Ash",
+    rex: "Rex",
+  };
+  return names[slug];
+}

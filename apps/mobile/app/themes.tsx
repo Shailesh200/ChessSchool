@@ -17,7 +17,7 @@ import { font, radius, shadowCard, space, type } from "@/theme";
 const PREVIEW_FEN = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 1";
 
 export default function ThemesScreen() {
-  const { boardTheme, pieceTheme, appTheme, schoolTheme } = useSettings();
+  const { boardTheme, pieceTheme, appTheme, schoolTheme, uiKit } = useSettings();
   const { colors } = useAppTheme();
   const { width } = useWindowDimensions();
   const preview = Math.min(width - 96, 300);
@@ -108,6 +108,33 @@ export default function ThemesScreen() {
 
         <View style={styles.previewWrap}>
           <ChessBoard fen={PREVIEW_FEN} size={preview} interactive={false} showNotation lastMove={{ from: "c4", to: "c5" }} />
+        </View>
+
+        <Text style={styles.section}>Mobile UI kit</Text>
+        <Text style={styles.sectionNote}>Premium illustrated (BOA) vs classic Cody chrome.</Text>
+        <View style={styles.grid}>
+          {(
+            [
+              { id: "premium" as const, label: "Premium illustrated" },
+              { id: "classic" as const, label: "Classic" },
+            ] as const
+          ).map(({ id, label }) => {
+            const on = uiKit === id;
+            return (
+              <Pressable
+                key={id}
+                style={[styles.card, styles.cardWide, on && styles.cardOn]}
+                onPress={() => {
+                  haptics.tap();
+                  settings.set("uiKit", id);
+                }}
+              >
+                <Text style={[styles.cardLabel, on && styles.cardLabelOn]} numberOfLines={2}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={styles.section}>App theme</Text>
