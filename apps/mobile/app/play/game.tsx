@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useColorScheme, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine, getBotMove, eloToConfig, type VerboseMove } from "@chess-school/core";
@@ -17,7 +17,6 @@ import {
   PremiumScrubber,
   buildMoveRows,
 } from "@/nov2/PremiumMatchLayout";
-import { getAppTheme } from "@/appThemes";
 import { useUiKit } from "@/components/kit/useUiKit";
 import type { CoachSlug } from "@/nov2/coachArt";
 import { coachDisplayName } from "@/nov2/coachArt";
@@ -32,6 +31,7 @@ import { applyMatchEnd, prependRecentGame, isoDay, type EndReason } from "@/prog
 import { markHomeworkActivity } from "@/homeworkRoutine";
 import { buildSyncGame, winnerFromPlayerResult, endReasonFromStatus } from "@/gameHistory";
 import { settings, useSettings } from "@/settings";
+import { resolvePremiumColorMode } from "@/themeMode";
 import { parseTimeControl, useChessClock } from "@/useChessClock";
 import {
   canResumeBotMatch,
@@ -128,10 +128,13 @@ export default function GameScreen() {
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
   const bot = botProfile(elo);
-  const { avatar, coachCharacter, coachPersonality, sound, appTheme } = useSettings();
+  const { avatar, coachCharacter, coachPersonality, sound, themeMode } = useSettings();
+  const scheme = useColorScheme();
   const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
   const matchDark =
-    darkParam === "1" || darkParam === "true" || getAppTheme(appTheme ?? "default").dark === true;
+    darkParam === "1" ||
+    darkParam === "true" ||
+    resolvePremiumColorMode(themeMode, scheme) === "dark";
   const { width, fontScale } = useWindowDimensions();
   // UI-M-017: the board is sized from the space really left between the header/coach
   // and the scrubber (measured), never below BOARD_MIN; the middle region scrolls
