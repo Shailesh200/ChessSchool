@@ -10,8 +10,7 @@ import { CoachHead } from "@/nov2/CoachRow";
 import { KitButton, KitTopBar } from "@/components/kit";
 import { usePremiumKitTheme } from "@/components/kit";
 import { coachStill, type CoachSlug } from "@/nov2/coachArt";
-import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
-
+import { createPlayHubStyles } from "@/nov2/boaKitStyles";
 type PlayMode = "coach" | "bot" | "friend";
 type OpponentId = "skye" | "kira" | "rex" | "ash";
 
@@ -39,9 +38,11 @@ const OPPONENTS: {
 /** 12-play-hub — premium Play tab (390 layout). */
 export function PlayHubPremium() {
   const router = useRouter();
+  const kit = usePremiumKitTheme();
+  const styles = useMemo(() => createPlayHubStyles(kit), [kit]);
   const { themeMode } = useSettings();
   const scheme = useColorScheme();
-  const { colors } = usePremiumKitTheme();
+  const { colors } = kit;
   const [mode, setMode] = useState<PlayMode>("coach");
   const [opp, setOpp] = useState<OpponentId>("kira");
   const [ashOn, setAshOn] = useState(false);
@@ -100,19 +101,19 @@ export function PlayHubPremium() {
                 accessibilityState={{ selected: on }}
               >
                 <View style={styles.modeIcon}>
-                  <Icon name={m.icon} size={22} color={on ? premiumColors.brand : premiumColors.textMuted} duotone />
+                  <Icon name={m.icon} size={22} color={on ? colors.brand : colors.ink500} duotone />
                 </View>
                 <View style={styles.modeText}>
                   <Text style={styles.modeTitle}>{m.title}</Text>
                   <Text style={styles.modeSub}>{m.subtitle}</Text>
                 </View>
-                {on ? <Icon name="check" size={18} color={premiumColors.brand} /> : null}
+                {on ? <Icon name="check" size={18} color={colors.brand} /> : null}
               </Pressable>
             );
           })}
         </View>
 
-        <Text style={[styles.section, { marginTop: premiumSpace[4] }]}>Pick who to play</Text>
+        <Text style={[styles.section, { marginTop: kit.space["4"] }]}>Pick who to play</Text>
         <View style={styles.oppoList}>
           {OPPONENTS.filter((o) => o.id !== "ash" || ashOn).map((o) => {
             const on = opp === o.id;
@@ -160,112 +161,3 @@ export function PlayHubPremium() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: premiumColors.bg, maxWidth: 390, width: "100%", alignSelf: "center" },
-  topbar: { flexDirection: "row", flexWrap: "wrap", gap: premiumSpace[2], paddingHorizontal: premiumSpace[4], paddingTop: premiumSpace[2] },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: premiumColors.surface,
-    borderRadius: premiumRadius.pill,
-    borderWidth: 1.5,
-    borderColor: premiumColors.line,
-    paddingHorizontal: premiumSpace[3],
-    paddingVertical: 6,
-  },
-  chipBold: { fontFamily: premiumFont.uiBold, color: premiumColors.text, fontSize: 14 },
-  chipText: { fontFamily: premiumFont.ui, color: premiumColors.textMuted, fontSize: 13 },
-  scroll: { padding: premiumSpace[4], paddingBottom: 120, gap: premiumSpace[3] },
-  pageTitle: { ...premiumType.h1, fontFamily: premiumFont.display, color: premiumColors.text },
-  hero: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: premiumColors.surfaceSoft,
-    borderRadius: premiumRadius.xl,
-    padding: premiumSpace[4],
-    gap: premiumSpace[3],
-  },
-  heroCopy: { flex: 1, gap: 4 },
-  heroKicker: { fontSize: 12, fontFamily: premiumFont.uiBold, color: premiumColors.textMuted, textTransform: "uppercase" },
-  heroTitle: { fontSize: 22, fontFamily: premiumFont.display, color: premiumColors.text },
-  heroSub: { fontSize: 14, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-  heroArt: {
-    width: 88,
-    height: 88,
-    borderRadius: premiumRadius.lg,
-    backgroundColor: premiumColors.brandSoft,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    overflow: "hidden",
-  },
-  bust: { width: 80, height: 80, resizeMode: "contain" },
-  section: { fontSize: 20, fontFamily: premiumFont.display, color: premiumColors.text },
-  modes: { gap: premiumSpace[2] },
-  mode: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: premiumSpace[3],
-    padding: premiumSpace[3],
-    borderRadius: premiumRadius.lg,
-    borderWidth: 1.5,
-    borderColor: premiumColors.line,
-    backgroundColor: premiumColors.surface,
-  },
-  modeOn: { borderColor: premiumColors.brand, backgroundColor: premiumColors.brandSoft },
-  modeIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: premiumColors.surfaceSoft, alignItems: "center", justifyContent: "center" },
-  modeText: { flex: 1 },
-  modeTitle: { fontFamily: premiumFont.uiBold, fontSize: 16, color: premiumColors.text },
-  modeSub: { fontFamily: premiumFont.ui, fontSize: 13, color: premiumColors.textMuted, marginTop: 2 },
-  oppoList: { gap: premiumSpace[2] },
-  opp: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: premiumSpace[3],
-    padding: premiumSpace[3],
-    borderRadius: premiumRadius.lg,
-    borderWidth: 1.5,
-    borderColor: premiumColors.line,
-    backgroundColor: premiumColors.surface,
-  },
-  oppOn: { borderColor: premiumColors.brand, borderWidth: 2 },
-  oppText: { flex: 1 },
-  oppName: { fontFamily: premiumFont.uiBold, fontSize: 16, color: premiumColors.text },
-  oppDesc: { fontFamily: premiumFont.ui, fontSize: 13, color: premiumColors.textMuted, marginTop: 2 },
-  pill: { borderRadius: premiumRadius.pill, paddingHorizontal: 10, paddingVertical: 4 },
-  pill_easy: { backgroundColor: premiumColors.successSoft },
-  pill_medium: { backgroundColor: premiumColors.warningSoft },
-  pill_hard: { backgroundColor: premiumColors.errorSoft },
-  pillText: { fontFamily: premiumFont.uiBold, fontSize: 12, color: premiumColors.text },
-  ashRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: premiumSpace[3],
-    padding: premiumSpace[3],
-    borderRadius: premiumRadius.lg,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: premiumColors.lineStrong,
-  },
-  toggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: premiumColors.line, padding: 3 },
-  toggleOn: { backgroundColor: premiumColors.brand },
-  knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: premiumColors.surface },
-  knobOn: { alignSelf: "flex-end" },
-  startBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: premiumSpace[3],
-    padding: premiumSpace[4],
-    paddingBottom: premiumSpace[5],
-    backgroundColor: premiumColors.surface,
-    borderTopWidth: 1.5,
-    borderTopColor: premiumColors.line,
-  },
-  startCopy: { flex: 1 },
-  startTitle: { fontFamily: premiumFont.uiBold, fontSize: 15, color: premiumColors.text },
-  startSub: { fontFamily: premiumFont.ui, fontSize: 13, color: premiumColors.textMuted },
-  startBtn: { minWidth: 130 },
-});

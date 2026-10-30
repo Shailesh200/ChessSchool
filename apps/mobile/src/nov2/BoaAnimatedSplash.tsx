@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
-import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, View, useColorScheme } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { KitButton, KitLogo } from "@/components/kit";
-import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
+import { KitButton, KitLogo, usePremiumKitTheme } from "@/components/kit";
+import { useSettings } from "@/settings";
+import { resolvePremiumColorMode } from "@/themeMode";
+import { createSplashStyles } from "@/nov2/boaKitStyles";
 
 type Props = { onFinish: () => void };
 
@@ -10,6 +12,11 @@ const TOTAL_MS = 2400;
 
 /** Branded illustrated splash — replaces legacy AnimatedSplash when uiLook=premium. */
 export function BoaAnimatedSplash({ onFinish }: Props) {
+  const { themeMode } = useSettings();
+  const kit = usePremiumKitTheme();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createSplashStyles(kit), [kit]);
   const line1Y = useRef(new Animated.Value(16)).current;
   const line1O = useRef(new Animated.Value(0)).current;
   const heroScale = useRef(new Animated.Value(0.92)).current;
@@ -20,8 +27,8 @@ export function BoaAnimatedSplash({ onFinish }: Props) {
 
     void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
       if (cancelled) return;
-      if (reduce) {
-        timer = setTimeout(onFinish, 500);
+      if (reduce || process.env.EXPO_PUBLIC_BOA_CAPTURE === "1") {
+        timer = setTimeout(onFinish, 200);
         return;
       }
       Animated.parallel([
@@ -43,8 +50,6 @@ export function BoaAnimatedSplash({ onFinish }: Props) {
     };
   }, [heroScale, line1O, line1Y, onFinish]);
 
-  const styles = useMemo(() => makeStyles(), []);
-
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.inner}>
@@ -57,24 +62,4 @@ export function BoaAnimatedSplash({ onFinish }: Props) {
       </View>
     </SafeAreaView>
   );
-}
-
-function makeStyles() {
-  return StyleSheet.create({
-    safe: { flex: 1, backgroundColor: premiumColors.bgSplash },
-    inner: { flex: 1, justifyContent: "center", paddingHorizontal: premiumSpace[5], gap: premiumSpace[5] },
-    hero: {
-      backgroundColor: premiumColors.brandSoft,
-      borderRadius: premiumRadius.x2,
-      paddingVertical: premiumSpace[10],
-      paddingHorizontal: premiumSpace[4],
-      alignItems: "center",
-    },
-    tag: {
-      ...premiumType.h2,
-      fontFamily: premiumFont.display,
-      color: premiumColors.text,
-      textAlign: "center",
-    },
-  });
 }
