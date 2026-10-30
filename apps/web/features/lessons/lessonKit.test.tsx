@@ -104,6 +104,7 @@ describe("LessonKitFooter", () => {
         failWhy="Try again"
         onContinue={vi.fn()}
         onShowHint={vi.fn()}
+        onTryAgain={vi.fn()}
       />,
     );
     const root = screen.getByTestId("lesson-fbar-correct");
@@ -125,6 +126,7 @@ describe("LessonKitFooter", () => {
         failWhy="Look for a fork."
         onContinue={vi.fn()}
         onShowHint={vi.fn()}
+        onTryAgain={vi.fn()}
       />,
     );
     expect(screen.getByTestId("lesson-fbar-wrong").querySelector(".cs-fbar--wrong")).toBeTruthy();
@@ -175,11 +177,26 @@ describe("LessonComplete kit UI", () => {
         correct={2}
         mistakes={0}
         ceremony={null}
+        durationMs={222_000}
+        hintsUsed={1}
+        interactiveSteps={2}
         onDone={vi.fn()}
       />,
     );
     expect(screen.getByTestId("lesson-complete-screen")).toBeInTheDocument();
     expect(screen.getByTestId("kit-lottie-confetti")).toBeInTheDocument();
+    expect(screen.getByTestId("lesson-complete-quote")).toBeInTheDocument();
+    expect(screen.getByTestId("lesson-complete-week")).toBeInTheDocument();
+    expect(screen.getByTestId("lesson-complete-daily-goal")).toBeInTheDocument();
     expect(screen.getByTestId("kit-lottie-streak-flame")).toBeInTheDocument();
+  });
+
+  it("uses Got it on intro info steps", () => {
+    const intro: Lesson = {
+      ...MOVE_LESSON,
+      steps: [{ id: "i1", kind: "info", coach: "Welcome.", fen: MOVE_LESSON.steps[0]!.fen }],
+    };
+    render(<LessonPlayer lesson={intro} />);
+    expect(screen.getByTestId("lesson-got-it")).toHaveTextContent("Got it");
   });
 });
