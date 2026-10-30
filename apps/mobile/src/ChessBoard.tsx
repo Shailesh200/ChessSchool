@@ -104,6 +104,7 @@ export function ChessBoard({
   checkSquare,
   successSquare,
   showNotation = false,
+  onPieceDragActiveChange,
 }: {
   fen: string;
   size: number;
@@ -121,6 +122,12 @@ export function ChessBoard({
   successSquare?: string | null;
   /** Pre-School: show a–h / 1–8 coordinates on the board edge. */
   showNotation?: boolean;
+  /**
+   * true when a piece drag starts on an interactive board; false on release or terminate (and
+   * if the board unmounts or goes non-interactive mid-drag). Lets a host ScrollView lock itself
+   * while a piece is being dragged.
+   */
+  onPieceDragActiveChange?: (active: boolean) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [promo, setPromo] = useState<{ from: string; to: string; color: "w" | "b" } | null>(null);
@@ -240,6 +247,14 @@ export function ChessBoard({
   pieceAtRef.current = pieceAt;
   tapRef.current = tap;
   interactiveRef.current = interactive;
+  const onDragActiveChangeRef = useRef(onPieceDragActiveChange);
+  onDragActiveChangeRef.current = onPieceDragActiveChange;
+  // Never leave the host scroll locked: release it if the board goes away or stops being
+  // interactive while a drag could be active.
+  useEffect(() => {
+    if (!interactive) onDragActiveChangeRef.current?.(false);
+    return () => onDragActiveChangeRef.current?.(false);
+  }, [interactive]);
 
   const pan = useRef(
     PanResponder.create(
@@ -252,6 +267,7 @@ export function ChessBoard({
         tapRef,
         tryMoveRef,
         interactiveRef,
+        onDragActiveChangeRef,
         setDragFrom,
         setDragXY,
         setSelected,

@@ -18,12 +18,28 @@ export type BoardPanDeps<Cell> = {
   tapRef: Ref<(sq: string, piece: Cell) => void>;
   tryMoveRef: Ref<(from: string, to: string) => unknown>;
   interactiveRef: Ref<boolean>;
+  /**
+   * Optional (read through a ref so the once-created responder sees the latest prop).
+   * Fired true when a touch starts on a piece of an interactive board, and false when that
+   * drag is released or terminated. The lesson screen uses it to disable the body ScrollView
+   * for the duration of the drag: on Android the native ScrollView can intercept the touch
+   * before the JS responder is asked, so refusing termination alone may not hold.
+   */
+  onDragActiveChangeRef?: Ref<((active: boolean) => void) | undefined>;
   setDragFrom: (sq: string | null) => void;
   setDragXY: (xy: { x: number; y: number } | null) => void;
   setSelected: (sq: string | null) => void;
 };
 
 export function createBoardPanConfig<Cell>(d: BoardPanDeps<Cell>) {
+  // Whether we have told the owner a piece drag is active. true is always sent on a piece grant
+  // (the owner may have reset itself meanwhile); false only undoes a true we sent.
+  let dragActive = false;
+  const setDragActive = (active: boolean) => {
+    if (!active && !dragActive) return;
+    dragActive = active;
+    d.onDragActiveChangeRef?.current?.(active);
+  };
   return {
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
@@ -39,6 +55,7 @@ export function createBoardPanConfig<Cell>(d: BoardPanDeps<Cell>) {
       d.startXYRef.current = { x: locationX, y: locationY };
       const sq = d.sqAtRef.current(locationX, locationY);
       d.dragRef.current = sq ? { from: sq, piece: d.pieceAtRef.current(sq) } : null;
+      if (d.dragRef.current?.piece && d.interactiveRef.current) setDragActive(true);
     },
     onPanResponderMove: (e: BoardPanEvent) => {
       const start = d.startXYRef.current;
@@ -59,6 +76,7 @@ export function createBoardPanConfig<Cell>(d: BoardPanDeps<Cell>) {
       d.dragRef.current = null;
       d.setDragFrom(null);
       d.setDragXY(null);
+      setDragActive(false);
       if (!drag) return;
       const draggedFar = d.movedRef.current && target && target !== drag.from;
       if (draggedFar && drag.piece) {
@@ -73,6 +91,7 @@ export function createBoardPanConfig<Cell>(d: BoardPanDeps<Cell>) {
       d.startXYRef.current = null;
       d.setDragFrom(null);
       d.setDragXY(null);
+      setDragActive(false);
     },
   };
 }

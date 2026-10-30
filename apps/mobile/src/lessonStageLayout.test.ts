@@ -26,6 +26,7 @@ import { computeLessonLayout, type LessonLayout } from "./lessonLayout";
 type El = ReactElement<{
   children?: ReactNode;
   testID?: string;
+  scrollEnabled?: boolean;
   onLayout?: (e: unknown) => void;
 }>;
 
@@ -58,6 +59,7 @@ function render(opts: {
   fontScale?: number;
   hasBoard?: boolean;
   omitHasBoard?: boolean;
+  scrollEnabled?: boolean;
   body?: { w: number; h: number } | null;
 }) {
   dims.width = opts.w ?? 390;
@@ -74,6 +76,7 @@ function render(opts: {
     coach: (l: LessonLayout) => (seen.push(l), coach),
     board: (l: LessonLayout) => (seen.push(l), board),
   };
+  if (opts.scrollEnabled !== undefined) props.scrollEnabled = opts.scrollEnabled;
   if (!opts.omitHasBoard) props.hasBoard = opts.hasBoard ?? true;
   const root = (LessonStageLayout as unknown as (p: unknown) => El)(props);
   return { root, coach, board, layout: seen[seen.length - 1] };
@@ -202,5 +205,22 @@ describe("LessonStageLayout landscape side by side (UI-M-018)", () => {
     expect(kids(scroller)).toEqual([coach, hint]);
     expect(contains(scroller, footer)).toBe(false);
     expect(kids(panel).indexOf(footer)).toBeGreaterThan(kids(panel).indexOf(scroller));
+  });
+});
+
+describe("LessonStageLayout scroll lock while a piece is dragged (Android fallback)", () => {
+  it("scrollEnabled defaults to true and maps false/true onto the body ScrollView (portrait)", () => {
+    expect(find(render({}).root, "lesson-scroll")!.props.scrollEnabled).toBe(true);
+    expect(find(render({ scrollEnabled: false }).root, "lesson-scroll")!.props.scrollEnabled).toBe(false);
+    expect(find(render({ scrollEnabled: true }).root, "lesson-scroll")!.props.scrollEnabled).toBe(true);
+  });
+
+  it("the landscape panel ScrollView honours it too", () => {
+    expect(
+      find(render({ w: 844, h: 390, scrollEnabled: false }).root, "lesson-scroll")!.props.scrollEnabled,
+    ).toBe(false);
+    expect(
+      find(render({ w: 844, h: 390 }).root, "lesson-scroll")!.props.scrollEnabled,
+    ).toBe(true);
   });
 });

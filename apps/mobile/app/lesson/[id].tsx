@@ -182,6 +182,12 @@ export default function LessonScreen() {
   const [loading, setLoading] = useState(true);
   const [lessonClass, setLessonClass] = useState<LessonClass | null>(null);
   const [index, setIndex] = useState(0);
+  // True while a piece is being dragged on the board: the body ScrollView is disabled so
+  // Android's native scroller cannot steal the gesture. Always reset on step/lesson change.
+  const [pieceDragActive, setPieceDragActive] = useState(false);
+  useEffect(() => {
+    setPieceDragActive(false);
+  }, [id, index]);
   const [phase, setPhase] = useState<"playing" | "correct" | "wrong" | "complete" | "exam-failed">("playing");
   const [flipped, setFlipped] = useState(false);
   const [displayFen, setDisplayFen] = useState<string | undefined>();
@@ -681,6 +687,7 @@ export default function LessonScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <LessonStageLayout
         hasBoard={step.kind !== "quiz"}
+        scrollEnabled={!pieceDragActive}
         header={
           <>
             {/* Top bar: back · progress · counter · flip */}
@@ -747,6 +754,7 @@ export default function LessonScreen() {
                     onMove={onMove}
                     interactive={step.kind === "move" && phase === "playing"}
                     showNotation={preschool}
+                    onPieceDragActiveChange={setPieceDragActive}
                     lastMove={lastMove}
                     arrows={boardArrows}
                     highlights={boardHighlights}

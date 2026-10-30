@@ -13,6 +13,7 @@ export function LessonStageLayout({
   hint,
   footer,
   hasBoard = true,
+  scrollEnabled = true,
 }: {
   header: ReactNode;
   coach: (layout: LessonLayout) => ReactNode;
@@ -20,6 +21,8 @@ export function LessonStageLayout({
   hint?: ReactNode;
   footer: ReactNode;
   hasBoard?: boolean;
+  /** false while a piece is being dragged, so the body ScrollView cannot take the gesture. */
+  scrollEnabled?: boolean;
 }) {
   const { width, height, fontScale } = useWindowDimensions();
   const [body, setBody] = useState<{ w: number; h: number } | null>(null);
@@ -46,7 +49,7 @@ export function LessonStageLayout({
             {board(layout)}
           </View>
           <View style={s.panelCol}>
-            <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} testID="lesson-scroll">
+            <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} scrollEnabled={scrollEnabled} testID="lesson-scroll">
               {coach(layout)}
               {hint}
             </ScrollView>
@@ -60,7 +63,7 @@ export function LessonStageLayout({
   return (
     <View style={s.root}>
       {header}
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} onLayout={onLayout} testID="lesson-scroll">
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} scrollEnabled={scrollEnabled} onLayout={onLayout} testID="lesson-scroll">
         {coach(layout)}
         <View style={s.boardSlot} testID="lesson-board-slot">
           {board(layout)}
