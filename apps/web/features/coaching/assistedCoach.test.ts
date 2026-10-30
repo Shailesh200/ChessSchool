@@ -74,4 +74,26 @@ describe("assistedCoach", () => {
     expect(line.length).toBeGreaterThan(40);
     expect(line).not.toMatch(/reply/i);
   });
+
+  it("uses second-person grammar for the student pawn headline", () => {
+    const line = explainAssistedPlayerMove({
+      beforeFen: START,
+      move: {
+        color: "w",
+        from: "d2",
+        to: "d4",
+        piece: "p",
+        san: "d4",
+        flags: "b",
+      },
+      afterFen: "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+      inCheckAfter: false,
+      moveNumber: 1,
+      playerRating: 900,
+      botName: "Remi",
+      personality: "genz",
+    });
+    expect(line).toMatch(/You play the pawn/);
+    expect(line).not.toMatch(/You plays/);
+  });
 });
