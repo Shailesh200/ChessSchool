@@ -197,6 +197,7 @@ for (const [w, h] of VIEWPORTS) {
 
 test.describe("landscape and wide: board and panel side by side", () => {
   for (const [w, h] of [
+    [900, 700],
     [844, 390],
     [1024, 768],
     [1440, 900],
@@ -227,6 +228,20 @@ test.describe("landscape and wide: board and panel side by side", () => {
     const board = await box(page, '[data-testid="lesson-board-frame"]');
     const panel = await box(page, '[data-testid="lesson-coach-panel"]');
     expect(panel.y + panel.height).toBeLessThanOrEqual(board.y + 1);
+  });
+
+  test("UI-W-005: side-by-side layout starts at kit 900px width", async ({ page }) => {
+    await page.setViewportSize({ width: 899, height: 800 });
+    await openLesson(page, BOARD_ROUTE, 100);
+    let board = await box(page, '[data-testid="lesson-board-frame"]');
+    let panel = await box(page, '[data-testid="lesson-coach-panel"]');
+    expect(panel.y + panel.height).toBeLessThanOrEqual(board.y + 1);
+
+    await page.setViewportSize({ width: 900, height: 800 });
+    await openLesson(page, BOARD_ROUTE, 100);
+    board = await box(page, '[data-testid="lesson-board-frame"]');
+    panel = await box(page, '[data-testid="lesson-coach-panel"]');
+    expect(board.x + board.width).toBeLessThanOrEqual(panel.x + 1);
   });
 });
 
