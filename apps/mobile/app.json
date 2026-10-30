@@ -2,7 +2,7 @@
   "expo": {
     "name": "ChessSchool",
     "slug": "chess-school",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "A premium chess-learning school — graduate through classes, puzzles, and matches.",
     "orientation": "portrait",
     "scheme": "chessschool",
@@ -25,14 +25,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "config": {
         "usesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 26,
+      "versionCode": 27,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5b5bd6"
