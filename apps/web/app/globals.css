@@ -472,6 +472,12 @@ html[data-app-theme="midnight"] {
 html[data-app-theme="midnight"] .text-brand:not([class*="via-white"]) {
   color: var(--brand-ink);
 }
+/* Semester badges paint white text on a per-semester data colour (inline
+   background). The pink "Chess Basics" colour is 2.7:1 under white, so in
+   midnight darken whatever colour the data gives by 30% (pink 5.1:1). */
+html[data-app-theme="midnight"] .school-semester-badge {
+  background-color: color-mix(in srgb, var(--semester-color) 70%, black) !important;
+}
 
 /* Campus / school chrome — consumes --school-* tokens (independent of app palette). */
 .school-chrome-card {

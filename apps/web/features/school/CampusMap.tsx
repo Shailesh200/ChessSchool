@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -224,7 +224,12 @@ export function CampusMap({ catalog }: { catalog: Catalog }) {
                         >
                           <span
                             className="school-semester-badge shrink-0 px-3 py-1 text-xs font-extrabold text-white"
-                            style={{ backgroundColor: sem.color }}
+                            style={
+                              {
+                                backgroundColor: sem.color,
+                                "--semester-color": sem.color,
+                              } as CSSProperties
+                            }
                           >
                             {sem.title}
                           </span>

@@ -67,6 +67,9 @@ async function probe(page: Page, school: string): Promise<Probe> {
 }
 
 function channels(css: string): [number, number, number] {
+  // color-mix() computes to `color(srgb r g b)` with 0..1 channels.
+  const srgb = css.match(/^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)/);
+  if (srgb) return [+srgb[1]! * 255, +srgb[2]! * 255, +srgb[3]! * 255];
   const m = css.match(/rgba?\(([^)]+)\)/);
   if (!m) throw new Error(`unparseable colour: ${css}`);
   const p = m[1]!
@@ -141,3 +144,38 @@ test("classic: --ink-300 labels keep >= 3:1 on the page and sunken surfaces (UI-
     ).toBeGreaterThanOrEqual(3);
   }
 });
+
+for (const school of SCHOOLS) {
+  test(`midnight + ${school}: /academy semester badge text is >= 4.5:1`, async ({
+    page,
+  }) => {
+    await page.addInitScript((sc) => {
+      const key = "chessschool.settings";
+      const cur = JSON.parse(localStorage.getItem(key) || "{}");
+      const state = Object.assign(cur.state || {}, {
+        appTheme: "midnight",
+        schoolTheme: sc,
+      });
+      localStorage.setItem(key, JSON.stringify({ state, version: cur.version || 11 }));
+    }, school);
+    await page.goto("/academy");
+    await page.waitForFunction(
+      () => document.documentElement.dataset.appTheme === "midnight",
+    );
+    await page.locator(".school-semester-badge").first().waitFor();
+    const badges = await page.locator(".school-semester-badge").evaluateAll((els) =>
+      els.map((el) => {
+        const s = getComputedStyle(el);
+        return { text: el.textContent ?? "", fg: s.color, bg: s.backgroundColor };
+      }),
+    );
+    expect(badges.length).toBeGreaterThan(0);
+    for (const b of badges) {
+      const ratio = contrast(b.fg, b.bg);
+      expect(
+        ratio,
+        `semester badge "${b.text}" (${b.fg} on ${b.bg}) = ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+}
