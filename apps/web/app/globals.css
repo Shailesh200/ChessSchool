@@ -886,8 +886,8 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-brand-700 {
   width: 100%;
 }
 
-/* Wide screens: board left, coach + extras right (kit lgrid @900px, we use 1024). */
-@media (min-width: 1024px) {
+/* Wide screens: board left, coach + extras right (kit lgrid @900px). */
+@media (min-width: 900px) {
   .lesson-stage-header {
     padding-inline: 2rem;
   }

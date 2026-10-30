@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 /**
  * Shared layout shell for every lesson-style player (lessons, homework, exams,
  * class exams, practice). Premium kit markup (design-kit 05a–08) with coach
- * above a centred board on mobile; board left / coach+extras right from 1024px.
+ * above a centred board on mobile; board left / coach+extras right from 900px (kit lgrid).
  *
  * Geometry for the live board still comes from `.lesson-stage*` container queries
  * in globals.css — pinned by e2e/lesson-layout.spec.ts via data-testid hooks.
