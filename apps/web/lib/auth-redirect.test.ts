@@ -15,10 +15,12 @@ describe("sanitizeAppNext", () => {
 
   it("rejects open redirects and auth loops", () => {
     expect(sanitizeAppNext("//evil.com")).toBe("/academy");
+    expect(sanitizeAppNext("/\\evil.com")).toBe("/academy");
     expect(sanitizeAppNext("https://evil.com")).toBe("/academy");
     expect(sanitizeAppNext("/login")).toBe("/academy");
     expect(sanitizeAppNext("/register?next=/play")).toBe("/academy");
     expect(sanitizeAppNext("/welcome")).toBe("/academy");
+    expect(sanitizeAppNext("/welcome?next=//evil.com")).toBe("/academy");
   });
 
   it("honors custom fallback", () => {

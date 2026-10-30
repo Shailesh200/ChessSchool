@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mascot } from "@/components/ui/Mascot";
 import { pullProgress } from "@/core/sync/pullProgress";
+import { safeNextPath } from "@/lib/safeNextPath";
 
 /**
  * Post-login/sign-up interstitial — pulls the account's profile + progress and
@@ -37,7 +38,7 @@ function WelcomeShell() {
 function WelcomeRedirect() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/academy";
+  const next = safeNextPath(params.get("next"), "/academy");
 
   useEffect(() => {
     let done = false;
