@@ -300,7 +300,7 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   padding: 0 0.3rem;
   border-radius: 99px;
   background: var(--cs-brand);
-  color: #fff;
+  color: var(--cs-text-on-brand);
   font: 800 0.6875rem/1.125rem var(--cs-font-ui);
   font-style: normal;
   text-align: center;
@@ -320,7 +320,7 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   padding: 0 0.3rem;
   border-radius: 99px;
   background: var(--cs-brand);
-  color: #fff;
+  color: var(--cs-text-on-brand);
   font: 800 0.6875rem/1.125rem var(--cs-font-ui);
   text-align: center;
 }
