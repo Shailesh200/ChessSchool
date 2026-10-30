@@ -80,7 +80,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://*.ably.io wss://*.ably.io https://*.turso.io https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://pulse.shaileshjha.in",
+              "connect-src 'self' https://*.ably.io wss://*.ably.io https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://pulse.shaileshjha.in",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
