@@ -1,0 +1,47 @@
+name: identity-guard
+
+# Rejects forbidden author, committer, or message text on rc/nov2, nov2/**,
+# and stable. One job, no third-party actions besides checkout. A skipped
+# job does not fail this workflow: there is no follow-up job that treats
+# "skipped" as a failure.
+
+on:
+  push:
+    branches:
+      - rc/nov2
+      - "nov2/**"
+      - stable
+  pull_request:
+    branches:
+      - rc/nov2
+      - "nov2/**"
+      - stable
+
+jobs:
+  identity:
+    name: forbidden identity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject forbidden author, committer, or message
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e 'b30c2af^{commit}'; then
+            echo "base commit b30c2af is not in this history" >&2
+            exit 1
+          fi
+          matches="$(
+            git log --format='%an %ae %cn %ce%n%B' b30c2af..HEAD \
+              | grep -Ei 'shailesh-arc|arcana|cursoragent|gmail.com|Co-authored-by|anthropic' \
+              || true
+          )"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches" >&2
+            echo "forbidden identity in b30c2af..HEAD" >&2
+            exit 1
+          fi
+          echo "identity ok ($(git rev-list --count b30c2af..HEAD) commits)"
