@@ -4,7 +4,7 @@ import { Icon } from "@/Icon";
 import { usePremiumKitTheme } from "@/components/kit";
 import { useSettings } from "@/settings";
 import { resolvePremiumColorMode } from "@/themeMode";
-import { createPasswordFieldStyles } from "./boaKitStyles";
+import { createPasswordFieldStyles } from "./premiumKitStyles";
 import type { PasswordCheck, PasswordRuleId } from "./passwordReset";
 
 const RULE_LABELS: Record<PasswordRuleId, string> = {

@@ -7,7 +7,7 @@ import { isPremiumLook } from "@/nov2/uiLook";
 import { KitButton, usePremiumKitTheme } from "@/components/kit";
 import { FieldAlert, PasswordStrengthBlock, PremiumPasswordField } from "@/nov2/PremiumPasswordField";
 import { PremiumAuthShell, SentBox } from "@/nov2/PremiumAuthShell";
-import { createBoaAuthStyles } from "@/nov2/boaKitStyles";
+import { createPremiumAuthStyles } from "@/nov2/premiumKitStyles";
 import { resolvePremiumColorMode } from "@/themeMode";
 import { checkPasswordStrength, passwordsMatch, submitPasswordReset } from "@/nov2/passwordReset";
 
@@ -33,7 +33,7 @@ export function ResetPasswordScreen() {
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
   const mode = resolvePremiumColorMode(themeMode, scheme);
-  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+  const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
 
   const forced = capturePhase(typeof params.phase === "string" ? params.phase : undefined);
   const [phase, setPhase] = useState<Phase>(() => forced ?? (token ? "form" : "expired"));

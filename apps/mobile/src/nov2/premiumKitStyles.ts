@@ -2,7 +2,7 @@ import { StyleSheet } from "react-native";
 import type { PremiumThemeTokens } from "@/theme/premium";
 import tokens from "@/theme/premium/tokens.json";
 
-export const BOA_COLUMN = { maxWidth: 390, width: "100%" as const, alignSelf: "center" as const };
+export const PREMIUM_COLUMN = { maxWidth: 390, width: "100%" as const, alignSelf: "center" as const };
 
 type ColorMode = "light" | "dark";
 
@@ -11,7 +11,7 @@ function semantic(mode: ColorMode) {
 }
 
 /** Auth / onboarding typography and fields aligned to dex kit tokens. */
-export function createBoaAuthStyles(t: PremiumThemeTokens, mode: ColorMode = "light") {
+export function createPremiumAuthStyles(t: PremiumThemeTokens, mode: ColorMode = "light") {
   const { colors, space, radius, type, font } = t;
   const sem = semantic(mode);
   return StyleSheet.create({
@@ -109,7 +109,7 @@ export function createBoaAuthStyles(t: PremiumThemeTokens, mode: ColorMode = "li
 export function createSplashStyles(t: PremiumThemeTokens) {
   const { colors, space, radius, type, font } = t;
   return StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bg, ...BOA_COLUMN },
+    safe: { flex: 1, backgroundColor: colors.bg, ...PREMIUM_COLUMN },
     inner: { flex: 1, padding: space["5"], gap: space["5"], justifyContent: "center" },
     hero: {
       backgroundColor: colors.brand100,

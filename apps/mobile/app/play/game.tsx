@@ -17,6 +17,7 @@ import {
   PremiumScrubber,
   buildMoveRows,
 } from "@/nov2/PremiumMatchLayout";
+import { usePremiumKitTheme } from "@/components/kit";
 import { useUiKit } from "@/components/kit/useUiKit";
 import type { CoachSlug } from "@/nov2/coachArt";
 import { coachDisplayName } from "@/nov2/coachArt";
@@ -56,7 +57,7 @@ import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
 import { stopCoachSpeech, speakCoachText } from "@/coachSpeech";
-import { premiumColors } from "@/nov2/premiumTokens";
+import { usePremiumKitTheme } from "@/components/kit";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type OverState = {
@@ -122,6 +123,7 @@ export default function GameScreen() {
     boaPreview?: string;
   }>();
   const kit = useUiKit();
+  const premiumKit = usePremiumKitTheme();
   const coachSlug = (["otto", "kira", "rex", "skye", "ash"] as const).includes(coachParam as CoachSlug)
     ? (coachParam as CoachSlug)
     : "otto";
@@ -403,7 +405,7 @@ export default function GameScreen() {
   return (
     <SafeAreaView
       testID={kit === "premium" ? "premium-match" : undefined}
-      style={[styles.safe, { backgroundColor: kit === "premium" ? (matchDark ? "#0f1419" : premiumColors.bg) : colors.surface }]}
+      style={[styles.safe, { backgroundColor: kit === "premium" ? (matchDark ? "#0f1419" : premiumKit.colors.bg) : colors.surface }]}
       edges={["top"]}
     >
       {kit === "premium" ? (

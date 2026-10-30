@@ -7,7 +7,7 @@ import { isPremiumLook } from "@/nov2/uiLook";
 import { KitButton, usePremiumKitTheme } from "@/components/kit";
 import { FieldAlert } from "@/nov2/PremiumPasswordField";
 import { PremiumAuthShell, SentBox } from "@/nov2/PremiumAuthShell";
-import { createBoaAuthStyles } from "@/nov2/boaKitStyles";
+import { createPremiumAuthStyles } from "@/nov2/premiumKitStyles";
 import { resolvePremiumColorMode } from "@/themeMode";
 import {
   RESEND_COOLDOWN_SEC,
@@ -25,7 +25,7 @@ export function ForgotPasswordScreen() {
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
   const mode = resolvePremiumColorMode(themeMode, scheme);
-  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+  const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
 
   const capturePhase =
     process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "sent" ? ("sent" as const) : undefined;

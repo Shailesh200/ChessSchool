@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Icon, type IconName } from "@/Icon";
 import { usePremiumKitTheme } from "@/components/kit";
-import { createOptionListStyles } from "./boaKitStyles";
+import { createOptionListStyles } from "./premiumKitStyles";
 
 export type OptionItem = {
   id: string;

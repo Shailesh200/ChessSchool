@@ -11,7 +11,7 @@ import { CoachRow } from "@/nov2/CoachRow";
 import { KitButton, usePremiumKitTheme } from "@/components/kit";
 import { OptionList } from "@/nov2/OptionList";
 import { StepDots } from "@/nov2/StepDots";
-import { BOA_COLUMN, createBoaAuthStyles } from "@/nov2/boaKitStyles";
+import { PREMIUM_COLUMN, createPremiumAuthStyles } from "@/nov2/premiumKitStyles";
 import { BOA_GOAL_OPTIONS, BOA_LEVEL_OPTIONS, mapBoaGoalToSettings } from "@/nov2/onboardingData";
 import { resolvePremiumColorMode } from "@/themeMode";
 
@@ -25,7 +25,7 @@ export default function BoaOnboardingScreen() {
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
   const mode = resolvePremiumColorMode(themeMode, scheme);
-  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+  const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
   const [step, setStep] = useState(initialStep);
   const [goal, setGoal] = useState(BOA_GOAL_OPTIONS[0]!.id);
   const [level, setLevel] = useState(BOA_LEVEL_OPTIONS[0]!.id);
@@ -43,7 +43,7 @@ export default function BoaOnboardingScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, BOA_COLUMN]} edges={["top", "bottom"]}>
+    <SafeAreaView style={[styles.safe, PREMIUM_COLUMN]} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <StepDots step={step} total={4} />
         {step === 0 && (

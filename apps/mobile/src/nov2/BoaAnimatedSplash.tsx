@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { KitButton, KitLogo, usePremiumKitTheme } from "@/components/kit";
 import { useSettings } from "@/settings";
 import { resolvePremiumColorMode } from "@/themeMode";
-import { createSplashStyles } from "@/nov2/boaKitStyles";
+import { createSplashStyles } from "@/nov2/premiumKitStyles";
 
 type Props = { onFinish: () => void };
 

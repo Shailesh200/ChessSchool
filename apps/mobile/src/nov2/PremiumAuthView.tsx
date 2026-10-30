@@ -16,7 +16,7 @@ import { PasswordField } from "@/PasswordField";
 import { PRIVACY_URL } from "@/constants";
 import { CoachRow } from "./CoachRow";
 import { KitButton, KitLogo, usePremiumKitTheme } from "@/components/kit";
-import { BOA_COLUMN, createBoaAuthStyles } from "./boaKitStyles";
+import { PREMIUM_COLUMN, createPremiumAuthStyles } from "./premiumKitStyles";
 import { resolvePremiumColorMode } from "@/themeMode";
 import { useSettings } from "@/settings";
 
@@ -68,8 +68,8 @@ export function PremiumAuthView({
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
   const colorMode = resolvePremiumColorMode(themeMode, scheme);
-  const styles = useMemo(() => createBoaAuthStyles(kit, colorMode), [kit, colorMode]);
-  const layout = useMemo(() => StyleSheet.create({ flex: { flex: 1, backgroundColor: kit.colors.bg, ...BOA_COLUMN } }), [kit.colors.bg]);
+  const styles = useMemo(() => createPremiumAuthStyles(kit, colorMode), [kit, colorMode]);
+  const layout = useMemo(() => StyleSheet.create({ flex: { flex: 1, backgroundColor: kit.colors.bg, ...PREMIUM_COLUMN } }), [kit.colors.bg]);
 
   const isSignup = mode === "signup";
   const isErrors = mode === "errors";

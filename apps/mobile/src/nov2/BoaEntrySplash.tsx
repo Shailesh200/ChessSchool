@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { KitButton, KitLogo, usePremiumKitTheme } from "@/components/kit";
-import { createSplashStyles } from "@/nov2/boaKitStyles";
+import { createSplashStyles } from "@/nov2/premiumKitStyles";
 
 /** 01-splash — illustrated entry with CTA to onboarding or login. */
 export function BoaEntrySplash() {
