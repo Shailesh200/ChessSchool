@@ -48,6 +48,20 @@ describe("progress API integration", () => {
     const ctx = await bootApiTestEnv();
     teardown = ctx.teardown;
     db = ctx.db;
+    const step = JSON.stringify([
+      { id: "s1", kind: "info", coach: "test", fen: "8/8/8/8/8/8/8/8/8 w - - 0 1" },
+    ]);
+    for (const id of ["lesson-a", "lesson-b", "keep-me", "kept-lesson"]) {
+      await db.insert(schema.homeworkLessons).values({
+        id,
+        type: "practice",
+        title: id,
+        tag: "drill",
+        emoji: "♟️",
+        steps: step,
+        sortOrder: 0,
+      });
+    }
     postRegister = (await import("@/app/api/auth/register/route")).POST;
     getProgress = (await import("@/app/api/progress/route")).GET;
     postProgress = (await import("@/app/api/progress/route")).POST;

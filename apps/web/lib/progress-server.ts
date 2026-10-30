@@ -8,6 +8,7 @@ import {
   serverStateFromRow,
   type MergedProgressWrite,
 } from "@/lib/progress-merge";
+import { hardenProgressPush } from "@/lib/progress-push-guard";
 
 type Db = LibSQLDatabase<typeof schema>;
 
@@ -29,7 +30,8 @@ export async function applyProgressPush(
       .where(eq(lessonRecords.userId, userId));
 
     const server = serverStateFromRow(existing, recs);
-    const merged = mergeProgressPush(body, server);
+    const hardened = await hardenProgressPush(body, server, database);
+    const merged = mergeProgressPush(hardened, server);
 
     await tx
       .insert(progress)
