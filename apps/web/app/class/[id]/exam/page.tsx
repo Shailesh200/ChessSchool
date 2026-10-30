@@ -3,7 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
 import { getCatalog } from "@/features/school/catalog.server";
-import { buildClassExamSteps } from "@/features/school/classExam";
+import { buildClassExamSteps, classExamHasMinSteps } from "@/features/school/classExam";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import type { Lesson } from "@/features/lessons/types";
 
@@ -27,7 +27,7 @@ export default async function ClassExamPage({
   const teaching = rows.filter((r) => !r.isExam);
   const lessonIds = teaching.map((r) => r.id);
   const examSteps = buildClassExamSteps(teaching);
-  if (examSteps.length === 0) notFound();
+  if (examSteps.length === 0 || !classExamHasMinSteps(examSteps)) notFound();
 
   const exam: Lesson = {
     id: `exam-${id}`,
