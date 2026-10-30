@@ -9,6 +9,7 @@ import { semesters, classes, lessons } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { compilePuzzleSteps, validateBank } from "@chess-school/puzzle-school";
 import { invalidateCurriculumCache } from "@/lib/curriculum-cache";
+import { parseAdminSemesterFields } from "@/lib/admin-semester-fields";
 
 async function requireAdmin(): Promise<{ ok: true } | { error: string }> {
   const user = await getCurrentUser();
@@ -31,15 +32,20 @@ export async function createSemester(
 ): Promise<{ error?: string; ok?: boolean }> {
   const guard = await requireAdmin();
   if ("error" in guard) return { error: guard.error };
-  const title = String(fd.get("title") ?? "").trim();
-  if (!title) return { error: "Title is required." };
-  const count = (await db.select().from(semesters)).length;
-  await db.insert(semesters).values({
-    id: `sem-admin-${randomUUID().slice(0, 8)}`,
-    title,
+  const fields = parseAdminSemesterFields({
+    title: String(fd.get("title") ?? ""),
     blurb: String(fd.get("blurb") ?? ""),
     color: String(fd.get("color") ?? "#5b5bd6"),
     stage: String(fd.get("stage") ?? "elementary"),
+  });
+  if ("error" in fields) return { error: fields.error };
+  const count = (await db.select().from(semesters)).length;
+  await db.insert(semesters).values({
+    id: `sem-admin-${randomUUID().slice(0, 8)}`,
+    title: fields.data.title,
+    blurb: fields.data.blurb,
+    color: fields.data.color,
+    stage: fields.data.stage,
     sortOrder: 100 + count,
   });
   refresh();
@@ -258,12 +264,19 @@ export async function importContent(
   }
 
   if (doc.semester) {
-    await db.insert(semesters).values({
-      id: semId,
+    const fields = parseAdminSemesterFields({
       title: doc.semester.title ?? "Imported semester",
       blurb: doc.semester.blurb ?? "",
       color: doc.semester.color ?? "#5b5bd6",
       stage: doc.semester.stage ?? "middle",
+    });
+    if ("error" in fields) return { error: fields.error };
+    await db.insert(semesters).values({
+      id: semId,
+      title: fields.data.title,
+      blurb: fields.data.blurb,
+      color: fields.data.color,
+      stage: fields.data.stage,
       sortOrder: 100 + baseSem,
     });
   }
