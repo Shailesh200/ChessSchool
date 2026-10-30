@@ -123,6 +123,12 @@ export function LessonPlayer({
   const wrongRef = useRef(0); // wrong moves this attempt → report-card scoring
   const [finalMistakes, setFinalMistakes] = useState(0);
   const timers = useRef<number[]>([]);
+  /**
+   * Lesson id already completed by this player instance. Tutorials never leave the
+   * "playing" phase before navigating, so a double-tap on Continue (or a slow
+   * route change) would otherwise call finish() twice and award XP twice.
+   */
+  const finishedLessonId = useRef<string | null>(null);
 
   const progression = useProgression();
   const sound = useSettings((s) => s.sound);
@@ -274,6 +280,8 @@ export function LessonPlayer({
   }
 
   function finish() {
+    if (finishedLessonId.current === lesson.id) return;
+    finishedLessonId.current = lesson.id;
     // Tutorials (no puzzles to solve) just mark done and flow to the next lesson —
     // no "lesson complete" celebration screen.
     const isTutorial = isTutorialLesson(lesson.steps, lesson.exam);
