@@ -1,12 +1,5 @@
 # Starter rename fallback SQL
 
-Manual one-off SQL in this folder is for **production Turso only**, after Shailesh merges
-to `main` and gives his OK. Local and CI databases use `pnpm --filter web db:push`, not
-these files.
-
-`2026-11-password-reset-tokens.sql` creates the `password_reset_tokens` table when prod
-predates `db:push` adoption for that table.
-
 `2026-10-starter-rename.sql` is a one-off content patch. Source sha: `f7a74c2`
 (`f7a74c2f50038b7044c45a977d8e0b9ffe3f56e5`, PR #31). It is not a Drizzle
 migration. Do not register it in `db/migrations` or `meta/_journal.json`.

@@ -3,11 +3,12 @@ import { randomBytes } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { oauthAccounts, passwordResetTokens, users } from "@/db/schema";
+import { appOrigin } from "@/lib/google-oauth.server";
 import { hashPassword } from "@/lib/auth";
-import { passwordResetLinkOrigin } from "@/lib/password-reset-link-origin";
 import { hashSessionToken } from "@/lib/session-token";
+import { revokeSessionsForUser } from "@/lib/session-store";
+import { SUPPORT_EMAIL } from "@/lib/support";
 import { sendPasswordResetEmail } from "@/lib/email/send-password-reset";
-import { accountResetLink } from "@/lib/auth/password-reset-path";
 
 const RESET_TTL_MS = 45 * 60_000;
 
@@ -19,6 +20,11 @@ function dbConn() {
 
 function newResetToken(): string {
   return randomBytes(32).toString("base64url");
+}
+
+function resetLink(origin: string, rawToken: string): string {
+  const base = origin.replace(/\/+$/, "");
+  return `${base}/reset-password?token=${encodeURIComponent(rawToken)}`;
 }
 
 async function isGoogleOnlyAccount(userId: string): Promise<boolean> {
@@ -40,12 +46,12 @@ async function isGoogleOnlyAccount(userId: string): Promise<boolean> {
  * Create a reset token and send email when possible. Never throws for unknown
  * emails or delivery failures — callers always show the generic message.
  */
-export async function requestPasswordReset(email: string): Promise<void> {
+export async function requestPasswordReset(
+  email: string,
+  origin: string = appOrigin(),
+): Promise<void> {
   email = email.trim().toLowerCase();
   if (!email.includes("@")) return;
-
-  const origin = passwordResetLinkOrigin();
-  if (!origin) return;
 
   const user = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
@@ -71,18 +77,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
     createdAt: now,
   });
 
-  const link = accountResetLink(origin, raw);
+  const link = resetLink(origin, raw);
   await sendPasswordResetEmail({
     to: user.email,
     name: user.name,
     link,
   }).catch(() => undefined);
 }
-
-const CONSUME_RESET_TOKEN_SQL = `UPDATE password_reset_tokens
-SET used_at = ?
-WHERE id = ? AND used_at IS NULL AND expires_at >= ?
-RETURNING user_id AS user_id`;
 
 export async function resetPasswordWithToken(
   rawToken: string,
@@ -93,35 +94,26 @@ export async function resetPasswordWithToken(
   }
   const tokenHash = hashSessionToken(rawToken.trim());
   const conn = dbConn();
+  const row = (
+    await conn
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.id, tokenHash))
+      .limit(1)
+  )[0];
   const now = Date.now();
-  const passwordHash = await hashPassword(password);
-  const invalid = { error: "This reset link is invalid or has expired." } as const;
-
-  const tx = await db.$client.transaction("write");
-  try {
-    const consumed = await tx.execute({
-      sql: CONSUME_RESET_TOKEN_SQL,
-      args: [now, tokenHash, now],
-    });
-    const userId = consumed.rows[0]?.user_id;
-    if (typeof userId !== "string" || !userId) {
-      await tx.rollback();
-      return invalid;
-    }
-    await tx.execute({
-      sql: "UPDATE users SET password_hash = ? WHERE id = ?",
-      args: [passwordHash, userId],
-    });
-    await tx.execute({
-      sql: "DELETE FROM sessions WHERE user_id = ?",
-      args: [userId],
-    });
-    await tx.commit();
-    return { ok: true as const };
-  } catch (err) {
-    await tx.rollback();
-    throw err;
+  if (!row || row.usedAt != null || row.expiresAt < now) {
+    return { error: "This reset link is invalid or has expired." };
   }
+
+  const passwordHash = await hashPassword(password);
+  await conn.update(users).set({ passwordHash }).where(eq(users.id, row.userId));
+  await conn
+    .update(passwordResetTokens)
+    .set({ usedAt: now })
+    .where(eq(passwordResetTokens.id, tokenHash));
+  await revokeAllSessionsForUser(row.userId, conn);
+  return { ok: true };
 }
 
 /** @internal tests */
@@ -136,3 +128,5 @@ export async function findPasswordResetTokenHash(rawToken: string): Promise<stri
   )[0];
   return row?.id ?? null;
 }
+
+export { SUPPORT_EMAIL };
