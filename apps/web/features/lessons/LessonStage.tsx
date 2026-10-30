@@ -15,6 +15,7 @@ export function LessonStage({
   board,
   extras,
   footer,
+  kitScreen,
 }: {
   header: ReactNode;
   /** Tag + step title block (`.ttl` in kit). */
@@ -24,9 +25,15 @@ export function LessonStage({
   /** Hint ladder, tip, and drill controls (`.lx` in kit). */
   extras?: ReactNode;
   footer: ReactNode;
+  /** Matches design-kit `body[data-screen]` for lesson mocks. */
+  kitScreen?: string;
 }) {
   return (
-    <div className="lesson-stage lesson-stage--kit bg-surface" data-testid="lesson-stage">
+    <div
+      className="lesson-stage lesson-stage--kit bg-surface"
+      data-testid="lesson-stage"
+      data-screen={kitScreen}
+    >
       <div className="lesson-stage-header pt-safe lh">{header}</div>
       <div className="lesson-stage-scroll" data-testid="lesson-scroll">
         <div className="lesson-stage-grid lgrid">

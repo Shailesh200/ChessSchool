@@ -49,6 +49,7 @@ import {
 import { PreschoolQuiz } from "./PreschoolQuiz";
 import { LessonCompleteWeekStrip } from "./LessonCompleteExtras";
 import { formatLessonDurationMs, kitXpPopLottieId } from "./lessonKitXp";
+import { resolveKitLessonScreen } from "./lessonKitDevFixtures";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
@@ -93,6 +94,7 @@ export function LessonPlayer({
   schoolExam,
   homeworkStep,
   dailyPuzzle,
+  devPreview,
 }: {
   lesson: Lesson;
   nextLessonId?: string | null;
@@ -108,10 +110,16 @@ export function LessonPlayer({
   homeworkStep?: string;
   /** when launched from the daily puzzle card */
   dailyPuzzle?: boolean;
+  /** Dev-only (`/dev/lesson-kit`) — initial step/phase for kit screen QA. */
+  devPreview?: {
+    stepIndex?: number;
+    phase?: Phase;
+    hintLevel?: number;
+  };
 }) {
   const router = useRouter();
-  const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState<Phase>("playing");
+  const [index, setIndex] = useState(devPreview?.stepIndex ?? 0);
+  const [phase, setPhase] = useState<Phase>(devPreview?.phase ?? "playing");
   const step = lesson.steps[index] as LessonStep | undefined;
   /** Overrides `step.fen` mid-step (moves, observe playback); undefined → use step FEN. */
   const [displayFen, setDisplayFen] = useState<string | undefined>(undefined);
@@ -119,12 +127,14 @@ export function LessonPlayer({
   const [observeDone, setObserveDone] = useState(false);
   const [ceremony, setCeremony] = useState<LessonCeremony>(null);
   const [promoted, setPromoted] = useState<string | null>(null);
-  const [hintLevel, setHintLevel] = useState(0);
+  const [hintLevel, setHintLevel] = useState(devPreview?.hintLevel ?? 0);
   const hintsUsedRef = useRef(0);
   const lessonStartedAt = useRef(Date.now());
   const replyAfterCorrectRef = useRef<{ reply: { from: Square; to: Square }; fen: string } | null>(
     null,
   );
+  /** After opponent reply animation, wait for a second Continue (kit manual flow). */
+  const awaitReplyContinueRef = useRef(false);
   const [movedTo, setMovedTo] = useState<Square | null>(null);
   const [oppMove, setOppMove] = useState<{ from: Square; to: Square } | null>(null);
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
@@ -270,6 +280,8 @@ export function LessonPlayer({
       setHintLevel(0);
       setMovedTo(null);
       setOppMove(null);
+      awaitReplyContinueRef.current = false;
+      replyAfterCorrectRef.current = null;
       setIndex((i) => i + 1);
       setPhase("playing");
     }
@@ -584,6 +596,7 @@ export function LessonPlayer({
         ? lesson.title
         : lesson.title;
   const tipText = pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag });
+  const kitScreen = resolveKitLessonScreen({ phase, step, hintLevel });
   const successTitle =
     phase === "correct" && promoted
       ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}!`
@@ -597,6 +610,12 @@ export function LessonPlayer({
   function continueFromCorrect() {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
+    if (awaitReplyContinueRef.current) {
+      awaitReplyContinueRef.current = false;
+      setOppMove(null);
+      advance();
+      return;
+    }
     const pending = replyAfterCorrectRef.current;
     if (pending) {
       replyAfterCorrectRef.current = null;
@@ -604,10 +623,10 @@ export function LessonPlayer({
       setOppMove(pending.reply);
       setDisplayFen(pending.fen);
       audio.play("move");
+      awaitReplyContinueRef.current = true;
       timers.current.push(
         window.setTimeout(() => {
           setOppMove(null);
-          advance();
         }, 850),
       );
       return;
@@ -646,6 +665,7 @@ export function LessonPlayer({
 
   return (
     <LessonStage
+      kitScreen={kitScreen}
       header={
         <div className="cs-lessonhead">
           <button
@@ -950,7 +970,7 @@ export function LessonComplete({
           : undefined;
 
   return (
-    <div className="bg-surface min-h-dvh" data-testid="lesson-complete-screen">
+    <div className="bg-surface min-h-dvh" data-testid="lesson-complete-screen" data-screen="les-complete">
       <CeremonyOverlay
         open
         variant={variant}
