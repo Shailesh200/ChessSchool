@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useProgression, levelForXp, xpProgress } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
+import { useSettings } from "@/core/store/settings.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { Icon } from "@/components/ui/Icon";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
@@ -15,8 +16,11 @@ export function TopBar() {
   const graduated = useProgression((s) => s.graduatedClasses.length);
   const authed = useSession((s) => s.authed);
   const rehydrateReady = useRehydrateReady();
+  const uiKit = useSettings((s) => s.uiKit);
   const level = levelForXp(xp);
   const { into, need } = xpProgress(xp);
+
+  if (uiKit !== "legacy" && authed !== false) return null;
 
   if (!rehydrateReady) {
     return (
