@@ -15,6 +15,7 @@ import {
 import { AuthProvider, useAuth } from "@/auth";
 import { ThemeProvider, useAppTheme } from "@/ThemeProvider";
 import { PremiumKitThemeProvider } from "@/components/kit";
+import { useKitFonts } from "@/theme/premium/kitFonts";
 import { AnimatedSplash } from "@/AnimatedSplash";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
@@ -124,9 +125,10 @@ function RootLayout() {
     Fredoka_600SemiBold,
     Fredoka_700Bold,
   });
+  const kitFontsLoaded = useKitFonts();
 
   const finishSplash = useCallback(() => setShowSplash(false), []);
-  const ready = fontsLoaded || fontsTimedOut;
+  const ready = (fontsLoaded || fontsTimedOut) && (kitFontsLoaded || fontsTimedOut);
 
   useEffect(() => {
     // Release APKs can hang forever on font CDN misses — fail open so the app boots.

@@ -1,1 +1,7 @@
-export { buildPremiumTheme, shadowStyle, premiumTokensJson, type PremiumThemeTokens } from "./mapTokens";
+export {
+  buildPremiumTheme,
+  shadowStyle,
+  premiumTokensJson,
+  setKitFontsReady,
+  type PremiumThemeTokens,
+} from "./mapTokens";

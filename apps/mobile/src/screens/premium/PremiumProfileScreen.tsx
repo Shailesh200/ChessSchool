@@ -1,45 +1,32 @@
 import { useMemo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ACHIEVEMENTS } from "@chess-school/core";
 import { useAuth } from "@/auth";
 import { useProgress } from "@/progressStore";
 import { useSettings } from "@/settings";
-import { AnimatedNumber } from "@/AnimatedNumber";
-import { achievementIcon } from "@/iconMaps";
 import { TopBar } from "@/TopBar";
 import { ThemedSafeArea } from "@/ThemedSafeArea";
-import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
+import { achievementIcon } from "@/iconMaps";
 import { levelForXp, rankForClasses } from "@/progress-utils";
-import {
-  KitButton,
-  KitCard,
-  KitIcon,
-  type KitIconName,
-  usePremiumKitTheme,
-} from "@/components/kit";
+import { KitButton, KitIcon, usePremiumKitTheme } from "@/components/kit";
 import { PremiumScreenFrame } from "./PremiumScreenFrame";
+import {
+  PremiumNavRow,
+  PremiumStats3,
+  PremiumStreakCard,
+  PremiumWeekRow,
+} from "./premiumDexParts";
 
 type Progress = {
   xp: number;
-  rating: number;
   streak: number;
   unlockedAchievements: string[];
   graduatedClasses: string[];
   lessons: Record<string, { mastery: number }>;
-  weaknesses: Record<string, number>;
+  bestStreak?: number;
+  puzzlesSolved?: number;
 };
-
-const HUB: { icon: KitIconName; label: string; route: string; authOnly?: boolean; adminOnly?: boolean }[] = [
-  { icon: "bookOpen", label: "Library", route: "/library", authOnly: true },
-  { icon: "userRound", label: "My ID", route: "/account", authOnly: true },
-  { icon: "sparkles", label: "Report Card", route: "/dashboard", authOnly: true },
-  { icon: "clock", label: "Homework", route: "/homework", authOnly: true },
-  { icon: "bookOpen", label: "Journal", route: "/journal", authOnly: true },
-  { icon: "gamepad2", label: "Playground", route: "/playground", authOnly: true, adminOnly: true },
-  { icon: "palette", label: "Themes", route: "/themes" },
-  { icon: "settings", label: "Settings", route: "/settings" },
-];
 
 export function PremiumProfileScreen() {
   const { user, guest, exitGuest } = useAuth();
@@ -49,21 +36,28 @@ export function PremiumProfileScreen() {
   const p = useProgress() as Progress | null;
 
   const xp = p?.xp ?? 0;
-  const rating = p?.rating ?? 800;
+  const streak = p?.streak ?? 0;
+  const bestStreak = Math.max(streak, p?.bestStreak ?? 0);
   const graduated = p?.graduatedClasses?.length ?? 0;
   const rank = rankForClasses(graduated);
   const level = levelForXp(xp);
-  const mastered = Object.values(p?.lessons ?? {}).filter((l) => l.mastery >= 0.9).length;
+  const lessonCount = Object.keys(p?.lessons ?? {}).length;
+  const puzzles = p?.puzzlesSolved ?? 0;
   const unlocked = new Set(p?.unlockedAchievements ?? []);
-  const weakTags = Object.entries(p?.weaknesses ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const hubItems = (guest ? HUB.filter((h) => !h.authOnly) : HUB).filter((h) => !h.adminOnly || user?.role === "admin");
+  const badgeTotal = ACHIEVEMENTS.length;
+
+  const playingSince = useMemo(() => {
+    const d = new Date();
+    return d.toLocaleString(undefined, { month: "short", year: "numeric" });
+  }, []);
 
   const titleStyle = useMemo(
     () => ({
       fontFamily: font.displayBold,
-      fontSize: type["2xl"].fontSize,
-      lineHeight: type["2xl"].lineHeight,
+      fontSize: type.h1.fontSize,
+      lineHeight: type.h1.lineHeight,
       color: colors.ink,
+      letterSpacing: -0.5,
     }),
     [font, type, colors],
   );
@@ -72,88 +66,136 @@ export function PremiumProfileScreen() {
     <ThemedSafeArea edges={["top"]}>
       <TopBar />
       <PremiumScreenFrame testID="premium-profile">
-        <KitCard variant="paper" style={{ marginTop: space["4"], flexDirection: "row", alignItems: "center", gap: space["3"] }}>
-          <FlatAvatar id={guest ? "ava-knight" : s.avatar} size={72} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space["3"], marginTop: space["4"] }}>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              overflow: "hidden",
+              borderWidth: 2,
+              borderColor: colors.hairline,
+              backgroundColor: colors.surfaceCard,
+            }}
+          >
+            {guest ? (
+              <Image source={require("../../../assets/kit/avatars/learner-default.png")} style={{ width: "100%", height: "100%" }} />
+            ) : (
+              <Image source={require("../../../assets/kit/avatars/dom-d4a03253ab.webp")} style={{ width: "100%", height: "100%" }} />
+            )}
+          </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={titleStyle} numberOfLines={2}>
+            <Text style={titleStyle} numberOfLines={1}>
               {guest ? "Guest learner" : user?.name}
             </Text>
-            <Text style={{ fontFamily: font.displaySemibold, fontSize: type.sm.fontSize, color: colors.brand, marginTop: 4 }} numberOfLines={2}>
-              {guest ? "Enroll to save progress and unlock your Student ID." : `${rank} · Level ${level} · ${xp} XP`}
+            <Text style={{ fontFamily: font.uiMedium, fontSize: type.sm.fontSize, color: colors.ink500, marginTop: 2 }}>
+              {guest ? "Browse as guest" : `Playing since ${playingSince}`}
             </Text>
+            {!guest ? (
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  marginTop: space["2"],
+                  backgroundColor: colors.brand50,
+                  borderRadius: radius.pill,
+                  paddingHorizontal: space["3"],
+                  paddingVertical: space["1"],
+                }}
+              >
+                <Text style={{ fontFamily: font.uiBold, fontSize: type.caption.fontSize, color: colors.brand700 }}>
+                  Level {level} · {rank}
+                </Text>
+              </View>
+            ) : null}
           </View>
-        </KitCard>
-
-        {guest ? (
-          <KitCard style={{ marginTop: space["4"], gap: space["2"] }}>
-            <Text style={{ fontFamily: font.displayBold, fontSize: type.base.fontSize, color: colors.ink }}>Save your ChessSchool progress</Text>
-            <KitButton label="Log in or enroll" size="sm" block={false} testID="profile-enroll-cta" onPress={() => { exitGuest(); router.push("/login"); }} />
-          </KitCard>
-        ) : null}
-
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space["3"], marginTop: space["5"] }}>
-          {hubItems.map((h) => (
-            <Pressable key={h.label} testID={`hub-${h.label}`} onPress={() => router.push(h.route as never)} style={{ width: "30%", minWidth: 96, flexGrow: 1, alignItems: "center", gap: space["2"], backgroundColor: colors.surfaceCard, borderRadius: radius.lg, paddingVertical: space["4"], borderWidth: 1, borderColor: colors.hairline }}>
-              <KitIcon name={h.icon} size={22} color={colors.brand} />
-              <Text style={{ fontFamily: font.displayBold, fontSize: type.xs.fontSize, color: colors.ink, textAlign: "center" }}>{h.label}</Text>
-            </Pressable>
-          ))}
         </View>
 
-        {!guest ? (
-          <>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space["3"], marginTop: space["6"] }}>
-              <StatTile icon="flame" tint={colors.chipStreakInk} value={p?.streak ?? 0} label="Day streak" />
-              <StatTile icon="check" tint={colors.success} value={mastered} label="Mastered" />
-              <StatTile icon="sparkles" tint={colors.brand} value={rating} label="Rating" />
-              <StatTile icon="sparkles" tint={colors.gold} value={unlocked.size} label="Badges" />
+        {guest ? (
+          <View style={{ marginTop: space["5"], gap: space["3"] }}>
+            <Text style={{ fontFamily: font.uiMedium, fontSize: type.sm.fontSize, color: colors.ink500 }}>
+              Enroll to save progress and unlock your Student ID.
+            </Text>
+            <KitButton
+              label="Log in or enroll"
+              size="sm"
+              block={false}
+              testID="profile-enroll-cta"
+              onPress={() => {
+                exitGuest();
+                router.push("/login");
+              }}
+            />
+          </View>
+        ) : (
+          <View style={{ marginTop: space["5"], gap: space["4"] }}>
+            <PremiumStreakCard streak={streak} best={bestStreak} />
+            <PremiumWeekRow doneCount={Math.min(streak, 5)} />
+            <PremiumStats3 xp={xp} lessons={lessonCount} puzzles={puzzles} />
+
+            <View
+              style={{
+                backgroundColor: colors.surfaceCard,
+                borderRadius: radius.lg,
+                padding: space["4"],
+                borderWidth: 1,
+                borderColor: colors.hairline,
+                gap: space["3"],
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
+                <Text style={{ fontFamily: font.displayBold, fontSize: type.h3.fontSize, color: colors.ink }}>Badges</Text>
+                <Text style={{ fontFamily: font.uiMedium, fontSize: type.caption.fontSize, color: colors.ink500 }}>
+                  {unlocked.size} of {badgeTotal}
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space["2"] }}>
+                {ACHIEVEMENTS.slice(0, 6).map((a) => {
+                  const has = unlocked.has(a.id);
+                  return (
+                    <View
+                      key={a.id}
+                      style={{
+                        width: "31%",
+                        alignItems: "center",
+                        paddingVertical: space["2"],
+                        opacity: has ? 1 : 0.45,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: radius.md,
+                          backgroundColor: has ? colors.brand50 : colors.surfaceSunken,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <KitIcon name={achievementIcon(a.id) as never} size={20} color={has ? colors.brand : colors.ink300} />
+                      </View>
+                      <Text
+                        style={{
+                          fontFamily: font.uiBold,
+                          fontSize: type.caption.fontSize,
+                          color: colors.ink,
+                          marginTop: 4,
+                          textAlign: "center",
+                        }}
+                        numberOfLines={2}
+                      >
+                        {a.title}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
             </View>
-            <Pressable onPress={() => router.push("/notifications")} style={{ marginTop: space["4"] }}>
-              <KitCard style={{ flexDirection: "row", alignItems: "center", gap: space["3"] }}>
-                <KitIcon name="bell" size={22} color={colors.brand} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: font.displayBold, fontSize: type.sm.fontSize, color: colors.ink }}>Practice reminders</Text>
-                  <Text style={{ fontFamily: font.displayMedium, fontSize: type.xs.fontSize, color: colors.ink500 }}>
-                    {s.notificationsEnabled ? "Reminder scheduled" : "Pick a time that works for you"}
-                  </Text>
-                </View>
-                <KitIcon name="chevronRight" size={18} color={colors.ink300} />
-              </KitCard>
-            </Pressable>
-            <Pressable onPress={() => router.push("/dashboard")} style={{ marginTop: space["4"] }}>
-              <KitCard>
-                <Text style={{ fontFamily: font.displayBold, fontSize: type.base.fontSize, color: colors.ink, marginBottom: space["2"] }}>Learning profile</Text>
-                {weakTags.length === 0 ? (
-                  <Text style={{ fontFamily: font.displayMedium, fontSize: type.sm.fontSize, color: colors.ink500 }}>No weak spots yet.</Text>
-                ) : (
-                  <Text style={{ fontFamily: font.displayMedium, fontSize: type.sm.fontSize, color: colors.ink500 }} numberOfLines={3}>
-                    {weakTags.map(([t]) => t).join(" · ")}
-                  </Text>
-                )}
-              </KitCard>
-            </Pressable>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space["2"], marginTop: space["5"] }}>
-              {ACHIEVEMENTS.slice(0, 6).map((a) => (
-                <View key={a.id} style={{ width: "31%", alignItems: "center", borderRadius: radius.md, paddingVertical: space["3"], backgroundColor: unlocked.has(a.id) ? colors.brand50 : colors.surfaceSunken }}>
-                  <KitIcon name="sparkles" size={20} color={unlocked.has(a.id) ? colors.brand : colors.ink300} />
-                  <Text style={{ fontFamily: font.displayBold, fontSize: type.caption.fontSize, color: colors.ink }} numberOfLines={1}>{a.title}</Text>
-                </View>
-              ))}
-            </View>
-          </>
-        ) : null}
+
+            <PremiumNavRow icon="settings" title="Settings" subtitle="Coach, text size, theme" onPress={() => router.push("/settings")} testID="hub-Settings" />
+            <PremiumNavRow icon="bell" title="Practice reminders" subtitle="Pick a time that works for you" onPress={() => router.push("/notifications")} />
+          </View>
+        )}
       </PremiumScreenFrame>
     </ThemedSafeArea>
-  );
-}
-
-function StatTile({ icon, tint, value, label }: { icon: KitIconName; tint: string; value: number; label: string }) {
-  const { colors, font, type, radius, space } = usePremiumKitTheme();
-  return (
-    <View style={{ width: "47%", alignItems: "center", backgroundColor: colors.surfaceCard, borderRadius: radius.lg, paddingVertical: space["4"], borderWidth: 1, borderColor: colors.hairline, gap: 4 }}>
-      <KitIcon name={icon} size={18} color={tint} />
-      <AnimatedNumber value={value} style={{ fontFamily: font.displayBold, fontSize: type["2xl"].fontSize, color: colors.ink }} />
-      <Text style={{ fontFamily: font.displaySemibold, fontSize: type.xs.fontSize, color: colors.ink500 }} numberOfLines={2}>{label}</Text>
-    </View>
   );
 }

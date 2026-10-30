@@ -38,7 +38,7 @@ export function PremiumScreenFrame({ children, style, contentStyle, scroll = tru
 
   if (!scroll) {
     return (
-      <View style={[{ flex: 1, backgroundColor: colors.surface, paddingHorizontal: pad }, style]}>
+      <View style={[{ flex: 1, backgroundColor: colors.bg, paddingHorizontal: pad }, style]}>
         {body}
       </View>
     );
@@ -46,7 +46,7 @@ export function PremiumScreenFrame({ children, style, contentStyle, scroll = tru
 
   return (
     <ScrollView
-      style={[{ flex: 1, backgroundColor: colors.surface }, style]}
+      style={[{ flex: 1, backgroundColor: colors.bg }, style]}
       contentContainerStyle={{ paddingHorizontal: pad, flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
     >
