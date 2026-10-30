@@ -25,6 +25,8 @@ export default async function PlacementPage() {
   const questions = puzzles.map((p) => ({
     fen: p.fen,
     solution: p.solution[0] ?? "",
+    promotion: p.promotion,
+    promotions: p.promotions,
     orientation: "white" as const,
   }));
 

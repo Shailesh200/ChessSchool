@@ -24,7 +24,7 @@ import { ScreenLoader } from "@/ScreenLoader";
 import { PreschoolQuiz } from "@/PreschoolQuiz";
 import { ReflectSheet } from "@/ReflectSheet";
 import { applyClassGraduation, applyLessonComplete, graduateClass, isoDay, type Mistake } from "@/progression";
-import { deriveTutorialVisuals, formatCoachText, isPreschoolLesson, lessonsAttemptedCount, shouldShowEnrollPrompt } from "@chess-school/progression";
+import { deriveTutorialVisuals, expectedPromotion, formatCoachText, isPreschoolLesson, lessonsAttemptedCount, matchesSolution, shouldShowEnrollPrompt } from "@chess-school/progression";
 import { EXAM_PASS_RATIO, isTutorialLesson, scoredStepCount } from "@/classExam";
 import { markHomeworkActivities, markHomeworkActivity } from "@/homeworkRoutine";
 import { settings } from "@/settings";
@@ -40,6 +40,9 @@ type Step = {
   fen?: string;
   orientation?: "white" | "black";
   solution?: string[];
+  /** Present when the expected move promotes. Old payloads omit it. */
+  promotion?: "q" | "r" | "b" | "n";
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
   moves?: string[];
   arrows?: { startSquare: string; endSquare: string; color?: string }[];
   highlight?: string[];
@@ -65,7 +68,10 @@ function findReply(fenA: string, fenB: string): { from: string; to: string } | n
     const target = fenB.split(" ")[0];
     for (const m of g.legalMoves()) {
       const t = new ChessEngine(g.fen());
-      if (t.move({ from: m.from, to: m.to, promotion: m.promotion ?? "q" }) && t.fen().split(" ")[0] === target) {
+      const played = m.promotion
+        ? t.move({ from: m.from, to: m.to, promotion: m.promotion as "q" | "r" | "b" | "n" })
+        : t.move({ from: m.from, to: m.to });
+      if (played && t.fen().split(" ")[0] === target) {
         return { from: m.from, to: m.to };
       }
     }
@@ -263,7 +269,8 @@ export default function LessonScreen() {
     step.moves.forEach((mv, i) => {
       const t = setTimeout(() => {
         const [from, to] = mv.split(":");
-        e.move({ from: from!, to: to!, promotion: "q" });
+        const piece = expectedPromotion(step, `${from}:${to}`) ?? "q";
+        e.move({ from: from!, to: to!, promotion: piece });
         setLastMove({ from: from!, to: to! });
         setDisplayFen(e.fen());
         haptics.tap();
@@ -483,7 +490,7 @@ export default function LessonScreen() {
     const e = new ChessEngine(step.fen);
     const mv = e.move({ from, to, promotion });
     if (!mv) return false; // illegal — board snaps back
-    const ok = step.solution?.includes(`${from}:${to}`) ?? false;
+    const ok = matchesSolution(step, { from, to, promotion });
     // Show & animate the played move (correct OR wrong) with move/capture sound.
     setDisplayFen(e.fen());
     setLastMove({ from, to });

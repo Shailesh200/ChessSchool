@@ -14,9 +14,23 @@ describe("curriculum integrity", () => {
           const parts = sol.split(":");
           const from = parts[0]!;
           const to = parts[1]!;
+          const probe = new Chess(fen);
+          const promotes = probe
+            .moves({ verbose: true })
+            .some((m) => m.from === from && m.to === to && m.promotion);
+          if (promotes) {
+            expect(step.promotion, `${lesson.id}/${step.id} ${sol} promotion`).toMatch(
+              /^[qrbn]$/,
+            );
+          }
           const g = new Chess(fen);
-          const move = g.move({ from, to, promotion: "q" });
+          const move = g.move({
+            from,
+            to,
+            promotion: step.promotion ?? "q",
+          });
           expect(move, `${lesson.id}/${step.id} ${sol}`).toBeTruthy();
+          if (step.promotion) expect(move?.promotion).toBe(step.promotion);
         }
       }
     }

@@ -539,7 +539,7 @@ function AssistedPuzzleDrill({
       setPendingMove(move);
       const feedback = explainAssistedPuzzleMove({
         san: applied.san,
-        correct: moveMatchesSolution(move, puzzle.allSolutions),
+        correct: moveMatchesSolution(move, puzzle.allSolutions, puzzle),
         successText: puzzle.successText,
         failText: puzzle.failText,
         personality,
@@ -547,7 +547,7 @@ function AssistedPuzzleDrill({
       });
       void speakCoachText(feedback);
       setCoach(feedback);
-      if (moveMatchesSolution(move, puzzle.allSolutions)) {
+      if (moveMatchesSolution(move, puzzle.allSolutions, puzzle)) {
         audio.play("success");
         haptics.fire("success");
         setPhase("done");

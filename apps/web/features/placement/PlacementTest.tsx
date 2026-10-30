@@ -17,10 +17,13 @@ import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useSquareSize } from "@/core/hooks/useSquareSize";
 import type { MoveInput } from "@/core/types/chess";
+import { matchesSolution, type SolutionLike } from "@chess-school/progression";
 
 export interface PlacementQuestion {
   fen: string;
   solution: string; // "from:to"
+  promotion?: SolutionLike["promotion"];
+  promotions?: SolutionLike["promotions"];
   orientation?: "white" | "black";
 }
 export interface PlacementStage {
@@ -65,8 +68,10 @@ export function PlacementTest({
     const applied = eng.move(move);
     if (!applied) return false;
     setMovedFen(eng.fen());
-    const [from, to] = q.solution.split(":");
-    const ok = move.from === from && move.to === to;
+    const ok = matchesSolution(
+      { solution: [q.solution], promotion: q.promotion, promotions: q.promotions },
+      move,
+    );
     if (ok) {
       setCorrect((c) => c + 1);
       audio.play("unlock");

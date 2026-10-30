@@ -275,6 +275,9 @@ function buildSteps(fen, movesStr, label) {
             : "Good — keep going.",
       fen: before,
       solution: [`${mv.from}:${mv.to}`],
+      ...(mv.promotion && ["q", "r", "b", "n"].includes(mv.promotion)
+        ? { promotion: mv.promotion }
+        : {}),
       tag: "homework",
       successText: lastIdx ? "Solved! 🎉" : "Correct!",
     });

@@ -217,6 +217,9 @@ function buildSteps(fen, movesStr, group) {
       coach,
       fen: before,
       solution: [`${mv.from}:${mv.to}`],
+      ...(mv.promotion && ["q", "r", "b", "n"].includes(mv.promotion)
+        ? { promotion: mv.promotion }
+        : {}),
       tag: group.id,
       successText: lastIdx ? "Solved! 🎉" : "Correct — keep going!",
     });
