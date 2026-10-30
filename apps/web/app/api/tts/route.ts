@@ -53,7 +53,8 @@ export async function POST(req: Request) {
     status: 200,
     headers: {
       "Content-Type": "audio/mpeg",
-      "Cache-Control": "public, max-age=86400, immutable",
+      // POST keyed by body, sent with the caller's session: never shareable.
+      "Cache-Control": "private, no-store",
     },
   });
 }
