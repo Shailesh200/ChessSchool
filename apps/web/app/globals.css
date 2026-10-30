@@ -810,7 +810,7 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   --pad: min(1rem, 4cqw);
   --board-max: 520px;
   --board-min: 220px; /* the board is never smaller than this (it scrolls instead) */
-  --coach-max: max(4.5rem, 28cqh); /* coach bubble cap, scrolls inside */
+  --coach-max: min(50dvh, max(4.5rem, 28cqh)); /* coach bubble cap, scrolls inside */
   --board: min(
     100cqw - 2 * var(--pad),
     var(--board-max),
@@ -885,6 +885,13 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   min-height: 0;
   padding-inline: 0;
   padding-top: 0;
+}
+/* Kit `.barwrap` is sticky globally; lesson footer must stay in-flow under the scroller
+   so Got it / Continue never paints over the board at 200% text (UI-W-004). */
+.lesson-stage--kit .lesson-stage-footer.barwrap {
+  position: relative;
+  bottom: auto;
+  z-index: 0;
 }
 .lesson-stage--kit .barwrap .lesson-stage-footer-inner {
   width: 100%;
