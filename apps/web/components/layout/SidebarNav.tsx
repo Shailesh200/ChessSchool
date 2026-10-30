@@ -14,7 +14,7 @@ import { useProgression, levelForXp, xpProgress } from "@/core/store/progression
 import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { openCommandPalette } from "@/components/search/CommandPalette";
-import { reviewDueCount } from "@/features/chopper/catalog";
+import { reviewDueCount } from "@/features/review/skills";
 import { useSettings } from "@/core/store/settings.store";
 import { isNavTabActive, NAV_TABS } from "./nav-tabs";
 import { trackEvent } from "@/core/analytics/track";

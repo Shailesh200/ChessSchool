@@ -10,7 +10,7 @@ import { haptics } from "@/core/haptics/haptics";
 import { startNav } from "@/core/store/nav.store";
 import { useProgression } from "@/core/store/progression.store";
 import { useSettings } from "@/core/store/settings.store";
-import { reviewDueCount } from "@/features/chopper/catalog";
+import { reviewDueCount } from "@/features/review/skills";
 import { isNavTabActive, NAV_TABS } from "./nav-tabs";
 
 export function BottomNav() {

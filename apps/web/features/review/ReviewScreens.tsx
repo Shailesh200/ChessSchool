@@ -6,8 +6,8 @@ import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useProgression } from "@/core/store/progression.store";
 import { listGames, type SavedGame } from "@/core/db/db";
-import { KitIcon } from "./KitIcon";
-import { PRACTICE_LINE, REVIEW_CATALOG, reviewDueCount, skillPercent } from "./catalog";
+import { KitIcon } from "@/components/ui/KitIcon";
+import { PRACTICE_LINE, REVIEW_CATALOG, reviewDueCount, skillPercent } from "./skills";
 
 function SkillList({ fixture }: { fixture: boolean }) {
   const lessons = useProgression((s) => s.lessons);
@@ -80,7 +80,7 @@ export function ReviewTab({ fixture = false }: { fixture?: boolean }) {
   }, []);
 
   return (
-    <div className="chopper">
+    <div className="illustrated">
       <header className="stack">
         <span className="over">Review</span>
         <h1>
@@ -165,7 +165,7 @@ export function ReviewQueue({ fixture = false }: { fixture?: boolean }) {
   const due = fixture ? REVIEW_CATALOG.length : reviewDueCount(lessons);
   const mistakes = useProgression((s) => s.mistakeLog.length);
   return (
-    <div className="chopper">
+    <div className="illustrated">
       <header className="stack">
         <span className="over">Review queue</span>
         <h1>
