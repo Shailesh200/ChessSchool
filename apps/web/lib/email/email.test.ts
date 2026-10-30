@@ -6,6 +6,7 @@ import type { EmailMessage } from "./types";
 
 const TOKEN = "reset-token-super-secret";
 const LINK = `https://chess-school.in/account/reset#${TOKEN}`;
+const REDACTED_LINK = "https://chess-school.in/account/reset?[redacted]";
 const FROM = "Chess School <noreply@example.com>";
 
 const message: EmailMessage = {
@@ -68,9 +69,9 @@ describe("transport selection", () => {
     expect(logged).toContain("a***@example.com");
   });
 
-  it("masks the recipient in console logs and keeps the link in the text", async () => {
+  it("masks the recipient in console logs and keeps the link locally when VERCEL is unset", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    useEnv({ NODE_ENV: "development" });
+    useEnv({ NODE_ENV: "development", VERCEL: "" });
 
     await sendEmail({ ...message, to: "jane@example.com" });
 
@@ -78,6 +79,20 @@ describe("transport selection", () => {
     expect(logged).toContain("j***@example.com");
     expect(logged).not.toContain("jane@example.com");
     expect(logged).toContain(LINK);
+  });
+
+  it("redacts reset tokens from console logs when VERCEL is set", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    useEnv({ NODE_ENV: "development", VERCEL: "1" });
+
+    await sendEmail({ ...message, to: "jane@example.com" });
+
+    const logged = info.mock.calls.map((args) => args.join(" ")).join("\n");
+    expect(logged).toContain("j***@example.com");
+    expect(logged).not.toContain("jane@example.com");
+    expect(logged).not.toContain(TOKEN);
+    expect(logged).not.toContain(LINK);
+    expect(logged).toContain(REDACTED_LINK);
   });
 
   it("selects Resend only when provider, key, and from are all set", async () => {
