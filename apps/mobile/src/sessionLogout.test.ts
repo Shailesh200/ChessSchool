@@ -16,6 +16,7 @@ vi.mock("expo-constants", () => ({ default: { expoConfig: null } }));
 
 import { getToken, setToken } from "./api";
 import { flushPendingRevokes, logoutOnce } from "./sessionLogout";
+import { wipeUserData } from "./wipeUserData";
 
 const TOKEN = "tok-0123456789abcdef0123456789abcdef";
 const PENDING = "chessschool.pendingRevoke";
@@ -129,5 +130,21 @@ describe("DP-M-006 logout clears local state first and revokes in the background
     await tick();
     expect(wipe).toHaveBeenCalledTimes(1);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("the REAL wipeUserData leaves the queued revoke alone (not user data: it must survive logout and expiry wipes)", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Network request failed"));
+    await logoutOnce(async () => {}); // offline: the revoke is queued
+    await tick();
+    expect(JSON.parse(store.get(PENDING) ?? "[]")).toEqual([TOKEN]);
+    await wipeUserData(); // logout / delete-account wipe
+    expect(JSON.parse(store.get(PENDING) ?? "[]")).toEqual([TOKEN]);
+    await wipeUserData({ expired: true }); // 401 wipe
+    expect(JSON.parse(store.get(PENDING) ?? "[]")).toEqual([TOKEN]);
+    // and it is still delivered at the next start
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(json(200));
+    await flushPendingRevokes();
+    expect(store.get(PENDING)).toBeUndefined();
   });
 });
