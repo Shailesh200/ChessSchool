@@ -6,6 +6,7 @@
 export const THEME_BOOTSTRAP_SCRIPT = `(function(){
 try{
 var root=document.documentElement;
+root.dataset.uiKit="premium";
 var board={
 classic:{l:"#eef0f4",d:"#7c8aa5",m:"#7be0b3"},
 chalkboard:{l:"#5b6b63",d:"#2f3b38",m:"#9fe3c5"},
@@ -24,6 +25,8 @@ var raw=localStorage.getItem("chessschool.settings");
 if(raw){
 var p=JSON.parse(raw);
 var s=(p&&p.state)||p||{};
+var ui=s.uiKit||"premium";
+root.dataset.uiKit=ui==="legacy"?"legacy":"premium";
 var bt=s.boardTheme||"classic";
 var st=s.schoolTheme||"university";
 var at=s.appTheme||"default";
@@ -31,9 +34,16 @@ var b=board[bt]||board.classic;
 var cb=s.colorblind&&s.colorblind!=="none";
 if(cb)b=board.slate;
 root.dataset.boardTheme=bt;
+if(ui==="legacy"){
 root.dataset.schoolTheme=st;
 root.dataset.appTheme=at;
 root.style.colorScheme=darkApp[at]?"dark":"light";
+}else{
+root.dataset.appTheme=at;
+var mode=darkApp[at]?"dark":"light";
+root.dataset.theme=mode;
+root.style.colorScheme=mode;
+}
 root.style.setProperty("--board-light",b.l);
 root.style.setProperty("--board-dark",b.d);
 root.style.setProperty("--board-move",b.m);
@@ -43,7 +53,11 @@ root.style.setProperty("--board-highlight","#f2c14e");
 }
 if(s.reducedMotion)root.dataset.rm="1";
 if(s.highContrast)root.dataset.contrast="high";
-if(s.textScale&&s.textScale!==1)root.style.fontSize=Math.round(s.textScale*100)+"%";
+if(s.textScale&&s.textScale!==1){
+root.style.fontSize=Math.round(s.textScale*100)+"%";
+root.style.setProperty("--cs-ts",String(s.textScale));
+if(s.textScale>=1.5)root.dataset.largeText="1";
+}
 }
 var sess=localStorage.getItem("chessschool.session");
 if(sess){

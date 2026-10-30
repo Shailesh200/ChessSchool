@@ -7,6 +7,7 @@ import { useMatch } from "@/core/store/match.store";
 import { useArena } from "@/core/store/arena.store";
 import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { applyTheme, getAppTheme } from "@/core/themes/themes";
+import { resolvePremiumColorMode, resolveUiKit } from "@/core/themes/kitTokens";
 import type { SettingsState } from "@/core/store/settings.store";
 import { markRehydrateReady } from "@/core/hooks/useRehydrateReady";
 
@@ -23,6 +24,7 @@ function settingsKey(
     | "boardTheme"
     | "schoolTheme"
     | "appTheme"
+    | "uiKit"
   >,
 ): string {
   return [
@@ -33,6 +35,7 @@ function settingsKey(
     s.boardTheme,
     s.schoolTheme,
     s.appTheme,
+    s.uiKit,
   ].join("|");
 }
 
@@ -47,6 +50,7 @@ export function applyDocumentSettings(
     | "boardTheme"
     | "schoolTheme"
     | "appTheme"
+    | "uiKit"
   >,
 ): void {
   if (typeof document === "undefined") return;
@@ -54,19 +58,39 @@ export function applyDocumentSettings(
   if (key === lastAppliedKey) return;
   lastAppliedKey = key;
   const root = document.documentElement;
+  const uiKit = resolveUiKit(s.uiKit);
+  root.dataset.uiKit = uiKit;
   root.dataset.cb = s.colorblind === "none" ? "" : s.colorblind;
   root.dataset.rm = s.reducedMotion ? "1" : "";
   root.style.fontSize = `${Math.round(s.textScale * 100)}%`;
+  root.style.setProperty("--cs-ts", String(s.textScale));
+  if (s.textScale >= 1.5) root.dataset.largeText = "1";
+  else delete root.dataset.largeText;
   if (s.highContrast) root.dataset.contrast = "high";
   else delete root.dataset.contrast;
-  applyTheme(s.boardTheme, s.schoolTheme, s.appTheme, s.colorblind);
+  if (uiKit === "premium") {
+    const mode = resolvePremiumColorMode(s.appTheme);
+    root.dataset.theme = mode;
+    root.style.colorScheme = mode;
+  } else {
+    delete root.dataset.theme;
+  }
+  applyTheme(s.boardTheme, s.schoolTheme, s.appTheme, s.colorblind, uiKit);
   let meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) {
     meta = document.createElement("meta");
     meta.setAttribute("name", "theme-color");
     document.head.appendChild(meta);
   }
-  meta.setAttribute("content", getAppTheme(s.appTheme).swatch[0]);
+  const themeColor =
+    uiKit === "premium"
+      ? modeThemeColor(resolvePremiumColorMode(s.appTheme))
+      : getAppTheme(s.appTheme).swatch[0];
+  meta.setAttribute("content", themeColor);
+}
+
+function modeThemeColor(mode: "light" | "dark"): string {
+  return mode === "dark" ? "#17302B" : "#0F6B54";
 }
 
 /**

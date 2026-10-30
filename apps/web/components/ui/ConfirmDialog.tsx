@@ -55,7 +55,7 @@ export function ConfirmDialog({
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 28 }}
-            className="rounded-card border-hairline bg-surface-card relative w-full max-w-xs border p-5 [box-shadow:var(--shadow-pop)]"
+            className="premium-card rounded-card border-hairline bg-surface-card relative w-full max-w-xs border p-5 [box-shadow:var(--shadow-pop)]"
           >
             <h2 className="text-ink text-lg font-extrabold">{title}</h2>
             {message && (

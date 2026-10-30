@@ -24,12 +24,18 @@ export function ProgressBar({
     gold: "bg-gold",
   }[tone];
 
+  const premiumTone =
+    tone === "brand"
+      ? "premium-progress--brand"
+      : tone === "accent"
+        ? ""
+        : tone === "success"
+          ? "premium-progress--brand"
+          : "";
+
   return (
     <div
-      className={cn(
-        "rounded-pill bg-surface-sunken h-3 w-full overflow-hidden",
-        className,
-      )}
+      className={cn("premium-progress w-full", premiumTone, className)}
       role="progressbar"
       aria-valuenow={Math.round(pct * 100)}
       aria-valuemin={0}

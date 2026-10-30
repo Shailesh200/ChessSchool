@@ -66,7 +66,7 @@ export function Toaster() {
               onClick={() => {
                 if (!t.action) dismiss(t.id);
               }}
-              className="rounded-pill border-hairline bg-surface-card pointer-events-auto flex max-w-sm items-center gap-2.5 border px-4 py-2.5 [box-shadow:var(--shadow-pop)]"
+              className="cs-toast cs-toast--success pointer-events-auto flex max-w-sm items-start gap-2.5 px-4 py-3 [box-shadow:var(--cs-shadow-3)]"
             >
               {t.icon && <Icon name={t.icon} size={18} className={TONE[t.tone]} />}
               <span className="text-ink text-sm font-bold">{t.message}</span>
