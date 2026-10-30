@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { ContentIcon } from "@/components/ui/ContentIcon";
@@ -59,7 +59,11 @@ type DailyPuzzle = {
 export function HomeClient({ catalog }: { catalog: Catalog }) {
   const premium = usePremiumUi();
   if (premium) {
-    return <PremiumAcademyClient catalog={catalog} />;
+    return (
+      <Suspense fallback={<CampusSkeleton />}>
+        <PremiumAcademyClient catalog={catalog} />
+      </Suspense>
+    );
   }
   return <ClassicHomeClient catalog={catalog} />;
 }
