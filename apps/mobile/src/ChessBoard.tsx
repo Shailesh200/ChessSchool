@@ -109,6 +109,7 @@ export function ChessBoard({
   onSquareTap,
   tapSelectionColor,
   tapSelectionBorder,
+  seedSelection = null,
 }: {
   fen: string;
   size: number;
@@ -136,8 +137,10 @@ export function ChessBoard({
   onSquareTap?: (square: string) => void;
   tapSelectionColor?: string;
   tapSelectionBorder?: string;
+  /** Square selected on first paint. Used by design fixtures; live boards omit it. */
+  seedSelection?: string | null;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(seedSelection ?? null);
   const [promo, setPromo] = useState<{ from: string; to: string; color: "w" | "b" } | null>(null);
   const { boardTheme, pieceTheme, reducedMotion, hints: showHints, colorblind, highContrast } = useSettings();
   const baseBoard = BOARD_THEMES[boardTheme] ?? BOARD_THEMES.classic;

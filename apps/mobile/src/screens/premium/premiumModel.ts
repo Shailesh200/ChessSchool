@@ -1,4 +1,5 @@
 import { dueLessonIds } from "@chess-school/progression";
+import { EXAM_PASS_RATIO } from "@/classExam";
 
 export type CourseMapPhase = "loading" | "empty" | "error" | "offline" | "ready";
 
@@ -271,7 +272,8 @@ export function startReviewTarget(input: { mistakeCount: number; firstDueId: str
   return null;
 }
 
-export function examPassMark(total: number, ratio = 0.67): number {
+/** Pass mark is ceil(steps × 0.67). Six puzzles need five. */
+export function examPassMark(total: number, ratio = EXAM_PASS_RATIO): number {
   if (total <= 0) return 0;
   return Math.ceil(total * ratio);
 }
