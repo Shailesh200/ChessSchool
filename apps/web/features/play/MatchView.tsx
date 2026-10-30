@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { getBotMove, eloToConfig } from "@/features/chess-engine/bot";
+import { BOT_MATCH_WIN_XP } from "./matchReward";
 import {
   commentOnMove,
   matchGreeting,
@@ -264,7 +265,7 @@ export function MatchView({ active }: { active: ActiveMatch }) {
       }
       const ratingAfter = useProgression.getState().rating;
       if (playerWon && !isArena) {
-        progression.awardXp(40);
+        progression.awardXp(BOT_MATCH_WIN_XP);
         audio.play("victory");
       } else if (playerWon && isArena) {
         audio.play("victory");
