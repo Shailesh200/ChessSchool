@@ -45,6 +45,7 @@ async function probe(page: Page, school: string): Promise<Probe> {
       ["text-ink", "100", "text-ink bg-brand-100"],
       ["text-ink-700", "100", "text-ink-700 bg-brand-100"],
       ["text-ink-500", "100", "text-ink-500 bg-brand-100"],
+      ["text-ink-300", "100", "text-ink-300 bg-brand-100"],
       ["text-brand", "100", "text-brand bg-brand-100"],
     ];
     const els = specs.map(([, , cls]) => {

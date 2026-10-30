@@ -42,8 +42,8 @@ describe("midnight brand tints (UI-M-007..010, UI-M-023)", () => {
           expect(ratio, `${ink} on ${tint} = ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
         }
       }
-      // ink300 is the quietest text token; it must still read on the card + brand50.
-      for (const bg of ["surfaceCard", "surface", "brand50"] as const) {
+      // ink300 is the quietest text token; it must still read on the card, brand50 and brand100.
+      for (const bg of ["surfaceCard", "surface", "brand50", "brand100"] as const) {
         const ratio = contrast(c.ink300!, c[bg]!);
         expect(ratio, `ink300 on ${bg} = ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
       }

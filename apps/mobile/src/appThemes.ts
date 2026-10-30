@@ -137,7 +137,7 @@ export const APP_THEMES: AppThemeDef[] = [
       ink: "#f0f0ff",
       ink700: "#c8c8e0",
       ink500: "#a8a8c8",
-      ink300: "#9a9ac0",
+      ink300: "#a8a8cc",
     },
     tints: {
       brand50: "#2a2f57",

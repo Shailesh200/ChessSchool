@@ -354,7 +354,7 @@ html[data-app-theme="midnight"] {
   --ink-900: #ededf6;
   --ink-700: #c9c8de;
   --ink-500: #a8a8c8;
-  --ink-300: #9a9ac0;
+  --ink-300: #a8a8cc;
   /* Brand-coloured TEXT on dark surfaces (school brand-500 is only 2-3:1 here).
      The dark --brand-50/--brand-100 tints are declared after the school-theme
      blocks below, because school themes set the same variables. */
