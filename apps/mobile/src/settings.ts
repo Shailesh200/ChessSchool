@@ -9,6 +9,10 @@ import {
   normalizeCoachCharacter,
   type CoachCharacterId,
 } from "./coachCharacters";
+import { DEFAULT_UI_KIT, type UiKit } from "./uiKit";
+import { NOTIFICATION_DEFAULTS } from "./notificationDefaults";
+
+export type { UiKit } from "./uiKit";
 
 export type BoardTheme =
   | "classic"
@@ -25,6 +29,8 @@ export type BoardTheme =
   | "slate"
   | "forest";
 export type Settings = {
+  /** Premium illustrated dex kit (default) vs legacy mobile chrome. */
+  uiKit: UiKit;
   haptics: boolean;
   sound: boolean;
   volume: number;
@@ -51,11 +57,15 @@ export type Settings = {
   textScale: number;
   /** Opt-in product analytics (page views, matches, features). Default on. */
   shareAnalytics: boolean;
+  notificationsEnabled: boolean;
+  notificationHour: number;
+  notificationMinute: number;
 };
 
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
 const DEFAULTS: Settings = {
+  uiKit: DEFAULT_UI_KIT,
   haptics: true,
   sound: true,
   volume: 1,
@@ -81,6 +91,7 @@ const DEFAULTS: Settings = {
   diagnostics: false,
   textScale: 1,
   shareAnalytics: true,
+  ...NOTIFICATION_DEFAULTS,
 };
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
@@ -104,6 +115,12 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
       : next.schoolTheme ?? "university",
     shareAnalytics:
       next.shareAnalytics === undefined ? undefined : Boolean(next.shareAnalytics),
+    uiKit:
+      next.uiKit === "classic" || next.uiKit === "premium"
+        ? next.uiKit
+        : next.uiKit === undefined
+          ? undefined
+          : "premium",
   } as Partial<Settings>;
 }
 

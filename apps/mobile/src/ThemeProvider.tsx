@@ -1,7 +1,9 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useColorScheme } from "react-native";
 import { useSettings } from "./settings";
 import { COLORBLIND, getAppTheme } from "./appThemes";
 import { buildPalette, type ThemeColors } from "./themePalette";
+import { buildPremiumTheme } from "./theme/premium";
 import {
   colors as baseColors,
   radius,
@@ -27,22 +29,29 @@ const ThemeCtx = createContext<{ colors: ThemeColors; isDark: boolean; reducedMo
 /** Syncs app-wide surface palette + school brand chrome from settings. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const s = useSettings();
+  const scheme = useColorScheme();
   const appThemeId = s.appTheme ?? "default";
   const schoolThemeId = s.schoolTheme ?? "university";
   const themeDef = getAppTheme(appThemeId);
+  const uiKit = s.uiKit === "classic" ? "classic" : "premium";
+  const premiumMode = scheme === "dark" || themeDef.dark ? "dark" : "light";
+  const premium = uiKit === "premium" ? buildPremiumTheme(premiumMode) : null;
 
-  // Classic ("default") stays light — do not remap to Midnight from system dark mode.
-  const isDark = themeDef.dark === true;
+  // Classic ("default") stays light — premium follows system / Midnight app theme.
+  const isDark = uiKit === "premium" ? premiumMode === "dark" : themeDef.dark === true;
 
   const resolved = useMemo(() => {
     let c = buildPalette(appThemeId, schoolThemeId, s.highContrast);
+    if (premium) {
+      c = { ...c, ...premium.colors };
+    }
     if (s.colorblind) {
       c = { ...c, success: COLORBLIND.success, danger: COLORBLIND.danger, warning: COLORBLIND.warning };
     }
     // Keep module tokens in sync for legacy static StyleSheets, but screens should use useAppTheme().
     Object.assign(baseColors, c as Record<string, string>);
     return c;
-  }, [appThemeId, schoolThemeId, s.highContrast, s.colorblind]);
+  }, [appThemeId, schoolThemeId, s.highContrast, s.colorblind, premium]);
 
   const value = useMemo(
     () => ({ colors: resolved, isDark, reducedMotion: s.reducedMotion, colorblind: s.colorblind, textScale: s.textScale }),
