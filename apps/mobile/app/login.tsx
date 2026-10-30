@@ -44,8 +44,8 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [GoogleBtn, setGoogleBtn] = useState<ComponentType<GoogleBtnProps> | null>(null);
   const parityAutoLoginKey = useRef<string | null>(null);
-  const { uiLook } = useSettings();
-  const premium = isPremiumLook({ uiLook });
+  const { uiKit } = useSettings();
+  const premium = isPremiumLook({ uiKit });
 
   const styles = useMemo(() => makeStyles(colors, type), [colors, type]);
 

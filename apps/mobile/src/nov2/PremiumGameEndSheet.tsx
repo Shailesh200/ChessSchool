@@ -1,7 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Confetti } from "@/Confetti";
 import { CoachHead, CoachRow } from "@/nov2/CoachRow";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton } from "@/components/kit";
 import { type CoachSlug } from "@/nov2/coachArt";
 import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
 
@@ -42,8 +42,8 @@ export function PremiumGameEndSheet({
           <Text style={styles.title}>{title}</Text>
           <CoachRow slug={coachSlug} mood={win ? "happy" : "encouraging"} text={line} size={56} />
           <Text style={styles.sub}>{sub}</Text>
-          <DexButton label="Rematch" variant="accent" onPress={onRematch} />
-          <DexButton label="Back to Play" variant="line" onPress={onBack} />
+          <KitButton label="Rematch" variant="accent" onPress={onRematch} />
+          <KitButton label="Back to Play" variant="outline" onPress={onBack} />
         </View>
       </View>
     </Modal>
