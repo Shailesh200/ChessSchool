@@ -304,3 +304,108 @@ for (const appTheme of LIGHT_THEMES) {
     }
   });
 }
+
+/**
+ * UI-W-016: IconBadge tiles paint a white gradient stop (via-white). In midnight
+ * the glyph must stay >= 4.5:1 on the LIGHTEST gradient stop of its tile, for
+ * every tone, on every school theme, whatever surface the tile sits on.
+ */
+const ICON_TONES: Record<string, [string, string]> = {
+  brand: [
+    "border-brand-100/90 bg-gradient-to-br from-brand-50 via-white to-brand-50/40 text-brand",
+    "text-brand",
+  ],
+  gold: [
+    "border-gold/35 bg-gradient-to-br from-gold/25 via-white to-gold/10 text-gold",
+    "text-gold",
+  ],
+  accent: [
+    "border-accent-400/30 bg-gradient-to-br from-accent-400/15 via-white to-accent-400/5 text-accent-600",
+    "text-accent-600",
+  ],
+  success: [
+    "border-success/30 bg-gradient-to-br from-success/15 via-white to-success/5 text-success-600",
+    "text-success-600",
+  ],
+  violet: [
+    "border-brand-300/40 bg-gradient-to-br from-brand-100/80 via-white to-brand-50/30 text-brand-700",
+    "text-brand-700",
+  ],
+};
+
+for (const school of SCHOOLS) {
+  test(`midnight + ${school}: IconBadge glyphs are >= 4.5:1 on the lightest gradient stop`, async ({
+    page,
+  }) => {
+    await page.addInitScript((sc) => {
+      const key = "chessschool.settings";
+      const cur = JSON.parse(localStorage.getItem(key) || "{}");
+      const state = Object.assign(cur.state || {}, {
+        appTheme: "midnight",
+        schoolTheme: sc,
+      });
+      localStorage.setItem(key, JSON.stringify({ state, version: cur.version || 11 }));
+    }, school);
+    await page.goto("/themes");
+    await page.waitForFunction(
+      () => document.documentElement.dataset.appTheme === "midnight",
+    );
+    const tiles = await page.evaluate((tones) => {
+      const cx = document.createElement("canvas").getContext("2d", {
+        willReadFrequently: true,
+      })!;
+      const rgba = (c: string): number[] => {
+        cx.clearRect(0, 0, 1, 1);
+        cx.fillStyle = "#000";
+        cx.fillStyle = c;
+        cx.fillRect(0, 0, 1, 1);
+        const d = cx.getImageData(0, 0, 1, 1).data;
+        return [d[0]!, d[1]!, d[2]!, d[3]! / 255];
+      };
+      const over = (t: number[], b: number[]) =>
+        [0, 1, 2].map((i) => t[i]! * t[3]! + b[i]! * (1 - t[3]!));
+      const lum = (c: number[]) => {
+        const f = (v: number) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * f(c[0]!) + 0.7152 * f(c[1]!) + 0.0722 * f(c[2]!);
+      };
+      // Sit the tiles on the sunken surface, the lightest midnight surface.
+      const host = document.createElement("div");
+      host.style.cssText =
+        "position:fixed;left:0;top:0;opacity:0;pointer-events:none;background:var(--surface-sunken)";
+      document.body.appendChild(host);
+      const out = Object.entries(tones).map(([tone, [shell, icon]]) => {
+        const el = document.createElement("span");
+        el.className = `relative inline-flex rounded-2xl border before:absolute before:inset-px before:bg-gradient-to-b before:from-white/50 before:to-transparent before:opacity-60 ${shell}`;
+        el.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" class="${icon}"><path d="M4 4h16"/></svg>`;
+        host.appendChild(el);
+        const cs = getComputedStyle(el);
+        const bg = rgba(cs.backgroundColor);
+        const behind = bg[3]! > 0 ? over(bg, [38, 41, 71, 1]) : [38, 41, 71];
+        const stops = [
+          "--tw-gradient-from",
+          "--tw-gradient-via",
+          "--tw-gradient-to",
+        ].map((v) => over(rgba(cs.getPropertyValue(v).trim()), behind));
+        const lightest = stops.reduce((a, b) => (lum(a) >= lum(b) ? a : b));
+        // worst case of the white sheen (::before from-white/50 at its opacity)
+        const sheen = 0.5 * Number(getComputedStyle(el, "::before").opacity);
+        const shown = over([255, 255, 255, sheen], lightest);
+        const glyph = getComputedStyle(el.querySelector("svg")!).color;
+        return { tone, glyph, lightest: shown.map(Math.round), stops };
+      });
+      host.remove();
+      return out;
+    }, ICON_TONES);
+    expect(tiles.length).toBe(Object.keys(ICON_TONES).length);
+    for (const t of tiles) {
+      const ratio = contrast(t.glyph, `rgb(${t.lightest.join(",")})`);
+      expect(
+        ratio,
+        `${t.tone} IconBadge glyph ${t.glyph} on lightest stop rgb(${t.lightest.join(",")}) = ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+}

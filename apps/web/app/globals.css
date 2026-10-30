@@ -478,6 +478,27 @@ html[data-app-theme="midnight"] .text-brand:not([class*="via-white"]) {
 .school-semester-badge {
   background-color: color-mix(in srgb, var(--semester-color) 70%, black) !important;
 }
+/* IconBadge tiles paint a white gradient stop (via-white). Their lavender, gold
+   and coral glyphs measured 1.6-3.8:1 on it in midnight. In midnight, swap the
+   white stop for the card colour, back the tile with the card colour (so the
+   translucent stops composite the same on any surface), drop the white sheen,
+   and use the light glyph shades. Every tone is then >= 5.4:1. */
+html[data-app-theme="midnight"] span[class*="via-white"] {
+  --tw-gradient-via: var(--surface-card);
+  background-color: var(--surface-card);
+}
+html[data-app-theme="midnight"] span[class*="via-white"]::before {
+  opacity: 0;
+}
+html[data-app-theme="midnight"] span[class*="via-white"] .text-accent-600 {
+  color: var(--accent-400);
+}
+html[data-app-theme="midnight"] span[class*="via-white"] .text-success-600 {
+  color: var(--success-400);
+}
+html[data-app-theme="midnight"] span[class*="via-white"] .text-brand-700 {
+  color: var(--brand-ink);
+}
 
 /* Campus / school chrome — consumes --school-* tokens (independent of app palette). */
 .school-chrome-card {
