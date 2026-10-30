@@ -186,12 +186,13 @@ for (const school of SCHOOLS) {
 /**
  * UI-W-015 (light themes): --ink-300 is the quiet UI colour (icons, disabled
  * glyphs): >= 3:1 on every surface of every light app theme (royal's sunken
- * surface was 2.91). Real text uses --ink-500 (>= 4.5:1 on the page and card).
+ * surface was 2.91). Real text uses --ink-500 (>= 4.5:1 on the page, card and sunken
+ * surfaces; it was 4.07 on royal's sunken surface).
  */
 const LIGHT_THEMES = ["default", "blue", "forest", "ivory", "royal"] as const;
 
 for (const appTheme of LIGHT_THEMES) {
-  test(`${appTheme}: --ink-300 is >= 3:1 on every surface, --ink-500 text is >= 4.5:1 on page and card`, async ({
+  test(`${appTheme}: --ink-300 is >= 3:1 on every surface, --ink-500 text is >= 4.5:1 on page, card and sunken`, async ({
     page,
   }) => {
     await page.addInitScript((theme) => {
@@ -231,7 +232,7 @@ for (const appTheme of LIGHT_THEMES) {
         `${appTheme}: ink-300 ${v.ink300} on ${bg} = ${ratio.toFixed(2)}`,
       ).toBeGreaterThanOrEqual(3);
     }
-    for (const bg of [v.surface, v.card]) {
+    for (const bg of [v.surface, v.card, v.sunken]) {
       const ratio = contrast(rgb(v.ink500), rgb(bg));
       expect(
         ratio,
