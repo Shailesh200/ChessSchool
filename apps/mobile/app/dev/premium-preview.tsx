@@ -6,6 +6,9 @@ import { PremiumLearnScreen } from "@/screens/premium/PremiumLearnScreen";
 import { PremiumReviewScreen } from "@/screens/premium/PremiumReviewScreen";
 import { PremiumClassDetail } from "@/screens/premium/PremiumClassDetail";
 import { PremiumGymScreen } from "@/screens/premium/PremiumGymScreen";
+import { PremiumExamStage } from "@/screens/premium/PremiumExamStage";
+import { PremiumFixMistakesStage } from "@/screens/premium/PremiumFixMistakesStage";
+import { SEEDED_EXAM, SEEDED_MISTAKE, seededExamPassMark } from "@/screens/premium/premiumFixtures";
 import type { ReviewSkill } from "@/screens/premium/premiumModel";
 import { settings } from "@/settings";
 import { premiumPreviewDecision } from "@/screens/premium/premiumModel";
@@ -58,6 +61,41 @@ export default function PremiumPreviewScreen() {
   }, [dark, previewDenied]);
 
   if (previewDenied) return <Redirect href="/" />;
+
+  if (id === "09-class-exam") {
+    const pass = seededExamPassMark();
+    return (
+      <PremiumExamStage
+        classLabel={SEEDED_EXAM.classLabel}
+        title={SEEDED_EXAM.title}
+        puzzleIndex={SEEDED_EXAM.puzzleIndex}
+        puzzleTotal={SEEDED_EXAM.puzzleTotal}
+        coachLine={SEEDED_EXAM.coachLine.replace("5 of 6", `${pass} of ${SEEDED_EXAM.puzzleTotal}`)}
+        fen={SEEDED_EXAM.fen}
+        seedSelection={SEEDED_EXAM.seedSelection}
+        interactive
+        onClose={() => {}}
+        actionDisabled
+      />
+    );
+  }
+  if (id === "10b-fix-mistakes") {
+    return (
+      <PremiumFixMistakesStage
+        displayIndex={SEEDED_MISTAKE.displayIndex}
+        total={SEEDED_MISTAKE.total}
+        progressPct={SEEDED_MISTAKE.progressPct}
+        coachLine={SEEDED_MISTAKE.coachLine}
+        fen={SEEDED_MISTAKE.fen}
+        highlights={[...SEEDED_MISTAKE.highlights]}
+        arrows={[SEEDED_MISTAKE.arrow]}
+        interactive={false}
+        onClose={() => {}}
+        nextLabel={SEEDED_MISTAKE.nextLabel}
+        ladder="reply"
+      />
+    );
+  }
 
   const reviewSkills: ReviewSkill[] = [
     { id: "fork", title: "Fork the king and queen", mastery: 0.48, needsPractice: true },

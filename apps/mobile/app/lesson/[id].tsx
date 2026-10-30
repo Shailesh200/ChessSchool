@@ -39,6 +39,8 @@ import { trackEvent } from "@/productAnalytics/track";
 import { useUiKit } from "@/components/kit/useUiKit";
 import { PremiumLessonCompleteScreen } from "@/screens/premium/lesson/PremiumLessonCompleteScreen";
 import { PremiumLessonShell } from "@/screens/premium/lesson/PremiumLessonShell";
+import { PremiumExamStage } from "@/screens/premium/PremiumExamStage";
+import { examPassMark } from "@/screens/premium/premiumModel";
 import { isTapSquaresStep } from "@/screens/premium/lesson/lessonStepUi";
 
 type Step = {
@@ -871,6 +873,30 @@ export default function LessonScreen() {
         playSfx("error");
       }
     };
+
+    if (lesson.exam) {
+      const pass = examPassMark(total);
+      const puzzleTitle = step.question ?? lesson.title;
+      return (
+        <PremiumExamStage
+          classLabel={lesson.tag ?? lessonClass?.title ?? "Class"}
+          title={puzzleTitle}
+          puzzleIndex={index}
+          puzzleTotal={total}
+          coachLine={`${feedback} No hints in the exam. Pass mark: ${pass} of ${total}.`}
+          coachCharacter={coachCharacter}
+          fen={displayFen ?? step.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"}
+          highlights={premiumBoardHighlights}
+          arrows={premiumBoardArrows}
+          interactive={step.kind === "move" && phase === "playing"}
+          onMove={onMove}
+          onClose={() => router.back()}
+          actionLabel={phase === "correct" ? "Continue" : "Lock in move"}
+          actionDisabled={phase !== "correct" || advancing || resolvingNext}
+          onAction={phase === "correct" ? premiumContinueCorrect : undefined}
+        />
+      );
+    }
 
     return (
       <PremiumLessonShell
