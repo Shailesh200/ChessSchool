@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "node": "22",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -17,6 +18,7 @@
       }
     },
     "preview": {
+      "node": "22",
       "distribution": "internal",
       "channel": "preview",
       "env": {
@@ -35,6 +37,7 @@
       }
     },
     "production": {
+      "node": "22",
       "autoIncrement": true,
       "channel": "production",
       "env": {
