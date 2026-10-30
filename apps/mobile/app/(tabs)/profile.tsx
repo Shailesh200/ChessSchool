@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useUiKit } from "@/components/kit/useUiKit";
+import { PremiumProfileScreen } from "@/screens/premium/PremiumProfileScreen";
 import { ACHIEVEMENTS } from "@chess-school/core";
 import { useAuth } from "@/auth";
 import { useProgress } from "@/progressStore";
@@ -38,6 +40,12 @@ const HUB: { icon: IconName; label: string; route: string; authOnly?: boolean; a
 ];
 
 export default function ProfileScreen() {
+  const kit = useUiKit();
+  if (kit === "premium") return <PremiumProfileScreen />;
+  return <LegacyProfileScreen />;
+}
+
+function LegacyProfileScreen() {
   const { user, guest, exitGuest } = useAuth();
   const router = useRouter();
   const { colors } = useAppTheme();

@@ -5,6 +5,8 @@ import { Icon, type IconName } from "./Icon";
 import { useAppTheme } from "./ThemeProvider";
 import { useType } from "./typography";
 import { font } from "./theme";
+import { KitBottomNav } from "./components/kit";
+import { useUiKit } from "./components/kit/useUiKit";
 
 const TABS: { href: "/(tabs)/academy" | "/(tabs)/play" | "/(tabs)/review" | "/(tabs)/profile"; label: string; icon: IconName }[] = [
   { href: "/(tabs)/academy", label: "Academy", icon: "learn" },
@@ -24,6 +26,12 @@ function isTabActive(pathname: string, href: string): boolean {
 }
 
 export function BottomNav() {
+  const kit = useUiKit();
+  if (kit === "premium") return <KitBottomNav />;
+  return <LegacyBottomNav />;
+}
+
+function LegacyBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
