@@ -2,6 +2,8 @@
 @import "./premium/kit-tokens.css";
 @import "./premium/premium-aliases.css";
 @import "./premium/premium-components.css";
+@import "./premium/kit-components.css";
+@import "./premium/kit-screens.css";
 
 /*
   ChessSchool Design Tokens
@@ -816,7 +818,7 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   );
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "coach" "board" "controls" "tip";
+  grid-template-areas: "coach" "board" "extras";
   align-content: start;
   gap: min(1rem, 3cqw);
   width: 100%;
@@ -824,15 +826,29 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   margin-inline: auto;
   padding: var(--pad);
 }
+.lesson-stage--kit .lesson-stage-grid.lgrid {
+  max-width: 72rem;
+  padding-inline: max(1.25rem, var(--pad));
+}
+.lesson-stage-extras {
+  grid-area: extras;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
 .lesson-stage-grid > * {
   min-width: 0;
 }
 .lesson-stage-coach {
   grid-area: coach;
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
   min-height: 4.75rem;
+}
+.lesson-stage-coach .cs-coach {
+  align-items: flex-start;
 }
 .lesson-stage-bubble {
   flex: 1 1 0;
@@ -850,7 +866,7 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   width: min(var(--board), 100%);
 }
 .lesson-stage-controls {
-  grid-area: controls;
+  width: 100%;
 }
 .lesson-stage-controls-row {
   display: flex;
@@ -861,24 +877,26 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   min-height: 2.5rem;
 }
 .lesson-stage-tip {
-  grid-area: tip;
   width: 100%;
   max-width: 20rem;
-  justify-self: center;
 }
 .lesson-stage-footer {
   flex: none;
-  min-height: min(5.25rem, 12dvh); /* reserved so feedback doesn't shift the board */
-  padding-inline: 1rem;
-  padding-top: 0.75rem;
+  min-height: 0;
+  padding-inline: 0;
+  padding-top: 0;
+}
+.lesson-stage--kit .barwrap .lesson-stage-footer-inner {
+  width: 100%;
 }
 
-/* Wide screens: board left, coach + tip right. */
+/* Wide screens: board left, coach + extras right (kit lgrid @900px, we use 1024). */
 @media (min-width: 1024px) {
   .lesson-stage-header {
     padding-inline: 2rem;
   }
-  .lesson-stage-header-row {
+  .lesson-stage-header-row,
+  .lesson-stage--kit .lh .cs-lessonhead {
     max-width: 72rem;
   }
   .lesson-stage-grid {
@@ -894,13 +912,12 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
     padding-inline: 2rem;
     column-gap: 2rem;
     grid-template-columns: minmax(0, 560px) minmax(17.5rem, 1fr);
-    grid-template-rows: auto auto 1fr auto;
-    grid-template-areas: "board coach" "board tip" "board ." "controls .";
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "board coach" "board extras";
     align-items: start;
   }
   .lesson-stage-coach {
-    flex-direction: column;
-    align-items: center;
+    align-items: stretch;
   }
   .lesson-stage-bubble {
     width: 100%;
@@ -918,22 +935,11 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
     padding-bottom: 0.25rem;
   }
   .lesson-stage-footer {
-    min-height: min(3.75rem, 14dvh);
+    min-height: 0;
     padding-top: 0.25rem;
   }
-  /* The Continue card collapses to a slim bar so a 200% text footer cannot eat the
-     short landscape viewport (90px -> 72px of 390px at 200% text, so the scroller
-     keeps ~69% of the height). */
-  .lesson-stage-footer-inner > div {
-    max-width: none;
-    padding: 0.25rem 0.5rem;
-    border-width: 0;
-    background: transparent;
-    border-radius: 0;
-  }
-  .lesson-stage-footer-inner button {
-    min-height: 0;
-    padding-block: 0.375rem;
+  .lesson-stage--kit .barwrap .cs-fbar {
+    padding-block: 0.75rem;
   }
   .lesson-stage-grid {
     --pad: 0.5rem;
@@ -946,14 +952,14 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
     --board: max(var(--board-min), min(100cqh - 2 * var(--pad), 100cqw - 15rem));
     grid-template-columns: var(--board) minmax(0, 1fr);
     grid-template-rows: auto auto 1fr;
-    grid-template-areas: "board coach" "board controls" "board tip";
+    grid-template-areas: "board coach" "board extras" "board extras";
     align-items: start;
   }
   .lesson-stage-grid:has(.lesson-stage-board-frame) .lesson-stage-board {
     position: sticky;
     top: 0;
   }
-  .lesson-stage-grid:has(.lesson-stage-board-frame) .lesson-stage-tip {
+  .lesson-stage-tip {
     max-width: none;
   }
 }
