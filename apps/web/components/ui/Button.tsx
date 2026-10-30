@@ -18,24 +18,27 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "btn-tactile relative inline-flex max-w-full select-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-pill font-bold tracking-tight transition-colors focus-visible:outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none";
+  "btn-tactile relative inline-flex max-w-full select-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-pill font-extrabold tracking-tight transition-[transform,box-shadow,background] focus-visible:outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand text-white [box-shadow:var(--shadow-button)] hover:bg-brand-600 active:bg-brand-600",
+    "bg-brand text-white [box-shadow:var(--shadow-button)] hover:brightness-[1.04] active:translate-y-[3px] active:[box-shadow:0_1px_0_var(--brand-700)]",
   accent:
-    "bg-accent text-white [box-shadow:var(--shadow-button-accent)] hover:bg-accent-600",
-  success: "bg-success text-white [box-shadow:0_4px_0_0_var(--success-600)]",
-  danger: "bg-danger text-white [box-shadow:0_4px_0_0_#be123c]",
-  ghost: "bg-transparent text-ink-700 hover:bg-surface-sunken",
+    "bg-accent text-[var(--cs-text-on-accent,white)] [box-shadow:var(--shadow-button-accent)] hover:brightness-[1.04] active:translate-y-[3px] active:[box-shadow:0_1px_0_var(--accent-600)]",
+  success:
+    "bg-success text-white [box-shadow:0_4px_0_0_var(--success-600)] active:translate-y-[3px] active:shadow-none",
+  danger:
+    "bg-danger text-white [box-shadow:0_4px_0_0_var(--cs-error-edge,#8F2A10)] active:translate-y-[3px] active:shadow-none",
+  ghost:
+    "bg-transparent text-ink-700 hover:bg-surface-sunken shadow-none active:translate-y-0",
   outline:
-    "bg-surface-card text-ink border-2 border-hairline hover:border-brand-300 [box-shadow:0_2px_0_0_var(--hairline)]",
+    "bg-surface-card text-ink border-2 border-hairline hover:border-brand-300 [box-shadow:0_3px_0_0_var(--hairline)] active:translate-y-[2px] active:shadow-none",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-11 px-4 text-sm", // 44px min tap target (#100)
-  md: "h-12 px-6 text-base",
-  lg: "h-14 px-8 text-lg",
+  sm: "min-h-11 px-4 text-sm [box-shadow:0_3px_0_var(--brand-700)]",
+  md: "min-h-12 px-6 text-base",
+  lg: "min-h-14 px-8 text-lg",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

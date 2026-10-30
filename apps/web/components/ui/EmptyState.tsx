@@ -25,7 +25,7 @@ export function EmptyState({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`/svg/empty/empty-${illustration}.svg`}
+        src={`/kit/illustrations/${illustration === "library" ? "empty" : "error"}.webp`}
         alt=""
         width={240}
         height={180}

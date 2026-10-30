@@ -170,7 +170,7 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 11,
+      version: 12,
       skipHydration: true,
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<SettingsState> & {

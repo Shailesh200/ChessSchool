@@ -17,10 +17,10 @@ export function BottomNav() {
 
   return (
     <nav
-      className="pb-safe border-hairline bg-surface-card/85 sticky bottom-0 z-30 border-t backdrop-blur-xl lg:hidden"
+      className="premium-tabbar pb-safe sticky bottom-0 z-30 backdrop-blur-xl max-[1023px]:flex min-[1024px]:hidden"
       aria-label="Primary"
     >
-      <ul className="mx-auto flex max-w-2xl items-stretch justify-around px-2">
+      <ul className="mx-auto flex w-full max-w-2xl items-stretch justify-around px-2">
         {NAV_TABS.map((tab) => {
           const active = isNavTabActive(pathname, tab.href);
           const loading = loadingHref === tab.href;
@@ -36,23 +36,16 @@ export function BottomNav() {
                   }
                 }}
                 className={cn(
-                  "relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold transition-colors",
+                  "premium-tab relative transition-colors",
                   active ? "text-brand" : loading ? "text-brand" : "text-ink-500",
                   loading && "pointer-events-none",
                 )}
                 aria-current={active ? "page" : undefined}
                 aria-busy={loading}
               >
-                {active && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    className="bg-brand-50 absolute inset-x-2 inset-y-1 rounded-2xl"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                  />
-                )}
                 <motion.span
                   className="relative"
-                  animate={active ? { y: -1, scale: 1.06 } : { y: 0, scale: 1 }}
+                  animate={active ? { y: -1, scale: 1.04 } : { y: 0, scale: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 24 }}
                 >
                   {loading ? (
