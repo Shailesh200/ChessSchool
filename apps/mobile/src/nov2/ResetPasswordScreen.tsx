@@ -1,33 +1,51 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View, useColorScheme } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Icon } from "@/Icon";
 import { useSettings } from "@/settings";
 import { isPremiumLook } from "@/nov2/uiLook";
-import { KitButton } from "@/components/kit";
+import { KitButton, usePremiumKitTheme } from "@/components/kit";
 import { FieldAlert, PasswordStrengthBlock, PremiumPasswordField } from "@/nov2/PremiumPasswordField";
 import { PremiumAuthShell, SentBox } from "@/nov2/PremiumAuthShell";
-import {
-  checkPasswordStrength,
-  passwordsMatch,
-  submitPasswordReset,
-} from "@/nov2/passwordReset";
-import { premiumColors, premiumFont, premiumSpace, premiumType } from "@/nov2/premiumTokens";
+import { createBoaAuthStyles } from "@/nov2/boaKitStyles";
+import { resolvePremiumColorMode } from "@/themeMode";
+import { checkPasswordStrength, passwordsMatch, submitPasswordReset } from "@/nov2/passwordReset";
 
 type Phase = "form" | "success" | "expired";
 
+function capturePhase(raw: string | undefined): Phase | null {
+  if (process.env.EXPO_PUBLIC_BOA_CAPTURE !== "1" || !raw) return null;
+  if (raw === "success" || raw === "expired" || raw === "form" || raw === "error" || raw === "strong") {
+    if (raw === "success") return "success";
+    if (raw === "expired") return "expired";
+    return "form";
+  }
+  return null;
+}
+
 export function ResetPasswordScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ token?: string; email?: string }>();
-  const token = (Array.isArray(params.token) ? params.token[0] : params.token)?.trim() ?? "";
-  const emailHint = (Array.isArray(params.email) ? params.email[0] : params.email)?.trim() ?? "";
-  const { uiKit } = useSettings();
+  const params = useLocalSearchParams<{ token?: string; email?: string; phase?: string }>();
+  const token = (Array.isArray(params.token) ? params.token[0] : params.token)?.trim() ?? "capture-token";
+  const emailHint = (Array.isArray(params.email) ? params.email[0] : params.email)?.trim() ?? "student@example.com";
+  const { uiKit, themeMode } = useSettings();
   const premium = isPremiumLook({ uiKit });
+  const kit = usePremiumKitTheme();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
 
-  const [phase, setPhase] = useState<Phase>(() => (token ? "form" : "expired"));
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const forced = capturePhase(typeof params.phase === "string" ? params.phase : undefined);
+  const [phase, setPhase] = useState<Phase>(() => forced ?? (token ? "form" : "expired"));
+  const [password, setPassword] = useState(
+    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "strong" ? "Riverdale!9" : "",
+  );
+  const [confirm, setConfirm] = useState(
+    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "strong" ? "Riverdale!9" : "",
+  );
+  const [submitAttempted, setSubmitAttempted] = useState(
+    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "error",
+  );
   const [busy, setBusy] = useState(false);
   const [confirmHelp, setConfirmHelp] = useState<string | null>(null);
 
@@ -84,11 +102,11 @@ export function ResetPasswordScreen() {
         <Text style={styles.h1}>That link has expired</Text>
         <Text style={styles.muted}>Reset links only work for 30 minutes, and only once.</Text>
         <View style={styles.alertWarn} accessibilityRole="alert">
-          <Icon name="warning" size={22} color={premiumColors.warningText} duotone />
+          <Icon name="warning" size={22} color={styles.alertWarnText.color} duotone />
           <Text style={styles.alertWarnText}>Ask for a fresh link and we will send it right away.</Text>
         </View>
         <KitButton label="Send me a new link" onPress={() => router.replace("/forgot-password")} />
-        <Pressable onPress={() => router.replace("/login")} style={styles.foot}>
+        <Pressable onPress={() => router.replace("/login")} style={{ alignItems: "center", marginTop: kit.space["2"] }}>
           <Text style={styles.link}>Back to sign in</Text>
         </Pressable>
       </PremiumAuthShell>
@@ -99,10 +117,8 @@ export function ResetPasswordScreen() {
     return (
       <PremiumAuthShell coachLine={coachLine} coachMood="happy" testID="reset-password-success">
         <Text style={styles.h1}>Password changed</Text>
-        <SentBox icon={<Icon name="check" size={28} color={premiumColors.brand} duotone />}>
-          <Text style={styles.sentMain}>
-            You are all set. You were signed out on other devices to keep your account safe.
-          </Text>
+        <SentBox icon={<Icon name="check" size={28} color={kit.colors.brand} duotone />}>
+          <Text style={styles.sentMain}>You are all set. You were signed out on other devices to keep your account safe.</Text>
         </SentBox>
         <KitButton label="Continue to Learn" onPress={() => router.replace("/(tabs)/academy")} />
         {!!emailHint && <Text style={[styles.help, styles.center]}>Signed in as {emailHint}</Text>}
@@ -118,13 +134,7 @@ export function ResetPasswordScreen() {
       <Text style={styles.h1}>Choose a new password</Text>
       <Text style={styles.muted}>Pick something you will remember. You will sign in with it next time.</Text>
 
-      <PremiumPasswordField
-        label="New password"
-        value={password}
-        onChangeText={setPassword}
-        invalid={showPwError}
-        testID="reset-new-password"
-      />
+      <PremiumPasswordField label="New password" value={password} onChangeText={setPassword} invalid={showPwError} testID="reset-new-password" />
       {showPwError && !check.rules.length ? <FieldAlert message="Use at least 8 characters." /> : null}
       <PasswordStrengthBlock check={check} showRules />
 
@@ -139,38 +149,15 @@ export function ResetPasswordScreen() {
         testID="reset-confirm-password"
       />
       {showConfirmError ? (
-        <FieldAlert
-          message={confirmHelp ?? "These two do not match. Type the same password in both boxes."}
-        />
+        <FieldAlert message={confirmHelp ?? "These two do not match. Type the same password in both boxes."} />
       ) : null}
-      {!showConfirmError && passwordsMatch(password, confirm) && confirm.length > 0 ? (
-        <Text style={styles.help}>Matches.</Text>
-      ) : null}
+      {!showConfirmError && passwordsMatch(password, confirm) && confirm.length > 0 ? <Text style={styles.help}>Matches.</Text> : null}
 
       <KitButton label="Save new password" onPress={() => void save()} loading={busy} />
 
-      <Pressable onPress={() => router.replace("/login")} style={styles.foot}>
+      <Pressable onPress={() => router.replace("/login")} style={{ alignItems: "center", marginTop: kit.space["2"] }}>
         <Text style={styles.link}>Back to sign in</Text>
       </Pressable>
     </PremiumAuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  h1: { ...premiumType.h1, fontFamily: premiumFont.display, color: premiumColors.text },
-  muted: { ...premiumType.body, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-  help: { fontSize: 13, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-  center: { textAlign: "center" },
-  sentMain: { ...premiumType.body, fontFamily: premiumFont.ui, color: premiumColors.text, textAlign: "center" },
-  foot: { alignItems: "center", marginTop: premiumSpace[2] },
-  link: { color: premiumColors.textLink, fontFamily: premiumFont.uiBold, fontSize: 16, textDecorationLine: "underline" },
-  alertWarn: {
-    flexDirection: "row",
-    gap: premiumSpace[3],
-    alignItems: "flex-start",
-    backgroundColor: premiumColors.warningSoft,
-    borderRadius: 16,
-    padding: premiumSpace[4],
-  },
-  alertWarnText: { flex: 1, color: premiumColors.warningText, fontFamily: premiumFont.uiBold, fontSize: 15 },
-});

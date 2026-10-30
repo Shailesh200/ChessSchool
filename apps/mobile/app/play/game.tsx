@@ -113,12 +113,13 @@ function PlayerBar({
 
 export default function GameScreen() {
   const router = useRouter();
-  const { elo: eloParam, time: timeParam, arena: arenaParam, coach: coachParam, dark: darkParam } = useLocalSearchParams<{
+  const { elo: eloParam, time: timeParam, arena: arenaParam, coach: coachParam, dark: darkParam, boaPreview: boaPreviewParam } = useLocalSearchParams<{
     elo: string;
     time?: string;
     arena?: string;
     coach?: string;
     dark?: string;
+    boaPreview?: string;
   }>();
   const kit = useUiKit();
   const coachSlug = (["otto", "kira", "rex", "skye", "ash"] as const).includes(coachParam as CoachSlug)
@@ -156,6 +157,15 @@ export default function GameScreen() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [thinking, setThinking] = useState(false);
   const [over, setOver] = useState<OverState | null>(null);
+
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_BOA_CAPTURE !== "1") return;
+    const p = typeof boaPreviewParam === "string" ? boaPreviewParam : undefined;
+    if (p === "won")
+      setOver({ title: "You won!", win: true, ratingDelta: 12, newRating: 1012, gameId: "capture" });
+    if (p === "lost")
+      setOver({ title: "Good fight", subtitle: "Want a rematch?", win: false, ratingDelta: -8, newRating: 992, gameId: "capture" });
+  }, [boaPreviewParam]);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
   const [flipped, setFlipped] = useState(false);

@@ -123,7 +123,7 @@ function ThemedStatusBar() {
 }
 
 function RootLayout() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(process.env.EXPO_PUBLIC_BOA_CAPTURE !== "1");
   const [fontsTimedOut, setFontsTimedOut] = useState(false);
   const [fontsLoaded] = useFonts({
     Fredoka_400Regular,

@@ -1,29 +1,40 @@
-import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, Text, TextInput, View, useColorScheme } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Icon } from "@/Icon";
 import { useSettings } from "@/settings";
 import { isPremiumLook } from "@/nov2/uiLook";
-import { KitButton } from "@/components/kit";
-import { FieldAlert, PremiumPasswordField } from "@/nov2/PremiumPasswordField";
+import { KitButton, usePremiumKitTheme } from "@/components/kit";
+import { FieldAlert } from "@/nov2/PremiumPasswordField";
 import { PremiumAuthShell, SentBox } from "@/nov2/PremiumAuthShell";
+import { createBoaAuthStyles } from "@/nov2/boaKitStyles";
+import { resolvePremiumColorMode } from "@/themeMode";
 import {
   RESEND_COOLDOWN_SEC,
   requestPasswordResetEmail,
   validateForgotEmail,
 } from "@/nov2/passwordReset";
-import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
 
 type Phase = "entry" | "sent";
 
 export function ForgotPasswordScreen() {
   const router = useRouter();
-  const { uiKit } = useSettings();
+  const params = useLocalSearchParams<{ phase?: string }>();
+  const { uiKit, themeMode } = useSettings();
   const premium = isPremiumLook({ uiKit });
-  const [phase, setPhase] = useState<Phase>("entry");
-  const [email, setEmail] = useState("");
-  const [sentTo, setSentTo] = useState("");
-  const [fieldError, setFieldError] = useState<string | null>(null);
+  const kit = usePremiumKitTheme();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+
+  const capturePhase =
+    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "sent" ? ("sent" as const) : undefined;
+  const [phase, setPhase] = useState<Phase>(capturePhase ?? "entry");
+  const [email, setEmail] = useState(capturePhase === "sent" ? "student@example.com" : "");
+  const [sentTo, setSentTo] = useState(capturePhase === "sent" ? "student@example.com" : "");
+  const [fieldError, setFieldError] = useState<string | null>(
+    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "error" ? "Enter a valid email address." : null,
+  );
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
@@ -62,6 +73,7 @@ export function ForgotPasswordScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           placeholder="Email"
+          placeholderTextColor={kit.colors.ink300}
         />
         <KitButton label="Send reset link" onPress={() => void sendLink()} loading={busy} />
         <Pressable onPress={() => router.replace("/login")}>
@@ -100,7 +112,7 @@ export function ForgotPasswordScreen() {
               autoCapitalize="none"
               autoComplete="email"
               placeholder="name@example.com"
-              placeholderTextColor={premiumColors.textSubtle}
+              placeholderTextColor={kit.colors.ink300}
             />
             {fieldError ? <FieldAlert message={fieldError} /> : <Text style={styles.help}>The email you signed up with.</Text>}
           </View>
@@ -109,25 +121,20 @@ export function ForgotPasswordScreen() {
       ) : (
         <>
           <Text style={styles.h1}>Check your email</Text>
-          <SentBox icon={<Icon name="message" size={28} color={premiumColors.brand} duotone />}>
+          <SentBox icon={<Icon name="message" size={28} color={kit.colors.brand} duotone />}>
             <Text style={styles.sentMain}>
               We sent a reset link to <Text style={styles.sentBold}>{sentTo}</Text>.
             </Text>
             <Text style={styles.help}>The link works for 30 minutes. Nothing there? Check spam.</Text>
           </SentBox>
-          <KitButton
-            label="Resend link"
-            variant="outline"
-            disabled={resendIn > 0 || busy}
-            onPress={() => void sendLink()}
-          />
+          <KitButton label="Resend link" variant="outline" disabled={resendIn > 0 || busy} onPress={() => void sendLink()} />
           <Text style={[styles.help, styles.center]}>
             {resendIn > 0 ? `You can ask for another link in ${resendIn} seconds.` : "You can ask for another link now."}
           </Text>
         </>
       )}
 
-      <View style={styles.foot}>
+      <View style={{ alignItems: "center", marginTop: kit.space["2"] }}>
         <Pressable onPress={() => router.replace("/login")} accessibilityRole="link">
           <Text style={styles.link}>Back to sign in</Text>
         </Pressable>
@@ -135,28 +142,3 @@ export function ForgotPasswordScreen() {
     </PremiumAuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  h1: { ...premiumType.h1, fontFamily: premiumFont.display, color: premiumColors.text },
-  muted: { ...premiumType.body, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-  field: { gap: 6 },
-  label: { ...premiumType.body, fontFamily: premiumFont.uiBold, color: premiumColors.text },
-  input: {
-    minHeight: 56,
-    borderRadius: premiumRadius.lg,
-    borderWidth: 1.5,
-    borderColor: premiumColors.lineStrong,
-    backgroundColor: premiumColors.surface,
-    paddingHorizontal: premiumSpace[4],
-    fontSize: 16,
-    fontFamily: premiumFont.ui,
-    color: premiumColors.text,
-  },
-  inputBad: { borderColor: premiumColors.error, borderWidth: 2 },
-  help: { fontSize: 13, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-  center: { textAlign: "center" },
-  sentMain: { ...premiumType.body, fontFamily: premiumFont.ui, color: premiumColors.text, textAlign: "center" },
-  sentBold: { fontFamily: premiumFont.uiBold },
-  foot: { alignItems: "center", marginTop: premiumSpace[2] },
-  link: { color: premiumColors.textLink, fontFamily: premiumFont.uiBold, fontSize: 16, textDecorationLine: "underline" },
-});
