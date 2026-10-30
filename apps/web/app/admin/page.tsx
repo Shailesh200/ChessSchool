@@ -17,18 +17,17 @@ export default async function AdminPage() {
 
   if (user.role !== "admin") {
     return (
-      <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
+      <main className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
         <Logo />
-        <h1 className="text-ink text-2xl font-extrabold">Admin access required</h1>
+        <h1 className="text-ink text-2xl font-extrabold">Not authorized</h1>
         <p className="text-ink-500 max-w-sm text-sm font-semibold">
-          You&apos;re signed in as <b>{user.name}</b> (role: {user.role}). To become an
-          admin, set your user&apos;s <code>role</code> to <code>admin</code> — run{" "}
-          <code>pnpm db:studio</code>, open the <code>users</code> table, and change it.
+          You don&apos;t have permission to view the admin area. If you believe this is a
+          mistake, contact support.
         </p>
         <Link href="/academy" className="text-brand font-bold">
           ← Back to campus
         </Link>
-      </div>
+      </main>
     );
   }
 
