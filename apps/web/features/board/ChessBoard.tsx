@@ -57,6 +57,8 @@ export interface ChessBoardProps {
   checkSquare?: Square | null;
   /** flash a square green (e.g. a correct move) */
   successSquare?: Square | null;
+  /** kit 05c-style pulsing rings on tap/highlight squares */
+  ringSquares?: Square[];
   interactive?: boolean;
   /** show file/rank coordinates — only on in review mode by default */
   showNotation?: boolean;
@@ -81,6 +83,7 @@ export function ChessBoard({
   highlightRanks = EMPTY_RANKS,
   checkSquare,
   successSquare,
+  ringSquares = EMPTY_HIGHLIGHT,
   interactive = true,
   showNotation = false,
   fill = false,
@@ -249,6 +252,14 @@ export function ChessBoard({
         borderRadius: "8px",
       };
     }
+    const ringColor = cb ? COLORBLIND_HIGHLIGHT : colors.move;
+    for (const sq of ringSquares) {
+      styles[sq] = {
+        ...(styles[sq] ?? {}),
+        boxShadow: `inset 0 0 0 4px ${ringColor}`,
+        borderRadius: "8px",
+      };
+    }
     return styles;
   }, [
     paintLastMove,
@@ -260,6 +271,8 @@ export function ChessBoard({
     captureTargets,
     checkSquare,
     successSquare,
+    ringSquares,
+    colors.move,
     cb,
   ]);
 
