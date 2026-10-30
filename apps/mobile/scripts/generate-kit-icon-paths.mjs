@@ -38,6 +38,17 @@ const MAP = {
   upload: "upload",
   info: "info",
   x: "x",
+  play: "play",
+  lock: "lock",
+  dumbbell: "dumbbell",
+  flag: "flag",
+  search: "search",
+  wifiOff: "wifi-off",
+  triangleAlert: "triangle-alert",
+  target: "target",
+  trophy: "trophy",
+  refreshCw: "refresh-cw",
+  crown: "crown",
 };
 
 function parseSvg(svg) {

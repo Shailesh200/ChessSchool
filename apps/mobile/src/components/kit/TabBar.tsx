@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { usePremiumKitTheme } from "./kitThemeContext";
 import { KitIcon, type KitIconName } from "./Icon";
+import { useProgress } from "@/progressStore";
+import { premiumTabActive, reviewDueCount, reviewTabBadge } from "@/screens/premium/premiumModel";
 
 const TABS: {
   routeName: string;
@@ -19,13 +21,50 @@ const TABS: {
 ];
 
 function isTabActive(pathname: string, routeName: string): boolean {
-  if (routeName === "academy") {
-    return pathname.includes("academy") || pathname === "/" || pathname.includes("/class/") || pathname.includes("/lesson/");
-  }
-  if (routeName === "play") return pathname.includes("/(tabs)/play") || pathname === "/play";
-  if (routeName === "review") return pathname.includes("/(tabs)/review") || pathname.includes("/replay");
-  if (routeName === "profile") return pathname.includes("/(tabs)/profile");
-  return false;
+  return premiumTabActive(pathname, routeName);
+}
+
+function ReviewBadge({ count }: { count: number }) {
+  const badge = reviewTabBadge(count);
+  const { colors, font } = usePremiumKitTheme();
+  if (!badge.visible) return null;
+  return (
+    <View testID="review-tab-badge" style={[styles.badge, { backgroundColor: colors.accent }]}>
+      <Text style={{ color: colors.textOnAccent, fontFamily: font.uiBold, fontSize: 10, lineHeight: 12 }}>{badge.label}</Text>
+    </View>
+  );
+}
+
+function TabGlyph({
+  tab,
+  active,
+  due,
+}: {
+  tab: (typeof TABS)[number];
+  active: boolean;
+  due: number;
+}) {
+  const { colors, font, type, space } = usePremiumKitTheme();
+  const tint = active ? colors.tabActive : colors.tabInactive;
+  return (
+    <>
+      <View>
+        <KitIcon name={tab.icon} size={24} color={tint} />
+        {tab.routeName === "review" ? <ReviewBadge count={due} /> : null}
+      </View>
+      <Text
+        style={{
+          fontFamily: font.displaySemibold,
+          fontSize: type.caption.fontSize,
+          lineHeight: type.caption.lineHeight,
+          color: tint,
+          marginTop: space["0.5"],
+        }}
+      >
+        {tab.label}
+      </Text>
+    </>
+  );
 }
 
 /** `.tab-bar` — Learn, Play, Review, Profile (Gym under Learn). */
@@ -33,7 +72,8 @@ export function KitTabBar(props: BottomTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { colors, font, type, space } = usePremiumKitTheme();
+  const { colors } = usePremiumKitTheme();
+  const due = reviewDueCount(useProgress()?.lessons);
 
   return (
     <View
@@ -48,7 +88,7 @@ export function KitTabBar(props: BottomTabBarProps) {
     >
       {TABS.map((tab) => {
         const active = isTabActive(pathname, tab.routeName);
-        const tint = active ? colors.tabActive : colors.tabInactive;
+        const badge = tab.routeName === "review" ? reviewTabBadge(due) : null;
         return (
           <Pressable
             key={tab.routeName}
@@ -56,23 +96,13 @@ export function KitTabBar(props: BottomTabBarProps) {
             style={styles.tab}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            accessibilityLabel={badge?.accessibilityLabel ?? tab.label}
             onPress={() => {
               props.navigation.navigate(tab.routeName);
               router.push(tab.href);
             }}
           >
-            <KitIcon name={tab.icon} size={24} color={tint} />
-            <Text
-              style={{
-                fontFamily: font.displaySemibold,
-                fontSize: type.caption.fontSize,
-                lineHeight: type.caption.lineHeight,
-                color: tint,
-                marginTop: space["0.5"],
-              }}
-            >
-              {tab.label}
-            </Text>
+            <TabGlyph tab={tab} active={active} due={due} />
           </Pressable>
         );
       })}
@@ -85,7 +115,8 @@ export function KitBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { colors, font, type, space } = usePremiumKitTheme();
+  const { colors } = usePremiumKitTheme();
+  const due = reviewDueCount(useProgress()?.lessons);
 
   return (
     <View
@@ -100,7 +131,7 @@ export function KitBottomNav() {
     >
       {TABS.map((tab) => {
         const active = isTabActive(pathname, tab.routeName);
-        const tint = active ? colors.tabActive : colors.tabInactive;
+        const badge = tab.routeName === "review" ? reviewTabBadge(due) : null;
         return (
           <Pressable
             key={tab.routeName}
@@ -108,20 +139,10 @@ export function KitBottomNav() {
             style={styles.tab}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            accessibilityLabel={badge?.accessibilityLabel ?? tab.label}
             onPress={() => router.push(tab.href)}
           >
-            <KitIcon name={tab.icon} size={24} color={tint} />
-            <Text
-              style={{
-                fontFamily: font.displaySemibold,
-                fontSize: type.caption.fontSize,
-                lineHeight: type.caption.lineHeight,
-                color: tint,
-                marginTop: space["0.5"],
-              }}
-            >
-              {tab.label}
-            </Text>
+            <TabGlyph tab={tab} active={active} due={due} />
           </Pressable>
         );
       })}
@@ -139,5 +160,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingVertical: 4,
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
