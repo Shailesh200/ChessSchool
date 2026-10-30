@@ -3,12 +3,13 @@ import {
   HOME_DESCRIPTION,
   HOME_TITLE,
   SEO_KEYWORDS,
+  resolveSiteUrl,
   siteName,
-  siteUrl,
 } from "@/lib/seo";
 
 /** Homepage structured data for Google (WebSite + educational org). */
-export function SiteJsonLd() {
+export async function SiteJsonLd() {
+  const siteUrl = await resolveSiteUrl();
   return (
     <>
       <JsonLd

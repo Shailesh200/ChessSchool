@@ -10,9 +10,9 @@ import {
   HOME_DESCRIPTION,
   HOME_TITLE,
   SEO_KEYWORDS,
+  resolveSiteUrl,
   siteName,
-  siteUrl,
-  socialMeta,
+  socialMetaForSite,
 } from "@/lib/seo";
 
 // Latin variable face. Weights 400–700 are the ones the UI uses
@@ -28,37 +28,39 @@ const fredoka = localFont({
   variable: "--font-display",
 });
 
-const rootSocial = socialMeta({
-  title: HOME_TITLE,
-  description: HOME_DESCRIPTION,
-  path: "/",
-  kind: "home",
-  badge: "Learn Chess",
-  emoji: "🎓",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = await resolveSiteUrl();
+  const rootSocial = socialMetaForSite(siteUrl, {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    path: "/",
+    kind: "home",
+    badge: "Learn Chess",
+    emoji: "🎓",
+  });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  applicationName: siteName,
-  title: {
-    default: HOME_TITLE,
-    template: `%s · ${siteName}`,
-  },
-  description: HOME_DESCRIPTION,
-  keywords: SEO_KEYWORDS,
-  manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: siteName },
-  formatDetection: { telephone: false },
-  ...rootSocial,
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
-  icons: {
-    icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: [{ url: "/icons/apple-icon-180.png" }],
-  },
-};
+  return {
+    metadataBase: new URL(siteUrl),
+    applicationName: siteName,
+    title: {
+      default: HOME_TITLE,
+      template: `%s · ${siteName}`,
+    },
+    description: HOME_DESCRIPTION,
+    keywords: SEO_KEYWORDS,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: { capable: true, statusBarStyle: "default", title: siteName },
+    formatDetection: { telephone: false },
+    ...rootSocial,
+    icons: {
+      icon: [
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/icon.svg", type: "image/svg+xml" },
+      ],
+      apple: [{ url: "/icons/apple-icon-180.png" }],
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0F6B54",

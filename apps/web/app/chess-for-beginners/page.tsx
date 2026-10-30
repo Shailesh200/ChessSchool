@@ -3,23 +3,25 @@ import { AppShell } from "@/components/layout/AppShell";
 import { NavButton } from "@/components/ui/NavButton";
 import { CurriculumLinkGrid } from "@/components/seo/CurriculumLinkGrid";
 import { BEGINNER_INTRO } from "@/lib/seo/content";
-import { socialMeta } from "@/lib/seo";
+import { pageSocialMeta } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Chess for Beginners — Learn from Zero",
-  description:
-    "Chess for beginners: learn the board, pieces, rules, and notation step by step. Free Starter classes with interactive puzzles at ChessSchool.",
-  ...socialMeta({
-    title: "Chess for Beginners",
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Chess for Beginners — Learn from Zero",
     description:
-      "Start from zero — board, pieces, checkmate, and notation with a friendly coach.",
-    path: "/chess-for-beginners",
-    kind: "home",
-    badge: "Beginners",
-    emoji: "🧸",
-  }),
-};
+      "Chess for beginners: learn the board, pieces, rules, and notation step by step. Free Starter classes with interactive puzzles at ChessSchool.",
+    ...(await pageSocialMeta({
+      title: "Chess for Beginners",
+      description:
+        "Start from zero — board, pieces, checkmate, and notation with a friendly coach.",
+      path: "/chess-for-beginners",
+      kind: "home",
+      badge: "Beginners",
+      emoji: "🧸",
+    })),
+  };
+}
 
 export default function ChessForBeginnersPage() {
   return (

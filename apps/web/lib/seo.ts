@@ -1,9 +1,95 @@
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess-school.in";
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+
 export const siteName = "ChessSchool";
 
-export function canonical(path: string): string {
+/** Hostnames that may be indexed and use production robots.txt rules. */
+export const PRODUCTION_SITE_HOSTS = new Set(["chess-school.in", "www.chess-school.in"]);
+
+export type SiteUrlEnv = {
+  NEXT_PUBLIC_SITE_URL?: string;
+  VERCEL_URL?: string;
+};
+
+export type HeaderLike = { get(name: string): string | null | undefined };
+
+function trimOrigin(url: string): string {
+  const u = new URL(url.includes("://") ? url : `https://${url}`);
+  u.hash = "";
+  u.search = "";
+  u.pathname = "";
+  return u.origin;
+}
+
+/** Resolve the public site origin (no path). Never falls back to chess-school.in. */
+export function resolveSiteUrlFromInput(
+  env: SiteUrlEnv,
+  requestHeaders?: HeaderLike | null,
+): string {
+  const configured = env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return trimOrigin(configured);
+
+  if (requestHeaders) {
+    const rawHost =
+      requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+    const host = rawHost?.split(",")[0]?.trim();
+    if (host) {
+      const proto =
+        requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
+      return trimOrigin(`${proto}://${host}`);
+    }
+  }
+
+  const vercel = env.VERCEL_URL?.trim();
+  if (vercel) return trimOrigin(`https://${vercel}`);
+
+  return "http://localhost:3000";
+}
+
+export function hostnameFromSiteUrl(siteUrl: string): string {
+  return new URL(siteUrl).hostname.toLowerCase();
+}
+
+/** Indexable production site — hostname only, not VERCEL_ENV. */
+export function isProductionSiteUrl(siteUrl: string): boolean {
+  return PRODUCTION_SITE_HOSTS.has(hostnameFromSiteUrl(siteUrl));
+}
+
+export async function resolveSiteUrl(): Promise<string> {
+  const h = await headers();
+  return resolveSiteUrlFromInput(
+    {
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+      VERCEL_URL: process.env.VERCEL_URL,
+    },
+    h,
+  );
+}
+
+export function metadataRobots(isProduction: boolean): NonNullable<Metadata["robots"]> {
+  if (isProduction) {
+    return { index: true, follow: true, googleBot: { index: true, follow: true } };
+  }
+  return { index: false, follow: false, googleBot: { index: false, follow: false } };
+}
+
+export function canonicalForSite(siteUrl: string, path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
-  return `${siteUrl}${p}`;
+  return `${trimOrigin(siteUrl)}${p}`;
+}
+
+/** @deprecated Use canonicalForSite(await resolveSiteUrl(), path) in server code. */
+export function canonical(path: string): string {
+  return canonicalForSite(
+    resolveSiteUrlFromInput(
+      {
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+        VERCEL_URL: process.env.VERCEL_URL,
+      },
+      null,
+    ),
+    path,
+  );
 }
 
 export function lessonDescription(title: string, subtitle?: string | null): string {
@@ -63,10 +149,12 @@ function ogImagePath(opts: SocialOpts): string {
 }
 
 /** Open Graph + Twitter metadata with a rich 1200×630 preview image. */
-export function socialMeta(opts: SocialOpts) {
-  const url = opts.path.startsWith("http") ? opts.path : canonical(opts.path);
-  const image = ogImagePath(opts);
+export function socialMetaForSite(siteUrl: string, opts: SocialOpts) {
+  const origin = trimOrigin(siteUrl);
+  const url = opts.path.startsWith("http") ? opts.path : canonicalForSite(origin, opts.path);
+  const image = `${origin}${ogImagePath(opts)}`;
   const alt = `${opts.title} — ${siteName}`;
+  const isProduction = isProductionSiteUrl(origin);
 
   return {
     alternates: { canonical: url },
@@ -85,5 +173,41 @@ export function socialMeta(opts: SocialOpts) {
       description: opts.description,
       images: [{ url: image, alt }],
     },
+    robots: metadataRobots(isProduction),
+  };
+}
+
+export async function pageSocialMeta(opts: SocialOpts) {
+  const siteUrl = await resolveSiteUrl();
+  return socialMetaForSite(siteUrl, opts);
+}
+
+/** @deprecated Use pageSocialMeta or socialMetaForSite with a resolved site URL. */
+export function socialMeta(opts: SocialOpts) {
+  return socialMetaForSite(
+    resolveSiteUrlFromInput(
+      {
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+        VERCEL_URL: process.env.VERCEL_URL,
+      },
+      null,
+    ),
+    opts,
+  );
+}
+
+export type RobotsRoute = {
+  rules: { userAgent: string; allow?: string; disallow: string | string[] };
+  sitemap?: string;
+};
+
+export function robotsRouteForSite(siteUrl: string): RobotsRoute {
+  const origin = trimOrigin(siteUrl);
+  if (!isProductionSiteUrl(origin)) {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
+  return {
+    rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/api/"] },
+    sitemap: `${origin}/sitemap.xml`,
   };
 }

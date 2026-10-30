@@ -4,22 +4,25 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { registerAction } from "@/lib/auth-actions";
 import { getCurrentUser } from "@/lib/auth";
 import { sanitizeAppNext } from "@/lib/auth-redirect";
-import { socialMeta } from "@/lib/seo";
+import { pageSocialMeta } from "@/lib/seo";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Enroll — Free Chess School Account",
-  description:
-    "Create a free ChessSchool account — save progress, take the placement test, and graduate through chess classes.",
-  ...socialMeta({
-    title: "Join ChessSchool — Free",
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Enroll — Free Chess School Account",
     description:
-      "Enroll in the free online chess academy. Classes, puzzles, and live play.",
-    path: "/register",
-    kind: "home",
-    badge: "Enroll Free",
-    emoji: "🎓",
-  }),
-};
+      "Create a free ChessSchool account — save progress, take the placement test, and graduate through chess classes.",
+    ...(await pageSocialMeta({
+      title: "Join ChessSchool — Free",
+      description:
+        "Enroll in the free online chess academy. Classes, puzzles, and live play.",
+      path: "/register",
+      kind: "home",
+      badge: "Enroll Free",
+      emoji: "🎓",
+    })),
+  };
+}
 
 export const dynamic = "force-dynamic";
 

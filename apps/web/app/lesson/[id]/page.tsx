@@ -7,7 +7,7 @@ import { getCatalog } from "@/features/school/catalog.server";
 import { nextLessonAfter } from "@/features/school/structure";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { canonical, lessonDescription, siteName, siteUrl, socialMeta } from "@/lib/seo";
+import { canonicalForSite, lessonDescription, pageSocialMeta, resolveSiteUrl, siteName } from "@/lib/seo";
 import type { Lesson, LessonStep } from "@/features/lessons/types";
 
 export const revalidate = 3600;
@@ -35,7 +35,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    ...socialMeta({
+    ...(await pageSocialMeta({
       title: `${row.emoji} ${title}`,
       description,
       path: `/lesson/${id}`,
@@ -44,7 +44,7 @@ export async function generateMetadata({
       badge: "Chess Lesson",
       imageTitle: title,
       imageSubtitle: description,
-    }),
+    })),
   };
 }
 
@@ -80,6 +80,8 @@ export default async function LessonPage({
     ? { id: owner.id, title: owner.title, lessonIds: owner.lessonIds }
     : undefined;
 
+  const siteUrl = await resolveSiteUrl();
+
   return (
     <>
       <JsonLd
@@ -88,7 +90,7 @@ export default async function LessonPage({
           "@type": "LearningResource",
           name: lesson.title,
           description: lessonDescription(lesson.title, lesson.subtitle),
-          url: canonical(`/lesson/${lesson.id}`),
+          url: canonicalForSite(siteUrl, `/lesson/${lesson.id}`),
           isPartOf: { "@type": "WebSite", name: siteName, url: siteUrl },
           learningResourceType: lesson.exam ? "Assessment" : "Interactive exercise",
           educationalLevel: owner?.title ?? lesson.unit,

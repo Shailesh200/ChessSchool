@@ -3,23 +3,25 @@ import { AppShell } from "@/components/layout/AppShell";
 import { NavButton } from "@/components/ui/NavButton";
 import { CurriculumLinkGrid } from "@/components/seo/CurriculumLinkGrid";
 import { CURRICULUM_HIGHLIGHTS, LEARN_CHESS_SECTIONS } from "@/lib/seo/content";
-import { socialMeta } from "@/lib/seo";
+import { pageSocialMeta } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Learn Chess Online — Free Lessons & Chess School",
-  description:
-    "Learn chess online for free with structured classes, tactics puzzles, and live play. ChessSchool is an online chess academy for beginners through advanced players.",
-  ...socialMeta({
-    title: "Learn Chess Online — Free Chess School",
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Learn Chess Online — Free Lessons & Chess School",
     description:
-      "Structured chess classes, puzzles, bots, and live multiplayer — 100% free.",
-    path: "/learn-chess",
-    kind: "home",
-    badge: "Learn Chess",
-    emoji: "🎓",
-  }),
-};
+      "Learn chess online for free with structured classes, tactics puzzles, and live play. ChessSchool is an online chess academy for beginners through advanced players.",
+    ...(await pageSocialMeta({
+      title: "Learn Chess Online — Free Chess School",
+      description:
+        "Structured chess classes, puzzles, bots, and live multiplayer — 100% free.",
+      path: "/learn-chess",
+      kind: "home",
+      badge: "Learn Chess",
+      emoji: "🎓",
+    })),
+  };
+}
 
 export default function LearnChessPage() {
   return (

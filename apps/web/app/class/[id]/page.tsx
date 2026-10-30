@@ -6,7 +6,7 @@ import { JourneyView } from "@/features/school/JourneyView";
 import { getCatalog } from "@/features/school/catalog.server";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
-import { classDescription, socialMeta } from "@/lib/seo";
+import { classDescription, pageSocialMeta } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -29,7 +29,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    ...socialMeta({
+    ...(await pageSocialMeta({
       title: `${row.emoji} ${title}`,
       description,
       path: `/class/${id}`,
@@ -38,7 +38,7 @@ export async function generateMetadata({
       badge: "Chess Class",
       imageTitle: title,
       imageSubtitle: description,
-    }),
+    })),
   };
 }
 

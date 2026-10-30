@@ -5,22 +5,24 @@ import { semesters, classes, lessons } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { LibraryBrowse } from "@/components/library/LibraryBrowse";
 import { LibraryStudentView } from "@/components/library/LibraryStudentView";
-import { socialMeta } from "@/lib/seo";
+import { pageSocialMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Chess Lesson Library — Browse All Classes",
-  description:
-    "Browse every chess lesson and class at ChessSchool — tactics, openings, endgames, and puzzles. Free online chess school library.",
-  ...socialMeta({
-    title: "Chess Lesson Library",
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Chess Lesson Library — Browse All Classes",
     description:
-      "Browse all chess classes, puzzles, and lessons — free online chess school.",
-    path: "/library",
-    kind: "home",
-    badge: "Chess Library",
-    emoji: "📖",
-  }),
-};
+      "Browse every chess lesson and class at ChessSchool — tactics, openings, endgames, and puzzles. Free online chess school library.",
+    ...(await pageSocialMeta({
+      title: "Chess Lesson Library",
+      description:
+        "Browse all chess classes, puzzles, and lessons — free online chess school.",
+      path: "/library",
+      kind: "home",
+      badge: "Chess Library",
+      emoji: "📖",
+    })),
+  };
+}
 export const revalidate = 3600;
 
 export default async function LibraryPage() {

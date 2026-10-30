@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { gameSessions } from "@/db/schema";
-import { siteName, socialMeta } from "@/lib/seo";
+import { siteName, pageSocialMeta } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -32,7 +32,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    ...socialMeta({
+    ...(await pageSocialMeta({
       title: `${title} · ${siteName}`,
       description,
       path: `/play/online/${id}`,
@@ -41,7 +41,7 @@ export async function generateMetadata({
       emoji: waiting ? "⚔️" : "♟️",
       imageTitle: waiting ? "Join my live chess game" : "ChessSchool live match",
       imageSubtitle: description,
-    }),
+    })),
   };
 }
 

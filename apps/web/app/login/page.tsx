@@ -4,21 +4,24 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { loginAction } from "@/lib/auth-actions";
 import { getCurrentUser } from "@/lib/auth";
 import { sanitizeAppNext } from "@/lib/auth-redirect";
-import { socialMeta } from "@/lib/seo";
+import { pageSocialMeta } from "@/lib/seo";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Log in to ChessSchool",
-  description:
-    "Sign in to sync your chess progress, classes, and game history at ChessSchool.",
-  ...socialMeta({
+export async function generateMetadata(): Promise<Metadata> {
+  return {
     title: "Log in to ChessSchool",
-    description: "Continue your chess journey — sync progress across devices.",
-    path: "/login",
-    kind: "home",
-    badge: "Chess School",
-    emoji: "🔐",
-  }),
-};
+    description:
+      "Sign in to sync your chess progress, classes, and game history at ChessSchool.",
+    ...(await pageSocialMeta({
+      title: "Log in to ChessSchool",
+      description: "Continue your chess journey — sync progress across devices.",
+      path: "/login",
+      kind: "home",
+      badge: "Chess School",
+      emoji: "🔐",
+    })),
+  };
+}
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({
