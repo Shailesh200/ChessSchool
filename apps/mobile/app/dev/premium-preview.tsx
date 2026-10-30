@@ -4,6 +4,8 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 import { KitBottomNav } from "@/components/kit";
 import { PremiumLearnScreen } from "@/screens/premium/PremiumLearnScreen";
 import { PremiumReviewScreen } from "@/screens/premium/PremiumReviewScreen";
+import { PremiumClassDetail } from "@/screens/premium/PremiumClassDetail";
+import { PremiumGymScreen } from "@/screens/premium/PremiumGymScreen";
 import type { ReviewSkill } from "@/screens/premium/premiumModel";
 import { settings } from "@/settings";
 import { premiumPreviewDecision } from "@/screens/premium/premiumModel";
@@ -65,6 +67,44 @@ export default function PremiumPreviewScreen() {
     { id: "protect", title: "Protect your pieces", mastery: 0.81, needsPractice: false },
     { id: "castle", title: "Castling", mastery: 0.64, needsPractice: false },
   ];
+  if (id === "04-class-detail") {
+    return (
+      <View style={{ flex: 1 }}>
+        <PremiumClassDetail
+          title="Knight forks"
+          blurb="Attack two pieces with one jump."
+          activeIndex={2}
+          examTitle="6 puzzles · pass with 5"
+          rows={[
+            { id: "1", title: "What is a fork?", mastery: 1, tone: "done" },
+            { id: "2", title: "Knight fork basics", mastery: 0.9, tone: "done" },
+            { id: "3", title: "Fork the king and queen", mastery: 0.2, tone: "current" },
+            { id: "4", title: "Spot the fork", mastery: 0, tone: "locked" },
+            { id: "exam", title: "Class exam", mastery: 0, tone: "exam" },
+          ]}
+          onBack={() => {}}
+          onOpen={() => {}}
+          onStart={() => {}}
+        />
+        <KitBottomNav />
+      </View>
+    );
+  }
+  if (id === "11-gym" || id.startsWith("18-sheet")) {
+    const sheet = id === "18-sheet-empty" ? "empty" : id === "18-sheet-error" ? "error" : id === "18-sheet-offline" ? "offline" : null;
+    const puzzles = [
+      { id: "fork", title: "Fork the king and queen", skill: "Forks" as const, level: "Easy" as const, solved: true },
+      { id: "pin", title: "Pin the knight", skill: "Pins" as const, level: "Easy" as const, solved: false },
+      { id: "skewer", title: "Skewer the rook", skill: "Skewers" as const, level: "Medium" as const, solved: true },
+      { id: "mate", title: "Back-rank mate in one", skill: "Mates" as const, level: "Easy" as const, solved: false },
+    ];
+    return (
+      <View style={{ flex: 1 }}>
+        <PremiumGymScreen fixture={{ puzzles, dailyTitle: "Spot the fork", sheet }} />
+        <KitBottomNav />
+      </View>
+    );
+  }
   if (id === "20-review-tab" || id === "10a-review-queue") {
     return (
       <View style={{ flex: 1 }}>

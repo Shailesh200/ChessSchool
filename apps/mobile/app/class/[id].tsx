@@ -17,6 +17,8 @@ import { useSettings } from "@/settings";
 import { useAppTheme, type ThemeColors } from "@/ThemeProvider";
 import { useType } from "@/typography";
 import { font, radius, shadowCard, space } from "@/theme";
+import { KitBottomNav, useUiKit } from "@/components/kit";
+import { PremiumClassDetail, type ClassLessonRow } from "@/screens/premium/PremiumClassDetail";
 
 type LessonLite = {
   id: string;
@@ -147,6 +149,7 @@ function JourneyNode({
 export default function ClassJourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const kit = useUiKit();
   const { colors: theme } = useAppTheme();
   const type = useType();
   const styles = useMemo(() => makeStyles(theme, type), [theme, type]);
@@ -244,6 +247,41 @@ export default function ClassJourneyScreen() {
     haptics.tap();
     router.push({ pathname: "/lesson/[id]", params: { id: lid } });
   };
+
+  if (kit === "premium") {
+    const premiumRows: ClassLessonRow[] = [
+      ...nodes.map((node) => ({
+        id: node.id,
+        title: node.title,
+        mastery: node.mastery,
+        tone: node.status === "completed" ? "done" as const : node.status === "active" ? "current" as const : "locked" as const,
+      })),
+      ...(data.exam
+        ? [{ id: data.exam.id, title: data.exam.title, mastery: 0, tone: "exam" as const }]
+        : []),
+    ];
+    const start = premiumRows.find((row) => row.tone === "current") ?? premiumRows.find((row) => row.tone === "done");
+    return (
+      <View style={{ flex: 1 }}>
+      <PremiumClassDetail
+        title={cls.title}
+        blurb={cls.blurb}
+        rows={premiumRows}
+        activeIndex={activeIndex}
+        examTitle={data.exam ? "Pass to graduate" : null}
+        onBack={() => router.back()}
+        onOpen={(rowId, tone) => {
+          if (tone === "exam") go(rowId, "exam");
+          else if (tone === "done") go(rowId, "completed");
+          else if (tone === "current") go(rowId, "active");
+          else go(rowId, "locked");
+        }}
+        onStart={() => start && go(start.id, start.tone === "done" ? "completed" : start.tone === "exam" ? "exam" : "active")}
+      />
+      <KitBottomNav />
+      </View>
+    );
+  }
 
   return (
     <AppShell>
