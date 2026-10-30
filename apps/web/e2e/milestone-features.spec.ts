@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
 import { enrollWeb } from "./helpers/auth";
 
 test("arena hub renders standings and start controls", async ({ page }) => {

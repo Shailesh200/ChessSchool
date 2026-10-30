@@ -26,6 +26,9 @@ export type PieceTheme =
   | "fantasy";
 export type ColorblindMode = "none" | "deuteranopia";
 
+/** Premium Illustrated (default) vs pre-nov2 Classic UI rollback. */
+export type UiKitMode = "premium" | "legacy";
+
 /** @deprecated Use CoachCharacterId from features/coaching/characters */
 export type CoachPersonality = CoachCharacterId;
 export type { CoachCharacterId };
@@ -69,6 +72,8 @@ export interface SettingsState {
   boardTheme: BoardTheme;
   schoolTheme: SchoolTheme;
   appTheme: string; // global surface palette — see core/themes/themes.ts APP_THEMES
+  /** Premium Illustrated design kit (default) or legacy Classic UI. */
+  uiKit: UiKitMode;
   pieceTheme: PieceTheme;
   /** Named coach character (voice + phrases + avatar). */
   coachCharacter: CoachCharacterId;
@@ -113,6 +118,7 @@ const defaults = {
   boardTheme: "classic" as BoardTheme,
   schoolTheme: "university" as SchoolTheme,
   appTheme: "default",
+  uiKit: "premium" as UiKitMode,
   pieceTheme: "classic" as PieceTheme,
   coachCharacter: DEFAULT_COACH_CHARACTER,
   coachPersonality: DEFAULT_COACH_CHARACTER,
@@ -170,6 +176,7 @@ export const useSettings = create<SettingsState>()(
         const s = (persisted ?? {}) as Partial<SettingsState> & {
           coachPersonality?: string;
           coachCharacter?: string;
+          uiShell?: string;
         };
         if (version < 2) {
           if (!s.schoolTheme) s.schoolTheme = "university";
@@ -214,6 +221,12 @@ export const useSettings = create<SettingsState>()(
           );
           s.coachCharacter = c;
           s.coachPersonality = c;
+        }
+        if (version < 12) {
+          if (!s.uiKit) {
+            s.uiKit =
+              s.uiShell === "classic" || s.uiShell === "legacy" ? "legacy" : "premium";
+          }
         }
         return { ...defaults, ...s } as SettingsState;
       },

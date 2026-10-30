@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { ContentIcon } from "@/components/ui/ContentIcon";
@@ -27,6 +27,8 @@ import {
 } from "@chess-school/progression";
 import { EnrollPromptBanner } from "@/components/auth/EnrollPrompt";
 import type { Catalog } from "@/features/school/structure";
+import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { PremiumAcademyClient } from "@/features/premium-ui/screens/PremiumAcademyClient";
 
 const CampusMap = dynamic(
   () => import("@/features/school/CampusMap").then((m) => ({ default: m.CampusMap })),
@@ -55,6 +57,18 @@ type DailyPuzzle = {
 };
 
 export function HomeClient({ catalog }: { catalog: Catalog }) {
+  const premium = usePremiumUi();
+  if (premium) {
+    return (
+      <Suspense fallback={<CampusSkeleton />}>
+        <PremiumAcademyClient catalog={catalog} />
+      </Suspense>
+    );
+  }
+  return <ClassicHomeClient catalog={catalog} />;
+}
+
+function ClassicHomeClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
   const dailyGoal = useProgression((s) => s.dailyGoalXp);
   const streak = useProgression((s) => s.streak);

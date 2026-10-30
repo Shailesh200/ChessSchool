@@ -3,6 +3,9 @@
   "routes": [
     { "path": "/", "label": "Campus" },
     { "path": "/login", "label": "Login" },
+    { "path": "/login/forgot", "label": "Forgot password" },
+    { "path": "/login/reset", "label": "Reset password" },
+    { "path": "/splash", "label": "Splash" },
     { "path": "/register", "label": "Register" },
     { "path": "/privacy", "label": "Privacy" },
     { "path": "/about", "label": "About" },

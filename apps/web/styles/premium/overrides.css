@@ -1,0 +1,4 @@
+/* Product rules on top of design kit (coach picker hidden at launch). */
+html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
+  display: none !important;
+}

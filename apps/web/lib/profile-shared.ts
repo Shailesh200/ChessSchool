@@ -5,6 +5,9 @@ export const HOUSE_BY_GOAL: Record<string, string> = {
   "reach-1500": "Rooks",
   openings: "Bishops",
   tournament: "Queens",
+  "learn-scratch": "Pawns",
+  "get-tactics": "Bishops",
+  "play-fun": "Knights",
 };
 
 export function houseForGoal(goal: string): string {

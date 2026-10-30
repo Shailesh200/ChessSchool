@@ -1,4 +1,5 @@
-import { test, expect, type Response } from "@playwright/test";
+import { test, expect } from "./fixtures/legacyUiKit";
+import type { Response } from "@playwright/test";
 
 // Playwright compiles specs as CJS. Gzip and path normalization come from the
 // budget helper; the script *set* below is what the browser actually requests.

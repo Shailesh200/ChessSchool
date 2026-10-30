@@ -16,6 +16,8 @@ import {
   type SettingsSectionId,
 } from "@/features/settings/SettingsLayout";
 import type { CoachCharacterId } from "@/features/coaching/characters";
+import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { PremiumSettingsScreen } from "@/features/premium-ui/screens/PremiumSettingsScreen";
 
 function Row({
   label,
@@ -38,6 +40,14 @@ function Row({
 }
 
 export default function SettingsPage() {
+  const premium = usePremiumUi();
+  if (premium) {
+    return <PremiumSettingsScreen />;
+  }
+  return <ClassicSettingsPage />;
+}
+
+function ClassicSettingsPage() {
   const s = useSettings();
   const isAdmin = useSession((st) => st.isAdmin);
   const authed = useSession((st) => st.authed);

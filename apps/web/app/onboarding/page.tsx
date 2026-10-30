@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { PremiumOnboardingGate } from "@/components/onboarding/PremiumOnboardingGate";
 
 export const metadata = { title: "Enrollment" };
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
   if (profile?.onboarded) redirect("/account");
   return (
     <main>
-      <OnboardingWizard name={user.name} />
+      <PremiumOnboardingGate name={user.name} />
     </main>
   );
 }

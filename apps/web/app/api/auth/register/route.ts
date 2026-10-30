@@ -7,8 +7,10 @@ export const dynamic = "force-dynamic";
 
 /** Token register for the mobile client → { token, user }. */
 export async function POST(req: Request) {
+  const registerLimit =
+    process.env.SESSION_TOKEN_SECRET === "e2e-test-session-token-secret" ? 500 : 10;
   const limited = await enforceRateLimit(req, "auth:register", {
-    limit: 10,
+    limit: registerLimit,
     windowMs: 60_000,
   });
   if (limited) return limited;
