@@ -1,10 +1,10 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useColorScheme } from "react-native";
 import { useSettings } from "./settings";
-import { getAppTheme, withHighContrast, COLORBLIND } from "./appThemes";
-import { getSchoolTheme } from "./schoolThemes";
+import { getAppTheme, COLORBLIND } from "./appThemes";
 import { buildPremiumTheme } from "./theme/premium";
 import { resolvePremiumColorMode } from "./themeMode";
+import { buildPalette, type ThemeColors } from "./themePalette";
 import {
   colors as baseColors,
   radius,
@@ -17,7 +17,7 @@ import {
   buttonHeight,
 } from "./theme";
 
-export type ThemeColors = Record<string, string>;
+export type { ThemeColors };
 
 const ThemeCtx = createContext<{ colors: ThemeColors; isDark: boolean; reducedMotion: boolean; colorblind: boolean; textScale: number }>({
   colors: baseColors as ThemeColors,
@@ -26,31 +26,6 @@ const ThemeCtx = createContext<{ colors: ThemeColors; isDark: boolean; reducedMo
   colorblind: false,
   textScale: 1,
 });
-
-function buildPalette(appThemeId: string, schoolThemeId: string, highContrast: boolean): ThemeColors {
-  const theme = getAppTheme(appThemeId);
-  const school = getSchoolTheme(schoolThemeId);
-  const palette = highContrast ? withHighContrast(theme.colors, theme.dark) : theme.colors;
-  return {
-    ...(baseColors as ThemeColors),
-    brand: school.brand,
-    brand600: school.brand600,
-    brand700: school.brand700,
-    brand50: school.brand50,
-    brand100: school.brand100,
-    brand300: school.brand300,
-    accent: school.accent,
-    accent600: school.accent600,
-    surface: palette.surface,
-    surfaceCard: palette.surfaceCard,
-    surfaceSunken: palette.surfaceSunken,
-    hairline: palette.hairline,
-    ink: palette.ink,
-    ink700: palette.ink700,
-    ink500: palette.ink500,
-    ink300: palette.ink300,
-  };
-}
 
 /** Syncs app-wide surface palette + school brand chrome from settings. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -61,15 +36,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const themeDef = getAppTheme(appThemeId);
   const uiKit = s.uiKit === "classic" ? "classic" : "premium";
   const premiumMode = resolvePremiumColorMode(s.themeMode, scheme);
-  const premium = uiKit === "premium" ? buildPremiumTheme(premiumMode) : null;
+  const premiumTheme = useMemo(
+    () => (uiKit === "premium" ? buildPremiumTheme(premiumMode) : null),
+    [uiKit, premiumMode],
+  );
 
   // Classic ("default") stays light — premium follows themeMode + system.
   const isDark = uiKit === "premium" ? premiumMode === "dark" : themeDef.dark === true;
 
   const resolved = useMemo(() => {
     let c = buildPalette(appThemeId, schoolThemeId, s.highContrast);
-    if (premium) {
-      c = { ...c, ...premium.colors };
+    if (premiumTheme) {
+      c = { ...c, ...premiumTheme.colors };
     }
     if (s.colorblind) {
       c = { ...c, success: COLORBLIND.success, danger: COLORBLIND.danger, warning: COLORBLIND.warning };
@@ -77,7 +55,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Keep module tokens in sync for legacy static StyleSheets, but screens should use useAppTheme().
     Object.assign(baseColors, c as Record<string, string>);
     return c;
-  }, [appThemeId, schoolThemeId, s.highContrast, s.colorblind, premium]);
+  }, [appThemeId, schoolThemeId, s.highContrast, s.colorblind, premiumTheme]);
 
   const value = useMemo(
     () => ({ colors: resolved, isDark, reducedMotion: s.reducedMotion, colorblind: s.colorblind, textScale: s.textScale }),
