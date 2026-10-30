@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMatch } from "@/core/store/match.store";
-import { KitIcon } from "./KitIcon";
-import { OPPONENTS, type OpponentId } from "./catalog";
+import { KitIcon } from "@/components/ui/KitIcon";
+import { OPPONENTS, type OpponentId } from "./opponents";
 
 type PlayMode = "coach" | "bot" | "friend";
 
@@ -41,8 +41,8 @@ export function PlayHub() {
       start("bot", selected.elo, 0, { thinkingMode: mode === "coach" });
     }
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("chopper-opp", selected.id);
-      sessionStorage.setItem("chopper-mode", mode);
+      sessionStorage.setItem("play-opponent", selected.id);
+      sessionStorage.setItem("play-mode", mode);
     }
     router.refresh();
   }
@@ -55,7 +55,7 @@ export function PlayHub() {
         : `${selected.level} · no hints`;
 
   return (
-    <div className="chopper">
+    <div className="illustrated">
       <div className="pagehead">
         <h1>Play</h1>
       </div>

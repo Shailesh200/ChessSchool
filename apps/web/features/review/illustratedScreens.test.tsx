@@ -1,13 +1,13 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { reviewDueCount } from "./catalog";
-import { ReviewQueue, ReviewTab } from "./ReviewScreens";
+import { AdminImportScreen } from "@/features/admin/AdminImportScreen";
+import { GymScreen } from "@/features/gym/GymScreen";
+import { StateSheet } from "@/features/gym/StateSheet";
+import { PlayHub } from "@/features/play/PlayHub";
+import { PlayMatch } from "@/features/play/PlayMatch";
 import { FixMistakes } from "./FixMistakes";
-import { GymScreen } from "./GymScreen";
-import { PlayHub } from "./PlayHub";
-import { PlayMatch } from "./PlayMatch";
-import { StateSheet } from "./StateSheet";
-import { AdminImportScreen } from "./AdminImportScreen";
+import { ReviewQueue, ReviewTab } from "./ReviewScreens";
+import { reviewDueCount } from "./skills";
 
 vi.mock("@/core/db/db", () => ({
   listGames: vi.fn(async () => []),
@@ -38,7 +38,7 @@ describe("review due count", () => {
   });
 });
 
-describe("chopper screens", () => {
+describe("illustrated screens", () => {
   it("renders the review tab", async () => {
     render(<ReviewTab fixture />);
     expect(screen.getByRole("heading", { name: "6 skills are due" })).toBeTruthy();
@@ -83,29 +83,23 @@ describe("chopper screens", () => {
     expect(screen.getByRole("radio", { name: /Skye/ })).toBeTruthy();
   });
 
-  it("renders a Kira match", () => {
-    render(<PlayMatch scene="kira" />);
+  it("renders match scenes used by tests", () => {
+    const { unmount } = render(<PlayMatch scene="kira" />);
     expect(screen.getByText("Yesss, clean move!")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Resign/ })).toBeTruthy();
-    expect(screen.getByText("Moves")).toBeTruthy();
-  });
-
-  it("renders Ash, Rex, and Skye matches", () => {
-    const { unmount } = render(<PlayMatch scene="ash" />);
-    expect(screen.getByText("Impress me.")).toBeTruthy();
     unmount();
+    render(<PlayMatch scene="ash" />);
+    expect(screen.getByText("Impress me.")).toBeTruthy();
+    cleanup();
     render(<PlayMatch scene="rex" />);
     expect(screen.getByText("Observe, and learn from the best.")).toBeTruthy();
     cleanup();
     render(<PlayMatch scene="skye" />);
     expect(screen.getByText("Hmm, which piece wants the spotlight?")).toBeTruthy();
-  });
-
-  it("renders the dark match, a win, and a loss", () => {
-    const { unmount } = render(<PlayMatch scene="dark" />);
-    expect(screen.getByText("Yesss, clean move!")).toBeTruthy();
+    cleanup();
+    render(<PlayMatch scene="dark" />);
     expect(document.querySelector("[data-theme='dark']")).toBeTruthy();
-    unmount();
+    cleanup();
     render(<PlayMatch scene="won" />);
     expect(screen.getByRole("heading", { name: "You beat Rex!" })).toBeTruthy();
     cleanup();

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { KitIcon } from "./KitIcon";
+import { KitIcon } from "@/components/ui/KitIcon";
 import { GymScreen } from "./GymScreen";
 
 export type SheetKind = "empty" | "error" | "offline";
@@ -64,20 +64,20 @@ export function StateSheet({
 
   return (
     <>
-      <div className="chopper-under">
+      <div className="illustrated-under">
         <GymScreen fixture={fixture} />
       </div>
-      <div className="chopper-scrim" />
+      <div className="illustrated-scrim" />
       <div
-        className="chopper-sheet"
+        className="illustrated-sheet"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="chopper-sheet-title"
+        aria-labelledby="illustrated-sheet-title"
       >
         <span className="grab" aria-hidden="true" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="ill" src={copy.art} alt="" />
-        <h2 id="chopper-sheet-title">{copy.title}</h2>
+        <h2 id="illustrated-sheet-title">{copy.title}</h2>
         <p className="muted" style={{ maxWidth: "24rem" }}>
           {copy.body}
         </p>
