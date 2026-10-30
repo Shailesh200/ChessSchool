@@ -200,7 +200,8 @@ describe("checkRateLimit", () => {
     expect((await checkRateLimit(key, opts)).ok).toBe(true);
   });
 
-  it("keys by ipAddress() and keeps the 429 shape", async () => {
+  it("keys by ipAddress() on Vercel and keeps the 429 shape", async () => {
+    process.env.VERCEL = "1";
     platformIp.override = () => "203.0.113.10";
     const opts = { limit: 1, windowMs: 60_000 };
     const spoofed = new Request("http://test", {
@@ -220,22 +221,26 @@ describe("checkRateLimit", () => {
       headers: { "x-real-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1" },
     });
     expect(await enforceRateLimit(fromRealIp, "events", opts)).toBeNull();
+    delete process.env.VERCEL;
   });
 
-  it("ignores a spoofed X-Forwarded-For list", async () => {
+  it("uses the first forwarded hop off Vercel instead of x-real-ip", async () => {
+    delete process.env.VERCEL;
     platformIp.override = () => undefined;
     const opts = { limit: 1, windowMs: 60_000 };
     const first = new Request("http://test", {
-      headers: { "x-forwarded-for": "1.1.1.1, 2.2.2.2" },
+      headers: { "x-forwarded-for": "1.1.1.1, 2.2.2.2", "x-real-ip": "9.9.9.9" },
     });
     const other = new Request("http://test", {
       headers: { "x-forwarded-for": "8.8.8.8" },
     });
     expect(await enforceRateLimit(first, "events", opts)).toBeNull();
-    expect((await enforceRateLimit(other, "events", opts))?.status).toBe(429);
+    expect((await enforceRateLimit(first, "events", opts))?.status).toBe(429);
+    expect(await enforceRateLimit(other, "events", opts)).toBeNull();
   });
 
-  it("uses unknown when the platform helper throws and no x-real-ip is set", async () => {
+  it("falls back to local when off Vercel with no forwarded chain", async () => {
+    delete process.env.VERCEL;
     platformIp.override = () => {
       throw new Error("platform unavailable");
     };
@@ -535,38 +540,42 @@ describe("checkRateLimit", () => {
     expect(redisState.limit).toHaveBeenCalledTimes(1);
   });
 
-  it("reads x-real-ip from a Next headers() object whose headers property has no get", () => {
-    // HeadersAdapter (what `headers()` seals) has a callable `.get` and a
-    // plain `.headers` object that does not. The old `"headers" in input`
-    // branch calls `.get` on that plain object and throws.
+  it("reads x-real-ip from Next headers only on Vercel", () => {
+    process.env.VERCEL = "1";
     const nextHeaders = HeadersAdapter.seal(
       HeadersAdapter.from({
         "x-real-ip": "203.0.113.10",
         "x-forwarded-for": "1.1.1.1, 2.2.2.2",
       }),
     );
-    const inner = (nextHeaders as unknown as { headers?: { get?: unknown } }).headers;
-    expect(typeof nextHeaders.get).toBe("function");
-    expect(typeof inner?.get).not.toBe("function");
     expect(clientIpFromHeaders(nextHeaders)).toBe("203.0.113.10");
+    delete process.env.VERCEL;
+    expect(clientIpFromHeaders(nextHeaders)).toBe("1.1.1.1");
   });
 
-  it("reads x-real-ip from a Headers instance", () => {
+  it("reads x-real-ip from a Headers instance on Vercel", () => {
+    process.env.VERCEL = "1";
     const headers = new Headers({
       "x-real-ip": "198.51.100.20",
       "x-forwarded-for": "9.9.9.9, 10.0.0.1",
     });
     expect(clientIpFromHeaders(headers)).toBe("198.51.100.20");
+    delete process.env.VERCEL;
   });
 
-  it("reads x-real-ip from a Request-like headers bag and from NextRequest", () => {
+  it("uses forwarded-for off Vercel for Request-like bags", () => {
+    delete process.env.VERCEL;
     const requestLike = {
       headers: new Headers({
         "x-real-ip": "198.51.100.7",
         "x-forwarded-for": "203.0.113.8, 10.0.0.1",
       }),
     };
+    expect(clientIp(requestLike as Request)).toBe("203.0.113.8");
+
+    process.env.VERCEL = "1";
     expect(clientIp(requestLike as Request)).toBe("198.51.100.7");
+    delete process.env.VERCEL;
 
     const nextReq = new NextRequest("http://test/api/auth/login", {
       headers: {
@@ -574,27 +583,32 @@ describe("checkRateLimit", () => {
         "x-forwarded-for": "8.8.8.8, 10.0.0.2",
       },
     });
-    expect(clientIp(nextReq)).toBe("192.0.2.10");
+    expect(clientIp(nextReq)).toBe("8.8.8.8");
   });
 
-  it("does not treat x-forwarded-for as the client address", () => {
+  it("ignores x-real-ip when not running on Vercel", () => {
+    delete process.env.VERCEL;
+    const req = new Request("http://test", { headers: { "x-real-ip": "198.51.100.55" } });
+    expect(clientIp(req)).toBe("local");
+  });
+
+  it("uses local when no forwarded chain off Vercel", () => {
+    delete process.env.VERCEL;
     const forwardedOnly = new Request("http://test", {
       headers: { "x-forwarded-for": "203.0.113.8, 10.0.0.1" },
     });
-    expect(clientIp(forwardedOnly)).toBe("unknown");
+    expect(clientIp(forwardedOnly)).toBe("203.0.113.8");
 
-    const both = new Request("http://test", {
+    const realOnly = new Request("http://test", {
       headers: {
         "x-forwarded-for": "203.0.113.8, 10.0.0.1",
         "x-real-ip": " 198.51.100.8 ",
       },
     });
-    expect(clientIp(both)).toBe("198.51.100.8");
+    expect(clientIp(realOnly)).toBe("203.0.113.8");
 
-    const nextForwarded = HeadersAdapter.seal(
-      HeadersAdapter.from({ "x-forwarded-for": "203.0.113.8, 10.0.0.1" }),
-    );
-    expect(clientIpFromHeaders(nextForwarded)).toBe("unknown");
+    const empty = new Request("http://test");
+    expect(clientIp(empty)).toBe("local");
   });
 
   it("forgets a cached Redis client after resetRateLimitsForTests", async () => {

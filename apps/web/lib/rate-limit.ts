@@ -175,20 +175,31 @@ let upstashStore: UpstashRateLimitStore | null = null;
 let redisDisabledUntil = 0;
 let redisFailureLogged = false;
 
-/**
- * Vercel sets `x-real-ip` to the client address. `ipAddress()` reads that
- * header. A caller-supplied `X-Forwarded-For` list is not used: its first
- * hop is spoofable. Missing both sources yields `unknown`.
- */
 function readClientIp(input: Request | Headers): string {
-  try {
-    const platform = ipAddress(input)?.trim();
-    if (platform) return platform;
-  } catch {
-    // Off Vercel the helper is best-effort and must not fail the request.
+  const onVercel = Boolean(process.env.VERCEL);
+  if (onVercel) {
+    try {
+      const platform = ipAddress(input)?.trim();
+      if (platform) return platform;
+    } catch {
+      // Off Vercel the helper is best-effort and must not fail the request.
+    }
+    const real = headerBag(input).get("x-real-ip")?.trim();
+    if (real) return real;
+    const forwarded = headerBag(input).get("x-forwarded-for")?.trim();
+    if (forwarded) {
+      const hop = forwarded.split(",")[0]?.trim();
+      if (hop) return hop;
+    }
+    return "unknown";
   }
-  const real = headerBag(input).get("x-real-ip")?.trim();
-  return real || "unknown";
+
+  const forwarded = headerBag(input).get("x-forwarded-for")?.trim();
+  if (forwarded) {
+    const hop = forwarded.split(",")[0]?.trim();
+    if (hop) return hop;
+  }
+  return "local";
 }
 
 /**
