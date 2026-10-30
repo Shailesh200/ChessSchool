@@ -11,10 +11,17 @@ import { saveGame, type EndReason } from "@/core/db/db";
 import { eloToConfig, getBotMove } from "@/features/chess-engine/bot";
 import type { MoveInput } from "@/core/types/chess";
 import { KitIcon } from "@/components/ui/KitIcon";
+import { KitPortrait } from "@/components/ui/KitPortrait";
+import { kitCoachArt } from "@/components/ui/kitArt";
 import { BOT_MATCH_WIN_XP } from "./matchReward";
 import { MATCH_FEN, MATCH_MOVES, opponentById, type OpponentId } from "./opponents";
 
 type Scene = "kira" | "ash" | "rex" | "skye" | "dark" | "won" | "lost" | "live";
+
+/** Wall clock for saved games. Kept outside render so the match screen stays pure. */
+function nowMs() {
+  return Date.now();
+}
 
 function sceneOpponent(scene: Scene): OpponentId {
   if (scene === "ash") return "ash";
@@ -154,14 +161,14 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
         whiteName: "You",
         blackName: pass ? "Friend" : opp.name,
         createdAt: active.createdAt,
-        updatedAt: Date.now(),
+        updatedAt: nowMs(),
         turn: game.turn(),
         result: winner === "w" ? "1-0" : winner === "b" ? "0-1" : "1/2-1/2",
         endReason: reason,
         winner,
         moveCount: game.history().length,
         elo: pass ? null : opp.elo,
-        durationMs: Date.now() - active.createdAt,
+        durationMs: nowMs() - active.createdAt,
       });
       sync({ fen: game.fen(), pgn: game.pgn() });
     }
@@ -227,9 +234,16 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
     <div className="illustrated" data-theme={dark ? "dark" : undefined}>
       <div className="match">
         <div className="m-head">
-          <span className="head">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={opp.portrait} alt={opp.name} />
+          <span
+            className="head"
+            style={{ ["--g1" as string]: opp.glow1, ["--g2" as string]: opp.glow2 }}
+          >
+            <KitPortrait
+              className="kit-portrait"
+              src={kitCoachArt(opp.id)}
+              alt={opp.name}
+              label={opp.name}
+            />
           </span>
           <span className="rt" style={{ flex: "1 1 7rem" }}>
             <b>{opp.name}</b>
@@ -250,9 +264,16 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
         {!result && (
           <div className="m-coach">
             <div className="cs-coach">
-              <span className="head">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={opp.portrait} alt="" />
+              <span
+                className="head"
+                style={{ ["--g1" as string]: opp.glow1, ["--g2" as string]: opp.glow2 }}
+              >
+                <KitPortrait
+                  className="kit-portrait"
+                  src={kitCoachArt(opp.id)}
+                  alt=""
+                  label={opp.name}
+                />
               </span>
               <div className="cs-bubble" aria-live="polite">
                 <div
@@ -282,14 +303,28 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
                 className="herofig"
                 style={{ ["--g1" as string]: opp.glow1, ["--g2" as string]: opp.glow2 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={opp.portrait} alt={opp.name} />
+                <KitPortrait
+                  className="kit-portrait"
+                  src={kitCoachArt(opp.id, "bust-neutral")}
+                  alt={opp.name}
+                  label={opp.name}
+                />
               </div>
               <h2>{heading}</h2>
               <div className="cs-coach" style={{ width: "100%" }}>
-                <span className="head">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={opp.portrait} alt="" />
+                <span
+                  className="head"
+                  style={{
+                    ["--g1" as string]: opp.glow1,
+                    ["--g2" as string]: opp.glow2,
+                  }}
+                >
+                  <KitPortrait
+                    className="kit-portrait"
+                    src={kitCoachArt(opp.id)}
+                    alt=""
+                    label={opp.name}
+                  />
                 </span>
                 <div className="cs-bubble">{line}</div>
               </div>

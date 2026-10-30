@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
+import { KitPortrait } from "@/components/ui/KitPortrait";
+import { kitCoachArt } from "@/components/ui/kitArt";
 import { MiniBoard } from "@/features/gym/MiniBoard";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useProgression } from "@/core/store/progression.store";
@@ -44,7 +45,17 @@ export function FixMistakes({ fixture = false }: { fixture?: boolean }) {
             <h2>Here is what happened</h2>
           </div>
           <div className="cs-coach">
-            <CoachAvatar character="anxious_nerd" state="think" size="lg" alt="Otto" />
+            <span
+              className="head"
+              style={{ ["--g1" as string]: "#FFE8A8", ["--g2" as string]: "#F3C454" }}
+            >
+              <KitPortrait
+                className="kit-portrait"
+                src={kitCoachArt("otto")}
+                alt="Otto"
+                label="Otto"
+              />
+            </span>
             <div className="cs-bubble">{bubble}</div>
           </div>
         </div>

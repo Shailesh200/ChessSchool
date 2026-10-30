@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
+import { KitPortrait } from "@/components/ui/KitPortrait";
+import { kitCoachArt } from "@/components/ui/kitArt";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useProgression } from "@/core/store/progression.store";
 import { listGames, type SavedGame } from "@/core/db/db";
@@ -88,7 +89,17 @@ export function ReviewTab({ fixture = false }: { fixture?: boolean }) {
         </h1>
         <p className="muted">A quick refresher keeps them fresh. 10 steps or fewer.</p>
         <div className="cs-coach">
-          <CoachAvatar character="anxious_nerd" state="idle" size="md" alt="Otto" />
+          <span
+            className="head"
+            style={{ ["--g1" as string]: "#FFE8A8", ["--g2" as string]: "#F3C454" }}
+          >
+            <KitPortrait
+              className="kit-portrait"
+              src={kitCoachArt("otto")}
+              alt="Otto"
+              label="Otto"
+            />
+          </span>
           <div className="cs-bubble">
             Ten minutes now saves hours later. Start with the two low ones.
           </div>
