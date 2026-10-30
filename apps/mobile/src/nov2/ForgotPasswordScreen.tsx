@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Icon } from "@/Icon";
 import { useSettings } from "@/settings";
 import { isPremiumLook } from "@/nov2/uiLook";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton } from "@/components/kit";
 import { FieldAlert, PremiumPasswordField } from "@/nov2/PremiumPasswordField";
 import { PremiumAuthShell, SentBox } from "@/nov2/PremiumAuthShell";
 import {
@@ -18,8 +18,8 @@ type Phase = "entry" | "sent";
 
 export function ForgotPasswordScreen() {
   const router = useRouter();
-  const { uiLook } = useSettings();
-  const premium = isPremiumLook({ uiLook });
+  const { uiKit } = useSettings();
+  const premium = isPremiumLook({ uiKit });
   const [phase, setPhase] = useState<Phase>("entry");
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
@@ -63,7 +63,7 @@ export function ForgotPasswordScreen() {
           autoCapitalize="none"
           placeholder="Email"
         />
-        <DexButton label="Send reset link" onPress={() => void sendLink()} loading={busy} />
+        <KitButton label="Send reset link" onPress={() => void sendLink()} loading={busy} />
         <Pressable onPress={() => router.replace("/login")}>
           <Text style={styles.link}>Back to sign in</Text>
         </Pressable>
@@ -104,7 +104,7 @@ export function ForgotPasswordScreen() {
             />
             {fieldError ? <FieldAlert message={fieldError} /> : <Text style={styles.help}>The email you signed up with.</Text>}
           </View>
-          <DexButton label="Send reset link" onPress={() => void sendLink()} loading={busy} />
+          <KitButton label="Send reset link" onPress={() => void sendLink()} loading={busy} />
         </>
       ) : (
         <>
@@ -115,9 +115,9 @@ export function ForgotPasswordScreen() {
             </Text>
             <Text style={styles.help}>The link works for 30 minutes. Nothing there? Check spam.</Text>
           </SentBox>
-          <DexButton
+          <KitButton
             label="Resend link"
-            variant="line"
+            variant="outline"
             disabled={resendIn > 0 || busy}
             onPress={() => void sendLink()}
           />
