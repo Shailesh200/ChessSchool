@@ -673,7 +673,7 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   color: var(--cs-text-on-brand);
 }
 
-.illustrated .head {
+:is(.illustrated, .illustrated-lesson) .head {
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
@@ -681,9 +681,37 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   border: 2px solid var(--cs-surface);
   flex: none;
   background: var(--cs-surface-soft);
+  position: relative;
 }
 
-.illustrated .head img {
+.illustrated-lesson .head {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.kit-portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.kit-portrait-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle at 50% 38%,
+    #fff 0%,
+    var(--g1, #e7f6ee) 46%,
+    var(--g2, #b7e0cc) 100%
+  );
+  color: #1f2b2d;
+  font-family: var(--cs-font-display);
+  font-weight: 800;
+}
+
+:is(.illustrated, .illustrated-lesson) .head img {
   width: 100%;
   height: 100%;
   object-fit: cover;

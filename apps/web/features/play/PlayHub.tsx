@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMatch } from "@/core/store/match.store";
 import { KitIcon } from "@/components/ui/KitIcon";
+import { KitPortrait } from "@/components/ui/KitPortrait";
+import { kitCoachArt } from "@/components/ui/kitArt";
 import { OPPONENTS, type OpponentId } from "./opponents";
 
 type PlayMode = "coach" | "bot" | "friend";
@@ -72,8 +74,12 @@ export function PlayHub() {
             ["--g2" as string]: selected.glow2,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={selected.portrait} alt={selected.name} />
+          <KitPortrait
+            className="kit-portrait"
+            src={kitCoachArt(selected.id, "bust-neutral")}
+            alt={selected.name}
+            label={selected.name}
+          />
         </div>
       </section>
       <div className="hubgrid">
@@ -128,9 +134,16 @@ export function PlayHub() {
                   className="opp"
                   onClick={() => setOpp(o.id)}
                 >
-                  <span className="head">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={o.portrait} alt="" />
+                  <span
+                    className="head"
+                    style={{ ["--g1" as string]: o.glow1, ["--g2" as string]: o.glow2 }}
+                  >
+                    <KitPortrait
+                      className="kit-portrait"
+                      src={kitCoachArt(o.id)}
+                      alt=""
+                      label={o.name}
+                    />
                   </span>
                   <span className="rt">
                     <b>{o.name}</b>
@@ -141,9 +154,16 @@ export function PlayHub() {
               ))}
           </div>
           <div className="cs-row ashrow">
-            <span className="head">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/coaches/ash-premium.webp" alt="" />
+            <span
+              className="head"
+              style={{ ["--g1" as string]: "#EBEFF0", ["--g2" as string]: "#AEBCC0" }}
+            >
+              <KitPortrait
+                className="kit-portrait"
+                src={kitCoachArt("ash")}
+                alt=""
+                label="Ash"
+              />
             </span>
             <span className="cs-row__body">
               <b>Add Ash</b>
@@ -172,9 +192,16 @@ export function PlayHub() {
               className="opp"
               onClick={() => setOpp("ash")}
             >
-              <span className="head">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/coaches/ash-premium.webp" alt="" />
+              <span
+                className="head"
+                style={{ ["--g1" as string]: "#EBEFF0", ["--g2" as string]: "#AEBCC0" }}
+              >
+                <KitPortrait
+                  className="kit-portrait"
+                  src={kitCoachArt("ash")}
+                  alt=""
+                  label="Ash"
+                />
               </span>
               <span className="rt">
                 <b>Ash</b>

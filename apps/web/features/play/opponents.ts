@@ -11,7 +11,6 @@ export type Opponent = {
   blurb: string;
   line: string;
   optional?: boolean;
-  portrait: string;
   glow1: string;
   glow2: string;
 };
@@ -25,7 +24,6 @@ export const OPPONENTS: Opponent[] = [
     elo: 600,
     blurb: "Playful and dramatic. Plays like art.",
     line: "Hmm, which piece wants the spotlight?",
-    portrait: "/coaches/skye-premium.webp",
     glow1: "#ECE2FB",
     glow2: "#C3AEEB",
   },
@@ -37,7 +35,6 @@ export const OPPONENTS: Opponent[] = [
     elo: 1100,
     blurb: "Sporty and fast. Treats it like training.",
     line: "Yesss, clean move!",
-    portrait: "/coaches/kira-premium.webp",
     glow1: "#D3F1EA",
     glow2: "#86D3C5",
   },
@@ -49,7 +46,6 @@ export const OPPONENTS: Opponent[] = [
     elo: 1800,
     blurb: "A proud grandmaster. Plays by the book.",
     line: "Observe, and learn from the best.",
-    portrait: "/coaches/rex-premium.webp",
     glow1: "#F8E6E6",
     glow2: "#E3A8A8",
   },
@@ -62,7 +58,6 @@ export const OPPONENTS: Opponent[] = [
     blurb: "Off by default. Ash is strict and has no hints.",
     line: "Impress me.",
     optional: true,
-    portrait: "/coaches/ash-premium.webp",
     glow1: "#EBEFF0",
     glow2: "#AEBCC0",
   },
