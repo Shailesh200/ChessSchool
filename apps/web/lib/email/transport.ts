@@ -1,7 +1,7 @@
 import "server-only";
 import { envValue, isProduction } from "./env";
 import { EmailDeliveryError, EmailNotConfiguredError } from "./errors";
-import { maskEmailAddress, redactSecret } from "./redact";
+import { maskEmailAddress, redactSecret, redactUrlsForLog } from "./redact";
 import type { EmailEnv, EmailMessage, EmailProviderName } from "./types";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -17,22 +17,27 @@ function consoleFallbackAllowed(env: EmailEnv): boolean {
   return !isProduction(env);
 }
 
-function logConsoleEmail(message: EmailMessage): void {
-  // Mask the recipient. Leave text intact so preview and e2e can follow the link.
+function vercelDeploy(env: EmailEnv): boolean {
+  return envValue(env.VERCEL) !== "";
+}
+
+function logConsoleEmail(message: EmailMessage, env: EmailEnv): void {
+  // Mask the recipient. On Vercel, redact tokens in URLs so deploy logs stay safe.
+  const text = vercelDeploy(env) ? redactUrlsForLog(message.text) : message.text;
   console.info(
     `[email] console transport ${JSON.stringify({
       to: maskEmailAddress(message.to),
       subject: message.subject,
-      text: message.text,
+      text,
     })}`,
   );
 }
 
-function createConsoleTransport(): EmailTransport {
+function createConsoleTransport(env: EmailEnv): EmailTransport {
   return {
     name: "console",
     async send(message) {
-      logConsoleEmail(message);
+      logConsoleEmail(message, env);
       return { id: null };
     },
   };
@@ -150,5 +155,5 @@ export function resolveEmailTransport(env: EmailEnv = process.env): EmailTranspo
     );
   }
 
-  return createConsoleTransport();
+  return createConsoleTransport(env);
 }
