@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
 import { LessonStage } from "./LessonStage";
+import { LessonKitFooter } from "./LessonKitFooter";
+import { KitLottie } from "@/components/motion/KitLottie";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import type { CoachAvatarState } from "@/features/coaching/characters";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { audio } from "@/core/audio/audioEngine";
 import { haptics } from "@/core/haptics/haptics";
 import { useProgression, isoDay } from "@/core/store/progression.store";
@@ -34,7 +35,6 @@ import { prefetchCoachText } from "@/core/audio/coachSpeech";
 import { EnrollPrompt, EnrollPromptBanner } from "@/components/auth/EnrollPrompt";
 import { ReflectSheet } from "@/features/journal/ReflectSheet";
 import { CeremonyOverlay } from "@/components/ceremony/CeremonyOverlay";
-import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { pickLessonHint } from "@chess-school/core";
 import {
   deriveTutorialVisuals,
@@ -569,78 +569,121 @@ export function LessonPlayer({
     ? tutorial.highlightRanks
     : (step.highlightRanks ?? []);
 
+  const progressPct = Math.round(((index + (phase === "correct" ? 1 : 0)) / total) * 100);
+  const stepTag =
+    step.kind === "quiz"
+      ? `${lesson.title} · Quiz`
+      : step.kind === "move"
+        ? `${lesson.title} · Your turn`
+        : step.kind === "observe"
+          ? `${lesson.title} · Example`
+          : `${lesson.title} · Intro`;
+  const stepTitle =
+    step.kind === "quiz"
+      ? (step.question ?? lesson.title)
+      : step.kind === "move"
+        ? lesson.title
+        : lesson.title;
+  const tipText = pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag });
+  const successTitle =
+    phase === "correct" && promoted
+      ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}!`
+      : (step.successText ?? "Nice work!");
+  const failTitle = step.failText?.split(/[.!?]/)[0] || "Not quite";
+  const failWhy =
+    step.failText && step.failText.length > failTitle.length
+      ? step.failText
+      : tipText;
+
+  function continueStep() {
+    timers.current.forEach((t) => window.clearTimeout(t));
+    timers.current = [];
+    advance();
+  }
+
+  function revealHintFromBar() {
+    if (!step?.fen) return;
+    timers.current.forEach((t) => window.clearTimeout(t));
+    timers.current = [];
+    setDisplayFen(step.fen);
+    setMovedTo(null);
+    setHintLevel((h) => Math.min(h + 1, 2));
+    setPhase("playing");
+    audio.play("notify");
+    haptics.fire("tap");
+  }
+
   return (
     <LessonStage
       header={
-        <div className="lesson-stage-header-row">
+        <div className="cs-lessonhead">
           <button
+            type="button"
             onClick={() => {
               startNav();
               router.push("/academy");
             }}
-            aria-label="Back to academy"
-            className="btn-tactile border-hairline bg-surface-card text-ink-700 hover:text-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
+            aria-label="Close lesson"
+            className="cs-iconbtn"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="m15 18-6-6 6-6"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+            <svg className="cs-ic" viewBox="0 0 24 24" aria-hidden>
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
             </svg>
           </button>
-          <ProgressBar
-            value={index + (phase === "correct" ? 1 : 0)}
-            max={total}
-            tone="success"
-            className="flex-1"
-          />
-          <span className="text-ink-500 text-xs font-bold">
-            {index + 1}/{total}
-          </span>
+          <div
+            className="cs-progress"
+            role="progressbar"
+            aria-label="Lesson progress"
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            style={{ ["--v" as string]: `${progressPct}%` }}
+          >
+            <i />
+          </div>
           <button
+            type="button"
             onClick={() => {
-              audio.unlock(); // resume the audio context (fixes "no sound" after idle)
+              audio.unlock();
               toggleSetting("sound");
               if (!sound) audio.play("notify");
             }}
             aria-label={sound ? "Mute sounds" : "Unmute sounds"}
             aria-pressed={sound}
-            className="btn-tactile border-hairline bg-surface-card text-ink-700 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [box-shadow:var(--shadow-card)]"
+            className="cs-iconbtn cs-iconbtn--plain"
           >
-            {sound ? (
-              <Icon name="volume" size={18} />
-            ) : (
-              <Icon name="volumeOff" size={18} />
-            )}
+            {sound ? <Icon name="volume" size={18} /> : <Icon name="volumeOff" size={18} />}
           </button>
         </div>
       }
+      coachTitle={
+        <div className="ttl">
+          <span className="cs-tag">{stepTag}</span>
+          <h2 className="cs-h3">{stepTitle}</h2>
+        </div>
+      }
       coach={
-        <>
+        <div className="cs-coach">
           <CoachAvatar
             character={coachCharacter}
             state={avatarState}
-            size={88}
-            className="mt-1 shrink-0 lg:mx-auto"
+            size="lg"
+            className="cs-avatar cs-avatar--lg shrink-0"
           />
           <motion.div
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             data-testid="lesson-coach-bubble"
-            className="lesson-stage-bubble border-hairline bg-surface-card text-ink relative rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)]"
+            className="cs-bubble cs-bubble--strong lesson-stage-bubble"
           >
             <p className="whitespace-pre-wrap">{feedbackText}</p>
             {lesson.exam && (
-              <span className="rounded-pill bg-warning/20 text-warning mt-1 inline-block self-start px-1.5 py-0.5 text-[0.625rem] font-extrabold">
-                EXAM
-              </span>
+              <span className="cs-tag cs-tag--medium mt-1 inline-block">Exam</span>
             )}
           </motion.div>
-        </>
+        </div>
       }
       board={
         step.kind === "quiz" ? (
@@ -682,111 +725,99 @@ export function LessonPlayer({
           )
         )
       }
-      controls={
-        <div className="lesson-stage-controls-row" data-testid="lesson-hint-bar">
-          {toMove ? (
-            <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
-              <span
-                className={`border-ink-300 inline-block h-4 w-4 shrink-0 rounded-full border ${
-                  toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
-                }`}
-              />
-              {toMove === "w" ? "White" : "Black"} to move
-            </span>
-          ) : (
-            <span />
-          )}
-          {isObserving ? (
-            <p className="text-brand flex items-center justify-center gap-1.5 text-center text-sm font-bold">
-              <Icon name="playFill" size={14} />
-              Watching the example…
-            </p>
-          ) : solvable && !lesson.exam ? (
-            <button
-              onClick={() => {
-                setHintLevel((h) => Math.min(h + 1, 2));
-                audio.play("notify");
-                haptics.fire("tap");
-              }}
-              disabled={hintLevel >= 2}
-              className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
-            >
-              <Icon name="bulb" size={14} className="text-brand shrink-0" />
-              {hintLevel === 0
-                ? "Show a hint"
-                : hintLevel === 1
-                  ? "Show the move"
-                  : "Follow the arrow"}
-            </button>
-          ) : null}
-        </div>
-      }
-      tip={
-        step.kind !== "quiz" ? (
-          <div className="rounded-card border-hairline bg-surface-card/70 flex w-full items-start gap-2 border px-3 py-2">
-            <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
-            <p className="text-ink-500 min-w-0 text-[0.6875rem] leading-snug font-semibold">
-              {pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag })}
-            </p>
+      extras={
+        <>
+          <div className="lesson-stage-controls-row" data-testid="lesson-hint-bar">
+            {toMove ? (
+              <span className="hintline">
+                <span
+                  className={`inline-block h-4 w-4 shrink-0 rounded-full border border-current ${
+                    toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
+                  }`}
+                />
+                {toMove === "w" ? "White" : "Black"} to move
+              </span>
+            ) : isObserving ? (
+              <p className="hintline">
+                <Icon name="playFill" size={14} />
+                Watching the example…
+              </p>
+            ) : null}
+            {solvable && !lesson.exam && !isObserving ? (
+              <div className="ladder" role="list">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHintLevel((h) => Math.min(h + 1, 2));
+                    audio.play("notify");
+                    haptics.fire("tap");
+                  }}
+                  disabled={hintLevel >= 2}
+                  className="cs-btn cs-btn--soft cs-btn--sm"
+                  data-testid="lesson-hint-button"
+                >
+                  <Icon name="bulb" size={16} />
+                  {hintLevel === 0
+                    ? "Hint 1 of 3"
+                    : hintLevel === 1
+                      ? "Hint 2 of 3"
+                      : "Hint 3 of 3"}
+                </button>
+              </div>
+            ) : null}
           </div>
-        ) : null
+          {hintLevel >= 1 && solvable ? (
+            <div className="ladder" role="list" data-testid="lesson-hint-ladder">
+              <span
+                className={`cs-tag ${hintLevel >= 1 ? "cs-tag--easy" : ""}`}
+                role="listitem"
+              >
+                1 Nudge
+              </span>
+              <span
+                className={`cs-tag ${hintLevel >= 2 ? "cs-tag--easy" : ""}`}
+                role="listitem"
+              >
+                2 Highlight
+              </span>
+              <span
+                className={`cs-tag ${hintLevel >= 2 ? "cs-tag--accent" : ""}`}
+                role="listitem"
+              >
+                3 Arrow
+              </span>
+            </div>
+          ) : null}
+          {step.kind !== "quiz" ? (
+            <div className="hintline" data-testid="lesson-tip">
+              <Icon name="bulb" size={18} className="shrink-0" />
+              <span>{tipText}</span>
+            </div>
+          ) : null}
+        </>
       }
       footer={
-        <FeedbackBar
+        <LessonKitFooter
+          phase={phase}
           stepKind={step.kind}
           observeReady={step.kind !== "observe" || observeDone}
           playing={phase === "playing"}
           quizReady={step.kind === "quiz" && phase === "correct"}
-          onContinue={advance}
+          solvable={solvable}
+          exam={lesson.exam}
+          successTitle={successTitle}
+          successWhy={tipText}
+          failTitle={failTitle}
+          failWhy={failWhy}
+          onContinue={continueStep}
+          onShowHint={revealHintFromBar}
         />
       }
     />
   );
 }
 
-function FeedbackBar({
-  stepKind,
-  observeReady,
-  playing,
-  quizReady,
-  onContinue,
-}: {
-  stepKind: string;
-  observeReady: boolean;
-  playing: boolean;
-  quizReady?: boolean;
-  onContinue: () => void;
-}) {
-  // Move steps auto-advance (green flash) / auto-retry — the footer button is only
-  // for info/observe/quiz steps that need a manual "Continue".
-  const show =
-    (playing && (stepKind === "info" || (stepKind === "observe" && observeReady))) ||
-    Boolean(quizReady);
-
-  // Always reserve the footer height so the board never resizes (no CLS / flicker).
-  return (
-    <div className="lesson-stage-footer-inner">
-      <AnimatePresence>
-        {show && (
-          <motion.div
-            key="continue"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className="border-hairline bg-surface-card mx-auto flex max-w-xl items-center justify-end gap-4 rounded-2xl border px-4 py-3"
-          >
-            <Button variant="success" onClick={onContinue} block>
-              Continue
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function LessonComplete({
+export function LessonComplete({
   lesson,
   correct,
   mistakes,
@@ -809,6 +840,8 @@ function LessonComplete({
   const authed = useSession((s) => s.authed);
   const lessons = useProgression((s) => s.lessons);
   const dismissedAt = useSettings((s) => s.enrollPromptDismissedAt);
+  const coachCharacter = useSettings((s) => s.coachCharacter);
+  const streak = useProgression((s) => s.streak);
   const lessonsAttempted = lessonsAttemptedCount(lessons);
   const showEnroll = shouldShowEnrollPrompt({
     authed,
@@ -865,7 +898,7 @@ function LessonComplete({
           : undefined;
 
   return (
-    <div className="bg-surface min-h-dvh">
+    <div className="bg-surface min-h-dvh" data-testid="lesson-complete-screen">
       <CeremonyOverlay
         open
         variant={variant}
@@ -873,16 +906,42 @@ function LessonComplete({
         subtitle={subtitle}
         badge={ceremony?.badge}
       >
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex flex-wrap justify-center gap-3">
-            <StatPill label="XP earned" value={lesson.xp} tone="text-brand" animate />
-            <StatPill label="Correct" value={`${correct}`} tone="text-success" />
-            <StatPill
-              label="Mistakes"
-              value={`${mistakes}`}
-              tone={mistakes === 0 ? "text-success" : "text-danger"}
+        <div className="dn w-full max-w-none p-0">
+          <KitLottie id="confetti" className="cf-lot" />
+          <div className="hero2">
+            <CoachAvatar
+              character={coachCharacter}
+              state="success"
+              size="xl"
+              className="cs-avatar bigav"
             />
+            <h1 className="cs-h1">{headline}</h1>
+            {subtitle ? <p className="cs-muted">{subtitle}</p> : null}
+            <p className="cs-muted">{lesson.subtitle || lesson.title}</p>
+            <KitLottie id="xp-pop-20" className="xp-lot2" />
+            <p className="cs-muted xpsum">+{lesson.xp} XP</p>
           </div>
+          <div className="r">
+            <div className="cs-stats">
+              <div className="cs-stat">
+                <span className="cs-num">{correct}</span>
+                <span>Correct</span>
+              </div>
+              <div className="cs-stat">
+                <span className="cs-num">{mistakes}</span>
+                <span>Mistakes</span>
+              </div>
+            </div>
+            <div className="cs-streakcard">
+              <div className="flame">
+                <KitLottie id="streak-flame" loop className="flame-lot" />
+              </div>
+              <div>
+                <span className="cs-num">{streak}</span>
+                <b>day streak</b>
+              </div>
+              <em>Keep it up</em>
+            </div>
 
           {showEnroll && (
             <EnrollPromptBanner
@@ -900,42 +959,42 @@ function LessonComplete({
           <div className="flex w-full flex-col items-center gap-2">
             {isHomework ? (
               allHomeworkDone ? (
-                <Button
-                  size="lg"
-                  block
-                  loading={busy === "home"}
+                <button
+                  type="button"
+                  className="cs-btn cs-btn--block"
+                  disabled={busy === "home"}
                   onClick={() => go("home", "/academy", onDone)}
                 >
                   Back to academy →
-                </Button>
+                </button>
               ) : (
-                <Button
-                  size="lg"
-                  block
-                  loading={busy === "hw"}
+                <button
+                  type="button"
+                  className="cs-btn cs-btn--block"
+                  disabled={busy === "hw"}
                   onClick={() => go("hw", "/plan")}
                 >
                   Continue your homework →
-                </Button>
+                </button>
               )
             ) : nextId ? (
-              <Button
-                size="lg"
-                block
-                loading={busy === "next"}
+              <button
+                type="button"
+                className="cs-btn cs-btn--block"
+                disabled={busy === "next"}
                 onClick={() => go("next", `/lesson/${nextId}`)}
               >
                 Continue learning →
-              </Button>
+              </button>
             ) : (
-              <Button
-                size="lg"
-                block
-                loading={busy === "home"}
+              <button
+                type="button"
+                className="cs-btn cs-btn--block"
+                disabled={busy === "home"}
                 onClick={() => go("home", "/academy", onDone)}
               >
                 Back to academy
-              </Button>
+              </button>
             )}
             <div className="flex w-full gap-2">
               <Button variant="ghost" block onClick={() => setReflectOpen(true)}>
@@ -953,6 +1012,7 @@ function LessonComplete({
               )}
             </div>
           </div>
+          </div>
         </div>
       </CeremonyOverlay>
       <ReflectSheet
@@ -967,31 +1027,6 @@ function LessonComplete({
         }
         refId={lesson.id}
       />
-    </div>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  tone,
-  animate,
-}: {
-  label: string;
-  value: string | number;
-  tone: string;
-  animate?: boolean;
-}) {
-  return (
-    <div className="rounded-card border-hairline bg-surface-card border px-5 py-3">
-      <div className={`text-2xl font-extrabold ${tone}`}>
-        {animate && typeof value === "number" ? (
-          <AnimatedNumber value={value} prefix="+" />
-        ) : (
-          value
-        )}
-      </div>
-      <div className="text-ink-500 text-xs font-semibold">{label}</div>
     </div>
   );
 }
