@@ -18,6 +18,12 @@ import { PASSWORD_RESET_GENERIC_MESSAGE } from "@/lib/password-reset-messages";
 
 const PW = "testpass123";
 
+function tokenFromMail(text: string): string {
+  const match = text.match(/\/account\/reset#(\S+)/);
+  expect(match).toBeTruthy();
+  return match![1]!;
+}
+
 describe("password reset API", () => {
   let teardown: () => void = () => {};
   let db: TestDb;
@@ -96,9 +102,7 @@ describe("password reset API", () => {
       }),
     );
     const mail = passwordResetTestOutbox[0]?.text ?? "";
-    const match = mail.match(/token=([^&\s]+)/);
-    expect(match).toBeTruthy();
-    const raw = decodeURIComponent(match![1]!);
+    const raw = tokenFromMail(mail);
     const rows = await db.select().from(passwordResetTokens);
     expect(rows.length).toBe(1);
     expect(rows[0]!.id).toBe(hashSessionToken(raw));
@@ -138,7 +142,7 @@ describe("password reset API", () => {
       }),
     );
     const mail = passwordResetTestOutbox[0]?.text ?? "";
-    const raw = decodeURIComponent(mail.match(/token=([^&\s]+)/)![1]!);
+    const raw = tokenFromMail(passwordResetTestOutbox[0]?.text ?? "");
     const { resetPasswordWithToken } = await import("@/lib/password-reset");
     expect(await resetPasswordWithToken(raw, "newpass1234")).toEqual({ ok: true });
     expect(await resetPasswordWithToken(raw, "anotherpass1")).toMatchObject({
@@ -189,9 +193,7 @@ describe("password reset API", () => {
         body: JSON.stringify({ email }),
       }),
     );
-    const raw = decodeURIComponent(
-      passwordResetTestOutbox[0]!.text.match(/token=([^&\s]+)/)![1]!,
-    );
+    const raw = tokenFromMail(passwordResetTestOutbox[0]!.text);
     const before = await db.select().from(sessions);
     expect(before.length).toBeGreaterThan(0);
     const { resetPasswordWithToken } = await import("@/lib/password-reset");
