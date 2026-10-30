@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   BOARD_MAX,
   BOARD_MIN,
+  HEADER_ESTIMATE,
   SIDE_PAD,
   computeLessonLayout,
   fitBoardSize,
@@ -31,6 +32,27 @@ function bodyOf(w: number, h: number, fontScale: number, landscape: boolean) {
   const footer = landscape ? 0 : Math.round(76 * Math.min(fontScale, 2));
   return { bodyWidth: w, bodyHeight: h - 56 - footer };
 }
+
+describe("computeLessonLayout: side-by-side board size never goes negative", () => {
+  it("fontScale 4 on a short landscape screen: boardSize >= 0 and panelWidth >= 0", () => {
+    for (const [w, h] of [[568, 300], [640, 280], [667, 260]] as Array<[number, number]>) {
+      const l = computeLessonLayout({
+        windowWidth: w,
+        windowHeight: h,
+        fontScale: 4,
+        bodyWidth: w,
+        bodyHeight: h - HEADER_ESTIMATE,
+      });
+      expect(l.sideBySide).toBe(true);
+      expect(l.boardSize).toBeGreaterThanOrEqual(0);
+      expect(l.panelWidth).toBeGreaterThanOrEqual(0);
+    }
+    // the window-estimate path (no measured body) hits the same negative byHeight
+    const est = computeLessonLayout({ windowWidth: 568, windowHeight: 300, fontScale: 4 });
+    expect(est.sideBySide).toBe(true);
+    expect(est.boardSize).toBeGreaterThanOrEqual(0);
+  });
+});
 
 describe("computeLessonLayout: lesson player geometry (UI-M-003/004/005/017/018)", () => {
   for (const scale of SCALES) {

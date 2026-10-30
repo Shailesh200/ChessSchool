@@ -5,6 +5,7 @@ import { ChessEngine } from "@chess-school/core";
 import { colors, font, radius, shadowCard, space, type } from "./theme";
 import { useSettings, BOARD_THEMES } from "./settings";
 import { Piece, type PieceThemeId } from "./Piece";
+import { createBoardPanConfig } from "./boardPan";
 
 type PieceType = "p" | "n" | "b" | "r" | "q" | "k";
 type Cell = { type: PieceType; color: "w" | "b" } | null;
@@ -12,7 +13,6 @@ export type Arrow = { startSquare: string; endSquare: string; color?: string };
 type PromotionPiece = "q" | "r" | "b" | "n";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
-const DRAG_ACTIVATION_DISTANCE = 10;
 const MOVE_ANIMATION_MS = 280;
 const MOVE_EASING = Easing.inOut(Easing.cubic);
 function hexToRgba(hex: string, alpha: number) {
@@ -242,51 +242,21 @@ export function ChessBoard({
   interactiveRef.current = interactive;
 
   const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => {
-        movedRef.current = false;
-        const { locationX, locationY } = e.nativeEvent;
-        startXYRef.current = { x: locationX, y: locationY };
-        const sq = sqAtRef.current(locationX, locationY);
-        dragRef.current = sq ? { from: sq, piece: pieceAtRef.current(sq) } : null;
-      },
-      onPanResponderMove: (e) => {
-        const start = startXYRef.current;
-        const dx = start ? e.nativeEvent.locationX - start.x : 0;
-        const dy = start ? e.nativeEvent.locationY - start.y : 0;
-        if (!movedRef.current && Math.hypot(dx, dy) < DRAG_ACTIVATION_DISTANCE) return;
-        movedRef.current = true;
-        // start the floating ghost only once the finger actually moves (so a tap doesn't flash it)
-        if (dragRef.current?.piece && interactiveRef.current) {
-          setDragFrom(dragRef.current.from);
-          setDragXY({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-        }
-      },
-      onPanResponderRelease: (e) => {
-        const { locationX, locationY } = e.nativeEvent;
-        const d = dragRef.current;
-        const target = sqAtRef.current(locationX, locationY);
-        dragRef.current = null;
-        setDragFrom(null);
-        setDragXY(null);
-        if (!d) return;
-        const draggedFar = movedRef.current && target && target !== d.from;
-        if (draggedFar && d.piece) {
-          tryMoveRef.current(d.from, target!);
-          setSelected(null);
-        } else {
-          tapRef.current(d.from, d.piece); // treat as a tap
-        }
-      },
-      onPanResponderTerminate: () => {
-        dragRef.current = null;
-        startXYRef.current = null;
-        setDragFrom(null);
-        setDragXY(null);
-      },
-    }),
+    PanResponder.create(
+      createBoardPanConfig<Cell>({
+        dragRef,
+        movedRef,
+        startXYRef,
+        sqAtRef,
+        pieceAtRef,
+        tapRef,
+        tryMoveRef,
+        interactiveRef,
+        setDragFrom,
+        setDragXY,
+        setSelected,
+      }),
+    ),
   ).current;
 
   const fileSet = useMemo(() => new Set(highlightFiles ?? []), [highlightFiles]);

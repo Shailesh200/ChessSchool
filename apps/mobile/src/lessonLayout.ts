@@ -68,7 +68,10 @@ export function computeLessonLayout(input: LessonLayoutInput): LessonLayout {
   if (sideBySide) {
     // Board column also holds the "White to move" row above the board.
     const byHeight = availH - SIDE_PAD * 2 - Math.ceil(28 * fontScale);
+    // byHeight goes negative at large fontScale on short landscape screens; never hand a
+    // negative size to the board (RN layout and SVG viewBox math break on it).
     const boardSize = Math.max(
+      0,
       Math.min(BOARD_MIN, byHeight),
       Math.min(byHeight, BOARD_MAX, Math.round(availW * 0.55)),
     );
