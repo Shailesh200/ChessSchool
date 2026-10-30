@@ -15,6 +15,8 @@ describe("sanitizeAppNext", () => {
 
   it("rejects open redirects and auth loops", () => {
     expect(sanitizeAppNext("//evil.com")).toBe("/academy");
+    expect(sanitizeAppNext("/\\evil.com")).toBe("/academy");
+    expect(sanitizeAppNext("/%2f%2fevil.com")).toBe("/academy");
     expect(sanitizeAppNext("https://evil.com")).toBe("/academy");
     expect(sanitizeAppNext("/login")).toBe("/academy");
     expect(sanitizeAppNext("/register?next=/play")).toBe("/academy");
