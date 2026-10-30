@@ -4,6 +4,10 @@
 export const colors = {
   brand50: "#eef0ff",
   brand100: "#dfe3ff",
+  /** Brand-coloured text that stays readable on tints (dark themes lighten it). */
+  brandInk: "#5b5bd6",
+  successTint: "#e7f7ef",
+  successInk: "#059669",
   brand300: "#aab2ff",
   brand: "#5b5bd6",
   brand600: "#4b46c4",

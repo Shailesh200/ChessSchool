@@ -236,7 +236,7 @@ function makeStyles(type: ReturnType<typeof useType>) {
     goBtn: { borderRadius: radius.pill, backgroundColor: colors.brand, paddingHorizontal: space[3], paddingVertical: 6 },
     goBtnDone: { backgroundColor: colors.surfaceSunken },
     goText: { ...type.xs, fontFamily: font.bold, color: "#fff" },
-    doneBanner: { backgroundColor: "#e7f7ef", borderRadius: radius.card, padding: space[3], marginTop: space[2], borderWidth: 1, borderColor: "rgba(12,155,110,0.3)" },
-    doneBannerText: { ...type.sm, fontFamily: font.bold, color: colors.success600, textAlign: "center" },
+    doneBanner: { backgroundColor: colors.successTint, borderRadius: radius.card, padding: space[3], marginTop: space[2], borderWidth: 1, borderColor: "rgba(12,155,110,0.3)" },
+    doneBannerText: { ...type.sm, fontFamily: font.bold, color: colors.successInk, textAlign: "center" },
   });
 }

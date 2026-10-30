@@ -36,7 +36,7 @@
   --ink-900: #1c1b2e;
   --ink-700: #3a3850;
   --ink-500: #6b6982;
-  --ink-300: #a9a7bd;
+  --ink-300: #8280a0;
   --surface: #fbfaff;
   --surface-card: #ffffff;
   --surface-sunken: #f1f0f9;
@@ -353,11 +353,12 @@ html[data-app-theme="midnight"] {
   --hairline: #34376090;
   --ink-900: #ededf6;
   --ink-700: #c9c8de;
-  --ink-500: #a4a3c2;
-  --ink-300: #7b7a9c;
-  /* dark-appropriate brand tints so bg-brand-50 surfaces stay legible */
-  --brand-50: #2a2f57;
-  --brand-100: #343c6e;
+  --ink-500: #a8a8c8;
+  --ink-300: #9a9ac0;
+  /* Brand-coloured TEXT on dark surfaces (school brand-500 is only 2-3:1 here).
+     The dark --brand-50/--brand-100 tints are declared after the school-theme
+     blocks below, because school themes set the same variables. */
+  --brand-ink: #b9b3ff;
   --shadow-card: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
   --shadow-pop: 0 18px 40px -10px rgba(0, 0, 0, 0.6);
 }
@@ -457,6 +458,19 @@ html[data-school-theme="graduation"] {
     color-mix(in srgb, var(--gold-500) 16%, transparent),
     transparent 42%
   );
+}
+
+/* Midnight brand tints. MUST stay after every html[data-school-theme] block:
+   both selectors have the same specificity, so the later one wins, and the
+   school themes would otherwise paint light tints (bg-brand-50/100) on dark. */
+html[data-app-theme="midnight"] {
+  --brand-50: #2a2f57;
+  --brand-100: #343c6e;
+}
+/* .text-brand reads --brand-500 (too dark as text on midnight surfaces).
+   IconBadge tiles keep their own colour: they paint a white gradient stop. */
+html[data-app-theme="midnight"] .text-brand:not([class*="via-white"]) {
+  color: var(--brand-ink);
 }
 
 /* Campus / school chrome — consumes --school-* tokens (independent of app palette). */

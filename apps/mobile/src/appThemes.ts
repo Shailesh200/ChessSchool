@@ -1,10 +1,27 @@
 /** App surface palettes — ported from apps/web/core/themes/themes.ts */
 
+export interface BrandTints {
+  /** Selected / tinted card background. */
+  brand50: string;
+  /** Stronger tint (borders, badge wells). */
+  brand100: string;
+  /** Brand-coloured TEXT that is readable on brand50/brand100 and the surfaces. */
+  brandInk: string;
+  /** Success banner background and its text colour. */
+  successTint: string;
+  successInk: string;
+}
+
 export interface AppThemeDef {
   id: string;
   name: string;
   emoji: string;
   dark?: boolean;
+  /**
+   * Dark themes supply their own brand tints (the school theme's tints are light
+   * pastels). They win over the school theme in buildPalette (UI-M-007..009).
+   */
+  tints?: BrandTints;
   colors: {
     brand: string;
     brand600: string;
@@ -119,8 +136,15 @@ export const APP_THEMES: AppThemeDef[] = [
       hairline: "#2a2d4a",
       ink: "#f0f0ff",
       ink700: "#c8c8e0",
-      ink500: "#9898b8",
-      ink300: "#686888",
+      ink500: "#a8a8c8",
+      ink300: "#9a9ac0",
+    },
+    tints: {
+      brand50: "#2a2f57",
+      brand100: "#343c6e",
+      brandInk: "#b9b3ff",
+      successTint: "#12352f",
+      successInk: "#10b981",
     },
   },
 ];

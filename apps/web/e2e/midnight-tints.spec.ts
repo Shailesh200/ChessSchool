@@ -1,0 +1,143 @@
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * UI-W-001: midnight's dark --brand-50/--brand-100 tints must win over every
+ * school theme (same specificity, so source order decides), and text on those
+ * tints must stay readable (WCAG AA 4.5:1).
+ */
+const SCHOOLS = ["elementary", "highschool", "university", "graduation"] as const;
+const MIDNIGHT_BRAND_50 = "#2a2f57";
+const MIDNIGHT_BRAND_100 = "#343c6e";
+
+type Probe = {
+  brand50: string;
+  brand100: string;
+  samples: { name: string; tint: "50" | "100"; fg: string; bg: string }[];
+};
+
+async function probe(page: Page, school: string): Promise<Probe> {
+  await page.addInitScript((sc) => {
+    const key = "chessschool.settings";
+    const cur = JSON.parse(localStorage.getItem(key) || "{}");
+    const state = Object.assign(cur.state || {}, {
+      appTheme: "midnight",
+      schoolTheme: sc,
+    });
+    localStorage.setItem(key, JSON.stringify({ state, version: cur.version || 11 }));
+  }, school);
+  await page.goto("/themes");
+  await page.waitForFunction(
+    () => document.documentElement.dataset.appTheme === "midnight",
+  );
+  return page.evaluate(() => {
+    const root = document.documentElement;
+    const cs = getComputedStyle(root);
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:0;top:0;opacity:0;pointer-events:none";
+    const specs: [string, "50" | "100", string][] = [
+      ["text-ink", "50", "text-ink bg-brand-50"],
+      ["text-ink-700", "50", "text-ink-700 bg-brand-50"],
+      ["text-ink-500", "50", "text-ink-500 bg-brand-50"],
+      ["text-ink-300", "50", "text-ink-300 bg-brand-50"],
+      ["text-brand", "50", "text-brand bg-brand-50"],
+      ["text-ink", "100", "text-ink bg-brand-100"],
+      ["text-ink-700", "100", "text-ink-700 bg-brand-100"],
+      ["text-ink-500", "100", "text-ink-500 bg-brand-100"],
+      ["text-brand", "100", "text-brand bg-brand-100"],
+    ];
+    const els = specs.map(([, , cls]) => {
+      const el = document.createElement("span");
+      el.className = cls;
+      el.textContent = "Aa";
+      host.appendChild(el);
+      return el;
+    });
+    document.body.appendChild(host);
+    const samples = specs.map(([name, tint], i) => {
+      const s = getComputedStyle(els[i]!);
+      return { name, tint, fg: s.color, bg: s.backgroundColor };
+    });
+    host.remove();
+    return {
+      brand50: cs.getPropertyValue("--brand-50").trim(),
+      brand100: cs.getPropertyValue("--brand-100").trim(),
+      samples,
+    };
+  });
+}
+
+function channels(css: string): [number, number, number] {
+  const m = css.match(/rgba?\(([^)]+)\)/);
+  if (!m) throw new Error(`unparseable colour: ${css}`);
+  const p = m[1]!
+    .split(/[ ,/]+/)
+    .filter(Boolean)
+    .map(Number);
+  return [p[0]!, p[1]!, p[2]!];
+}
+function luminance([r, g, b]: [number, number, number]): number {
+  const f = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function contrast(fg: string, bg: string): number {
+  const a = luminance(channels(fg));
+  const b = luminance(channels(bg));
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+for (const school of SCHOOLS) {
+  test(`midnight + ${school}: dark brand tints win and text on them is >= 4.5:1`, async ({
+    page,
+  }) => {
+    const result = await probe(page, school);
+    expect(result.brand50).toBe(MIDNIGHT_BRAND_50);
+    expect(result.brand100).toBe(MIDNIGHT_BRAND_100);
+    for (const s of result.samples) {
+      const ratio = contrast(s.fg, s.bg);
+      expect(
+        ratio,
+        `${s.name} on brand-${s.tint} (${s.fg} on ${s.bg}) = ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+}
+
+test("classic: --ink-300 labels keep >= 3:1 on the page and sunken surfaces (UI-W-015)", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const key = "chessschool.settings";
+    const cur = JSON.parse(localStorage.getItem(key) || "{}");
+    const state = Object.assign(cur.state || {}, {
+      appTheme: "default",
+      schoolTheme: "university",
+    });
+    localStorage.setItem(key, JSON.stringify({ state, version: cur.version || 11 }));
+  });
+  await page.goto("/themes");
+  const v = await page.evaluate(() => {
+    const cs = getComputedStyle(document.documentElement);
+    const get = (n: string) => cs.getPropertyValue(n).trim();
+    return {
+      ink: get("--ink-300"),
+      surface: get("--surface"),
+      sunken: get("--surface-sunken"),
+      card: get("--surface-card"),
+    };
+  });
+  const rgb = (hex: string) => {
+    const h =
+      hex.length === 4 ? [...hex.slice(1)].map((c) => c + c).join("") : hex.slice(1);
+    return `rgb(${[0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(", ")})`;
+  };
+  for (const bg of [v.surface, v.sunken, v.card]) {
+    const ratio = contrast(rgb(v.ink), rgb(bg));
+    expect(
+      ratio,
+      `ink-300 ${v.ink} on ${bg} = ${ratio.toFixed(2)}`,
+    ).toBeGreaterThanOrEqual(3);
+  }
+});

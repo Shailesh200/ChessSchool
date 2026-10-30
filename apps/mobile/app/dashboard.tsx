@@ -10,6 +10,7 @@ import { Icon } from "@/Icon";
 import { emojiToIcon } from "@/iconMaps";
 import { AppShell } from "@/AppShell";
 import { useType } from "@/typography";
+import { useAppTheme } from "@/ThemeProvider";
 import { colors, font, radius, shadowCard, space } from "@/theme";
 import { isoDay } from "@/progression";
 
@@ -41,16 +42,22 @@ function SkillRadar({ data }: { data: { area: string; mastery: number }[] }) {
         <Polygon key={lv} points={poly(data.map((_, i) => point(i, R * lv)))} fill="none" stroke={colors.hairline} strokeWidth={1} />
       ))}
       {data.map((_, i) => { const [x, y] = point(i, R); return <Line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke={colors.hairline} strokeWidth={1} />; })}
-      <Polygon points={poly(data.map((d, i) => point(i, R * Math.max(0.05, d.mastery))))} fill="rgba(91,91,214,0.25)" stroke={colors.brand} strokeWidth={2} strokeLinejoin="round" />
+      <Polygon points={poly(data.map((d, i) => point(i, R * Math.max(0.05, d.mastery))))} fill={colors.brand} fillOpacity={0.25} stroke={colors.brand} strokeWidth={2} strokeLinejoin="round" />
       {data.map((d, i) => { const [x, y] = point(i, R * Math.max(0.05, d.mastery)); return <Circle key={i} cx={x} cy={y} r={2.6} fill={colors.brand} />; })}
       {data.map((d, i) => { const [x, y] = point(i, R + 16); return <SvgText key={i} x={x} y={y} fontSize={9} fontWeight="800" textAnchor="middle" fill={colors.ink500}>{d.area}</SvgText>; })}
     </Svg>
   );
 }
 
-const HEAT = [colors.surfaceSunken, "#c7d2fe", "#a5b4fc", "#818cf8", "#5b5bd6"];
+/** Read the live palette at render time (a module-level array froze the light colours). */
+const heatRamp = (dark: boolean) =>
+  dark
+    ? [colors.surfaceSunken, "#3d4585", "#5058b0", "#7b83e8", "#aab2ff"]
+    : [colors.surfaceSunken, "#c7d2fe", "#a5b4fc", "#818cf8", "#5b5bd6"];
 const heatLevel = (xp: number) => (xp === 0 ? 0 : xp < 20 ? 1 : xp < 50 ? 2 : xp < 100 ? 3 : 4);
 function StreakHeatmap({ activityDays }: { activityDays: Record<string, number> }) {
+  const { isDark } = useAppTheme();
+  const HEAT = heatRamp(isDark);
   const WEEKS = 13;
   const cells: number[] = [];
   const today = new Date();
@@ -116,7 +123,7 @@ function gradeFor(avgStars: number): string {
 }
 function gradeTone(grade: string): { bg: string; fg: string } {
   if (grade === "A+" || grade === "A") return { bg: "rgba(16,185,129,0.15)", fg: colors.success };
-  if (grade === "B") return { bg: colors.brand50, fg: colors.brand };
+  if (grade === "B") return { bg: colors.brand50, fg: colors.brandInk };
   if (grade === "C") return { bg: "rgba(245,158,11,0.2)", fg: colors.warning };
   if (grade === "D") return { bg: "rgba(244,63,94,0.15)", fg: colors.danger };
   return { bg: colors.surfaceSunken, fg: colors.ink500 };
@@ -369,7 +376,7 @@ function makeStyles(type: ReturnType<typeof useType>) {
     ratingSub: { ...type.caption, fontFamily: font.semibold, color: colors.ink500 },
     identity: { ...type.sm, fontFamily: font.bold, color: colors.ink },
     pill: { alignSelf: "flex-start", backgroundColor: colors.brand50, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: space[1], marginTop: space[1] },
-    pillText: { ...type.xs, fontFamily: font.bold, color: colors.brand },
+    pillText: { ...type.xs, fontFamily: font.bold, color: colors.brandInk },
     statsLine: { ...type.xs, fontFamily: font.semibold, color: colors.ink500, marginTop: space[1] },
     track: { height: 10, borderRadius: radius.pill, backgroundColor: colors.surfaceSunken, overflow: "hidden" },
     trackFill: { height: 10, borderRadius: radius.pill },
@@ -392,7 +399,7 @@ function makeStyles(type: ReturnType<typeof useType>) {
     reportKicker: { ...type.caption, fontFamily: font.bold, color: colors.ink500, textTransform: "uppercase", letterSpacing: 0.5 },
     gpa: { ...type["2xl"], fontFamily: font.bold, color: colors.ink },
     gpaSub: { ...type.sm, fontFamily: font.bold, color: colors.ink500 },
-    reportRow: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: "rgba(255,255,255,0.6)", padding: space[2.5] },
+    reportRow: { flexDirection: "row", alignItems: "center", gap: space[3], borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surface, padding: space[2.5] },
     reportTitle: { ...type.sm, fontFamily: font.bold, color: colors.ink },
     reportMeta: { ...type.caption, fontFamily: font.semibold, color: colors.ink500, marginTop: 1 },
     stars: { fontSize: 11, lineHeight: 14, marginTop: 2 },
