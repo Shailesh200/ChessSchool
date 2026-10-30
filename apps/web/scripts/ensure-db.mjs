@@ -1,13 +1,31 @@
 /**
- * First-run guard: make sure the database exists and is seeded before the app
- * starts. Lets a single command (`pnpm dev`) bring up FE + BE + DB together.
- * On subsequent runs it's a sub-millisecond check and skips straight to the app.
+ * First-run guard: apply committed migrations and seed lessons before the app
+ * starts. Lets `pnpm dev` bring up FE + BE + DB together.
+ *
+ * A remote DATABASE_URL is left alone. Production migrations are explicit
+ * (`pnpm db:migrate` after `pnpm db:baseline` on a database that already has tables).
  */
 import { existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import Database from "better-sqlite3";
+import { baselineCovers, baselineMeta, resolveDbTarget } from "./drizzle-baseline.mjs";
 
-const path = (process.env.DATABASE_URL ?? "local.db").replace(/^file:/, "");
+const target = resolveDbTarget();
+
+if (target.kind !== "local" || !target.path) {
+  if (target.kind !== "local") {
+    console.log(
+      "✓ Remote DATABASE_URL set — skipping local migrate/seed. Apply schema with pnpm db:baseline, then pnpm db:migrate.",
+    );
+    process.exit(0);
+  }
+  console.log("⚙️  Applying migrations…");
+  execSync("pnpm db:migrate", { stdio: "inherit" });
+  process.exit(0);
+}
+
+const path = target.path;
+const meta = baselineMeta();
 
 function ready() {
   if (!existsSync(path)) return false;
@@ -21,29 +39,46 @@ function ready() {
   }
 }
 
-/** True when analytics/RUM tables from Phase 2+4 exist. */
-function schemaCurrent() {
+function needsLocalBaseline() {
   if (!existsSync(path)) return false;
+  const db = new Database(path, { readonly: true });
   try {
-    const db = new Database(path, { readonly: true });
-    db.prepare("SELECT 1 FROM web_vitals LIMIT 1").get();
-    db.prepare("SELECT 1 FROM analytics_events LIMIT 1").get();
+    const hasUsers = db
+      .prepare(
+        "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'users'",
+      )
+      .get();
+    if (!hasUsers) return false;
+    const hasJournal = db
+      .prepare(
+        "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'",
+      )
+      .get();
+    if (!hasJournal) return true;
+    const latest = db
+      .prepare(
+        "SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1",
+      )
+      .get();
+    return !latest || !baselineCovers(latest.created_at, meta.entry.when);
+  } finally {
     db.close();
-    return true;
-  } catch {
-    return false;
   }
 }
 
-if (ready() && schemaCurrent()) {
-  console.log("✓ Database ready.");
-} else if (ready()) {
-  console.log("⚙️  Applying schema updates (analytics tables)…");
-  execSync("pnpm db:push", { stdio: "inherit" });
-  console.log("✓ Database ready.");
-} else {
-  console.log("⚙️  First run — setting up the database (tables + lessons)…");
-  execSync("pnpm db:push", { stdio: "inherit" });
-  execSync("pnpm db:seed", { stdio: "inherit" });
-  console.log("✓ Database ready.");
+if (needsLocalBaseline()) {
+  console.log(
+    "⚙️  Existing local database has no baseline journal row — recording 0000 without replaying CREATE TABLE…",
+  );
+  execSync("node scripts/mark-baseline-applied.mjs --apply", { stdio: "inherit" });
 }
+
+console.log("⚙️  Applying migrations…");
+execSync("pnpm db:migrate", { stdio: "inherit" });
+
+if (!ready()) {
+  console.log("⚙️  Seeding lessons…");
+  execSync("pnpm db:seed", { stdio: "inherit" });
+}
+
+console.log("✓ Database ready.");

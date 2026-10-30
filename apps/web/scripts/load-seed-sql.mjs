@@ -4,7 +4,7 @@
  *
  *   pnpm db:load-seed
  *
- * Expects schema already applied (`pnpm db:push`). Refreshes content tables only;
+ * Expects schema already applied (`pnpm db:migrate`). Refreshes content tables only;
  * auth/user tables are untouched when they already exist.
  *
  * Default database is apps/web/local.db (next to this package, not the cwd).
@@ -42,7 +42,7 @@ if (!existsSync(SEED_SQL_GZ_PATH)) {
   process.exit(1);
 }
 if (!existsSync(dbPath)) {
-  console.error(`✗ local.db not found at ${dbPath}. Run pnpm db:push first.`);
+  console.error(`✗ local.db not found at ${dbPath}. Run pnpm db:migrate first.`);
   process.exit(1);
 }
 

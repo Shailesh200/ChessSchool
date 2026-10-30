@@ -353,12 +353,14 @@ pnpm dev          # sets up the DB on first run, then starts FE + BE together
 ```
 
 ### Dev database commands
+From the repo root. `db:fresh` and `db:provision` always rebuild `apps/web/local.db` and ignore `DATABASE_URL`.
 ```bash
-pnpm db:push      # create/update tables from db/schema.ts
-pnpm db:seed      # generate + insert the ~1,610 verified lessons
-pnpm db:reset     # delete the local SQLite file (start fresh)
-pnpm db:fresh     # reset + push + seed  ← rebuild everything
-pnpm db:studio    # inspect data in Drizzle Studio (set role=admin here)
+pnpm --filter web db:generate -- --name <slug>  # write a migration from db/schema.ts; commit apps/web/db/migrations
+pnpm --filter web db:migrate                    # apply committed migrations
+pnpm --filter web db:seed                       # generate + insert the ~1,610 verified lessons
+pnpm --filter web db:reset                      # delete the local SQLite file (start fresh)
+pnpm --filter web db:fresh                      # reset + migrate + seed  ← rebuild everything
+pnpm --filter web db:studio                     # inspect data in Drizzle Studio (set role=admin here)
 ```
 
 ### Admin dashboard (`/admin`)
@@ -373,9 +375,11 @@ instantly. Make yourself admin: register, then in `pnpm db:studio` set your
 turso db create chessschool
 export DATABASE_URL=$(turso db show --url chessschool)
 export DATABASE_AUTH_TOKEN=$(turso db tokens create chessschool)
-# 2. Create schema + seed the remote DB (same scripts, env-driven)
-pnpm db:push        # → pushes to Turso (dialect auto-switches)
-pnpm db:seed        # → inserts the 1,610 lessons into Turso
+# 2. Empty Turso database: apply committed migrations, then seed.
+#    The live chess-school database already has tables — do NOT do this there.
+#    Record 0000 first (plans/M-073_WEB_GA_LAUNCH.md), then db:migrate.
+pnpm --filter web db:migrate -- --yes-remote=<turso-host>
+pnpm --filter web db:seed       # inserts the 1,610 lessons into Turso
 # 3. Vercel: import the repo, set env DATABASE_URL + DATABASE_AUTH_TOKEN, deploy.
 ```
 For a persistent-disk host instead (keeps the file DB), the **Dockerfile** runs
