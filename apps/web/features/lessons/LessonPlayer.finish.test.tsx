@@ -57,7 +57,7 @@ describe("LessonPlayer finish (DP-W-006)", () => {
 
   it("awards a tutorial's XP once when Continue is tapped repeatedly", () => {
     render(<LessonPlayer lesson={TUTORIAL} nextLessonId="w006-next" />);
-    const button = screen.getByRole("button", { name: "Continue" });
+    const button = screen.getByRole("button", { name: "Got it" });
 
     fireEvent.click(button);
     fireEvent.click(button);
@@ -72,13 +72,13 @@ describe("LessonPlayer finish (DP-W-006)", () => {
     const { rerender } = render(
       <LessonPlayer lesson={TUTORIAL} nextLessonId="w006-b" />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
     expect(useProgression.getState().xp).toBe(TUTORIAL.xp);
 
     // router.push keeps the same player mounted and only swaps the lesson prop.
     const second: Lesson = { ...TUTORIAL, id: "w006-b" };
     rerender(<LessonPlayer lesson={second} nextLessonId="w006-next" />);
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
 
     expect(useProgression.getState().xp).toBe(2 * TUTORIAL.xp);
   });
