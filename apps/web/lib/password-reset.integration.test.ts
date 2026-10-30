@@ -15,8 +15,22 @@ import {
 } from "@/lib/email/password-reset-test-transport";
 import { setPasswordResetTransportForTests } from "@/lib/email/send-password-reset";
 import { PASSWORD_RESET_GENERIC_MESSAGE } from "@/lib/password-reset-messages";
+import {
+  flushForgotPasswordAfterQueue,
+  forgotPasswordAfterQueue,
+} from "@/lib/password-reset-forgot-after.test-support";
 
 const PW = "testpass123";
+
+vi.mock("next/server", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("next/server")>();
+  return {
+    ...mod,
+    after(task: () => void | Promise<void>) {
+      forgotPasswordAfterQueue.push(task);
+    },
+  };
+});
 
 function tokenFromMail(text: string): string {
   const match = text.match(/\/account\/reset\?token=([^&\s]+)/);
@@ -33,6 +47,8 @@ describe("password reset API", () => {
 
   beforeEach(async () => {
     vi.resetModules();
+    forgotPasswordAfterQueue.length = 0;
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://chess-school.in");
     resetPasswordResetTestOutbox();
     setPasswordResetTransportForTests(createPasswordResetTestTransport());
     ({ teardown, db } = await bootApiTestEnv());
@@ -41,11 +57,13 @@ describe("password reset API", () => {
     postLogin = (await import("@/app/api/auth/login/route")).POST;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await flushForgotPasswordAfterQueue();
     setPasswordResetTransportForTests(undefined);
     resetPasswordResetTestOutbox();
     teardown();
     vi.resetModules();
+    vi.unstubAllEnvs();
   });
 
   async function register(email: string) {
@@ -84,6 +102,7 @@ describe("password reset API", () => {
       }),
     );
     expect(known.status).toBe(200);
+    await flushForgotPasswordAfterQueue();
     expect(await readJson(known)).toEqual({
       ok: true,
       message: PASSWORD_RESET_GENERIC_MESSAGE,
@@ -101,6 +120,7 @@ describe("password reset API", () => {
         body: JSON.stringify({ email }),
       }),
     );
+    await flushForgotPasswordAfterQueue();
     const mail = passwordResetTestOutbox[0]?.text ?? "";
     const raw = tokenFromMail(mail);
     const rows = await db.select().from(passwordResetTokens);
@@ -123,9 +143,11 @@ describe("password reset API", () => {
         body,
       });
     await postForgot(req());
+    await flushForgotPasswordAfterQueue();
     const firstRows = await db.select().from(passwordResetTokens);
     expect(firstRows.length).toBe(1);
     await postForgot(req());
+    await flushForgotPasswordAfterQueue();
     const secondRows = await db.select().from(passwordResetTokens);
     expect(secondRows.length).toBe(1);
     expect(secondRows[0]!.id).not.toBe(firstRows[0]!.id);
@@ -141,6 +163,7 @@ describe("password reset API", () => {
         body: JSON.stringify({ email }),
       }),
     );
+    await flushForgotPasswordAfterQueue();
     const mail = passwordResetTestOutbox[0]?.text ?? "";
     const raw = tokenFromMail(passwordResetTestOutbox[0]?.text ?? "");
     const { resetPasswordWithToken } = await import("@/lib/password-reset");
@@ -193,6 +216,7 @@ describe("password reset API", () => {
         body: JSON.stringify({ email }),
       }),
     );
+    await flushForgotPasswordAfterQueue();
     const raw = tokenFromMail(passwordResetTestOutbox[0]!.text);
     const before = await db.select().from(sessions);
     expect(before.length).toBeGreaterThan(0);
@@ -228,6 +252,7 @@ describe("password reset API", () => {
       }),
     );
     expect(res.status).toBe(200);
+    await flushForgotPasswordAfterQueue();
     expect(passwordResetTestOutbox.length).toBe(0);
     expect(await db.select().from(passwordResetTokens)).toHaveLength(0);
   });
