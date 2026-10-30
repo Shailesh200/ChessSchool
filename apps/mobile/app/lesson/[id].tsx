@@ -32,6 +32,9 @@ import { settings } from "@/settings";
 import { useType } from "@/typography";
 import { colors, font, radius, shadowCard, space } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
+import { useUiKit, KitIcon } from "@/components/kit";
+import { examPassMark, examPipState } from "@/screens/premium/aceModel";
+import { usePremiumKitTheme } from "@/components/kit";
 
 type Step = {
   id: string;
@@ -171,6 +174,8 @@ function makeStyles(type: ReturnType<typeof useType>) {
 export default function LessonScreen() {
   const { id, hw, daily } = useLocalSearchParams<{ id: string; hw?: string; daily?: string }>();
   const router = useRouter();
+  const kit = useUiKit();
+  const premium = usePremiumKitTheme();
   const { guest, exitGuest } = useAuth();
   const appSettings = useSettings();
   const { hints: hintsEnabled } = appSettings;
@@ -690,7 +695,23 @@ export default function LessonScreen() {
         scrollEnabled={!pieceDragActive}
         header={
           <>
-            {/* Top bar: back · progress · counter · flip */}
+            {kit === "premium" && lesson.exam ? (
+              <View testID="class-exam" style={{ gap: 8, paddingBottom: 8 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Pressable accessibilityLabel="Close lesson" onPress={() => router.back()} hitSlop={8}>
+                    <KitIcon name="x" size={22} color={premium.colors.ink} />
+                  </Pressable>
+                  <Text style={{ flex: 1, fontFamily: premium.font.displayBold, color: premium.colors.ink, fontSize: 18 }}>Class exam</Text>
+                  <View style={{ flexDirection: "row", gap: 4 }} accessibilityLabel={`Puzzle ${index + 1} of ${total}`}>
+                    {examPipState(index, total).map((pip, pipIndex) => (
+                      <View key={pipIndex} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: pip === "todo" ? premium.colors.surfaceSunken : pip === "current" ? premium.colors.accent : premium.colors.brand }} />
+                    ))}
+                  </View>
+                </View>
+                <Text style={{ color: premium.colors.ink500 }}>{lesson.title} · puzzle {index + 1} of {total}. Pass mark: {examPassMark(total)} of {total}.</Text>
+              </View>
+            ) : null}
+            {kit === "premium" && lesson.exam ? null : (
             <View style={styles.topBar}>
               <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
                 <View style={{ transform: [{ rotate: "180deg" }] }}>
@@ -710,6 +731,7 @@ export default function LessonScreen() {
                 <Icon name="flip" size={18} color={colors.ink} />
               </Pressable>
             </View>
+            )}
           </>
         }
         coach={(layout) => (

@@ -41,3 +41,19 @@ Due lessons come from `dueLessonIds`. Titles prefer `/api/library`, otherwise th
 
 - The tab badge in the preview is empty because that session has no progress snapshot. Live tabs use `reviewDueCount`.
 - Queue and tab share one layout. The HTML queue has no coach line; the tab does.
+
+## 04 class detail, 09 exam, 10b fix mistakes, 11 gym, 18 sheets
+
+| Screen | App | Design | Compare |
+| --- | --- | --- | --- |
+| Class detail | `docs/nov2-ace/shots/04-class-detail.png` | `docs/nov2-ace/design/04-class-detail.png` | `docs/nov2-ace/compare/04-class-detail.png` |
+| Gym | `docs/nov2-ace/shots/11-gym.png` | `docs/nov2-ace/design/11-gym.png` | `docs/nov2-ace/compare/11-gym.png` |
+| Empty sheet | `docs/nov2-ace/shots/18-sheet-empty.png` | `docs/nov2-ace/design/18-sheet-empty.png` | `docs/nov2-ace/compare/18-sheet-empty.png` |
+| Error sheet | `docs/nov2-ace/shots/18-sheet-error.png` | `docs/nov2-ace/design/18-sheet-error.png` | `docs/nov2-ace/compare/18-sheet-error.png` |
+| Offline sheet | `docs/nov2-ace/shots/18-sheet-offline.png` | `docs/nov2-ace/design/18-sheet-offline.png` | `docs/nov2-ace/compare/18-sheet-offline.png` |
+
+Class detail replaces the journey path when premium, and still opens the same lessons and exam. The overline is the lesson count rather than “Class 2 of 4”, because the class payload does not include its index in the stage.
+
+Class exam (`lesson.exam`) uses the premium close control, puzzle pips, and pass mark (`ceil(steps × 0.67)`, so 6 puzzles need 5). The board, move check, and graduation flow are the existing lesson player. Fix mistakes keeps the existing replay engine and uses the premium progress bar, coach, and close control. Neither has a fixture screenshot here because both need a live position.
+
+Gym is `/gym` from the Learn rail, not a tab. Search, skill, and level chips filter library lessons. Daily puzzle opens the existing daily lesson. Mini boards are a tint tile because the library payload has no FEN. Empty, error, and offline sheets use `KitSheet` with the design copy. Classic mode redirects `/gym` back to Learn.
