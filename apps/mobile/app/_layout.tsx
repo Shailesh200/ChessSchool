@@ -1,5 +1,6 @@
 import "@/sentry";
 import { useCallback, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { ScreenLoader } from "@/ScreenLoader";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -141,17 +142,6 @@ function RootLayout() {
     return null;
   }
 
-  if (showSplash) {
-    return (
-      <SafeAreaProvider>
-        <ErrorBoundary>
-          <StatusBar style="dark" />
-          <AnimatedSplash onFinish={finishSplash} />
-        </ErrorBoundary>
-      </SafeAreaProvider>
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
@@ -169,9 +159,22 @@ function RootLayout() {
             </AuthProvider>
           </NetworkProvider>
         </ThemeProvider>
+        {showSplash ? (
+          <View style={styles.splashOverlay} pointerEvents="auto">
+            <StatusBar style="dark" />
+            <AnimatedSplash onFinish={finishSplash} />
+          </View>
+        ) : null}
       </ErrorBoundary>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+  },
+});
 
 export default wrapRoot(RootLayout);
