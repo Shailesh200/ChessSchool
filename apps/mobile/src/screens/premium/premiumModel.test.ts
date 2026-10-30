@@ -7,13 +7,23 @@ import {
   PREMIUM_TAB_LABELS,
   buildCourseMap,
   campusHasPath,
+  classDetailCaption,
   courseMapPhase,
+  examPassMark,
+  examPipState,
+  filterGymPuzzles,
+  gymLevelOf,
+  gymSkillOf,
   mapCoachLine,
   offlineLearnRows,
   premiumPreviewDecision,
   premiumTabActive,
   reviewDueCount,
+  reviewSkills,
+  reviewSummary,
   reviewTabBadge,
+  startReviewTarget,
+  statusSheetCopy,
   type MapStage,
 } from "./premiumModel";
 
@@ -148,7 +158,8 @@ describe("review tab badge and gym placement", () => {
 
   it("keeps Gym on Learn and never adds a Gym tab", () => {
     expect(premiumTabActive("/gym", "academy")).toBe(true);
-    expect(premiumTabActive("/dev/premium-preview", "academy")).toBe(true);
+    expect(premiumTabActive("/dev/premium-preview", "academy", "03-map")).toBe(true);
+    expect(premiumTabActive("/dev/premium-preview", "review", "20-review-tab")).toBe(true);
     expect(premiumTabActive("/dev/premium-preview", "play")).toBe(false);
     expect(premiumTabActive("/gym", "play")).toBe(false);
     expect(premiumTabActive("/gym", "review")).toBe(false);
@@ -158,6 +169,61 @@ describe("review tab badge and gym placement", () => {
     expect(tabBar).not.toMatch(/label:\s*"Gym"/);
     expect(tabBar).toContain("reviewTabBadge");
     expect(tabBar).toContain("premiumTabActive");
+  });
+});
+
+describe("review queue", () => {
+  const now = 5_000;
+  const lessons = {
+    forks: { mastery: 0.48, dueAt: now, attempts: 2, lastSeen: 1 },
+    pins: { mastery: 0.72, dueAt: now, attempts: 3, lastSeen: 1 },
+    later: { mastery: 0.2, dueAt: now + 10, attempts: 1, lastSeen: 1 },
+  };
+
+  it("marks mastery under 60% as needs practice and counts the summary", () => {
+    const skills = reviewSkills(lessons, { forks: "Fork the king and queen" }, now);
+    expect(skills.map((skill) => [skill.title, skill.needsPractice])).toEqual([
+      ["Fork the king and queen", true],
+      ["pins", false],
+    ]);
+    expect(reviewSummary(skills)).toEqual({ onTrack: 1, needsPractice: 1, due: 2 });
+  });
+
+  it("starts fix-mistakes when there is a mistake log, otherwise the first due lesson", () => {
+    expect(startReviewTarget({ mistakeCount: 3, firstDueId: "forks" })?.pathname).toBe("/practice/mistakes");
+    expect(startReviewTarget({ mistakeCount: 0, firstDueId: "forks" })).toEqual({ pathname: "/lesson/[id]", id: "forks" });
+    expect(startReviewTarget({ mistakeCount: 0, firstDueId: null })).toBeNull();
+  });
+});
+
+describe("class, exam, gym, sheets", () => {
+  it("labels class rows the way the detail screen reads them", () => {
+    expect(classDetailCaption({ tone: "done", index: 0, mastery: 1, activeIndex: 2 })).toBe("Done · 100%");
+    expect(classDetailCaption({ tone: "current", index: 2, mastery: 0.2, activeIndex: 2 })).toBe("Up next");
+    expect(classDetailCaption({ tone: "locked", index: 3, mastery: 0, activeIndex: 2 })).toBe("Unlocks after lesson 3");
+  });
+
+  it("uses the exam pass ratio so 6 puzzles need 5", () => {
+    expect(examPassMark(6)).toBe(5);
+    expect(examPipState(3, 6)).toEqual(["done", "done", "done", "current", "todo", "todo"]);
+  });
+
+  it("filters gym puzzles by skill, level, and search", () => {
+    const items = [
+      { id: "a", title: "Fork the king", skill: gymSkillOf("Fork the king"), level: gymLevelOf("Fork the king"), solved: true },
+      { id: "b", title: "Smothered mate", skill: gymSkillOf("Smothered mate"), level: gymLevelOf("Smothered mate"), solved: false },
+    ];
+    expect(items[0]?.skill).toBe("Forks");
+    expect(items[1]?.level).toBe("Hard");
+    expect(filterGymPuzzles(items, { q: "fork", skill: "All", level: "All" }).map((item) => item.id)).toEqual(["a"]);
+    expect(filterGymPuzzles(items, { q: "", skill: "Mates", level: "Hard" }).map((item) => item.id)).toEqual(["b"]);
+    expect(filterGymPuzzles([], { q: "", skill: "All", level: "All" })).toEqual([]);
+  });
+
+  it("keeps the three sheet messages distinct", () => {
+    expect(statusSheetCopy("empty").title).toBe("Nothing here yet");
+    expect(statusSheetCopy("error").primary).toBe("Try again");
+    expect(statusSheetCopy("offline").secondary).toBe("Keep going offline");
   });
 });
 
