@@ -137,7 +137,12 @@ export function AdminPanel({
           </FormBlock>
         </Section>
 
-        {/* Bulk import (#14) */}
+        {/* Bulk import (#14) + Nov 2 puzzle import screen */}
+        <Section title="Puzzle import">
+          <Link href="/admin/import" className="text-brand text-sm font-extrabold">
+            Open the puzzle import screen
+          </Link>
+        </Section>
         <ImportSection />
 
         {/* Puzzle School JSONL */}

@@ -11,5 +11,11 @@ export const NAV_TABS: NavTab[] = [
 ];
 
 export function isNavTabActive(pathname: string, href: string): boolean {
-  return href === "/academy" ? pathname === "/academy" : pathname.startsWith(href);
+  if (href === "/academy") {
+    return pathname === "/academy" || pathname.startsWith("/gym");
+  }
+  if (href === "/review") {
+    return pathname.startsWith("/review") || pathname.startsWith("/practice/mistakes");
+  }
+  return pathname.startsWith(href);
 }

@@ -14,6 +14,8 @@ import { useProgression, levelForXp, xpProgress } from "@/core/store/progression
 import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { openCommandPalette } from "@/components/search/CommandPalette";
+import { reviewDueCount } from "@/features/chopper/catalog";
+import { useSettings } from "@/core/store/settings.store";
 import { isNavTabActive, NAV_TABS } from "./nav-tabs";
 import { trackEvent } from "@/core/analytics/track";
 
@@ -40,6 +42,9 @@ export function SidebarNav() {
   );
   const rehydrateReady = useRehydrateReady();
   const authed = useSession((s) => s.authed);
+  const uiKit = useSettings((s) => s.uiKit);
+  const lessons = useProgression((s) => s.lessons);
+  const due = uiKit === "legacy" ? 0 : reviewDueCount(lessons);
   const xp = useProgression((s) => s.xp);
   const streak = useProgression((s) => s.streak);
   const graduated = useProgression((s) => s.graduatedClasses.length);
@@ -93,6 +98,9 @@ export function SidebarNav() {
               )}
               aria-current={active ? "page" : undefined}
               aria-busy={loading}
+              aria-label={
+                tab.href === "/review" && due > 0 ? `Review, ${due} due` : undefined
+              }
             >
               {active && (
                 <motion.span
@@ -101,13 +109,18 @@ export function SidebarNav() {
                   transition={{ type: "spring", stiffness: 400, damping: 32 }}
                 />
               )}
-              <span className="relative flex items-center gap-3">
+              <span className="relative flex w-full items-center gap-3">
                 {loading ? (
                   <span className="border-brand/30 border-t-brand block h-5 w-5 animate-spin rounded-full border-2" />
                 ) : (
                   <Icon name={tab.icon} size={22} duotone={active} />
                 )}
                 {tab.label}
+                {tab.href === "/review" && due > 0 && (
+                  <em className="nav-due" aria-hidden="true">
+                    {due > 9 ? "9+" : due}
+                  </em>
+                )}
               </span>
             </Link>
           );
