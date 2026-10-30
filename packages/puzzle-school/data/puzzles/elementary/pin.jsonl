@@ -361,7 +361,7 @@
 {"id":"cs-pz-elementary-pin-0361","stage":"elementary","concepts":["pin"],"rating":990,"source":"adapted","sourceRef":"lichess:0lg3n","fen":"8/5kp1/R4b2/P7/6R1/3K4/r7/8 w - - 3 51","line":["d3c4","a2a4","c4b5","a4g4"]}
 {"id":"cs-pz-elementary-pin-0362","stage":"elementary","concepts":["pin"],"rating":1044,"source":"adapted","sourceRef":"lichess:0ljbW","fen":"8/2p2r2/2Pp2p1/3Ppk1p/8/6PP/8/1R4K1 b - - 2 41","line":["e5e4","b1f1","f5e5","f1f7"]}
 {"id":"cs-pz-elementary-pin-0363","stage":"elementary","concepts":["pin"],"rating":1030,"source":"adapted","sourceRef":"lichess:0ljey","fen":"8/1pp2b1R/3p1k1p/7r/4PK2/1P5P/2P5/6R1 w - - 8 43","line":["f4g4","h5g5","g4f3","g5g1"]}
-{"id":"cs-pz-elementary-pin-0364","stage":"elementary","concepts":["pin"],"rating":883,"source":"adapted","sourceRef":"lichess:0m4vq","fen":"6K1/p6P/5k2/8/Pp6/8/1P6/1q6 b - - 0 56","line":["b1b2","h7h8q","f6f5","h8b2"]}
+{"id":"cs-pz-elementary-pin-0364","stage":"elementary","concepts":["pin"],"rating":1076,"source":"adapted","sourceRef":"lichess:1pRGS","fen":"8/8/2p4p/2q1p3/8/6P1/6PK/Q3k3 b - - 1 57","line":["e1f2","a1g1","f2e2","g1c5"]}
 {"id":"cs-pz-elementary-pin-0365","stage":"elementary","concepts":["pin"],"rating":953,"source":"adapted","sourceRef":"lichess:0m6o8","fen":"5r2/R1p4p/1p1k1rpb/3P4/2P1B3/R2K1PP1/7P/8 w - - 10 32","line":["a7b7","f6f3","e4f3","f8f3","d3e2","f3a3"]}
 {"id":"cs-pz-elementary-pin-0366","stage":"elementary","concepts":["pin"],"rating":1060,"source":"adapted","sourceRef":"lichess:0mduK","fen":"8/5pkp/8/r6P/B3PK1b/Pp6/1P1R4/8 w - - 2 37","line":["a4b3","h4g5","f4f3","g5d2"]}
 {"id":"cs-pz-elementary-pin-0367","stage":"elementary","concepts":["pin"],"rating":1051,"source":"adapted","sourceRef":"lichess:0n0aH","fen":"8/1b3p1k/p3q1p1/4r2P/2pQ4/P1N5/2P2RPK/8 w - - 1 37","line":["d4h4","e5h5","h4h5","g6h5"]}
@@ -797,4 +797,3 @@
 {"id":"cs-pz-elementary-pin-0797","stage":"elementary","concepts":["pin"],"rating":1002,"source":"adapted","sourceRef":"lichess:1p3jv","fen":"5b1N/6pp/4pk2/p4P2/1p1nR3/3P3P/r5P1/4R1K1 w - - 2 33","line":["e4d4","f8c5","e1e6","f6f5"]}
 {"id":"cs-pz-elementary-pin-0798","stage":"elementary","concepts":["pin"],"rating":947,"source":"adapted","sourceRef":"lichess:1pEc5","fen":"8/1R6/6p1/4k3/1P2Nn1p/2P5/2K4P/r7 w - - 2 35","line":["e4f2","a1a2","c2b3","a2f2"]}
 {"id":"cs-pz-elementary-pin-0799","stage":"elementary","concepts":["pin"],"rating":1022,"source":"adapted","sourceRef":"lichess:1pNqR","fen":"6k1/5p2/6p1/4b3/5q1p/7P/4QPP1/1R4K1 w - - 10 48","line":["e2g4","f4h2","g1f1","h2h1","f1e2","h1b1"]}
-{"id":"cs-pz-elementary-pin-0800","stage":"elementary","concepts":["pin"],"rating":1076,"source":"adapted","sourceRef":"lichess:1pRGS","fen":"8/8/2p4p/2q1p3/8/6P1/6PK/Q3k3 b - - 1 57","line":["e1f2","a1g1","f2e2","g1c5"]}
