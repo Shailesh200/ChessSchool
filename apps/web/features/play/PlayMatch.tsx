@@ -11,6 +11,7 @@ import { saveGame, type EndReason } from "@/core/db/db";
 import { eloToConfig, getBotMove } from "@/features/chess-engine/bot";
 import type { MoveInput } from "@/core/types/chess";
 import { KitIcon } from "@/components/ui/KitIcon";
+import { BOT_MATCH_WIN_XP } from "./matchReward";
 import { MATCH_FEN, MATCH_MOVES, opponentById, type OpponentId } from "./opponents";
 
 type Scene = "kira" | "ash" | "rex" | "skye" | "dark" | "won" | "lost" | "live";
@@ -121,7 +122,7 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
     if (saved.current) return;
     saved.current = true;
     const playerWon = winner === "w";
-    if (playerWon) awardXp(40);
+    if (playerWon && !fixture) awardXp(BOT_MATCH_WIN_XP);
     if (!pass && active) {
       updateRating(active.targetElo, playerWon ? 1 : winner === null ? 0.5 : 0);
     }
@@ -295,12 +296,10 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
               <p className="muted">
                 {over === "win" ? (
                   <>
-                    Great game. You earned <b>{fixture ? 50 : 40} XP</b>.
+                    Great game. You earned <b>{BOT_MATCH_WIN_XP} XP</b>.
                   </>
                 ) : (
-                  <>
-                    You earned <b>{fixture ? 20 : 0} XP</b> for playing.
-                  </>
+                  <>No XP this game.</>
                 )}
               </p>
               <div className="stack" style={{ width: "100%" }}>
