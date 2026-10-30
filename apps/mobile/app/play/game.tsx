@@ -7,6 +7,10 @@ import { fitBoardSize } from "@/lessonLayout";
 import { ChessBoard } from "@/ChessBoard";
 import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
+import { PremiumGameEndSheet } from "@/nov2/PremiumGameEndSheet";
+import { PremiumMatchChrome } from "@/nov2/PremiumMatchChrome";
+import { useUiKit } from "@/components/kit/useUiKit";
+import type { CoachSlug } from "@/nov2/coachArt";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
 import { haptics } from "@/haptics";
@@ -41,7 +45,8 @@ import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
-import { stopCoachSpeech } from "@/coachSpeech";
+import { stopCoachSpeech, speakCoachText } from "@/coachSpeech";
+import { premiumColors } from "@/nov2/premiumTokens";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
 
 type OverState = {
@@ -98,7 +103,18 @@ function PlayerBar({
 
 export default function GameScreen() {
   const router = useRouter();
-  const { elo: eloParam, time: timeParam, arena: arenaParam } = useLocalSearchParams<{ elo: string; time?: string; arena?: string }>();
+  const { elo: eloParam, time: timeParam, arena: arenaParam, coach: coachParam, dark: darkParam } = useLocalSearchParams<{
+    elo: string;
+    time?: string;
+    arena?: string;
+    coach?: string;
+    dark?: string;
+  }>();
+  const kit = useUiKit();
+  const matchDark = darkParam === "1" || darkParam === "true";
+  const coachSlug = (["otto", "kira", "rex", "skye", "ash"] as const).includes(coachParam as CoachSlug)
+    ? (coachParam as CoachSlug)
+    : "otto";
   const elo = Number(eloParam) || 1000;
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
@@ -360,45 +376,76 @@ export default function GameScreen() {
   useCoachSpeech(bubbleText ?? "", !over && !thinking);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
-      <View style={styles.header}>
-        <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
-          <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
-        </Pressable>
-        <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
-        <Pressable
-          style={styles.circle}
-          onPress={() => {
-            if (sound) stopCoachSpeech();
-            settings.set("sound", !sound);
-          }}
-          hitSlop={8}
-          accessibilityLabel={sound ? "Mute sound" : "Unmute sound"}
-        >
-          <Icon name={sound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
-        </Pressable>
-        <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}><Icon name="flip" size={18} color={colors.ink} /></Pressable>
-        <Pressable
-          style={styles.resign}
-          accessibilityLabel="Resign game"
-          accessibilityRole="button"
-          onPress={() => {
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: kit === "premium" ? (matchDark ? "#0f1419" : premiumColors.bg) : colors.surface }]}
+      edges={["top"]}
+    >
+      {kit === "premium" ? (
+        <PremiumMatchChrome
+          coachSlug={coachSlug}
+          bubbleText={bubbleText}
+          thinking={thinking}
+          dark={matchDark}
+          onResign={() => {
             if (over) return;
             setResignOpen(true);
           }}
-        >
-          <Text style={styles.resignText}>Resign</Text>
-        </Pressable>
-      </View>
-
-      {bubbleText && (
-        <View style={styles.coach}>
-          <CoachAvatar character={personality} state={thinking ? "think" : "idle"} size={48} />
-          <View style={styles.bubble}>
-            <Text style={styles.bubbleLabel}>Coach</Text>
-            <Text style={styles.bubbleText}>{bubbleText}</Text>
+          onReplayLine={
+            sound && bubbleText
+              ? () => {
+                  void speakCoachText(bubbleText);
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <>
+          <View style={styles.header}>
+            <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
+              <View style={{ transform: [{ rotate: "180deg" }] }}>
+                <Icon name="chevronRight" size={20} color={colors.ink} />
+              </View>
+            </Pressable>
+            <Text style={styles.title} numberOfLines={1}>
+              vs {bot.name} · {elo}
+            </Text>
+            <Pressable
+              style={styles.circle}
+              onPress={() => {
+                if (sound) stopCoachSpeech();
+                settings.set("sound", !sound);
+              }}
+              hitSlop={8}
+              accessibilityLabel={sound ? "Mute sound" : "Unmute sound"}
+            >
+              <Icon name={sound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
+            </Pressable>
+            <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
+              <Icon name="flip" size={18} color={colors.ink} />
+            </Pressable>
+            <Pressable
+              style={styles.resign}
+              accessibilityLabel="Resign game"
+              accessibilityRole="button"
+              onPress={() => {
+                if (over) return;
+                setResignOpen(true);
+              }}
+            >
+              <Text style={styles.resignText}>Resign</Text>
+            </Pressable>
           </View>
-        </View>
+
+          {bubbleText ? (
+            <View style={styles.coach}>
+              <CoachAvatar character={personality} state={thinking ? "think" : "idle"} size={48} />
+              <View style={styles.bubble}>
+                <Text style={styles.bubbleLabel}>Coach</Text>
+                <Text style={styles.bubbleText}>{bubbleText}</Text>
+              </View>
+            </View>
+          ) : null}
+        </>
       )}
 
       <ScrollView
@@ -459,29 +506,51 @@ export default function GameScreen() {
         </Pressable>
       </View>
 
-      <GameOverOverlay
-        visible={!!over && !mateReviewOpen && !kingFall}
-        title={over?.title ?? ""}
-        subtitle={over?.subtitle}
-        win={over?.win}
-        ratingDelta={over?.ratingDelta}
-        newRating={over?.newRating}
-        onHowItHappened={
-          over?.title.toLowerCase().includes("checkmate") && mateReviewHistory.length > 0
-            ? () => setMateReviewOpen(true)
-            : undefined
-        }
-        onReflect={() => setReflectOpen(true)}
-        onReview={() =>
-          router.push({
-            pathname: "/replay/[index]",
-            params: { index: "0", gameId: over?.gameId ?? "" },
-          })
-        }
-        onNewGame={reset}
-        onExit={() => router.replace("/(tabs)/academy")}
-        exitLabel="← Back to academy"
-      />
+      {kit === "premium" ? (
+        <PremiumGameEndSheet
+          visible={!!over && !mateReviewOpen && !kingFall}
+          win={!!over?.win}
+          opponentName={bot.name}
+          coachSlug={coachSlug}
+          onRematch={() => {
+            setOver(null);
+            router.replace({ pathname: "/play/game", params: { elo: String(elo), coach: coachSlug } });
+          }}
+          onBack={() => {
+            setOver(null);
+            router.replace("/(tabs)/play");
+          }}
+        />
+      ) : (
+        <GameOverOverlay
+          visible={!!over && !mateReviewOpen && !kingFall}
+          title={over?.title ?? ""}
+          subtitle={over?.subtitle}
+          win={over?.win}
+          ratingDelta={over?.ratingDelta}
+          newRating={over?.newRating}
+          onHowItHappened={
+            over?.title.toLowerCase().includes("checkmate") && mateReviewHistory.length > 0
+              ? () => setMateReviewOpen(true)
+              : undefined
+          }
+          onReflect={() => setReflectOpen(true)}
+          onReview={() =>
+            router.push({
+              pathname: "/replay/[index]",
+              params: { index: "0", gameId: over?.gameId ?? "" },
+            })
+          }
+          onNewGame={() => {
+            setOver(null);
+            router.replace({ pathname: "/play/game", params: { elo: String(elo), time: timeParam } });
+          }}
+          onExit={() => {
+            setOver(null);
+            router.replace("/(tabs)/play");
+          }}
+        />
+      )}
 
       <MateReviewModal
         open={mateReviewOpen}
