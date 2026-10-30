@@ -287,7 +287,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                     </span>
                     <ContentIcon emoji={step.emoji} size={18} variant="inline" />
                     <span
-                      className={`min-w-0 flex-1 truncate text-sm font-bold ${done ? "text-ink-300 line-through" : "text-ink"}`}
+                      className={`min-w-0 flex-1 truncate text-sm font-bold ${done ? "text-ink-500 line-through" : "text-ink"}`}
                     >
                       {label}
                     </span>

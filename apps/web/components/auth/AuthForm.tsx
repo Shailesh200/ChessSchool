@@ -93,7 +93,7 @@ export function AuthForm({
             {isRegister ? "Log in" : "Enroll now"}
           </Link>
         </p>
-        <p className="text-ink-300 mt-2 text-center text-xs font-semibold">
+        <p className="text-ink-500 mt-2 text-center text-xs font-semibold">
           <Link href="/academy">Continue as guest →</Link>
         </p>
       </div>

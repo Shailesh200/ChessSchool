@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -179,3 +181,89 @@ for (const school of SCHOOLS) {
     }
   });
 }
+
+/**
+ * UI-W-015 (light themes): --ink-300 is the quiet UI colour (icons, disabled
+ * glyphs): >= 3:1 on every surface of every light app theme (royal's sunken
+ * surface was 2.91). Real text uses --ink-500 (>= 4.5:1 on the page and card).
+ */
+const LIGHT_THEMES = ["default", "blue", "forest", "ivory", "royal"] as const;
+
+for (const appTheme of LIGHT_THEMES) {
+  test(`${appTheme}: --ink-300 is >= 3:1 on every surface, --ink-500 text is >= 4.5:1 on page and card`, async ({
+    page,
+  }) => {
+    await page.addInitScript((theme) => {
+      const key = "chessschool.settings";
+      const cur = JSON.parse(localStorage.getItem(key) || "{}");
+      const state = Object.assign(cur.state || {}, {
+        appTheme: theme,
+        schoolTheme: "university",
+      });
+      localStorage.setItem(key, JSON.stringify({ state, version: cur.version || 11 }));
+    }, appTheme);
+    await page.goto("/themes");
+    await page.waitForFunction(
+      (theme) => document.documentElement.dataset.appTheme === theme,
+      appTheme,
+    );
+    const v = await page.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement);
+      const get = (n: string) => cs.getPropertyValue(n).trim();
+      return {
+        ink300: get("--ink-300"),
+        ink500: get("--ink-500"),
+        surface: get("--surface"),
+        card: get("--surface-card"),
+        sunken: get("--surface-sunken"),
+      };
+    });
+    const rgb = (hex: string) => {
+      const h =
+        hex.length === 4 ? [...hex.slice(1)].map((c) => c + c).join("") : hex.slice(1);
+      return `rgb(${[0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(", ")})`;
+    };
+    for (const bg of [v.surface, v.card, v.sunken]) {
+      const ratio = contrast(rgb(v.ink300), rgb(bg));
+      expect(
+        ratio,
+        `${appTheme}: ink-300 ${v.ink300} on ${bg} = ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+    for (const bg of [v.surface, v.card]) {
+      const ratio = contrast(rgb(v.ink500), rgb(bg));
+      expect(
+        ratio,
+        `${appTheme}: ink-500 ${v.ink500} on ${bg} = ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+}
+
+test("text-ink-300 is only used on icon glyphs, never on text (UI-W-015)", () => {
+  const root = path.resolve(__dirname, "..");
+  const hits: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      if (name === "node_modules" || name === ".next" || name === "e2e") continue;
+      const full = path.join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.tsx$/.test(name)) {
+        readFileSync(full, "utf8")
+          .split("\n")
+          .forEach((line, i) => {
+            if (/text-ink-300/.test(line))
+              hits.push(`${path.relative(root, full)}:${i + 1}: ${line.trim()}`);
+          });
+      }
+    }
+  };
+  for (const d of ["app", "components", "features"]) walk(path.join(root, d));
+  // Icon-only: the journal and admin delete buttons and the locked-lesson glyph.
+  const textUses = hits.filter(
+    (h) =>
+      !/<Icon /.test(h) &&
+      !/h-[78] w-[78] items-center justify-center rounded-full/.test(h),
+  );
+  expect(textUses, `text-ink-300 on text: ${textUses.join("\n")}`).toEqual([]);
+});

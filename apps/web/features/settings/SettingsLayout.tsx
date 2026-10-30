@@ -81,7 +81,7 @@ export function SettingsPanel({
         activeSection !== id && "lg:hidden",
       )}
     >
-      <p className="text-ink-300 px-5 pt-4 text-xs font-extrabold tracking-wide uppercase">
+      <p className="text-ink-500 px-5 pt-4 text-xs font-extrabold tracking-wide uppercase">
         {title}
       </p>
       <div className="px-5">{children}</div>

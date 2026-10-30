@@ -226,7 +226,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <p className="text-ink-300 pb-1 text-center text-xs font-semibold lg:text-left">
+        <p className="text-ink-500 pb-1 text-center text-xs font-semibold lg:text-left">
           ChessSchool v3.0 · {user ? user.name : "Guest mode"}
         </p>
         <p className="pb-4 text-center text-xs font-bold lg:text-left">

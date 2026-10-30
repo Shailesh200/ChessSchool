@@ -134,13 +134,13 @@ export function CommandPalette({ open, onOpenChange }: Props) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search lessons, classes, actions…"
-                className="text-ink placeholder:text-ink-300 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
+                className="text-ink placeholder:text-ink-500 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
                 aria-controls={listId}
                 aria-autocomplete="list"
                 autoComplete="off"
                 spellCheck={false}
               />
-              <kbd className="text-ink-300 border-hairline hidden rounded border px-1.5 py-0.5 text-[10px] font-bold sm:inline">
+              <kbd className="text-ink-500 border-hairline hidden rounded border px-1.5 py-0.5 text-[10px] font-bold sm:inline">
                 Esc
               </kbd>
             </div>
@@ -184,7 +184,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
                         </span>
                       )}
                     </span>
-                    <span className="text-ink-300 shrink-0 text-[10px] font-bold uppercase">
+                    <span className="text-ink-500 shrink-0 text-[10px] font-bold uppercase">
                       {item.type}
                     </span>
                   </button>

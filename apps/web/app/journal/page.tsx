@@ -63,7 +63,7 @@ export default function JournalPage() {
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,1.15fr)] lg:items-start lg:gap-8">
           <div className="flex flex-col gap-5">
             <Card>
-              <p className="text-ink-300 text-xs font-extrabold tracking-wide uppercase">
+              <p className="text-ink-500 text-xs font-extrabold tracking-wide uppercase">
                 Growth summary
               </p>
               <div className="mt-2 grid grid-cols-3 gap-2 text-center">

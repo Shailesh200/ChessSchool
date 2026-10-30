@@ -1098,7 +1098,7 @@ function Stat({ label, value, hint }: { label: string; value: number; hint?: str
       <div className="text-ink text-xl font-extrabold tabular-nums">{fmt(value)}</div>
       <div className="text-ink-500 text-[10px] font-semibold">{label}</div>
       {hint ? (
-        <div className="text-ink-300 mt-0.5 text-[9px] font-semibold">{hint}</div>
+        <div className="text-ink-500 mt-0.5 text-[9px] font-semibold">{hint}</div>
       ) : null}
     </div>
   );

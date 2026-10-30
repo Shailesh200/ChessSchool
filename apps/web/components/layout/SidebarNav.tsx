@@ -68,7 +68,7 @@ export function SidebarNav() {
         >
           <Icon name="search" size={18} className="shrink-0" />
           <span className="flex-1">Search</span>
-          <kbd className="text-ink-300 text-[10px] font-bold tabular-nums">
+          <kbd className="text-ink-500 text-[10px] font-bold tabular-nums">
             {modKey}K
           </kbd>
         </button>

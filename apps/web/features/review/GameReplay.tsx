@@ -209,7 +209,7 @@ export function GameReplay({ id }: { id: string }) {
 
       {/* move list */}
       <Card className="py-3">
-        <p className="text-ink-300 mb-2 text-xs font-extrabold tracking-wide uppercase">
+        <p className="text-ink-500 mb-2 text-xs font-extrabold tracking-wide uppercase">
           Moves
         </p>
         <div className="flex flex-wrap gap-1.5">
