@@ -27,3 +27,17 @@ Wired from the Learn tab (`academy`) through `useLearnData`, progress due-count,
 - Path shows the active semester, not every class in the stage. Extra academy actions (placement, homework, daily goal, search, resume match) sit under the map on the live screen and are hidden in the design shots (`chromeOnly`).
 - Web Expo needs the Metro shim for the missing `@lottiefiles/dotlottie-react` peer and a single React copy. Native Lottie loader still plays; web screenshots use the still.
 - Kit fonts load the bundled TTF files. The variable woff2 files are not shipped (Android Metro).
+
+## 20 review tab and 10a queue
+
+| Screen | App | Design | Compare |
+| --- | --- | --- | --- |
+| Review tab | `docs/nov2-ace/shots/20-review-tab.png` | `docs/nov2-ace/design/20-review-tab.png` (HTML render; no 390 PNG in the tarball) | `docs/nov2-ace/compare/20-review-tab.png` |
+| Review queue | `docs/nov2-ace/shots/10a-review-queue.png` | `docs/nov2-ace/design/10a-review-queue.png` | `docs/nov2-ace/compare/10a-review-queue.png` |
+
+Due lessons come from `dueLessonIds`. Titles prefer `/api/library`, otherwise the lesson id. Under 60% mastery is “Needs practice”. Start review opens fix-mistakes when the mistake log has rows, otherwise the first due lesson. Match history stays on the Review tab under the new header so replays still open.
+
+### Gaps
+
+- The tab badge in the preview is empty because that session has no progress snapshot. Live tabs use `reviewDueCount`.
+- Queue and tab share one layout. The HTML queue has no coach line; the tab does.

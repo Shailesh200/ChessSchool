@@ -14,10 +14,18 @@ import { useAppTheme } from "@/ThemeProvider";
 import { useType } from "@/typography";
 import { movesFromSyncGame, normalizeSyncGame, playerResultOf } from "@/progression";
 import { font, radius, shadowCard, space } from "@/theme";
+import { useUiKit } from "@/components/kit";
+import { PremiumReviewScreen } from "@/screens/premium/PremiumReviewScreen";
 
 type RecommendLesson = { id: string; title: string; emoji: string; tag: string };
 
 export default function ReviewScreen() {
+  const kit = useUiKit();
+  if (kit === "premium") return <PremiumReviewScreen mode="tab" />;
+  return <LegacyReviewScreen />;
+}
+
+function LegacyReviewScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const type = useType();

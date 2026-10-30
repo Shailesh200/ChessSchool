@@ -169,20 +169,7 @@ export function offlineLearnRows(input: {
 type LessonRec = { mastery: number; attempts: number; lastSeen: number; dueAt: number };
 
 export function reviewDueCount(lessons: unknown, now = Date.now()): number {
-  if (!lessons || typeof lessons !== "object") return 0;
-  const clean: Record<string, LessonRec> = {};
-  for (const [id, rec] of Object.entries(lessons as Record<string, unknown>)) {
-    if (!rec || typeof rec !== "object") continue;
-    const row = rec as Partial<LessonRec>;
-    if (typeof row.mastery !== "number" || typeof row.dueAt !== "number") continue;
-    clean[id] = {
-      mastery: row.mastery,
-      dueAt: row.dueAt,
-      attempts: typeof row.attempts === "number" ? row.attempts : 0,
-      lastSeen: typeof row.lastSeen === "number" ? row.lastSeen : 0,
-    };
-  }
-  return dueLessonIds(clean, now).length;
+  return dueLessonIds(lessonRecords(lessons), now).length;
 }
 
 export function reviewTabBadge(count: number): { visible: boolean; label: string; accessibilityLabel: string } {
@@ -195,15 +182,20 @@ export function reviewTabBadge(count: number): { visible: boolean; label: string
 }
 
 /** Learn / Play / Review / Profile. Gym and class routes stay on Learn. */
-export function premiumTabActive(pathname: string, routeName: string): boolean {
+export function premiumTabActive(pathname: string, routeName: string, previewId = ""): boolean {
+  if (pathname.includes("ace-preview")) {
+    const reviewShot = previewId.startsWith("20") || previewId.startsWith("10");
+    if (routeName === "review") return reviewShot;
+    if (routeName === "academy") return !reviewShot;
+    return false;
+  }
   if (routeName === "academy") {
     return (
       pathname.includes("academy") ||
       pathname === "/" ||
       pathname.includes("/class/") ||
       pathname.includes("/lesson/") ||
-      pathname.includes("/gym") ||
-      pathname.includes("ace-preview")
+      pathname.includes("/gym")
     );
   }
   if (routeName === "play") return pathname.includes("/(tabs)/play") || pathname === "/play";
@@ -220,3 +212,147 @@ export function premiumTabActive(pathname: string, routeName: string): boolean {
 }
 
 export const PREMIUM_TAB_LABELS = ["Learn", "Play", "Review", "Profile"] as const;
+
+export const NEEDS_PRACTICE_BELOW = 0.6;
+
+export type ReviewSkill = {
+  id: string;
+  title: string;
+  mastery: number;
+  needsPractice: boolean;
+};
+
+function lessonRecords(lessons: unknown): Record<string, LessonRec> {
+  if (!lessons || typeof lessons !== "object") return {};
+  const clean: Record<string, LessonRec> = {};
+  for (const [id, rec] of Object.entries(lessons as Record<string, unknown>)) {
+    if (!rec || typeof rec !== "object") continue;
+    const row = rec as Partial<LessonRec>;
+    if (typeof row.mastery !== "number" || typeof row.dueAt !== "number") continue;
+    clean[id] = {
+      mastery: row.mastery,
+      dueAt: row.dueAt,
+      attempts: typeof row.attempts === "number" ? row.attempts : 0,
+      lastSeen: typeof row.lastSeen === "number" ? row.lastSeen : 0,
+    };
+  }
+  return clean;
+}
+
+export function reviewSkills(
+  lessons: unknown,
+  titles: Record<string, string>,
+  now = Date.now(),
+): ReviewSkill[] {
+  const clean = lessonRecords(lessons);
+  return dueLessonIds(clean, now).map((id) => {
+    const mastery = clean[id]?.mastery ?? 0;
+    const titled = titles[id]?.trim();
+    return {
+      id,
+      title: titled && titled.length > 0 ? titled : id.replace(/[-_]/g, " "),
+      mastery,
+      needsPractice: mastery < NEEDS_PRACTICE_BELOW,
+    };
+  });
+}
+
+export function reviewSummary(skills: ReviewSkill[]): { onTrack: number; needsPractice: number; due: number } {
+  const needsPractice = skills.filter((skill) => skill.needsPractice).length;
+  return { onTrack: skills.length - needsPractice, needsPractice, due: skills.length };
+}
+
+export function startReviewTarget(input: { mistakeCount: number; firstDueId: string | null }): {
+  pathname: "/practice/mistakes" | "/lesson/[id]";
+  id?: string;
+} | null {
+  if (input.mistakeCount > 0) return { pathname: "/practice/mistakes" };
+  if (input.firstDueId) return { pathname: "/lesson/[id]", id: input.firstDueId };
+  return null;
+}
+
+export function examPassMark(total: number, ratio = 0.67): number {
+  if (total <= 0) return 0;
+  return Math.ceil(total * ratio);
+}
+
+export function examPipState(stepIndex: number, total: number): Array<"done" | "current" | "todo"> {
+  return Array.from({ length: Math.max(0, total) }, (_, i) => (i < stepIndex ? "done" : i === stepIndex ? "current" : "todo"));
+}
+
+export type ClassRowTone = "done" | "current" | "locked" | "exam";
+
+export function classDetailCaption(input: {
+  tone: ClassRowTone;
+  index: number;
+  mastery: number;
+  activeIndex: number;
+}): string {
+  if (input.tone === "done") return `Done · ${Math.round(input.mastery * 100)}%`;
+  if (input.tone === "current") return "Up next";
+  if (input.tone === "exam") return "Pass to graduate";
+  const after = input.activeIndex >= 0 ? input.activeIndex + 1 : input.index;
+  return `Unlocks after lesson ${after}`;
+}
+
+export type GymSkill = "All" | "Forks" | "Pins" | "Skewers" | "Mates" | "Endgames";
+export type GymLevel = "All" | "Easy" | "Medium" | "Hard";
+
+export function gymSkillOf(title: string, tag?: string | null): Exclude<GymSkill, "All"> | "All" {
+  const hay = `${title} ${tag ?? ""}`.toLowerCase();
+  if (hay.includes("fork")) return "Forks";
+  if (hay.includes("pin")) return "Pins";
+  if (hay.includes("skewer")) return "Skewers";
+  if (hay.includes("mate")) return "Mates";
+  if (hay.includes("endgame") || hay.includes("opposition") || hay.includes("pawn")) return "Endgames";
+  return "All";
+}
+
+export function gymLevelOf(title: string): Exclude<GymLevel, "All"> {
+  const hay = title.toLowerCase();
+  if (hay.includes("hard") || hay.includes("opposition") || hay.includes("smother")) return "Hard";
+  if (hay.includes("medium") || hay.includes("skewer")) return "Medium";
+  return "Easy";
+}
+
+export type GymPuzzle = { id: string; title: string; skill: ReturnType<typeof gymSkillOf>; level: ReturnType<typeof gymLevelOf>; solved: boolean };
+
+export function filterGymPuzzles(
+  items: GymPuzzle[],
+  query: { q: string; skill: GymSkill; level: GymLevel },
+): GymPuzzle[] {
+  const q = query.q.trim().toLowerCase();
+  return items.filter((item) => {
+    if (query.skill !== "All" && item.skill !== query.skill) return false;
+    if (query.level !== "All" && item.level !== query.level) return false;
+    if (q && !item.title.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+export type StatusSheetKind = "empty" | "error" | "offline";
+
+export function statusSheetCopy(kind: StatusSheetKind): { title: string; body: string; primary: string; secondary: string } {
+  if (kind === "empty") {
+    return {
+      title: "Nothing here yet",
+      body: "Solve a puzzle and it will show up here, so you can find it again.",
+      primary: "Go to the Gym",
+      secondary: "Not now",
+    };
+  }
+  if (kind === "offline") {
+    return {
+      title: "You're offline",
+      body: "No problem. Puzzles you already opened still work. We will sync your progress when you are back online.",
+      primary: "Try again",
+      secondary: "Keep going offline",
+    };
+  }
+  return {
+    title: "Something went wrong",
+    body: "We couldn't finish that. Your progress is safe. Try again in a moment.",
+    primary: "Try again",
+    secondary: "Back to Gym",
+  };
+}

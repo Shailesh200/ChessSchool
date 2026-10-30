@@ -3,6 +3,8 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { KitBottomNav } from "@/components/kit";
 import { PremiumLearnScreen } from "@/screens/premium/PremiumLearnScreen";
+import { PremiumReviewScreen } from "@/screens/premium/PremiumReviewScreen";
+import type { ReviewSkill } from "@/screens/premium/aceModel";
 import { settings } from "@/settings";
 import type { MapStage } from "@/screens/premium/aceModel";
 
@@ -44,6 +46,23 @@ export default function AcePreviewScreen() {
       settings.set("uiKit", prevKit);
     };
   }, [dark]);
+
+  const reviewSkills: ReviewSkill[] = [
+    { id: "fork", title: "Fork the king and queen", mastery: 0.48, needsPractice: true },
+    { id: "pin", title: "Pins to the king", mastery: 0.55, needsPractice: true },
+    { id: "knight", title: "Knight moves", mastery: 0.9, needsPractice: false },
+    { id: "mate", title: "Back-rank mate", mastery: 0.72, needsPractice: false },
+    { id: "protect", title: "Protect your pieces", mastery: 0.81, needsPractice: false },
+    { id: "castle", title: "Castling", mastery: 0.64, needsPractice: false },
+  ];
+  if (id === "20-review-tab" || id === "10a-review-queue") {
+    return (
+      <View style={{ flex: 1 }}>
+        <PremiumReviewScreen mode={id === "10a-review-queue" ? "queue" : "tab"} fixture={{ skills: reviewSkills, mistakeCount: 3 }} />
+        <KitBottomNav />
+      </View>
+    );
+  }
 
   let body = <PremiumLearnScreen fixture={{ phase: "ready", stages: TACTICS, dueCount: 6, chromeOnly: true }} />;
   if (id === "03-map-loading") body = <PremiumLearnScreen fixture={{ phase: "loading", chromeOnly: true }} />;
