@@ -958,7 +958,7 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   }
 }
 
-/* Premium illustrated screen mocks (nov2 sanji) — dex/auth/map; kit tokens via globals. */
+/* Premium illustrated screen mocks (nov2 premium screens) — dex/auth/map; kit tokens via globals. */
 @import "../styles/premium/screens.css";
 @import "../styles/premium/screens-dex.css";
 @import "../styles/premium/overrides.css";

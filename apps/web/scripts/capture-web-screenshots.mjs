@@ -5,14 +5,17 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const OUT = join(ROOT, "../docs/nov2/sanji-web-a");
+/** Default outside git — override with SCREENSHOT_OUT_DIR. */
+const OUT =
+  process.env.SCREENSHOT_OUT_DIR ??
+  join(ROOT, "../../design-ref/captures/premium-screens");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 
 const ROUTES = [
   { slug: "01-splash", path: "/splash", design: "01-splash" },
   { slug: "16-auth-login", path: "/login", design: "16-auth" },
   { slug: "19a-forgot-password", path: "/login/forgot", design: "19a-forgot-password" },
-  { slug: "19b-reset-password", path: "/account/reset#preview-token", design: "19b-reset-password" },
+  { slug: "19b-reset-password", path: "/login/reset?token=preview-token", design: "19b-reset-password" },
   { slug: "03-map", path: "/academy", design: "03-map" },
   { slug: "03-map-dark", path: "/academy?premiumMap=dark", design: "03-map-dark" },
   { slug: "03-map-loading", path: "/academy?premiumMap=loading", design: "03-map-loading" },
