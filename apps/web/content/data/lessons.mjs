@@ -2142,6 +2142,7 @@ export const LESSONS = [
         coach: "Push the pawn home — promote to a queen!",
         fen: "8/4P3/8/8/8/8/8/4K1k1 w - - 0 1",
         solution: ["e7:e8"],
+        promotion: "q",
         highlight: ["e7", "e8"],
         successText: "A brand-new queen! That's a winning advantage.",
         failText: "Advance the e7 pawn to e8 to promote.",
