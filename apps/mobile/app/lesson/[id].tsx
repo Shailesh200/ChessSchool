@@ -32,6 +32,10 @@ import { settings } from "@/settings";
 import { useType } from "@/typography";
 import { colors, font, radius, shadowCard, space } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
+import { useUiKit } from "@/components/kit/useUiKit";
+import { PremiumLessonCompleteScreen } from "@/screens/premium/lesson/PremiumLessonCompleteScreen";
+import { PremiumLessonShell } from "@/screens/premium/lesson/PremiumLessonShell";
+import { isTapSquaresStep } from "@/screens/premium/lesson/lessonStepUi";
 
 type Step = {
   id: string;
@@ -210,6 +214,11 @@ export default function LessonScreen() {
   const playSfx = useCallback((name: Parameters<typeof sfx.play>[0]) => {
     if (lessonSound) sfx.play(name);
   }, [lessonSound]);
+  const uiKit = useUiKit();
+  const premiumUi = uiKit === "premium";
+  const [tappedSquares, setTappedSquares] = useState<string[]>([]);
+  const lessonStartedAt = useRef(Date.now());
+  const hintsUsedRef = useRef(0);
 
   async function loadLesson() {
     setLoadError(false);
@@ -252,6 +261,9 @@ export default function LessonScreen() {
 
   useEffect(() => {
     progressSavedRef.current = false;
+    lessonStartedAt.current = Date.now();
+    hintsUsedRef.current = 0;
+    setTappedSquares([]);
     void fetchProgress(false);
     void loadLesson();
     return () => timers.current.forEach(clearTimeout);
@@ -357,6 +369,7 @@ export default function LessonScreen() {
     setPhase("playing");
     setHintLevel(0);
     setLastMove(null);
+    setTappedSquares([]);
     setDisplayFen(lesson!.steps[index + 1]?.fen);
     // Brief lock so Continue can't double-fire while the next step mounts.
     setTimeout(() => setAdvancing(false), 450);
@@ -504,6 +517,9 @@ export default function LessonScreen() {
       timers.current.push(setTimeout(() => playSfx("success"), 160));
       correctRef.current += 1;
       setPhase("correct");
+      if (premiumUi) {
+        return true;
+      }
       const next = lesson!.steps[index + 1];
       const reply = next?.kind === "move" && next.fen ? findReply(e.fen(), next.fen) : null;
       if (reply && next?.fen) {
@@ -524,6 +540,9 @@ export default function LessonScreen() {
       wrongRef.current += 1;
       if (step.fen) mistakesRef.current.push({ fen: step.fen, played: `${from}:${to}`, best: step.solution?.[0] ?? "", tag: step.tag ?? "tactics", at: Date.now() });
       setPhase("wrong");
+      if (premiumUi) {
+        return true;
+      }
       // revert to the puzzle position so they can retry
       timers.current.push(
         setTimeout(() => {
@@ -565,6 +584,37 @@ export default function LessonScreen() {
   }
 
   if (phase === "complete") {
+    const interactiveSteps = scoredStepCount(lesson.steps) || 1;
+    const elapsedSec = Math.max(0, Math.round((Date.now() - lessonStartedAt.current) / 1000));
+    if (premiumUi && !lesson.exam) {
+      return (
+        <>
+          <PremiumLessonCompleteScreen
+            lessonTitle={lesson.title}
+            coachCharacter={coachCharacter}
+            correctPuzzles={correctRef.current}
+            totalPuzzles={interactiveSteps}
+            hintsUsed={hintsUsedRef.current}
+            elapsedSec={elapsedSec}
+            loading={resolvingNext}
+            continueLabel={hw ? "Back to homework" : nextId ? "Continue" : "Continue"}
+            onContinue={() => {
+              if (hw) router.back();
+              else if (nextId) router.replace({ pathname: "/lesson/[id]", params: { id: nextId } });
+              else router.back();
+            }}
+          />
+          <ReflectSheet
+            visible={reflectOpen}
+            onClose={() => setReflectOpen(false)}
+            kind="lesson"
+            title={lesson.title}
+            summary={`${correctRef.current} correct · ${wrongRef.current} mistakes`}
+            refId={lesson.id}
+          />
+        </>
+      );
+    }
     const showGuestEnroll =
       guest &&
       shouldShowEnrollPrompt({
@@ -682,6 +732,144 @@ export default function LessonScreen() {
       : undefined;
   const boardHighlightFiles = preschool ? tutorial.highlightFiles : step.highlightFiles;
   const boardHighlightRanks = preschool ? tutorial.highlightRanks : step.highlightRanks;
+
+  if (premiumUi) {
+    const tapMode = isTapSquaresStep(step);
+    const premiumSolvable = step.kind === "move" && phase === "playing" && !lesson.exam;
+    const premiumHintFrom =
+      hintLevel >= 2 && premiumSolvable && step.solution?.[0] ? step.solution[0].split(":")[0] : null;
+    const premiumHintArrows =
+      hintLevel >= 3 && premiumSolvable && step.solution?.[0]
+        ? [
+            {
+              startSquare: step.solution[0].split(":")[0]!,
+              endSquare: step.solution[0].split(":")[1]!,
+              color: colors.accent,
+            },
+          ]
+        : [];
+    const premiumBoardHighlights = preschool
+      ? [...tutorial.highlight, ...(phase === "playing" && premiumSolvable && !isObserving && premiumHintFrom ? [premiumHintFrom] : [])]
+      : phase === "playing" && !isObserving
+        ? [...(step.highlight ?? []), ...(premiumHintFrom ? [premiumHintFrom] : [])]
+        : undefined;
+    const premiumBoardArrows = preschool
+      ? [...tutorial.arrows, ...(phase === "playing" && premiumSolvable && !isObserving ? premiumHintArrows : [])]
+      : phase === "playing" && !isObserving
+        ? [...(step.arrows ?? []), ...premiumHintArrows]
+        : undefined;
+
+    const bumpHint = () => {
+      setHintLevel((h) => {
+        const next = Math.min(3, h + 1);
+        if (h === 0) hintsUsedRef.current += 1;
+        return next;
+      });
+    };
+
+    const premiumTryAgain = () => {
+      setDisplayFen(step.fen);
+      setLastMove(null);
+      setPhase("playing");
+    };
+
+    const premiumShowHint = () => {
+      bumpHint();
+      premiumTryAgain();
+    };
+
+    const premiumContinueCorrect = () => {
+      if (advancing || resolvingNext) return;
+      const fenNow = displayFen ?? step.fen;
+      if (!fenNow) {
+        advance();
+        return;
+      }
+      const next = lesson.steps[index + 1];
+      const reply = next?.kind === "move" && next.fen ? findReply(fenNow, next.fen) : null;
+      if (reply && next?.fen) {
+        setLastMove(reply);
+        setDisplayFen(next.fen);
+        playSfx("move");
+        timers.current.push(setTimeout(() => advance(), 1000));
+      } else {
+        advance();
+      }
+    };
+
+    const onSquareTap = (sq: string) => {
+      if (!tapMode || phase !== "playing") return;
+      haptics.tap();
+      setTappedSquares((prev) => (prev.includes(sq) ? prev.filter((s) => s !== sq) : [...prev, sq]));
+    };
+
+    const checkTapSquares = () => {
+      const expected = new Set((step.solution ?? []).map((s) => s.toLowerCase()));
+      const selected = new Set(tappedSquares.map((s) => s.toLowerCase()));
+      const ok = expected.size > 0 && expected.size === selected.size && [...expected].every((s) => selected.has(s));
+      if (ok) {
+        correctRef.current += 1;
+        haptics.success();
+        playSfx("success");
+        setPhase("correct");
+      } else {
+        wrongRef.current += 1;
+        haptics.error();
+        playSfx("error");
+        setPhase("wrong");
+      }
+    };
+
+    const onQuizSubmit = (ok: boolean) => {
+      if (ok) {
+        correctRef.current += 1;
+        setPhase("correct");
+        playSfx("success");
+      } else {
+        wrongRef.current += 1;
+        setPhase("wrong");
+        playSfx("error");
+      }
+    };
+
+    return (
+      <PremiumLessonShell
+        lessonTitle={lesson.title}
+        lessonTag={lesson.tag}
+        lessonOrdinal={index + 1}
+        step={step}
+        index={index}
+        total={total}
+        phase={phase === "playing" || phase === "correct" || phase === "wrong" ? phase : "playing"}
+        displayFen={displayFen}
+        lastMove={lastMove}
+        flipped={flipped}
+        coachCharacter={coachCharacter}
+        coachLine={feedback}
+        hintLevel={hintLevel}
+        hintTip={hint}
+        hintsEnabled={hintsEnabled && !lesson.exam}
+        observeReady={observeReady}
+        boardHighlights={premiumBoardHighlights}
+        boardArrows={premiumBoardArrows}
+        boardHighlightFiles={boardHighlightFiles}
+        boardHighlightRanks={boardHighlightRanks}
+        tappedSquares={tappedSquares}
+        onSquareTap={onSquareTap}
+        onMove={onMove}
+        onClose={() => router.back()}
+        onContinueIntro={() => advance()}
+        onHint={bumpHint}
+        onTryAgain={premiumTryAgain}
+        onShowHint={premiumShowHint}
+        onContinueCorrect={premiumContinueCorrect}
+        onQuizSubmit={onQuizSubmit}
+        onTapCheck={checkTapSquares}
+        onTapClear={() => setTappedSquares([])}
+        advancing={advancing || resolvingNext}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
