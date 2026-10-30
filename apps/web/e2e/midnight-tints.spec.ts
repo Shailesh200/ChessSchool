@@ -268,3 +268,39 @@ test("text-ink-300 is only used on icon glyphs, never on text (UI-W-015)", () =>
   );
   expect(textUses, `text-ink-300 on text: ${textUses.join("\n")}`).toEqual([]);
 });
+
+for (const appTheme of LIGHT_THEMES) {
+  test(`${appTheme}: /academy semester badge text is >= 4.5:1 (UI-W-015)`, async ({
+    page,
+  }) => {
+    await page.addInitScript((theme) => {
+      const key = "chessschool.settings";
+      const cur = JSON.parse(localStorage.getItem(key) || "{}");
+      const state = Object.assign(cur.state || {}, {
+        appTheme: theme,
+        schoolTheme: "university",
+      });
+      localStorage.setItem(key, JSON.stringify({ state, version: cur.version || 11 }));
+    }, appTheme);
+    await page.goto("/academy");
+    await page.waitForFunction(
+      (theme) => document.documentElement.dataset.appTheme === theme,
+      appTheme,
+    );
+    await page.locator(".school-semester-badge").first().waitFor();
+    const badges = await page.locator(".school-semester-badge").evaluateAll((els) =>
+      els.map((el) => {
+        const s = getComputedStyle(el);
+        return { text: el.textContent ?? "", fg: s.color, bg: s.backgroundColor };
+      }),
+    );
+    expect(badges.length).toBeGreaterThan(0);
+    for (const b of badges) {
+      const ratio = contrast(b.fg, b.bg);
+      expect(
+        ratio,
+        `${appTheme}: semester badge "${b.text}" (${b.fg} on ${b.bg}) = ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+}
