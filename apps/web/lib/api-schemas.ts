@@ -75,6 +75,15 @@ export const authRegisterSchema = authCredentialsSchema.extend({
   name: z.string().trim().min(1).max(80),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email().max(254),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20).max(512),
+  password: z.string().min(8).max(128),
+});
+
 const lessonRecSchema = z.object({
   mastery: z.number().min(0).max(1),
   attempts: z.number().int().min(0).max(10_000),
