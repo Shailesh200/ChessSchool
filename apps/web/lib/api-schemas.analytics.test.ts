@@ -66,4 +66,28 @@ describe("analyticsBatchSchema", () => {
       analyticsBatchSchema.safeParse({ events: [{ name: "unknown_event" }] }).success,
     ).toBe(false);
   });
+
+  it("drops non-primitive props and caps keys", () => {
+    const parsed = analyticsBatchSchema.safeParse({
+      events: [
+        {
+          name: "lesson_complete",
+          props: {
+            lessonId: "pawn-power",
+            nested: { nope: true },
+            long: "x".repeat(200),
+            ok: 1,
+            drop: undefined,
+          },
+        },
+      ],
+    });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    const props = parsed.data.events[0]?.props;
+    expect(props?.lessonId).toBe("pawn-power");
+    expect(props?.ok).toBe(1);
+    expect(props).not.toHaveProperty("nested");
+    expect(props?.long).toBe("x".repeat(200));
+  });
 });

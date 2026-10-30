@@ -140,6 +140,27 @@ export const vitalsBatchSchema = z.object({
   metrics: z.array(vitalMetricSchema).min(1).max(12),
 });
 
+const analyticsPropValue = z.union([
+  z.string().max(256),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+
+const analyticsPropsSchema = z
+  .record(z.string().max(64), z.unknown())
+  .optional()
+  .transform((props) => {
+    if (!props) return undefined;
+    const out: Record<string, string | number | boolean | null> = {};
+    const keys = Object.keys(props).slice(0, 20);
+    for (const key of keys) {
+      const parsed = analyticsPropValue.safeParse(props[key]);
+      if (parsed.success) out[key] = parsed.data;
+    }
+    return Object.keys(out).length ? out : undefined;
+  });
+
 export const analyticsEventSchema = z.object({
   name: z.enum([
     "page_view",
@@ -168,7 +189,7 @@ export const analyticsEventSchema = z.object({
     "enroll_cta_click",
     "coach_character_select",
   ]),
-  props: z.record(z.string(), z.unknown()).optional(),
+  props: analyticsPropsSchema,
   pathname: z.string().max(256).optional(),
   sessionId: z.string().max(64).optional(),
 });
