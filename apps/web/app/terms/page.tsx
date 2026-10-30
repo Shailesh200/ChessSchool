@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { BackButton } from "@/components/ui/BackButton";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Terms of Use",
   description: "Terms for using the ChessSchool web app and related services.",
 };
 
-const CONTACT = "iamshailesh121@gmail.com";
 const UPDATED = "July 17, 2026";
 
 export default function TermsPage() {
@@ -103,10 +103,10 @@ export default function TermsPage() {
             <p>
               Questions about these terms:{" "}
               <a
-                href={`mailto:${CONTACT}`}
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-brand-500 font-bold underline"
               >
-                {CONTACT}
+                {SUPPORT_EMAIL}
               </a>
               {" · "}
               <Link href="/support" className="text-brand-500 font-bold underline">

@@ -4,7 +4,7 @@ import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth";
-import { PRIVACY_URL } from "@/constants";
+import { PRIVACY_URL, SUPPORT_EMAIL } from "@/constants";
 import { useSettings, settings } from "@/settings";
 import { exportBackupToFile, importBackup, storageEstimateKB, validateBackup } from "@/backup";
 import { Slider } from "@/Slider";
@@ -207,7 +207,16 @@ export default function SettingsScreen() {
           </View>
         </Pressable>
 
-        <Text style={styles.version}>ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}</Text>
+        {SUPPORT_EMAIL ? (
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
+            style={styles.supportLink}
+          >
+            <Text style={styles.privacyLink}>{SUPPORT_EMAIL}</Text>
+          </Pressable>
+        ) : null}
+        <Text style={[styles.version, !SUPPORT_EMAIL && styles.versionAlone]}>ChessSchool v{Constants.expoConfig?.version ?? "0.2.0"}</Text>
       </ScrollView>
 
       <ConfirmDialog
@@ -335,6 +344,15 @@ function makeStyles(type: ReturnType<typeof useType>, colors: ReturnType<typeof 
     guestTitle: { ...type.base, fontFamily: font.bold, color: colors.ink },
     guestCopy: { ...type.sm, fontFamily: font.medium, color: colors.ink500, lineHeight: type.sm.lineHeight },
     privacyLink: { ...type.sm, fontFamily: font.bold, color: colors.brand },
-    version: { ...type.xs, fontFamily: font.medium, color: colors.ink300, textAlign: "center", marginTop: space[6], marginBottom: space[2] },
+    supportLink: { alignItems: "center", marginTop: space[6] },
+    versionAlone: { marginTop: space[6] },
+    version: {
+      ...type.xs,
+      fontFamily: font.medium,
+      color: colors.ink300,
+      textAlign: "center",
+      marginTop: space[2],
+      marginBottom: space[2],
+    },
   });
 }

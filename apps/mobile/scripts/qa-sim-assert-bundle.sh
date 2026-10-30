@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # After the qa-sim JS bundle is built, fail if the production host is in it.
 # Other EAS profiles exit 0. Pass a directory to scan that tree.
+# Local `expo export` runs need `--clear`: two runs in a row reuse Metro's cached transform and the QA_SIM env change is ignored (EAS builds on a fresh worker and is unaffected).
 set -euo pipefail
 
 root="${1:-}"

@@ -47,6 +47,12 @@ async function loadApiUrl(): Promise<string> {
   return mod.API_URL;
 }
 
+async function loadSupportEmail(): Promise<string> {
+  vi.resetModules();
+  const mod = await import("./constants");
+  return mod.SUPPORT_EMAIL;
+}
+
 async function loadPrivacyUrl(): Promise<string> {
   vi.resetModules();
   const mod = await import("./constants");
@@ -133,6 +139,7 @@ describe("production host when EXPO_PUBLIC_QA_SIM is unset", () => {
 
     delete process.env.EXPO_PUBLIC_API_URL;
     expect(await loadPrivacyUrl()).toBe("https://www.chess-school.in/privacy");
+    expect(await loadSupportEmail()).toBe("support@chess-school.in");
   });
 });
 
@@ -149,12 +156,14 @@ describe("production host when EXPO_PUBLIC_QA_SIM is 1", () => {
     vi.stubEnv("EXPO_PUBLIC_API_URL", "http://localhost:3108");
     expect(await loadPrivacyUrl()).toBe("http://localhost:3108/privacy");
     expect(await loadPrivacyUrl()).not.toContain(HOST);
+    expect(await loadSupportEmail()).toBe("");
   });
 
   it("removes the host literal from a production minify of the modules that embed it", async () => {
     const files = [
       path.join(mobileRoot, "src/api.ts"),
       path.join(mobileRoot, "src/constants.ts"),
+      path.join(mobileRoot, "app/settings.tsx"),
       path.join(mobileRoot, "app/play/online/[id].tsx"),
     ];
     const qaEnv = {
@@ -169,5 +178,11 @@ describe("production host when EXPO_PUBLIC_QA_SIM is 1", () => {
     const releaseApi = await productionBundle(path.join(mobileRoot, "src/api.ts"), {});
     expect(releaseApi).toContain(HOST);
     expect(releaseApi).toContain("www.chess-school.in");
+
+    const releaseConstants = await productionBundle(
+      path.join(mobileRoot, "src/constants.ts"),
+      {},
+    );
+    expect(releaseConstants).toContain("support@chess-school.in");
   });
 });

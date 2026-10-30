@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { SUPPORT_EMAIL } from "../lib/support";
 
 /** Route smoke tests — each route in scripts/web-e2e-routes.json must be covered (≥90%). */
 
@@ -21,6 +22,7 @@ test("privacy policy renders", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Privacy Policy", level: 1 }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: SUPPORT_EMAIL })).toHaveCount(3);
 });
 
 test("learn-chess landing renders", async ({ page }) => {
