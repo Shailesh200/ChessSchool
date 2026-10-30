@@ -307,8 +307,9 @@ for (const appTheme of LIGHT_THEMES) {
 }
 
 /**
- * UI-W-016: IconBadge tiles paint a white gradient stop (via-white). In midnight
- * the glyph must stay >= 4.5:1 on the LIGHTEST gradient stop of its tile, for
+ * UI-W-IB1 (IconBadge contrast; local ID, not in COMBINED.md, where UI-W-016 is
+ * something else): IconBadge tiles paint a white gradient stop (via-white). In
+ * midnight the glyph must stay >= 4.5:1 on the LIGHTEST gradient stop of its tile, for
  * every tone, on every school theme, whatever surface the tile sits on.
  */
 const ICON_TONES: Record<string, [string, string]> = {
