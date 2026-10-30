@@ -8,11 +8,17 @@ import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/Icon";
 import { haptics } from "@/core/haptics/haptics";
 import { startNav } from "@/core/store/nav.store";
+import { useProgression } from "@/core/store/progression.store";
+import { useSettings } from "@/core/store/settings.store";
+import { reviewDueCount } from "@/features/chopper/catalog";
 import { isNavTabActive, NAV_TABS } from "./nav-tabs";
 
 export function BottomNav() {
   const pathname = usePathname();
   const [pending, setPending] = useState<string | null>(null);
+  const uiKit = useSettings((s) => s.uiKit);
+  const lessons = useProgression((s) => s.lessons);
+  const due = uiKit === "legacy" ? 0 : reviewDueCount(lessons);
   const loadingHref = pending && !pathname.startsWith(pending) ? pending : null;
 
   return (
@@ -42,6 +48,9 @@ export function BottomNav() {
                 )}
                 aria-current={active ? "page" : undefined}
                 aria-busy={loading}
+                aria-label={
+                  tab.href === "/review" && due > 0 ? `Review, ${due} due` : undefined
+                }
               >
                 <motion.span
                   className="relative"
@@ -55,6 +64,11 @@ export function BottomNav() {
                   )}
                 </motion.span>
                 <span className="relative">{tab.label}</span>
+                {tab.href === "/review" && due > 0 && (
+                  <em className="nav-due" aria-hidden="true">
+                    {due > 9 ? "9+" : due}
+                  </em>
+                )}
               </Link>
             </li>
           );

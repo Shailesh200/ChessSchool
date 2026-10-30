@@ -28,9 +28,9 @@ test.describe("mobile layout @390", () => {
     await expect(page.getByText("Sound effects")).toBeVisible();
   });
 
-  test("play pins Start match above the bottom nav", async ({ page }) => {
+  test("play pins Start game above the bottom nav", async ({ page }) => {
     await page.goto("/play");
-    const start = page.getByRole("button", { name: "Start match" });
+    const start = page.getByRole("button", { name: "Start game" });
     const nav = page.getByRole("navigation", { name: "Primary" });
     await expect(start).toBeVisible();
     await expect(nav).toBeVisible();
@@ -52,9 +52,9 @@ test.describe("mobile layout @390", () => {
 
     const covered = await page.evaluate(() => {
       const cta = [...document.querySelectorAll("button")].find(
-        (b) => b.textContent?.trim() === "Start match",
+        (b) => b.textContent?.trim() === "Start game",
       );
-      if (!cta) return ["missing Start match"];
+      if (!cta) return ["missing Start game"];
       const visibleBox = (el: Element) => {
         const r = el.getBoundingClientRect();
         let top = r.top;
