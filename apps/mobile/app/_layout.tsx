@@ -14,6 +14,7 @@ import {
 } from "@expo-google-fonts/fredoka";
 import { AuthProvider, useAuth } from "@/auth";
 import { ThemeProvider, useAppTheme } from "@/ThemeProvider";
+import { PremiumKitThemeProvider } from "@/components/kit";
 import { AnimatedSplash } from "@/AnimatedSplash";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
@@ -156,7 +157,8 @@ function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <ThemeProvider>
-          <NetworkProvider>
+          <PremiumKitThemeProvider>
+            <NetworkProvider>
             <ThemedStatusBar />
             <NetworkBanner />
             <UpdateBanner />
@@ -168,6 +170,7 @@ function RootLayout() {
               <Gate />
             </AuthProvider>
           </NetworkProvider>
+          </PremiumKitThemeProvider>
         </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

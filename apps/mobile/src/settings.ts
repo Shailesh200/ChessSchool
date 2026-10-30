@@ -9,6 +9,9 @@ import {
   normalizeCoachCharacter,
   type CoachCharacterId,
 } from "./coachCharacters";
+import { DEFAULT_UI_KIT, type UiKit } from "./uiKit";
+
+export type { UiKit } from "./uiKit";
 
 export type BoardTheme =
   | "classic"
@@ -25,6 +28,8 @@ export type BoardTheme =
   | "slate"
   | "forest";
 export type Settings = {
+  /** Premium illustrated dex kit (default) vs legacy mobile chrome. */
+  uiKit: UiKit;
   haptics: boolean;
   sound: boolean;
   volume: number;
@@ -56,6 +61,7 @@ export type Settings = {
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
 const DEFAULTS: Settings = {
+  uiKit: DEFAULT_UI_KIT,
   haptics: true,
   sound: true,
   volume: 1,
@@ -104,6 +110,12 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
       : next.schoolTheme ?? "university",
     shareAnalytics:
       next.shareAnalytics === undefined ? undefined : Boolean(next.shareAnalytics),
+    uiKit:
+      next.uiKit === "classic" || next.uiKit === "premium"
+        ? next.uiKit
+        : next.uiKit === undefined
+          ? undefined
+          : "premium",
   } as Partial<Settings>;
 }
 

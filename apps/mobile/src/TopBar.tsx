@@ -9,8 +9,9 @@ import { AnimatedNumber } from "./AnimatedNumber";
 import { useAppTheme } from "./ThemeProvider";
 import { useType } from "./typography";
 import { font, radius, space } from "./theme";
+import { KitTopBar } from "./components/kit";
+import { useUiKit } from "./components/kit/useUiKit";
 
-// Mirrors web's levelForXp / xpProgress (progression.store.ts).
 function levelInfo(xp: number): { level: number; into: number; need: number } {
   let level = 1;
   let need = 100;
@@ -23,7 +24,7 @@ function levelInfo(xp: number): { level: number; into: number; need: number } {
   return { level, into: xp - acc, need };
 }
 
-export function TopBar() {
+function LegacyTopBar() {
   const router = useRouter();
   const { guest, exitGuest } = useAuth();
   const { colors } = useAppTheme();
@@ -139,4 +140,9 @@ export function TopBar() {
       </View>
     </View>
   );
+}
+
+export function TopBar() {
+  const kit = useUiKit();
+  return kit === "premium" ? <KitTopBar /> : <LegacyTopBar />;
 }
