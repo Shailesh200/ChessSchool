@@ -9,7 +9,7 @@ Compare kit HTML under local `design-kit/screens/` to web `/dev/lesson-kit?scree
 ```bash
 pnpm --filter web build
 PORT=3210 pnpm --filter web start &
-SCREENSHOT_OUT_DIR=/opt/cursor/artifacts/zoro-shots node apps/web/scripts/capture-zoro-lesson-shots.mjs
+SCREENSHOT_OUT_DIR=/opt/cursor/artifacts/zoro-shots node apps/web/scripts/capture-lesson-shots.mjs
 ```
 
 ## Behaviour pinned by tests
