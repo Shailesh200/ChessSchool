@@ -77,14 +77,47 @@ describe("midnight brand tints (UI-M-007..010, UI-M-023)", () => {
     expect(c.successTint).toBe("#e7f7ef");
   });
 
-  it("Homework / Dashboard use theme tokens, not hard-coded light colours (UI-M-010)", () => {
-    const read = (f: string) => readFileSync(path.resolve(__dirname, "../app", f), "utf8");
-    const homework = read("homework.tsx");
-    const dashboard = read("dashboard.tsx");
-    expect(homework).not.toContain("#e7f7ef");
-    expect(homework).toContain("colors.successTint");
-    expect(dashboard).not.toContain("rgba(255,255,255,0.6)");
+  // UI-M-010: Dashboard and Homework render from React Native StyleSheets that
+  // cannot mount in vitest, so each hunk is pinned on its own by source text.
+  // One assertion per usage, so reverting any single one fails exactly that test.
+  const app = (f: string) => readFileSync(path.resolve(__dirname, "../app", f), "utf8");
+
+  it("Dashboard heat-map ramp is built at render time with a dark ramp (UI-M-010)", () => {
+    const dashboard = app("dashboard.tsx");
     expect(dashboard).not.toMatch(/^const HEAT = /m); // module-level array froze light colours
-    expect(dashboard).toContain("colors.brandInk");
+    expect(dashboard).toMatch(
+      /const heatRamp = \(dark: boolean\) =>\s*dark\s*\?\s*\[colors\.surfaceSunken, "#3d4585", "#5058b0", "#7b83e8", "#aab2ff"\]/,
+    );
+    expect(dashboard).toMatch(/const \{ isDark \} = useAppTheme\(\);/);
+    expect(dashboard).toMatch(/const HEAT = heatRamp\(isDark\);/);
+  });
+
+  it("Dashboard skill radar fills with the theme brand colour, not a light literal (UI-M-010)", () => {
+    const dashboard = app("dashboard.tsx");
+    expect(dashboard).not.toContain("rgba(91,91,214");
+    expect(dashboard).toMatch(/<Polygon [^\n]*? fill=\{colors\.brand\} fillOpacity=\{0\.25\} stroke=\{colors\.brand\}/);
+  });
+
+  it("Dashboard pill text uses colors.brandInk (UI-M-010)", () => {
+    expect(app("dashboard.tsx")).toMatch(/pillText: \{[^}]*color: colors\.brandInk \}/);
+  });
+
+  it("Dashboard grade-B tone uses colors.brandInk on brand50 (UI-M-010)", () => {
+    expect(app("dashboard.tsx")).toMatch(
+      /if \(grade === "B"\) return \{ bg: colors\.brand50, fg: colors\.brandInk \}/,
+    );
+  });
+
+  it("Dashboard report rows sit on the theme surface, not translucent white (UI-M-010)", () => {
+    const dashboard = app("dashboard.tsx");
+    expect(dashboard).not.toContain("rgba(255,255,255,0.6)");
+    expect(dashboard).toMatch(/reportRow: \{[^}]*backgroundColor: colors\.surface,/);
+  });
+
+  it("Homework done banner uses the success tint and its readable text colour (UI-M-010)", () => {
+    const homework = app("homework.tsx");
+    expect(homework).not.toContain("#e7f7ef");
+    expect(homework).toMatch(/doneBanner: \{ backgroundColor: colors\.successTint,/);
+    expect(homework).toMatch(/doneBannerText: \{[^}]*color: colors\.successInk,/);
   });
 });
