@@ -62,12 +62,7 @@ function Gate() {
       const routeSegments = [...segments] as string[];
       const onPremiumPreview = routeSegments[0] === "dev" && routeSegments[1] === "premium-preview";
       if (onPremiumPreview) {
-        if (
-          premiumPreviewDecision({
-            APP_VARIANT: process.env.APP_VARIANT,
-            EXPO_PUBLIC_PREMIUM_PREVIEW: process.env.EXPO_PUBLIC_PREMIUM_PREVIEW,
-          }) === "allow"
-        ) {
+        if (premiumPreviewDecision() === "allow") {
           return;
         }
         router.replace("/");

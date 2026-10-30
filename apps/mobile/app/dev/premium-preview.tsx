@@ -36,17 +36,13 @@ const TACTICS: MapStage[] = [
   },
 ];
 
-/** Design comparison route. Open only when EXPO_PUBLIC_PREMIUM_PREVIEW=1 and APP_VARIANT is not production. */
+/** Design comparison route. Open only in a dev bundle when EXPO_PUBLIC_PREMIUM_PREVIEW is exactly "1". */
 export default function PremiumPreviewScreen() {
   const params = useLocalSearchParams<{ id?: string; theme?: string }>();
   const id = params.id ?? "03-map";
   const dark = params.theme === "dark" || id.endsWith("-dark");
 
-  const previewDenied =
-    premiumPreviewDecision({
-      APP_VARIANT: process.env.APP_VARIANT,
-      EXPO_PUBLIC_PREMIUM_PREVIEW: process.env.EXPO_PUBLIC_PREMIUM_PREVIEW,
-    }) === "deny";
+  const previewDenied = premiumPreviewDecision() === "deny";
 
   useEffect(() => {
     if (previewDenied) return;

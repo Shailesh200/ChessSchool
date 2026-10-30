@@ -359,12 +359,13 @@ export function statusSheetCopy(kind: StatusSheetKind): { title: string; body: s
   };
 }
 
-/** Dev design preview. A production variant never mounts it, even when the flag is set. */
-export function premiumPreviewDecision(env: {
-  APP_VARIANT?: string;
-  EXPO_PUBLIC_PREMIUM_PREVIEW?: string;
-}): "allow" | "deny" {
-  if (env.APP_VARIANT === "production") return "deny";
-  if (env.EXPO_PUBLIC_PREMIUM_PREVIEW === "1") return "allow";
+/**
+ * Design preview. Metro inlines `__DEV__` and `EXPO_PUBLIC_*`.
+ * Missing or unknown values stay closed.
+ */
+export function premiumPreviewDecision(): "allow" | "deny" {
+  const dev = typeof __DEV__ !== "undefined" && __DEV__ === true;
+  if (!dev) return "deny";
+  if (process.env.EXPO_PUBLIC_PREMIUM_PREVIEW === "1") return "allow";
   return "deny";
 }
