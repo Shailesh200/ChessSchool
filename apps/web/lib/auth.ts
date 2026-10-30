@@ -151,6 +151,8 @@ export async function registerUser(
   if (!email.includes("@")) return { error: "Enter a valid email." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!name.trim()) return { error: "Enter your name." };
+
+  const passwordHash = await hashPassword(password);
   const existing = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
   )[0];
@@ -161,7 +163,7 @@ export async function registerUser(
   const created = await insertStudentAccount({
     id,
     email,
-    passwordHash: await hashPassword(password),
+    passwordHash,
     name: name.trim(),
     now,
   });
@@ -255,6 +257,8 @@ export async function registerWithToken(
   if (!email.includes("@")) return { error: "Enter a valid email." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!name.trim()) return { error: "Enter your name." };
+
+  const passwordHash = await hashPassword(password);
   if ((await db.select().from(users).where(eq(users.email, email)).limit(1))[0]) {
     return { error: EMAIL_TAKEN };
   }
@@ -263,7 +267,7 @@ export async function registerWithToken(
   const created = await insertStudentAccount({
     id,
     email,
-    passwordHash: await hashPassword(password),
+    passwordHash,
     name: name.trim(),
     now,
   });
@@ -428,13 +432,20 @@ export async function deleteUserAccount(
   const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
   if (!user) return { error: "Account not found." };
   if (user.role === "admin") return { error: "Admin accounts cannot be deleted here." };
-  await db.delete(lessonRecords).where(eq(lessonRecords.userId, userId));
-  await db.delete(analyticsEvents).where(eq(analyticsEvents.userId, userId));
-  await db.delete(webVitals).where(eq(webVitals.userId, userId));
-  await db.delete(sessions).where(eq(sessions.userId, userId));
-  await db.delete(progress).where(eq(progress.userId, userId));
-  await db.delete(profiles).where(eq(profiles.userId, userId));
-  await db.delete(oauthAccounts).where(eq(oauthAccounts.userId, userId));
-  await db.delete(users).where(eq(users.id, userId));
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.delete(lessonRecords).where(eq(lessonRecords.userId, userId));
+      await tx.delete(analyticsEvents).where(eq(analyticsEvents.userId, userId));
+      await tx.delete(webVitals).where(eq(webVitals.userId, userId));
+      await tx.delete(sessions).where(eq(sessions.userId, userId));
+      await tx.delete(progress).where(eq(progress.userId, userId));
+      await tx.delete(profiles).where(eq(profiles.userId, userId));
+      await tx.delete(oauthAccounts).where(eq(oauthAccounts.userId, userId));
+      await tx.delete(users).where(eq(users.id, userId));
+    });
+  } catch {
+    return { error: "Could not delete account. Try again." };
+  }
   return { ok: true };
 }
