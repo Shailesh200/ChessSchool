@@ -70,11 +70,12 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           script: |
-            set -uo pipefail
             status=0
-            cd apps/mobile/android
-            chmod +x ./gradlew
-            ./gradlew assembleDebug --no-daemon || status=$?
+            cd apps/mobile/android || status=$?
+            if [ "$status" -eq 0 ]; then
+              chmod +x ./gradlew
+              ./gradlew assembleDebug --no-daemon || status=$?
+            fi
             if [ "$status" -eq 0 ]; then
               cd "$GITHUB_WORKSPACE"
               adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk || status=$?
