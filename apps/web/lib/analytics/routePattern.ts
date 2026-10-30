@@ -75,7 +75,9 @@ export function routeArea(pathnameOrPattern: string): RouteArea {
 
   if (p === "/") return "home";
   if (p.startsWith("/admin")) return "admin";
-  if (p === "/login" || p === "/register") return "auth";
+  if (p === "/login" || p === "/register" || p === "/forgot-password" || p === "/account/reset") {
+    return "auth";
+  }
 
   if (
     p.startsWith("/lesson") ||

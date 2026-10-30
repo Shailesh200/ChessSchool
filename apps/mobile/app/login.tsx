@@ -20,6 +20,7 @@ import { useType } from "@/typography";
 import { buttonHeight, font, radius, space } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
+import { FORGOT_PASSWORD_URL } from "@/forgotPassword";
 
 type GoogleBtnProps = {
   disabled?: boolean;
@@ -160,6 +161,18 @@ export default function LoginScreen() {
           importantForAutofill="no"
         />
 
+        {!isRegister && (
+          <Pressable
+            testID="login-forgot-password"
+            accessibilityRole="link"
+            accessibilityLabel="Forgot password? Opens the reset page in your browser"
+            onPress={() => void Linking.openURL(FORGOT_PASSWORD_URL)}
+            style={styles.forgot}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </Pressable>
+        )}
+
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Button
@@ -218,6 +231,20 @@ function makeStyles(colors: ReturnType<typeof useAppTheme>["colors"], type: Retu
       fontFamily: font.medium,
       color: colors.ink,
       marginBottom: space[3],
+    },
+    forgot: {
+      alignSelf: "flex-end",
+      minHeight: 44,
+      justifyContent: "center",
+      marginBottom: space[1],
+      marginTop: -space[2],
+    },
+    forgotText: {
+      color: colors.brand,
+      fontSize: 14,
+      fontFamily: font.bold,
+      textAlign: "right",
+      flexShrink: 1,
     },
     error: { color: colors.danger, fontFamily: font.semibold, marginBottom: 10, textAlign: "center" },
     switch: { color: colors.brand, fontFamily: font.bold, textAlign: "center", marginTop: space[4] },

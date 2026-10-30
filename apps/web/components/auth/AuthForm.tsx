@@ -79,6 +79,14 @@ export function AuthForm({
             label="Password"
             autoComplete={isRegister ? "new-password" : "current-password"}
           />
+          {!isRegister && (
+            <Link
+              href="/forgot-password"
+              className="text-brand -mt-1 flex min-h-11 items-center justify-end text-sm font-extrabold break-words"
+            >
+              Forgot password?
+            </Link>
+          )}
 
           {state?.error && (
             <p className="rounded-card bg-danger/10 text-danger px-3 py-2 text-sm font-bold">
