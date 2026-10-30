@@ -11,7 +11,7 @@ const UPDATED = "July 12, 2026";
 
 export default function PrivacyPage() {
   return (
-    <div className="bg-surface min-h-dvh px-5 py-8">
+    <main className="bg-surface min-h-dvh px-5 py-8">
       <div className="mx-auto max-w-2xl">
         <BackButton />
         <h1 className="text-ink mt-4 text-3xl font-extrabold">Privacy Policy</h1>
@@ -280,6 +280,6 @@ export default function PrivacyPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

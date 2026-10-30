@@ -15,5 +15,9 @@ export default async function OnboardingPage() {
     await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1)
   )[0];
   if (profile?.onboarded) redirect("/account");
-  return <OnboardingWizard name={user.name} />;
+  return (
+    <main>
+      <OnboardingWizard name={user.name} />
+    </main>
+  );
 }

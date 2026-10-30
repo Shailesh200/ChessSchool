@@ -30,5 +30,9 @@ export default async function PlacementPage() {
     orientation: "white" as const,
   }));
 
-  return <PlacementTest questions={questions} stages={stages} />;
+  return (
+    <main>
+      <PlacementTest questions={questions} stages={stages} />
+    </main>
+  );
 }

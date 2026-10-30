@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function OfflinePage() {
   return (
-    <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
+    <main className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
       <Mascot expression="happy" size={120} />
       <h1 className="text-ink text-2xl font-extrabold">You&apos;re offline</h1>
       <p className="text-ink-500 max-w-xs text-sm font-semibold">
@@ -16,6 +16,6 @@ export default function OfflinePage() {
       <Link href="/academy">
         <Button size="lg">Keep learning</Button>
       </Link>
-    </div>
+    </main>
   );
 }
