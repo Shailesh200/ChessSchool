@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChessBoard } from "@/features/board/ChessBoard";
+import { LessonStage } from "./LessonStage";
 import { ChessEngine } from "@/features/chess-engine/engine";
 import { CoachAvatar } from "@/components/ui/coachCharacters/CoachAvatar";
 import type { CoachAvatarState } from "@/features/coaching/characters";
@@ -569,9 +570,9 @@ export function LessonPlayer({
     : (step.highlightRanks ?? []);
 
   return (
-    <div className="bg-surface flex min-h-dvh flex-col">
-      <div className="pt-safe bg-surface/90 sticky top-0 z-20 px-4 py-3 backdrop-blur lg:px-8">
-        <div className="mx-auto flex max-w-xl items-center gap-3 lg:max-w-6xl">
+    <LessonStage
+      header={
+        <div className="lesson-stage-header-row">
           <button
             onClick={() => {
               startNav();
@@ -616,11 +617,9 @@ export function LessonPlayer({
             )}
           </button>
         </div>
-      </div>
-
-      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 px-4 py-4 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,560px)_minmax(280px,1fr)] lg:items-start lg:gap-8 lg:px-8 lg:py-6">
-        {/* Coach panel — above board on mobile, right column on desktop */}
-        <div className="order-1 flex min-h-[4.75rem] shrink-0 items-start gap-2 lg:sticky lg:top-24 lg:order-2 lg:min-h-0 lg:flex-col">
+      }
+      coach={
+        <>
           <CoachAvatar
             character={coachCharacter}
             state={avatarState}
@@ -631,129 +630,117 @@ export function LessonPlayer({
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border-hairline bg-surface-card text-ink relative flex flex-1 flex-col gap-1 rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)] lg:w-full lg:rounded-2xl"
+            data-testid="lesson-coach-bubble"
+            className="lesson-stage-bubble border-hairline bg-surface-card text-ink relative rounded-2xl rounded-bl-sm border px-4 py-3 text-sm leading-relaxed font-semibold [box-shadow:var(--shadow-card)]"
           >
             <p className="whitespace-pre-wrap">{feedbackText}</p>
             {lesson.exam && (
-              <span className="rounded-pill bg-warning/20 text-warning self-start px-1.5 py-0.5 text-[10px] font-extrabold">
+              <span className="rounded-pill bg-warning/20 text-warning mt-1 inline-block self-start px-1.5 py-0.5 text-[0.625rem] font-extrabold">
                 EXAM
               </span>
             )}
           </motion.div>
-          {step.kind !== "quiz" && (
-            <div className="rounded-card border-hairline bg-surface-card/70 hidden w-full items-start gap-2 border px-3 py-2 lg:flex">
-              <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
-              <p className="text-ink-500 text-[11px] leading-snug font-semibold">
-                {pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag })}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Board + controls */}
-        <div className="order-2 flex min-h-0 flex-1 flex-col gap-4 lg:order-1 lg:min-h-[520px]">
-          {step.kind === "quiz" ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-start overflow-y-auto px-2 py-1">
-              <PreschoolQuiz
+        </>
+      }
+      board={
+        step.kind === "quiz" ? (
+          <div className="flex w-full flex-col items-center px-2 py-1">
+            <PreschoolQuiz
+              key={index}
+              step={step}
+              phase={phase}
+              answerLabel={quizLabels?.answers}
+              onAnswer={handleQuizAnswer}
+            />
+          </div>
+        ) : (
+          step.fen && (
+            <div
+              className="lesson-stage-board-frame relative"
+              data-testid="lesson-board-frame"
+            >
+              {/* Size comes from the stage's scroll container (see LessonStage),
+                  never re-measured, so the board cannot resize/flicker when the
+                  feedback footer or coach text changes. */}
+              <ChessBoard
                 key={index}
-                step={step}
-                phase={phase}
-                answerLabel={quizLabels?.answers}
-                onAnswer={handleQuizAnswer}
+                boardId={`lesson-${lesson.id}`}
+                fen={displayFen ?? step.fen}
+                orientation={step.orientation ?? "white"}
+                onMove={handleMove}
+                showNotation={preschool}
+                arrows={boardArrows}
+                highlight={boardHighlight}
+                highlightFiles={boardHighlightFiles}
+                highlightRanks={boardHighlightRanks}
+                lastMove={oppMove}
+                successSquare={phase === "correct" ? movedTo : null}
+                checkSquare={phase === "wrong" ? movedTo : null}
+                interactive={step.kind === "move" && phase === "playing"}
               />
             </div>
+          )
+        )
+      }
+      controls={
+        <div className="lesson-stage-controls-row" data-testid="lesson-hint-bar">
+          {toMove ? (
+            <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
+              <span
+                className={`border-ink-300 inline-block h-4 w-4 shrink-0 rounded-full border ${
+                  toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
+                }`}
+              />
+              {toMove === "w" ? "White" : "Black"} to move
+            </span>
           ) : (
-            step.fen && (
-              <div className="flex min-h-0 flex-1 items-center justify-center">
-                {/* Viewport-based size = never re-measured, so the board cannot
-                  resize/flicker when the feedback footer or coach text changes. */}
-                <div
-                  className="relative lg:mx-auto"
-                  style={{
-                    width: "min(92vw, calc(100dvh - 15rem))",
-                    maxWidth: 520,
-                  }}
-                >
-                  <ChessBoard
-                    key={index}
-                    boardId={`lesson-${lesson.id}`}
-                    fen={displayFen ?? step.fen}
-                    orientation={step.orientation ?? "white"}
-                    onMove={handleMove}
-                    showNotation={preschool}
-                    arrows={boardArrows}
-                    highlight={boardHighlight}
-                    highlightFiles={boardHighlightFiles}
-                    highlightRanks={boardHighlightRanks}
-                    lastMove={oppMove}
-                    successSquare={phase === "correct" ? movedTo : null}
-                    checkSquare={phase === "wrong" ? movedTo : null}
-                    interactive={step.kind === "move" && phase === "playing"}
-                  />
-                </div>
-              </div>
-            )
+            <span />
           )}
-
-          {/* Fixed-height row so toggling its contents never shifts the board (no flicker). */}
-          <div className="flex h-10 items-center justify-between gap-2">
-            {toMove ? (
-              <span className="rounded-pill bg-surface-sunken text-ink flex items-center gap-2 px-3 py-1.5 text-sm font-extrabold">
-                <span
-                  className={`border-ink-300 inline-block h-4 w-4 rounded-full border ${
-                    toMove === "w" ? "bg-white" : "bg-[#1c1b2e]"
-                  }`}
-                />
-                {toMove === "w" ? "White" : "Black"} to move
-              </span>
-            ) : (
-              <span />
-            )}
-            {isObserving ? (
-              <p className="text-brand flex items-center justify-center gap-1.5 text-center text-sm font-bold">
-                <Icon name="playFill" size={14} />
-                Watching the example…
-              </p>
-            ) : solvable && !lesson.exam ? (
-              <button
-                onClick={() => {
-                  setHintLevel((h) => Math.min(h + 1, 2));
-                  audio.play("notify");
-                  haptics.fire("tap");
-                }}
-                disabled={hintLevel >= 2}
-                className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
-              >
-                <Icon name="bulb" size={14} className="text-brand shrink-0" />
-                {hintLevel === 0
-                  ? "Show a hint"
-                  : hintLevel === 1
-                    ? "Show the move"
-                    : "Follow the arrow"}
-              </button>
-            ) : null}
-          </div>
-
-          {/* Fills the space below the board + reinforces the concept */}
-          {step.kind !== "quiz" && (
-            <div className="rounded-card border-hairline bg-surface-card/70 mx-auto mt-1 flex w-full max-w-xs items-start gap-2 border px-3 py-2 lg:hidden">
-              <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
-              <p className="text-ink-500 text-[11px] leading-snug font-semibold">
-                {pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag })}
-              </p>
-            </div>
-          )}
+          {isObserving ? (
+            <p className="text-brand flex items-center justify-center gap-1.5 text-center text-sm font-bold">
+              <Icon name="playFill" size={14} />
+              Watching the example…
+            </p>
+          ) : solvable && !lesson.exam ? (
+            <button
+              onClick={() => {
+                setHintLevel((h) => Math.min(h + 1, 2));
+                audio.play("notify");
+                haptics.fire("tap");
+              }}
+              disabled={hintLevel >= 2}
+              className="btn-tactile rounded-pill bg-surface-sunken text-ink-700 inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold disabled:opacity-50"
+            >
+              <Icon name="bulb" size={14} className="text-brand shrink-0" />
+              {hintLevel === 0
+                ? "Show a hint"
+                : hintLevel === 1
+                  ? "Show the move"
+                  : "Follow the arrow"}
+            </button>
+          ) : null}
         </div>
-      </div>
-
-      <FeedbackBar
-        stepKind={step.kind}
-        observeReady={step.kind !== "observe" || observeDone}
-        playing={phase === "playing"}
-        quizReady={step.kind === "quiz" && phase === "correct"}
-        onContinue={advance}
-      />
-    </div>
+      }
+      tip={
+        step.kind !== "quiz" ? (
+          <div className="rounded-card border-hairline bg-surface-card/70 flex w-full items-start gap-2 border px-3 py-2">
+            <Icon name="bulb" size={18} className="text-brand mt-0.5 shrink-0" />
+            <p className="text-ink-500 min-w-0 text-[0.6875rem] leading-snug font-semibold">
+              {pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag })}
+            </p>
+          </div>
+        ) : null
+      }
+      footer={
+        <FeedbackBar
+          stepKind={step.kind}
+          observeReady={step.kind !== "observe" || observeDone}
+          playing={phase === "playing"}
+          quizReady={step.kind === "quiz" && phase === "correct"}
+          onContinue={advance}
+        />
+      }
+    />
   );
 }
 
@@ -778,7 +765,7 @@ function FeedbackBar({
 
   // Always reserve the footer height so the board never resizes (no CLS / flicker).
   return (
-    <div className="pb-safe sticky bottom-0 z-20 min-h-[5.25rem] px-4 pt-3">
+    <div className="lesson-stage-footer-inner">
       <AnimatePresence>
         {show && (
           <motion.div

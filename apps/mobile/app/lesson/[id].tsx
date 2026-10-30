@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine, pickLessonHint } from "@chess-school/core";
 import { ChessBoard } from "@/ChessBoard";
 import { Button } from "@/Button";
+import { LessonStageLayout } from "@/LessonStageLayout";
 import { Icon } from "@/Icon";
 import { Confetti } from "@/Confetti";
 import { CoachAvatar } from "@/CoachAvatar";
@@ -110,7 +111,6 @@ function makeStyles(type: ReturnType<typeof useType>) {
       ...shadowCard,
     },
     bubbleText: { ...type.sm, fontFamily: font.semibold, color: colors.ink, flexShrink: 1 },
-    boardWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
     hintBar: {
       marginHorizontal: 16,
       backgroundColor: colors.surfaceCard,
@@ -176,8 +176,6 @@ export default function LessonScreen() {
   const { hints: hintsEnabled } = appSettings;
   const type = useType();
   const styles = useMemo(() => makeStyles(type), [type]);
-  const { width } = useWindowDimensions();
-  const boardSize = Math.min(width - 16, 470);
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -681,117 +679,126 @@ export default function LessonScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      {/* Top bar: back · progress · counter · flip */}
-      <View style={styles.topBar}>
-        <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
-          <View style={{ transform: [{ rotate: "180deg" }] }}>
-            <Icon name="chevronRight" size={20} color={colors.ink} />
-          </View>
-        </Pressable>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${((index + (phase === "correct" ? 1 : 0)) / total) * 100}%` }]} />
-        </View>
-        <Text style={styles.counter}>
-          {index + 1}/{total}
-        </Text>
-        <Pressable style={styles.circle} onPress={() => setLessonSound((v) => !v)} hitSlop={8} accessibilityLabel={lessonSound ? "Mute lesson sounds" : "Unmute lesson sounds"}>
-          <Icon name={lessonSound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
-        </Pressable>
-        <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
-          <Icon name="flip" size={18} color={colors.ink} />
-        </Pressable>
-      </View>
-
-      {/* Coach */}
-      <View style={styles.coach}>
-        <CoachAvatar character={coachCharacter} state={avatarState} size={72} />
-        <View style={styles.bubble}>
-          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            <Text testID="lesson-coach" style={styles.bubbleText}>{feedback}</Text>
-          </ScrollView>
-        </View>
-      </View>
-
-      {/* Board or quiz fills the remaining space, centered */}
-      <View style={styles.boardWrap}>
-        {step.kind === "quiz" ? (
-          <PreschoolQuiz
-            key={step.id}
-            step={step}
-            phase={phase}
-            onAnswer={(ok) => {
-              if (ok) setPhase("correct");
-              else {
-                setPhase("wrong");
-                timers.current.push(setTimeout(() => setPhase("playing"), 900));
-              }
-            }}
-          />
-        ) : (
+      <LessonStageLayout
+        hasBoard={step.kind !== "quiz"}
+        header={
           <>
-            {step.kind === "move" && phase === "playing" && (
-              <View style={styles.turnRow}>
-                <View style={[styles.turnDot, { backgroundColor: (displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? colors.ink : "#fff" }]} />
-                <Text style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
+            {/* Top bar: back · progress · counter · flip */}
+            <View style={styles.topBar}>
+              <Pressable style={styles.circle} onPress={() => router.back()} hitSlop={8}>
+                <View style={{ transform: [{ rotate: "180deg" }] }}>
+                  <Icon name="chevronRight" size={20} color={colors.ink} />
+                </View>
+              </Pressable>
+              <View style={styles.track}>
+                <View style={[styles.fill, { width: `${((index + (phase === "correct" ? 1 : 0)) / total) * 100}%` }]} />
               </View>
-            )}
-            <ChessBoard
-              fen={displayFen ?? step.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"}
-              size={boardSize}
-              orientation={(step.orientation ?? "white") === "black" ? (flipped ? "white" : "black") : flipped ? "black" : "white"}
-              onMove={onMove}
-              interactive={step.kind === "move" && phase === "playing"}
-              showNotation={preschool}
-              lastMove={lastMove}
-              arrows={boardArrows}
-              highlights={boardHighlights}
-              highlightFiles={boardHighlightFiles}
-              highlightRanks={boardHighlightRanks}
-              successSquare={phase === "correct" ? lastMove?.to ?? null : null}
-              checkSquare={phase === "wrong" ? lastMove?.to ?? null : null}
-            />
+              <Text style={styles.counter}>
+                {index + 1}/{total}
+              </Text>
+              <Pressable style={styles.circle} onPress={() => setLessonSound((v) => !v)} hitSlop={8} accessibilityLabel={lessonSound ? "Mute lesson sounds" : "Unmute lesson sounds"}>
+                <Icon name={lessonSound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
+              </Pressable>
+              <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
+                <Icon name="flip" size={18} color={colors.ink} />
+              </Pressable>
+            </View>
+          </>
+        }
+        coach={(layout) => (
+          <>
+            <View style={styles.coach}>
+              <CoachAvatar character={coachCharacter} state={avatarState} size={72} />
+              <View style={[styles.bubble, { maxHeight: layout.bubbleMaxHeight }]}>
+                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  <Text testID="lesson-coach" style={styles.bubbleText}>{feedback}</Text>
+                </ScrollView>
+              </View>
+            </View>
           </>
         )}
-      </View>
-
-      {/* Hint bar — board steps only */}
-      {step.kind !== "quiz" && (
-      <View style={styles.hintBar}>
-        <View style={styles.hintRow}>
-          <Icon name="cap" size={16} color={colors.ink500} />
-          <Text style={styles.hintText}>{hint}</Text>
-        </View>
-        {hintsEnabled && solvable && (
-          <Pressable
-            style={styles.hintBtn}
-            onPress={() => setHintLevel((h) => Math.min(2, h + 1))}
-          >
+        board={(layout) => (
+          <>
+              {step.kind === "quiz" ? (
+                <PreschoolQuiz
+                  key={step.id}
+                  step={step}
+                  phase={phase}
+                  onAnswer={(ok) => {
+                    if (ok) setPhase("correct");
+                    else {
+                      setPhase("wrong");
+                      timers.current.push(setTimeout(() => setPhase("playing"), 900));
+                    }
+                  }}
+                />
+              ) : (
+                <>
+                  {step.kind === "move" && phase === "playing" && (
+                    <View style={styles.turnRow}>
+                      <View style={[styles.turnDot, { backgroundColor: (displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? colors.ink : "#fff" }]} />
+                      <Text style={styles.turnText}>{(displayFen ?? step.fen ?? "w").split(" ")[1] === "b" ? "Black" : "White"} to move</Text>
+                    </View>
+                  )}
+                  <ChessBoard
+                    fen={displayFen ?? step.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"}
+                    size={layout.boardSize}
+                    orientation={(step.orientation ?? "white") === "black" ? (flipped ? "white" : "black") : flipped ? "black" : "white"}
+                    onMove={onMove}
+                    interactive={step.kind === "move" && phase === "playing"}
+                    showNotation={preschool}
+                    lastMove={lastMove}
+                    arrows={boardArrows}
+                    highlights={boardHighlights}
+                    highlightFiles={boardHighlightFiles}
+                    highlightRanks={boardHighlightRanks}
+                    successSquare={phase === "correct" ? lastMove?.to ?? null : null}
+                    checkSquare={phase === "wrong" ? lastMove?.to ?? null : null}
+                  />
+                </>
+              )}
+          </>
+        )}
+        hint={
+          step.kind !== "quiz" ? (
+          <View style={styles.hintBar}>
             <View style={styles.hintRow}>
-              <Icon name="bulb" size={14} color={colors.brand} />
-              <Text style={styles.hintBtnText}>
-                {hintLevel === 0 ? "Show a hint" : hintLevel === 1 ? "Show the move" : "Follow the arrow"}
-              </Text>
+              <Icon name="cap" size={16} color={colors.ink500} />
+              <Text style={styles.hintText}>{hint}</Text>
             </View>
-          </Pressable>
-        )}
-      </View>
-      )}
-
-      {/* Bottom CTA */}
-      <View style={styles.bottom}>
-        {showContinue ? (
-          <Button
-            label={advancing || resolvingNext ? "Loading…" : step.kind === "observe" && !observeReady ? "Watching…" : "Continue"}
-            variant="success"
-            disabled={advancing || resolvingNext || (step.kind === "observe" && !observeReady)}
-            onPress={() => advance()}
-          />
-        ) : step.kind === "quiz" ? (
-          <Text style={styles.moveCue}>Tap the answer you think is right</Text>
-        ) : (
-          <Text style={styles.moveCue}>Your move — tap a piece to begin</Text>
-        )}
-      </View>
+            {hintsEnabled && solvable && (
+              <Pressable
+                style={styles.hintBtn}
+                onPress={() => setHintLevel((h) => Math.min(2, h + 1))}
+              >
+                <View style={styles.hintRow}>
+                  <Icon name="bulb" size={14} color={colors.brand} />
+                  <Text style={styles.hintBtnText}>
+                    {hintLevel === 0 ? "Show a hint" : hintLevel === 1 ? "Show the move" : "Follow the arrow"}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+          </View>
+          ) : null
+        }
+        footer={
+                    <View style={styles.bottom}>
+            {showContinue ? (
+              <Button
+                label={advancing || resolvingNext ? "Loading…" : step.kind === "observe" && !observeReady ? "Watching…" : "Continue"}
+                variant="success"
+                disabled={advancing || resolvingNext || (step.kind === "observe" && !observeReady)}
+                onPress={() => advance()}
+              />
+            ) : step.kind === "quiz" ? (
+              <Text style={styles.moveCue}>Tap the answer you think is right</Text>
+            ) : (
+              <Text style={styles.moveCue}>Your move — tap a piece to begin</Text>
+            )}
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine, getBotMove, eloToConfig, type VerboseMove } from "@chess-school/core";
+import { fitBoardSize } from "@/lessonLayout";
 import { ChessBoard } from "@/ChessBoard";
 import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
@@ -104,8 +105,18 @@ export default function GameScreen() {
   const bot = botProfile(elo);
   const { avatar, coachCharacter, coachPersonality, sound } = useSettings();
   const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
-  const { width } = useWindowDimensions();
-  const boardSize = Math.min(width - 24, 440);
+  const { width, fontScale } = useWindowDimensions();
+  // UI-M-017: the board is sized from the space really left between the header/coach
+  // and the scrubber (measured), never below BOARD_MIN; the middle region scrolls
+  // instead of letting the player bars/board spill over the scrubber row.
+  const [stage, setStage] = useState<{ w: number; h: number } | null>(null);
+  const boardSize = fitBoardSize({
+    availW: stage?.w ?? width,
+    availH: stage?.h ?? Number.POSITIVE_INFINITY,
+    reserved: Math.ceil(2 * 56 * Math.min(Math.max(fontScale || 1, 1), 4)) + space[2] * 2 + 8,
+    max: 440,
+    sidePad: 24,
+  });
   const engineRef = useRef(new ChessEngine());
   const gameIdRef = useRef(`g${Date.now()}`);
   const createdAtRef = useRef(Date.now());
@@ -390,7 +401,15 @@ export default function GameScreen() {
         </View>
       )}
 
-      <View style={{ flex: 1, justifyContent: "center" }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        onLayout={(e) => {
+          const { width: w, height: h } = e.nativeEvent.layout;
+          setStage((p) => (p && p.w === w && p.h === h ? p : { w, h }));
+        }}
+        testID="game-scroll"
+      >
         <PlayerBar
           name={`${bot.name} · ${elo}`}
           botElo={elo}
@@ -428,7 +447,7 @@ export default function GameScreen() {
           active={!thinking && !over && !viewing && turn === "w"}
           clockMs={timeMs > 0 ? whiteMs : undefined}
         />
-      </View>
+      </ScrollView>
 
       <View style={styles.scrubber}>
         <Pressable style={styles.scrubBtn} onPress={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}>
