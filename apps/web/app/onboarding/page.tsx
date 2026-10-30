@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { PremiumOnboardingGate } from "@/components/onboarding/PremiumOnboardingGate";
 
 export const metadata = { title: "Enrollment" };
 export const dynamic = "force-dynamic";
@@ -15,5 +15,5 @@ export default async function OnboardingPage() {
     await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1)
   )[0];
   if (profile?.onboarded) redirect("/account");
-  return <OnboardingWizard name={user.name} />;
+  return <PremiumOnboardingGate name={user.name} />;
 }

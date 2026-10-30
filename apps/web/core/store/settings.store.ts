@@ -176,6 +176,7 @@ export const useSettings = create<SettingsState>()(
         const s = (persisted ?? {}) as Partial<SettingsState> & {
           coachPersonality?: string;
           coachCharacter?: string;
+          uiShell?: string;
         };
         if (version < 2) {
           if (!s.schoolTheme) s.schoolTheme = "university";
@@ -221,8 +222,11 @@ export const useSettings = create<SettingsState>()(
           s.coachCharacter = c;
           s.coachPersonality = c;
         }
-        if (version < 12 && !s.uiKit) {
-          s.uiKit = "premium";
+        if (version < 12) {
+          if (!s.uiKit) {
+            s.uiKit =
+              s.uiShell === "classic" || s.uiShell === "legacy" ? "legacy" : "premium";
+          }
         }
         return { ...defaults, ...s } as SettingsState;
       },

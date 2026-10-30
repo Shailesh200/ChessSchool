@@ -27,6 +27,8 @@ import {
 } from "@chess-school/progression";
 import { EnrollPromptBanner } from "@/components/auth/EnrollPrompt";
 import type { Catalog } from "@/features/school/structure";
+import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { PremiumAcademyClient } from "@/features/premium-ui/screens/PremiumAcademyClient";
 
 const CampusMap = dynamic(
   () => import("@/features/school/CampusMap").then((m) => ({ default: m.CampusMap })),
@@ -55,6 +57,14 @@ type DailyPuzzle = {
 };
 
 export function HomeClient({ catalog }: { catalog: Catalog }) {
+  const premium = usePremiumUi();
+  if (premium) {
+    return <PremiumAcademyClient catalog={catalog} />;
+  }
+  return <ClassicHomeClient catalog={catalog} />;
+}
+
+function ClassicHomeClient({ catalog }: { catalog: Catalog }) {
   const todayXp = useProgression((s) => s.todayXp);
   const dailyGoal = useProgression((s) => s.dailyGoalXp);
   const streak = useProgression((s) => s.streak);

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PULSE_PENDING_AUTH } from "@/lib/pulse";
+import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { PremiumAuthForm } from "@/features/premium-ui/screens/PremiumAuthForm";
 
 type Action = (
   prev: { error?: string } | undefined,
@@ -26,6 +28,11 @@ export function AuthForm({
   const next =
     searchParams.get("next") ?? (mode === "register" ? "/onboarding" : "/welcome");
   const isRegister = mode === "register";
+  const premium = usePremiumUi();
+
+  if (premium) {
+    return <PremiumAuthForm mode={mode} action={action} />;
+  }
 
   return (
     <div className="bg-surface flex min-h-dvh flex-col items-center justify-center px-6">

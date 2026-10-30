@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { PremiumProfileScreen } from "@/features/premium-ui/screens/PremiumProfileScreen";
 import { Mascot } from "@/components/ui/Mascot";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -53,6 +55,14 @@ const HUB_LINKS: {
 ];
 
 export default function ProfilePage() {
+  const premium = usePremiumUi();
+  if (premium) {
+    return <PremiumProfileScreen />;
+  }
+  return <ClassicProfilePage />;
+}
+
+function ClassicProfilePage() {
   const mounted = useMounted();
   const xp = useProgression((s) => s.xp);
   const streak = useProgression((s) => s.streak);

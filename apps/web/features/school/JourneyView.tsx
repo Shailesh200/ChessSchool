@@ -20,12 +20,46 @@ import {
   JourneyProgressSummary,
   type JourneyNodeData,
 } from "./JourneyLessonList";
+import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { PremiumClassDetailView } from "@/features/premium-ui/screens/PremiumClassDetailView";
 
 type NodeStatus = "completed" | "active" | "locked" | "exam";
 type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
 
 /** Subject Journey — a connected milestone path of lessons → exam (#96/#97). */
 export function JourneyView({
+  cls,
+  lessons,
+  examLesson,
+  allClasses,
+}: {
+  cls: { id: string; title: string; emoji: string; blurb: string; examId?: string };
+  lessons: LessonLite[];
+  examLesson: { id: string; title: string } | null;
+  allClasses: SchoolClass[];
+}) {
+  const premium = usePremiumUi();
+  if (premium) {
+    return (
+      <PremiumClassDetailView
+        cls={cls}
+        lessons={lessons}
+        examLesson={examLesson}
+        allClasses={allClasses}
+      />
+    );
+  }
+  return (
+    <ClassicJourneyView
+      cls={cls}
+      lessons={lessons}
+      examLesson={examLesson}
+      allClasses={allClasses}
+    />
+  );
+}
+
+function ClassicJourneyView({
   cls,
   lessons,
   examLesson,
