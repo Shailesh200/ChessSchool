@@ -78,6 +78,7 @@ export function createBoardPanConfig<Cell>(d: BoardPanDeps<Cell>) {
       d.setDragXY(null);
       setDragActive(false);
       if (!drag) return;
+      if (!d.interactiveRef.current) return;
       const draggedFar = d.movedRef.current && target && target !== drag.from;
       if (draggedFar && drag.piece) {
         d.tryMoveRef.current(drag.from, target!);

@@ -169,3 +169,15 @@ describe("ChessBoard drag-active callback (Android fallback: lock the lesson Scr
     expect(lesson).toMatch(/useEffect\(\(\) => \{\s*setPieceDragActive\(false\);\s*\}, \[id, index\]\)/);
   });
 });
+
+describe("boardPan release when interactive flips false mid-drag", () => {
+  it("drops the move but still unlocks scroll (onPieceDragActiveChange false)", () => {
+    const { pan, d, calls } = setup();
+    pan.onPanResponderGrant(at(10, 10));
+    pan.onPanResponderMove(at(10, 80));
+    d.interactiveRef.current = false;
+    pan.onPanResponderRelease(at(10, 80));
+    expect(calls.moves).toEqual([]);
+    expect(calls.dragActive).toEqual([true, false]);
+  });
+});
