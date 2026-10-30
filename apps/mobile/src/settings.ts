@@ -170,8 +170,14 @@ export async function loadSettingsFromAccount() {
 
 export const settings = {
   get: () => state,
+  /**
+   * The wipe path (logout, a 401, delete: wipeUserData). It restores every default EXCEPT
+   * shareAnalytics, which stays off: DEFAULTS.shareAnalytics (true) is the fresh-install value, so
+   * resetting to it would track a user who had opted out until the next sign-in hydrates their
+   * account setting. DEFAULTS itself is not changed.
+   */
   reset: () => {
-    state = { ...DEFAULTS };
+    state = { ...DEFAULTS, shareAnalytics: false };
     persist();
     emit();
   },

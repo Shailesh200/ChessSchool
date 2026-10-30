@@ -119,10 +119,11 @@ function expectNothingLeft(r: Rig, allowed: string[]) {
   expect(r.cache.cachePeek("learn-screen")).toBeNull();
   expect(r.cache.cachePeek("lesson:7")).toBeNull();
   expect(r.store.progressStore.get()).toBeNull();
-  // settings are back to the defaults, in memory and in the saved copy
-  expect(r.settingsMod.settings.get()).toEqual(r.defaults);
+  // settings are back to the defaults (analytics stays off, bleed-b), in memory and in the saved copy
+  const afterWipe = { ...r.defaults, shareAnalytics: false };
+  expect(r.settingsMod.settings.get()).toEqual(afterWipe);
   const saved = disk.get("chessschool.settings");
-  if (saved) expect(JSON.parse(saved)).toEqual(r.defaults);
+  if (saved) expect(JSON.parse(saved)).toEqual(afterWipe);
   expect(JSON.stringify([...disk.values()])).not.toContain("A-seat-token");
   expect(JSON.stringify([...disk.values()])).not.toContain("A-session-id");
   expect(JSON.stringify([...disk.values()])).not.toContain("a-secret@x.test");
@@ -207,6 +208,56 @@ describe("wipeUserData: an Academy fetch in flight across the wipe (bleed-a)", (
       false,
     );
     expect(r.cache.cachePeek("learn-screen")).toBeNull();
+  });
+});
+
+describe("wipeUserData: analytics opt-out survives the wipe (bleed-b)", () => {
+  async function trackedPosts(): Promise<number> {
+    const { api } = await import("./api");
+    const { trackEvent } = await import("./productAnalytics/track");
+    vi.mocked(api).mockClear();
+    vi.useFakeTimers();
+    try {
+      trackEvent("page_view");
+      await vi.advanceTimersByTimeAsync(2000);
+    } finally {
+      vi.useRealTimers();
+    }
+    return vi.mocked(api).mock.calls.filter((c) => String(c[0]).includes("/api/events"))
+      .length;
+  }
+
+  it("control: an opted-in user is tracked (the harness sees a post)", async () => {
+    const r = await boot();
+    expect(r.settingsMod.settings.get().shareAnalytics).toBe(true);
+    expect(await trackedPosts()).toBe(1);
+  });
+
+  it("an opted-out user is still not tracked after a logout", async () => {
+    const r = await boot();
+    r.settingsMod.hydrateSettings({ shareAnalytics: false });
+    await r.wipe.wipeUserData();
+    expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
+    expect(await trackedPosts()).toBe(0);
+  });
+
+  it("an opted-out user is still not tracked after a 401", async () => {
+    const r = await boot();
+    r.settingsMod.hydrateSettings({ shareAnalytics: false });
+    await r.wipe.wipeUserData({ expired: true });
+    expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
+    expect(await trackedPosts()).toBe(0);
+  });
+
+  it("a fresh install still defaults to analytics on (only the reset path changed)", async () => {
+    vi.resetModules();
+    const fresh = await import("./settings");
+    const initial = { ...fresh.settings.get() };
+    expect(initial.shareAnalytics).toBe(true);
+    fresh.hydrateSettings({ shareAnalytics: false, avatar: "ava-other" });
+    fresh.settings.reset();
+    // every default is back, except that analytics stays off
+    expect(fresh.settings.get()).toEqual({ ...initial, shareAnalytics: false });
   });
 });
 
