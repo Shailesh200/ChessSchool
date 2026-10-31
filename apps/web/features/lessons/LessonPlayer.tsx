@@ -604,7 +604,9 @@ export function LessonPlayer({
   const tipText =
     devPreview?.hintLine ??
     pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag });
-  const kitScreen = resolveKitLessonScreen({ phase, step, hintLevel });
+  const kitScreen = lesson.exam
+    ? "exam"
+    : resolveKitLessonScreen({ phase, step, hintLevel });
   const successTitle =
     phase === "correct" && promoted
       ? `Promoted to a ${PROMO_NAMES[promoted] ?? "piece"}!`
