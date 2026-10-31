@@ -382,21 +382,21 @@ describe("ably token API integration", () => {
     for (let i = 0; i < GUEST_IP_RATE_LIMIT; i++) {
       const res = await getToken(
         new Request(tokenUrl(null), {
-          headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": ip },
+          headers: { "x-seat-token": `w.${randomUUID()}`, "x-forwarded-for": ip },
         }),
       );
       expect(res.status).toBe(400);
     }
     const blocked = await getToken(
       new Request(tokenUrl(null), {
-        headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": ip },
+        headers: { "x-seat-token": `w.${randomUUID()}`, "x-forwarded-for": ip },
       }),
     );
     expect(blocked.status).toBe(429);
     expect(blocked.headers.get("Retry-After")).toBeTruthy();
     const otherIp = await getToken(
       new Request(tokenUrl(null), {
-        headers: { "x-seat-token": `w.${randomUUID()}`, "x-real-ip": "203.0.113.61" },
+        headers: { "x-seat-token": `w.${randomUUID()}`, "x-forwarded-for": "203.0.113.61" },
       }),
     );
     expect(otherIp.status).toBe(400);
