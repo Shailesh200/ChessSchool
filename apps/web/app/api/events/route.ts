@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getApiUser } from "@/lib/auth";
 import { analyticsBatchSchema } from "@/lib/api-schemas";
+import { userShareAnalyticsOptIn } from "@/lib/analytics/account-consent.server";
 import { insertAnalyticsEvents } from "@/lib/analytics/serverInsert";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
@@ -15,6 +16,15 @@ export async function POST(req: Request) {
   });
   if (limited) return limited;
 
+  const user = await getApiUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (!(await userShareAnalyticsOptIn(user.id))) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const raw = await req.json().catch(() => null);
   if (raw === null) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
@@ -23,14 +33,13 @@ export async function POST(req: Request) {
   if (!parsed.success)
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
 
-  const user = await getApiUser(req);
   try {
     await insertAnalyticsEvents(
       parsed.data.events.map((e) => ({
         name: e.name,
         props: e.props,
         pathname: e.pathname ?? null,
-        userId: user?.id ?? null,
+        userId: user.id,
         sessionId: e.sessionId ?? null,
       })),
     );
