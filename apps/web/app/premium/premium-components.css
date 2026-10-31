@@ -109,6 +109,28 @@ html:not([data-ui-kit]) .premium-card {
   border-radius: var(--cs-radius-lg);
 }
 
+/* Filled controls on /plan. Unlayered so they beat `button { color: inherit }`
+   and follow kit tokens in both light and midnight (no raw hex). */
+html[data-ui-kit="premium"] .cs-fill-brand,
+html:not([data-ui-kit]) .cs-fill-brand {
+  background: var(--cs-brand);
+  color: var(--cs-text-on-brand);
+}
+html[data-ui-kit="premium"] .cs-fill-success,
+html:not([data-ui-kit]) .cs-fill-success {
+  background: var(--cs-success);
+  color: var(--cs-text-on-brand);
+}
+html[data-ui-kit="premium"] .cs-accent-note,
+html:not([data-ui-kit]) .cs-accent-note {
+  background: var(--cs-accent-soft);
+  color: var(--cs-accent-soft-text);
+}
+html[data-ui-kit="premium"] .cs-accent-ink,
+html:not([data-ui-kit]) .cs-accent-ink {
+  color: var(--cs-accent-soft-text);
+}
+
 html[data-ui-kit="premium"] .premium-chip,
 html:not([data-ui-kit]) .premium-chip {
   display: inline-flex;

@@ -125,7 +125,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                 label="Daily goal progress"
               />
               <div className="text-ink-700 mt-3 flex items-center gap-2 text-xs font-bold">
-                <span className="rounded-pill bg-accent/10 text-accent-600 inline-flex items-center gap-1 px-2 py-1">
+                <span className="cs-accent-note rounded-pill inline-flex items-center gap-1 px-2 py-1">
                   <Icon name="flame" size={14} className="shrink-0" />
                   {streak}-day streak
                 </span>
@@ -148,7 +148,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
 
             {daysAway >= 2 && (
               <Card className="border-accent-400 bg-accent/5">
-                <p className="text-accent-600 inline-flex items-center gap-1.5 text-sm font-extrabold">
+                <p className="cs-accent-ink inline-flex items-center gap-1.5 text-sm font-extrabold">
                   <Icon name="sparkle" size={16} className="shrink-0" />
                   Welcome back!
                 </p>
@@ -158,7 +158,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                 </p>
                 <Link
                   href={nextLessonId ? `/lesson/${nextLessonId}` : "/"}
-                  className="text-accent-600 mt-2 inline-block text-sm font-bold"
+                  className="cs-accent-ink mt-2 inline-block text-sm font-bold"
                 >
                   Resume learning →
                 </Link>
@@ -236,9 +236,9 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                       plan.setSchedule(s);
                       haptics.fire("select");
                     }}
-                    className={`rounded-pill flex-1 py-2 text-sm font-bold capitalize ${
+                      className={`rounded-pill flex-1 py-2 text-sm font-bold capitalize ${
                       plan.schedule === s
-                        ? "bg-brand text-white"
+                        ? "cs-fill-brand"
                         : "bg-surface-sunken text-ink-500"
                     }`}
                   >
@@ -279,7 +279,7 @@ export function PlanClient({ catalog }: { catalog: Catalog }) {
                       }
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs ${
                         done
-                          ? "border-success bg-success text-white"
+                          ? "cs-fill-success border-transparent"
                           : "border-hairline text-transparent"
                       }`}
                     >
