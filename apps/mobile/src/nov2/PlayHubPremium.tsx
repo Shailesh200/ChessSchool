@@ -71,7 +71,7 @@ export function PlayHubPremium() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface, maxWidth: 390 }]} edges={["top"]} testID="play-hub-premium">
+    <SafeAreaView style={styles.safe} edges={["top"]} testID="play-hub-premium">
       <KitTopBar />
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -105,7 +105,7 @@ export function PlayHubPremium() {
                 </View>
                 <View style={styles.modeText}>
                   <Text style={styles.modeTitle}>{m.title}</Text>
-                  <Text style={styles.modeSub}>{m.subtitle}</Text>
+                  <Text style={[styles.modeSub, on && styles.modeSubOn]}>{m.subtitle}</Text>
                 </View>
                 {on ? <Icon name="check" size={18} color={colors.brand} /> : null}
               </Pressable>

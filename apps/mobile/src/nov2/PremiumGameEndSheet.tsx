@@ -16,7 +16,7 @@ const LOST_LINES: Partial<Record<CoachSlug, string>> = {
 const WON_LINES: Partial<Record<CoachSlug, string>> = {
   skye: "You played like art today!",
   kira: "Yesss, clean win!",
-  rex: "A rare defeat. We rise again.",
+  rex: "The grandmaster bows. Well played.",
   ash: "Well earned.",
   otto: "Nice work out there!",
 };
@@ -48,7 +48,7 @@ export function PremiumGameEndSheet({
   const title = win ? `You beat ${opponentName}!` : `${opponentName} won this one`;
   const line =
     coachLine ??
-    (win ? WON_LINES[coachSlug] ?? "A rare defeat. We rise again." : LOST_LINES[coachSlug] ?? "Good fight. Want a rematch?");
+    (win ? WON_LINES[coachSlug] ?? "Clean. That's how you finish." : LOST_LINES[coachSlug] ?? "Good fight. Want a rematch?");
   const sub = win ? `Great game. You earned ${xp} XP.` : `You earned ${xp} XP for playing.`;
   const mood = win ? "happy" : "encouraging";
   const avatarState = coachMoodToAvatarState(win ? "happy" : "encouraging");

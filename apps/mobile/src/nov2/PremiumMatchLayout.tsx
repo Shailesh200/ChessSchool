@@ -32,7 +32,7 @@ export function PremiumMatchHeader({
   const line = dark ? "#2a3530" : colors.hairline;
 
   return (
-    <View style={{ paddingHorizontal: space["4"], paddingTop: space["2"], gap: space["3"], backgroundColor: dark ? "#0f1419" : colors.surface }}>
+    <View style={{ paddingHorizontal: space["4"], paddingTop: space["2"], gap: space["3"], backgroundColor: dark ? "#0f1419" : colors.bg }}>
       <View style={styles.headRow}>
         <CoachHead slug={coachSlug} mood={mood} size={48} />
         <View style={{ flex: 1 }}>
@@ -205,8 +205,8 @@ export function PremiumBoardFrame({ children, dark }: { children: ReactNode; dar
         padding: space["1"],
         borderRadius: radius.lg,
         backgroundColor: dark ? "#141a18" : colors.surfaceSunken,
-        borderWidth: 1.5,
-        borderColor: dark ? "#2a3530" : colors.hairline,
+        borderWidth: dark ? 1.5 : 3,
+        borderColor: dark ? "#2a3530" : colors.brand,
       }}
     >
       {children}
