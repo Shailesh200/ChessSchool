@@ -12,9 +12,12 @@ function connectionLabel(): string | undefined {
 
 function sendMetric(metric: Metric) {
   if (reported.has(metric.name)) return;
-  reported.add(metric.name);
+  // Opt-in: the same single switch as product analytics. Off (or settings not rehydrated yet)
+  // sends nothing. Checked before the metric is marked reported, so a metric that arrives
+  // before the user opts in does not use up its slot.
   if (navigator.doNotTrack === "1") return;
-  if (!useSettings.getState().sharePerformance) return;
+  if (!useSettings.getState().shareAnalytics) return;
+  reported.add(metric.name);
 
   const body = JSON.stringify({
     metrics: [

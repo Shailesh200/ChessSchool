@@ -207,16 +207,6 @@ function ClassicSettingsPage() {
 
             <SettingsPanel id="privacy" title="Privacy" activeSection={activeSection}>
               <Row
-                label="Share performance data"
-                hint="Anonymous page speed metrics (LCP, CLS)"
-              >
-                <Toggle
-                  checked={s.sharePerformance}
-                  onChange={(v) => s.set("sharePerformance", v)}
-                  label="Share performance data"
-                />
-              </Row>
-              <Row
                 label="Share usage analytics"
                 hint="Lesson completes, sign-ups — no PII"
               >

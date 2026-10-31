@@ -83,9 +83,11 @@ export interface SettingsState {
    */
   coachPersonality: CoachCharacterId;
   diagnostics: boolean;
-  /** Share Core Web Vitals with ChessSchool (anonymous RUM). */
-  sharePerformance: boolean;
-  /** Share product events (lesson complete, signup, etc.). */
+  /**
+   * The one privacy switch. Off until the user turns it on. It covers product events (lesson
+   * complete, signup, etc.) AND anonymous page-speed metrics (Core Web Vitals). There is no
+   * separate performance setting.
+   */
   shareAnalytics: boolean;
   targetElo: number; // 500..2500
   textScale: number; // 1 = 100%
@@ -123,7 +125,6 @@ const defaults = {
   coachCharacter: DEFAULT_COACH_CHARACTER,
   coachPersonality: DEFAULT_COACH_CHARACTER,
   diagnostics: false,
-  sharePerformance: true,
   // Opt-in: nothing is sent until the user turns this on. Also what the app sees before the saved
   // settings have rehydrated (skipHydration).
   shareAnalytics: false,
@@ -172,20 +173,24 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 12,
+      version: 13,
       skipHydration: true,
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<SettingsState> & {
           coachPersonality?: string;
           coachCharacter?: string;
           uiShell?: string;
+          sharePerformance?: boolean;
         };
+        // v12 -> v13: performance sharing folded into shareAnalytics (one switch). The old key is
+        // dropped; it never turns anything on. Persist version 12 is already the uiKit migration
+        // on this branch, so this fold is the next version.
+        delete s.sharePerformance;
         if (version < 2) {
           if (!s.schoolTheme) s.schoolTheme = "university";
           if (!s.boardTheme) s.boardTheme = "classic";
         }
         if (version < 3) {
-          if (s.sharePerformance === undefined) s.sharePerformance = true;
           if (s.shareAnalytics === undefined) s.shareAnalytics = false;
         }
         if (version < 4) {
