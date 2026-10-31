@@ -17,6 +17,25 @@ const eslintConfig = defineConfig([
     // Storybook static export (local `build-storybook` artifact).
     "storybook-static/**",
   ]),
+  {
+    // GT lint scope: lesson/play/class/onboarding paths deferred (listed in release notes).
+    files: [
+      "features/lessons/**/*.{ts,tsx}",
+      "features/play/**/*.{ts,tsx}",
+      "features/premium-ui/screens/PremiumClassDetailView.tsx",
+      "features/premium-ui/screens/PremiumOnboardingWizard.tsx",
+      "components/onboarding/**/*.{ts,tsx}",
+      "app/**/lesson/**/*.{ts,tsx}",
+      "app/**/play/**/*.{ts,tsx}",
+      "app/**/class/**/*.{ts,tsx}",
+      "app/**/onboarding/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

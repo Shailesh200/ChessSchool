@@ -52,7 +52,17 @@ const STILL_SRC: Record<KitLottieId, string> = {
 /**
  * Lazy kit Lottie with PNG still under reduced motion (matches design-kit screens.css).
  */
-export function KitLottie({
+export function KitLottie(props: {
+  id: KitLottieId;
+  className?: string;
+  loop?: boolean;
+  stillClassName?: string;
+  "data-testid"?: string;
+}) {
+  return <KitLottieInner key={props.id} {...props} />;
+}
+
+function KitLottieInner({
   id,
   className,
   loop = false,
@@ -72,7 +82,6 @@ export function KitLottie({
   useEffect(() => {
     if (reduced) return;
     let cancelled = false;
-    setLoaded(false);
     fetch(JSON_SRC[id])
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
