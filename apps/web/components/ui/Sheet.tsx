@@ -48,7 +48,9 @@ export function Sheet({
     if (!root) return;
     const onFocus = (event: FocusEvent) => {
       const target = event.target;
-      if (target instanceof HTMLElement) target.scrollIntoView({ block: "nearest" });
+      if (target instanceof HTMLElement && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({ block: "nearest" });
+      }
     };
     root.addEventListener("focusin", onFocus);
     return () => root.removeEventListener("focusin", onFocus);
