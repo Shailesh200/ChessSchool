@@ -4,7 +4,7 @@ import { MatchChooser } from "@/features/play/MatchChooser";
 import { MatchView } from "@/features/play/MatchView";
 import { useMatch } from "@/core/store/match.store";
 import { useSettings } from "@/core/store/settings.store";
-import { PlayDexShell } from "./PlayDexShell";
+import { PlayShellFrame } from "./PlayShellFrame";
 import { PlayHub } from "./PlayHub";
 import { PlayMatch } from "./PlayMatch";
 
@@ -38,8 +38,8 @@ export function PlayScreen({ scene }: { scene?: string }) {
           : "12-play-hub";
 
   return (
-    <PlayDexShell screen={screen} pad={screen !== "12-play-hub"}>
+    <PlayShellFrame screen={screen} pad={screen !== "12-play-hub"}>
       {body}
-    </PlayDexShell>
+    </PlayShellFrame>
   );
 }

@@ -29,7 +29,7 @@ describe("illustrated play shell", () => {
     expect(screen.getByRole("link", { name: /Daily puzzle/ })).toBeTruthy();
   });
 
-  it("shows the seeded streak, XP, and review badge in the dex chrome", () => {
+  it("shows the seeded streak, XP, and review badge in the play chrome", () => {
     useProgression.setState({ xp: 1240, streak: 12, lessons: {} });
     render(<PlayScreen />);
     const chips = screen.getByRole("group", { name: "Your streak and XP" });

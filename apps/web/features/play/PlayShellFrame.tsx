@@ -43,7 +43,7 @@ function NavLinks({ due }: { due: number }) {
 }
 
 /** Illustrated play chrome: streak chips, sidebar from 1024px, tab bar below. */
-export function PlayDexShell({
+export function PlayShellFrame({
   screen,
   pad = false,
   children,
@@ -58,7 +58,7 @@ export function PlayDexShell({
   const due = reviewDueCount(lessons);
 
   return (
-    <div id="root" className="dex-screen" data-screen={screen}>
+    <div id="root" className="play-shell" data-screen={screen}>
       <a className="skip" href="#main">
         Skip to main content
       </a>

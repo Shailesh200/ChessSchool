@@ -18,7 +18,7 @@ export function AppShell({
 }: {
   children: React.ReactNode;
   focus?: boolean;
-  /** Illustrated play paints its own dex shell (sidebar, chips, tab bar). */
+  /** Illustrated play paints its own shell (sidebar, chips, tab bar). */
   bare?: boolean;
 }) {
   if (bare) return children;

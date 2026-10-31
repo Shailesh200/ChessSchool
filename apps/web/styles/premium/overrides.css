@@ -4,7 +4,7 @@ html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
 }
 
 /* screens.css .hero is a centred splash. The play quick-game card is a left-aligned grid. */
-.dex-screen .hero.feat {
+.play-shell .hero.feat {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(2.5rem, 32%, 7rem);
   gap: 0.5rem;
@@ -20,17 +20,17 @@ html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
   overflow: hidden;
 }
 
-[data-theme="dark"] .dex-screen .hero.feat {
+[data-theme="dark"] .play-shell .hero.feat {
   border: 1.5px solid var(--cs-line);
 }
 
 /* Tab badge from the illustrated shell. */
-.dex-screen .tabbar a,
-.dex-screen .side a {
+.play-shell .tabbar a,
+.play-shell .side a {
   position: relative;
 }
 
-.dex-screen .tbadge {
+.play-shell .tbadge {
   position: absolute;
   top: 0.2rem;
   left: calc(50% + 0.5rem);
@@ -47,17 +47,17 @@ html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
 
 /* Desktop shell: sidebar from 64rem, same rules as the design package. */
 @media (min-width: 64rem) {
-  .dex-screen .shell {
+  .play-shell .shell {
     grid-template-columns: 14rem minmax(0, 1fr);
     gap: 1.5rem;
     padding-bottom: 2rem;
   }
 
-  .dex-screen .tabbar {
+  .play-shell .tabbar {
     display: none;
   }
 
-  .dex-screen .side {
+  .play-shell .side {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -68,7 +68,7 @@ html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
     height: 100dvh;
   }
 
-  .dex-screen .side a {
+  .play-shell .side a {
     flex-direction: row;
     justify-content: flex-start;
     gap: 0.75rem;
@@ -77,39 +77,39 @@ html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
     min-height: 3rem;
   }
 
-  .dex-screen .side a.on {
+  .play-shell .side a.on {
     background: var(--cs-tab-active-bg);
     color: var(--cs-tab-active-fg);
   }
 
-  .dex-screen .side .tbadge {
+  .play-shell .side .tbadge {
     position: static;
     margin-left: auto;
   }
 
-  .dex-screen .topbar {
+  .play-shell .topbar {
     justify-content: flex-end;
     padding: 1.25rem 1.5rem 0.25rem;
   }
 
-  .dex-screen .main {
+  .play-shell .main {
     padding: 0.5rem 1.5rem 1.5rem;
   }
 
-  .dex-screen .main.pad-px {
+  .play-shell .main.pad-px {
     padding-inline: 16px;
   }
 
-  .dex-screen .startbar {
+  .play-shell .startbar {
     bottom: 1rem;
   }
 
-  .dex-screen .hubgrid {
+  .play-shell .hubgrid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
 
-  .dex-screen .match {
+  .play-shell .match {
     grid-template-columns: minmax(0, 35rem) minmax(0, 1fr);
     grid-template-areas: "board head" "board coach" "board moves";
     align-content: start;
@@ -117,7 +117,7 @@ html[data-ui-kit="premium"] [data-coach-picker="hidden"] .picks {
     align-items: start;
   }
 
-  .dex-screen .m-board {
+  .play-shell .m-board {
     grid-row: 1 / 4;
   }
 }
