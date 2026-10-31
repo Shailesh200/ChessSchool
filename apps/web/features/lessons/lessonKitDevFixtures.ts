@@ -132,7 +132,6 @@ export const LESSON_KIT_DEV_FIXTURES: Record<
             "Look at what the knight can reach. Find a move that attacks two pieces.",
           fen: "4k3/ppp1qppp/1n6/1N6/8/8/P4PPP/6K1 w - - 0 1",
           solution: ["b5:c7"],
-          highlight: ["b5"] as Square[],
         },
       ],
     },

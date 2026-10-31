@@ -266,9 +266,9 @@ test.describe("short landscape at 200% text: footer collapses (RS-UI-02)", () =>
   test("UI-W-005: the Continue footer takes at most 20% of 844x390 @200% and the scroller keeps >=60% of the height", async ({
     page,
   }) => {
-    // pre-meet-pawn opens on an info step, which shows the Continue card.
+    // pre-meet-pawn opens on an intro step — footer shows Got it.
     await openLesson(page, QUIZ_ROUTE, 200);
-    const cont = page.getByRole("button", { name: "Continue" });
+    const cont = page.getByRole("button", { name: "Got it" });
     await expect(cont).toBeVisible();
     await page.waitForTimeout(400); // entrance spring settled
     const footer = await box(page, ".lesson-stage-footer");

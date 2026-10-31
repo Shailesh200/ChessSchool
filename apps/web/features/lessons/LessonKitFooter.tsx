@@ -41,6 +41,7 @@ export function LessonKitFooter({
   const showMoveWrong = phase === "wrong" && stepKind === "move";
   const showDrillBar =
     playing && solvable && stepKind === "move" && !showMoveCorrect && !showMoveWrong;
+  const showQuizBar = playing && stepKind === "quiz" && !quizReady && !showQuizWrong;
 
   if (showMoveCorrect) {
     return (
@@ -154,13 +155,13 @@ export function LessonKitFooter({
     );
   }
 
-  if (showDrillBar) {
+  if (showDrillBar || showQuizBar) {
     return (
       <div className="lesson-stage-footer-inner" data-testid="lesson-drill-bar">
         <div className="cs-actionbar">
           <div className="btns">
             <button type="button" className="cs-btn" disabled>
-              Check
+              {stepKind === "quiz" ? "Check answer" : "Check"}
             </button>
           </div>
         </div>
