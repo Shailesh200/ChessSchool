@@ -792,6 +792,10 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   height: 100dvh;
   min-height: 0;
 }
+.lesson-stage--kit {
+  background: var(--cs-bg);
+  color: var(--cs-text);
+}
 .lesson-stage-header {
   flex: none;
   padding-inline: 1rem;
@@ -1017,22 +1021,29 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   z-index: 0;
   margin-top: min(1rem, 3cqw);
 }
+.lesson-stage--kit .lesson-stage-header.lh {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+}
 .lesson-stage--kit .lesson-stage-scroll > .lesson-stage-grid.lgrid {
   display: grid;
   flex: none;
   min-height: auto;
+  padding-top: 0.25rem;
+  padding-inline: max(1.25rem, var(--pad, 1rem));
 }
 .lesson-stage-extras[aria-hidden="true"] {
   display: none;
 }
-:root[data-large-text] .lesson-stage-extras .hintline,
-:root[data-large-text] .lesson-stage-extras .lesson-stage-tip {
-  max-height: 4.5rem;
-  overflow-y: auto;
-}
-:root[data-large-text] .lesson-stage-extras:not([aria-hidden="true"]) {
+:root[data-large-text] .lesson-stage-extras .ladder {
   max-height: 5.5rem;
   overflow-y: auto;
+}
+:root[data-large-text] .lesson-stage-extras .hintline {
+  max-height: none;
+  overflow: visible;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 899px) and (max-height: 640px) {
   .lesson-stage--kit .barwrap .cs-actionbar {

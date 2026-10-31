@@ -129,4 +129,14 @@ test.describe("UI-W-004 @200% large text (production)", () => {
     await assertCoachReadable(page);
     await assertBoardAndAction(page, '[data-testid="lesson-drill-bar"] .cs-btn');
   });
+
+  test("390×844 kit hint line is not clipped at 200% text", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/dev/lesson-kit?screen=07", { waitUntil: "domcontentloaded" });
+    await applyLargeText(page);
+    const tip = page.getByTestId("lesson-tip");
+    await expect(tip).toBeVisible();
+    const ok = await tip.evaluate((el) => el.scrollHeight <= el.clientHeight + 1);
+    expect(ok).toBe(true);
+  });
 });

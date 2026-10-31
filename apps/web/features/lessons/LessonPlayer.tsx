@@ -115,6 +115,10 @@ export function LessonPlayer({
     stepIndex?: number;
     phase?: Phase;
     hintLevel?: number;
+    /** Muse kit copy for pixel QA (`ttl` tag + h2). */
+    kitLabels?: { tag?: string; title?: string };
+    /** Overrides board tip / hintline for dev pixel QA. */
+    hintLine?: string;
   };
 }) {
   const router = useRouter();
@@ -582,20 +586,24 @@ export function LessonPlayer({
 
   const progressPct = Math.round(((index + (phase === "correct" ? 1 : 0)) / total) * 100);
   const stepTag =
-    step.kind === "quiz"
+    devPreview?.kitLabels?.tag ??
+    (step.kind === "quiz"
       ? `${lesson.title} · Quiz`
       : step.kind === "move"
         ? `${lesson.title} · Your turn`
         : step.kind === "observe"
           ? `${lesson.title} · Example`
-          : `${lesson.title} · Intro`;
+          : `${lesson.title} · Intro`);
   const stepTitle =
-    step.kind === "quiz"
+    devPreview?.kitLabels?.title ??
+    (step.kind === "quiz"
       ? (step.question ?? lesson.title)
       : step.kind === "move"
-        ? lesson.title
-        : lesson.title;
-  const tipText = pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag });
+        ? lesson.subtitle || lesson.title
+        : lesson.title);
+  const tipText =
+    devPreview?.hintLine ??
+    pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag });
   const kitScreen = resolveKitLessonScreen({ phase, step, hintLevel });
   const successTitle =
     phase === "correct" && promoted
@@ -970,7 +978,11 @@ export function LessonComplete({
           : undefined;
 
   return (
-    <div className="bg-surface min-h-dvh" data-testid="lesson-complete-screen" data-screen="les-complete">
+    <div
+      className="min-h-dvh bg-[var(--cs-bg)] text-[var(--cs-text)]"
+      data-testid="lesson-complete-screen"
+      data-screen="les-complete"
+    >
       <CeremonyOverlay
         open
         variant={variant}
