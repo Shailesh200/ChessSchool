@@ -83,10 +83,18 @@ export interface SettingsState {
    */
   coachPersonality: CoachCharacterId;
   diagnostics: boolean;
-  /** Share Core Web Vitals with ChessSchool (anonymous RUM). */
-  sharePerformance: boolean;
-  /** Share product events (lesson complete, signup, etc.). */
+  /**
+   * The one privacy switch. Off until the user turns it on. It covers product events (lesson
+   * complete, signup, etc.) AND anonymous page-speed metrics (Core Web Vitals). There is no
+   * separate performance setting.
+   */
   shareAnalytics: boolean;
+  /**
+   * Version of the privacy settings. Stored locally and on the account (it syncs with the rest of
+   * the settings). A shareAnalytics saved by an older version is not trusted: see
+   * PRIVACY_SETTINGS_VERSION.
+   */
+  settingsVersion: number;
   targetElo: number; // 500..2500
   textScale: number; // 1 = 100%
   /** Epoch ms when guest dismissed the enroll prompt — snooze 7 days. */
@@ -104,6 +112,14 @@ export interface SettingsState {
 type BooleanSettingKey = {
   [K in keyof SettingsState]: SettingsState[K] extends boolean ? K : never;
 }[keyof SettingsState];
+
+/**
+ * Everyone was reset to "analytics off" once, when this version was introduced (Arc's ruling: opt-in
+ * only). A saved or account copy below this version has its shareAnalytics ignored, so an old "on"
+ * (default-on era) can not come back through local storage or an account sync. An opt-in made at
+ * this version or later is a real choice and stays. Bump it only for another deliberate reset.
+ */
+export const PRIVACY_SETTINGS_VERSION = 1;
 
 const defaults = {
   sound: true,
@@ -123,8 +139,10 @@ const defaults = {
   coachCharacter: DEFAULT_COACH_CHARACTER,
   coachPersonality: DEFAULT_COACH_CHARACTER,
   diagnostics: false,
-  sharePerformance: true,
-  shareAnalytics: true,
+  // Opt-in: nothing is sent until the user turns this on. Also what the app sees before the saved
+  // settings have rehydrated (skipHydration).
+  shareAnalytics: false,
+  settingsVersion: PRIVACY_SETTINGS_VERSION,
   targetElo: 600,
   textScale: 1,
   enrollPromptDismissedAt: null as number | null,
@@ -170,21 +188,32 @@ export const useSettings = create<SettingsState>()(
     {
       name: "chessschool.settings",
       storage: createJSONStorage(() => localStorage),
-      version: 12,
+      version: 14,
       skipHydration: true,
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<SettingsState> & {
           coachPersonality?: string;
           coachCharacter?: string;
           uiShell?: string;
+          sharePerformance?: boolean;
         };
+        // v13 -> v14: the one-time privacy reset. Whatever was saved before (including an "on" from
+        // when analytics defaulted to on) is dropped; the copy is stamped so it never runs again.
+        // Persist version 13 already folded sharePerformance into the one switch on this branch.
+        if (version < 14) {
+          s.shareAnalytics = false;
+          s.settingsVersion = PRIVACY_SETTINGS_VERSION;
+        }
+        // v12 -> v13: performance sharing folded into shareAnalytics (one switch). The old key is
+        // dropped; it never turns anything on. Persist version 12 is already the uiKit migration
+        // on this branch, so this fold is the next version.
+        delete s.sharePerformance;
         if (version < 2) {
           if (!s.schoolTheme) s.schoolTheme = "university";
           if (!s.boardTheme) s.boardTheme = "classic";
         }
         if (version < 3) {
-          if (s.sharePerformance === undefined) s.sharePerformance = true;
-          if (s.shareAnalytics === undefined) s.shareAnalytics = true;
+          if (s.shareAnalytics === undefined) s.shareAnalytics = false;
         }
         if (version < 4) {
           if (s.coachSpeech === undefined) s.coachSpeech = true;

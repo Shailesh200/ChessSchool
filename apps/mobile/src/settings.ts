@@ -59,16 +59,32 @@ export type Settings = {
   enrollPromptDismissedAt: number | null;
   diagnostics: boolean;
   textScale: number;
-  /** Opt-in product analytics (page views, matches, features). Default on. */
+  /**
+   * Opt-in analytics and performance sharing: one switch. Off until the user turns it on.
+   * Only trusted at the current settingsVersion (see below).
+   */
   shareAnalytics: boolean;
+  /**
+   * Version of the privacy settings, stored locally and on the account. Everyone was reset to off
+   * once at SETTINGS_VERSION 1: a saved or account shareAnalytics below it is ignored, so an old
+   * "on" can not come back through storage or a sync. An opt-in made at this version stays.
+   */
+  settingsVersion: number;
   notificationsEnabled: boolean;
   notificationHour: number;
   notificationMinute: number;
 };
 
+export const SETTINGS_VERSION = 1;
+const versionOf = (s: { settingsVersion?: unknown } | null | undefined): number => {
+  const v = Number(s?.settingsVersion);
+  return Number.isFinite(v) ? v : 0;
+};
+
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
-const DEFAULTS: Settings = {
+// Frozen: reset() and the initial state copy it; nothing may change the defaults themselves.
+const DEFAULTS: Readonly<Settings> = Object.freeze({
   uiKit: DEFAULT_UI_KIT,
   haptics: true,
   sound: true,
@@ -95,9 +111,12 @@ const DEFAULTS: Settings = {
   enrollPromptDismissedAt: null,
   diagnostics: false,
   textScale: 1,
-  shareAnalytics: true,
+  // Opt-in: nothing is sent until the user turns this on. Also what the app sees until the saved
+  // settings have loaded from storage.
+  shareAnalytics: false,
+  settingsVersion: SETTINGS_VERSION,
   ...NOTIFICATION_DEFAULTS,
-};
+});
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
 
@@ -118,8 +137,9 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
     schoolTheme: schoolTheme && ["elementary", "highschool", "university", "graduation"].includes(schoolTheme)
       ? schoolTheme
       : next.schoolTheme ?? "university",
-    shareAnalytics:
-      next.shareAnalytics === undefined ? undefined : Boolean(next.shareAnalytics),
+    // A saved or account copy that never stored the flag is not an opt-in: an explicit false, not
+    // undefined (which would leave whatever the state had).
+    shareAnalytics: next.shareAnalytics === undefined ? false : Boolean(next.shareAnalytics),
     uiKit:
       next.uiKit === "classic" || next.uiKit === "premium"
         ? next.uiKit
@@ -146,12 +166,27 @@ function persist() {
   }
 }
 
+// Declared before the startup load below, which can call pushToAccount() before this line would run.
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
 // Load persisted settings on startup.
 (async () => {
   try {
     const raw = isWeb ? (typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null) : await SecureStore.getItemAsync(KEY);
     if (raw) {
-      state = { ...state, ...normalizeSettings(JSON.parse(raw)) };
+      const saved = JSON.parse(raw);
+      const stale = versionOf(saved) < SETTINGS_VERSION;
+      // The one-time reset: a copy saved before the settings version (an old "on") comes back off,
+      // stamped with the version, so this runs once.
+      state = {
+        ...state,
+        ...normalizeSettings(saved),
+        ...(stale ? { shareAnalytics: false, settingsVersion: SETTINGS_VERSION } : {}),
+      };
+      if (stale) {
+        persist();
+        void pushToAccount(); // so the account copy carries the version too (no-op when logged out)
+      }
       emit();
     }
   } catch {
@@ -160,7 +195,6 @@ function persist() {
 })();
 
 // --- Per-user account sync (so settings follow the user across web + app) ---
-let pushTimer: ReturnType<typeof setTimeout> | null = null;
 async function pushToAccount() {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {
@@ -176,7 +210,16 @@ async function pushToAccount() {
 /** Apply settings stored on the account (called on login). Does not re-sync. */
 export function hydrateSettings(remote: Partial<Settings> | null | undefined) {
   if (!remote || typeof remote !== "object") return;
-  state = { ...state, ...normalizeSettings(remote) };
+  const incoming = normalizeSettings(remote);
+  if (versionOf(remote) < SETTINGS_VERSION) {
+    // An account copy from before the reset: its shareAnalytics (an old "on") does not count, and
+    // this device keeps its own choice. Everything else still syncs.
+    delete incoming.shareAnalytics;
+    delete incoming.settingsVersion;
+  } else {
+    incoming.settingsVersion = Math.max(versionOf(remote), SETTINGS_VERSION);
+  }
+  state = { ...state, ...incoming };
   persist();
   emit();
 }
@@ -193,6 +236,10 @@ export async function loadSettingsFromAccount() {
 
 export const settings = {
   get: () => state,
+  /**
+   * The wipe path (logout, a 401, delete: wipeUserData). Analytics is off after it. DEFAULTS has
+   * it off too (opt-in), and the explicit override keeps the wipe safe if that default ever flips.
+   */
   reset: () => {
     state = { ...DEFAULTS, shareAnalytics: false };
     persist();

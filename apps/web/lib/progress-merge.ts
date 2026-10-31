@@ -308,7 +308,7 @@ export function mergeExtraData(
     tz: canonicalStoredZone(incoming.tz, prev.tz),
     settings:
       incoming.settings !== undefined
-        ? { ...(prev.settings ?? {}), ...incoming.settings }
+        ? { ...(prev.settings ?? {}), ...guardPrivacyVersion(prev.settings, incoming.settings) }
         : prev.settings,
     homeworkDone: mergeHomeworkDone(prev.homeworkDone, incoming.homeworkDone),
     placementDone: Boolean(prev.placementDone || incoming.placementDone),
@@ -320,6 +320,25 @@ export function mergeExtraData(
   const storedGrace = readStoredStreakGrace(prev.streakGrace);
   if (storedGrace) merged.streakGrace = storedGrace;
   return merged;
+}
+
+/**
+ * Privacy settings version guard. The account keeps a settingsVersion beside shareAnalytics. A push
+ * from a client at an older version (or none: an old app still defaulting to on) must not overwrite
+ * a newer stored choice, so its shareAnalytics and settingsVersion are dropped. Every other setting
+ * merges as before.
+ */
+export function guardPrivacyVersion(
+  prev: Record<string, unknown> | undefined | null,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const stored = Number(prev?.settingsVersion) || 0;
+  const sent = Number(incoming.settingsVersion) || 0;
+  if (sent >= stored) return incoming;
+  const { shareAnalytics: _a, settingsVersion: _v, ...rest } = incoming;
+  void _a;
+  void _v;
+  return rest;
 }
 
 function extraFromPush(body: ProgressPushBody): ExtraProgressData {

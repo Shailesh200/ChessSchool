@@ -130,6 +130,7 @@ function isFianchetto(move: VerboseMove, color: Color): boolean {
 
 function moveHeadline(move: VerboseMove, label: string): string {
   const san = move.san;
+  const plays = label === "You" ? "play" : "plays";
   if (san === "O-O") return `${label} castles kingside`;
   if (san === "O-O-O") return `${label} castles queenside`;
   if (move.flags.includes("e")) {
@@ -145,7 +146,7 @@ function moveHeadline(move: VerboseMove, label: string): string {
     return `${label} captures the ${taken} on ${move.to} with the ${piece} from ${move.from}`;
   }
   if (move.piece === "p") {
-    return `${label} plays the pawn from ${move.from} to ${move.to}`;
+    return `${label} ${plays} the pawn from ${move.from} to ${move.to}`;
   }
   return `${label} moves the ${PIECE[move.piece]} from ${move.from} to ${move.to}`;
 }

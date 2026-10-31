@@ -3,9 +3,9 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
 import { getCatalog } from "@/features/school/catalog.server";
-import { buildClassExamSteps, scoredStepCount } from "@/features/school/classExam";
+import { buildClassExamSteps, classExamHasMinSteps } from "@/features/school/classExam";
+import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import type { Lesson } from "@/features/lessons/types";
-import { PremiumClassExamPlayer } from "@/features/premium-ui/screens/PremiumClassExamPlayer";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default async function ClassExamPage({
   const teaching = rows.filter((r) => !r.isExam);
   const lessonIds = teaching.map((r) => r.id);
   const examSteps = buildClassExamSteps(teaching);
-  if (examSteps.length === 0) notFound();
+  if (examSteps.length === 0 || !classExamHasMinSteps(examSteps)) notFound();
 
   const exam: Lesson = {
     id: `exam-${id}`,
@@ -42,19 +42,17 @@ export default async function ClassExamPage({
     steps: examSteps,
   };
 
+  // After passing, continue to the next class's first lesson.
   const catalog = await getCatalog();
   const idx = catalog.allClasses.findIndex((c) => c.id === id);
   const nextLessonId = catalog.allClasses[idx + 1]?.lessonIds[0] ?? null;
-  const puzzleCount = scoredStepCount(examSteps);
 
   return (
-    <PremiumClassExamPlayer
+    <LessonPlayer
       key={`class-exam-${id}`}
       lesson={exam}
       nextLessonId={nextLessonId}
       lessonClass={{ id, title: clsRow.title, lessonIds }}
-      classTitle={clsRow.title}
-      puzzleCount={puzzleCount}
     />
   );
 }

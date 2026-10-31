@@ -179,16 +179,31 @@ for (const [w, h] of VIEWPORTS) {
           await openLesson(page, route, scale, route === BOARD_ROUTE);
           const header = await box(page, ".lesson-stage-header");
           const sc = await box(page, '[data-testid="lesson-scroll"]');
-          const footer = await box(page, ".lesson-stage-footer");
+          const layout = await page.evaluate(() => {
+            const scroll = document.querySelector(
+              '[data-testid="lesson-scroll"]',
+            ) as HTMLElement;
+            const footer = document.querySelector(
+              ".lesson-stage-footer",
+            ) as HTMLElement;
+            const grid = scroll?.querySelector(".lesson-stage-grid");
+            const footerPos = footer ? getComputedStyle(footer).position : "";
+            const follows =
+              Boolean(grid && footer) &&
+              (grid!.compareDocumentPosition(footer!) &
+                Node.DOCUMENT_POSITION_FOLLOWING) !==
+                0;
+            return {
+              footerInScroll: footer?.parentElement === scroll,
+              follows,
+              footerPos,
+            };
+          });
+          expect(layout.footerInScroll).toBe(true);
+          expect(layout.follows).toBe(true);
           expect(header.y + header.height).toBeLessThanOrEqual(sc.y + 1);
-          expect(sc.y + sc.height).toBeLessThanOrEqual(footer.y + 1);
-          expect(footer.y + footer.height).toBeLessThanOrEqual(h + 1);
-          for (const sel of [".lesson-stage-header", ".lesson-stage-footer"]) {
-            const pos = await page
-              .locator(sel)
-              .evaluate((el) => getComputedStyle(el).position);
-            expect(["static", "relative"], sel).toContain(pos);
-          }
+          expect(["static", "relative"]).toContain(layout.footerPos);
+          expect(["sticky", "fixed"]).not.toContain(layout.footerPos);
         }
       });
     }

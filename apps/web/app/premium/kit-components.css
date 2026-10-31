@@ -244,7 +244,8 @@ body{margin:0;background:var(--cs-bg);color:var(--cs-text);font-family:var(--cs-
 :root[data-large-text] .cs-map .cs-trail{height:2rem!important}
 /* Large text: coach avatar sits on its own line above a full-width bubble (tail points up at the avatar). */
 :root[data-large-text] .cs-coach{flex-direction:column;align-items:flex-start;gap:.75rem}
-:root[data-large-text] .cs-coach .cs-bubble{flex:none;width:100%}
+:root[data-large-text] .cs-coach .cs-bubble{flex:0 1 auto;width:100%;min-height:0;max-height:inherit;overflow-y:auto}
+:root[data-large-text] .lesson-stage-coach .cs-coach .lesson-stage-bubble{max-height:var(--coach-max)}
 :root[data-large-text] .cs-coach .cs-bubble::before{left:1.25rem;top:-.5rem;border:0;border-left:1.5px solid var(--cs-line);border-top:1.5px solid var(--cs-line)}
 
 /* ---- art tokens: logo + shared accents + per-coach accents (.t-<coach>.m-<moment> sets --acc) ---- */

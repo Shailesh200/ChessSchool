@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ANALYTICS_SWITCH_HINT, ANALYTICS_SWITCH_LABEL } from "../src/productAnalytics/copy";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View, Linking } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
@@ -178,10 +179,8 @@ function LegacySettingsScreen() {
             <View style={styles.card}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>Share usage analytics</Text>
-                  <Text style={styles.rowHint}>
-                    Page views and match/feature events help improve ChessSchool. No ads.
-                  </Text>
+                  <Text style={styles.rowLabel}>{ANALYTICS_SWITCH_LABEL}</Text>
+                  <Text style={styles.rowHint}>{ANALYTICS_SWITCH_HINT}</Text>
                 </View>
                 <Switch
                   value={s.shareAnalytics}

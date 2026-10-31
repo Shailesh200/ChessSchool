@@ -343,7 +343,7 @@ export const LESSONS = [
         id: "pawn-direction",
         kind: "quiz",
         coach: "",
-        question: "Which way can a pawn move?",
+        question: "When a pawn is not capturing, which way can it move?",
         options: [
           { label: "Straight forward only", emoji: "⬆️" },
           { label: "Backward or sideways", emoji: "↔️" },
@@ -1238,7 +1238,7 @@ export const LESSONS = [
     tag: "preschool",
     steps: [
       {
-        id: "queen-value",
+        id: "material-queen-points",
         kind: "quiz",
         coach: "",
         question: "How many points is a queen worth?",
@@ -1461,7 +1461,7 @@ export const LESSONS = [
           { label: "e4", emoji: "♟️" },
           { label: "Pe4", emoji: "🅿️" },
           { label: "e2-e4", emoji: "↔️" },
-          { label: "E4", emoji: "🔤" },
+          { label: "4e (number before letter)", emoji: "🔢" },
         ],
         correct: 0,
         explain:

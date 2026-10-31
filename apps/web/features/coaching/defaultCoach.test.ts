@@ -47,7 +47,7 @@ describe("default coach fallbacks", () => {
   });
 
   it("F1 new settings and migration use the default coach", async () => {
-    expect(useSettings.persist.getOptions().version).toBe(12);
+    expect(useSettings.persist.getOptions().version).toBe(14);
     expect(useSettings.getState().coachCharacter).toBe(DEFAULT_COACH_CHARACTER);
     expect(useSettings.getState().coachPersonality).toBe(DEFAULT_COACH_CHARACTER);
 

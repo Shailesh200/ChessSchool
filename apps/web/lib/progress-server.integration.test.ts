@@ -28,6 +28,20 @@ describe("applyProgressPush integration", () => {
     const ctx = createIsolatedTestDb();
     teardown = ctx.teardown;
     db = ctx.db;
+    const step = JSON.stringify([
+      { id: "s1", kind: "info", coach: "test", fen: "8/8/8/8/8/8/8/8/8 w - - 0 1" },
+    ]);
+    for (const id of ["lesson-a", "a", "b"]) {
+      await db.insert(schema.homeworkLessons).values({
+        id,
+        type: "practice",
+        title: id,
+        tag: "drill",
+        emoji: "♟️",
+        steps: step,
+        sortOrder: 0,
+      });
+    }
     const now = Date.now();
     await db.insert(schema.users).values({
       id: USER,
@@ -115,5 +129,38 @@ describe("applyProgressPush integration", () => {
         .limit(1)
     )[0];
     expect(row?.xp).toBe(100);
+  });
+
+  it("drops forged lesson ids and caps XP spikes", async () => {
+    await applyProgressPush(
+      USER,
+      emptyPush({
+        xp: 10_000_000,
+        lessons: {
+          "totally-fake-lesson": {
+            mastery: 1,
+            attempts: 1,
+            lastSeen: 1,
+            dueAt: 0,
+          },
+        },
+      }),
+      db,
+    );
+
+    const recs = await db
+      .select()
+      .from(schema.lessonRecords)
+      .where(eq(schema.lessonRecords.userId, USER));
+    expect(recs).toHaveLength(0);
+
+    const row = (
+      await db
+        .select()
+        .from(schema.progress)
+        .where(eq(schema.progress.userId, USER))
+        .limit(1)
+    )[0];
+    expect(row?.xp).toBe(25);
   });
 });

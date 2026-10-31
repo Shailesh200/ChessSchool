@@ -7,6 +7,8 @@
     { "path": "/login/reset", "label": "Reset password" },
     { "path": "/splash", "label": "Splash" },
     { "path": "/register", "label": "Register" },
+    { "path": "/forgot-password", "label": "Forgot password" },
+    { "path": "/account/reset", "label": "Reset password" },
     { "path": "/privacy", "label": "Privacy" },
     { "path": "/about", "label": "About" },
     { "path": "/support", "label": "Support" },

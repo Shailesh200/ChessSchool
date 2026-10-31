@@ -75,6 +75,15 @@ export const authRegisterSchema = authCredentialsSchema.extend({
   name: z.string().trim().min(1).max(80),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email().max(254),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20).max(512),
+  password: z.string().min(8).max(128),
+});
+
 const lessonRecSchema = z.object({
   mastery: z.number().min(0).max(1),
   attempts: z.number().int().min(0).max(10_000),
@@ -140,6 +149,27 @@ export const vitalsBatchSchema = z.object({
   metrics: z.array(vitalMetricSchema).min(1).max(12),
 });
 
+const analyticsPropValue = z.union([
+  z.string().max(256),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+
+const analyticsPropsSchema = z
+  .record(z.string().max(64), z.unknown())
+  .optional()
+  .transform((props) => {
+    if (!props) return undefined;
+    const out: Record<string, string | number | boolean | null> = {};
+    const keys = Object.keys(props).slice(0, 20);
+    for (const key of keys) {
+      const parsed = analyticsPropValue.safeParse(props[key]);
+      if (parsed.success) out[key] = parsed.data;
+    }
+    return Object.keys(out).length ? out : undefined;
+  });
+
 export const analyticsEventSchema = z.object({
   name: z.enum([
     "page_view",
@@ -168,7 +198,7 @@ export const analyticsEventSchema = z.object({
     "enroll_cta_click",
     "coach_character_select",
   ]),
-  props: z.record(z.string(), z.unknown()).optional(),
+  props: analyticsPropsSchema,
   pathname: z.string().max(256).optional(),
   sessionId: z.string().max(64).optional(),
 });

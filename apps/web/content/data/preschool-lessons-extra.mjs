@@ -5,7 +5,7 @@
 
 const K = "k7/8/8/8/8/8/8/7K w - - 0 1";
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-/** Bishop on c1 (dark square) with a clear diagonal to f4 (no pawns in the way). */
+/** Bishop on c1 with a clear light-square diagonal to f4 (no pawns in the way). */
 const BISHOP_C1 = "4k3/8/8/8/8/8/8/2B1K3 w - - 0 1";
 
 export const PRESCHOOL_EXTRA = [

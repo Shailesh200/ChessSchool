@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import localFont from "next/font/local";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ClientProviders } from "@/components/providers/ClientProviders";
+import { ConsentedTelemetry } from "@/components/providers/ConsentedTelemetry";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/core/bootstrap/themeBootstrapScript";
 import {
   HOME_DESCRIPTION,
@@ -81,8 +80,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <ClientProviders>{children}</ClientProviders>
-        <Analytics />
-        <SpeedInsights />
+        <ConsentedTelemetry />
       </body>
     </html>
   );

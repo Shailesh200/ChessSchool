@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mascot } from "@/components/ui/Mascot";
+import { safeNextPath } from "@chess-school/core";
 import { pullProgress } from "@/core/sync/pullProgress";
 
 /**
@@ -37,7 +38,7 @@ function WelcomeShell() {
 function WelcomeRedirect() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/academy";
+  const next = safeNextPath(params.get("next"), "/academy");
 
   useEffect(() => {
     let done = false;

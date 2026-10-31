@@ -865,17 +865,31 @@ describe("session API integration", () => {
       "updatedAt",
       "createdAt",
       "timeControlMin",
-      "whiteUserId",
-      "blackUserId",
+      "seats",
       "claimed",
       "color",
       "seatToken",
+      "myUserId",
     ]) {
       expect(conflictRow).toHaveProperty(key);
       expect(conflictRow[key]).toEqual(viewed[key]);
     }
-    expect(conflictRow.whiteUserId).toBeTruthy();
-    expect(conflictRow.blackUserId).toBeTruthy();
+    expect(conflictRow.myUserId).toBeTruthy();
+    expect(conflictRow).not.toHaveProperty("whiteUserId");
+    expect(conflictRow).not.toHaveProperty("blackUserId");
+  });
+
+  it("hides seat UUIDs from spectators", async () => {
+    const game = await openGame("spectator-redact", { join: true });
+    const view = await getSession(
+      new Request(`http://test/api/session/${game.id}`),
+      { params: Promise.resolve({ id: game.id }) },
+    );
+    expect(view.status).toBe(200);
+    const body = await readJson<Record<string, unknown>>(view);
+    expect(body).not.toHaveProperty("whiteUserId");
+    expect(body).not.toHaveProperty("blackUserId");
+    expect(body.seats).toBeTruthy();
   });
 
   it("does not let a join reopen a finished unseated game", async () => {

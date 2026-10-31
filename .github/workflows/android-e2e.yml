@@ -61,6 +61,28 @@ jobs:
         shell: bash
         run: npx expo prebuild -p android --no-install
 
+      - name: Embed the JS bundle in the debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle="apps/mobile/android/app/build.gradle"
+          python3 - "$gradle" <<'PY'
+          import pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          text = path.read_text()
+          needle = "react {"
+          assignment = 'debuggableVariants = ["never"]'
+          if needle not in text:
+              raise SystemExit("react block missing from " + str(path))
+          # Prebuild mentions debuggableVariants in a comment, so a name grep
+          # skips the patch and the debug variant still omits the JS bundle.
+          if assignment not in text:
+              text = text.replace(needle, "react {\n    " + assignment + "\n", 1)
+              path.write_text(text)
+          PY
+          grep -n 'debuggableVariants' "$gradle"
+          grep -q '^[[:space:]]*debuggableVariants = \["never"\]' "$gradle"
+
       - name: Emulator, debug APK, Maestro
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -73,6 +95,7 @@ jobs:
           script: >-
             status=0;
             cd apps/mobile/android && chmod +x ./gradlew && ./gradlew assembleDebug --no-daemon || status=$?;
+            if [ "$status" -eq 0 ]; then unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -q 'index.android.bundle' || { echo 'JS bundle missing from debug APK'; status=1; }; fi;
             if [ "$status" -eq 0 ]; then cd "$GITHUB_WORKSPACE" && adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk || status=$?; fi;
             if [ "$status" -eq 0 ]; then maestro test apps/mobile/.maestro || status=$?; fi;
             mkdir -p "$GITHUB_WORKSPACE/android-e2e-artifacts";

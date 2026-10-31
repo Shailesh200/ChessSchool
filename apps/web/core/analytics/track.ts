@@ -100,6 +100,9 @@ export function trackEvent(
   props?: Record<string, unknown>,
 ): void {
   if (typeof window === "undefined") return;
+  // Opt-in: drop at the door, so an event made before the saved settings rehydrate (the store
+  // starts opted out) is never queued and sent later.
+  if (!useSettings.getState().shareAnalytics) return;
   queue.push({ name, props });
   clearTimeout(timer);
   timer = setTimeout(flush, 800);

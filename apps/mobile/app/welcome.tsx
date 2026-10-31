@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenLoader } from "@/ScreenLoader";
 import { fetchProgress } from "@/progressStore";
 import { loadSettingsFromAccount } from "@/settings";
+import { safeNextPath } from "@chess-school/core";
 
 /** Brief sync screen after login — mirrors web `/welcome`. */
 export default function WelcomeScreen() {
@@ -13,7 +14,7 @@ export default function WelcomeScreen() {
   useEffect(() => {
     if (done.current) return;
     done.current = true;
-    const target = typeof next === "string" && next.startsWith("/") ? next : "/(tabs)/academy";
+    const target = safeNextPath(typeof next === "string" ? next : undefined, "/(tabs)/academy");
     const safety = setTimeout(() => router.replace(target as never), 6000);
     void Promise.all([fetchProgress(true), loadSettingsFromAccount()])
       .catch(() => void 0)
