@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { forgotPasswordSchema } from "@/lib/api-schemas";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { requestPasswordReset } from "@/lib/password-reset";
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid email" }, { status: 400 });
   }
 
-  await requestPasswordReset(parsed.data.email);
+  const email = parsed.data.email;
+  after(() => requestPasswordReset(email).catch(() => undefined));
   return NextResponse.json(GENERIC);
 }
