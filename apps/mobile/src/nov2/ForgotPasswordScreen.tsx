@@ -28,12 +28,12 @@ export function ForgotPasswordScreen() {
   const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
 
   const capturePhase =
-    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "sent" ? ("sent" as const) : undefined;
+    process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" && params.phase === "sent" ? ("sent" as const) : undefined;
   const [phase, setPhase] = useState<Phase>(capturePhase ?? "entry");
   const [email, setEmail] = useState(capturePhase === "sent" ? "student@example.com" : "");
   const [sentTo, setSentTo] = useState(capturePhase === "sent" ? "student@example.com" : "");
   const [fieldError, setFieldError] = useState<string | null>(
-    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "error" ? "Enter a valid email address." : null,
+    process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" && params.phase === "error" ? "Enter a valid email address." : null,
   );
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);

@@ -12,14 +12,14 @@ import { KitButton, usePremiumKitTheme } from "@/components/kit";
 import { OptionList } from "@/nov2/OptionList";
 import { StepDots } from "@/nov2/StepDots";
 import { PREMIUM_COLUMN, createPremiumAuthStyles } from "@/nov2/premiumKitStyles";
-import { BOA_GOAL_OPTIONS, BOA_LEVEL_OPTIONS, mapBoaGoalToSettings } from "@/nov2/onboardingData";
+import { ENTRY_GOAL_OPTIONS, ENTRY_LEVEL_OPTIONS, mapEntryGoalToSettings } from "@/nov2/onboardingData";
 import { resolvePremiumColorMode } from "@/themeMode";
 
-/** Premium onboarding 02a→02b (coach step 02c skipped; Otto default). */
-export default function BoaOnboardingScreen() {
+/** Premium guest onboarding 02a→02b (coach step 02c skipped; Otto default). */
+export default function EntryOnboardingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ step?: string }>();
-  const initialStep = process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.step === "1" ? 1 : 0;
+  const initialStep = process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" && params.step === "1" ? 1 : 0;
   const { enterGuestBrowse, markOrientationDone } = useAuth();
   const { themeMode } = useSettings();
   const kit = usePremiumKitTheme();
@@ -27,11 +27,11 @@ export default function BoaOnboardingScreen() {
   const mode = resolvePremiumColorMode(themeMode, scheme);
   const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
   const [step, setStep] = useState(initialStep);
-  const [goal, setGoal] = useState(BOA_GOAL_OPTIONS[0]!.id);
-  const [level, setLevel] = useState(BOA_LEVEL_OPTIONS[0]!.id);
+  const [goal, setGoal] = useState(ENTRY_GOAL_OPTIONS[0]!.id);
+  const [level, setLevel] = useState(ENTRY_LEVEL_OPTIONS[0]!.id);
 
   async function finishEntry() {
-    settings.set("goal", mapBoaGoalToSettings(goal));
+    settings.set("goal", mapEntryGoalToSettings(goal));
     settings.set("targetElo", Number(level) || 600);
     settings.set("coachCharacter", DEFAULT_COACH_CHARACTER);
     settings.set("coachPersonality", DEFAULT_COACH_CHARACTER);
@@ -50,7 +50,7 @@ export default function BoaOnboardingScreen() {
           <>
             <CoachRow slug="otto" text="Hi, I'm Otto! What would you like from chess?" strong size={72} />
             <Text style={styles.h2}>What brings you here?</Text>
-            <OptionList options={BOA_GOAL_OPTIONS} value={goal} onChange={setGoal} accessibilityLabel="Your goal" />
+            <OptionList options={ENTRY_GOAL_OPTIONS} value={goal} onChange={setGoal} accessibilityLabel="Your goal" />
             <KitButton label="Continue" onPress={() => setStep(1)} />
           </>
         )}
@@ -58,8 +58,8 @@ export default function BoaOnboardingScreen() {
           <>
             <CoachRow slug="otto" text="No wrong answer. I'll fit the lessons to you." strong size={72} />
             <Text style={styles.h2}>How much chess do you know?</Text>
-            <OptionList options={BOA_LEVEL_OPTIONS} value={level} onChange={setLevel} accessibilityLabel="Your level" />
-            <KitButton label="Test out instead" variant="ghost" onPress={() => router.push("/boa/test-out")} style={{ marginTop: kit.space["2"] }} />
+            <OptionList options={ENTRY_LEVEL_OPTIONS} value={level} onChange={setLevel} accessibilityLabel="Your level" />
+            <KitButton label="Test out instead" variant="ghost" onPress={() => router.push("/test-out")} style={{ marginTop: kit.space["2"] }} />
             <KitButton label="Continue" onPress={() => void finishEntry()} />
           </>
         )}

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Capture 390px Expo-web BOA screens into docs/nov2/boa/implement/ (requires prior web export). */
+/** Capture 390px Expo-web premium screens into /opt/cursor/artifacts/boa-captures/implement/ (requires prior web export). */
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -7,18 +7,18 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const dist = path.join(root, "apps/mobile/dist-boa-capture");
-const implDir = path.join(root, "docs/nov2/boa/implement");
+const dist = path.join(root, "apps/mobile/dist-premium-capture");
+const implDir = "/opt/cursor/artifacts/boa-captures/implement";
 const port = 4173;
 
 const shots = [
-  { url: "/", out: "01-splash-390.png", orient: false, guest: false, wait: "[data-testid='boa-entry-splash']" },
-  { url: "/boa/onboarding", out: "02a-onboarding-goal-390.png", orient: false, wait: "text=What brings you here?" },
-  { url: "/boa/onboarding?step=1", out: "02b-onboarding-level-390.png", orient: false, wait: "text=How much chess" },
-  { url: "/boa/test-out", out: "02d-onboarding-testout-390.png", orient: false, wait: "[data-testid='boa-test-out']" },
-  { url: "/login?boaAuth=signin", out: "16-auth-signin-390.png", orient: true, wait: "text=Sign in" },
-  { url: "/login?boaAuth=signup", out: "16-auth-signup-390.png", orient: true, wait: "text=Create your account" },
-  { url: "/login?boaAuth=errors", out: "16-auth-errors-390.png", orient: true, wait: "text=Check your details" },
+  { url: "/", out: "01-splash-390.png", orient: false, guest: false, wait: "[data-testid='entry-splash']" },
+  { url: "/entry/onboarding", out: "02a-onboarding-goal-390.png", orient: false, wait: "text=What brings you here?" },
+  { url: "/entry/onboarding?step=1", out: "02b-onboarding-level-390.png", orient: false, wait: "text=How much chess" },
+  { url: "/test-out", out: "02d-onboarding-testout-390.png", orient: false, wait: "[data-testid='test-out-screen']" },
+  { url: "/login?captureAuth=signin", out: "16-auth-signin-390.png", orient: true, wait: "text=Sign in" },
+  { url: "/login?captureAuth=signup", out: "16-auth-signup-390.png", orient: true, wait: "text=Create your account" },
+  { url: "/login?captureAuth=errors", out: "16-auth-errors-390.png", orient: true, wait: "text=Check your details" },
   { url: "/forgot-password", out: "19a-forgot-password-entry-390.png", orient: true, wait: "[data-testid='forgot-password']" },
   { url: "/forgot-password?phase=sent", out: "19a-forgot-password-sent-390.png", orient: true, wait: "text=Check your email" },
   { url: "/reset-password?token=t&email=student@example.com", out: "19b-reset-password-390.png", orient: true, wait: "[data-testid='reset-password']" },
@@ -31,8 +31,8 @@ const shots = [
   { url: "/play/game?coach=rex&elo=1600&dark=0", out: "12-play-match-rex-390.png", orient: true, guest: true, wait: "text=Rex" },
   { url: "/play/game?coach=skye&elo=800&dark=0", out: "12-play-match-skye-390.png", orient: true, guest: true, wait: "text=Skye" },
   { url: "/play/game?coach=otto&elo=1000&dark=1", out: "12-play-match-dark-390.png", orient: true, guest: true, wait: "[data-testid='premium-match']" },
-  { url: "/play/game?coach=kira&elo=1200&boaPreview=won", out: "12-play-won-390.png", orient: true, guest: true, wait: "text=You won" },
-  { url: "/play/game?coach=kira&elo=1200&boaPreview=lost", out: "12-play-lost-390.png", orient: true, guest: true, wait: "text=Good fight" },
+  { url: "/play/game?coach=kira&elo=1200&matchEndPreview=won", out: "12-play-won-390.png", orient: true, guest: true, wait: "text=You won" },
+  { url: "/play/game?coach=kira&elo=1200&matchEndPreview=lost", out: "12-play-lost-390.png", orient: true, guest: true, wait: "text=Good fight" },
 ];
 
 function spaServer() {
@@ -86,8 +86,8 @@ async function seed(page, { orient, guest }) {
         reducedMotion: true,
       }),
     );
-    if (guest) localStorage.setItem("chessschool.boaCaptureGuest", "1");
-    else localStorage.removeItem("chessschool.boaCaptureGuest");
+    if (guest) localStorage.setItem("chessschool.premiumCaptureGuest", "1");
+    else localStorage.removeItem("chessschool.premiumCaptureGuest");
   }, { orient, guest });
 }
 
@@ -104,7 +104,11 @@ async function ensureGuest(page) {
 
 async function main() {
   if (!fs.existsSync(dist)) {
-    console.error("Missing", dist, "— run: cd apps/mobile && EXPO_PUBLIC_BOA_CAPTURE=1 npx expo export --platform web --output-dir dist-boa-capture");
+    console.error(
+      "Missing",
+      dist,
+      "— run: cd apps/mobile && EXPO_PUBLIC_PREMIUM_CAPTURE=1 npx expo export --platform web --output-dir dist-premium-capture",
+    );
     process.exit(1);
   }
   fs.mkdirSync(implDir, { recursive: true });
