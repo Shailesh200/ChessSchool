@@ -15,6 +15,10 @@ export function resetRehydrateReadyForTests(): void {
   rehydrateReady = false;
 }
 
+export function isRehydrateReady(): boolean {
+  return rehydrateReady;
+}
+
 /** True after persisted Zustand stores have loaded from localStorage. */
 export function useRehydrateReady(): boolean {
   return useSyncExternalStore(

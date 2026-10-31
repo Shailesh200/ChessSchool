@@ -9,6 +9,7 @@ import { usePlan } from "@/core/store/plan.store";
 import { DEFAULT_COACH_CHARACTER } from "@/features/coaching/characters";
 import { pulseTrack } from "@/lib/pulse";
 import { resolveAvatar } from "@/components/ui/iconMaps";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 type GoalId = "learn-scratch" | "get-tactics" | "play-fun";
 type LevelId = "none" | "pieces" | "club";
@@ -187,6 +188,7 @@ function PlacementPreview({ onSkip }: { onSkip: () => void }) {
 }
 
 export function PremiumOnboardingWizard({ name }: { name: string }) {
+  const theme = useMidnightSurface();
   const router = useRouter();
   const setSetting = useSettings((s) => s.set);
   const setTier = usePlan((s) => s.setTier);
@@ -225,7 +227,7 @@ export function PremiumOnboardingWizard({ name }: { name: string }) {
 
   if (step === 3) {
     return (
-      <section className="screen on" data-screen="ob-test">
+      <section className="screen on" data-screen="ob-test" data-theme={theme}>
         <PlacementPreview onSkip={() => void finish()} />
       </section>
     );
@@ -233,7 +235,7 @@ export function PremiumOnboardingWizard({ name }: { name: string }) {
 
   if (step === 2) {
     return (
-      <section className="screen on" data-screen="ob-coach">
+      <section className="screen on" data-screen="ob-coach" data-theme={theme}>
         <div className="ob two" data-center="ob" data-coach-picker="hidden">
           <div className="l">
             <StepDots step={2} />
@@ -279,6 +281,7 @@ export function PremiumOnboardingWizard({ name }: { name: string }) {
     <section
       className="screen on"
       data-screen={step === 0 ? "ob-goal" : "ob-level"}
+      data-theme={theme}
     >
       <div className="ob" data-center="ob">
         <StepDots step={step} />

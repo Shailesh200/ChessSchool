@@ -9,7 +9,7 @@ import { usePlan, planGoalXp } from "@/core/store/plan.store";
 import { applyTheme, getAppTheme } from "@/core/themes/themes";
 import { resolvePremiumColorMode, resolveUiKit } from "@/core/themes/kitTokens";
 import type { SettingsState } from "@/core/store/settings.store";
-import { markRehydrateReady } from "@/core/hooks/useRehydrateReady";
+import { isRehydrateReady, markRehydrateReady } from "@/core/hooks/useRehydrateReady";
 
 let bootstrapPromise: Promise<void> | null = null;
 let lastAppliedKey = "";
@@ -54,6 +54,9 @@ export function applyDocumentSettings(
   >,
 ): void {
   if (typeof document === "undefined") return;
+  // Default store values land before localStorage rehydration and would paint
+  // onboarding cream over a midnight bootstrap (QA-N2-006).
+  if (!isRehydrateReady()) return;
   const key = settingsKey(s);
   if (key === lastAppliedKey) return;
   lastAppliedKey = key;
@@ -108,6 +111,7 @@ export function rehydrateAllStores(): Promise<void> {
     usePlan.persist.rehydrate(),
   ]).then(() => {
     const s = useSettings.getState();
+    markRehydrateReady();
     applyDocumentSettings(s);
     const plan = usePlan.getState();
     plan.ensureDay(isoDay());
@@ -117,7 +121,6 @@ export function rehydrateAllStores(): Promise<void> {
     if (useSession.getState().authed === false) {
       useSession.setState({ authed: null, user: null, isAdmin: false });
     }
-    markRehydrateReady();
   });
   return bootstrapPromise;
 }
