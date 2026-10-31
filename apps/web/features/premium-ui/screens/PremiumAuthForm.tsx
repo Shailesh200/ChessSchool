@@ -121,7 +121,7 @@ export function PremiumAuthForm({
             </div>
             {!isRegister && (
               <div style={{ textAlign: "right" }}>
-                <Link className="linkbtn" href="/login/forgot">
+                <Link className="linkbtn" href="/forgot-password">
                   Forgot password?
                 </Link>
               </div>

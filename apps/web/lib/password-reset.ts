@@ -8,6 +8,7 @@ import { hashPassword } from "@/lib/auth";
 import { hashSessionToken } from "@/lib/session-token";
 import { revokeSessionsForUser } from "@/lib/session-store";
 import { sendPasswordResetEmail } from "@/lib/email/send-password-reset";
+import { accountResetLink } from "@/lib/auth/password-reset-path";
 
 const RESET_TTL_MS = 45 * 60_000;
 
@@ -19,11 +20,6 @@ function dbConn() {
 
 function newResetToken(): string {
   return randomBytes(32).toString("base64url");
-}
-
-function resetLink(origin: string, rawToken: string): string {
-  const base = origin.replace(/\/+$/, "");
-  return `${base}/account/reset#${rawToken}`;
 }
 
 async function isGoogleOnlyAccount(userId: string): Promise<boolean> {
@@ -76,7 +72,7 @@ export async function requestPasswordReset(
     createdAt: now,
   });
 
-  const link = resetLink(origin, raw);
+  const link = accountResetLink(origin, raw);
   await sendPasswordResetEmail({
     to: user.email,
     name: user.name,

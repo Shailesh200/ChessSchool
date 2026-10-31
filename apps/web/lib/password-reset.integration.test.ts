@@ -19,15 +19,15 @@ import { PASSWORD_RESET_GENERIC_MESSAGE } from "@/lib/password-reset-messages";
 const PW = "testpass123";
 
 function tokenFromMail(text: string): string {
-  const match = text.match(/\/account\/reset#(\S+)/);
+  const match = text.match(/\/account\/reset\?token=([^&\s]+)/);
   expect(match).toBeTruthy();
-  return match![1]!;
+  return decodeURIComponent(match![1]!);
 }
 
 describe("password reset API", () => {
   let teardown: () => void = () => {};
   let db: TestDb;
-  let postForgot: typeof import("@/app/api/auth/forgot-password/route").POST;
+  let postForgot: typeof import("@/app/api/auth/password/forgot/route").POST;
   let postRegister: typeof import("@/app/api/auth/register/route").POST;
   let postLogin: typeof import("@/app/api/auth/login/route").POST;
 
@@ -36,7 +36,7 @@ describe("password reset API", () => {
     resetPasswordResetTestOutbox();
     setPasswordResetTransportForTests(createPasswordResetTestTransport());
     ({ teardown, db } = await bootApiTestEnv());
-    postForgot = (await import("@/app/api/auth/forgot-password/route")).POST;
+    postForgot = (await import("@/app/api/auth/password/forgot/route")).POST;
     postRegister = (await import("@/app/api/auth/register/route")).POST;
     postLogin = (await import("@/app/api/auth/login/route")).POST;
   });
@@ -62,7 +62,7 @@ describe("password reset API", () => {
 
   it("returns the same generic JSON for unknown and known emails", async () => {
     const unknown = await postForgot(
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(2) },
         body: JSON.stringify({ email: "missing@example.com" }),
@@ -77,7 +77,7 @@ describe("password reset API", () => {
     const email = `known-${Date.now()}@test.dev`;
     await register(email);
     const known = await postForgot(
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(3) },
         body: JSON.stringify({ email }),
@@ -95,7 +95,7 @@ describe("password reset API", () => {
     const email = `hash-${Date.now()}@test.dev`;
     await register(email);
     await postForgot(
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(4) },
         body: JSON.stringify({ email }),
@@ -117,7 +117,7 @@ describe("password reset API", () => {
     await register(email);
     const body = JSON.stringify({ email });
     const req = () =>
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(5) },
         body,
@@ -135,7 +135,7 @@ describe("password reset API", () => {
     const email = `single-${Date.now()}@test.dev`;
     await register(email);
     await postForgot(
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(6) },
         body: JSON.stringify({ email }),
@@ -187,7 +187,7 @@ describe("password reset API", () => {
     void token;
 
     await postForgot(
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(8) },
         body: JSON.stringify({ email }),
@@ -221,7 +221,7 @@ describe("password reset API", () => {
     });
 
     const res = await postForgot(
-      new Request("http://test/api/auth/forgot-password", {
+      new Request("http://test/api/auth/password/forgot", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(9) },
         body: JSON.stringify({ email }),

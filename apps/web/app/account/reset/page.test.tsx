@@ -5,16 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import AccountResetPage from "./page";
 
 vi.mock("./AccountResetClient", () => ({
-  AccountResetClient: () => <div data-testid="account-reset-client">client</div>,
+  AccountResetClient: ({ token }: { token: string }) => (
+    <div data-testid="account-reset-client">{token}</div>
+  ),
 }));
 
 describe("/account/reset", () => {
-  it("shows the heading and client reset flow", () => {
-    render(<AccountResetPage />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Choose a new password" }),
-    ).toBeTruthy();
-    expect(screen.getByTestId("account-reset-client")).toBeTruthy();
+  it("passes the token query param to the client reset flow", async () => {
+    const ui = await AccountResetPage({
+      searchParams: Promise.resolve({ token: "abc123" }),
+    });
+    render(ui);
+    expect(screen.getByTestId("account-reset-client").textContent).toBe("abc123");
   });
 
   it("wraps text for 320 px (no truncation utilities)", () => {
