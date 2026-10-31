@@ -21,6 +21,9 @@ import { buttonHeight, font, radius, space } from "@/theme";
 
 import { PRIVACY_URL } from "@/constants";
 import { FORGOT_PASSWORD_URL } from "@/forgotPassword";
+import { useSettings } from "@/settings";
+import { isPremiumLook } from "@/nov2/uiLook";
+import { PremiumAuthView, type PremiumAuthMode } from "@/nov2/PremiumAuthView";
 
 type GoogleBtnProps = {
   disabled?: boolean;
@@ -42,7 +45,8 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [GoogleBtn, setGoogleBtn] = useState<ComponentType<GoogleBtnProps> | null>(null);
   const parityAutoLoginKey = useRef<string | null>(null);
-  const isRegister = mode === "register";
+  const { uiLook } = useSettings();
+  const premium = isPremiumLook({ uiLook });
 
   const styles = useMemo(() => makeStyles(colors, type), [colors, type]);
 
@@ -98,6 +102,8 @@ export default function LoginScreen() {
 
   const handleGoogleError = useCallback((message: string) => setError(message), []);
 
+  const isRegister = mode === "register";
+
   async function submit() {
     setError(null);
     setBusy(true);
@@ -114,6 +120,32 @@ export default function LoginScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (premium) {
+    const authMode: PremiumAuthMode = error && !isRegister ? "errors" : isRegister ? "signup" : "signin";
+    return (
+      <PremiumAuthView
+        mode={authMode}
+        onModeChange={(m) => setMode(m === "signup" ? "register" : "login")}
+        name={name}
+        setName={setName}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        error={error}
+        busy={busy}
+        onSubmit={() => void submit()}
+        onGuest={() => {
+          continueAsGuest();
+          router.replace("/(tabs)/academy");
+        }}
+        GoogleBtn={GoogleBtn}
+        onGoogle={handleGoogle}
+        onGoogleError={handleGoogleError}
+      />
+    );
   }
 
   return (
