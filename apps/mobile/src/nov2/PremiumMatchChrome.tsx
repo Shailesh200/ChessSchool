@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Icon } from "@/Icon";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton } from "@/components/kit";
 import { CoachHead } from "@/nov2/CoachRow";
 import { COACH_MATCH_PILL, coachDisplayName, type CoachSlug } from "@/nov2/coachArt";
 import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
@@ -36,7 +36,7 @@ export function PremiumMatchChrome({
             {pill} · plays Black
           </Text>
         </View>
-        <DexButton label="Resign" variant="line" onPress={onResign} style={styles.resignBtn} />
+        <KitButton label="Resign" variant="outline" size="sm" block={false} onPress={onResign} style={styles.resignBtn} />
       </View>
       {bubbleText ? (
         <View style={styles.coachBlock}>

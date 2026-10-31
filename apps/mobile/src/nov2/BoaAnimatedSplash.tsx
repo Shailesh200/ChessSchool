@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DexButton } from "@/nov2/DexButton";
-import { PremiumWordmark } from "@/nov2/PremiumWordmark";
+import { KitButton, KitLogo } from "@/components/kit";
 import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "@/nov2/premiumTokens";
 
 type Props = { onFinish: () => void };
@@ -50,7 +49,7 @@ export function BoaAnimatedSplash({ onFinish }: Props) {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.inner}>
         <Animated.View style={[styles.hero, { transform: [{ scale: heroScale }] }]}>
-          <PremiumWordmark />
+          <KitLogo withText size={32} />
         </Animated.View>
         <Animated.Text style={[styles.tag, { opacity: line1O, transform: [{ translateY: line1Y }] }]}>
           Learn chess with a coach who has your back.
