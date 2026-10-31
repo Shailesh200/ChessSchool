@@ -16,7 +16,11 @@ import {
   getGuestOwner,
   setGuestOwner,
 } from "@/core/sync/guestOwner";
-import { useSettings, type SettingsState } from "@/core/store/settings.store";
+import {
+  PRIVACY_SETTINGS_VERSION,
+  useSettings,
+  type SettingsState,
+} from "@/core/store/settings.store";
 import {
   listJournal,
   replaceJournalEntries,
@@ -259,6 +263,14 @@ export async function pullProgress(): Promise<{
           val = normalizePieceThemeId(val);
         (patch as Record<string, unknown>)[key] = val;
       }
+    }
+    // Privacy: take the account's shareAnalytics only when it was saved at the current settings
+    // version. An older or unversioned copy (an "on" from the default-on era) is ignored, so a sync
+    // can not switch analytics back on after the one-time reset. A newer opt-in syncs across devices.
+    const acctVersion = Number(data.settings.settingsVersion);
+    if (Number.isFinite(acctVersion) && acctVersion >= PRIVACY_SETTINGS_VERSION) {
+      patch.settingsVersion = Math.max(acctVersion, PRIVACY_SETTINGS_VERSION);
+      patch.shareAnalytics = data.settings.shareAnalytics === true;
     }
     useSettings.getState().applyPatch(patch);
   }

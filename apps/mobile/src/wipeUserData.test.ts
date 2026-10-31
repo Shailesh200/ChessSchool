@@ -229,13 +229,13 @@ describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
 
   it("control: a user who opted in is tracked (the harness sees a post)", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: true });
+    r.settingsMod.hydrateSettings({ settingsVersion: 1, shareAnalytics: true });
     expect(await trackedPosts()).toBe(1);
   });
 
   it("a user who opted in is not tracked after a logout", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: true });
+    r.settingsMod.hydrateSettings({ settingsVersion: 1, shareAnalytics: true });
     await r.wipe.wipeUserData();
     expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
     expect(await trackedPosts()).toBe(0);
@@ -243,7 +243,7 @@ describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
 
   it("a user who opted in is not tracked after a 401", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: true });
+    r.settingsMod.hydrateSettings({ settingsVersion: 1, shareAnalytics: true });
     await r.wipe.wipeUserData({ expired: true });
     expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
     expect(await trackedPosts()).toBe(0);
@@ -251,7 +251,7 @@ describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
 
   it("an opted-in user logs out and back in and keeps their choice (the account copy brings it back)", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: true });
+    r.settingsMod.hydrateSettings({ settingsVersion: 1, shareAnalytics: true });
     const account = { ...r.settingsMod.settings.get() }; // what pushToAccount stored for this user
     await r.wipe.wipeUserData();
     expect(r.settingsMod.settings.get().shareAnalytics).toBe(false); // off while logged out
@@ -263,8 +263,8 @@ describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
 
   it("an account that never stored the flag signs in with analytics off (explicit false, not undefined)", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: true });
-    r.settingsMod.hydrateSettings({ avatar: "ava-other" });
+    r.settingsMod.hydrateSettings({ settingsVersion: 1, shareAnalytics: true });
+    r.settingsMod.hydrateSettings({ settingsVersion: 1, avatar: "ava-other" });
     expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
     expect(await trackedPosts()).toBe(0);
   });
@@ -273,7 +273,7 @@ describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
     vi.resetModules();
     const fresh = await import("./settings");
     const before = { ...fresh.settings.get() };
-    fresh.hydrateSettings({ shareAnalytics: true, avatar: "ava-other" });
+    fresh.hydrateSettings({ settingsVersion: 1, shareAnalytics: true, avatar: "ava-other" });
     fresh.settings.reset();
     fresh.settings.reset();
     expect(fresh.settings.get()).toEqual(before);
@@ -285,7 +285,7 @@ describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
     // fresh install: analytics off (see analyticsOptIn.test.ts)
     const initial = { ...fresh.settings.get() };
     expect(initial.shareAnalytics).toBe(false);
-    fresh.hydrateSettings({ shareAnalytics: true, avatar: "ava-other" });
+    fresh.hydrateSettings({ settingsVersion: 1, shareAnalytics: true, avatar: "ava-other" });
     fresh.settings.reset();
     // every default is back, and analytics is off
     expect(fresh.settings.get()).toEqual({ ...initial, shareAnalytics: false });

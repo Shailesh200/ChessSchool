@@ -102,7 +102,7 @@ describe("analytics is opt-in", () => {
 
   it("settings not loaded yet count as not opted in; the saved opt-in applies once loaded", async () => {
     // an earlier opt-in is saved on the device, but the keychain read is still pending
-    disk.set("chessschool.settings", JSON.stringify({ shareAnalytics: true }));
+    disk.set("chessschool.settings", JSON.stringify({ settingsVersion: 1, shareAnalytics: true }));
     let release!: () => void;
     gate.settingsLoad = new Promise<void>((res) => (release = res));
     const r = await boot();
@@ -122,7 +122,7 @@ describe("analytics is opt-in", () => {
   });
 
   it("settings that fail to load stay opted out", async () => {
-    disk.set("chessschool.settings", JSON.stringify({ shareAnalytics: true }));
+    disk.set("chessschool.settings", JSON.stringify({ settingsVersion: 1, shareAnalytics: true }));
     gate.settingsFail = true;
     const r = await boot();
     await useTheApp(r);
