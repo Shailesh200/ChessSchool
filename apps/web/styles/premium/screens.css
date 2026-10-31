@@ -194,9 +194,9 @@ a.cs-tab{text-decoration:none}
 @media(min-width:900px){.ob.two{align-items:start;align-content:stretch}.ob.two .r{align-self:stretch}}
 @media(min-width:900px){.ob.two{padding-top:2.5rem}}
 /* ===== 01 splash: premium mark lockup (inline SVG, no PNG) */
-.hero.herop{background:linear-gradient(155deg,#FFF9F0 0%,#E4F3E6 48%,#BFE8D2 100%);isolation:isolate}
-.hero.herop::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.04;pointer-events:none;background:repeating-conic-gradient(#0F6B54 0 25%,transparent 0 50%) 0 0/3rem 3rem}
-[data-theme=dark] .hero.herop{background:linear-gradient(155deg,var(--cs-surface) 0%,#12362D 100%)}
+.hero.herop{background:linear-gradient(155deg,var(--cs-cream-100) 0%,var(--cs-emerald-50) 48%,var(--cs-emerald-200) 100%);isolation:isolate}
+.hero.herop::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.04;pointer-events:none;background:repeating-conic-gradient(var(--cs-emerald-600) 0 25%,transparent 0 50%) 0 0/3rem 3rem}
+[data-theme=dark] .hero.herop{background:linear-gradient(155deg,var(--cs-surface) 0%,var(--cs-forest-900) 100%)}
 .lockup{display:flex;flex-direction:column;align-items:center;gap:2rem;width:auto;aspect-ratio:auto;margin-top:-.5rem;animation:lk .7s var(--cs-ease-decelerate,ease-out) both}
 .rm .lockup{animation:none}
 @keyframes lk{from{opacity:0;transform:translateY(.75rem) scale(.96)}to{opacity:1;transform:none}}
@@ -204,20 +204,21 @@ a.cs-tab{text-decoration:none}
 .markwrap svg{position:relative;display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 12px 24px rgba(31,43,45,.12))}
 .mglow{position:absolute;left:50%;top:50%;width:230%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(15,107,84,.22) 0%,rgba(191,232,210,.55) 38%,rgba(191,232,210,0) 70%)}
 .wm{font-family:var(--cs-font-display,'Bricolage Grotesque',sans-serif);font-weight:700;letter-spacing:-.02em;font-size:min(calc(2.5rem*var(--cs-ts,1)),11vw);line-height:1;white-space:nowrap;position:relative}
-.wm b{color:#0F6B54;font-weight:700}.wm i{color:#FF7A59;font-style:normal;font-weight:700}
-[data-theme=dark] .wm b{color:var(--cs-brand-soft-text,#BFE8D2)}
+.wm b{color:var(--cs-emerald-600);font-weight:700}.wm i{color:var(--cs-coral-500);font-style:normal;font-weight:700}
+[data-theme=dark] .wm b{color:var(--cs-brand-soft-text)}
 .mglow{display:none}
 .lockup{--mk:min(9.5rem,42vw);align-self:stretch;padding:6rem 0 3rem;margin:-6.5rem 0 -3rem;background:radial-gradient(circle 11rem at 50% calc(6rem + var(--mk)/2),rgba(15,107,84,.2) 0%,rgba(191,232,210,.55) 38%,rgba(191,232,210,0) 70%)}
 @media(min-width:900px){.lockup{margin-top:-9rem}}
 @media(max-width:899px){.hero.herop{min-height:23rem}}
 /* v3: subtler board (2%, radial mask clean at the mark) + clear white->mint halo */
 .hero.herop::before{opacity:.02;-webkit-mask-image:radial-gradient(circle at 50% 44%,transparent 0,transparent 14%,#000 78%);mask-image:radial-gradient(circle at 50% 44%,transparent 0,transparent 14%,#000 78%)}
-.lockup{background:radial-gradient(circle 12rem at 50% calc(6rem + var(--mk)/2),#fff 0%,#BFE8D2 55%,rgba(191,232,210,0) 100%)}
+.lockup{background:radial-gradient(circle 12rem at 50% calc(6rem + var(--mk)/2),var(--cs-white) 0%,var(--cs-emerald-200) 55%,transparent 100%)}
 /* v4: no coach on the splash; lockup centred in the hero at every width */
 .lockup{margin:-6rem 0 -3rem}
 @media(min-width:900px){.lockup{margin:-6rem 0 -3rem}.hero.herop{min-height:34rem}}
 .ow{display:none!important}
-.lockup{padding:9rem 0 5rem;margin:-9rem 0 -5rem;background:radial-gradient(circle 12rem at 50% calc(9rem + var(--mk)/2),#fff 0%,#BFE8D2 55%,rgba(191,232,210,0) 100%)}
+.lockup{padding:9rem 0 5rem;margin:-9rem 0 -5rem;background:radial-gradient(circle 12rem at 50% calc(9rem + var(--mk)/2),var(--cs-white) 0%,var(--cs-emerald-200) 55%,transparent 100%)}
+.markwrap .splash-mark{display:block;width:100%;height:100%;object-fit:contain}
 @media(min-width:900px){.lockup{margin:-9rem 0 -5rem}}
 @media(max-width:899px){.hero.herop{min-height:26rem}}
 /* live coach Lotties: busts = cropped head+shoulders in the avatar disc; stage = full figure */

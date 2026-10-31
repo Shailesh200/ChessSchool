@@ -8,14 +8,16 @@ import {
 import { useSettings, type UiKitMode } from "@/core/store/settings.store";
 import { PremiumStatsTopbar } from "@/features/premium-ui/shell/PremiumDexShell";
 import { useProgression } from "@/core/store/progression.store";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 export function PremiumSettingsScreen() {
+  const theme = useMidnightSurface();
   const s = useSettings();
   const streak = useProgression((st) => st.streak);
   const xp = useProgression((st) => st.xp);
 
   return (
-    <>
+    <div data-theme={theme}>
       <PremiumStatsTopbar streak={streak} xp={xp} />
       <div className="pagehead">
         <Link className="icon-btn" href="/profile" aria-label="Back to Profile">
@@ -75,6 +77,6 @@ export function PremiumSettingsScreen() {
           </Link>
         </section>
       </div>
-    </>
+    </div>
   );
 }

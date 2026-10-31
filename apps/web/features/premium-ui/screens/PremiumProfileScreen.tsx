@@ -6,8 +6,10 @@ import { useSession } from "@/core/store/session.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { rankForClasses } from "@/lib/rank";
 import { PremiumStatsTopbar } from "@/features/premium-ui/shell/PremiumDexShell";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 export function PremiumProfileScreen() {
+  const theme = useMidnightSurface();
   const mounted = useMounted();
   const xp = useProgression((s) => s.xp);
   const streak = useProgression((s) => s.streak);
@@ -20,7 +22,7 @@ export function PremiumProfileScreen() {
   const level = mounted ? levelForXp(xp) : 1;
 
   return (
-    <>
+    <div data-theme={theme}>
       <PremiumStatsTopbar streak={streak} xp={xp} />
       <div className="ph">
         <span className="av" role="img" aria-label="Your picture">
@@ -63,6 +65,6 @@ export function PremiumProfileScreen() {
           </Link>
         )}
       </div>
-    </>
+    </div>
   );
 }

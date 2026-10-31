@@ -2,25 +2,28 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { KitLottie } from "@/components/motion/KitLottie";
-import { useSettings } from "@/core/store/settings.store";
-import { resolvePremiumColorMode } from "@/core/themes/kitTokens";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 /** 01-splash — premium illustrated entry. */
 export function PremiumSplashScreen() {
   const router = useRouter();
-  const appTheme = useSettings((s) => s.appTheme);
-  const dark = resolvePremiumColorMode(appTheme) === "dark";
-  const splashId = dark ? "logo-splash-dark" : "logo-splash-light";
+  const theme = useMidnightSurface();
 
   return (
-    <section className="screen on" id="s-splash" data-route="splash" data-screen="splash">
+    <section
+      className="screen on"
+      id="s-splash"
+      data-route="splash"
+      data-screen="splash"
+      data-theme={theme}
+    >
       <div className="splash" data-center="splash">
         <div className="hero herop" data-hero>
           <div className="logo-lot lockup" role="img" aria-label="ChessSchool">
             <span className="markwrap">
               <span className="mglow" />
-              <KitLottie id={splashId} className="h-24 w-24 max-w-[min(72vw,280px)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="splash-mark" src="/kit/logo/splash-mark.svg" alt="" />
             </span>
             <span className="wm" aria-hidden="true">
               <b>Chess</b>

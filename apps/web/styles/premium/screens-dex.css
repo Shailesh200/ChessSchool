@@ -103,7 +103,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .seg input:focus-visible+span{outline:3px solid var(--cs-focus);outline-offset:2px}
 .tg{width:3.25rem;min-width:3.25rem;height:2.75rem;border:0;background:transparent;padding:0;position:relative;flex:none}
 .tg::before{content:'';position:absolute;left:0;right:0;top:50%;height:1.875rem;margin-top:-.9375rem;border-radius:99px;background:var(--cs-toggle-off)}
-.tg::after{content:'';position:absolute;left:.1875rem;top:50%;width:1.5rem;height:1.5rem;margin-top:-.75rem;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
+.tg::after{content:'';position:absolute;left:.1875rem;top:50%;width:1.5rem;height:1.5rem;margin-top:-.75rem;border-radius:50%;background:var(--cs-white);box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
 .rm .tg::after{transition:none}
 .tg[aria-checked=true]::before{background:var(--cs-brand)}.tg[aria-checked=true]::after{left:1.4375rem}[data-theme=dark] .tg[aria-checked=true]::after{background:var(--cs-text-on-brand)}
 /* forms */
@@ -304,7 +304,9 @@ h1,h2,h3,p,label,.muted,.help{overflow-wrap:anywhere}.coachrow{min-width:0}.bub{
 .focus>.fig{width:min(100%,12rem);height:auto;margin-inline:auto}
 
 /* ===== GLOW FRAME (one component: coach / logo / illustration on a soft glow + accent overlay, never a flat colour) ===== */
-.gframe{position:relative;isolation:isolate;overflow:hidden;border-radius:1.5rem;background:radial-gradient(circle at 50% 38%,#fff 0%,var(--g1) 45%,var(--g2) 100%);display:grid;place-items:end center;flex:none;max-width:100%;color:#1F2B2D}
+.gframe{position:relative;isolation:isolate;overflow:hidden;border-radius:1.5rem;background:radial-gradient(circle at 50% 38%,var(--cs-white) 0%,var(--g1) 45%,var(--g2) 100%);display:grid;place-items:end center;flex:none;max-width:100%;color:var(--cs-ink-900)}
+.glow-brand{--g1:var(--cs-emerald-50);--g2:var(--cs-emerald-200);--acc:var(--acc-brand)}
+.gframe.logo{aspect-ratio:auto;height:auto}
 .gframe::before{content:"";position:absolute;inset:0;z-index:0;background:var(--acc,none) center/cover no-repeat;pointer-events:none}
 .gframe>*{position:relative;z-index:1}
 .gframe.tile{width:var(--s,7rem);aspect-ratio:1;border-radius:1.25rem}
@@ -325,7 +327,7 @@ h1,h2,h3,p,label,.muted,.help{overflow-wrap:anywhere}.coachrow{min-width:0}.bub{
 .admtop .gframe.logo.slim{padding:.5rem .8rem}
 .streakcard .gframe.tile.flf{width:4.5rem}
 
-.gframe .swap{display:grid;place-items:center;color:#0F6B4F;width:100%;height:100%}.gframe .swap svg{width:45%;height:45%}
+.gframe .swap{display:grid;place-items:center;color:var(--cs-emerald-600);width:100%;height:100%}.gframe .swap svg{width:45%;height:45%}
 @keyframes mo-kira{0%,100%{transform:translateY(0)}50%{transform:translateY(-3%)}}
 @keyframes mo-skye{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
 @keyframes mo-ash{0%,100%{transform:translateY(0)}50%{transform:translateY(-.6%)}}
@@ -344,8 +346,8 @@ html.rm .gframe>*{animation:none!important}
 .wide .stage .gframe.figf{width:100%;flex:1;aspect-ratio:auto;min-height:34rem;max-height:640px;margin-top:0}
 .wide .stage .gframe.figf>.fig{width:100%;height:100%;aspect-ratio:auto}
 .sheet .gframe.tile{width:min(var(--s,7rem),100%);justify-self:center}.sheet>*{max-width:100%;min-width:0}
-.ph .av{position:relative;overflow:hidden;background:#BEE8D0;display:grid;place-items:center}
-.ph .av .ini{font-family:var(--cs-font-display,inherit);font-weight:700;font-size:1.7rem;letter-spacing:.02em;color:#1F2B2D;line-height:1}
+.ph .av{position:relative;overflow:hidden;background:var(--cs-emerald-200);display:grid;place-items:center}
+.ph .av .ini{font-family:var(--cs-font-display,inherit);font-weight:700;font-size:1.7rem;letter-spacing:.02em;color:var(--cs-ink-900);line-height:1}
 .ph .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%}
 .gframe.figf>.clf{width:100%;height:100%;max-height:none;aspect-ratio:auto;margin:0;background:none}
 .clf svg{width:100%!important;height:100%!important;display:block}

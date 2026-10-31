@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PULSE_PENDING_AUTH } from "@/lib/pulse";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 type Action = (
   prev: { error?: string } | undefined,
@@ -26,19 +27,13 @@ export function PremiumAuthForm({
     searchParams.get("next") ?? (mode === "register" ? "/onboarding" : "/welcome");
   const isRegister = mode === "register";
   const [showPw, setShowPw] = useState(false);
+  const theme = useMidnightSurface();
 
   return (
-    <div id="root" className="dex-screen" data-screen="16-auth">
+    <div id="root" className="dex-screen" data-screen="16-auth" data-theme={theme}>
       <div className="authwrap" data-center="">
         <main className="authcol" id="main" tabIndex={-1}>
-          <div
-            className="gframe logo"
-            style={{
-              ["--g1" as string]: "#E3F5EC",
-              ["--g2" as string]: "#B5E1CC",
-              ["--acc" as string]: "var(--acc-brand)",
-            }}
-          >
+          <div className="gframe logo glow-brand">
             <span className="logo-h" role="img" aria-label="ChessSchool" />
           </div>
           <div className="coachrow">

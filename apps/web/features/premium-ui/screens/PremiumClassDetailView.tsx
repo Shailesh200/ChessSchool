@@ -8,6 +8,7 @@ import { isClassUnlocked, type SchoolClass } from "@/features/school/structure";
 import { useProgression } from "@/core/store/progression.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 type LessonLite = { id: string; title: string; subtitle: string; emoji: string };
 
@@ -22,6 +23,7 @@ export function PremiumClassDetailView({
   examLesson: { id: string; title: string } | null;
   allClasses: SchoolClass[];
 }) {
+  const theme = useMidnightSurface();
   const router = useRouter();
   const records = useProgression((s) => s.lessons);
   const graduated = useProgression((s) => s.graduatedClasses);
@@ -49,7 +51,7 @@ export function PremiumClassDetailView({
   }, []);
 
   return (
-    <section className="screen on" data-screen="class">
+    <section className="screen on" data-screen="class" data-theme={theme}>
       <div className="back">
         <Link className="cs-iconbtn" href="/academy" aria-label="Back to course map">
           ←

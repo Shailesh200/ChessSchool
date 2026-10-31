@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LessonPlayer } from "@/features/lessons/LessonPlayer";
 import type { Lesson } from "@/features/lessons/types";
 import { usePremiumUi } from "@/features/premium-ui/usePremiumUi";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 export function PremiumClassExamPlayer({
   lesson,
@@ -21,6 +22,7 @@ export function PremiumClassExamPlayer({
   puzzleCount: number;
   currentPuzzle?: number;
 }) {
+  const theme = useMidnightSurface();
   const premium = usePremiumUi();
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function PremiumClassExamPlayer({
   const pips = Array.from({ length: puzzleCount }, (_, i) => i + 1);
 
   return (
-    <div className="premium-exam-shell">
+    <div className="premium-exam-shell" data-theme={theme}>
       <div className="lh" data-center="lh">
         <div className="cs-lessonhead">
           <Link className="cs-iconbtn" href={`/class/${lessonClass.id}`} aria-label="Close exam">

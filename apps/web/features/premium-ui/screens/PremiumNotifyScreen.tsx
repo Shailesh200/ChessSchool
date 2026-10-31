@@ -3,24 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 export function PremiumNotifyScreen() {
   const router = useRouter();
   const [hour, setHour] = useState("7");
   const [minute, setMinute] = useState("30");
   const [ampm, setAmpm] = useState("PM");
+  const theme = useMidnightSurface();
 
   return (
-    <div id="root" className="dex-screen" data-screen="15-notify">
+    <div id="root" className="dex-screen" data-screen="15-notify" data-theme={theme}>
       <main className="focus" id="main" tabIndex={-1}>
-        <div
-          className="gframe logo"
-          style={{
-            ["--g1" as string]: "#E3F5EC",
-            ["--g2" as string]: "#B5E1CC",
-            ["--acc" as string]: "var(--acc-brand)",
-          }}
-        >
+        <div className="gframe logo glow-brand">
           <span className="logo-h" role="img" aria-label="ChessSchool" />
         </div>
         <div className="chips" style={{ justifyContent: "center" }}>

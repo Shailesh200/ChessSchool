@@ -13,6 +13,7 @@ import { dueLessonIds } from "@chess-school/progression";
 import { resolvePremiumMapState, type PremiumMapState } from "@/features/premium-ui/map/mapState";
 import { readPremiumMapPreviewOverride } from "@/features/premium-ui/map/mapPreview";
 import { PremiumMapStatePanel } from "@/features/premium-ui/map/PremiumMapStatePanel";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 function TopChips({ streak, xp }: { streak: number; xp: number }) {
   return (
@@ -28,6 +29,7 @@ function TopChips({ streak, xp }: { streak: number; xp: number }) {
 }
 
 export function PremiumAcademyClient({ catalog }: { catalog: Catalog }) {
+  const theme = useMidnightSurface();
   const mounted = useMounted();
   const ready = useRehydrateReady();
   const params = useSearchParams();
@@ -76,7 +78,7 @@ export function PremiumAcademyClient({ catalog }: { catalog: Catalog }) {
   return (
     <>
       <TopChips streak={mounted ? streak : 0} xp={mounted ? xp : 0} />
-      <section className="screen on" data-screen={`map-${mapState}`}>
+      <section className="screen on" data-screen={`map-${mapState}`} data-theme={theme}>
         <PremiumMapStatePanel state={mapState} catalog={catalog} due={due} />
         {authed === false && mapState === "normal" && (
           <p className="cs-body" style={{ marginTop: "1rem" }}>

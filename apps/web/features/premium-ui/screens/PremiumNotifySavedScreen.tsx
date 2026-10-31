@@ -1,19 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useMidnightSurface } from "@/features/premium-ui/useMidnightSurface";
 
 export function PremiumNotifySavedScreen() {
+  const theme = useMidnightSurface();
   return (
-    <div id="root" className="dex-screen" data-screen="15-notify-saved">
+    <div id="root" className="dex-screen" data-screen="15-notify-saved" data-theme={theme}>
       <main className="focus" id="main" tabIndex={-1}>
-        <div
-          className="gframe logo"
-          style={{
-            ["--g1" as string]: "#E3F5EC",
-            ["--g2" as string]: "#B5E1CC",
-            ["--acc" as string]: "var(--acc-brand)",
-          }}
-        >
+        <div className="gframe logo glow-brand">
           <span className="logo-h" role="img" aria-label="ChessSchool" />
         </div>
         <span
