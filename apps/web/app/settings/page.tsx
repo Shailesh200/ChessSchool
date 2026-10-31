@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  ANALYTICS_SWITCH_HINT,
+  ANALYTICS_SWITCH_LABEL,
+} from "@/core/analytics/copy";
 import { useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
@@ -206,14 +210,11 @@ function ClassicSettingsPage() {
             )}
 
             <SettingsPanel id="privacy" title="Privacy" activeSection={activeSection}>
-              <Row
-                label="Share usage analytics"
-                hint="Lesson completes, sign-ups — no PII"
-              >
+              <Row label={ANALYTICS_SWITCH_LABEL} hint={ANALYTICS_SWITCH_HINT}>
                 <Toggle
                   checked={s.shareAnalytics}
                   onChange={(v) => s.set("shareAnalytics", v)}
-                  label="Share usage analytics"
+                  label={ANALYTICS_SWITCH_LABEL}
                 />
               </Row>
             </SettingsPanel>

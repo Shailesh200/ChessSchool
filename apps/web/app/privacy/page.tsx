@@ -1,4 +1,8 @@
 import Link from "next/link";
+import {
+  PRIVACY_CRASH_REPORTS,
+  PRIVACY_OFF_UNTIL_ON,
+} from "@/core/analytics/copy";
 import { BackButton } from "@/components/ui/BackButton";
 import { SUPPORT_EMAIL } from "@/lib/support";
 
@@ -70,11 +74,11 @@ export default function PrivacyPage() {
                 the text to be spoken is sent — not your full profile.
               </li>
               <li>
-                <strong>Usage analytics (optional):</strong> when enabled in Settings,
-                we collect first-party product events (e.g. lesson completed, sign-in)
+                <strong>Usage analytics and performance (optional):</strong>{" "}
+                {PRIVACY_OFF_UNTIL_ON} When on, we collect first-party product events (e.g. lesson completed, sign-in)
                 and performance metrics (Core Web Vitals such as LCP and INP) tied to
                 page paths. Signed-in users may have a user ID attached; guests send
-                anonymous events only. We also load{" "}
+                anonymous events only. We then also load{" "}
                 <a
                   href="https://vercel.com/docs/analytics"
                   className="text-brand-500 font-bold underline"
@@ -92,9 +96,9 @@ export default function PrivacyPage() {
                 >
                   Vercel Speed Insights
                 </a>{" "}
-                on the website for aggregate traffic and performance. You can turn off
-                first-party analytics and performance sharing in Settings; we honour Do
-                Not Track in the browser when set.
+                on the website for aggregate traffic and performance. You can turn
+                the switch off again at any time; we honour Do Not Track in the
+                browser when set.
               </li>
               <li>
                 <strong>Error monitoring:</strong> when configured, we send crash and
@@ -109,7 +113,8 @@ export default function PrivacyPage() {
                 </a>{" "}
                 so we can fix bugs. Reports may include stack traces, page URLs, and
                 browser/device metadata. We do not enable session replay and we do not
-                send default personally identifiable information with these reports.
+                send default personally identifiable information with these reports.{" "}
+                {PRIVACY_CRASH_REPORTS}
               </li>
             </ul>
           </section>
@@ -126,7 +131,7 @@ export default function PrivacyPage() {
               </li>
               <li>Enable online pass-and-play and share-code multiplayer</li>
               <li>Maintain your student profile and settings</li>
-              <li>Measure site performance and product usage when you opt in</li>
+              <li>Measure site performance and product usage, only when you turn the analytics switch on</li>
             </ul>
             <p className="mt-3">
               We do not sell your personal information. We do not use your data for
@@ -230,8 +235,8 @@ export default function PrivacyPage() {
             <p>
               Depending on your location, you may have rights to access, correct, or
               delete your personal data. Account deletion in the app fulfills deletion
-              requests. You can disable first-party analytics and performance sharing in
-              Settings at any time. For other requests, email{" "}
+              requests. You can turn the analytics and performance switch off in Settings at
+              any time. For other requests, email{" "}
               <a
                 href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-brand-500 font-bold underline"

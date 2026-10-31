@@ -49,7 +49,10 @@ describe("Vercel telemetry is opt-in", () => {
   it("not rehydrated yet counts as off, even with a saved opt-in; mounts once it loads", async () => {
     localStorage.setItem(
       "chessschool.settings",
-      JSON.stringify({ state: { shareAnalytics: true }, version: 12 }),
+      JSON.stringify({
+        state: { shareAnalytics: true, settingsVersion: 1 },
+        version: 14,
+      }),
     );
     const { ConsentedTelemetry, useSettings } = await boot();
     render(<ConsentedTelemetry />);
