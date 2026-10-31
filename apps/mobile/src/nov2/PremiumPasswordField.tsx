@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View, useColorScheme } from "react-native";
 import { Icon } from "@/Icon";
-import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "./premiumTokens";
+import { usePremiumKitTheme } from "@/components/kit";
+import { useSettings } from "@/settings";
+import { resolvePremiumColorMode } from "@/themeMode";
+import { createPasswordFieldStyles } from "./boaKitStyles";
 import type { PasswordCheck, PasswordRuleId } from "./passwordReset";
 
 const RULE_LABELS: Record<PasswordRuleId, string> = {
@@ -23,7 +26,13 @@ export function PremiumPasswordField({
   invalid?: boolean;
   testID?: string;
 }) {
+  const kit = usePremiumKitTheme();
+  const { themeMode } = useSettings();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createPasswordFieldStyles(kit, mode), [kit, mode]);
   const [visible, setVisible] = useState(false);
+
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -36,7 +45,7 @@ export function PremiumPasswordField({
           secureTextEntry={!visible}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholderTextColor={premiumColors.textSubtle}
+          placeholderTextColor={kit.colors.ink300}
         />
         <Pressable
           style={styles.eye}
@@ -44,7 +53,7 @@ export function PremiumPasswordField({
           accessibilityRole="button"
           accessibilityLabel={visible ? "Hide password" : "Show password"}
         >
-          <Icon name={visible ? "eyeOff" : "eye"} size={20} color={premiumColors.textMuted} />
+          <Icon name={visible ? "eyeOff" : "eye"} size={20} color={kit.colors.ink500} />
         </Pressable>
       </View>
     </View>
@@ -52,35 +61,36 @@ export function PremiumPasswordField({
 }
 
 export function PasswordStrengthBlock({ check, showRules = true }: { check: PasswordCheck; showRules?: boolean }) {
-  const stylesLocal = useMemo(() => meterStyles, []);
+  const kit = usePremiumKitTheme();
+  const { themeMode } = useSettings();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createPasswordFieldStyles(kit, mode), [kit, mode]);
+
   return (
     <View style={{ gap: 6 }}>
-      <View style={stylesLocal.pwm} accessibilityRole="adjustable" accessibilityLabel="Password strength">
+      <View style={styles.pwm} accessibilityRole="adjustable" accessibilityLabel="Password strength">
         {[0, 1, 2, 3].map((i) => (
           <View
             key={i}
             style={[
-              stylesLocal.bar,
-              i < check.level && check.level === 1 && stylesLocal.l1,
-              i < check.level && check.level === 2 && stylesLocal.l2,
-              i < check.level && check.level >= 3 && stylesLocal.l3,
+              styles.bar,
+              i < check.level && check.level === 1 && styles.l1,
+              i < check.level && check.level === 2 && styles.l2,
+              i < check.level && check.level >= 3 && styles.l3,
             ]}
           />
         ))}
       </View>
-      <Text style={stylesLocal.pwmT}>{check.label}</Text>
+      <Text style={styles.pwmT}>{check.label}</Text>
       {showRules && (
         <View accessibilityLabel="Password rules">
           {(Object.keys(RULE_LABELS) as PasswordRuleId[]).map((id) => {
             const ok = check.rules[id];
             return (
-              <View key={id} style={stylesLocal.rule}>
-                {ok ? (
-                  <Icon name="check" size={14} color={premiumColors.success} />
-                ) : (
-                  <View style={stylesLocal.ruleDot} />
-                )}
-                <Text style={[stylesLocal.ruleText, ok && stylesLocal.ruleOk]}>{RULE_LABELS[id]}</Text>
+              <View key={id} style={styles.rule}>
+                {ok ? <Icon name="check" size={14} color={kit.colors.success} /> : <View style={styles.ruleDot} />}
+                <Text style={[styles.ruleText, ok && styles.ruleOk]}>{RULE_LABELS[id]}</Text>
               </View>
             );
           })}
@@ -91,55 +101,16 @@ export function PasswordStrengthBlock({ check, showRules = true }: { check: Pass
 }
 
 export function FieldAlert({ message }: { message: string }) {
+  const kit = usePremiumKitTheme();
+  const { themeMode } = useSettings();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createPasswordFieldStyles(kit, mode), [kit, mode]);
+
   return (
-    <View style={alertStyles.msg} accessibilityRole="alert">
-      <Icon name="close" size={16} color={premiumColors.errorText} />
-      <Text style={alertStyles.msgText}>{message}</Text>
+    <View style={styles.msg} accessibilityRole="alert">
+      <Icon name="close" size={16} color={styles.msgText.color} />
+      <Text style={styles.msgText}>{message}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  field: { gap: 6 },
-  label: { ...premiumType.body, fontFamily: premiumFont.uiBold, color: premiumColors.text },
-  inpRow: { position: "relative" },
-  input: {
-    minHeight: 56,
-    borderRadius: premiumRadius.lg,
-    borderWidth: 1.5,
-    borderColor: premiumColors.lineStrong,
-    backgroundColor: premiumColors.surface,
-    paddingHorizontal: premiumSpace[4],
-    paddingRight: 48,
-    fontSize: 16,
-    fontFamily: premiumFont.ui,
-    color: premiumColors.text,
-  },
-  inputBad: { borderColor: premiumColors.error, borderWidth: 2 },
-  eye: { position: "absolute", right: 8, top: 8, width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-});
-
-const meterStyles = StyleSheet.create({
-  pwm: { flexDirection: "row", gap: 4, marginTop: 4 },
-  bar: { flex: 1, height: 8, borderRadius: 99, backgroundColor: premiumColors.line },
-  l1: { backgroundColor: premiumColors.error },
-  l2: { backgroundColor: premiumColors.xp },
-  l3: { backgroundColor: premiumColors.success },
-  pwmT: { fontSize: 13, fontFamily: premiumFont.uiBold, color: premiumColors.textMuted },
-  rule: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
-  ruleDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: premiumColors.textMuted },
-  ruleText: { fontSize: 13, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-  ruleOk: { color: premiumColors.successText, fontFamily: premiumFont.uiBold },
-});
-
-const alertStyles = StyleSheet.create({
-  msg: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "flex-start",
-    backgroundColor: premiumColors.errorSoft,
-    borderRadius: premiumRadius.sm,
-    padding: premiumSpace[2],
-  },
-  msgText: { flex: 1, color: premiumColors.errorText, fontFamily: premiumFont.uiBold, fontSize: 14 },
-});

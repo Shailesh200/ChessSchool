@@ -9,13 +9,16 @@ import {
   Text,
   TextInput,
   View,
+  useColorScheme,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { PasswordField } from "@/PasswordField";
 import { PRIVACY_URL } from "@/constants";
 import { CoachRow } from "./CoachRow";
-import { KitButton, KitLogo } from "@/components/kit";
-import { premiumColors, premiumFont, premiumRadius, premiumSpace, premiumType } from "./premiumTokens";
+import { KitButton, KitLogo, usePremiumKitTheme } from "@/components/kit";
+import { BOA_COLUMN, createBoaAuthStyles } from "./boaKitStyles";
+import { resolvePremiumColorMode } from "@/themeMode";
+import { useSettings } from "@/settings";
 
 type GoogleBtnProps = {
   disabled?: boolean;
@@ -61,9 +64,15 @@ export function PremiumAuthView({
   onGoogleError,
 }: Props) {
   const router = useRouter();
+  const { themeMode } = useSettings();
+  const kit = usePremiumKitTheme();
+  const scheme = useColorScheme();
+  const colorMode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createBoaAuthStyles(kit, colorMode), [kit, colorMode]);
+  const layout = useMemo(() => StyleSheet.create({ flex: { flex: 1, backgroundColor: kit.colors.bg, ...BOA_COLUMN } }), [kit.colors.bg]);
+
   const isSignup = mode === "signup";
   const isErrors = mode === "errors";
-  const styles = useMemo(() => makeStyles(), []);
 
   const title = isSignup ? "Create your account" : isErrors ? "Check your details" : "Sign in";
   const subtitle = isSignup
@@ -73,14 +82,14 @@ export function PremiumAuthView({
       : "Pick up where you left off.";
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={layout.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.logoFrame}>
           <KitLogo withText size={24} />
         </View>
         <CoachRow
           slug="otto"
-          mood={isErrors ? "encouraging" : isSignup ? "happy" : "happy"}
+          mood={isErrors ? "encouraging" : "happy"}
           text={
             isErrors
               ? "Almost. Check the fields and try once more."
@@ -107,7 +116,7 @@ export function PremiumAuthView({
               onChangeText={setName}
               autoCapitalize="words"
               placeholder="Your name"
-              placeholderTextColor={premiumColors.textSubtle}
+              placeholderTextColor={kit.colors.ink300}
             />
           </View>
         )}
@@ -121,7 +130,7 @@ export function PremiumAuthView({
             autoCapitalize="none"
             keyboardType="email-address"
             placeholder="name@example.com"
-            placeholderTextColor={premiumColors.textSubtle}
+            placeholderTextColor={kit.colors.ink300}
           />
           <Text style={styles.help}>For example: name@example.com</Text>
         </View>
@@ -132,7 +141,7 @@ export function PremiumAuthView({
             value={password}
             onChangeText={setPassword}
             placeholder="Password"
-            placeholderTextColor={premiumColors.textSubtle}
+            placeholderTextColor={kit.colors.ink300}
             containerStyle={isErrors ? styles.inputBad : undefined}
           />
         </View>
@@ -145,13 +154,7 @@ export function PremiumAuthView({
 
         {!isErrors && error ? <Text style={styles.errInline}>{error}</Text> : null}
 
-        <KitButton
-          testID="login-submit"
-          label={isSignup ? "Create account" : "Sign in"}
-          onPress={onSubmit}
-          loading={busy}
-          disabled={busy}
-        />
+        <KitButton testID="login-submit" label={isSignup ? "Create account" : "Sign in"} onPress={onSubmit} loading={busy} disabled={busy} />
 
         <View style={styles.divider}>
           <View style={styles.line} />
@@ -176,50 +179,4 @@ export function PremiumAuthView({
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
-
-function makeStyles() {
-  return StyleSheet.create({
-    flex: { flex: 1, backgroundColor: premiumColors.bg },
-    wrap: { padding: premiumSpace[5], gap: premiumSpace[4], paddingBottom: premiumSpace[8] },
-    logoFrame: {
-      alignSelf: "center",
-      backgroundColor: premiumColors.brandSoft,
-      borderRadius: premiumRadius.xl,
-      paddingHorizontal: premiumSpace[5],
-      paddingVertical: premiumSpace[3],
-    },
-    h1: { ...premiumType.h1, fontFamily: premiumFont.display, color: premiumColors.text },
-    muted: { ...premiumType.body, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-    field: { gap: 6 },
-    label: { ...premiumType.body, fontFamily: premiumFont.uiBold, color: premiumColors.text },
-    input: {
-      minHeight: 56,
-      borderRadius: premiumRadius.lg,
-      borderWidth: 1.5,
-      borderColor: premiumColors.lineStrong,
-      backgroundColor: premiumColors.surface,
-      paddingHorizontal: premiumSpace[4],
-      fontSize: 16,
-      fontFamily: premiumFont.ui,
-      color: premiumColors.text,
-    },
-    inputBad: { borderColor: premiumColors.error, borderWidth: 2 },
-    help: { ...premiumType.caption, fontFamily: premiumFont.ui, color: premiumColors.textMuted },
-    helpCenter: { ...premiumType.caption, fontFamily: premiumFont.ui, color: premiumColors.textMuted, textAlign: "center" },
-    forgot: { alignSelf: "flex-end" },
-    link: { color: premiumColors.textLink, fontFamily: premiumFont.uiBold, fontSize: 16 },
-    errInline: { color: premiumColors.error, fontFamily: premiumFont.uiBold, textAlign: "center" },
-    alert: {
-      backgroundColor: premiumColors.errorSoft,
-      borderRadius: premiumRadius.md,
-      padding: premiumSpace[3],
-    },
-    alertText: { color: premiumColors.errorText, fontFamily: premiumFont.uiBold },
-    divider: { flexDirection: "row", alignItems: "center", gap: premiumSpace[3] },
-    line: { flex: 1, height: 1.5, backgroundColor: premiumColors.line },
-    or: { fontFamily: premiumFont.uiBold, color: premiumColors.textMuted, fontSize: 14 },
-    foot: { flexDirection: "row", justifyContent: "center", gap: 6, flexWrap: "wrap" },
-    legal: { textAlign: "center", marginTop: premiumSpace[2] },
-  });
 }

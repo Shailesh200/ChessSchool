@@ -1,28 +1,23 @@
 import { useMemo } from "react";
 import { useSettings } from "@/settings";
 import { isPremiumLook } from "./uiLook";
-import {
-  premiumColors,
-  premiumFont,
-  premiumRadius,
-  premiumSpace,
-  premiumType,
-} from "./premiumTokens";
+import { usePremiumKitTheme } from "@/components/kit";
 
 /** Hook for premium illustrated screens (nov2 / boa). */
 export function usePremiumTheme() {
   const settings = useSettings();
   const on = isPremiumLook(settings);
+  const kit = usePremiumKitTheme();
 
   return useMemo(
     () => ({
       on,
-      colors: premiumColors,
-      space: premiumSpace,
-      radius: premiumRadius,
-      type: premiumType,
-      font: premiumFont,
+      colors: kit.colors,
+      space: kit.space,
+      radius: kit.radius,
+      type: kit.type,
+      font: kit.font,
     }),
-    [on],
+    [on, kit],
   );
 }

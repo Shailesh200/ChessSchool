@@ -1,9 +1,12 @@
-import { type ReactNode } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { type ReactNode, useMemo } from "react";
+import { ScrollView, StyleSheet, View, useColorScheme } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CoachHead, CoachRow } from "./CoachRow";
+import { usePremiumKitTheme } from "@/components/kit";
+import { resolvePremiumColorMode } from "@/themeMode";
+import { useSettings } from "@/settings";
+import { CoachRow } from "./CoachRow";
 import { KitLogo } from "@/components/kit";
-import { premiumColors, premiumSpace } from "./premiumTokens";
+import { BOA_COLUMN, createBoaAuthStyles } from "./boaKitStyles";
 import type { CoachMood } from "./coachArt";
 
 type Props = {
@@ -15,8 +18,14 @@ type Props = {
 
 /** Shared 16-auth / 19a / 19b mobile column (logo + coach + content). */
 export function PremiumAuthShell({ children, coachLine, coachMood = "neutral", testID }: Props) {
+  const { themeMode } = useSettings();
+  const kit = usePremiumKitTheme();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]} testID={testID}>
+    <SafeAreaView style={[styles.safe, BOA_COLUMN]} edges={["top", "bottom"]} testID={testID}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.logoFrame}>
           <KitLogo withText size={24} />
@@ -28,50 +37,19 @@ export function PremiumAuthShell({ children, coachLine, coachMood = "neutral", t
   );
 }
 
-export function SentBox({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
+export function SentBox({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  const { themeMode } = useSettings();
+  const kit = usePremiumKitTheme();
+  const scheme = useColorScheme();
+  const mode = resolvePremiumColorMode(themeMode, scheme);
+  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+
   return (
-    <View style={sentStyles.box} accessibilityRole="text">
-      <View style={sentStyles.iconWrap}>{icon}</View>
+    <View style={styles.sentBox} accessibilityRole="text">
+      <View style={styles.sentIconWrap}>{icon}</View>
       {children}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: premiumColors.bg },
-  wrap: { padding: premiumSpace[5], gap: premiumSpace[4], paddingBottom: premiumSpace[8] },
-  logoFrame: {
-    alignSelf: "center",
-    backgroundColor: premiumColors.brandSoft,
-    borderRadius: 20,
-    paddingHorizontal: premiumSpace[5],
-    paddingVertical: premiumSpace[3],
-  },
-});
-
-const sentStyles = StyleSheet.create({
-  box: {
-    backgroundColor: premiumColors.surfaceSoft,
-    borderRadius: 24,
-    paddingVertical: 20,
-    paddingHorizontal: premiumSpace[4],
-    alignItems: "center",
-    gap: premiumSpace[2],
-  },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: premiumColors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
-
-export { CoachHead };
+export { CoachHead } from "./CoachRow";
