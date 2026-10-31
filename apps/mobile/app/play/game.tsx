@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useColorScheme, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChessEngine, getBotMove, eloToConfig, type VerboseMove } from "@chess-school/core";
@@ -7,6 +7,20 @@ import { fitBoardSize } from "@/lessonLayout";
 import { ChessBoard } from "@/ChessBoard";
 import { ConfirmDialog } from "@/ConfirmDialog";
 import { GameOverOverlay } from "@/GameOverOverlay";
+import { PremiumGameEndSheet } from "@/nov2/PremiumGameEndSheet";
+import {
+  PremiumBoardCaption,
+  PremiumBoardFrame,
+  PremiumMatchHeader,
+  PremiumMovesPanel,
+  PremiumPlayerBar,
+  PremiumScrubber,
+  buildMoveRows,
+} from "@/nov2/PremiumMatchLayout";
+import { usePremiumKitTheme } from "@/components/kit";
+import { useUiKit } from "@/components/kit/useUiKit";
+import type { CoachSlug } from "@/nov2/coachArt";
+import { coachDisplayName } from "@/nov2/coachArt";
 import { ReflectSheet } from "@/ReflectSheet";
 import { Icon } from "@/Icon";
 import { haptics } from "@/haptics";
@@ -18,6 +32,7 @@ import { applyMatchEnd, prependRecentGame, isoDay, type EndReason } from "@/prog
 import { markHomeworkActivity } from "@/homeworkRoutine";
 import { buildSyncGame, winnerFromPlayerResult, endReasonFromStatus } from "@/gameHistory";
 import { settings, useSettings } from "@/settings";
+import { resolvePremiumColorMode } from "@/themeMode";
 import { parseTimeControl, useChessClock } from "@/useChessClock";
 import {
   canResumeBotMatch,
@@ -41,7 +56,7 @@ import { FlatAvatar } from "@/flatAvatars/FlatAvatar";
 import { resolveAvatar } from "@/iconMaps";
 import { coachGreeting, commentOnMove, normalizeCoachPersonality } from "@/matchCoach";
 import { useCoachSpeech } from "@/useCoachSpeech";
-import { stopCoachSpeech } from "@/coachSpeech";
+import { stopCoachSpeech, speakCoachText } from "@/coachSpeech";
 import { iconCircleA11y } from "@/iconControlA11y";
 import { useConfirmLeave } from "@/useConfirmLeave";
 import { colors, font, radius, shadowCard, space, type } from "@/theme";
@@ -100,13 +115,30 @@ function PlayerBar({
 
 export default function GameScreen() {
   const router = useRouter();
-  const { elo: eloParam, time: timeParam, arena: arenaParam } = useLocalSearchParams<{ elo: string; time?: string; arena?: string }>();
+  const { elo: eloParam, time: timeParam, arena: arenaParam, coach: coachParam, dark: darkParam, matchEndPreview: matchEndPreviewParam } = useLocalSearchParams<{
+    elo: string;
+    time?: string;
+    arena?: string;
+    coach?: string;
+    dark?: string;
+    matchEndPreview?: string;
+  }>();
+  const kit = useUiKit();
+  const premiumKit = usePremiumKitTheme();
+  const coachSlug = (["otto", "kira", "rex", "skye", "ash"] as const).includes(coachParam as CoachSlug)
+    ? (coachParam as CoachSlug)
+    : "otto";
   const elo = Number(eloParam) || 1000;
   const timeMs = parseTimeControl(timeParam);
   const timeControlMin = timeMs > 0 ? Math.round(timeMs / 60_000) : 0;
   const bot = botProfile(elo);
-  const { avatar, coachCharacter, coachPersonality, sound } = useSettings();
+  const { avatar, coachCharacter, coachPersonality, sound, themeMode } = useSettings();
+  const scheme = useColorScheme();
   const personality = normalizeCoachPersonality(coachCharacter ?? coachPersonality);
+  const matchDark =
+    darkParam === "1" ||
+    darkParam === "true" ||
+    resolvePremiumColorMode(themeMode, scheme) === "dark";
   const { width, fontScale } = useWindowDimensions();
   // UI-M-017: the board is sized from the space really left between the header/coach
   // and the scrubber (measured), never below BOARD_MIN; the middle region scrolls
@@ -128,6 +160,15 @@ export default function GameScreen() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [thinking, setThinking] = useState(false);
   const [over, setOver] = useState<OverState | null>(null);
+
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_PREMIUM_CAPTURE !== "1") return;
+    const p = typeof matchEndPreviewParam === "string" ? matchEndPreviewParam : undefined;
+    if (p === "won")
+      setOver({ title: "You won!", win: true, ratingDelta: 12, newRating: 1012, gameId: "capture" });
+    if (p === "lost")
+      setOver({ title: "Good fight", subtitle: "Want a rematch?", win: false, ratingDelta: -8, newRating: 992, gameId: "capture" });
+  }, [matchEndPreviewParam]);
   const [reflectOpen, setReflectOpen] = useState(false);
   const [resignOpen, setResignOpen] = useState(false);
   const matchInProgress = !over;
@@ -185,6 +226,7 @@ export default function GameScreen() {
   });
 
   const frames = useMemo(() => buildFrames(moves), [moves]);
+  const moveRows = useMemo(() => buildMoveRows(moves, viewPly), [moves, viewPly]);
   const viewing = viewPly !== null;
   const shownFen = viewing ? frames[viewPly]! : fen;
   const view = useMemo(() => new ChessEngine(shownFen), [shownFen]);
@@ -364,50 +406,81 @@ export default function GameScreen() {
   useCoachSpeech(bubbleText ?? "", !over && !thinking);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface }]} edges={["top"]}>
-      <View style={styles.header}>
-        <Pressable
-          style={styles.circle}
-          onPress={() => (matchInProgress ? setLeaveOpen(true) : router.back())}
-          {...iconCircleA11y("Go back")}
-        >
-          <View style={{ transform: [{ rotate: "180deg" }] }}><Icon name="chevronRight" size={20} color={colors.ink} /></View>
-        </Pressable>
-        <Text style={styles.title} numberOfLines={1}>vs {bot.name} · {elo}</Text>
-        <Pressable
-          style={styles.circle}
-          onPress={() => {
-            if (sound) stopCoachSpeech();
-            settings.set("sound", !sound);
-          }}
-          {...iconCircleA11y(sound ? "Mute sound" : "Unmute sound")}
-        >
-          <Icon name={sound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
-        </Pressable>
-        <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} {...iconCircleA11y("Flip board")}>
-          <Icon name="flip" size={18} color={colors.ink} />
-        </Pressable>
-        <Pressable
-          style={styles.resign}
-          accessibilityLabel="Resign game"
-          accessibilityRole="button"
-          onPress={() => {
+    <SafeAreaView
+      testID={kit === "premium" ? "premium-match" : undefined}
+      style={[styles.safe, { backgroundColor: kit === "premium" ? (matchDark ? "#0f1419" : premiumKit.colors.bg) : colors.surface }]}
+      edges={["top"]}
+    >
+      {kit === "premium" ? (
+        <PremiumMatchHeader
+          coachSlug={coachSlug}
+          bubbleText={bubbleText}
+          thinking={thinking}
+          dark={matchDark}
+          onResign={() => {
             if (over) return;
             setResignOpen(true);
           }}
-        >
-          <Text style={styles.resignText}>Resign</Text>
-        </Pressable>
-      </View>
-
-      {bubbleText && (
-        <View style={styles.coach}>
-          <CoachAvatar character={personality} state={thinking ? "think" : "idle"} size={48} />
-          <View style={styles.bubble}>
-            <Text style={styles.bubbleLabel}>Coach</Text>
-            <Text style={styles.bubbleText}>{bubbleText}</Text>
+          onReplayLine={
+            sound && bubbleText
+              ? () => {
+                  void speakCoachText(bubbleText);
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <>
+          <View style={styles.header}>
+            <Pressable
+              style={styles.circle}
+              onPress={() => (matchInProgress ? setLeaveOpen(true) : router.back())}
+              {...iconCircleA11y("Go back")}
+              hitSlop={8}>
+              <View style={{ transform: [{ rotate: "180deg" }] }}>
+                <Icon name="chevronRight" size={20} color={colors.ink} />
+              </View>
+            </Pressable>
+            <Text style={styles.title} numberOfLines={1}>
+              vs {bot.name} · {elo}
+            </Text>
+            <Pressable
+              style={styles.circle}
+              onPress={() => {
+                if (sound) stopCoachSpeech();
+                settings.set("sound", !sound);
+              }}
+              hitSlop={8}
+              accessibilityLabel={sound ? "Mute sound" : "Unmute sound"}
+            >
+              <Icon name={sound ? "volume" : "volumeOff"} size={18} color={colors.ink} />
+            </Pressable>
+            <Pressable style={styles.circle} onPress={() => setFlipped((f) => !f)} hitSlop={8}>
+              <Icon name="flip" size={18} color={colors.ink} />
+            </Pressable>
+            <Pressable
+              style={styles.resign}
+              accessibilityLabel="Resign game"
+              accessibilityRole="button"
+              onPress={() => {
+                if (over) return;
+                setResignOpen(true);
+              }}
+            >
+              <Text style={styles.resignText}>Resign</Text>
+            </Pressable>
           </View>
-        </View>
+
+          {bubbleText ? (
+            <View style={styles.coach}>
+              <CoachAvatar character={personality} state={thinking ? "think" : "idle"} size={48} />
+              <View style={styles.bubble}>
+                <Text style={styles.bubbleLabel}>Coach</Text>
+                <Text style={styles.bubbleText}>{bubbleText}</Text>
+              </View>
+            </View>
+          ) : null}
+        </>
       )}
 
       <ScrollView
@@ -419,6 +492,53 @@ export default function GameScreen() {
         }}
         testID="game-scroll"
       >
+        {kit === "premium" ? (
+          <>
+            <PremiumPlayerBar
+              name={`${coachDisplayName(coachSlug)} · ${elo}`}
+              botElo={elo}
+              advantage={Math.max(0, mat.b - mat.w)}
+              active={thinking && !over}
+              clockMs={timeMs > 0 ? blackMs : undefined}
+              dark={matchDark}
+            />
+            <PremiumBoardFrame dark={matchDark}>
+              <View style={{ width: boardSize, height: boardSize }}>
+                <ChessBoard
+                  fen={shownFen}
+                  size={boardSize}
+                  orientation={flipped ? "black" : "white"}
+                  onMove={handleMove}
+                  interactive={!over && !thinking && !viewing && !kingFall}
+                  lastMove={viewing ? null : lastMove}
+                  checkSquare={checkSquare}
+                />
+                <KingFallCeremony
+                  open={kingFall !== null}
+                  square={kingFall?.square ?? null}
+                  orientation={flipped ? "black" : "white"}
+                  loserColor={kingFall?.color ?? "b"}
+                  boardSize={boardSize}
+                  onComplete={finishKingFall}
+                />
+              </View>
+            </PremiumBoardFrame>
+            <PremiumBoardCaption
+              turnLabel={turn === "w" && !over ? "Your turn · you play White" : over ? "Game over" : "Opponent thinking…"}
+              moveNum={Math.max(1, Math.ceil(moves.length / 2))}
+              dark={matchDark}
+            />
+            <PremiumPlayerBar
+              name="You"
+              avatarId={avatar}
+              advantage={Math.max(0, mat.w - mat.b)}
+              active={!thinking && !over && !viewing && turn === "w"}
+              clockMs={timeMs > 0 ? whiteMs : undefined}
+              dark={matchDark}
+            />
+          </>
+        ) : (
+          <>
         <PlayerBar
           name={`${bot.name} · ${elo}`}
           botElo={elo}
@@ -456,8 +576,29 @@ export default function GameScreen() {
           active={!thinking && !over && !viewing && turn === "w"}
           clockMs={timeMs > 0 ? whiteMs : undefined}
         />
+          </>
+        )}
       </ScrollView>
 
+      {kit === "premium" ? (
+        <>
+          <PremiumMovesPanel rows={moveRows} dark={matchDark} />
+          <PremiumScrubber
+            viewing={viewing}
+            viewPly={viewPly}
+            frameCount={frames.length}
+            dark={matchDark}
+            onBack={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}
+            onForward={() =>
+              setViewPly((v) => {
+                if (v === null) return null;
+                const n = v + 1;
+                return n >= frames.length - 1 ? null : n;
+              })
+            }
+          />
+        </>
+      ) : (
       <View style={styles.scrubber}>
         <Pressable style={styles.scrubBtn} onPress={() => setViewPly((v) => Math.max(0, (v ?? frames.length - 1) - 1))}>
           <Text style={styles.scrubIcon}>⏪</Text>
@@ -467,30 +608,53 @@ export default function GameScreen() {
           <Text style={styles.scrubIcon}>⏩</Text>
         </Pressable>
       </View>
+      )}
 
-      <GameOverOverlay
-        visible={!!over && !mateReviewOpen && !kingFall}
-        title={over?.title ?? ""}
-        subtitle={over?.subtitle}
-        win={over?.win}
-        ratingDelta={over?.ratingDelta}
-        newRating={over?.newRating}
-        onHowItHappened={
-          over?.title.toLowerCase().includes("checkmate") && mateReviewHistory.length > 0
-            ? () => setMateReviewOpen(true)
-            : undefined
-        }
-        onReflect={() => setReflectOpen(true)}
-        onReview={() =>
-          router.push({
-            pathname: "/replay/[index]",
-            params: { index: "0", gameId: over?.gameId ?? "" },
-          })
-        }
-        onNewGame={reset}
-        onExit={() => router.replace("/(tabs)/academy")}
-        exitLabel="← Back to academy"
-      />
+      {kit === "premium" ? (
+        <PremiumGameEndSheet
+          visible={!!over && !mateReviewOpen && !kingFall}
+          win={!!over?.win}
+          opponentName={bot.name}
+          coachSlug={coachSlug}
+          onRematch={() => {
+            setOver(null);
+            router.replace({ pathname: "/play/game", params: { elo: String(elo), coach: coachSlug, dark: matchDark ? "1" : "0" } });
+          }}
+          onBack={() => {
+            setOver(null);
+            router.replace("/(tabs)/play");
+          }}
+        />
+      ) : (
+        <GameOverOverlay
+          visible={!!over && !mateReviewOpen && !kingFall}
+          title={over?.title ?? ""}
+          subtitle={over?.subtitle}
+          win={over?.win}
+          ratingDelta={over?.ratingDelta}
+          newRating={over?.newRating}
+          onHowItHappened={
+            over?.title.toLowerCase().includes("checkmate") && mateReviewHistory.length > 0
+              ? () => setMateReviewOpen(true)
+              : undefined
+          }
+          onReflect={() => setReflectOpen(true)}
+          onReview={() =>
+            router.push({
+              pathname: "/replay/[index]",
+              params: { index: "0", gameId: over?.gameId ?? "" },
+            })
+          }
+          onNewGame={() => {
+            setOver(null);
+            router.replace({ pathname: "/play/game", params: { elo: String(elo), time: timeParam } });
+          }}
+          onExit={() => {
+            setOver(null);
+            router.replace("/(tabs)/play");
+          }}
+        />
+      )}
 
       <MateReviewModal
         open={mateReviewOpen}
@@ -537,7 +701,7 @@ export default function GameScreen() {
   );
 }
 
-const CIRCLE = 44;
+const CIRCLE = 40;
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[4], paddingTop: 6 },

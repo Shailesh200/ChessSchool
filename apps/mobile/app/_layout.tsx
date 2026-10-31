@@ -18,6 +18,8 @@ import { ThemeProvider, useAppTheme } from "@/ThemeProvider";
 import { PremiumKitThemeProvider } from "@/components/kit";
 import { useKitFonts } from "@/theme/premium/kitFonts";
 import { AnimatedSplash } from "@/AnimatedSplash";
+import { PremiumAnimatedSplash } from "@/nov2/PremiumAnimatedSplash";
+import { settings } from "@/settings";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { NetworkProvider } from "@/NetworkProvider";
 import { NetworkBanner } from "@/NetworkBanner";
@@ -48,6 +50,10 @@ function Gate() {
       const onOrientation = root === undefined || root === "index";
       const onLogin = root === "login";
       const onOnboarding = root === "onboarding";
+      const onEntryGuest = root === "entry" || root === "test-out";
+      const onForgot = root === "forgot-password";
+      const onReset = root === "reset-password";
+
       const onWelcome = root === "welcome";
 
       if (user && !guest) {
@@ -69,6 +75,18 @@ function Gate() {
         return;
       }
 
+
+      // Screen-capture harness: seed localStorage `chessschool.premiumCaptureGuest=1` (web only).
+      if (
+        process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" &&
+        typeof localStorage !== "undefined" &&
+        localStorage.getItem("chessschool.premiumCaptureGuest") === "1" &&
+        !guest &&
+        !(user && !guest)
+      ) {
+        enterGuestBrowse();
+      }
+
       // Parity deep-links arrive before orientation completes — enter guest and continue.
       // Never call this once a real session exists (account / signed-in captures).
       if (
@@ -81,14 +99,14 @@ function Gate() {
       }
 
       if (guest && user) {
-        // Guests must reach /login to enroll (My ID → login) — do not bounce them away.
-        if (onLogin) return;
+        if (onLogin || onEntryGuest || onForgot || onReset) return;
         if (onOrientation || onOnboarding) router.replace(ACADEMY);
         return;
       }
 
       if (!orientationDone) {
-        if (!onOrientation) router.replace("/");
+        if (onOrientation || onEntryGuest || onLogin || onForgot || onReset) return;
+        router.replace("/");
         return;
       }
 
@@ -128,7 +146,7 @@ function ThemedStatusBar() {
 }
 
 function RootLayout() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(process.env.EXPO_PUBLIC_PREMIUM_CAPTURE !== "1");
   const [fontsTimedOut, setFontsTimedOut] = useState(false);
   const [fontsLoaded] = useFonts({
     Fredoka_400Regular,
@@ -177,7 +195,11 @@ function RootLayout() {
         {showSplash ? (
           <View style={styles.splashOverlay} pointerEvents="auto">
             <StatusBar style="dark" />
-            <AnimatedSplash onFinish={finishSplash} />
+            {settings.get().uiKit !== "classic" ? (
+              <PremiumAnimatedSplash onFinish={finishSplash} />
+            ) : (
+              <AnimatedSplash onFinish={finishSplash} />
+            )}
           </View>
         ) : null}
       </ErrorBoundary>
