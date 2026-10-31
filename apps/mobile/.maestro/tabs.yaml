@@ -12,7 +12,7 @@ appId: com.chessschool.app
     timeout: 20000
 - tapOn: "Play"
 - extendedWaitUntil:
-    visible: "New match"
+    visible: "Quick game"
     timeout: 20000
 - tapOn: "Review"
 - extendedWaitUntil:
