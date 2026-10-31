@@ -1,0 +1,15 @@
+appId: com.chessschool.app
+---
+- extendedWaitUntil:
+    visible: "Get started"
+    timeout: 45000
+- tapOn:
+    id: entry-get-started
+- extendedWaitUntil:
+    visible: "What brings you here?"
+    timeout: 20000
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "How much chess do you know?"
+    timeout: 20000
+- tapOn: "Continue"

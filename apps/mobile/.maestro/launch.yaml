@@ -3,6 +3,7 @@ appId: com.chessschool.app
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "Skip"
+    visible: "Get started"
     timeout: 45000
+- assertVisible: "Learn chess with a coach who has your back."
 - assertVisible: "ChessSchool"
