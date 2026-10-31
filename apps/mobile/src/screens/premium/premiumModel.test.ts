@@ -11,6 +11,7 @@ import {
   campusHasPath,
   classDetailCaption,
   courseMapPhase,
+  classRowChrome,
   examPassMark,
   examPipState,
   filterGymPuzzles,
@@ -18,6 +19,7 @@ import {
   gymSkillOf,
   mapCoachLine,
   offlineLearnRows,
+  pathNodeChrome,
   premiumPreviewDecision,
   premiumTabActive,
   reviewDueCount,
@@ -202,7 +204,56 @@ describe("class, exam, gym, sheets", () => {
   it("labels class rows the way the detail screen reads them", () => {
     expect(classDetailCaption({ tone: "done", index: 0, mastery: 1, activeIndex: 2 })).toBe("Done · 100%");
     expect(classDetailCaption({ tone: "current", index: 2, mastery: 0.2, activeIndex: 2 })).toBe("Up next");
+    expect(classDetailCaption({ tone: "current", index: 2, mastery: 0.2, activeIndex: 2, minutes: 4 })).toBe("Up next · 4 min");
     expect(classDetailCaption({ tone: "locked", index: 3, mastery: 0, activeIndex: 2 })).toBe("Unlocks after lesson 3");
+  });
+
+  it("paints done, up-next, and locked path nodes from kit tokens in both themes", () => {
+    const lightDone = pathNodeChrome("done", "light");
+    const darkNext = pathNodeChrome("current", "dark");
+    const lightLocked = pathNodeChrome("locked", "light");
+    expect(lightDone.fill).toBe(premiumTokensJson.semantic.light["node-done"]);
+    expect(lightDone.icon).toBe(premiumTokensJson.semantic.light["node-done-icon"]);
+    expect(lightDone.glyph).toBe("check");
+    expect(lightDone.edgeDepth).toBe(5);
+    expect(darkNext.fill).toBe(premiumTokensJson.semantic.dark["node-current"]);
+    expect(darkNext.halo).toBe(premiumTokensJson.semantic.dark["node-current-halo"]);
+    expect(darkNext.glyph).toBe("play");
+    expect(darkNext.startBg).toBe(premiumTokensJson.color.sun["400"]);
+    expect(darkNext.startFg).toBe(premiumTokensJson.color.ink["900"]);
+    expect(pathNodeChrome("current", "light").startBg).toBe(premiumTokensJson.semantic.light.text);
+    expect(lightLocked.fill).toBe(premiumTokensJson.semantic.light["node-locked"]);
+    expect(lightLocked.glyph).toBe("lock");
+    expect(pathNodeChrome("exam", "dark").shape).toBe("rounded");
+
+    const current = classRowChrome("current", "light");
+    expect(current.tile).toBe(premiumTokensJson.semantic.light["accent-soft"]);
+    expect(current.icon).toBe(premiumTokensJson.semantic.light.accent);
+    expect(current.border).toBe(premiumTokensJson.semantic.light.brand);
+    expect(current.edge).toBe(premiumTokensJson.semantic.light["brand-edge"]);
+    expect(classRowChrome("done", "dark").icon).toBe(premiumTokensJson.semantic.dark["node-done-icon"]);
+    expect(classRowChrome("locked", "dark").tile).toBe(premiumTokensJson.semantic.dark["node-locked"]);
+    expect(classRowChrome("exam", "light").tile).toBe(premiumTokensJson.semantic.light["node-exam"]);
+
+    const map = readFileSync(path.resolve(__dirname, "PremiumLearnScreen.tsx"), "utf8");
+    const detail = readFileSync(path.resolve(__dirname, "PremiumClassDetail.tsx"), "utf8");
+    expect(map).toContain("pathNodeChrome");
+    expect(map).not.toContain("borderBottomWidth: 5");
+    expect(detail).toContain("classRowChrome");
+    expect(detail).not.toContain("colors.textOnAccent");
+  });
+
+  it("status sheets keep the kit illustrations and a centered sheet", () => {
+    const gym = readFileSync(path.resolve(__dirname, "PremiumGymScreen.tsx"), "utf8");
+    const sheet = readFileSync(path.resolve(__dirname, "../../components/kit/Sheet.tsx"), "utf8");
+    expect(gym).toContain("illustrations/empty.webp");
+    expect(gym).toContain("illustrations/error.webp");
+    expect(gym).toContain("illustrations/offline.webp");
+    expect(gym).toContain("acc-retry.webp");
+    expect(gym).toContain('align="center"');
+    expect(sheet).toContain("radius.sheet");
+    expect(sheet).toContain("colors.lineStrong");
+    expect(sheet).not.toContain("borderWidth: 1");
   });
 
   it("pass mark is ceil(steps * 0.67) and fails if that rule is replaced", () => {

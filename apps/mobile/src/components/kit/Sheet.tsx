@@ -9,60 +9,67 @@ type Props = {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Status sheets center the illustration, title, and actions. */
+  align?: "start" | "center";
 };
 
 /** `.sheet` bottom panel from kit/components.css */
-export function KitSheet({ open, onClose, title, children }: Props) {
+export function KitSheet({ open, onClose, title, children, align = "start" }: Props) {
   const insets = useSafeAreaInsets();
   const { colors, radius, space, font, type } = usePremiumKitTheme();
+  const centered = align === "center";
 
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        style={[styles.backdrop, { backgroundColor: colors.overlayScrim }]}
-        onPress={onClose}
-        accessibilityLabel="Close sheet"
-      />
-      <View
-        style={[
-          styles.panel,
-          shadowStyle("elev-3"),
-          {
-            paddingBottom: Math.max(insets.bottom, space["4"]),
-            backgroundColor: colors.surfaceCard,
-            borderColor: colors.hairline,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
-            paddingHorizontal: space["5"],
-            paddingTop: space["3"],
-          },
-        ]}
-      >
-        <View style={[styles.handle, { backgroundColor: colors.ink300 }]} />
-        {title ? (
-          <Text
-            style={{
-              fontFamily: font.displayBold,
-              color: colors.ink,
-              fontSize: type.lg.fontSize,
-              lineHeight: type.lg.lineHeight,
-              marginBottom: space["3"],
-            }}
-          >
-            {title}
-          </Text>
-        ) : null}
-        {children}
+      <View style={styles.fill}>
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: colors.overlayScrim }]}
+          onPress={onClose}
+          accessibilityLabel="Close sheet"
+        />
+        <View
+          style={[
+            styles.panel,
+            shadowStyle("sheet"),
+            {
+              paddingBottom: Math.max(insets.bottom, space["6"]),
+              backgroundColor: colors.surfaceCard,
+              borderTopLeftRadius: radius.sheet,
+              borderTopRightRadius: radius.sheet,
+              paddingHorizontal: space["5"],
+              paddingTop: space["2.5"],
+              alignItems: centered ? "center" : "stretch",
+            },
+          ]}
+        >
+          <View style={[styles.handle, { backgroundColor: colors.lineStrong }]} />
+          {title ? (
+            <Text
+              style={{
+                fontFamily: font.displayBold,
+                color: colors.ink,
+                fontSize: type.h3.fontSize,
+                lineHeight: type.h3.lineHeight,
+                textAlign: centered ? "center" : "left",
+                alignSelf: "stretch",
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {children}
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1 },
+  fill: { flex: 1, justifyContent: "flex-end" },
+  backdrop: { ...StyleSheet.absoluteFillObject },
   panel: {
-    borderWidth: 1,
     maxHeight: "85%",
+    gap: 14,
   },
-  handle: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, marginBottom: 12 },
+  handle: { alignSelf: "center", width: 40, height: 5, borderRadius: 99 },
 });

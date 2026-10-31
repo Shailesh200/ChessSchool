@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { Image, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, RefreshControl, ScrollView, Text, useColorScheme, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { PathLoader } from "./PathLoader";
 import { useRouter } from "expo-router";
@@ -24,11 +24,13 @@ import { getActiveBotMatch, hydrateMatchStore, subscribeMatchStore } from "@/mat
 import { dueLessonIds, isDailyPuzzleDone, isoDay, needsPlacementTest, shouldRecommendPreschool } from "@/progression";
 import { allRoutineDoneToday, routineDoneToday, ROUTINE_STEP_IDS } from "@/homeworkRoutine";
 import { premiumTokensJson } from "@/theme/premium";
+import { resolvePremiumColorMode } from "@/themeMode";
 import {
   buildCourseMap,
   campusHasPath,
   courseMapPhase,
   offlineLearnRows,
+  pathNodeChrome,
   reviewDueCount,
   type CourseMapNode,
   type CourseMapPhase,
@@ -444,52 +446,42 @@ function ReadyMap({
 
 function MapNode({ node, size, onPress }: { node: CourseMapNode; size: number; onPress: () => void }) {
   const { colors, font, type } = usePremiumKitTheme();
-  const fill =
-    node.kind === "done"
-      ? colors.nodeDone
-      : node.kind === "current"
-        ? colors.nodeCurrent
-        : node.kind === "exam"
-          ? colors.nodeExam
-          : colors.nodeLocked;
-  const edge =
-    node.kind === "done"
-      ? colors.nodeDoneEdge
-      : node.kind === "current"
-        ? colors.nodeCurrentEdge
-        : node.kind === "exam"
-          ? colors.nodeExamEdge
-          : colors.nodeLockedEdge;
-  const iconColor =
-    node.kind === "done"
-      ? colors.nodeDoneIcon
-      : node.kind === "current"
-        ? colors.nodeCurrentIcon
-        : node.kind === "exam"
-          ? colors.nodeExamIcon
-          : colors.nodeLockedIcon;
-  const icon: KitIconName = node.kind === "done" ? "check" : node.kind === "current" ? "play" : node.kind === "exam" ? "flag" : "lock";
+  const scheme = useColorScheme();
+  const themeMode = useSettings().themeMode;
+  const chrome = pathNodeChrome(node.kind, resolvePremiumColorMode(themeMode, scheme));
+  const radius = chrome.shape === "rounded" ? 20 : size / 2;
   const shift = node.side === "l" ? -44 : 44;
   return (
     <View style={{ alignItems: "center" }}>
       <View style={{ transform: [{ translateX: shift }], alignItems: "center" }}>
-        {node.kind === "current" ? (
-          <View style={{ position: "absolute", top: -22, backgroundColor: colors.ink, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, zIndex: 2 }}>
-            <Text style={{ color: colors.bg, fontFamily: font.uiBold, fontSize: 11, letterSpacing: 0.8 }}>START</Text>
+        {chrome.start ? (
+          <View style={{ position: "absolute", top: -24, backgroundColor: chrome.startBg, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, zIndex: 2 }}>
+            <Text style={{ color: chrome.startFg, fontFamily: font.uiBold, fontSize: 12, letterSpacing: 1 }}>START</Text>
           </View>
         ) : null}
-        <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-          {node.kind === "current" ? (
+        <View style={{ width: size, height: size + chrome.edgeDepth, alignItems: "center" }}>
+          {chrome.halo ? (
             <View
               style={{
                 position: "absolute",
+                top: -8,
                 width: size + 16,
                 height: size + 16,
                 borderRadius: (size + 16) / 2,
-                backgroundColor: colors.nodeCurrentHalo,
+                backgroundColor: chrome.halo,
               }}
             />
           ) : null}
+          <View
+            style={{
+              position: "absolute",
+              top: chrome.edgeDepth,
+              width: size,
+              height: size,
+              borderRadius: radius,
+              backgroundColor: chrome.edge,
+            }}
+          />
           <Pressable
             testID={`map-node-${node.id}`}
             accessibilityRole="button"
@@ -498,15 +490,13 @@ function MapNode({ node, size, onPress }: { node: CourseMapNode; size: number; o
             style={{
               width: size,
               height: size,
-              borderRadius: node.kind === "exam" ? 20 : size / 2,
-              backgroundColor: fill,
+              borderRadius: radius,
+              backgroundColor: chrome.fill,
               alignItems: "center",
               justifyContent: "center",
-              borderBottomWidth: 5,
-              borderBottomColor: edge,
             }}
           >
-            <KitIcon name={icon} size={node.kind === "current" ? 28 : 24} color={iconColor} filled={node.kind === "current"} />
+            <KitIcon name={chrome.glyph} size={node.kind === "current" ? 28 : 24} color={chrome.icon} filled={chrome.filled} />
           </Pressable>
         </View>
         <View

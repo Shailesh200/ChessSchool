@@ -1,5 +1,6 @@
 import { dueLessonIds } from "@chess-school/progression";
 import { EXAM_PASS_RATIO } from "@/classExam";
+import { premiumTokensJson } from "@/theme/premium";
 
 export type CourseMapPhase = "loading" | "empty" | "error" | "offline" | "ready";
 
@@ -289,12 +290,53 @@ export function classDetailCaption(input: {
   index: number;
   mastery: number;
   activeIndex: number;
+  minutes?: number;
 }): string {
   if (input.tone === "done") return `Done · ${Math.round(input.mastery * 100)}%`;
-  if (input.tone === "current") return "Up next";
+  if (input.tone === "current") {
+    return input.minutes != null && input.minutes > 0 ? `Up next · ${input.minutes} min` : "Up next";
+  }
   if (input.tone === "exam") return "Pass to graduate";
   const after = input.activeIndex >= 0 ? input.activeIndex + 1 : input.index;
   return `Unlocks after lesson ${after}`;
+}
+
+export type PathGlyph = "check" | "play" | "lock" | "flag";
+
+/** Done, up-next, locked, and stage-test chrome from the kit semantic tokens. */
+export function pathNodeChrome(kind: MapNodeKind, mode: "light" | "dark") {
+  const s = premiumTokensJson.semantic[mode];
+  const tone = {
+    done: { fill: s["node-done"], edge: s["node-done-edge"], icon: s["node-done-icon"], glyph: "check" as const },
+    current: { fill: s["node-current"], edge: s["node-current-edge"], icon: s["node-current-icon"], glyph: "play" as const },
+    locked: { fill: s["node-locked"], edge: s["node-locked-edge"], icon: s["node-locked-icon"], glyph: "lock" as const },
+    exam: { fill: s["node-exam"], edge: s["node-exam-edge"], icon: s["node-exam-icon"], glyph: "flag" as const },
+  }[kind];
+  return {
+    ...tone,
+    shape: kind === "exam" ? ("rounded" as const) : ("circle" as const),
+    halo: kind === "current" ? s["node-current-halo"] : null,
+    filled: kind === "current",
+    start: kind === "current",
+    edgeDepth: 5,
+    startBg: mode === "dark" ? premiumTokensJson.color.sun["400"] : s.text,
+    startFg: mode === "dark" ? premiumTokensJson.color.ink["900"] : s.bg,
+  };
+}
+
+/** Class-detail row tiles. The current row is brand-edged; the others stay on the hairline. */
+export function classRowChrome(tone: ClassRowTone, mode: "light" | "dark") {
+  const s = premiumTokensJson.semantic[mode];
+  if (tone === "done") {
+    return { tile: s["node-done"], icon: s["node-done-icon"], glyph: "check" as PathGlyph, border: s.line, edge: null, filled: false };
+  }
+  if (tone === "current") {
+    return { tile: s["accent-soft"], icon: s.accent, glyph: "play" as PathGlyph, border: s.brand, edge: s["brand-edge"], filled: false };
+  }
+  if (tone === "exam") {
+    return { tile: s["node-exam"], icon: s["node-exam-icon"], glyph: "flag" as PathGlyph, border: s.line, edge: null, filled: false };
+  }
+  return { tile: s["node-locked"], icon: s["node-locked-icon"], glyph: "lock" as PathGlyph, border: s.line, edge: null, filled: false };
 }
 
 export type GymSkill = "All" | "Forks" | "Pins" | "Skewers" | "Mates" | "Endgames";

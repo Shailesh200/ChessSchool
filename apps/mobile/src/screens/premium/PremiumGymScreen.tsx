@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useRouter } from "expo-router";
 import { KitButton, KitIcon, KitSheet, usePremiumKitTheme } from "@/components/kit";
 import { TopBar } from "@/TopBar";
@@ -8,6 +9,7 @@ import { api } from "@/api";
 import { useNetwork } from "@/NetworkProvider";
 import { useLearnData } from "@/useLearnData";
 import { useProgress } from "@/progressStore";
+import { premiumTokensJson } from "@/theme/premium";
 import {
   filterGymPuzzles,
   gymLevelOf,
@@ -18,6 +20,13 @@ import {
   type GymSkill,
   type StatusSheetKind,
 } from "./premiumModel";
+
+const emptyArt = require("../../../assets/kit/illustrations/empty.webp");
+const errorArt = require("../../../assets/kit/illustrations/error.webp");
+const offlineArt = require("../../../assets/kit/illustrations/offline.webp");
+const retryGlow = require("../../../assets/kit/accents/acc-retry.webp");
+
+const SHEET_ART = { empty: emptyArt, error: errorArt, offline: offlineArt } as const;
 
 const SKILLS: GymSkill[] = ["All", "Forks", "Pins", "Skewers", "Mates", "Endgames"];
 const LEVELS: GymLevel[] = ["All", "Easy", "Medium", "Hard"];
@@ -114,16 +123,44 @@ export function PremiumGymScreen({ fixture }: { fixture?: { puzzles: GymPuzzle[]
           </Pressable>
         ))}
       </ScrollView>
-      <KitSheet open={Boolean(copy)} onClose={() => setSheet(null)} title={copy?.title}>
-        {copy ? (
-          <View style={{ gap: space["3"] }}>
-            <Text style={{ color: colors.ink500, fontFamily: font.uiMedium, textAlign: "center" }}>{copy.body}</Text>
+      <KitSheet open={Boolean(copy)} onClose={() => setSheet(null)} align="center">
+        {copy && sheet ? (
+          <>
+            <SheetGlow art={SHEET_ART[sheet]} />
+            <Text style={{ fontFamily: font.displayBold, color: colors.ink, fontSize: type.h3.fontSize, lineHeight: type.h3.lineHeight, textAlign: "center" }}>
+              {copy.title}
+            </Text>
+            <Text style={{ color: colors.ink500, fontFamily: font.uiMedium, fontSize: type.body.fontSize, lineHeight: type.body.lineHeight, textAlign: "center" }}>
+              {copy.body}
+            </Text>
             <KitButton label={copy.primary} icon={sheet === "empty" ? "dumbbell" : "refreshCw"} onPress={() => { if (sheet === "error" || sheet === "offline") setFailed(false); setSheet(null); }} />
             <KitButton label={copy.secondary} variant="ghost" onPress={() => setSheet(null)} />
-          </View>
+          </>
         ) : null}
       </KitSheet>
     </ThemedSafeArea>
+  );
+}
+
+/** Warm glow tile from the sheet designs. Sun stops are kit colors; the overlay is the retry accent. */
+function SheetGlow({ art }: { art: number }) {
+  const g1 = premiumTokensJson.color.sun["100"];
+  const g2 = premiumTokensJson.color.sun["400"];
+  return (
+    <View style={{ width: 144, height: 144, borderRadius: 20, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
+      <Svg width={144} height={144} style={{ position: "absolute" }}>
+        <Defs>
+          <RadialGradient id="sheetGlow" cx="50%" cy="38%" r="70%">
+            <Stop offset="0%" stopColor="#FFFFFF" />
+            <Stop offset="45%" stopColor={g1} />
+            <Stop offset="100%" stopColor={g2} />
+          </RadialGradient>
+        </Defs>
+        <Rect width={144} height={144} fill="url(#sheetGlow)" />
+      </Svg>
+      <Image source={retryGlow} style={{ position: "absolute", width: 144, height: 144 }} accessibilityIgnoresInvertColors />
+      <Image source={art} style={{ width: 126, height: 126 }} accessibilityIgnoresInvertColors />
+    </View>
   );
 }
 
