@@ -31,7 +31,11 @@
     "verify:coverage": "bash scripts/verify-test-coverage.sh",
     "db:seed:test-user": "pnpm --filter web db:seed:test-user",
     "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs",
-    "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate"
+    "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate",
+    "release:gates": "bash scripts/release/run-all.sh \"$(git rev-parse HEAD)\"",
+    "release:deps": "bash scripts/release/deps-gate.sh",
+    "release:secrets": "bash scripts/release/secrets-scan.sh",
+    "test:release-gates": "pnpm --filter web exec vitest run --config vitest.release-gates.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

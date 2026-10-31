@@ -90,3 +90,6 @@ parity/maestro/flows/undefined.png
 /qa-sim-artifacts/
 apps/web/undefined/
 apps/mobile/qa-sim-artifacts/
+
+# release gate output (GT-001)
+release-out/
