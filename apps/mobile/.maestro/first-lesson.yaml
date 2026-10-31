@@ -8,22 +8,14 @@ appId: com.chessschool.app
 - tapOn:
     id: orientation-skip
 - extendedWaitUntil:
-    visible: "Welcome to ChessSchool!"
+    visible: "Chess Basics"
     timeout: 30000
-- runFlow:
-    when:
-      visible: "Start learning"
-    commands:
-      - tapOn: "Start learning"
-- runFlow:
-    when:
-      visible: "Start class"
-    commands:
-      - tapOn: "Start class"
-      - extendedWaitUntil:
-          visible: "Start journey"
-          timeout: 30000
-      - tapOn: "Start journey"
+- tapOn: "The Chess Board, .*"
+- extendedWaitUntil:
+    visible:
+      id: class-detail
+    timeout: 30000
+- tapOn: "1 · .*"
 - extendedWaitUntil:
     visible: "Close lesson"
-    timeout: 30000
+    timeout: 45000

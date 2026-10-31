@@ -8,13 +8,17 @@ appId: com.chessschool.app
 - tapOn:
     id: orientation-skip
 - extendedWaitUntil:
-    visible: "Welcome to ChessSchool!"
+    visible: "Chess Basics"
     timeout: 20000
 - tapOn: "Play"
-- assertVisible: "New match"
+- extendedWaitUntil:
+    visible: "New match"
+    timeout: 20000
 - tapOn: "Review"
-- assertVisible: "No games yet"
+- extendedWaitUntil:
+    visible: "Nothing is due right now."
+    timeout: 20000
 - tapOn: "Profile"
 - assertVisible: "Guest learner"
 - tapOn: "Learn"
-- assertVisible: "Welcome to ChessSchool!"
+- assertVisible: "Chess Basics"

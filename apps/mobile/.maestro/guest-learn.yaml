@@ -8,7 +8,8 @@ appId: com.chessschool.app
 - tapOn:
     id: orientation-skip
 - extendedWaitUntil:
-    visible: "Welcome to ChessSchool!"
+    visible: "Chess Basics"
     timeout: 20000
-- assertVisible: "Enroll in the academy to track your progress."
+- assertVisible: "The Chess Board"
+- assertVisible: "Enroll"
 - assertVisible: "Learn"
