@@ -61,6 +61,23 @@ jobs:
         shell: bash
         run: npx expo prebuild -p android --no-install
 
+      - name: Embed the JS bundle in the debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle="apps/mobile/android/app/build.gradle"
+          if ! grep -q 'debuggableVariants' "$gradle"; then
+            python3 - "$gradle" <<'PY'
+          import pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          text = path.read_text()
+          needle = "react {"
+          if needle not in text:
+              raise SystemExit("react block missing from " + str(path))
+          path.write_text(text.replace(needle, "react {\n    debuggableVariants = []\n", 1))
+          PY
+          fi
+
       - name: Emulator, debug APK, Maestro
         uses: reactivecircus/android-emulator-runner@v2
         with:
