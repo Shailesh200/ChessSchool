@@ -1053,3 +1053,44 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
     min-height: 2.75rem;
   }
 }
+
+/* Class exam (09-class-exam): class exam player uses data-screen=exam on the lesson stage (BU-004). */
+.lesson-stage[data-screen="exam"] {
+  max-width: 100%;
+  overflow-x: clip;
+}
+body:has(.lesson-stage[data-screen="exam"]) {
+  overflow-x: clip;
+}
+:root[data-large-text] .lesson-stage[data-screen="exam"] .cs-lessonhead {
+  flex-wrap: wrap;
+  row-gap: 0.375rem;
+  min-width: 0;
+}
+:root[data-large-text] .lesson-stage[data-screen="exam"] .cs-h3,
+:root[data-large-text] .lesson-stage[data-screen="exam"] .cs-h4,
+:root[data-large-text] .lesson-stage[data-screen="exam"] .cs-tag {
+  overflow-wrap: anywhere;
+}
+:root[data-large-text] .lesson-stage[data-screen="exam"] .lesson-stage-extras .hintline {
+  max-height: none;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 900px) {
+  .lesson-stage[data-screen="exam"] .lesson-stage-scroll {
+    overflow-x: clip;
+  }
+  :root[data-large-text] .lesson-stage[data-screen="exam"] .lesson-stage-grid {
+    max-width: min(72rem, 100%);
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: minmax(0, min(560px, 52vw)) minmax(0, 1fr);
+  }
+  :root[data-large-text] .lesson-stage[data-screen="exam"] .lesson-stage-coach,
+  :root[data-large-text] .lesson-stage[data-screen="exam"] .lesson-stage-extras,
+  :root[data-large-text] .lesson-stage[data-screen="exam"] .lesson-stage-bubble {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
