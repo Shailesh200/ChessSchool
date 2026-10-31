@@ -97,7 +97,7 @@ jobs:
             cd apps/mobile/android && chmod +x ./gradlew && ./gradlew assembleDebug --no-daemon || status=$?;
             if [ "$status" -eq 0 ]; then unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -q 'index.android.bundle' || { echo 'JS bundle missing from debug APK'; status=1; }; fi;
             if [ "$status" -eq 0 ]; then cd "$GITHUB_WORKSPACE" && adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk || status=$?; fi;
-            if [ "$status" -eq 0 ]; then maestro test apps/mobile/.maestro || status=$?; fi;
+            if [ "$status" -eq 0 ]; then maestro test apps/mobile/.maestro/launch.yaml apps/mobile/.maestro/guest-learn.yaml apps/mobile/.maestro/tabs.yaml apps/mobile/.maestro/first-lesson.yaml || status=$?; fi;
             mkdir -p "$GITHUB_WORKSPACE/android-e2e-artifacts";
             adb logcat -d > "$GITHUB_WORKSPACE/android-e2e-artifacts/logcat.txt" || true;
             if [ -d "$HOME/.maestro/tests" ]; then cp -a "$HOME/.maestro/tests" "$GITHUB_WORKSPACE/android-e2e-artifacts/maestro" || true; fi;
