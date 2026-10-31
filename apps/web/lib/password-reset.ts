@@ -80,6 +80,11 @@ export async function requestPasswordReset(
   }).catch(() => undefined);
 }
 
+const CONSUME_RESET_TOKEN_SQL = `UPDATE password_reset_tokens
+SET used_at = ?
+WHERE id = ? AND used_at IS NULL AND expires_at >= ?
+RETURNING user_id AS user_id`;
+
 export async function resetPasswordWithToken(
   rawToken: string,
   password: string,
@@ -89,26 +94,35 @@ export async function resetPasswordWithToken(
   }
   const tokenHash = hashSessionToken(rawToken.trim());
   const conn = dbConn();
-  const row = (
-    await conn
-      .select()
-      .from(passwordResetTokens)
-      .where(eq(passwordResetTokens.id, tokenHash))
-      .limit(1)
-  )[0];
   const now = Date.now();
-  if (!row || row.usedAt != null || row.expiresAt < now) {
-    return { error: "This reset link is invalid or has expired." };
-  }
-
   const passwordHash = await hashPassword(password);
-  await conn.update(users).set({ passwordHash }).where(eq(users.id, row.userId));
-  await conn
-    .update(passwordResetTokens)
-    .set({ usedAt: now })
-    .where(eq(passwordResetTokens.id, tokenHash));
-  await revokeSessionsForUser(row.userId, conn);
-  return { ok: true };
+  const invalid = { error: "This reset link is invalid or has expired." } as const;
+
+  const tx = await db.$client.transaction("write");
+  try {
+    const consumed = await tx.execute({
+      sql: CONSUME_RESET_TOKEN_SQL,
+      args: [now, tokenHash, now],
+    });
+    const userId = consumed.rows[0]?.user_id;
+    if (typeof userId !== "string" || !userId) {
+      await tx.rollback();
+      return invalid;
+    }
+    await tx.execute({
+      sql: "UPDATE users SET password_hash = ? WHERE id = ?",
+      args: [passwordHash, userId],
+    });
+    await tx.execute({
+      sql: "DELETE FROM sessions WHERE user_id = ?",
+      args: [userId],
+    });
+    await tx.commit();
+    return { ok: true as const };
+  } catch (err) {
+    await tx.rollback();
+    throw err;
+  }
 }
 
 /** @internal tests */
