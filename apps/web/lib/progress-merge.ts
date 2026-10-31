@@ -328,6 +328,25 @@ export function mergeExtraData(
  * a newer stored choice, so its shareAnalytics and settingsVersion are dropped. Every other setting
  * merges as before.
  */
+
+/** Keep in sync with `PRIVACY_SETTINGS_VERSION` in `@/core/store/settings.store`. */
+export const ACCOUNT_PRIVACY_SETTINGS_VERSION = 1;
+
+/** Whether synced account settings count as analytics opt-in (matches client pullProgress). */
+export function accountShareAnalyticsFromSettings(
+  settings: Record<string, unknown> | undefined | null,
+): boolean {
+  if (!settings) return false;
+  const acctVersion = Number(settings.settingsVersion);
+  if (
+    !Number.isFinite(acctVersion) ||
+    acctVersion < ACCOUNT_PRIVACY_SETTINGS_VERSION
+  ) {
+    return false;
+  }
+  return settings.shareAnalytics === true;
+}
+
 export function guardPrivacyVersion(
   prev: Record<string, unknown> | undefined | null,
   incoming: Record<string, unknown>,
