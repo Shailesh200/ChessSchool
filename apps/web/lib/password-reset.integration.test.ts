@@ -15,55 +15,31 @@ import {
 } from "@/lib/email/password-reset-test-transport";
 import { setPasswordResetTransportForTests } from "@/lib/email/send-password-reset";
 import { PASSWORD_RESET_GENERIC_MESSAGE } from "@/lib/password-reset-messages";
-import {
-  flushForgotPasswordAfterQueue,
-  forgotPasswordAfterQueue,
-} from "@/lib/password-reset-forgot-after.test-support";
 
 const PW = "testpass123";
-
-vi.mock("next/server", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("next/server")>();
-  return {
-    ...mod,
-    after(task: () => void | Promise<void>) {
-      forgotPasswordAfterQueue.push(task);
-    },
-  };
-});
-
-function tokenFromMail(text: string): string {
-  const match = text.match(/\/account\/reset\?token=([^&\s]+)/);
-  expect(match).toBeTruthy();
-  return decodeURIComponent(match![1]!);
-}
 
 describe("password reset API", () => {
   let teardown: () => void = () => {};
   let db: TestDb;
-  let postForgot: typeof import("@/app/api/auth/password/forgot/route").POST;
+  let postForgot: typeof import("@/app/api/auth/forgot-password/route").POST;
   let postRegister: typeof import("@/app/api/auth/register/route").POST;
   let postLogin: typeof import("@/app/api/auth/login/route").POST;
 
   beforeEach(async () => {
     vi.resetModules();
-    forgotPasswordAfterQueue.length = 0;
-    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://chess-school.in");
     resetPasswordResetTestOutbox();
     setPasswordResetTransportForTests(createPasswordResetTestTransport());
     ({ teardown, db } = await bootApiTestEnv());
-    postForgot = (await import("@/app/api/auth/password/forgot/route")).POST;
+    postForgot = (await import("@/app/api/auth/forgot-password/route")).POST;
     postRegister = (await import("@/app/api/auth/register/route")).POST;
     postLogin = (await import("@/app/api/auth/login/route")).POST;
   });
 
-  afterEach(async () => {
-    await flushForgotPasswordAfterQueue();
+  afterEach(() => {
     setPasswordResetTransportForTests(undefined);
     resetPasswordResetTestOutbox();
     teardown();
     vi.resetModules();
-    vi.unstubAllEnvs();
   });
 
   async function register(email: string) {
@@ -80,7 +56,7 @@ describe("password reset API", () => {
 
   it("returns the same generic JSON for unknown and known emails", async () => {
     const unknown = await postForgot(
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(2) },
         body: JSON.stringify({ email: "missing@example.com" }),
@@ -95,14 +71,13 @@ describe("password reset API", () => {
     const email = `known-${Date.now()}@test.dev`;
     await register(email);
     const known = await postForgot(
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(3) },
         body: JSON.stringify({ email }),
       }),
     );
     expect(known.status).toBe(200);
-    await flushForgotPasswordAfterQueue();
     expect(await readJson(known)).toEqual({
       ok: true,
       message: PASSWORD_RESET_GENERIC_MESSAGE,
@@ -114,15 +89,16 @@ describe("password reset API", () => {
     const email = `hash-${Date.now()}@test.dev`;
     await register(email);
     await postForgot(
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(4) },
         body: JSON.stringify({ email }),
       }),
     );
-    await flushForgotPasswordAfterQueue();
     const mail = passwordResetTestOutbox[0]?.text ?? "";
-    const raw = tokenFromMail(mail);
+    const match = mail.match(/token=([^&\s]+)/);
+    expect(match).toBeTruthy();
+    const raw = decodeURIComponent(match![1]!);
     const rows = await db.select().from(passwordResetTokens);
     expect(rows.length).toBe(1);
     expect(rows[0]!.id).toBe(hashSessionToken(raw));
@@ -137,17 +113,15 @@ describe("password reset API", () => {
     await register(email);
     const body = JSON.stringify({ email });
     const req = () =>
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(5) },
         body,
       });
     await postForgot(req());
-    await flushForgotPasswordAfterQueue();
     const firstRows = await db.select().from(passwordResetTokens);
     expect(firstRows.length).toBe(1);
     await postForgot(req());
-    await flushForgotPasswordAfterQueue();
     const secondRows = await db.select().from(passwordResetTokens);
     expect(secondRows.length).toBe(1);
     expect(secondRows[0]!.id).not.toBe(firstRows[0]!.id);
@@ -157,15 +131,14 @@ describe("password reset API", () => {
     const email = `single-${Date.now()}@test.dev`;
     await register(email);
     await postForgot(
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(6) },
         body: JSON.stringify({ email }),
       }),
     );
-    await flushForgotPasswordAfterQueue();
     const mail = passwordResetTestOutbox[0]?.text ?? "";
-    const raw = tokenFromMail(passwordResetTestOutbox[0]?.text ?? "");
+    const raw = decodeURIComponent(mail.match(/token=([^&\s]+)/)![1]!);
     const { resetPasswordWithToken } = await import("@/lib/password-reset");
     expect(await resetPasswordWithToken(raw, "newpass1234")).toEqual({ ok: true });
     expect(await resetPasswordWithToken(raw, "anotherpass1")).toMatchObject({
@@ -210,14 +183,15 @@ describe("password reset API", () => {
     void token;
 
     await postForgot(
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(8) },
         body: JSON.stringify({ email }),
       }),
     );
-    await flushForgotPasswordAfterQueue();
-    const raw = tokenFromMail(passwordResetTestOutbox[0]!.text);
+    const raw = decodeURIComponent(
+      passwordResetTestOutbox[0]!.text.match(/token=([^&\s]+)/)![1]!,
+    );
     const before = await db.select().from(sessions);
     expect(before.length).toBeGreaterThan(0);
     const { resetPasswordWithToken } = await import("@/lib/password-reset");
@@ -245,14 +219,13 @@ describe("password reset API", () => {
     });
 
     const res = await postForgot(
-      new Request("http://test/api/auth/password/forgot", {
+      new Request("http://test/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json", ...testIp(9) },
         body: JSON.stringify({ email }),
       }),
     );
     expect(res.status).toBe(200);
-    await flushForgotPasswordAfterQueue();
     expect(passwordResetTestOutbox.length).toBe(0);
     expect(await db.select().from(passwordResetTokens)).toHaveLength(0);
   });
