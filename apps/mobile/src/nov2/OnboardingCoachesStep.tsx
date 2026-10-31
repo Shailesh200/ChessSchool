@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CoachRow } from "@/nov2/CoachRow";
-import { DexButton } from "@/nov2/DexButton";
+import { KitButton } from "@/components/kit";
 import { OptionList, type OptionItem } from "@/nov2/OptionList";
 import { premiumColors, premiumFont, premiumSpace, premiumType } from "@/nov2/premiumTokens";
 import { coachCharacterOf, type CoachCharacterId } from "@/coachCharacters";
@@ -37,7 +37,7 @@ export function OnboardingCoachesStep({
         accessibilityLabel="Coach"
       />
       <Text style={styles.note}>Selected: {selected.name}</Text>
-      <DexButton label="Continue" onPress={() => onChange(value)} />
+      <KitButton label="Continue" onPress={() => onChange(value)} />
     </ScrollView>
   );
 }
