@@ -278,4 +278,22 @@ describe("pull writes", () => {
     expect(await owners("journal")).toEqual({ j1: "B" });
     for (const o of Object.values(await owners("games"))) expect(o).toBe("B");
   });
+
+  it("keeps this user's local game the snapshot omits and drops everyone else's", async () => {
+    await db.games.bulkPut([
+      game("gA", { owner: "A" }),
+      game("gB", { owner: "B" }),
+      game("gUntagged"),
+    ]);
+    await replaceGamesFromSync(
+      [{ id: "gServer", mode: "bot", pgn: "1. e4", result: "1-0", at: 9 }],
+      "A",
+    );
+    const rows = await db.games.toArray();
+    expect(rows.map((r) => r.id).sort()).toEqual(["gA", "gServer"]);
+    expect(rows.every((r) => (r as { owner?: string }).owner === "A")).toBe(true);
+    signInAs("A");
+    expect((await getGame("gA"))?.id).toBe("gA");
+    expect(await getGame("gB")).toBeUndefined();
+  });
 });

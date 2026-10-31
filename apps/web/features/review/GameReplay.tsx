@@ -13,6 +13,8 @@ import { replayFrames, analyzeMate, matePreventionTip, type Frame } from "./repl
 import type { BoardArrow, Square } from "@/core/types/chess";
 import { audio } from "@/core/audio/audioEngine";
 import { useMatch } from "@/core/store/match.store";
+import { useSession } from "@/core/store/session.store";
+import { ROW_OWNER_UNKNOWN, rowOwnerNow } from "@/core/sync/rowOwner";
 import { shadowFromGame } from "@/features/play/shadow";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
@@ -20,13 +22,21 @@ import { haptics } from "@/core/haptics/haptics";
 export function GameReplay({ id }: { id: string }) {
   const router = useRouter();
   const startMatch = useMatch((s) => s.start);
+  const authed = useSession((s) => s.authed);
+  const userId = useSession((s) => s.user?.id ?? null);
   const [game, setGame] = useState<SavedGame | null | undefined>(undefined);
   const [frames, setFrames] = useState<Frame[]>([]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const timer = useRef<number | null>(null);
+  // `pending` while skipHydration / pullProgress have not published a user id yet.
+  // A miss in that window is not "this id does not exist".
+  const scopeKey = `${authed ?? "pending"}:${userId ?? ""}`;
 
   useEffect(() => {
+    // Still checking who is signed in: `rowOwnerNow()` is "?" and would hide
+    // this user's own row. Wait until the scope settles, then read again.
+    if (rowOwnerNow() === ROW_OWNER_UNKNOWN) return;
     let alive = true;
     getGame(id).then((g) => {
       if (!alive) return;
@@ -35,12 +45,15 @@ export function GameReplay({ id }: { id: string }) {
         const f = replayFrames(g.pgn);
         setFrames(f);
         setIdx(f.length - 1); // start on the final position
+      } else {
+        setFrames([]);
+        setIdx(0);
       }
     });
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, scopeKey]);
 
   useEffect(() => {
     if (!playing) return;
