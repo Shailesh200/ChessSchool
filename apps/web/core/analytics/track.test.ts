@@ -15,13 +15,26 @@ const beacon = vi.fn(() => true);
 
 async function boot() {
   vi.resetModules();
-  const [track, store] = await Promise.all([
+  const [track, store, session] = await Promise.all([
     import("./track"),
     import("@/core/store/settings.store"),
+    import("@/core/store/session.store"),
   ]);
-  return { ...track, useSettings: store.useSettings };
+  return {
+    ...track,
+    useSettings: store.useSettings,
+    useSession: session.useSession,
+  };
 }
 type Rig = Awaited<ReturnType<typeof boot>>;
+
+function signedIn(r: Rig) {
+  r.useSession.getState().setSession(true, {
+    id: "u-test",
+    name: "Test",
+    role: "student",
+  });
+}
 
 function useTheSite(r: Rig) {
   r.trackEvent("page_view", { route: "/" });
@@ -60,6 +73,7 @@ describe("web analytics is opt-in", () => {
 
   it("a fresh install sends 0 events and no Pulse events through normal use, then sends after opt-in", async () => {
     const r = await boot();
+    signedIn(r);
     await r.useSettings.persist.rehydrate();
     useTheSite(r);
     await vi.advanceTimersByTimeAsync(5000);
@@ -87,6 +101,7 @@ describe("web analytics is opt-in", () => {
       }),
     );
     const r = await boot();
+    signedIn(r);
     expect(r.useSettings.getState().shareAnalytics).toBe(false); // not rehydrated yet
     useTheSite(r);
     await r.useSettings.persist.rehydrate();
@@ -102,6 +117,7 @@ describe("web analytics is opt-in", () => {
 
   it("opting out before a queued batch flushes drops the batch", async () => {
     const r = await boot();
+    signedIn(r);
     r.useSettings.getState().set("shareAnalytics", true);
     r.trackEvent("lesson_start");
     r.useSettings.getState().set("shareAnalytics", false);
@@ -119,8 +135,18 @@ describe("web analytics is opt-in", () => {
     expect(r.useSettings.getState().shareAnalytics).toBe(false);
   });
 
+  it("does not POST /api/events while signed out, even when analytics is on", async () => {
+    const r = await boot();
+    r.useSession.getState().setSession(false, null);
+    r.useSettings.getState().set("shareAnalytics", true);
+    r.trackEvent("lesson_start", { id: 9 });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(sent()).toBe(0);
+  });
+
   it("reset() leaves analytics off", async () => {
     const r = await boot();
+    signedIn(r);
     r.useSettings.getState().set("shareAnalytics", true);
     r.useSettings.getState().reset();
     expect(r.useSettings.getState().shareAnalytics).toBe(false);
