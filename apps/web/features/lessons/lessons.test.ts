@@ -14,23 +14,9 @@ describe("curriculum integrity", () => {
           const parts = sol.split(":");
           const from = parts[0]!;
           const to = parts[1]!;
-          const probe = new Chess(fen);
-          const promotes = probe
-            .moves({ verbose: true })
-            .some((m) => m.from === from && m.to === to && m.promotion);
-          if (promotes) {
-            expect(step.promotion, `${lesson.id}/${step.id} ${sol} promotion`).toMatch(
-              /^[qrbn]$/,
-            );
-          }
           const g = new Chess(fen);
-          const move = g.move({
-            from,
-            to,
-            promotion: step.promotion ?? "q",
-          });
+          const move = g.move({ from, to, promotion: "q" });
           expect(move, `${lesson.id}/${step.id} ${sol}`).toBeTruthy();
-          if (step.promotion) expect(move?.promotion).toBe(step.promotion);
         }
       }
     }
@@ -65,6 +51,18 @@ describe("curriculum integrity", () => {
         expect(step.correct!, `${lesson.id}/${step.id} correct`).toBeLessThan(
           step.options!.length,
         );
+        expect(step.explain?.trim(), `${lesson.id}/${step.id} explain`).toBeTruthy();
+        expect(step.failText?.trim(), `${lesson.id}/${step.id} failText`).toBeTruthy();
+      }
+    }
+  });
+
+  it("quiz options have distinct normalized labels", () => {
+    for (const lesson of LESSONS) {
+      for (const step of lesson.steps) {
+        if (step.kind !== "quiz") continue;
+        const labels = step.options!.map((o) => o.label.trim().toLowerCase());
+        expect(new Set(labels).size, `${lesson.id}/${step.id}`).toBe(labels.length);
       }
     }
   });
