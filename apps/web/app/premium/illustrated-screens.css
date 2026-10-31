@@ -895,6 +895,9 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   flex-direction: column;
   gap: 1rem;
   min-height: 100dvh;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: var(--cs-bg);
   color: var(--cs-text);
   padding: 0.5rem 1.25rem 1.5rem;
@@ -923,17 +926,34 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
 
 .illustrated-lesson .lgrid {
   width: 100%;
-  max-width: 72rem;
+  max-width: min(72rem, 100%);
+  min-width: 0;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
+.illustrated-lesson .lbd,
+.illustrated-lesson .lcoach,
+.illustrated-lesson .lx,
+.illustrated-lesson .big-mini,
+.illustrated-lesson .cs-coach,
+.illustrated-lesson .cs-bubble,
+.illustrated-lesson .lessonhead,
+.illustrated-lesson .actionbar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.illustrated-lesson .cs-bubble {
+  overflow-wrap: anywhere;
+}
+
 @media (min-width: 900px) and (min-height: 560px) {
   .illustrated-lesson .lgrid {
     display: grid;
-    grid-template-columns: minmax(0, 40rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
     grid-template-areas: "bd co" "bd ex";
     gap: 1rem 2rem;
     align-items: start;

@@ -118,8 +118,14 @@ export async function upsertReview(item: ReviewItem): Promise<void> {
   await db.reviews.put({ ...item, owner: rowOwnerNow() });
 }
 
+function notifyJournalChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("chessschool-journal"));
+}
+
 export async function addJournalEntry(entry: JournalEntry): Promise<void> {
   await db.journal.put({ ...entry, owner: rowOwnerNow() });
+  notifyJournalChanged();
   syncTrigger();
 }
 
@@ -133,8 +139,11 @@ export async function replaceJournalEntries(
   entries: JournalEntry[],
   owner: string,
 ): Promise<void> {
-  await db.journal.clear();
-  if (entries.length) await db.journal.bulkAdd(entries.map((e) => ({ ...e, owner })));
+  await db.transaction("rw", db.journal, async () => {
+    await db.journal.clear();
+    if (entries.length) await db.journal.bulkAdd(entries.map((e) => ({ ...e, owner })));
+  });
+  notifyJournalChanged();
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {

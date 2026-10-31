@@ -10,20 +10,41 @@ import { Icon } from "@/components/ui/Icon";
 import { journalKindIcon } from "@/components/ui/iconMaps";
 import { cn } from "@/components/ui/cn";
 import { useProgression } from "@/core/store/progression.store";
-import { useMounted } from "@/core/hooks/useMounted";
+import { useSession } from "@/core/store/session.store";
+import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { listJournal, deleteJournalEntry, type JournalEntry } from "@/core/db/db";
+import { journalListOwner } from "@/core/sync/journalList";
 
 const CONF = ["😣", "😕", "😐", "🙂", "😄"];
 
 export default function JournalPage() {
-  const mounted = useMounted();
+  const ready = useRehydrateReady();
+  const authed = useSession((s) => s.authed);
+  const userId = useSession((s) => s.user?.id ?? null);
+  const owner = journalListOwner(ready, authed, userId);
   const weaknesses = useProgression((s) => s.weaknesses);
   const [entries, setEntries] = useState<JournalEntry[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
-    listJournal().then(setEntries);
-  }, []);
+    if (!owner) return;
+    let cancel = false;
+    const load = () => {
+      listJournal()
+        .then((rows) => {
+          if (!cancel) setEntries(rows);
+        })
+        .catch(() => {
+          if (!cancel) setEntries([]);
+        });
+    };
+    load();
+    window.addEventListener("chessschool-journal", load);
+    return () => {
+      cancel = true;
+      window.removeEventListener("chessschool-journal", load);
+    };
+  }, [owner]);
 
   const activeEntryId = selectedId ?? entries?.[0]?.id ?? null;
 
@@ -37,7 +58,7 @@ export default function JournalPage() {
     entries && entries.length
       ? entries.reduce((a, b) => a + b.confidence, 0) / entries.length
       : 0;
-  const topMistakes = mounted
+  const topMistakes = ready
     ? Object.entries(weaknesses)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
