@@ -27,6 +27,7 @@ export type PreschoolVisual =
 export interface QuizOption {
   label: string;
   emoji?: string;
+  subtitle?: string;
 }
 
 export interface LessonStep {
@@ -52,6 +53,8 @@ export interface LessonStep {
   moves?: string[];
   arrows?: BoardArrow[];
   highlight?: Square[];
+  /** kit fork-lesson targets (Muse `.cs-sq.tg` — accent ring + wrong tint). */
+  targetSquares?: Square[];
   /** highlight entire files (columns a–h) while teaching */
   highlightFiles?: string[];
   /** highlight entire ranks (rows 1–8) while teaching */

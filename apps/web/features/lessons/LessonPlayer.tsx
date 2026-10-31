@@ -49,7 +49,8 @@ import {
 import { PreschoolQuiz } from "./PreschoolQuiz";
 import { LessonCompleteWeekStrip } from "./LessonCompleteExtras";
 import { formatLessonDurationMs, kitXpPopLottieId } from "./lessonKitXp";
-import { resolveKitLessonScreen } from "./lessonKitDevFixtures";
+import { KitLessonQuizOptions } from "./KitLessonQuizOptions";
+import { resolveKitLessonScreen, type LessonKitDevPreview } from "./lessonKitDevFixtures";
 import type { Lesson, LessonStep } from "./types";
 import type { BoardArrow, MoveInput, Square } from "@/core/types/chess";
 
@@ -111,15 +112,7 @@ export function LessonPlayer({
   /** when launched from the daily puzzle card */
   dailyPuzzle?: boolean;
   /** Dev-only (`/dev/lesson-kit`) — initial step/phase for kit screen QA. */
-  devPreview?: {
-    stepIndex?: number;
-    phase?: Phase;
-    hintLevel?: number;
-    /** Muse kit copy for pixel QA (`ttl` tag + h2). */
-    kitLabels?: { tag?: string; title?: string };
-    /** Overrides board tip / hintline for dev pixel QA. */
-    hintLine?: string;
-  };
+  devPreview?: LessonKitDevPreview;
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(devPreview?.stepIndex ?? 0);
@@ -144,6 +137,9 @@ export function LessonPlayer({
   const correctRef = useRef(0); // synchronous correct count (auto-advance reads it fresh)
   const wrongRef = useRef(0); // wrong moves this attempt → report-card scoring
   const [finalMistakes, setFinalMistakes] = useState(0);
+  const [quizPick, setQuizPick] = useState<number | null>(
+    devPreview?.quizPickedIndex ?? null,
+  );
   const timers = useRef<number[]>([]);
   /**
    * Lesson id already completed by this player instance. Tutorials never leave the
@@ -235,12 +231,14 @@ export function LessonPlayer({
         : step.kind === "quiz"
           ? "quiz"
           : "lesson";
-  const feedbackText = applyCoachLine(
-    rawFeedback,
-    coachCharacter,
-    coachContext,
-    coachSeed,
-  );
+  const feedbackText = devPreview?.verbatimCoach
+    ? rawFeedback
+    : applyCoachLine(
+        rawFeedback,
+        coachCharacter,
+        coachContext,
+        coachSeed,
+      );
   useCoachSpeech(feedbackText, coachContext, phase !== "complete" && !!step, true);
 
   // Warm TTS for the next step while the student works on the current one.
@@ -558,9 +556,11 @@ export function LessonPlayer({
         ...tutorial.arrows,
         ...(phase === "playing" && solvable && !isObserving ? hintArrows : []),
       ]
-    : phase === "playing" && !isObserving
-      ? [...(step.arrows ?? []), ...hintArrows]
-      : [];
+    : step.kind === "info" || (step.kind === "quiz" && step.fen) || phase !== "playing"
+      ? [...(step.arrows ?? []), ...(phase === "playing" ? hintArrows : [])]
+      : phase === "playing" && !isObserving
+        ? [...(step.arrows ?? []), ...hintArrows]
+        : [];
   const boardHighlight: Square[] = preschool
     ? [
         ...tutorial.highlight,
@@ -568,9 +568,11 @@ export function LessonPlayer({
           ? [hintFrom]
           : []),
       ]
-    : phase === "playing" && !isObserving
+    : step.kind === "info" || (step.kind === "quiz" && step.fen) || phase !== "playing"
       ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
-      : [];
+      : phase === "playing" && !isObserving
+        ? [...(step.highlight ?? []), ...(hintFrom ? [hintFrom] : [])]
+        : [];
   const boardHighlightFiles = preschool
     ? tutorial.highlightFiles
     : (step.highlightFiles ?? []);
@@ -584,7 +586,9 @@ export function LessonPlayer({
     ...tutorial.highlight.filter((sq) => hintLevel >= 1 || step.kind === "quiz"),
   ];
 
-  const progressPct = Math.round(((index + (phase === "correct" ? 1 : 0)) / total) * 100);
+  const progressPct =
+    devPreview?.progressPct ??
+    Math.round(((index + (phase === "correct" ? 1 : 0)) / total) * 100);
   const stepTag =
     devPreview?.kitLabels?.tag ??
     (step.kind === "quiz"
@@ -602,8 +606,15 @@ export function LessonPlayer({
         ? lesson.subtitle || lesson.title
         : lesson.title);
   const tipText =
-    devPreview?.hintLine ??
-    pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag });
+    devPreview && "hintLine" in devPreview
+      ? (devPreview.hintLine ?? "")
+      : (devPreview?.hintLine ??
+        pickLessonHint({ stepTag: step.tag, lessonTag: lesson.tag }));
+  const showTipRow =
+    step.kind !== "quiz" &&
+    (devPreview && "hintLine" in devPreview ? devPreview.hintLine != null : true) &&
+    Boolean(tipText.trim());
+  const kitBoardQuiz = step.kind === "quiz" && Boolean(step.fen) && !preschool;
   const kitScreen = lesson.exam
     ? "exam"
     : resolveKitLessonScreen({ phase, step, hintLevel });
@@ -703,19 +714,6 @@ export function LessonPlayer({
           >
             <i />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              audio.unlock();
-              toggleSetting("sound");
-              if (!sound) audio.play("notify");
-            }}
-            aria-label={sound ? "Mute sounds" : "Unmute sounds"}
-            aria-pressed={sound}
-            className="cs-iconbtn cs-iconbtn--plain"
-          >
-            {sound ? <Icon name="volume" size={18} /> : <Icon name="volumeOff" size={18} />}
-          </button>
         </div>
       }
       coachTitle={
@@ -726,12 +724,19 @@ export function LessonPlayer({
       }
       coach={
         <div className="cs-coach">
-          <CoachAvatar
-            character={coachCharacter}
-            state={avatarState}
-            size="lg"
-            className="cs-avatar cs-avatar--lg shrink-0"
-          />
+          {devPreview?.coachStillSrc ? (
+            <span className="cs-avatar cs-avatar--lg shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={devPreview.coachStillSrc} alt="Coach" />
+            </span>
+          ) : (
+            <CoachAvatar
+              character={coachCharacter}
+              state={avatarState}
+              size="lg"
+              className="cs-avatar cs-avatar--lg shrink-0"
+            />
+          )}
           <motion.div
             key={`${index}-${phase}`}
             initial={{ opacity: 0, y: 6 }}
@@ -747,7 +752,7 @@ export function LessonPlayer({
         </div>
       }
       board={
-        step.kind === "quiz" ? (
+        step.kind === "quiz" && !kitBoardQuiz ? (
           <div className="flex w-full flex-col items-center px-2 py-1">
             <PreschoolQuiz
               key={index}
@@ -760,23 +765,22 @@ export function LessonPlayer({
         ) : (
           step.fen && (
             <div
-              className="lesson-stage-board-frame relative"
+              className="lesson-stage-board-frame cs-board-wrap relative"
               data-testid="lesson-board-frame"
             >
-              {/* Size comes from the stage's scroll container (see LessonStage),
-                  never re-measured, so the board cannot resize/flicker when the
-                  feedback footer or coach text changes. */}
               <ChessBoard
                 key={index}
                 boardId={`lesson-${lesson.id}`}
+                appearance="kit"
                 fen={displayFen ?? step.fen}
                 orientation={step.orientation ?? "white"}
                 onMove={handleMove}
-                showNotation={preschool}
+                showNotation
                 arrows={boardArrows}
                 highlight={boardHighlight}
                 highlightFiles={boardHighlightFiles}
                 highlightRanks={boardHighlightRanks}
+                targetSquares={step.targetSquares}
                 lastMove={oppMove}
                 successSquare={phase === "correct" ? movedTo : null}
                 checkSquare={phase === "wrong" ? movedTo : null}
@@ -790,7 +794,7 @@ export function LessonPlayer({
       extras={
         <>
           <div className="lesson-stage-controls-row" data-testid="lesson-hint-bar">
-            {toMove ? (
+            {toMove && !devPreview?.hintLine ? (
               <span className="hintline">
                 <span
                   className={`inline-block h-4 w-4 shrink-0 rounded-full border border-current ${
@@ -854,7 +858,22 @@ export function LessonPlayer({
               </span>
             </div>
           ) : null}
-          {step.kind !== "quiz" ? (
+          {kitBoardQuiz ? (
+            <KitLessonQuizOptions
+              step={step}
+              phase={phase}
+              pickedIndex={devPreview?.quizPickedIndex ?? quizPick}
+              onPick={
+                devPreview?.quizPickedIndex != null
+                  ? undefined
+                  : (i) => {
+                      setQuizPick(i);
+                      handleQuizAnswer(i === (step.correct ?? 0));
+                    }
+              }
+            />
+          ) : null}
+          {showTipRow ? (
             <div className="hintline" data-testid="lesson-tip">
               <Icon name="bulb" size={18} className="shrink-0" />
               <span>{tipText}</span>

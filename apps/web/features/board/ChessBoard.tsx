@@ -26,6 +26,13 @@ const BOARD_STYLE: CSSProperties = {
   backfaceVisibility: "hidden",
 };
 
+const KIT_BOARD_LIGHT = "#EBF5EA";
+const KIT_BOARD_DARK = "#7DB89A";
+const KIT_BOARD_HIGHLIGHT = "rgba(255,200,87,0.55)";
+const KIT_BOARD_WRONG = "rgba(255,122,89,0.5)";
+const KIT_BOARD_ARROW = "#FF7A59";
+const KIT_ACCENT = "#FF7A59";
+
 /** Default prop arrays — `= []` in the param list would allocate every render and
  *  churn react-chessboard `options`, which can cancel in-flight piece slides. */
 const EMPTY_ARROWS: BoardArrow[] = [];
@@ -70,6 +77,10 @@ export interface ChessBoardProps {
   showAnimations?: boolean;
   /** stable id keeps react-chessboard animation state across position updates */
   boardId?: string;
+  /** Premium kit lesson board — Muse green/mint palette, frame, and overlays. */
+  appearance?: "default" | "kit";
+  /** Muse `.cs-sq.tg` fork targets (accent ring + wrong tint). */
+  targetSquares?: Square[];
 }
 
 export function ChessBoard({
@@ -90,6 +101,8 @@ export function ChessBoard({
   animationDurationInMs = 280,
   showAnimations,
   boardId,
+  appearance = "default",
+  targetSquares = EMPTY_HIGHLIGHT,
 }: ChessBoardProps) {
   // react-chessboard looks up squares via `querySelector('#${id}-square-…')` —
   // IDs must be CSS-safe (React useId can include `:`).
@@ -100,7 +113,10 @@ export function ChessBoard({
   const reducedMotion = useSettings((s) => s.reducedMotion);
   const colorblind = useSettings((s) => s.colorblind);
   const cb = colorblind !== "none";
-  const colors = resolveBoardTheme(boardTheme, colorblind);
+  const kit = appearance === "kit";
+  const colors = kit
+    ? { light: KIT_BOARD_LIGHT, dark: KIT_BOARD_DARK, move: KIT_ACCENT }
+    : resolveBoardTheme(boardTheme, colorblind);
   const pieces = useMemo(() => buildPieces(pieceTheme), [pieceTheme]);
   // In-app Reduce motion → instant snaps. OS prefers-reduced-motion must NOT
   // disable the library — CSS excludes [data-piece] from the transition nuke.
@@ -203,8 +219,16 @@ export function ChessBoard({
     }
     const moveTint = cb ? "rgba(90,169,230,0.45)" : "rgba(123, 224, 179, 0.45)";
     const lastTint = cb ? "rgba(242,193,78,0.55)" : "rgba(255, 224, 138, 0.55)";
-    const hintRing = cb ? "rgba(90,169,230,0.75)" : "rgba(91,91,214,0.7)";
-    const hintDot = cb ? "rgba(90,169,230,0.55)" : "rgba(91,91,214,0.45)";
+    const hintRing = kit
+      ? KIT_ACCENT
+      : cb
+        ? "rgba(90,169,230,0.75)"
+        : "rgba(91,91,214,0.7)";
+    const hintDot = kit
+      ? "rgba(11,74,59,0.4)"
+      : cb
+        ? "rgba(90,169,230,0.55)"
+        : "rgba(91,91,214,0.45)";
     const captureRing = cb ? "rgba(242,193,78,0.65)" : "rgba(244,63,94,0.55)";
     const checkRing = cb ? "rgba(90,169,230,0.9)" : "rgba(244,63,94,0.85)";
     const successBg = cb ? "rgba(90,169,230,0.45)" : "rgba(34,197,94,0.5)";
@@ -215,9 +239,20 @@ export function ChessBoard({
       styles[paintLastMove.to] = { background: lastTint };
     }
     for (const sq of highlight) {
+      styles[sq] = kit
+        ? {
+            background: KIT_BOARD_HIGHLIGHT,
+          }
+        : {
+            boxShadow: `inset 0 0 0 4px ${hintRing}`,
+            borderRadius: "8px",
+          };
+    }
+    for (const sq of targetSquares) {
       styles[sq] = {
-        boxShadow: `inset 0 0 0 4px ${hintRing}`,
-        borderRadius: "8px",
+        ...(styles[sq] ?? {}),
+        background: KIT_BOARD_WRONG,
+        boxShadow: `inset 0 0 0 3px ${KIT_ACCENT}`,
       };
     }
     if (selected) {
@@ -272,8 +307,10 @@ export function ChessBoard({
     checkSquare,
     successSquare,
     ringSquares,
+    targetSquares,
     colors.move,
     cb,
+    kit,
   ]);
 
   const lightSquareStyle = useMemo(
@@ -284,6 +321,19 @@ export function ChessBoard({
     () => ({ backgroundColor: colors.dark }),
     [colors.dark],
   );
+
+  const resolvedShowNotation = kit ? true : showNotation;
+  const kitBoardStyle: CSSProperties = kit
+    ? { ...BOARD_STYLE, borderRadius: 0, boxShadow: "none" }
+    : BOARD_STYLE;
+
+  const normalizedArrows = useMemo(() => {
+    if (!kit) return arrows;
+    return arrows.map((a) => ({
+      ...a,
+      color: a.color ?? KIT_BOARD_ARROW,
+    }));
+  }, [arrows, kit]);
 
   const options = useMemo(
     () => ({
@@ -296,14 +346,14 @@ export function ChessBoard({
       dragActivationDistance: 10,
       animationDurationInMs,
       showAnimations: animationsOn,
-      showNotation,
+      showNotation: resolvedShowNotation,
       allowDrawingArrows: false,
-      boardStyle: BOARD_STYLE,
+      boardStyle: kitBoardStyle,
       lightSquareStyle,
       darkSquareStyle,
       pieces,
       squareStyles,
-      arrows,
+      arrows: normalizedArrows,
       onSquareClick: ({
         square,
         piece,
@@ -341,7 +391,9 @@ export function ChessBoard({
       interactive,
       animationDurationInMs,
       animationsOn,
-      showNotation,
+      resolvedShowNotation,
+      kitBoardStyle,
+      normalizedArrows,
       lightSquareStyle,
       darkSquareStyle,
       pieces,
@@ -353,8 +405,10 @@ export function ChessBoard({
   return (
     <div
       data-testid="chess-board"
-      className={`relative [transform:translateZ(0)] rounded-lg [box-shadow:var(--shadow-card)] ${
-        fill ? "h-full w-full" : "aspect-square w-full"
+      className={`relative [transform:translateZ(0)] ${
+        kit
+          ? "lesson-kit-chessboard aspect-square w-full overflow-hidden rounded-[var(--cs-radius-md,1rem)] border-[3px] border-[var(--cs-board-frame)] [box-shadow:var(--cs-shadow-2)]"
+          : `rounded-lg [box-shadow:var(--shadow-card)] ${fill ? "h-full w-full" : "aspect-square w-full"}`
       }`}
     >
       <Chessboard options={options} />

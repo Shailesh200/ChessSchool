@@ -1030,8 +1030,39 @@ html[data-app-theme="midnight"] span[class*="via-white"] .text-gold {
   display: grid;
   flex: none;
   min-height: auto;
-  padding-top: 0.25rem;
+  padding-top: 1rem;
   padding-inline: max(1.25rem, var(--pad, 1rem));
+  gap: 1rem;
+}
+.lesson-stage--kit .cs-lessonhead > .cs-iconbtn--plain {
+  display: none;
+}
+.lesson-stage--kit .lesson-stage-board-frame.cs-board-wrap {
+  width: 100%;
+  max-width: min(var(--board), var(--cs-board-max, 40rem));
+  margin-inline: auto;
+}
+.lesson-stage--kit .lesson-kit-chessboard [class*="notation"] {
+  color: var(--cs-board-coord) !important;
+  font-weight: 800 !important;
+  font-size: clamp(0.5rem, 2.4cqw, 0.6875rem) !important;
+}
+:root[data-large-text] .lesson-stage-grid {
+  --coach-max: min(36dvh, 8.5rem);
+  gap: min(0.625rem, 2.5cqw);
+}
+html[style*="font-size: 200%"] .lesson-stage-grid {
+  --coach-max: min(32dvh, 8rem);
+  gap: 0.5rem;
+}
+html[style*="font-size: 200%"] .lesson-stage-coach .cs-h3 {
+  font-size: calc(1.125rem * var(--cs-ts, 1));
+}
+@media (max-width: 899px) and (min-height: 501px) {
+  :root[data-large-text] .lesson-stage-board-frame {
+    min-width: 0;
+    width: min(100cqw - 2 * var(--pad), var(--board-max), 100%);
+  }
 }
 .lesson-stage-extras[aria-hidden="true"] {
   display: none;
