@@ -1,13 +1,16 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, useColorScheme, View } from "react-native";
 import { KitButton, KitCard, KitIcon, usePremiumKitTheme } from "@/components/kit";
 import { TopBar } from "@/TopBar";
-import { classDetailCaption, type ClassRowTone } from "./premiumModel";
+import { useSettings } from "@/settings";
+import { resolvePremiumColorMode } from "@/themeMode";
+import { classDetailCaption, classRowChrome, type ClassRowTone } from "./premiumModel";
 
 export type ClassLessonRow = {
   id: string;
   title: string;
   mastery: number;
   tone: ClassRowTone;
+  minutes?: number;
 };
 
 export function PremiumClassDetail({
@@ -30,6 +33,7 @@ export function PremiumClassDetail({
   onStart: () => void;
 }) {
   const { colors, font, type, space, radius } = usePremiumKitTheme();
+  const mode = resolvePremiumColorMode(useSettings().themeMode, useColorScheme());
   const lessonRows = rows.filter((row) => row.tone !== "exam");
   const current = lessonRows.find((row) => row.tone === "current") ?? lessonRows[0];
   return (
@@ -47,13 +51,12 @@ export function PremiumClassDetail({
         <Text testID="class-title" style={{ fontFamily: font.displayBold, color: colors.ink, fontSize: type.h1.fontSize, lineHeight: type.h1.lineHeight }}>{title}</Text>
         <Text style={{ fontFamily: font.uiMedium, color: colors.ink500, fontSize: type.body.fontSize }}>{blurb}</Text>
         {rows.map((row, index) => {
-          const caption = row.tone === "exam" ? (examTitle ?? classDetailCaption({ tone: "exam", index, mastery: row.mastery, activeIndex })) : classDetailCaption({ tone: row.tone, index, mastery: row.mastery, activeIndex });
-          const tile = row.tone === "done" ? colors.nodeDone : row.tone === "current" ? colors.accent : row.tone === "exam" ? colors.nodeExam : colors.nodeLocked;
-          const icon = row.tone === "done" ? "check" : row.tone === "locked" ? "lock" : row.tone === "exam" ? "flag" : "play";
+          const caption = row.tone === "exam" ? (examTitle ?? classDetailCaption({ tone: "exam", index, mastery: row.mastery, activeIndex })) : classDetailCaption({ tone: row.tone, index, mastery: row.mastery, activeIndex, minutes: row.minutes });
+          const chrome = classRowChrome(row.tone, mode);
           return (
-            <Pressable key={row.id} testID={`class-row-${row.id}`} onPress={() => onOpen(row.id, row.tone)} style={{ flexDirection: "row", gap: space["3"], alignItems: "center", padding: space["3"], borderRadius: radius.lg, backgroundColor: row.tone === "current" ? colors.accentSoft : colors.surfaceCard, borderWidth: 1, borderColor: row.tone === "current" ? colors.accent : colors.hairline }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tile, alignItems: "center", justifyContent: "center" }}>
-                <KitIcon name={icon} size={18} color={row.tone === "locked" ? colors.nodeLockedIcon : colors.textOnAccent} />
+            <Pressable key={row.id} testID={`class-row-${row.id}`} onPress={() => onOpen(row.id, row.tone)} style={{ flexDirection: "row", gap: space["3"], alignItems: "center", minHeight: 56, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.surfaceCard, borderWidth: 1.5, borderColor: chrome.border, borderBottomWidth: chrome.edge ? 4.5 : 1.5, borderBottomColor: chrome.edge ?? chrome.border }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: chrome.tile, alignItems: "center", justifyContent: "center" }}>
+                <KitIcon name={chrome.glyph} size={24} color={chrome.icon} filled={chrome.filled} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: font.displayBold, color: colors.ink }}>{row.tone === "exam" ? "Class exam" : `${index + 1} · ${row.title}`}</Text>

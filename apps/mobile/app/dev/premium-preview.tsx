@@ -112,7 +112,7 @@ export default function PremiumPreviewScreen() {
           rows={[
             { id: "1", title: "What is a fork?", mastery: 1, tone: "done" },
             { id: "2", title: "Knight fork basics", mastery: 0.9, tone: "done" },
-            { id: "3", title: "Fork the king and queen", mastery: 0.2, tone: "current" },
+            { id: "3", title: "Fork the king and queen", mastery: 0.2, tone: "current", minutes: 4 },
             { id: "4", title: "Spot the fork", mastery: 0, tone: "locked" },
             { id: "exam", title: "Class exam", mastery: 0, tone: "exam" },
           ]}
