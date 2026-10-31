@@ -176,6 +176,23 @@ describe("reads and pushes see only the current user's rows (fail closed)", () =
     expect(await getGame("g1")).toBeUndefined();
   });
 
+  it("a saved note is announced for the open list and stays hidden from the other user", async () => {
+    signInAs("A");
+    const notes: string[][] = [];
+    const onChange = () => {
+      void listJournal().then((rows) => notes.push(rows.map((r) => r.note)));
+    };
+    window.addEventListener("chessschool-journal", onChange);
+    try {
+      await addJournalEntry(entry("j-saved", { note: "reflect-note" }));
+      await vi.waitFor(() => expect(notes.at(-1)).toContain("reflect-note"));
+      signInAs("B");
+      expect((await listJournal()).map((r) => r.note)).not.toContain("reflect-note");
+    } finally {
+      window.removeEventListener("chessschool-journal", onChange);
+    }
+  });
+
   it("A sees their own rows", async () => {
     expect(await listGames()).toHaveLength(1);
     expect(await listJournal()).toHaveLength(1);

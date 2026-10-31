@@ -103,7 +103,7 @@ a.cs-tab{text-decoration:none}
 .ttl{display:flex;flex-direction:column;align-items:center;gap:.5rem;text-align:center}
 .cs-bubble{max-width:none}
 @media(min-width:900px) and (min-height:560px){
- .lgrid{display:grid;grid-template-columns:minmax(0,40rem) minmax(0,1fr);grid-template-areas:"bd co" "bd ex";grid-template-rows:auto 1fr;gap:1rem 2rem;align-items:start;padding-top:1rem;--cs-board-max:40rem}
+ .lgrid{display:grid;grid-template-columns:minmax(0,min(40rem,58%)) minmax(0,1fr);grid-template-areas:"bd co" "bd ex";grid-template-rows:auto 1fr;gap:1rem 2rem;align-items:start;padding-top:1rem;--cs-board-max:40rem}
  .lbd{grid-area:bd}.lcoach{grid-area:co}.lx{grid-area:ex}.ttl{text-align:left;align-items:flex-start}
 }
 .hintline{display:flex;align-items:center;justify-content:center;gap:.5rem;color:var(--cs-text-muted);font-weight:700;font-size:calc(.9375rem*var(--cs-ts,1));text-align:center}.hintline .cs-ic{color:var(--cs-xp-text);flex:none}

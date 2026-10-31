@@ -13,7 +13,7 @@ import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { listJournal, deleteJournalEntry, type JournalEntry } from "@/core/db/db";
-import { journalListOwner } from "@/core/sync/journalList";
+import { journalListOwner, journalReadGeneration } from "@/core/sync/journalList";
 
 const CONF = ["😣", "😕", "😐", "🙂", "😄"];
 
@@ -29,20 +29,29 @@ export default function JournalPage() {
   useEffect(() => {
     if (!owner) return;
     let cancel = false;
+    const generation = journalReadGeneration();
     const load = () => {
+      const ticket = generation.start();
       listJournal()
         .then((rows) => {
-          if (!cancel) setEntries(rows);
+          if (!cancel && generation.isCurrent(ticket)) setEntries(rows);
         })
         .catch(() => {
-          if (!cancel) setEntries([]);
+          if (!cancel && generation.isCurrent(ticket)) setEntries([]);
         });
     };
     load();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
     window.addEventListener("chessschool-journal", load);
+    window.addEventListener("pageshow", load);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancel = true;
       window.removeEventListener("chessschool-journal", load);
+      window.removeEventListener("pageshow", load);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [owner]);
 

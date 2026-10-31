@@ -65,6 +65,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Resize the layout viewport with the keyboard so a bottom sheet stays above it.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

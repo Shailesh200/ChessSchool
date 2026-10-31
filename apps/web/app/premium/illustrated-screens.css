@@ -851,9 +851,15 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
 }
 
 .illustrated .board-frame,
-.illustrated-lesson .big-mini,
 .illustrated .big-mini {
   width: min(100%, 35rem);
+  margin-inline: auto;
+  position: relative;
+}
+
+.illustrated-lesson .big-mini {
+  width: 100%;
+  max-width: min(100%, 35rem);
   margin-inline: auto;
   position: relative;
 }
@@ -953,7 +959,7 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
 @media (min-width: 900px) and (min-height: 560px) {
   .illustrated-lesson .lgrid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     grid-template-areas: "bd co" "bd ex";
     gap: 1rem 2rem;
     align-items: start;
@@ -1249,6 +1255,8 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   justify-content: center;
   gap: 0.5rem;
   min-height: var(--cs-size-button-h);
+  min-width: 0;
+  max-width: 100%;
   padding: 0.6rem 1.5rem;
   border-radius: 99px;
   border: 0;
@@ -1258,6 +1266,8 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   text-decoration: none;
   box-shadow: 0 4px 0 var(--cs-brand-edge);
   text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   width: 100%;
   cursor: pointer;
 }
@@ -1293,10 +1303,13 @@ html[data-ui-kit="premium"] #main-content:has(.illustrated) {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  max-width: 100%;
   border-radius: 99px;
   padding: 0.3rem 0.75rem;
   font-size: 0.8125rem;
   font-weight: 700;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 :is(.illustrated-lesson) .pill.ok {
