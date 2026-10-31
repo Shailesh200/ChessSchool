@@ -2,17 +2,21 @@
 
 import Link from "next/link";
 import type { Catalog } from "@/features/school/structure";
+import { KitIcon } from "@/components/ui/KitIcon";
 import { KitRouteLoader } from "@/components/motion/KitRouteLoader";
+import type { CoursePath } from "@/features/premium-ui/pathStates";
 import type { PremiumMapState } from "./mapState";
 
 export function PremiumMapStatePanel({
   state,
   catalog,
   due,
+  path,
 }: {
   state: PremiumMapState;
   catalog: Catalog;
   due: number;
+  path?: CoursePath | null;
 }) {
   if (state === "loading") {
     return (
@@ -95,41 +99,62 @@ export function PremiumMapStatePanel({
     );
   }
 
-  const cls = catalog.allClasses[0];
-  const title = cls?.title ?? "Your class";
-  const href = cls ? `/class/${cls.id}` : "/academy";
+  const course = path ?? null;
+  const title = course?.title ?? catalog.allClasses[0]?.title ?? "Your class";
 
   return (
     <div data-testid="map-state-normal">
       <div className="cs-card cs-card--feature">
         <div className="cs-unit">
           <div>
-            <div className="cs-overline">Stage 1 · Tactics</div>
+            <div className="cs-overline">{course?.overline ?? "Stage 1"}</div>
             <h1 className="cs-h3" style={{ color: "inherit" }}>
               {title}
             </h1>
           </div>
-          <div className="cs-ring cs-ring--md" style={{ ["--p" as string]: "25" }} role="img" aria-label="Progress">
-            <b>1/4</b>
+          <div
+            className="cs-ring cs-ring--md"
+            style={{ ["--p" as string]: String(course?.ringPercent ?? 0) }}
+            role="img"
+            aria-label={course ? `${course.done} of ${course.total} classes done` : "Progress"}
+          >
+            <b>
+              {course ? `${course.done}/${course.total}` : "0/0"}
+            </b>
           </div>
         </div>
       </div>
       <div className="map2">
         <div className="mapcol">
-          <div className="cs-map">
-            <div className={`cs-node cs-node--current cs-node--r${state === "dark" ? " cs-node--dark" : ""}`}>
-              <Link href={href} className="cs-node__dot">
-                <span className="cs-node__start">START</span>
-              </Link>
-              <div className="cs-node__label">
-                <b>{title}</b>
-                <span>Up next</span>
+          <div className="cs-map" data-testid="course-path">
+            {(course?.nodes ?? []).map((node, index) => (
+              <div key={node.id}>
+                {index > 0 ? <PathTrail fromLeft={course!.nodes[index - 1]?.side === "l"} /> : null}
+                <div className={`cs-node cs-node--${node.kind} cs-node--${node.side}`}>
+                  {node.href ? (
+                    <Link href={node.href} className="cs-node__dot" aria-label={`${node.title}, ${node.caption}`}>
+                      <KitIcon name={node.glyph} className="cs-ic lg" fill={node.filled} />
+                      {node.kind === "current" ? <span className="cs-node__start">START</span> : null}
+                    </Link>
+                  ) : (
+                    <button type="button" className="cs-node__dot" aria-label={`${node.title}, ${node.caption}`} disabled>
+                      <KitIcon name={node.glyph} className="cs-ic lg" fill={node.filled} />
+                    </button>
+                  )}
+                  <div className="cs-node__label">
+                    <b>{node.title}</b>
+                    <span>{node.caption}</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
         <div className="rail">
           <div className="cs-row revcard">
+            <div className="cs-row__tile">
+              <KitIcon name="refresh-cw" className="cs-ic" />
+            </div>
             <div className="cs-row__body">
               <b>Review · {due} due</b>
               <span>10 steps or fewer</span>
@@ -138,15 +163,34 @@ export function PremiumMapStatePanel({
               Start
             </Link>
           </div>
+          <Link href="/gym" className="cs-row">
+            <div className="cs-row__tile">
+              <KitIcon name="dumbbell" className="cs-ic" />
+            </div>
+            <div className="cs-row__body">
+              <b>Gym</b>
+              <span>Drills and puzzle practice</span>
+            </div>
+            <KitIcon name="chevron-right" className="cs-ic" />
+          </Link>
           <div className="cs-coach">
             <span className="cs-avatar cs-avatar--md t-otto m-neutral">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/kit/accents/otto/neutral.webp" alt="Otto" />
             </span>
-            <div className="cs-bubble">Forks next. You&apos;ve got this!</div>
+            <div className="cs-bubble">{course?.coachLine ?? "Your path is ready when you are."}</div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function PathTrail({ fromLeft }: { fromLeft: boolean }) {
+  const d = fromLeft ? "M62 2 C62 26 138 14 138 38" : "M138 2 C138 26 62 14 62 38";
+  return (
+    <svg className="cs-trail" viewBox="0 0 200 40" preserveAspectRatio="none" fill="none" aria-hidden="true" style={{ height: "2.5rem", margin: ".25rem 0" }}>
+      <path d={d} stroke="currentColor" strokeWidth={7} strokeLinecap="round" strokeDasharray="1 13" />
+    </svg>
   );
 }

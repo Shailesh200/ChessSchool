@@ -31,11 +31,13 @@ export function JourneyView({
   cls,
   lessons,
   examLesson,
+  examPuzzles = null,
   allClasses,
 }: {
   cls: { id: string; title: string; emoji: string; blurb: string; examId?: string };
   lessons: LessonLite[];
   examLesson: { id: string; title: string } | null;
+  examPuzzles?: number | null;
   allClasses: SchoolClass[];
 }) {
   const premium = usePremiumUi();
@@ -45,6 +47,7 @@ export function JourneyView({
         cls={cls}
         lessons={lessons}
         examLesson={examLesson}
+        examPuzzles={examPuzzles}
         allClasses={allClasses}
       />
     );

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { KitIcon } from "@/components/ui/KitIcon";
 import { isUnlocked } from "@/features/lessons/unlock";
 import { isClassUnlocked, type SchoolClass } from "@/features/school/structure";
+import { classExamCaption, classPathRow } from "@/features/premium-ui/pathStates";
 import { useProgression } from "@/core/store/progression.store";
 import { startNav } from "@/core/store/nav.store";
 import { haptics } from "@/core/haptics/haptics";
@@ -15,11 +17,13 @@ export function PremiumClassDetailView({
   cls,
   lessons,
   examLesson,
+  examPuzzles = null,
   allClasses,
 }: {
   cls: { id: string; title: string; emoji: string; blurb: string; examId?: string };
   lessons: LessonLite[];
   examLesson: { id: string; title: string } | null;
+  examPuzzles?: number | null;
   allClasses: SchoolClass[];
 }) {
   const router = useRouter();
@@ -31,15 +35,16 @@ export function PremiumClassDetailView({
   const classLabel =
     classIndex >= 0 ? `Class ${classIndex + 1} of ${allClasses.length}` : "Class";
 
-  const nextLesson = useMemo(() => {
-    for (let i = 0; i < lessons.length; i++) {
-      const lesson = lessons[i]!;
-      const mastery = records[lesson.id]?.mastery ?? 0;
-      const locked = !unlockedClass || !isUnlocked(lesson.id, records);
-      if (!locked && mastery < 0.9) return { lesson, index: i };
+  let nextLesson: { lesson: LessonLite; index: number } | null = null;
+  for (let i = 0; i < lessons.length; i++) {
+    const lesson = lessons[i]!;
+    const mastery = records[lesson.id]?.mastery ?? 0;
+    const locked = !unlockedClass || !isUnlocked(lesson.id, records);
+    if (!locked && mastery < 0.9) {
+      nextLesson = { lesson, index: i };
+      break;
     }
-    return null;
-  }, [lessons, records, unlockedClass]);
+  }
 
   useEffect(() => {
     document.body.dataset.screen = "class";
@@ -75,11 +80,18 @@ export function PremiumClassDetailView({
             const locked = !unlockedClass || !isUnlocked(lesson.id, records);
             const done = mastery >= 0.9;
             const current = !locked && !done && nextLesson?.lesson.id === lesson.id;
+            const tone = done ? "done" : locked ? "locked" : current ? "current" : "open";
+            const row = classPathRow({
+              tone,
+              index,
+              mastery,
+              activeIndex: nextLesson?.index ?? -1,
+            });
             return (
               <button
                 key={lesson.id}
                 type="button"
-                className={`cs-row${current ? " cur-row" : ""}`}
+                className={`cs-row${row.current ? " cur-row" : ""}`}
                 disabled={locked}
                 onClick={() => {
                   haptics.fire("select");
@@ -87,34 +99,26 @@ export function PremiumClassDetailView({
                   router.push(`/lesson/${lesson.id}`);
                 }}
               >
-                <div
-                  className={`cs-row__tile${done ? " tile-done" : locked ? " tile-lock" : " cs-row__tile--accent"}`}
-                >
-                  {done ? "✓" : index + 1}
+                <div className={`cs-row__tile ${row.tileClass}`}>
+                  <KitIcon name={row.glyph} className="cs-ic" fill={row.filled} />
                 </div>
                 <div className="cs-row__body">
                   <b>
                     {index + 1} · {lesson.title}
                   </b>
-                  <span>
-                    {done
-                      ? `Done · ${Math.round(mastery * 100)}%`
-                      : locked
-                        ? "Locked"
-                        : current
-                          ? "Up next"
-                          : "Practice"}
-                  </span>
+                  <span>{row.caption}</span>
                 </div>
               </button>
             );
           })}
           {examLesson && (
             <Link href={`/class/${cls.id}/exam`} className="cs-row">
-              <div className="cs-row__tile tile-exam">🎓</div>
+              <div className="cs-row__tile tile-exam">
+                <KitIcon name="flag" className="cs-ic" />
+              </div>
               <div className="cs-row__body">
                 <b>Class exam</b>
-                <span>Pass with 67% to graduate</span>
+                <span>{classExamCaption(examPuzzles)}</span>
               </div>
             </Link>
           )}

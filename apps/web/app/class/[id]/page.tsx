@@ -7,6 +7,7 @@ import { getCatalog } from "@/features/school/catalog.server";
 import { db } from "@/db";
 import { classes as classT, lessons as lessonT } from "@/db/schema";
 import { classDescription, socialMeta } from "@/lib/seo";
+import { countExamPuzzles } from "@/features/premium-ui/pathStates";
 
 export const revalidate = 3600;
 
@@ -68,15 +69,19 @@ export default async function ClassJourneyPage({
     .map((l) => ({ id: l.id, title: l.title, subtitle: l.subtitle, emoji: l.emoji }));
 
   let examLesson: { id: string; title: string } | null = null;
+  let examPuzzles: number | null = null;
   if (clsRow.examId) {
     const ex = (
       await db
-        .select({ id: lessonT.id, title: lessonT.title })
+        .select({ id: lessonT.id, title: lessonT.title, steps: lessonT.steps })
         .from(lessonT)
         .where(eq(lessonT.id, clsRow.examId))
         .limit(1)
     )[0];
-    if (ex) examLesson = ex;
+    if (ex) {
+      examLesson = { id: ex.id, title: ex.title };
+      examPuzzles = countExamPuzzles(ex.steps);
+    }
   }
 
   return (
@@ -91,6 +96,7 @@ export default async function ClassJourneyPage({
         }}
         lessons={lessons}
         examLesson={examLesson}
+        examPuzzles={examPuzzles}
         allClasses={catalog.allClasses}
       />
     </AppShell>

@@ -10,6 +10,8 @@ import { useSettings } from "@/core/store/settings.store";
 import { useMounted } from "@/core/hooks/useMounted";
 import { useRehydrateReady } from "@/core/hooks/useRehydrateReady";
 import { dueLessonIds } from "@chess-school/progression";
+import { isClassUnlocked } from "@/features/school/structure";
+import { buildPremiumCoursePath } from "@/features/premium-ui/pathStates";
 import { resolvePremiumMapState, type PremiumMapState } from "@/features/premium-ui/map/mapState";
 import { readPremiumMapPreviewOverride } from "@/features/premium-ui/map/mapPreview";
 import { PremiumMapStatePanel } from "@/features/premium-ui/map/PremiumMapStatePanel";
@@ -34,6 +36,7 @@ export function PremiumAcademyClient({ catalog }: { catalog: Catalog }) {
   const streak = useProgression((s) => s.streak);
   const xp = useProgression((s) => s.xp);
   const lessons = useProgression((s) => s.lessons);
+  const graduated = useProgression((s) => s.graduatedClasses);
   const authed = useSession((s) => s.authed);
   const appTheme = useSettings((s) => s.appTheme);
   const [online, setOnline] = useState(true);
@@ -49,6 +52,18 @@ export function PremiumAcademyClient({ catalog }: { catalog: Catalog }) {
       window.removeEventListener("offline", sync);
     };
   }, []);
+
+  const path = useMemo(
+    () =>
+      buildPremiumCoursePath({
+        stages: catalog.stages,
+        semesters: catalog.semesters,
+        graduatedIds: mounted ? graduated : [],
+        unlocked: (classId) =>
+          isClassUnlocked(classId, mounted ? lessons : {}, mounted ? graduated : [], catalog.allClasses, catalog.semesters),
+      }),
+    [catalog, graduated, lessons, mounted],
+  );
 
   const preview = readPremiumMapPreviewOverride(params.toString());
 
@@ -77,7 +92,7 @@ export function PremiumAcademyClient({ catalog }: { catalog: Catalog }) {
     <>
       <TopChips streak={mounted ? streak : 0} xp={mounted ? xp : 0} />
       <section className="screen on" data-screen={`map-${mapState}`}>
-        <PremiumMapStatePanel state={mapState} catalog={catalog} due={due} />
+        <PremiumMapStatePanel state={mapState} catalog={catalog} due={due} path={path} />
         {authed === false && mapState === "normal" && (
           <p className="cs-body" style={{ marginTop: "1rem" }}>
             <Link href="/login">Log in</Link> to sync progress across devices.
