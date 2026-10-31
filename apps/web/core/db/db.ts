@@ -199,7 +199,13 @@ function syncToSavedGame(g: ReturnType<typeof normalizeSyncGame>): SavedGame {
   };
 }
 
-/** Replace local game history with account snapshot (pull sync). */
+/**
+ * Merge the account game snapshot into local history.
+ * `owner`'s rows that are not in the snapshot stay: a game can be on the device
+ * before the account has it, and clearing the table here made `/review/<id>`
+ * miss that game after the next pull. Every other row is removed, so another
+ * user's game does not remain. Untagged rows are not kept.
+ */
 export async function replaceGamesFromSync(
   recentGames: unknown[],
   owner: string,
@@ -208,7 +214,9 @@ export async function replaceGamesFromSync(
     .map(normalizeSyncGame)
     .filter((g): g is NonNullable<typeof g> => g !== null);
   await db.transaction("rw", db.games, async () => {
-    await db.games.clear();
+    const existing = await db.games.toArray();
+    const drop = existing.filter((row) => row.owner !== owner);
+    if (drop.length) await db.games.bulkDelete(drop.map((row) => row.id));
     for (const g of games) await db.games.put({ ...syncToSavedGame(g), owner });
   });
 }
