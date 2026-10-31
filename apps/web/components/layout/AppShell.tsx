@@ -14,10 +14,14 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 export function AppShell({
   children,
   focus = false,
+  bare = false,
 }: {
   children: React.ReactNode;
   focus?: boolean;
+  /** Illustrated play paints its own dex shell (sidebar, chips, tab bar). */
+  bare?: boolean;
 }) {
+  if (bare) return children;
   if (focus) {
     return <div className="bg-surface flex min-h-dvh flex-col">{children}</div>;
   }

@@ -14,6 +14,11 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
   const uiKit = useSettings((s) => s.uiKit);
   const focus =
     mounted && pathname.startsWith("/play") && Boolean(active) && uiKit === "legacy";
+  const bare = pathname === "/play" && uiKit !== "legacy";
 
-  return <AppShell focus={focus}>{children}</AppShell>;
+  return (
+    <AppShell focus={focus} bare={bare}>
+      {children}
+    </AppShell>
+  );
 }

@@ -128,26 +128,45 @@ function isFianchetto(move: VerboseMove, color: Color): boolean {
   return targets.includes(move.to);
 }
 
+const PLAYER_SUBJECT = /^you$/i;
+
+/**
+ * Present-tense agreement for move headlines.
+ * The player ("You") takes the base verb; a bot or other subject takes the -s form.
+ */
+export function agreeMoveVerb(subject: string, base: string): string {
+  return PLAYER_SUBJECT.test(subject.trim()) ? base : `${base}s`;
+}
+
+function moveLine(subject: string, base: string, rest: string): string {
+  return `${subject} ${agreeMoveVerb(subject, base)} ${rest}`;
+}
+
 function moveHeadline(move: VerboseMove, label: string): string {
   const san = move.san;
-  if (san === "O-O") return `${label} castles kingside`;
-  if (san === "O-O-O") return `${label} castles queenside`;
+  if (san === "O-O") return moveLine(label, "castle", "kingside");
+  if (san === "O-O-O") return moveLine(label, "castle", "queenside");
   if (move.flags.includes("e")) {
-    return `${label} captures en passant on ${move.to}`;
+    return moveLine(label, "capture", `en passant on ${move.to}`);
   }
   if (move.promotion) {
     const promo = PIECE[move.promotion] ?? "piece";
-    return `${label} promotes the pawn on ${move.to} to a ${promo}`;
+    return moveLine(label, "promote", `the pawn on ${move.to} to a ${promo}`);
   }
   if (move.captured) {
     const taken = PIECE[move.captured] ?? "piece";
     const piece = PIECE[move.piece] ?? "piece";
-    return `${label} captures the ${taken} on ${move.to} with the ${piece} from ${move.from}`;
+    return moveLine(
+      label,
+      "capture",
+      `the ${taken} on ${move.to} with the ${piece} from ${move.from}`,
+    );
   }
   if (move.piece === "p") {
-    return `${label} plays the pawn from ${move.from} to ${move.to}`;
+    return moveLine(label, "play", `the pawn from ${move.from} to ${move.to}`);
   }
-  return `${label} moves the ${PIECE[move.piece]} from ${move.from} to ${move.to}`;
+  const piece = PIECE[move.piece] ?? "piece";
+  return moveLine(label, "move", `the ${piece} from ${move.from} to ${move.to}`);
 }
 
 function knightSquareNote(sq: Square, forPlayer: boolean): string {

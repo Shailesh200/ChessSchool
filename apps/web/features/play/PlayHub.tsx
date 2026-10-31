@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMatch } from "@/core/store/match.store";
 import { KitIcon } from "@/components/ui/KitIcon";
-import { KitPortrait } from "@/components/ui/KitPortrait";
-import { kitCoachArt } from "@/components/ui/kitArt";
 import { OPPONENTS, type OpponentId } from "./opponents";
 
 type PlayMode = "coach" | "bot" | "friend";
@@ -57,33 +55,37 @@ export function PlayHub() {
         : `${selected.level} · no hints`;
 
   return (
-    <div className="illustrated">
+    <>
       <div className="pagehead">
         <h1>Play</h1>
       </div>
-      <section className="feat" aria-label="Quick game">
+      <section className="hero feat" aria-label="Quick game">
         <div>
           <small>Quick game</small>
           <b className="h">Play {selected.name}</b>
           <span className="s">Warm-up time. Let&apos;s go!</span>
         </div>
         <div
-          className="heroart"
+          className="gframe tile heroart"
+          data-mo={selected.id}
           style={{
             ["--g1" as string]: selected.glow1,
             ["--g2" as string]: selected.glow2,
+            ["--acc" as string]: `var(--acc-${selected.id}-neutral,var(--acc-calm))`,
           }}
         >
-          <KitPortrait
-            className="kit-portrait"
-            src={kitCoachArt(selected.id, "bust-neutral")}
-            alt={selected.name}
-            label={selected.name}
+          <div
+            className="art bust fig"
+            style={{ ["--art" as string]: `var(--bust-${selected.id}-neutral)` }}
+            role="img"
+            aria-label={selected.name}
+            data-coach={selected.id}
+            data-mood="idle"
           />
         </div>
       </section>
       <div className="hubgrid">
-        <div className="stack">
+        <div style={{ display: "grid", gap: "0.6rem", minWidth: 0 }}>
           <h2 style={{ fontSize: "1.25rem" }}>How do you want to play?</h2>
           <div className="modes" role="radiogroup" aria-label="Mode">
             {MODES.map((m) => (
@@ -95,7 +97,7 @@ export function PlayHub() {
                 className="mode"
                 onClick={() => setMode(m.id)}
               >
-                <span className="cs-row__tile">
+                <span className="mi">
                   <KitIcon name={m.icon} />
                 </span>
                 <span className="rt">
@@ -103,24 +105,26 @@ export function PlayHub() {
                   <span>{m.subtitle}</span>
                 </span>
                 <span className="dot">
-                  <KitIcon name="check" className="sm" />
+                  <KitIcon name="check" />
                 </span>
               </button>
             ))}
           </div>
           <h2 style={{ fontSize: "1.25rem", marginTop: "0.5rem" }}>More</h2>
-          <Link className="cs-row" href="/gym">
-            <span className="cs-row__tile">
+          <Link className="row" href="/gym">
+            <span className="mi">
               <KitIcon name="puzzle" />
             </span>
-            <span className="cs-row__body">
+            <span className="rt">
               <b>Daily puzzle</b>
               <span>New every day</span>
             </span>
             <KitIcon name="chevron-right" />
           </Link>
         </div>
-        <div className="stack">
+        <div
+          style={{ display: "grid", gap: "0.6rem", minWidth: 0, alignContent: "start" }}
+        >
           <h2 style={{ fontSize: "1.25rem" }}>Pick who to play</h2>
           <div className="oppo" role="radiogroup" aria-label="Opponent">
             {shown
@@ -136,15 +140,14 @@ export function PlayHub() {
                 >
                   <span
                     className="head"
-                    style={{ ["--g1" as string]: o.glow1, ["--g2" as string]: o.glow2 }}
-                  >
-                    <KitPortrait
-                      className="kit-portrait"
-                      src={kitCoachArt(o.id)}
-                      alt=""
-                      label={o.name}
-                    />
-                  </span>
+                    style={{
+                      ["--art" as string]: `var(--head-${o.id}-neutral)`,
+                      ["--s" as string]: "3rem",
+                    }}
+                    aria-hidden="true"
+                    data-coach={o.id}
+                    data-mood="idle"
+                  />
                   <span className="rt">
                     <b>{o.name}</b>
                     <span>{o.blurb}</span>
@@ -153,25 +156,24 @@ export function PlayHub() {
                 </button>
               ))}
           </div>
-          <div className="cs-row ashrow">
+          <div className="row" style={{ borderStyle: "dashed" }}>
             <span
               className="head"
-              style={{ ["--g1" as string]: "#EBEFF0", ["--g2" as string]: "#AEBCC0" }}
-            >
-              <KitPortrait
-                className="kit-portrait"
-                src={kitCoachArt("ash")}
-                alt=""
-                label="Ash"
-              />
-            </span>
-            <span className="cs-row__body">
+              style={{
+                ["--art" as string]: "var(--head-ash-neutral)",
+                ["--s" as string]: "3rem",
+              }}
+              aria-hidden="true"
+              data-coach="ash"
+              data-mood="idle"
+            />
+            <span className="rt">
               <b>Add Ash</b>
               <span>Off by default. Ash is strict and has no hints.</span>
             </span>
             <button
               type="button"
-              className="fchip"
+              className="tg"
               role="switch"
               aria-checked={ashOn}
               aria-label="Add Ash to opponents"
@@ -180,9 +182,7 @@ export function PlayHub() {
                 if (!ashOn) setOpp("ash");
                 else if (opp === "ash") setOpp("kira");
               }}
-            >
-              {ashOn ? "On" : "Off"}
-            </button>
+            />
           </div>
           {ashOn && (
             <button
@@ -194,15 +194,14 @@ export function PlayHub() {
             >
               <span
                 className="head"
-                style={{ ["--g1" as string]: "#EBEFF0", ["--g2" as string]: "#AEBCC0" }}
-              >
-                <KitPortrait
-                  className="kit-portrait"
-                  src={kitCoachArt("ash")}
-                  alt=""
-                  label="Ash"
-                />
-              </span>
+                style={{
+                  ["--art" as string]: "var(--head-ash-neutral)",
+                  ["--s" as string]: "3rem",
+                }}
+                aria-hidden="true"
+                data-coach="ash"
+                data-mood="idle"
+              />
               <span className="rt">
                 <b>Ash</b>
                 <span>Strict. No hints.</span>
@@ -221,6 +220,6 @@ export function PlayHub() {
           Start game
         </button>
       </div>
-    </div>
+    </>
   );
 }
