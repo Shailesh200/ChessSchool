@@ -19,6 +19,8 @@ import { useType } from "@/typography";
 import { font, radius, shadowCard, space } from "@/theme";
 import { trackEvent } from "@/productAnalytics/track";
 import { trackMatchStart } from "@/productAnalytics/matchEvents";
+import { useUiKit } from "@/components/kit/useUiKit";
+import { PlayHubPremium } from "@/nov2/PlayHubPremium";
 
 const ELOS = [...BOT_ELO_PRESETS];
 const TIMES = [
@@ -84,6 +86,12 @@ const ASSISTED_VARIANTS: { id: AssistedVariant; title: string; subtitle: string 
 ];
 
 export default function PlaySetupScreen() {
+  const kit = useUiKit();
+  if (kit === "premium") return <PlayHubPremium />;
+  return <ClassicPlaySetup />;
+}
+
+function ClassicPlaySetup() {
   const { colors } = useAppTheme();
   const type = useType();
   const styles = useMemo(() => makeStyles(colors, type), [colors, type]);

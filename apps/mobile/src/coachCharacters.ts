@@ -121,3 +121,21 @@ export const COACH_CHARACTER_LIST = COACH_CHARACTER_IDS.map(
 export function coachCharacterOf(id: unknown): CoachCharacter {
   return COACH_CHARACTERS[normalizeCoachCharacter(id)];
 }
+
+/** Premium play-hub / match coach slugs → settings character ids. */
+export function coachCharacterIdFromPremiumSlug(slug: string): CoachCharacterId {
+  switch (slug) {
+    case "kira":
+      return "genz";
+    case "skye":
+      return "sassy";
+    case "ash":
+      return "sarcastic";
+    case "rex":
+      return "egoistic";
+    case "otto":
+      return "anxious_nerd";
+    default:
+      return DEFAULT_COACH_CHARACTER;
+  }
+}

@@ -8,6 +8,9 @@ import { Icon, type IconName } from "@/Icon";
 import { haptics } from "@/haptics";
 import { setOrientationSeen } from "@/orientationSeen";
 import { useAuth } from "@/auth";
+import { useSettings } from "@/settings";
+import { isPremiumLook } from "@/nov2/uiLook";
+import { BoaEntrySplash } from "@/nov2/BoaEntrySplash";
 import { useAppTheme } from "@/ThemeProvider";
 import { font, radius, space, type } from "@/theme";
 
@@ -57,8 +60,14 @@ const STEPS: Step[] = [
   },
 ];
 
-/** First-run orientation — step through features, then open the academy. */
+/** First-run orientation — premium entry splash or classic Cody tour. */
 export default function OrientationScreen() {
+  const { uiKit } = useSettings();
+  if (isPremiumLook({ uiKit })) return <BoaEntrySplash />;
+  return <ClassicOrientationScreen />;
+}
+
+function ClassicOrientationScreen() {
   const router = useRouter();
   const { loading, orientationDone, enterGuestBrowse, markOrientationDone } = useAuth();
   const { colors } = useAppTheme();
