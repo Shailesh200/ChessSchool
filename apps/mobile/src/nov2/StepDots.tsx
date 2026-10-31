@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { usePremiumKitTheme } from "@/components/kit";
-import { createStepDotStyles } from "./boaKitStyles";
+import { createStepDotStyles } from "./premiumKitStyles";
 
 /** Step indicator — 4 dots with accent pill on active step. */
 export function StepDots({ step, total = 4 }: { step: number; total?: number }) {

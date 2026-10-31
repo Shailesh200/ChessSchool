@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { useSettings } from "@/settings";
-import { isPremiumLook } from "./uiLook";
 import { usePremiumKitTheme } from "@/components/kit";
+import { isPremiumLook } from "./uiLook";
 
-/** Hook for premium illustrated screens (nov2 / boa). */
+/** Premium illustrated screens: Dex kit tokens only (no parallel token map). */
 export function usePremiumTheme() {
   const settings = useSettings();
   const on = isPremiumLook(settings);

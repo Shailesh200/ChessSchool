@@ -1,10 +1,8 @@
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { CoachRow } from "@/nov2/CoachRow";
-import { KitButton } from "@/components/kit";
+import { KitButton, usePremiumKitTheme } from "@/components/kit";
 import { OptionList, type OptionItem } from "@/nov2/OptionList";
-import { premiumColors, premiumFont, premiumSpace, premiumType } from "@/nov2/premiumTokens";
 import { coachCharacterOf, type CoachCharacterId } from "@/coachCharacters";
 
 const COACH_OPTIONS: OptionItem[] = [
@@ -24,7 +22,8 @@ export function OnboardingCoachesStep({
   onChange: (id: CoachCharacterId) => void;
 }) {
   const selected = coachCharacterOf(value);
-  const styles = useMemo(() => makeStyles(), []);
+  const kit = usePremiumKitTheme();
+  const styles = useMemo(() => makeStyles(kit), [kit]);
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -42,19 +41,33 @@ export function OnboardingCoachesStep({
   );
 }
 
-function makeStyles() {
+function makeStyles(kit: ReturnType<typeof usePremiumKitTheme>) {
+  const { colors, space, type, font } = kit;
   return StyleSheet.create({
-    wrap: { padding: premiumSpace[5], gap: premiumSpace[4] },
-    h2: { ...premiumType.h2, fontFamily: premiumFont.display, color: premiumColors.text, textAlign: "center" },
-    note: { ...premiumType.caption, fontFamily: premiumFont.ui, color: premiumColors.textMuted, textAlign: "center" },
+    wrap: { padding: space["5"], gap: space["4"] },
+    h2: {
+      fontSize: type.h2.fontSize,
+      lineHeight: type.h2.lineHeight,
+      fontFamily: font.displayBold,
+      color: colors.ink,
+      textAlign: "center",
+    },
+    note: {
+      fontSize: type.caption.fontSize,
+      lineHeight: type.caption.lineHeight,
+      fontFamily: font.uiMedium,
+      color: colors.ink500,
+      textAlign: "center",
+    },
   });
 }
 
 export function OnboardingCoachesPreviewLink({ onPress }: { onPress: () => void }) {
+  const kit = usePremiumKitTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      <Text style={{ color: premiumColors.textLink, fontFamily: premiumFont.uiBold, textAlign: "center" }}>
-        Preview coach picker (hidden step)
+    <Pressable onPress={onPress}>
+      <Text style={{ color: kit.colors.textLink, fontFamily: kit.font.uiBold, textAlign: "center" }}>
+        Preview coach step (design)
       </Text>
     </Pressable>
   );
