@@ -48,13 +48,8 @@ export function PremiumSettingsScreen() {
           <div className="gl">Privacy</div>
           <div className="srow">
             <span className="rt">
-<<<<<<< HEAD
-              <b id="settings-share-analytics">Share usage analytics</b>
-              <span>Anonymous product events</span>
-=======
-              <b>{ANALYTICS_SWITCH_LABEL}</b>
+              <b id="settings-share-analytics">{ANALYTICS_SWITCH_LABEL}</b>
               <span>{ANALYTICS_SWITCH_HINT}</span>
->>>>>>> d04eed1 (analytics: one switch, off until you turn it on, said in plain words (settings, privacy))
             </span>
             <button
               type="button"
