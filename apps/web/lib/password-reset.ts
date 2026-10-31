@@ -24,7 +24,7 @@ function newResetToken(): string {
 
 function resetLink(origin: string, rawToken: string): string {
   const base = origin.replace(/\/+$/, "");
-  return `${base}/reset-password?token=${encodeURIComponent(rawToken)}`;
+  return `${base}/account/reset#${rawToken}`;
 }
 
 async function isGoogleOnlyAccount(userId: string): Promise<boolean> {
@@ -128,5 +128,3 @@ export async function findPasswordResetTokenHash(rawToken: string): Promise<stri
   )[0];
   return row?.id ?? null;
 }
-
-export { SUPPORT_EMAIL };

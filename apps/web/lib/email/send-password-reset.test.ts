@@ -9,7 +9,7 @@ import {
   setPasswordResetTransportForTests,
 } from "./send-password-reset";
 
-const LINK = "https://example.test/reset-password?token=raw-secret-token-value";
+const LINK = "https://example.test/account/reset#raw-secret-token-value";
 const FROM = "Chess School <noreply@example.com>";
 
 function useEnv(overrides: Record<string, string> = {}) {
