@@ -1,6 +1,5 @@
 import { Component, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from "react";
-import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
-import LottieView from "lottie-react-native";
+import { AccessibilityInfo, Animated, Easing, Image, Platform, StyleSheet, Text, View } from "react-native";
 import { colors, font } from "./theme";
 
 const TOTAL_MS = 2800;
@@ -38,8 +37,9 @@ function SplashMark() {
   );
 }
 
-function SplashLottie({ play, onFail }: { play: boolean; onFail: () => void }) {
-  const lottieRef = useRef<LottieView>(null);
+function SplashLottieNative({ play, onFail }: { play: boolean; onFail: () => void }) {
+  const LottieView = require("lottie-react-native").default as typeof import("lottie-react-native").default;
+  const lottieRef = useRef<InstanceType<typeof LottieView>>(null);
 
   useEffect(() => {
     if (play) lottieRef.current?.play();
@@ -55,6 +55,11 @@ function SplashLottie({ play, onFail }: { play: boolean; onFail: () => void }) {
       onAnimationFailure={() => onFail()}
     />
   );
+}
+
+function SplashLottie(props: { play: boolean; onFail: () => void }) {
+  if (Platform.OS === "web") return <SplashMark />;
+  return <SplashLottieNative {...props} />;
 }
 
 /** Branded splash: Lottie logo (fail-open to static mark) + tagline. */
