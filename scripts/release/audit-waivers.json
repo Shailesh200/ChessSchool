@@ -1,0 +1,4 @@
+{
+  "_comment": "Each waiver covers one pnpm audit advisory id (critical or high). Adding or changing waivers requires Shailesh sign-off.",
+  "waivers": []
+}
