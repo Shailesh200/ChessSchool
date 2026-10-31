@@ -6,6 +6,11 @@ import { gameSessions, type DBGameSession } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { publishSession } from "@/lib/ably-server";
 import { seatColorForUser } from "@/lib/game-session";
+import {
+  attachParticipantIds,
+  loadSessionSeatProfiles,
+  viewerSeat,
+} from "@/lib/game-session-public";
 import { formatSeatToken, verifySeatToken } from "@/lib/session-secret";
 import { sessionPostSchema } from "@/lib/api-schemas";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -28,14 +33,21 @@ async function load(id: string) {
 function sessionView(
   s: DBGameSession,
   user: { id: string } | null,
-  opts: { claimed?: boolean; error?: string } = {},
+  opts: {
+    claimed?: boolean;
+    error?: string;
+    seats?: Awaited<ReturnType<typeof loadSessionSeatProfiles>>;
+  } = {},
 ) {
   const myColor = user ? (seatColorForUser(s, user.id) ?? undefined) : undefined;
+  const { whiteUserId: _w, blackUserId: _b, ...rest } = s;
   return {
-    ...s,
+    ...rest,
+    seats: opts.seats,
     claimed: opts.claimed ?? false,
     color: myColor,
     seatToken: myColor && user ? formatSeatToken(s.id, myColor, user.id) : undefined,
+    myUserId: user && viewerSeat(s, user) ? user.id : undefined,
     ...(opts.error ? { error: opts.error } : {}),
   };
 }
@@ -43,8 +55,13 @@ function sessionView(
 /** Load the latest state, push it to realtime subscribers, and return it. */
 async function respond(id: string, user: { id: string }) {
   const state = await load(id);
+  const seats = attachParticipantIds(
+    await loadSessionSeatProfiles(state),
+    state,
+    user.id,
+  );
   await publishSession(id, state);
-  return NextResponse.json(sessionView(state, user));
+  return NextResponse.json(sessionView(state, user, { seats }));
 }
 
 /**
@@ -90,9 +107,14 @@ function wroteOne(res: unknown): boolean {
 }
 
 /** Current row plus an error code so the caller can replace its local board. */
-function conflict(state: DBGameSession, user: { id: string }) {
+async function conflict(state: DBGameSession, user: { id: string }) {
   const error = isInPlay(state) ? "conflict" : "game not active";
-  return NextResponse.json(sessionView(state, user, { error }), { status: 409 });
+  const seats = attachParticipantIds(
+    await loadSessionSeatProfiles(state),
+    state,
+    user.id,
+  );
+  return NextResponse.json(sessionView(state, user, { error, seats }), { status: 409 });
 }
 
 async function appliedOrConflict(
@@ -103,7 +125,7 @@ async function appliedOrConflict(
   if (wroteOne(res)) return respond(id, user);
   const current = await load(id);
   if (!current) return NextResponse.json({ error: "not found" }, { status: 404 });
-  return conflict(current, user);
+  return await conflict(current, user);
 }
 
 /** Get session state. `?join=1` claims Black for the authenticated user. */
@@ -154,7 +176,10 @@ export async function GET(
     }
   }
 
-  return NextResponse.json(sessionView(s, user, { claimed }));
+  const rawSeats = await loadSessionSeatProfiles(s);
+  const seats = user ? attachParticipantIds(rawSeats, s, user.id) : rawSeats;
+
+  return NextResponse.json(sessionView(s, user, { claimed, seats }));
 }
 
 export async function POST(
@@ -193,7 +218,7 @@ export async function POST(
     return NextResponse.json({ error: "invalid seat" }, { status: 403 });
   }
 
-  if (!isInPlay(s)) return conflict(s, user);
+  if (!isInPlay(s)) return await conflict(s, user);
 
   // Tests hold both writers here, after the read and before the UPDATE.
   if (sessionWriteBarrier.wait) await sessionWriteBarrier.wait(body.action);
