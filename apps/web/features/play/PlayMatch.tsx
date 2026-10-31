@@ -4,16 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Chess } from "chess.js";
 import { ChessBoard } from "@/features/board/ChessBoard";
-import { MiniBoard } from "@/features/gym/MiniBoard";
 import { useMatch } from "@/core/store/match.store";
 import { useProgression } from "@/core/store/progression.store";
 import { saveGame, type EndReason } from "@/core/db/db";
 import { eloToConfig, getBotMove } from "@/features/chess-engine/bot";
 import type { MoveInput } from "@/core/types/chess";
 import { KitIcon } from "@/components/ui/KitIcon";
-import { KitPortrait } from "@/components/ui/KitPortrait";
-import { kitCoachArt } from "@/components/ui/kitArt";
 import { BOT_MATCH_WIN_XP } from "./matchReward";
+import { PLAY_MATCH_BOARD } from "./matchBoardMarkup";
 import { MATCH_FEN, MATCH_MOVES, opponentById, type OpponentId } from "./opponents";
 
 type Scene = "kira" | "ash" | "rex" | "skye" | "dark" | "won" | "lost" | "live";
@@ -21,6 +19,67 @@ type Scene = "kira" | "ash" | "rex" | "skye" | "dark" | "won" | "lost" | "live";
 /** Wall clock for saved games. Kept outside render so the match screen stays pure. */
 function nowMs() {
   return Date.now();
+}
+
+/** Next move number. Eight plies (through 4...Nf6) is move 5, White to play. */
+function moveNumberLabel(sans: string[]): number {
+  return Math.floor(sans.length / 2) + 1;
+}
+
+function headArt(scene: Scene, id: OpponentId): string {
+  if (scene === "won") return "--head-rex-sad";
+  if (scene === "lost") return "--head-skye-encouraging";
+  if (scene === "ash" || id === "ash") return "--head-ash-neutral";
+  if (scene === "rex" || id === "rex") return "--head-rex-neutral";
+  if (scene === "skye" || id === "skye") return "--head-skye-thinking";
+  return "--head-kira-happy";
+}
+
+function headMood(scene: Scene): string {
+  if (scene === "won") return "happy";
+  if (scene === "lost") return "sad";
+  return "thinking";
+}
+
+const RESULT_FRAME: Record<"rex" | "skye", { g1: string; g2: string; acc: string }> = {
+  rex: {
+    g1: "#FBE6C4",
+    g2: "#D9A441",
+    acc: "var(--acc-rex-sad,var(--acc-retry))",
+  },
+  skye: {
+    g1: "#EEDDF9",
+    g2: "#D3A6EA",
+    acc: "var(--acc-skye-encouraging,var(--acc-retry))",
+  },
+};
+
+function CoachHead({
+  art,
+  size,
+  name,
+  coach,
+  mood,
+  hidden = false,
+}: {
+  art: string;
+  size: string;
+  name: string;
+  coach: string;
+  mood: string;
+  hidden?: boolean;
+}) {
+  return (
+    <span
+      className="head"
+      style={{ ["--art" as string]: `var(${art})`, ["--s" as string]: size }}
+      role={hidden ? undefined : "img"}
+      aria-label={hidden ? undefined : name}
+      aria-hidden={hidden || undefined}
+      data-coach={coach}
+      data-mood={mood}
+    />
+  );
 }
 
 function sceneOpponent(scene: Scene): OpponentId {
@@ -50,7 +109,7 @@ function MoveList({ sans, current }: { sans: string[]; current?: boolean }) {
     });
   }
   return (
-    <div className="moves">
+    <div className="moves" style={{ marginTop: "0.6rem" }}>
       {rows.map((row) => (
         <span key={row.n} style={{ display: "contents" }}>
           <span className="n">{row.n}.</span>
@@ -230,63 +289,59 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
       : `${opp.name} won this one`
     : null;
 
+  const art = headArt(scene, opp.id);
+  const mood = headMood(scene);
+  const frameKey = opp.id === "rex" || opp.id === "skye" ? opp.id : null;
+  const frame = frameKey
+    ? RESULT_FRAME[frameKey]
+    : {
+        g1: opp.glow1,
+        g2: opp.glow2,
+        acc: `var(--acc-${opp.id}-neutral,var(--acc-calm))`,
+      };
+  const earned = fixture
+    ? over === "win"
+      ? 50
+      : 20
+    : over === "win"
+      ? BOT_MATCH_WIN_XP
+      : 0;
+
   return (
-    <div className="illustrated" data-theme={dark ? "dark" : undefined}>
-      <div className="match">
+    <div className="match" data-theme={dark ? "dark" : undefined}>
+      <div style={{ display: "contents" }}>
         <div className="m-head">
-          <span
-            className="head"
-            style={{ ["--g1" as string]: opp.glow1, ["--g2" as string]: opp.glow2 }}
-          >
-            <KitPortrait
-              className="kit-portrait"
-              src={kitCoachArt(opp.id)}
-              alt={opp.name}
-              label={opp.name}
-            />
-          </span>
-          <span className="rt" style={{ flex: "1 1 7rem" }}>
+          <CoachHead art={art} size="3rem" name={opp.name} coach={opp.id} mood={mood} />
+          <span className="rt">
             <b>{opp.name}</b>
-            <span className="muted">{opp.level} · plays Black</span>
+            <span>{opp.level} · plays Black</span>
           </span>
-          {!result && (
-            <button
-              type="button"
-              className="btn line sm"
-              aria-label="Resign this game"
-              onClick={resign}
-            >
-              <KitIcon name="flag" className="sm" />
-              Resign
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn line sm"
+            aria-label="Resign this game"
+            onClick={resign}
+          >
+            <KitIcon name="flag" className="sm" />
+            Resign
+          </button>
         </div>
         {!result && (
           <div className="m-coach">
-            <div className="cs-coach">
-              <span
-                className="head"
-                style={{ ["--g1" as string]: opp.glow1, ["--g2" as string]: opp.glow2 }}
-              >
-                <KitPortrait
-                  className="kit-portrait"
-                  src={kitCoachArt(opp.id)}
-                  alt=""
-                  label={opp.name}
-                />
-              </span>
-              <div className="cs-bubble" aria-live="polite">
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "0.5rem",
-                  }}
-                >
+            <div className="coachrow">
+              <CoachHead
+                art={art}
+                size="3.5rem"
+                name={opp.name}
+                coach={opp.id}
+                mood={mood}
+              />
+              <div className="bub" aria-live="polite">
+                <div className="say">
                   <span>{line}</span>
                   <button
                     type="button"
-                    className="iconbtn"
+                    className="icon-btn"
                     aria-label={`Play ${opp.name}'s line again`}
                   >
                     <KitIcon name="volume-2" />
@@ -296,70 +351,90 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
             </div>
           </div>
         )}
-        <div className="m-board">
-          {result ? (
-            <div className="card result">
+      </div>
+      <div className="m-board">
+        {result ? (
+          <div className="card result">
+            <div
+              className="gframe figf"
+              data-mo={opp.id}
+              style={{
+                ["--g1" as string]: frame.g1,
+                ["--g2" as string]: frame.g2,
+                ["--acc" as string]: frame.acc,
+                width: "7rem",
+              }}
+            >
               <div
-                className="herofig"
-                style={{ ["--g1" as string]: opp.glow1, ["--g2" as string]: opp.glow2 }}
-              >
-                <KitPortrait
-                  className="kit-portrait"
-                  src={kitCoachArt(opp.id, "bust-neutral")}
-                  alt={opp.name}
-                  label={opp.name}
-                />
-              </div>
-              <h2>{heading}</h2>
-              <div className="cs-coach" style={{ width: "100%" }}>
-                <span
-                  className="head"
-                  style={{
-                    ["--g1" as string]: opp.glow1,
-                    ["--g2" as string]: opp.glow2,
-                  }}
-                >
-                  <KitPortrait
-                    className="kit-portrait"
-                    src={kitCoachArt(opp.id)}
-                    alt=""
-                    label={opp.name}
-                  />
-                </span>
-                <div className="cs-bubble">{line}</div>
-              </div>
-              <p className="muted">
-                {over === "win" ? (
-                  <>
-                    Great game. You earned <b>{BOT_MATCH_WIN_XP} XP</b>.
-                  </>
-                ) : (
-                  <>No XP this game.</>
-                )}
-              </p>
-              <div className="stack" style={{ width: "100%" }}>
-                <button
-                  type="button"
-                  className="btn coral"
-                  onClick={() => {
-                    clear();
-                  }}
-                >
-                  Rematch
-                </button>
-                <Link className="btn line" href="/play" onClick={() => clear()}>
-                  Back to Play
-                </Link>
+                className="art fig clf"
+                role="img"
+                aria-label={opp.name}
+                data-coach={opp.id}
+                data-mood="body-idle"
+              />
+            </div>
+            <div
+              className="lot"
+              data-lot={over === "win" ? "xp-pop-50" : "xp-pop-20"}
+              style={{ ["--w" as string]: "10rem", ["--ar" as string]: "320/168" }}
+              aria-hidden="true"
+            />
+            <h2>{heading}</h2>
+            <div className="coachrow">
+              <CoachHead
+                art={art}
+                size="3.5rem"
+                name={opp.name}
+                coach={opp.id}
+                mood={mood}
+              />
+              <div className="bub" aria-live="polite">
+                <div className="say">
+                  <span>{line}</span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={`Play ${opp.name}'s line again`}
+                  >
+                    <KitIcon name="volume-2" />
+                  </button>
+                </div>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="board-frame">
-                {fixture ? (
-                  <div className="big-mini">
-                    <MiniBoard fen={fen} />
-                  </div>
-                ) : (
+            <p className="muted">
+              {over === "win" ? (
+                <>
+                  Great game. You earned <b>{earned} XP</b>.
+                </>
+              ) : fixture ? (
+                <>
+                  You earned <b>{earned} XP</b> for playing.
+                </>
+              ) : (
+                <>No XP this game.</>
+              )}
+            </p>
+            <div style={{ display: "grid", gap: "0.5rem", width: "100%" }}>
+              <button type="button" className="btn coral" onClick={() => clear()}>
+                Rematch
+              </button>
+              <Link className="btn line" href="/play" onClick={() => clear()}>
+                Back to Play
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            {fixture ? (
+              <div className="boardwrap">
+                <div
+                  className="board"
+                  dangerouslySetInnerHTML={{ __html: PLAY_MATCH_BOARD }}
+                />
+              </div>
+            ) : (
+              <div className="boardwrap">
+                <div className="board">
                   <ChessBoard
                     fen={fen}
                     interactive
@@ -367,23 +442,23 @@ export function PlayMatch({ scene = "live" }: { scene?: Scene }) {
                     boardId="play-match"
                     showNotation
                   />
-                )}
+                </div>
               </div>
-              <div className="cap">
-                <span>Your turn · you play White</span>
-                <span>Move {Math.ceil(sans.length / 2) || 1}</span>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="m-moves">
-          <details className="card" open>
-            <summary>
-              Moves <KitIcon name="chevron-right" className="sm" />
-            </summary>
-            <MoveList sans={sans} current />
-          </details>
-        </div>
+            )}
+            <div className="cap">
+              <span>Your turn · you play White</span>
+              <span>Move {moveNumberLabel(sans)}</span>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="m-moves">
+        <details className="card" open>
+          <summary>
+            Moves <KitIcon name="chevron-right" className="sm" />
+          </summary>
+          <MoveList sans={sans} current />
+        </details>
       </div>
     </div>
   );

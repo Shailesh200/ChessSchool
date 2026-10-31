@@ -34,4 +34,15 @@ describe("AppShell install banner placement", () => {
     expect(wrapper).toHaveClass("relative");
     expect(wrapper.contains(card)).toBe(true);
   });
+
+  it("leaves illustrated play chrome to the page when bare", () => {
+    render(
+      <AppShell bare>
+        <p>play</p>
+      </AppShell>,
+    );
+    expect(screen.queryByTestId("sidebar")).toBeNull();
+    expect(screen.queryByTestId("bottomnav")).toBeNull();
+    expect(screen.getByText("play")).toBeTruthy();
+  });
 });
