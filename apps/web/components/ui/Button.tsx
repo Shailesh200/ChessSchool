@@ -18,7 +18,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "btn-tactile relative inline-flex max-w-full select-none items-center justify-center gap-2 overflow-hidden whitespace-normal text-center leading-tight rounded-pill font-extrabold tracking-tight transition-[transform,box-shadow,background] focus-visible:outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0";
+  "btn-tactile relative inline-flex max-w-full min-w-0 select-none items-center justify-center gap-2 overflow-hidden whitespace-normal text-center leading-tight rounded-pill font-extrabold tracking-tight transition-[transform,box-shadow,background] focus-visible:outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0";
 
 const variants: Record<Variant, string> = {
   primary:
@@ -95,7 +95,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       <span
         className={cn(
-          "inline-flex max-w-full items-center justify-center gap-2",
+          "block w-full min-w-0 text-center break-words whitespace-normal",
           loading && "opacity-0",
         )}
       >

@@ -65,18 +65,26 @@ async function signIn(page: Page) {
   }, name);
 }
 
-async function setTextScale(page: Page, textScale: number) {
-  await page.addInitScript((scale) => {
-    localStorage.setItem(
-      "chessschool.settings",
-      // v12 is the current settings schema. Classic UI keeps the TopBar track
-      // and profile hub this spec measures; premium replaces both.
-      JSON.stringify({
-        state: { textScale: scale, uiKit: "legacy" },
-        version: 12,
-      }),
-    );
-  }, textScale);
+async function setTextScale(
+  page: Page,
+  textScale: number,
+  uiKit?: "legacy" | "premium",
+) {
+  await page.addInitScript(
+    ({ scale, kit }) => {
+      const state: { textScale: number; uiKit?: string } = { textScale: scale };
+      // Only the signed-in cases opt into Classic. Public pages stay on the
+      // default premium kit (v12). Forcing legacy here shows both kit logos,
+      // because `hidden` loses to the image preflight when the premium logo
+      // rules do not match.
+      if (kit) state.uiKit = kit;
+      localStorage.setItem(
+        "chessschool.settings",
+        JSON.stringify({ state, version: 12 }),
+      );
+    },
+    { scale: textScale, kit: uiKit ?? null },
+  );
 }
 
 async function overflowReport(page: Page) {
@@ -161,7 +169,7 @@ for (const vp of VIEWPORTS) {
     }) => {
       test.setTimeout(150_000);
       await signIn(page);
-      await setTextScale(page, 2);
+      await setTextScale(page, 2, "legacy");
       for (const route of ["/profile", "/academy"]) {
         await page.goto(route);
         await page.waitForLoadState("networkidle");
@@ -185,6 +193,38 @@ for (const vp of VIEWPORTS) {
           expect(r.progressTrackWidth).toBeGreaterThanOrEqual(40);
         }
       }
+    });
+  });
+}
+
+// UI-W-002: signed-out landing at 200% root text. The header "Enroll free"
+// control must sit fully inside the viewport, and the document must not scroll
+// sideways. (The hero CTA is "Enroll free →" and may sit below the fold.)
+for (const vp of [
+  { width: 1280, height: 800 },
+  { width: 320, height: 640 },
+] as const) {
+  test.describe(`UI-W-002 / @${vp.width}x${vp.height}`, () => {
+    test.use({ viewport: vp });
+
+    test("signed-out landing keeps Enroll free on screen", async ({ page }) => {
+      await setTextScale(page, 2);
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      const r = await overflowReport(page);
+      expect(
+        r.sideways,
+        "document scrollWidth exceeds clientWidth",
+      ).toBeLessThanOrEqual(0);
+      expect(r.clippedButtons, "buttons whose label is clipped").toEqual([]);
+      const cta = page.getByRole("button", { name: "Enroll free", exact: true });
+      await expect(cta).toBeVisible();
+      const box = await cta.boundingBox();
+      expect(box).toBeTruthy();
+      expect(box!.x).toBeGreaterThanOrEqual(-1);
+      expect(box!.y).toBeGreaterThanOrEqual(-1);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(vp.width + 1);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(vp.height + 1);
     });
   });
 }

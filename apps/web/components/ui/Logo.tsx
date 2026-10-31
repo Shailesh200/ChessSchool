@@ -10,19 +10,19 @@ export function Logo({
 }) {
   if (withText) {
     return (
-      <span className={cn("inline-flex items-center", className)}>
+      <span className={cn("inline-flex max-w-full min-w-0 items-center", className)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/kit/logo/chessschool-horizontal-light.svg"
           alt="ChessSchool"
-          className="logo-kit-light h-8 w-auto max-w-[11rem] object-contain object-left"
+          className="logo-kit-light h-8 w-auto max-w-full object-contain object-left"
         />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/kit/logo/chessschool-horizontal-dark.svg"
           alt=""
           aria-hidden
-          className="logo-kit-dark hidden h-8 w-auto max-w-[11rem] object-contain object-left"
+          className="logo-kit-dark hidden h-8 w-auto max-w-full object-contain object-left"
         />
         <span className="cs-wordmark sr-only">
           Chess<b>School</b>
@@ -33,7 +33,13 @@ export function Logo({
 
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <svg viewBox="0 0 40 40" width={32} height={32} aria-hidden className="text-brand">
+      <svg
+        viewBox="0 0 40 40"
+        width={32}
+        height={32}
+        aria-hidden
+        className="text-brand"
+      >
         <rect x="2" y="2" width="36" height="36" rx="11" fill="currentColor" />
         <path d="M13 30 h14 v-2 l-2-2 v-6 h-10 v6 l-2 2 z" fill="#fff" opacity="0.95" />
         <rect x="14" y="16" width="2.5" height="3" fill="#fff" />

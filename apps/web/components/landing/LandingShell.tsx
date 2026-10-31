@@ -21,13 +21,13 @@ export function LandingShell({
   const showAuthed = rehydrateReady && authed === true;
 
   return (
-    <div className="bg-surface flex min-h-dvh flex-col">
-      <header className="pt-safe border-hairline bg-surface/90 sticky top-0 z-30 border-b backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 py-3">
-          <Link href="/" aria-label="ChessSchool home">
+    <div className="bg-surface flex min-h-dvh min-w-0 flex-col">
+      <header className="pt-safe border-hairline bg-surface/90 sticky top-0 z-30 w-full min-w-0 border-b backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 py-3">
+          <Link href="/" aria-label="ChessSchool home" className="max-w-full min-w-0">
             <Logo withText />
           </Link>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {sessionPending ? (
               <div
                 className="skeleton h-9 w-28 rounded-full"
@@ -51,9 +51,11 @@ export function LandingShell({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl min-w-0 flex-1 px-5 py-8">
+        {children}
+      </main>
       <footer className="border-hairline border-t px-5 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div>
             <p className="text-ink-500 text-xs font-semibold">
               © {new Date().getFullYear()} ChessSchool · Free chess academy

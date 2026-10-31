@@ -114,7 +114,7 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
             the board and pieces to openings, tactics, and endgames — free in your
             browser or as an app.
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex min-w-0 flex-wrap gap-2 pt-1">
             <LandingPrimaryCtas enrollLabel="Enroll free →" />
             <NavButton href="/class/class-pre-board" variant="ghost" size="lg">
               Start as beginner
