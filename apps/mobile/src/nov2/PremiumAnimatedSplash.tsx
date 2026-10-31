@@ -11,7 +11,7 @@ type Props = { onFinish: () => void };
 const TOTAL_MS = 2400;
 
 /** Branded illustrated splash — replaces legacy AnimatedSplash when uiLook=premium. */
-export function BoaAnimatedSplash({ onFinish }: Props) {
+export function PremiumAnimatedSplash({ onFinish }: Props) {
   const { themeMode } = useSettings();
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
@@ -27,7 +27,7 @@ export function BoaAnimatedSplash({ onFinish }: Props) {
 
     void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
       if (cancelled) return;
-      if (reduce || process.env.EXPO_PUBLIC_BOA_CAPTURE === "1") {
+      if (reduce || process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1") {
         timer = setTimeout(onFinish, 200);
         return;
       }

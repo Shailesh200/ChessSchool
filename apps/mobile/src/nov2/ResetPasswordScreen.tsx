@@ -14,7 +14,7 @@ import { checkPasswordStrength, passwordsMatch, submitPasswordReset } from "@/no
 type Phase = "form" | "success" | "expired";
 
 function capturePhase(raw: string | undefined): Phase | null {
-  if (process.env.EXPO_PUBLIC_BOA_CAPTURE !== "1" || !raw) return null;
+  if (process.env.EXPO_PUBLIC_PREMIUM_CAPTURE !== "1" || !raw) return null;
   if (raw === "success" || raw === "expired" || raw === "form" || raw === "error" || raw === "strong") {
     if (raw === "success") return "success";
     if (raw === "expired") return "expired";
@@ -38,13 +38,13 @@ export function ResetPasswordScreen() {
   const forced = capturePhase(typeof params.phase === "string" ? params.phase : undefined);
   const [phase, setPhase] = useState<Phase>(() => forced ?? (token ? "form" : "expired"));
   const [password, setPassword] = useState(
-    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "strong" ? "Riverdale!9" : "",
+    process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" && params.phase === "strong" ? "Riverdale!9" : "",
   );
   const [confirm, setConfirm] = useState(
-    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "strong" ? "Riverdale!9" : "",
+    process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" && params.phase === "strong" ? "Riverdale!9" : "",
   );
   const [submitAttempted, setSubmitAttempted] = useState(
-    process.env.EXPO_PUBLIC_BOA_CAPTURE === "1" && params.phase === "error",
+    process.env.EXPO_PUBLIC_PREMIUM_CAPTURE === "1" && params.phase === "error",
   );
   const [busy, setBusy] = useState(false);
   const [confirmHelp, setConfirmHelp] = useState<string | null>(null);

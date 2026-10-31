@@ -1,6 +1,6 @@
 import type { OptionItem } from "./OptionList";
 
-export const BOA_GOAL_OPTIONS: OptionItem[] = [
+export const ENTRY_GOAL_OPTIONS: OptionItem[] = [
   {
     id: "learn-scratch",
     title: "Learn from scratch",
@@ -21,7 +21,7 @@ export const BOA_GOAL_OPTIONS: OptionItem[] = [
   },
 ];
 
-export const BOA_LEVEL_OPTIONS: OptionItem[] = [
+export const ENTRY_LEVEL_OPTIONS: OptionItem[] = [
   {
     id: "600",
     title: "I know nothing",
@@ -42,7 +42,7 @@ export const BOA_LEVEL_OPTIONS: OptionItem[] = [
   },
 ];
 
-export function mapBoaGoalToSettings(goalId: string): string {
+export function mapEntryGoalToSettings(goalId: string): string {
   if (goalId === "tactics") return "openings";
   if (goalId === "fun") return "beat-friends";
   return "reach-1000";
