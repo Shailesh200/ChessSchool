@@ -32,8 +32,26 @@ describe("audit.mjs", () => {
         "2": { id: 201, severity: "moderate", module_name: "pkg-c" },
       },
     };
-    const r = evaluateDepsGate(audit, { waivers: ["100"] });
+    const r = evaluateDepsGate(audit, {
+      waivers: [{ id: 100, expires: "2099-01-01", approvedBy: "arc" }],
+    });
     expect(r.pass).toBe(true);
     expect(r.unwaived).toHaveLength(0);
+  });
+
+  it("treats expired waivers as unwaived", () => {
+    const audit = {
+      metadata: { vulnerabilities: { critical: 1, high: 0, moderate: 0, low: 0, info: 0 } },
+      advisories: {
+        "1": { id: 100, severity: "critical", module_name: "pkg-a" },
+      },
+    };
+    const r = evaluateDepsGate(
+      audit,
+      { waivers: [{ id: 100, expires: "2020-01-01", approvedBy: "arc" }] },
+      new Date("2026-01-01"),
+    );
+    expect(r.pass).toBe(false);
+    expect(r.unwaived).toHaveLength(1);
   });
 });

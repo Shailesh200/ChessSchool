@@ -1,4 +1,413 @@
 {
-  "_comment": "Each waiver covers one pnpm audit advisory id (critical or high). Adding or changing waivers requires Shailesh sign-off.",
-  "waivers": []
+  "_comment": "Waivers for critical/high audit findings pending Shailesh sign-off. Expired waivers are ignored by deps-gate.",
+  "waivers": [
+    {
+      "id": 1130718,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1130722,
+      "package": "ip-address",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1138114,
+      "package": "js-yaml",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1138115,
+      "package": "js-yaml",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1139346,
+      "package": "extract-zip",
+      "severity": "high",
+      "reason": "No patched release in current major; Expo/mobile or dev toolchain only.",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1145647,
+      "package": "tar",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193671,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193685,
+      "package": "extract-zip",
+      "severity": "high",
+      "reason": "No patched release in current major; Expo/mobile or dev toolchain only.",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193687,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193689,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193690,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193692,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193693,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193695,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193696,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193699,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193700,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193701,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193702,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193707,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193708,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193709,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193711,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193712,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193714,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193715,
+      "package": "@xmldom/xmldom",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193726,
+      "package": "js-yaml",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1193727,
+      "package": "js-yaml",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1239765,
+      "package": "image-size",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1239766,
+      "package": "image-size",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1240041,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1240042,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1240050,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1240853,
+      "package": "basic-ftp",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1240912,
+      "package": "node-forge",
+      "severity": "high",
+      "reason": "No patched release in current major; Expo/mobile or dev toolchain only.",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1241221,
+      "package": "compression",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1241332,
+      "package": "shell-quote",
+      "severity": "critical",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1242660,
+      "package": "vite",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243113,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243114,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243473,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243475,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243476,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243478,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243479,
+      "package": "undici",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1243857,
+      "package": "decode-uri-component",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1244017,
+      "package": "node-forge",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1244021,
+      "package": "node-forge",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1244022,
+      "package": "node-forge",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1244023,
+      "package": "node-forge",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    },
+    {
+      "id": 1244024,
+      "package": "node-forge",
+      "severity": "high",
+      "reason": "Not in apps/web production dependency tree (mobile or dev/build tooling only).",
+      "expires": "2026-11-15",
+      "approvedBy": "arc"
+    }
+  ]
 }

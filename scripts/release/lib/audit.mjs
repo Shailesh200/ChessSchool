@@ -5,6 +5,32 @@
 /** @typedef {{ id: number, severity: string, module_name?: string, title?: string }} Advisory */
 
 /**
+ * @param {unknown} waiverDoc
+ * @param {Date} [now]
+ * @returns {string[]}
+ */
+export function activeWaiverIds(waiverDoc, now = new Date()) {
+  const raw = waiverDoc?.waivers ?? [];
+  const ids = [];
+  for (const entry of raw) {
+    if (entry == null) continue;
+    if (typeof entry === "number" || typeof entry === "string") {
+      ids.push(String(entry));
+      continue;
+    }
+    if (typeof entry !== "object") continue;
+    const id = entry.id;
+    if (id == null) continue;
+    if (entry.expires) {
+      const exp = new Date(String(entry.expires));
+      if (!Number.isNaN(exp.getTime()) && exp < now) continue;
+    }
+    ids.push(String(id));
+  }
+  return ids;
+}
+
+/**
  * @param {unknown} auditJson
  * @returns {{ advisories: Advisory[], counts: Record<string, number> }}
  */
@@ -42,12 +68,10 @@ export function parseAuditReport(auditJson) {
 
 /**
  * @param {Advisory[]} advisories
- * @param {string[] | number[]} waivers
+ * @param {string[]} activeIds
  */
-export function findUnwaivedCriticalHigh(advisories, waivers) {
-  const waived = new Set(
-    (waivers ?? []).map((w) => String(w).trim()).filter(Boolean),
-  );
+export function findUnwaivedCriticalHigh(advisories, activeIds) {
+  const waived = new Set(activeIds.map((w) => String(w).trim()).filter(Boolean));
   const unwaived = [];
   for (const a of advisories) {
     if (a.severity !== "critical" && a.severity !== "high") continue;
@@ -59,12 +83,13 @@ export function findUnwaivedCriticalHigh(advisories, waivers) {
 
 /**
  * @param {unknown} auditJson
- * @param {{ waivers?: (string|number)[] }} waiverDoc
+ * @param {{ waivers?: unknown[] }} waiverDoc
+ * @param {Date} [now]
  */
-export function evaluateDepsGate(auditJson, waiverDoc) {
+export function evaluateDepsGate(auditJson, waiverDoc, now = new Date()) {
   const { advisories, counts } = parseAuditReport(auditJson);
-  const waivers = waiverDoc?.waivers ?? [];
-  const unwaived = findUnwaivedCriticalHigh(advisories, waivers);
+  const activeIds = activeWaiverIds(waiverDoc, now);
+  const unwaived = findUnwaivedCriticalHigh(advisories, activeIds);
   const pass = unwaived.length === 0;
   return {
     pass,
