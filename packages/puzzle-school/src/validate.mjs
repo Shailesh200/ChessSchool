@@ -1,7 +1,9 @@
 import { Chess } from "chess.js";
 import { validateQuizStep } from "./quiz-validate.mjs";
 
-/** @typedef {{ id: string, kind: string, fen?: string, solution?: string[], moves?: string[], coach?: string, question?: string, options?: unknown[], correct?: number }} LessonStep */
+const PROMOTION_PIECES = new Set(["q", "r", "b", "n"]);
+
+/** @typedef {{ id: string, kind: string, fen?: string, solution?: string[], moves?: string[], promotion?: string, promotions?: Record<string, string>, coach?: string, question?: string, options?: unknown[], correct?: number }} LessonStep */
 
 /**
  * @param {string} lessonId
@@ -81,6 +83,46 @@ export function validateLessonSteps(lessonId, steps) {
     }
   }
   return { errors, warnings };
+}
+
+/**
+ * @param {import('./bank.mjs').BankPuzzle} puzzle
+ * @param {LessonStep[]} steps
+ */
+export function compiledPromotionErrors(puzzle, steps) {
+  const errors = [];
+  const moves = (puzzle.line ?? []).map((m) => String(m).replace(/:/g, ""));
+  let si = 0;
+  for (let i = 1; i < moves.length; i += 2) {
+    const uci = moves[i] ?? "";
+    const step = steps[si++];
+    const sid = step?.id ?? "?";
+    if (!step) {
+      errors.push({
+        stepId: sid,
+        reason: "missing_promotion",
+        detail: `no compiled step for ${uci}`,
+      });
+      continue;
+    }
+    const piece = uci.length > 4 ? uci[4] : "";
+    if (piece) {
+      if (!PROMOTION_PIECES.has(piece) || step.promotion !== piece) {
+        errors.push({
+          stepId: sid,
+          reason: "missing_promotion",
+          detail: `${uci} promotes to ${piece} but step.promotion is ${step.promotion ?? "missing"}`,
+        });
+      }
+    } else if (step.promotion || (step.promotions && Object.keys(step.promotions).length > 0)) {
+      errors.push({
+        stepId: sid,
+        reason: "unexpected_promotion",
+        detail: `${uci} does not promote`,
+      });
+    }
+  }
+  return errors;
 }
 
 /**
