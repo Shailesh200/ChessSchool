@@ -701,7 +701,7 @@ export default function GameScreen() {
   );
 }
 
-const CIRCLE = 40;
+const CIRCLE = 44;
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[4], paddingTop: 6 },
