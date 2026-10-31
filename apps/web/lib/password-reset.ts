@@ -3,10 +3,9 @@ import { randomBytes } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { oauthAccounts, passwordResetTokens, users } from "@/db/schema";
-import { appOrigin } from "@/lib/google-oauth.server";
 import { hashPassword } from "@/lib/auth";
+import { passwordResetLinkOrigin } from "@/lib/password-reset-link-origin";
 import { hashSessionToken } from "@/lib/session-token";
-import { revokeSessionsForUser } from "@/lib/session-store";
 import { sendPasswordResetEmail } from "@/lib/email/send-password-reset";
 import { accountResetLink } from "@/lib/auth/password-reset-path";
 
@@ -41,12 +40,12 @@ async function isGoogleOnlyAccount(userId: string): Promise<boolean> {
  * Create a reset token and send email when possible. Never throws for unknown
  * emails or delivery failures — callers always show the generic message.
  */
-export async function requestPasswordReset(
-  email: string,
-  origin: string = appOrigin(),
-): Promise<void> {
+export async function requestPasswordReset(email: string): Promise<void> {
   email = email.trim().toLowerCase();
   if (!email.includes("@")) return;
+
+  const origin = passwordResetLinkOrigin();
+  if (!origin) return;
 
   const user = (
     await db.select().from(users).where(eq(users.email, email)).limit(1)
