@@ -10,7 +10,7 @@ import { CoachHead } from "@/nov2/CoachRow";
 import { KitButton, KitTopBar } from "@/components/kit";
 import { usePremiumKitTheme } from "@/components/kit";
 import { coachStill, type CoachSlug } from "@/nov2/coachArt";
-import { createPlayHubStyles } from "@/nov2/boaKitStyles";
+import { createPlayHubStyles } from "@/nov2/premiumKitStyles";
 type PlayMode = "coach" | "bot" | "friend";
 type OpponentId = "skye" | "kira" | "rex" | "ash";
 

@@ -6,7 +6,7 @@ import { resolvePremiumColorMode } from "@/themeMode";
 import { useSettings } from "@/settings";
 import { CoachRow } from "./CoachRow";
 import { KitLogo } from "@/components/kit";
-import { BOA_COLUMN, createBoaAuthStyles } from "./boaKitStyles";
+import { PREMIUM_COLUMN, createPremiumAuthStyles } from "./premiumKitStyles";
 import type { CoachMood } from "./coachArt";
 
 type Props = {
@@ -22,10 +22,10 @@ export function PremiumAuthShell({ children, coachLine, coachMood = "neutral", t
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
   const mode = resolvePremiumColorMode(themeMode, scheme);
-  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+  const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
 
   return (
-    <SafeAreaView style={[styles.safe, BOA_COLUMN]} edges={["top", "bottom"]} testID={testID}>
+    <SafeAreaView style={[styles.safe, PREMIUM_COLUMN]} edges={["top", "bottom"]} testID={testID}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.logoFrame}>
           <KitLogo withText size={24} />
@@ -42,7 +42,7 @@ export function SentBox({ icon, children }: { icon: ReactNode; children: ReactNo
   const kit = usePremiumKitTheme();
   const scheme = useColorScheme();
   const mode = resolvePremiumColorMode(themeMode, scheme);
-  const styles = useMemo(() => createBoaAuthStyles(kit, mode), [kit, mode]);
+  const styles = useMemo(() => createPremiumAuthStyles(kit, mode), [kit, mode]);
 
   return (
     <View style={styles.sentBox} accessibilityRole="text">
