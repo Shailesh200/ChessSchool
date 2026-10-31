@@ -1,0 +1,25 @@
+{
+  "tier": "deep",
+  "tierSpec": "deep depth=18 movetime=300ms multipv=2 + uniqueness",
+  "scanned": 2153,
+  "failed": 1366,
+  "passed": 787,
+  "durationMs": 550722,
+  "byFailure": {
+    "unique": 3581,
+    "correct": 354,
+    "theme": 154,
+    "engine": 55,
+    "rating_implausible": 1,
+    "depth_unlikely": 110
+  },
+  "byStage": {
+    "elementary": 51,
+    "expert": 562,
+    "high": 93,
+    "master": 244,
+    "middle": 85,
+    "novice": 176,
+    "university": 155
+  }
+}
