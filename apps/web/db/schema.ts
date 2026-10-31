@@ -57,6 +57,24 @@ export const sessions = sqliteTable(
   ],
 );
 
+/** Single-use password reset tokens — only a SHA-256 hash of the raw token is stored. */
+export const passwordResetTokens = sqliteTable(
+  "password_reset_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at").notNull(),
+    usedAt: integer("used_at"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("password_reset_tokens_user_id_idx").on(table.userId),
+    index("password_reset_tokens_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const profiles = sqliteTable("profiles", {
   userId: text("user_id")
     .primaryKey()

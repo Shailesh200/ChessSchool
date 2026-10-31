@@ -67,25 +67,27 @@ async function readErrorMessage(res: Response): Promise<string> {
   return "";
 }
 
-function createResendTransport(apiKey: string, from: string): EmailTransport {
+function createResendTransport(apiKey: string, from: string, replyTo?: string): EmailTransport {
   return {
     name: "resend",
     async send(message) {
       let res: Response;
       try {
+        const payload: Record<string, unknown> = {
+          from,
+          to: [message.to],
+          subject: message.subject,
+          text: message.text,
+          html: message.html,
+        };
+        if (replyTo) payload.reply_to = replyTo;
         res = await fetch(RESEND_ENDPOINT, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            from,
-            to: [message.to],
-            subject: message.subject,
-            text: message.text,
-            html: message.html,
-          }),
+          body: JSON.stringify(payload),
           signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
         });
       } catch (err) {
@@ -156,4 +158,21 @@ export function resolveEmailTransport(env: EmailEnv = process.env): EmailTranspo
   }
 
   return createConsoleTransport(env);
+}
+
+/** True when the process is running on Vercel (any environment). */
+export function isVercelRuntime(env: EmailEnv = process.env): boolean {
+  return envValue(env.VERCEL) !== "";
+}
+
+/** Resend transport when provider, key, and from are configured; otherwise null. */
+export function tryCreateResendTransport(
+  env: EmailEnv = process.env,
+  replyTo?: string,
+): EmailTransport | null {
+  const provider = envValue(env.EMAIL_PROVIDER).toLowerCase();
+  const apiKey = envValue(env.RESEND_API_KEY);
+  const from = envValue(env.EMAIL_FROM);
+  if (provider !== "resend" || apiKey === "" || from === "") return null;
+  return createResendTransport(apiKey, from, replyTo);
 }
