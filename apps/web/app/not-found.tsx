@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function NotFound() {
   return (
-    <div className="bg-surface flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
+    <div className="bg-surface flex min-h-dvh w-full min-w-0 flex-col items-center justify-center gap-5 px-6 text-center">
       <Logo />
       <div>
         <p className="text-brand text-xs font-extrabold tracking-wide uppercase">404</p>
@@ -14,11 +14,11 @@ export default function NotFound() {
           academy.
         </p>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Link href="/academy">
+      <div className="flex w-full max-w-full min-w-0 flex-wrap items-center justify-center gap-2">
+        <Link href="/academy" className="max-w-full">
           <Button size="lg">Go to academy</Button>
         </Link>
-        <Link href="/">
+        <Link href="/" className="max-w-full">
           <Button size="lg" variant="outline">
             Home
           </Button>

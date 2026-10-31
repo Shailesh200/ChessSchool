@@ -388,7 +388,7 @@ function ClassCard({
   return (
     <motion.div
       variants={listItem}
-      className={`school-chrome-card bg-surface-card p-4 ${
+      className={`school-chrome-card bg-surface-card min-w-0 p-4 ${
         grad ? "border-gold" : ""
       } ${unlocked ? "" : "opacity-60"}`}
     >
@@ -436,7 +436,7 @@ function ClassCard({
       />
 
       {unlocked && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex min-w-0 flex-wrap gap-2">
           <Button
             size="sm"
             onClick={openClass}
@@ -455,10 +455,7 @@ function ClassCard({
                 router.push(`/lesson/${cls.examId}`);
               }}
             >
-              <span className="inline-flex items-center gap-1.5">
-                <Icon name="exam" size={14} />
-                Test out
-              </span>
+              <Icon name="exam" size={14} /> Test out
             </Button>
           )}
         </div>
@@ -477,10 +474,7 @@ function ClassCard({
             router.push(`/class/${prevId}/exam`);
           }}
         >
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Icon name="cap" size={16} />
-            Test to unlock
-          </span>
+          <Icon name="cap" size={16} /> Test to unlock
         </Button>
       )}
     </motion.div>
