@@ -30,7 +30,7 @@ export function LessonStage({
 }) {
   return (
     <div
-      className="lesson-stage lesson-stage--kit bg-surface"
+      className="lesson-stage lesson-stage--kit"
       data-testid="lesson-stage"
       data-screen={kitScreen}
     >
