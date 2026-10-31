@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { pulseTrack } from "@/lib/pulse";
 
@@ -58,10 +59,18 @@ function analyticsSessionId(): string {
   }
 }
 
+function signedInForAnalytics(): boolean {
+  return useSession.getState().authed === true;
+}
+
 function flush() {
   timer = undefined;
   if (queue.length === 0) return;
   if (navigator.doNotTrack === "1") {
+    queue.length = 0;
+    return;
+  }
+  if (!signedInForAnalytics()) {
     queue.length = 0;
     return;
   }
@@ -100,6 +109,7 @@ export function trackEvent(
   props?: Record<string, unknown>,
 ): void {
   if (typeof window === "undefined") return;
+  if (!signedInForAnalytics()) return;
   // Opt-in: drop at the door, so an event made before the saved settings rehydrate (the store
   // starts opted out) is never queued and sent later.
   if (!useSettings.getState().shareAnalytics) return;
