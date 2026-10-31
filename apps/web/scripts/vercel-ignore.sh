@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# Vercel Ignored Build Step for the web app (project root: apps/web).
-# Exit 0 skips the deployment. Exit 1 builds.
+# Vercel Ignored Build Step (apps/web). Exit 0 = skip deployment, exit 1 = build.
 # https://vercel.com/docs/project-configuration#ignorecommand
 #
-# Only production deploys and pushes to main build. Everything else is skipped,
-# including previews, staging, stable and every PR branch.
+# Routes by VERCEL_PROJECT_ID (system env — "Available at: Both build and runtime",
+# https://vercel.com/docs/environment-variables/system-environment-variables#vercel_project_id)
+# and VERCEL_GIT_COMMIT_REF. Fail closed on unknown project or empty ref.
 
-if [ "${VERCEL_ENV:-}" = "production" ] || [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ]; then
-  echo "vercel-ignore: build (VERCEL_ENV=${VERCEL_ENV:-} VERCEL_GIT_COMMIT_REF=${VERCEL_GIT_COMMIT_REF:-})"
-  exit 1
-fi
-
-echo "vercel-ignore: skip build (VERCEL_ENV=${VERCEL_ENV:-} VERCEL_GIT_COMMIT_REF=${VERCEL_GIT_COMMIT_REF:-}); only main and production build"
-exit 0
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+node "$ROOT/scripts/vercel-ignore.mjs"
