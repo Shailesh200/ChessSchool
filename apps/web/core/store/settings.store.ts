@@ -124,7 +124,9 @@ const defaults = {
   coachPersonality: DEFAULT_COACH_CHARACTER,
   diagnostics: false,
   sharePerformance: true,
-  shareAnalytics: true,
+  // Opt-in: nothing is sent until the user turns this on. Also what the app sees before the saved
+  // settings have rehydrated (skipHydration).
+  shareAnalytics: false,
   targetElo: 600,
   textScale: 1,
   enrollPromptDismissedAt: null as number | null,
@@ -184,7 +186,7 @@ export const useSettings = create<SettingsState>()(
         }
         if (version < 3) {
           if (s.sharePerformance === undefined) s.sharePerformance = true;
-          if (s.shareAnalytics === undefined) s.shareAnalytics = true;
+          if (s.shareAnalytics === undefined) s.shareAnalytics = false;
         }
         if (version < 4) {
           if (s.coachSpeech === undefined) s.coachSpeech = true;
