@@ -9,6 +9,7 @@ import { useSettings } from "@/core/store/settings.store";
 import { usePlan } from "@/core/store/plan.store";
 import { pulseTrack } from "@/lib/pulse";
 import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
+import { clearGuestOwner, clearSignedInMarker } from "@/core/sync/guestOwner";
 
 /**
  * Logout that also wipes client-side personal state, so the next user/guest never
@@ -32,6 +33,9 @@ export function LogoutButton() {
     }
     await clearRuntimeCaches(); // again, in case a request re-cached something mid-logout
     useProgression.getState().reset();
+    // An explicit logout leaves no kept copy or owner tag behind, even for the same user.
+    clearGuestOwner();
+    clearSignedInMarker();
     usePlan.setState({
       routineDay: null,
       routineDone: [],

@@ -14,6 +14,7 @@ vi.mock("@/core/db/db", () => ({
   replaceGamesFromSync: async () => undefined,
 }));
 
+import { clearSignedInMarker, getSignedInMarker } from "@/core/sync/guestOwner";
 import { pullProgress } from "@/core/sync/pullProgress";
 import { usePlan } from "@/core/store/plan.store";
 import { useProgression } from "@/core/store/progression.store";
@@ -97,5 +98,150 @@ describe("web guest copy kept after a 401 is tagged with its owner", () => {
     const user = await nextPull(userB, 0);
     expect(user?.id).toBe("B");
     expect(useProgression.getState().xp).toBe(40);
+  });
+
+  it("a 401 for a signed-in session whose user is not known keeps the copy with a tag that matches nobody", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 401 })),
+    );
+    useSession.getState().setSession(true, null);
+    useProgression.setState({ xp: 640 });
+    await pullProgress();
+    expect(localStorage.getItem("chessschool.guestOwner")).toBe("?");
+  });
+
+  it("fails closed: with the owner unknown, the next sign-in gets none of it (same user or another)", async () => {
+    for (const user of [userB, userA]) {
+      localStorage.clear();
+      useProgression.getState().reset();
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("{}", { status: 401 })),
+      );
+      useSession.getState().setSession(true, null);
+      useProgression.setState({ xp: 640 });
+      await pullProgress();
+      await nextPull(user, 0);
+      expect(useProgression.getState().xp).toBe(0);
+    }
+  });
+
+  it("a 401 for a visitor who was never signed in leaves the copy untagged (plain guest)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 401 })),
+    );
+    useSession.getState().setSession(false, null);
+    useProgression.setState({ xp: 40 });
+    await pullProgress();
+    expect(localStorage.getItem("chessschool.guestOwner")).toBeNull();
+    await nextPull(userB, 0);
+    expect(useProgression.getState().xp).toBe(40);
+  });
+
+  it("web keeps no last-user id: after an explicit logout a late 401 leaves no tag for the old user", async () => {
+    useSession.getState().setSession(true, userA);
+    useProgression.setState({ xp: 640 });
+    // explicit logout: the session is gone (LogoutButton also clears the tag and wipes the stores)
+    useSession.getState().setSession(false, null);
+    useProgression.getState().reset();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 401 })),
+    );
+    await pullProgress();
+    expect(localStorage.getItem("chessschool.guestOwner")).toBeNull();
+    const user = await nextPull(userB, 0);
+    expect(user?.id).toBe("B");
+    expect(useProgression.getState().xp).toBe(0);
+  });
+
+  describe("cold start: the signed-in marker tells a kept copy from a real guest's", () => {
+    /** The app starts again: the persisted session is gone, the persisted store still holds the progress. */
+    function coldStart(xp: number) {
+      useSession.setState({ authed: null, user: null, isAdmin: false });
+      useProgression.setState({ xp });
+    }
+    const pull401 = () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("{}", { status: 401 })),
+      );
+      return pullProgress();
+    };
+
+    it("a successful pull writes the marker with the user id; a failed pull does not", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("{}", { status: 500 })),
+      );
+      await pullProgress();
+      expect(getSignedInMarker()).toBeNull();
+      await nextPull(userA, 640);
+      expect(getSignedInMarker()).toBe("A");
+    });
+
+    it("A pulls, the app restarts, a 401 tags the copy A, then B signs in and gets none of A's progress", async () => {
+      await nextPull(userA, 640);
+      coldStart(640);
+      await pull401();
+      expect(localStorage.getItem("chessschool.guestOwner")).toBe("A");
+      expect(getSignedInMarker()).toBeNull(); // consumed: the tag now says whose it is
+      const user = await nextPull(userB, 0);
+      expect(user?.id).toBe("B");
+      expect(useProgression.getState().xp).toBe(0);
+    });
+
+    it("A pulls, the app restarts, a 401 and A signs back in: A keeps the copy (empty account merges it)", async () => {
+      await nextPull(userA, 640);
+      coldStart(640);
+      await pull401();
+      await nextPull(userA, 0);
+      expect(useProgression.getState().xp).toBe(640);
+    });
+
+    it("the persisted session says signed out, A's data in the store, marker set: same, nothing for B", async () => {
+      await nextPull(userA, 640);
+      useSession.setState({ authed: false, user: null, isAdmin: false });
+      useProgression.setState({ xp: 640 });
+      await pull401();
+      expect(localStorage.getItem("chessschool.guestOwner")).toBe("A");
+      await nextPull(userB, 0);
+      expect(useProgression.getState().xp).toBe(0);
+    });
+
+    it("a marker without an owner tags the copy with a value that matches nobody: A and B both get none", async () => {
+      localStorage.setItem("chessschool.signedIn", "?");
+      for (const who of [userA, userB]) {
+        useSession.setState({ authed: null, user: null, isAdmin: false });
+        useProgression.setState({ xp: 640 });
+        localStorage.removeItem("chessschool.guestOwner");
+        localStorage.setItem("chessschool.signedIn", "?");
+        await pull401();
+        expect(localStorage.getItem("chessschool.guestOwner")).toBe("?");
+        await nextPull(who, 0);
+        expect(useProgression.getState().xp).toBe(0);
+      }
+    });
+
+    it("no marker: a real guest (session unknown) is left untagged and the copy merges into whoever signs in", async () => {
+      coldStart(40);
+      await pull401();
+      expect(localStorage.getItem("chessschool.guestOwner")).toBeNull();
+      await nextPull(userB, 0);
+      expect(useProgression.getState().xp).toBe(40);
+    });
+
+    it("an explicit logout clears the marker, so a later 401 leaves the guest copy untagged", async () => {
+      await nextPull(userA, 640);
+      clearSignedInMarker(); // what LogoutButton and DeleteAccountButton do
+      useProgression.getState().reset();
+      coldStart(40); // a guest edit after the logout
+      await pull401();
+      expect(localStorage.getItem("chessschool.guestOwner")).toBeNull();
+      await nextPull(userB, 0);
+      expect(useProgression.getState().xp).toBe(40);
+    });
   });
 });

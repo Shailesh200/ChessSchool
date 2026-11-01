@@ -7,6 +7,7 @@ import { useSession } from "@/core/store/session.store";
 import { useSettings } from "@/core/store/settings.store";
 import { pulseTrack } from "@/lib/pulse";
 import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
+import { clearGuestOwner, clearSignedInMarker } from "@/core/sync/guestOwner";
 
 export function DeleteAccountButton() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export function DeleteAccountButton() {
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
       await clearRuntimeCaches();
+      clearGuestOwner(); // like a logout: no kept-copy tag for the deleted user stays
+      clearSignedInMarker();
       useProgression.getState().reset();
       useSession.getState().setSession(false, null);
       useSettings.getState().set("targetElo", 600);

@@ -298,8 +298,10 @@ describe("mobile progress GET and queued edits vs logout", () => {
       opts?.method === "POST"
         ? flight.promise
         : Promise.resolve({ xp: 0, lessons: {}, user: { id: "u" } })) as never);
+    // The earlier edit above already made one POST: wait for the merge push itself.
+    const pushedBefore = posts().length;
     const done = syncProgressAfterAuth();
-    await until(() => posts().length === 1);
+    await until(() => posts().length === pushedBefore + 1);
 
     progressStore.clear();
     const { ApiError } = await import("./api");
@@ -387,7 +389,11 @@ describe("mobile progress after a session-expiry 401", () => {
     expect(live.user).toEqual({ id: "B" });
     expect(live.rating).toBe(800);
     expect(live.streak).toBeUndefined();
-    expect(secure.setItemAsync).not.toHaveBeenCalled();
+    expect(
+      (secure.setItemAsync.mock.calls as unknown[][]).filter(
+        (c) => c[0] !== "chessschool.lastUserId",
+      ),
+    ).toEqual([]);
   });
 
   it("A's late GET after a 401 and a sign-in as B leaves B's cache alone", async () => {
@@ -406,7 +412,11 @@ describe("mobile progress after a session-expiry 401", () => {
     await tick();
 
     expect((progressStore.get() as { user: { id: string } }).user.id).toBe("B");
-    expect(secure.setItemAsync).not.toHaveBeenCalled(); // A's games were not cached
+    expect(
+      (secure.setItemAsync.mock.calls as unknown[][]).filter(
+        (c) => c[0] !== "chessschool.lastUserId",
+      ),
+    ).toEqual([]); // A's games were not cached
     expect(settings.hydrateSettings).toHaveBeenCalledTimes(1); // B's reply only
   });
 

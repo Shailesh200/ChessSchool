@@ -7,8 +7,12 @@ vi.mock("@/core/pwa/clearRuntimeCaches", () => ({
   clearRuntimeCaches: async () => undefined,
 }));
 const dexie = vi.hoisted(() => ({
-  replaceJournalEntries: vi.fn(async (_e: unknown[]): Promise<void> => undefined),
-  replaceGamesFromSync: vi.fn(async (_g: unknown[]): Promise<void> => undefined),
+  replaceJournalEntries: vi.fn<(entries: unknown[]) => Promise<void>>(
+    async () => undefined,
+  ),
+  replaceGamesFromSync: vi.fn<(games: unknown[]) => Promise<void>>(
+    async () => undefined,
+  ),
 }));
 vi.mock("@/core/db/db", () => ({
   listJournal: async () => [],
@@ -18,6 +22,7 @@ vi.mock("@/core/db/db", () => ({
 }));
 
 import { pullProgress } from "@/core/sync/pullProgress";
+import { clearSignedInMarker, getSignedInMarker } from "@/core/sync/guestOwner";
 import { usePlan } from "@/core/store/plan.store";
 import { useProgression } from "@/core/store/progression.store";
 import { useSession } from "@/core/store/session.store";
@@ -117,5 +122,35 @@ describe("pullProgress vs logout during the Dexie writes", () => {
     expect(useSession.getState().authed).toBe(false);
     expect(useSession.getState().user).toBeNull();
     expect(useProgression.getState().xp).toBe(0);
+  });
+
+  it("a logout during the games write leaves no signed-in marker (the marker is written last)", async () => {
+    const g = gate();
+    dexie.replaceGamesFromSync.mockImplementation(() => g.promise);
+    useSession.getState().setSession(true, userA);
+    const pull = pullProgress();
+    await until(() => dexie.replaceGamesFromSync.mock.calls.length === 1);
+
+    logout();
+    clearSignedInMarker(); // what the logout button does
+    g.open();
+
+    expect(await pull).toBeNull();
+    expect(getSignedInMarker()).toBeNull();
+  });
+
+  it("a logout during the journal write leaves no signed-in marker", async () => {
+    const g = gate();
+    dexie.replaceJournalEntries.mockImplementation(() => g.promise);
+    useSession.getState().setSession(true, userA);
+    const pull = pullProgress();
+    await until(() => dexie.replaceJournalEntries.mock.calls.length === 1);
+
+    logout();
+    clearSignedInMarker();
+    g.open();
+
+    expect(await pull).toBeNull();
+    expect(getSignedInMarker()).toBeNull();
   });
 });

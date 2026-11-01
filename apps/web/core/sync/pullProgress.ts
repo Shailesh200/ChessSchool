@@ -7,7 +7,15 @@ import {
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
-import { clearGuestOwner, getGuestOwner, setGuestOwner } from "@/core/sync/guestOwner";
+import {
+  GUEST_OWNER_UNKNOWN,
+  clearGuestOwner,
+  clearSignedInMarker,
+  getSignedInMarker,
+  markSignedIn,
+  getGuestOwner,
+  setGuestOwner,
+} from "@/core/sync/guestOwner";
 import { useSettings, type SettingsState } from "@/core/store/settings.store";
 import {
   listJournal,
@@ -137,9 +145,16 @@ export async function pullProgress(): Promise<{
   if (r.status === 401) {
     const session = useSession.getState();
     // Session expired / revoked elsewhere: same as a logout for cache purposes.
-    if (session.authed === true) {
-      // The edit stays as guest progress: remember whose it is.
-      if (session.user?.id) setGuestOwner(session.user.id);
+    // The session store says signed in, or (a cold start, where the persisted session is
+    // missing or says signed out) the signed-in marker of the last successful pull does.
+    const marker = getSignedInMarker();
+    if (session.authed === true || marker !== null) {
+      // The edit stays as guest progress: remember whose it is. When the user is not
+      // known the tag matches nobody, so the copy is never merged. No marker and not
+      // signed in: a real guest, left untagged, it merges as before.
+      const known = session.authed === true ? session.user?.id : undefined;
+      setGuestOwner(known ?? marker ?? GUEST_OWNER_UNKNOWN);
+      clearSignedInMarker();
       void clearRuntimeCaches();
     }
     if (session.authed !== false) useSession.getState().setSession(false, null);
@@ -234,6 +249,7 @@ export async function pullProgress(): Promise<{
     }
   }
   if (generation !== progressGeneration()) return null;
+  markSignedIn(data.user.id);
   const session = useSession.getState();
   if (
     session.authed !== true ||
