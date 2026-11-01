@@ -16,6 +16,9 @@ import {
 } from "@/core/db/db";
 import {
   accountProgressEmpty,
+  capActivityDays,
+  capWeaknesses,
+  deviceTimeZone,
   localProgressPresent,
   normalizeSyncGame,
 } from "@chess-school/progression";
@@ -81,8 +84,12 @@ export function fullSnapshot() {
   const { set, toggle, reset, ...settingsPayload } = s;
   return {
     ...p,
+    // The server caps these maps. Cut here too, so a push never earns a 400.
+    activityDays: capActivityDays(p.activityDays),
+    weaknesses: capWeaknesses(p.weaknesses),
     homeworkStreak: plan.homeworkStreak,
     homeworkLastDay: plan.homeworkLastDay,
+    tz: deviceTimeZone(),
     settings: settingsPayload,
   };
 }

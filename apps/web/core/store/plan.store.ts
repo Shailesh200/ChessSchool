@@ -93,6 +93,7 @@ interface PlanState {
   markActivity: (id: string, today: string) => void;
   /** apply a synced homework streak (account is source of truth) */
   setHomework: (streak: number, lastDay: string | null) => void;
+  adoptHomework: (streak: number, lastDay?: string | null) => void;
 }
 
 export function planGoalXp(state: { tier: PlanTier; customGoalXp: number }): number {
@@ -147,6 +148,11 @@ export const usePlan = create<PlanState>()(
         set((s) => ({
           homeworkStreak: Math.max(s.homeworkStreak, streak),
           homeworkLastDay: lastDay ?? s.homeworkLastDay,
+        })),
+      adoptHomework: (streak: number, lastDay?: string | null) =>
+        set((s) => ({
+          homeworkStreak: Math.max(0, Math.floor(streak)),
+          homeworkLastDay: lastDay === undefined ? s.homeworkLastDay : lastDay,
         })),
     }),
     {

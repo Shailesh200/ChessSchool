@@ -5,7 +5,11 @@ import { db } from "@/db";
 import { progress, lessonRecords } from "@/db/schema";
 import { getApiUser } from "@/lib/auth";
 import { progressPushSchema } from "@/lib/api-schemas";
-import { parseExtraData, parseGraduatedClasses } from "@/lib/progress-merge";
+import {
+  parseExtraData,
+  parseGraduatedClasses,
+  progressPushResponseBody,
+} from "@/lib/progress-merge";
 import { applyProgressPush } from "@/lib/progress-server";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
@@ -64,6 +68,9 @@ export async function GET(req: Request) {
     homeworkLastDay: extra.homeworkLastDay ?? null,
     recentGames: extra.recentGames ?? [],
     dailyPuzzleDay: extra.dailyPuzzleDay ?? null,
+    ratingUpdatedAt: extra.ratingUpdatedAt,
+    goalUpdatedAt: extra.goalUpdatedAt,
+    tz: extra.tz,
     settings: extra.settings ?? null,
     homeworkDone: extra.homeworkDone ?? {},
     placementDone: extra.placementDone ?? false,
@@ -102,14 +109,12 @@ export async function POST(req: Request) {
     console.warn(`progress day rejected user=${user.id} day=${incomingDay}`);
   }
 
-  const { lessonCount } = await applyProgressPush(
+  const { lessonCount, merged } = await applyProgressPush(
     user.id,
     parsed.data,
     db as LibSQLDatabase<typeof schema>,
   );
   return NextResponse.json(
-    dayRejected
-      ? { ok: true, count: lessonCount, dayRejected: true }
-      : { ok: true, count: lessonCount },
+    progressPushResponseBody(lessonCount, merged, { dayRejected }),
   );
 }

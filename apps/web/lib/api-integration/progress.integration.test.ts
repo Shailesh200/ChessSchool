@@ -161,6 +161,87 @@ describe("progress API integration", () => {
     expect(body.lessons["keep-me"]).toBeTruthy();
   });
 
+  it("an unknown time zone does not 400 the push and the stored streak is kept", async () => {
+    const token = await registerToken(postRegister, 70);
+    const headers = {
+      "content-type": "application/json",
+      ...bearer(token),
+      ...testIp(71),
+    };
+    const post = (body: Record<string, unknown>, slot: number) =>
+      postProgress(
+        new Request("http://test/api/progress", {
+          method: "POST",
+          headers: { ...headers, ...testIp(slot) },
+          body: JSON.stringify(body),
+        }),
+      );
+    const today = new Date().toISOString().slice(0, 10);
+    const first = await post(
+      pushBody({
+        xp: 20,
+        lastActiveDay: today,
+        activityDays: { [today]: 20 },
+        tz: "Etc/Unknown",
+      }),
+      72,
+    );
+    expect(first.status).toBe(200);
+    const storedTz = async () => {
+      const row = (await db.select().from(schema.progress))[0];
+      return (JSON.parse(row!.data) as { tz?: string }).tz;
+    };
+    expect(await storedTz()).toBeUndefined();
+    const second = await post(pushBody({ xp: 20, tz: "GMT+5" }), 73);
+    expect(second.status).toBe(200);
+    expect(await storedTz()).toBeUndefined();
+    const ack = await readJson<{ streak: number }>(second);
+    expect(ack.streak).toBeGreaterThanOrEqual(1);
+  });
+
+  it("stores a time zone alias in its canonical form", async () => {
+    const token = await registerToken(postRegister, 75);
+    const res = await postProgress(
+      new Request("http://test/api/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...bearer(token),
+          ...testIp(76),
+        },
+        body: JSON.stringify(pushBody({ tz: "US/Pacific" })),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const row = (await db.select().from(schema.progress))[0];
+    expect((JSON.parse(row!.data) as { tz?: string }).tz).toBe("America/Los_Angeles");
+  });
+
+  it("drops a malformed lastActiveDay or homeworkLastDay as missing instead of a 400", async () => {
+    const token = await registerToken(postRegister, 78);
+    const res = await postProgress(
+      new Request("http://test/api/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...bearer(token),
+          ...testIp(79),
+        },
+        body: JSON.stringify(
+          pushBody({
+            xp: 5,
+            lastActiveDay: "2026-02-30",
+            homeworkLastDay: "2026-13-40",
+          }),
+        ),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const row = (await db.select().from(schema.progress))[0];
+    expect(row!.lastActiveDay).toBeNull();
+    expect(row!.xp).toBe(5);
+  });
+
   it("returns 200 and dayRejected when lastActiveDay is past server UTC+1", async () => {
     const token = await registerToken(postRegister, 60);
     const headers = {
@@ -204,6 +285,7 @@ describe("progress API integration", () => {
         lessons: Record<string, { mastery: number }>;
       }>(pull);
       expect(saved.xp).toBe(25);
+      // The client streak number is not stored. This row has no active-day set yet.
       expect(saved.streak).toBe(0);
       expect(saved.lastActiveDay).toBeNull();
       expect(saved.lessons["kept-lesson"]?.mastery).toBe(0.7);

@@ -43,6 +43,21 @@ function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
+/** IANA zone in its canonical form, or null when `zone` is not a real zone. */
+export function canonicalTimeZone(zone: string): string | null {
+  const trimmed = zone.trim();
+  if (!trimmed || trimmed.length > 64) return null;
+  try {
+    const canonical = new Intl.DateTimeFormat("en-US", {
+      timeZone: trimmed,
+    }).resolvedOptions().timeZone;
+    if (!canonical || canonical.length > 64) return null;
+    return canonical;
+  } catch {
+    return null;
+  }
+}
+
 function resolveTimeZone(timeZone?: string): string {
   if (timeZone === undefined) return deviceTimeZone();
   return isValidTimeZone(timeZone) ? timeZone : "UTC";

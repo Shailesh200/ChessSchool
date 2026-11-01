@@ -150,6 +150,12 @@ export type ReconcileStreakInput = {
   storedLastActiveDay: string | null;
   storedStreak: number;
   today: string;
+  /**
+   * The user's calendar day at the request, from the stored zone. The streak
+   * run ends here, not on the server UTC day. Only used inside the UTC day ±1
+   * window. Defaults to `today`.
+   */
+  localToday?: string;
   graceStart?: string;
   /**
    * Client `lastActiveDay`, the local day this push claims. It is recorded
@@ -180,9 +186,9 @@ export type ReconcileStreakResult = {
  * counts only through grace. The set is capped at the last
  * {@link STREAK_ACTIVE_DAY_LIMIT} days.
  *
- * The streak run ends on the local day just recorded, or on the server UTC
- * day — or on that day + 1 when the set already holds it, so an early-morning
- * local day is not dropped. Grace, once, counts exactly one missing day.
+ * The streak run ends on the local day just recorded, or on the user's local
+ * day (`localToday`, the server UTC day when unknown) — or on UTC day + 1 when
+ * the set already holds it, so an early-morning local day is not dropped. Grace, once, counts exactly one missing day.
  * A day already covered still counts on later pushes. That hole sits behind
  * the newest stored day, so a later push cannot record it.
  *
@@ -200,7 +206,11 @@ export function reconcileActiveStreak(
 ): ReconcileStreakResult | null {
   if (!isCalendarDay(input.today)) return null;
   const recordable = recordableActivityDay(input.claimedDay, input.today);
-  const seedCap = recordable && recordable > input.today ? recordable : input.today;
+  const localToday = localDayInWindow(input.localToday, input.today);
+  const seedCap = [recordable, localToday, input.today].reduce<string>(
+    (max, day) => (day && day > max ? day : max),
+    input.today,
+  );
   const seeded = input.hasActiveDays
     ? (input.activeDays ?? [])
     : seedActiveDays(input.storedLastActiveDay, input.storedStreak, seedCap);
@@ -211,7 +221,8 @@ export function reconcileActiveStreak(
   // A claim earlier than the newest recorded day would backfill a miss.
   const added = claimedDayOnOrAfterLatest(recordable, latest);
   const ahead = addDays(input.today, 1);
-  const anchor = added ?? (base.includes(ahead) ? ahead : input.today);
+  const anchor =
+    added ?? (base.includes(ahead) && ahead > localToday ? ahead : localToday);
   const days = boundActiveDays(added ? [...base, added] : base, anchor);
 
   let graceUsedAt = input.graceUsedAt;
@@ -241,6 +252,13 @@ export function reconcileActiveStreak(
       ...(graceUsedAt && covered ? { graceCoveredDay: covered } : {}),
     },
   };
+}
+
+/** The local day when it is a real day inside the server UTC day ±1, else the UTC day. */
+function localDayInWindow(local: string | undefined, today: string): string {
+  if (!local || !isCalendarDay(local)) return today;
+  if (local < addDays(today, -1) || local > addDays(today, 1)) return today;
+  return local;
 }
 
 /**

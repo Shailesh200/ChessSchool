@@ -2,22 +2,52 @@ import { checkLessonAchievements, checkMatchAchievements } from "@chess-school/c
 import {
   addDays,
   calendarDay,
+  canonicalTimeZone,
   deviceTimeZone,
   isCalendarDay,
   isoDay,
   resolveRequestedDay,
   yesterday,
 } from "./day";
+import {
+  allowedDailyGoal,
+  capActivityDays,
+  capWeaknesses,
+  clampRating,
+  mergeMistakeLog,
+  newerCalendarDay,
+  pickLastWriterNumber,
+  writerSide,
+} from "./merge";
 
 export {
   addDays,
   calendarDay,
+  canonicalTimeZone,
   deviceTimeZone,
   isCalendarDay,
   isoDay,
   resolveRequestedDay,
   yesterday,
 };
+export {
+  allowedDailyGoal,
+  applyProgressPushAck,
+  capActivityDays,
+  capWeaknesses,
+  clampRating,
+  clampWriterStamp,
+  isRecordedMistake,
+  MAX_ACTIVITY_DAYS,
+  MAX_WEAKNESSES,
+  newerCalendarDay,
+  pickLastWriterNumber,
+  RATING_MAX,
+  RATING_MIN,
+  readProgressPushAck,
+  writerSide,
+  type ProgressPushAck,
+} from "./merge";
 
 /**
  * Next streak and the day to store.
@@ -143,9 +173,16 @@ export function recordWeakness(s: Snap, tag?: string): Snap {
 }
 export function updateRating(s: Snap, botElo: number, score: number): Snap {
   const K = 32;
-  const expected = 1 / (1 + Math.pow(10, (botElo - (s.rating ?? 800)) / 400));
-  const rating = Math.max(100, Math.round((s.rating ?? 800) + K * (score - expected)));
-  return { ...s, rating, botWins: (s.botWins ?? 0) + (score === 1 ? 1 : 0) };
+  const previous = s.rating ?? 800;
+  const expected = 1 / (1 + Math.pow(10, (botElo - previous) / 400));
+  const rating = Math.max(100, Math.round(previous + K * (score - expected)));
+  const next: Snap = {
+    ...s,
+    rating,
+    botWins: (s.botWins ?? 0) + (score === 1 ? 1 : 0),
+  };
+  if (rating !== previous) next.ratingUpdatedAt = Date.now();
+  return next;
 }
 export function graduateClass(s: Snap, classId: string): Snap {
   const graduated = new Set((s.graduatedClasses as string[] | undefined) ?? []);
@@ -302,8 +339,9 @@ export function normalizeProgressPush(
     schoolExamsPassed: Array.isArray(snap.schoolExamsPassed)
       ? snap.schoolExamsPassed
       : [],
-    weaknesses: (snap.weaknesses ?? {}) as Record<string, number>,
-    activityDays: (snap.activityDays ?? {}) as Record<string, number>,
+    // The server caps these maps. Cut here too, so a push never earns a 400.
+    weaknesses: capWeaknesses(snap.weaknesses),
+    activityDays: capActivityDays(snap.activityDays),
     mistakeLog: Array.isArray(snap.mistakeLog) ? snap.mistakeLog : [],
     homeworkStreak: Math.max(0, Math.floor(Number(snap.homeworkStreak ?? 0))),
     homeworkLastDay:
@@ -315,7 +353,20 @@ export function normalizeProgressPush(
     placementDone: Boolean(snap.placementDone),
     journalEntries: Array.isArray(snap.journalEntries) ? snap.journalEntries : [],
     settings: snap.settings as Record<string, unknown> | undefined,
+    // A stamp is kept only with its own value. The 800 and 50 above are
+    // placeholders for a missing field, and must not carry a stamp.
+    ...(snap.rating !== undefined && clampPassedStamp(snap.ratingUpdatedAt)
+      ? { ratingUpdatedAt: snap.ratingUpdatedAt as number }
+      : {}),
+    ...(snap.dailyGoalXp !== undefined && clampPassedStamp(snap.goalUpdatedAt)
+      ? { goalUpdatedAt: snap.goalUpdatedAt as number }
+      : {}),
+    ...(typeof snap.tz === "string" && snap.tz ? { tz: snap.tz } : {}),
   };
+}
+
+function clampPassedStamp(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
 /**
@@ -347,6 +398,7 @@ export function mergeProgressSnapshots(
   local: MergeSnap,
   server: MergeSnap,
   now: Date = new Date(),
+  nowMs: number = Date.now(),
 ): MergeSnap {
   const lessons = { ...(local.lessons ?? {}) };
   for (const [id, r] of Object.entries(server.lessons ?? {})) {
@@ -361,30 +413,55 @@ export function mergeProgressSnapshots(
     for (const [k, v] of Object.entries(b)) out[k] = Math.max(out[k] ?? 0, v);
     return out;
   };
-  const mistakes = [...(server.mistakeLog ?? []), ...(local.mistakeLog ?? [])];
-  const seen = new Set<string>();
-  const mistakeLog = mistakes
-    .filter((m) => {
-      const key = `${m.fen}|${m.at}`;
-      return seen.has(key) ? false : (seen.add(key), true);
-    })
-    .slice(0, 30);
+  // A stamp counts only with its own value. Rating is clamped to 100..3000.
+  // A goal must be one the app can produce. Anything else is a missing value.
+  const localRating = writerSide(clampRating(local.rating), local.ratingUpdatedAt, 800);
+  const serverRating = writerSide(
+    clampRating(server.rating),
+    server.ratingUpdatedAt,
+    800,
+  );
+  const rating = pickLastWriterNumber(
+    localRating.value,
+    localRating.stamp,
+    serverRating.value,
+    serverRating.stamp,
+    nowMs,
+  );
+  const localGoal = writerSide(
+    allowedDailyGoal(local.dailyGoalXp),
+    local.goalUpdatedAt,
+    50,
+  );
+  const serverGoal = writerSide(
+    allowedDailyGoal(server.dailyGoalXp),
+    server.goalUpdatedAt,
+    50,
+  );
+  const goal = pickLastWriterNumber(
+    localGoal.value,
+    localGoal.stamp,
+    serverGoal.value,
+    serverGoal.stamp,
+    nowMs,
+  );
   return {
     xp: Math.max(local.xp ?? 0, server.xp ?? 0),
     streak: Math.max(local.streak ?? 0, server.streak ?? 0),
-    lastActiveDay:
-      acceptedLastActiveDay(local.lastActiveDay, now) ??
+    // The later accepted day wins. A day never moves earlier.
+    lastActiveDay: newerCalendarDay(
+      acceptedLastActiveDay(local.lastActiveDay, now),
       acceptedLastActiveDay(server.lastActiveDay, now),
+    ),
     graduatedClasses: Array.from(
       new Set([...(local.graduatedClasses ?? []), ...(server.graduatedClasses ?? [])]),
     ),
     lessons,
-    rating: Math.max(local.rating ?? 800, server.rating ?? 800),
+    rating: rating.value,
+    ...(rating.at !== null ? { ratingUpdatedAt: rating.at } : {}),
     botWins: Math.max(local.botWins ?? 0, server.botWins ?? 0),
-    dailyGoalXp: Math.max(
-      Number(local.dailyGoalXp ?? 50),
-      Number(server.dailyGoalXp ?? 50),
-    ),
+    dailyGoalXp: goal.value,
+    ...(goal.at !== null ? { goalUpdatedAt: goal.at } : {}),
     unlockedAchievements: Array.from(
       new Set([
         ...(local.unlockedAchievements ?? []),
@@ -397,10 +474,18 @@ export function mergeProgressSnapshots(
         ...(server.schoolExamsPassed ?? []),
       ]),
     ),
-    weaknesses: mergeMap(local.weaknesses ?? {}, server.weaknesses ?? {}),
-    activityDays: mergeMap(local.activityDays ?? {}, server.activityDays ?? {}),
-    mistakeLog,
-    dailyPuzzleDay: server.dailyPuzzleDay ?? local.dailyPuzzleDay ?? null,
+    // Cap after the union, so a large stored map plus a push still fits.
+    weaknesses: capWeaknesses(
+      mergeMap(local.weaknesses ?? {}, server.weaknesses ?? {}),
+    ),
+    activityDays: capActivityDays(
+      mergeMap(local.activityDays ?? {}, server.activityDays ?? {}),
+    ),
+    mistakeLog: mergeMistakeLog(
+      local.mistakeLog,
+      server.mistakeLog,
+    ) as Snap["mistakeLog"],
+    dailyPuzzleDay: newerCalendarDay(local.dailyPuzzleDay, server.dailyPuzzleDay),
     placementDone: Boolean(local.placementDone || server.placementDone),
   };
 }

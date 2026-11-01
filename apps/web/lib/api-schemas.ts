@@ -1,4 +1,70 @@
+import {
+  canonicalTimeZone,
+  capActivityDays,
+  capWeaknesses,
+  isCalendarDay,
+} from "@chess-school/progression";
 import { z } from "zod";
+
+/**
+ * A calendar day the server can use. A malformed string is dropped as a
+ * missing day, not rejected, so one bad field does not fail the whole push.
+ * `lastActiveDay` is required to be present (string or null); a bad value is null.
+ */
+const calendarDayOrNull = z
+  .string()
+  .nullable()
+  .transform((day) => (day !== null && isCalendarDay(day) ? day : null));
+/** Optional homework day: absent or malformed is undefined, a real day or null is kept. */
+const homeworkDayField = z
+  .string()
+  .nullable()
+  .transform((day) => {
+    if (day === null) return day;
+    return isCalendarDay(day) ? day : undefined;
+  });
+
+/** Integer ms. Below 0 is rejected. A future stamp is clamped to now. */
+const writerStamp = z
+  .number()
+  .int()
+  .min(0)
+  .transform((stamp) => Math.min(stamp, Date.now()));
+
+/**
+ * The client's IANA zone. A zone the server cannot resolve ("GMT+5",
+ * "Etc/Unknown", a very long string, a non-string) is dropped, not rejected:
+ * the push still succeeds and is merged as if no zone was sent, which keeps
+ * the stored streak (see `mergeProgressPush`).
+ */
+const timeZoneField = z.unknown().transform((zone): string | undefined => {
+  if (typeof zone !== "string" || zone.length > 64) return undefined;
+  return canonicalTimeZone(zone) ?? undefined;
+});
+
+const ACTIVITY_DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_WEAKNESS_KEY_LENGTH = 64;
+
+/** Over the cap is cut, not rejected: an old client with a big map must still sync. */
+const weaknessMap = z
+  .record(z.string(), z.number())
+  .transform((map) =>
+    capWeaknesses(
+      Object.fromEntries(
+        Object.entries(map).filter(([key]) => key.length <= MAX_WEAKNESS_KEY_LENGTH),
+      ),
+    ),
+  );
+/** A key that is not `YYYY-MM-DD` is dropped, not rejected. */
+const activityDayMap = z
+  .record(z.string(), z.number())
+  .transform((map) =>
+    capActivityDays(
+      Object.fromEntries(
+        Object.entries(map).filter(([key]) => ACTIVITY_DAY_KEY.test(key)),
+      ),
+    ),
+  );
 
 export const authCredentialsSchema = z.object({
   email: z.string().email().max(254),
@@ -20,7 +86,7 @@ const lessonRecSchema = z.object({
 export const progressPushSchema = z.object({
   xp: z.number().int().min(0).max(10_000_000),
   streak: z.number().int().min(0).max(10_000),
-  lastActiveDay: z.string().nullable(),
+  lastActiveDay: calendarDayOrNull,
   graduatedClasses: z.array(z.string().max(64)).max(200),
   lessons: z.record(z.string().max(64), lessonRecSchema),
   rating: z.number().int().min(0).max(4000).optional(),
@@ -28,11 +94,14 @@ export const progressPushSchema = z.object({
   dailyGoalXp: z.number().int().min(1).max(10_000).optional(),
   unlockedAchievements: z.array(z.string().max(64)).max(200).optional(),
   schoolExamsPassed: z.array(z.string().max(64)).max(50).optional(),
-  weaknesses: z.record(z.string(), z.number()).optional(),
-  activityDays: z.record(z.string(), z.number()).optional(),
+  weaknesses: weaknessMap.optional(),
+  activityDays: activityDayMap.optional(),
   mistakeLog: z.array(z.unknown()).max(500).optional(),
   homeworkStreak: z.number().int().min(0).max(10_000).optional(),
-  homeworkLastDay: z.string().nullable().optional(),
+  homeworkLastDay: homeworkDayField.optional(),
+  ratingUpdatedAt: writerStamp.optional(),
+  goalUpdatedAt: writerStamp.optional(),
+  tz: timeZoneField.optional(),
   recentGames: z.array(z.unknown()).max(50).optional(),
   dailyPuzzleDay: z.string().max(16).nullable().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),

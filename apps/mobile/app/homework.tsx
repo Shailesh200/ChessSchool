@@ -5,6 +5,7 @@ import { api } from "@/api";
 import { settings, useSettings } from "@/settings";
 import { useProgress, mutateProgress } from "@/progressStore";
 import { isoDay } from "@/progression";
+import { withDailyGoal } from "@/planGoal";
 import { AppShell } from "@/AppShell";
 import { BackButton } from "@/BackButton";
 import { Button } from "@/Button";
@@ -61,7 +62,7 @@ export default function PlanScreen() {
 
   async function setTier(tier: PlanTier) {
     settings.set("planTier", tier);
-    await mutateProgress((snap) => ({ ...snap, dailyGoalXp: PLAN_SPECS[tier].goalXp }));
+    await mutateProgress((snap) => withDailyGoal(snap, PLAN_SPECS[tier].goalXp));
   }
 
   const dayIndex = Math.floor(Date.parse(isoDay() + "T00:00:00Z") / 86400000);

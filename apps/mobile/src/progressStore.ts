@@ -4,6 +4,8 @@ import * as SecureStore from "expo-secure-store";
 import { ApiError, api, getToken } from "./api";
 import {
   accountProgressEmpty,
+  applyProgressPushAck,
+  deviceTimeZone,
   localProgressPresent,
   mergeProgressSnapshots,
   normalizeProgressPush,
@@ -143,8 +145,14 @@ export async function syncProgressAfterAuth(): Promise<{
   if (guestHad && accountEmpty) {
     const merged = normalizeProgressPush(mergeProgressSnapshots(local, serverBody));
     try {
-      await api("/api/progress", { method: "POST", body: merged });
-      cache = { ...(server as Record<string, unknown>), ...merged };
+      const ack = await api<unknown>("/api/progress", {
+        method: "POST",
+        body: { ...merged, tz: deviceTimeZone() },
+      });
+      cache = applyProgressPushAck(
+        { ...(server as Record<string, unknown>), ...merged },
+        ack,
+      );
       lastWriteError = null;
       await clearGuestProgress();
     } catch (e) {
@@ -248,9 +256,13 @@ export function mutateProgress(
     }
 
     try {
-      await api("/api/progress", { method: "POST", body: next });
+      const ack = await api<unknown>("/api/progress", {
+        method: "POST",
+        body: { ...next, tz: deviceTimeZone() },
+      });
+      const adopted = applyProgressPushAck(next, ack);
       cache = {
-        ...next,
+        ...adopted,
         user:
           (base as { user?: unknown }).user ??
           (cache as { user?: unknown } | null)?.user,
