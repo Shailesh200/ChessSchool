@@ -25,7 +25,8 @@ pnpm exec next build
 log_dir="${root}/apps/mobile/qa-sim-artifacts"
 mkdir -p "${log_dir}"
 log="${log_dir}/next.log"
-setsid pnpm exec next start -p 3108 >"${log}" 2>&1 </dev/null &
+# QA_SIM=1 turns on POST /api/qa/expire-session (apps/web/lib/qa-sim.ts); only here.
+QA_SIM=1 setsid pnpm exec next start -p 3108 >"${log}" 2>&1 </dev/null &
 pid="$!"
 echo "${pid}" >"${log_dir}/next.pid"
 

@@ -74,6 +74,15 @@ export async function revokeSessionByRawToken(raw: string, conn: AppDb): Promise
   await conn.delete(sessions).where(eq(sessions.id, raw));
 }
 
+/** Delete every session of one user (all devices). Returns the number removed. */
+export async function revokeSessionsForUser(
+  userId: string,
+  conn: AppDb,
+): Promise<number> {
+  const res = await conn.delete(sessions).where(eq(sessions.userId, userId));
+  return (res as { rowsAffected?: number }).rowsAffected ?? 0;
+}
+
 /** Delete expired sessions — safe to run on a schedule. */
 export async function purgeExpiredSessions(now: number, conn: AppDb): Promise<number> {
   const res = await conn.delete(sessions).where(lt(sessions.expiresAt, now));
