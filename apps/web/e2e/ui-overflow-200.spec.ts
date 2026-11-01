@@ -176,7 +176,10 @@ for (const vp of VIEWPORTS) {
         // and must not be squeezed to a sliver (UI-W-019). A null here is a failure,
         // not a skip: it would mean the bar or track vanished or is hidden.
         if (vp.width < 1024) {
-          expect(r.progressTrackWidth, `TopBar track missing at ${vp.width}px`).not.toBeNull();
+          expect(
+            r.progressTrackWidth,
+            `TopBar track missing at ${vp.width}px`,
+          ).not.toBeNull();
         }
         if (r.progressTrackWidth !== null) {
           expect(r.progressTrackWidth).toBeGreaterThanOrEqual(40);
