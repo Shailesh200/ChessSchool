@@ -81,7 +81,10 @@ describe("web analytics is opt-in", () => {
   it("events made before the saved settings have rehydrated are never sent, even when the saved opt-in loads", async () => {
     localStorage.setItem(
       "chessschool.settings",
-      JSON.stringify({ state: { shareAnalytics: true }, version: 11 }),
+      JSON.stringify({
+        state: { shareAnalytics: true, settingsVersion: 1 },
+        version: 14,
+      }),
     );
     const r = await boot();
     expect(r.useSettings.getState().shareAnalytics).toBe(false); // not rehydrated yet

@@ -166,6 +166,9 @@ function persist() {
   }
 }
 
+// Declared before the startup load below, which can call pushToAccount() before this line would run.
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
 // Load persisted settings on startup.
 (async () => {
   try {
@@ -192,7 +195,6 @@ function persist() {
 })();
 
 // --- Per-user account sync (so settings follow the user across web + app) ---
-let pushTimer: ReturnType<typeof setTimeout> | null = null;
 async function pushToAccount() {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {

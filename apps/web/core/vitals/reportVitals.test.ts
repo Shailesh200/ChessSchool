@@ -70,7 +70,10 @@ describe("performance sharing is opt-in, on the same switch as analytics", () =>
   it("settings not rehydrated yet count as off, even with a saved opt-in", async () => {
     localStorage.setItem(
       "chessschool.settings",
-      JSON.stringify({ state: { shareAnalytics: true }, version: 12 }),
+      JSON.stringify({
+        state: { shareAnalytics: true, settingsVersion: 1 },
+        version: 14,
+      }),
     );
     const r = await boot();
     cbs.lcp?.(metric("LCP"));

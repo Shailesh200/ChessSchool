@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import {
+  ANALYTICS_SWITCH_HINT,
+  ANALYTICS_SWITCH_LABEL,
+} from "@/core/analytics/copy";
 import { useSettings, type UiKitMode } from "@/core/store/settings.store";
 import { PremiumStatsTopbar } from "@/features/premium-ui/shell/PremiumDexShell";
 import { useProgression } from "@/core/store/progression.store";
@@ -44,8 +48,8 @@ export function PremiumSettingsScreen() {
           <div className="gl">Privacy</div>
           <div className="srow">
             <span className="rt">
-              <b>Share usage analytics</b>
-              <span>Anonymous product events</span>
+              <b>{ANALYTICS_SWITCH_LABEL}</b>
+              <span>{ANALYTICS_SWITCH_HINT}</span>
             </span>
             <button
               type="button"
