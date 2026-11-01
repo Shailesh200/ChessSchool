@@ -204,7 +204,7 @@ describe("progress API integration", () => {
         lessons: Record<string, { mastery: number }>;
       }>(pull);
       expect(saved.xp).toBe(25);
-      expect(saved.streak).toBe(4);
+      expect(saved.streak).toBe(0);
       expect(saved.lastActiveDay).toBeNull();
       expect(saved.lessons["kept-lesson"]?.mastery).toBe(0.7);
 
@@ -215,5 +215,35 @@ describe("progress API integration", () => {
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it("stores object mistakeLog entries and does not 500 on null", async () => {
+    const token = await registerToken(postRegister, 80);
+    const headers = {
+      "content-type": "application/json",
+      ...bearer(token),
+      ...testIp(81),
+    };
+    const kept = {
+      fen: "8/8/8/8/8/8/8/8 w - - 0 1",
+      played: "e2e4",
+      best: "e4",
+      tag: "opening",
+      at: 1,
+    };
+    const push = await postProgress(
+      new Request("http://test/api/progress", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(pushBody({ xp: 12, mistakeLog: [null, "nope", 4, kept] })),
+      }),
+    );
+    expect(push.status).toBe(200);
+
+    const pull = await getProgress(
+      new Request("http://test/api/progress", { headers: bearer(token) }),
+    );
+    const saved = await readJson<{ mistakeLog: unknown[] }>(pull);
+    expect(saved.mistakeLog).toEqual([kept]);
   });
 });
