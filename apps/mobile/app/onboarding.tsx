@@ -156,8 +156,8 @@ export default function OnboardingScreen() {
 
         {isAvatar ? (
           <View style={styles.avatarGrid}>
-            {AVATAR_OPTIONS.map((a) => (
-              <Pressable key={a} style={[styles.avatarCell, avatar === a && styles.selOn]} onPress={() => { setAvatar(a); haptics.select(); }}>
+            {AVATAR_OPTIONS.map((a, i) => (
+              <Pressable key={a} testID={`avatar-${i}`} style={[styles.avatarCell, avatar === a && styles.selOn]} onPress={() => { setAvatar(a); haptics.select(); }}>
                 <FlatAvatar id={a} size={40} />
               </Pressable>
             ))}
