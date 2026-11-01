@@ -153,6 +153,8 @@ async function writeLastUserRaw(id: string | null): Promise<void> {
     await SecureStore.setItemAsync(LAST_USER_KEY, id);
   }
 }
+/** The saved last user id was read (or could not be): beginSession() can decide at once. */
+let lastUserReady = false;
 /** Read the saved last user id once, at start, before a 401 can tag a copy (see mutateProgress). */
 const lastUserLoaded: Promise<void> = guestOp(async () => {
   try {
@@ -160,8 +162,36 @@ const lastUserLoaded: Promise<void> = guestOp(async () => {
     if (!lastUserTouched && typeof v === "string" && v) lastUserId = v;
   } catch {
     /* unreadable: the id stays unknown, a kept copy is then never merged */
+  } finally {
+    lastUserReady = true;
   }
 });
+/**
+ * beginSession() during the cold-start read of the saved last user id is deferred until
+ * the id is known, so that "did the user change?" is decided on the real previous user.
+ * `sessionTurn` counts the calls (and logouts): only the latest turn applies, so a B that
+ * was superseded by a C, or by a logout, never writes anything. `sessionGate` is the
+ * pending application; whatever starts a pull, a sync, an edit or a read of the games
+ * cache waits for it (sessionSettled) so it sees the session that is current by then.
+ */
+let sessionTurn = 0;
+let sessionGate: Promise<void> | null = null;
+async function sessionSettled(): Promise<void> {
+  while (sessionGate) await sessionGate;
+}
+/**
+ * Edits queued but not started, with their origin (was a token present when queued) and
+ * the session turn they were queued in. When a session begins while the previous user is
+ * still unknown, the edits queued before it with a signed-in token may be the previous
+ * user's and must not run as the new one; a guest's edits (no token when queued) merge
+ * as before, and so do the new user's own (queued after the call).
+ */
+type PendingEdit = {
+  signedIn: Promise<boolean>;
+  turn: number;
+  cancelIfSignedIn: boolean;
+};
+const pendingEdits = new Set<PendingEdit>();
 const saveLastUser = (id: string | null) =>
   guestOp(() => writeLastUserRaw(id)).catch(() => undefined);
 
@@ -329,10 +359,14 @@ function dropGamesCacheUnlessOwner(userId: string): Promise<void> {
   });
 }
 
-/** The user the in-memory snapshot (or the app) says is signed in, for tagging games. */
+/**
+ * The owner tag of the games cache: the snapshot's (or the reply's) own user id, and null
+ * when it has none. Never the last user the app knew: that may be someone else while a
+ * sign-in is under way. A cache with a null owner is never shown to anyone.
+ */
 function currentUserId(snap: ProgressSnap): string | null {
   const id = (snap as { user?: { id?: unknown } } | null)?.user?.id;
-  return typeof id === "string" && id ? id : lastUserId;
+  return typeof id === "string" && id ? id : null;
 }
 
 /**
@@ -342,6 +376,13 @@ function currentUserId(snap: ProgressSnap): string | null {
  * give nothing. A logout or sign-in while the cache is read gives nothing.
  */
 async function loadGamesCache(): Promise<unknown[] | null> {
+  return (await loadGamesEntry())?.games ?? null;
+}
+async function loadGamesEntry(): Promise<{
+  games: unknown[];
+  owner: string | null;
+} | null> {
+  if (sessionGate) await sessionSettled();
   const generation = cacheGeneration;
   let token: string | null = null;
   try {
@@ -353,11 +394,12 @@ async function loadGamesCache(): Promise<unknown[] | null> {
   const out = await gamesOp(async () => {
     const entry = await readGamesEntry();
     if (!entry) return null;
-    if (!token) return entry.origin === "guest" ? entry.games : null;
+    if (!token)
+      return entry.origin === "guest" ? { games: entry.games, owner: null } : null;
     return entry.origin === "signed-in" &&
       entry.owner !== null &&
       entry.owner === lastUserId
-      ? entry.games
+      ? { games: entry.games, owner: entry.owner }
       : null;
   });
   return generation === cacheGeneration ? out : null;
@@ -370,16 +412,23 @@ async function loadGamesCache(): Promise<unknown[] | null> {
  * enter it. Returns whether it did.
  */
 async function adoptCachedGames(): Promise<boolean> {
+  if (sessionGate) await sessionSettled();
   const generation = cacheGeneration;
-  const games = await loadGamesCache();
+  const found = await loadGamesEntry();
+  const games = found?.games;
   if (!games?.length || generation !== cacheGeneration) return false;
   if ((cache as { recentGames?: unknown } | null)?.recentGames) return false;
-  cache = { ...(cache ?? {}), recentGames: games };
+  // The snapshot carries the id of the cache's owner (it passed the owner check above), so
+  // the next push of this user tags the games cache with it. A guest's games carry none.
+  const owned =
+    found?.owner && !currentUserId(cache) ? { user: { id: found.owner } } : {};
+  cache = { ...(cache ?? {}), recentGames: games, ...owned };
   emit();
   return true;
 }
 
 async function pullRemote(): Promise<ProgressSnap> {
+  if (sessionGate) await sessionSettled();
   const generation = cacheGeneration;
   return api<ProgressSnap>("/api/progress")
     .then(async (d) => {
@@ -400,6 +449,9 @@ async function pullRemote(): Promise<ProgressSnap> {
       if (generation !== cacheGeneration) return null;
       try {
         const { loadSettingsFromAccount, hydrateSettings } = await import("./settings");
+        // Logged out (or another user signed in) while the module loaded: these are the
+        // old user's settings.
+        if (generation !== cacheGeneration) return null;
         hydrateSettings(
           (d as { settings?: Record<string, unknown> })?.settings as never,
         );
@@ -427,6 +479,7 @@ export async function syncProgressAfterAuth(): Promise<{
   snap: ProgressSnap;
   merged: boolean;
 }> {
+  if (sessionGate) await sessionSettled();
   const generation = cacheGeneration;
   let local = cache ? snapBody(cache as Record<string, unknown>) : {};
   const guest = await loadGuestCopy();
@@ -493,6 +546,7 @@ export async function syncProgressAfterAuth(): Promise<{
 }
 
 export async function fetchProgress(force = false): Promise<ProgressSnap> {
+  if (sessionGate) await sessionSettled();
   const token = await getToken();
   if (!token) {
     if (!cache || force) {
@@ -518,6 +572,30 @@ export async function fetchProgress(force = false): Promise<ProgressSnap> {
   return inflight;
 }
 
+/** The session of `userId` begins: decide on the real previous user (see beginSession). */
+function applySession(userId: string, turn: number): void {
+  if (lastUserId !== null && lastUserId !== userId) {
+    cacheGeneration += 1;
+    inflight = null;
+    cache = null;
+    emit();
+  } else if (lastUserId === null) {
+    // The previous user is still unknown: an edit queued with a signed-in token may be
+    // theirs, and is dropped (fail closed) rather than sent as this user's. Guests' edits
+    // (no token when queued) are kept and merge as before.
+    for (const e of pendingEdits) if (e.turn < turn) e.cancelIfSignedIn = true;
+  }
+  // The same user signing in again (the saved id said so) is not a change: what it
+  // queued and a 401 in flight are kept. Learning a new user is (see mutateProgress).
+  if (lastUserId !== userId) lastUserTouched = true;
+  lastUserId = userId;
+  void saveLastUser(userId);
+  // The games cache stays only for its owner: a different user, or a cache nobody
+  // owns (a guest's, an older build's), is deleted, also when the previous user was
+  // not known yet (generation did not move).
+  void dropGamesCacheUnlessOwner(userId);
+}
+
 export const progressStore = {
   get: () => cache,
   set: (d: ProgressSnap) => {
@@ -526,6 +604,7 @@ export const progressStore = {
   },
   /** Explicit logout or account deletion: the old user's replies must not land. */
   clear: () => {
+    sessionTurn += 1; // a beginSession() still waiting for the saved id is void now
     cacheGeneration += 1;
     inflight = null;
     // Forget the last user id, in memory and the saved one: a late 401 after this logout,
@@ -544,21 +623,25 @@ export const progressStore = {
     cache = null;
     emit();
   },
-  /** Call when a user signs in. A different user than the last one starts a new generation. */
+  /**
+   * Call when a user signs in. A different user than the last one starts a new generation.
+   * While the saved last user id is still being read (the first moments after a start) the
+   * decision waits for it: the previous user is not known before, and deciding on "unknown"
+   * is how a user B got an edit of A's. Whatever needs the session waits for it too.
+   */
   beginSession: (userId: string) => {
-    if (lastUserId !== null && lastUserId !== userId) {
-      cacheGeneration += 1;
-      inflight = null;
-      cache = null;
-      emit();
+    sessionTurn += 1;
+    if (lastUserReady) {
+      applySession(userId, sessionTurn);
+      return;
     }
-    lastUserTouched = true;
-    lastUserId = userId;
-    void saveLastUser(userId);
-    // The games cache stays only for its owner: a different user, or a cache nobody
-    // owns (a guest's, an older build's), is deleted, also when the previous user was
-    // not known yet (generation did not move).
-    void dropGamesCacheUnlessOwner(userId);
+    const turn = sessionTurn;
+    const gate: Promise<void> = lastUserLoaded.then(() => {
+      // Superseded by a later sign-in or a logout: this one never happened.
+      if (turn === sessionTurn) applySession(userId, turn);
+      if (sessionGate === gate) sessionGate = null;
+    });
+    sessionGate = gate;
   },
   subscribe: (l: () => void) => {
     listeners.add(l);
@@ -578,10 +661,34 @@ let writeChain: Promise<void> = Promise.resolve();
 export function mutateProgress(
   fn: (snap: Record<string, unknown>) => Record<string, unknown>,
 ): Promise<void> {
-  const queuedGeneration = cacheGeneration;
+  let queuedGeneration = cacheGeneration;
+  // Queued after a sign-in call that still waits for the saved id: it is that user's.
+  const queuedInSession = sessionGate !== null;
+  const pending: PendingEdit = {
+    signedIn: getToken().then(
+      (t) => Boolean(t),
+      () => false,
+    ),
+    turn: sessionTurn,
+    cancelIfSignedIn: false,
+  };
+  pendingEdits.add(pending);
   const run = async () => {
+    // A sign-in that is waiting for the saved last user id decides first.
+    if (sessionGate) await sessionSettled();
+    pendingEdits.delete(pending);
+    // The session it was queued in is the one that has just been decided (no later
+    // sign-in or logout since): the generation that decision moved to is its own.
+    if (queuedInSession && pending.turn === sessionTurn)
+      queuedGeneration = cacheGeneration;
     // Queued as the old user, cleared before it got its turn: drop it.
     if (queuedGeneration !== cacheGeneration) return;
+    // Queued with a signed-in token before a session began whose previous user was not
+    // known: it may be that user's. Not sent as the new one's.
+    if (pending.cancelIfSignedIn && (await pending.signedIn)) {
+      lastWriteError = null;
+      return;
+    }
     const generation = cacheGeneration;
     if (inflight) {
       try {
@@ -633,14 +740,24 @@ export function mutateProgress(
       return;
     }
 
+    // Who the request goes out for. If no user had been learned yet (the previous user
+    // is unknown, or the saved id is still being read), a sign-in while it is in flight
+    // flips lastUserTouched without moving the generation: the reply is then not this
+    // session's. A sign-in of the same user the saved id names flips nothing.
+    const sentWithUserKnown = lastUserTouched;
+    const replyIsStale = () =>
+      generation !== cacheGeneration || (lastUserTouched && !sentWithUserKnown);
     try {
       const ack = await api<unknown>("/api/progress", {
         method: "POST",
         body: { ...next, tz: deviceTimeZone() },
       });
-      // Cleared (logout, account deletion) while the push was in flight: the reply
-      // is the old user's. Do not write it, or its games, back into the cache.
-      if (generation !== cacheGeneration) {
+      // A sign-in still waiting for the saved id decides first.
+      if (sessionGate) await sessionSettled();
+      // Cleared (logout, account deletion) or another user signed in while the push was
+      // in flight: the reply is the old user's. Do not write it, or its games, back
+      // into the cache, and do not emit.
+      if (replyIsStale()) {
         lastWriteError = null;
         return;
       }
@@ -664,7 +781,8 @@ export function mutateProgress(
           generation,
         );
     } catch (e) {
-      if (generation !== cacheGeneration) {
+      if (sessionGate) await sessionSettled();
+      if (replyIsStale()) {
         lastWriteError = null;
         return;
       }
@@ -680,6 +798,11 @@ export function mutateProgress(
         const expiredGeneration = generation;
         const knewUser = lastUserTouched;
         await lastUserLoaded;
+        if (sessionGate) await sessionSettled();
+        // Two arms, for two cases. A user learned during the wait (nobody was known when
+        // the edit was sent) is the second arm. The generation arm covers a logout during
+        // the wait when a user was already known at send time: that flips nothing for the
+        // second arm. Both are pinned by tests.
         if (expiredGeneration !== cacheGeneration || (!knewUser && lastUserTouched)) {
           lastWriteError = null;
           return;
