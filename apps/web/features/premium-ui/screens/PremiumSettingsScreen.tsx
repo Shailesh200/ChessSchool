@@ -55,19 +55,6 @@ export function PremiumSettingsScreen() {
               onClick={() => s.set("shareAnalytics", !s.shareAnalytics)}
             />
           </div>
-          <div className="srow">
-            <span className="rt">
-              <b>Share performance data</b>
-              <span>Anonymous Web Vitals</span>
-            </span>
-            <button
-              type="button"
-              className="tg"
-              role="switch"
-              aria-checked={s.sharePerformance}
-              onClick={() => s.set("sharePerformance", !s.sharePerformance)}
-            />
-          </div>
         </section>
         <section className="grp" aria-label="Reminders">
           <div className="gl">Reminders</div>
