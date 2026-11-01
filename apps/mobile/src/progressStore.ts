@@ -29,6 +29,8 @@ let cacheGeneration = 0;
 let lastUserId: string | null = null;
 const PROGRESS_STALE_MS = 30_000;
 const GUEST_KEY = "chessschool.guestProgress";
+/** Who the kept guest copy belongs to (set when a session expiry keeps an edit). Absent = a plain guest. */
+const GUEST_OWNER_KEY = "chessschool.guestProgressOwner";
 const GAMES_CACHE_KEY = "chessschool.recentGamesCache";
 const isWeb = Platform.OS === "web";
 const listeners = new Set<() => void>();
@@ -54,21 +56,46 @@ async function loadGuestSnap(): Promise<ProgressSnap> {
   }
 }
 
-async function saveGuestSnap(snap: Record<string, unknown>): Promise<void> {
+async function loadGuestOwner(): Promise<string | null> {
+  try {
+    const raw = isWeb
+      ? typeof localStorage !== "undefined"
+        ? localStorage.getItem(GUEST_OWNER_KEY)
+        : null
+      : await SecureStore.getItemAsync(GUEST_OWNER_KEY);
+    return raw || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Save the guest copy. With an owner id the copy is tagged; without one the tag is left as it is. */
+async function saveGuestSnap(
+  snap: Record<string, unknown>,
+  ownerId?: string,
+): Promise<void> {
   const raw = JSON.stringify(snap);
   if (isWeb) {
-    if (typeof localStorage !== "undefined") localStorage.setItem(GUEST_KEY, raw);
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(GUEST_KEY, raw);
+      if (ownerId) localStorage.setItem(GUEST_OWNER_KEY, ownerId);
+    }
     return;
   }
   await SecureStore.setItemAsync(GUEST_KEY, raw);
+  if (ownerId) await SecureStore.setItemAsync(GUEST_OWNER_KEY, ownerId);
 }
 
 /** Wipe guest-only progress (fresh guest session). */
 export async function clearGuestProgress(): Promise<void> {
   if (isWeb) {
-    if (typeof localStorage !== "undefined") localStorage.removeItem(GUEST_KEY);
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(GUEST_KEY);
+      localStorage.removeItem(GUEST_OWNER_KEY);
+    }
   } else {
     await SecureStore.deleteItemAsync(GUEST_KEY);
+    await SecureStore.deleteItemAsync(GUEST_OWNER_KEY);
   }
 }
 
@@ -115,6 +142,8 @@ async function pullRemote(): Promise<ProgressSnap> {
       if (Array.isArray((d as { recentGames?: unknown[] })?.recentGames)) {
         await saveGamesCache((d as { recentGames: unknown[] }).recentGames);
       }
+      // Cleared while the games cache was being written: skip the old user's settings.
+      if (generation !== cacheGeneration) return null;
       try {
         const { loadSettingsFromAccount, hydrateSettings } = await import("./settings");
         hydrateSettings(
@@ -148,7 +177,13 @@ export async function syncProgressAfterAuth(): Promise<{
   const local = cache ? snapBody(cache as Record<string, unknown>) : {};
   if (!localProgressPresent(local)) {
     const guest = await loadGuestSnap();
-    if (guest) Object.assign(local, snapBody(guest as Record<string, unknown>));
+    if (guest) {
+      // A copy kept after a session expiry belongs to the user who expired. Merge it
+      // only for that user; a different user signing in does not get it, and it goes.
+      const owner = await loadGuestOwner();
+      if (owner !== null && owner !== lastUserId) await clearGuestProgress();
+      else Object.assign(local, snapBody(guest as Record<string, unknown>));
+    }
   }
   inflight = pullRemote();
   const server = await inflight;
@@ -284,6 +319,11 @@ export function mutateProgress(
       cache = await loadGuestSnap();
     }
 
+    // Cleared while waiting for the base: this edit belongs to the old user. Drop it.
+    if (generation !== cacheGeneration) {
+      lastWriteError = null;
+      return;
+    }
     const base = (cache as Record<string, unknown> | null) ?? {};
     const next = normalizeProgressPush(
       fn(snapBody(base)) as Parameters<typeof normalizeProgressPush>[0],
@@ -334,7 +374,8 @@ export function mutateProgress(
         cache = next;
         lastWriteError = null;
         emit();
-        await saveGuestSnap(next);
+        // Tag the kept copy with the user whose session expired.
+        await saveGuestSnap(next, lastUserId ?? undefined);
         return;
       }
       lastWriteError = e instanceof Error ? e.message : "Progress save failed";

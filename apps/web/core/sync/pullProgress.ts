@@ -7,6 +7,7 @@ import {
 import { usePlan } from "@/core/store/plan.store";
 import { useSession } from "@/core/store/session.store";
 import { clearRuntimeCaches } from "@/core/pwa/clearRuntimeCaches";
+import { clearGuestOwner, getGuestOwner, setGuestOwner } from "@/core/sync/guestOwner";
 import { useSettings, type SettingsState } from "@/core/store/settings.store";
 import {
   listJournal,
@@ -121,7 +122,7 @@ export async function pullProgress(): Promise<{
   name: string;
   role: string;
 } | null> {
-  const generation = progressGeneration();
+  let generation = progressGeneration();
   let r: Response;
   try {
     r = await fetch("/api/progress");
@@ -136,7 +137,11 @@ export async function pullProgress(): Promise<{
   if (r.status === 401) {
     const session = useSession.getState();
     // Session expired / revoked elsewhere: same as a logout for cache purposes.
-    if (session.authed === true) void clearRuntimeCaches();
+    if (session.authed === true) {
+      // The edit stays as guest progress: remember whose it is.
+      if (session.user?.id) setGuestOwner(session.user.id);
+      void clearRuntimeCaches();
+    }
     if (session.authed !== false) useSession.getState().setSession(false, null);
     return null;
   }
@@ -144,6 +149,23 @@ export async function pullProgress(): Promise<{
   const data = (await r.json()) as ServerSnapshot;
   // Logged out (store reset) while the GET was in flight: the reply is the old user's.
   if (generation !== progressGeneration()) return null;
+
+  // Guest progress kept after a session expiry belongs to that user. A different user
+  // signing in does not get it (same wipe as a logout); the same user keeps it.
+  const owner = getGuestOwner();
+  if (owner !== null) {
+    clearGuestOwner();
+    if (owner !== data.user.id) {
+      useProgression.getState().reset();
+      usePlan.setState({
+        routineDay: null,
+        routineDone: [],
+        homeworkStreak: 0,
+        homeworkLastDay: null,
+      });
+      generation = progressGeneration();
+    }
+  }
 
   const localSnap = progressSnapshot(useProgression.getState());
   const guestHadProgress = localProgressPresent({
@@ -202,6 +224,8 @@ export async function pullProgress(): Promise<{
       /* ignore */
     }
   }
+  // Logged out during the journal write: do not write the old user's games or session.
+  if (generation !== progressGeneration()) return null;
   if (Array.isArray(data.recentGames)) {
     try {
       await replaceGamesFromSync(data.recentGames);
@@ -209,6 +233,7 @@ export async function pullProgress(): Promise<{
       /* ignore */
     }
   }
+  if (generation !== progressGeneration()) return null;
   const session = useSession.getState();
   if (
     session.authed !== true ||
