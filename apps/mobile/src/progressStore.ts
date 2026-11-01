@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import { useEffect, useSyncExternalStore } from "react";
 import * as SecureStore from "expo-secure-store";
 import { ApiError, api, getToken } from "./api";
+import { adoptAckUnlessEdited } from "./progressAckGuard";
 import {
   accountProgressEmpty,
   applyProgressPushAck,
@@ -260,7 +261,11 @@ export function mutateProgress(
         method: "POST",
         body: { ...next, tz: deviceTimeZone() },
       });
-      const adopted = applyProgressPushAck(next, ack);
+      // The store may have changed while the push was in flight. Adopt the reply
+      // only for the groups the user did not touch since.
+      const live = cache as Record<string, unknown> | null;
+      const current = live === null || live === base ? next : live;
+      const adopted = adoptAckUnlessEdited(current, next, ack);
       cache = {
         ...adopted,
         user:
