@@ -20,8 +20,6 @@ function stubImageRequires() {
 
 export default defineConfig({
   plugins: [stubImageRequires()],
-  // Component-level tests render .tsx via react-dom/server with RN mocked.
-  esbuild: { jsx: "automatic" },
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   test: {
     environment: "node",

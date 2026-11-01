@@ -172,8 +172,13 @@ for (const vp of VIEWPORTS) {
         expect(r.clippedButtons, "buttons whose label is clipped").toEqual([]);
         if (route === "/profile") expect(r.hubTiles).toBeGreaterThanOrEqual(4);
         expect(r.hubLabelsClipped, "hub tile labels wider than their tile").toEqual([]);
+        // The TopBar is `lg:hidden` (>= 1024px), so below that the track must exist
+        // and must not be squeezed to a sliver (UI-W-019). A null here is a failure,
+        // not a skip: it would mean the bar or track vanished or is hidden.
+        if (vp.width < 1024) {
+          expect(r.progressTrackWidth, `TopBar track missing at ${vp.width}px`).not.toBeNull();
+        }
         if (r.progressTrackWidth !== null) {
-          // TopBar progress track must not be squeezed to a sliver (UI-W-019).
           expect(r.progressTrackWidth).toBeGreaterThanOrEqual(40);
         }
       }
