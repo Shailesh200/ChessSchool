@@ -140,6 +140,22 @@ describe("progressPushSchema tolerant fields", () => {
     expect(progressPushSchema.parse(base).tz).toBeUndefined();
   });
 
+  it("drops a long whitespace-padded zone even though it trims to a valid one", () => {
+    // canonicalTimeZone trims before it checks the length, so it alone would accept
+    // "UTC" here. Only the length check on the raw value in the schema drops it.
+    for (const tz of [
+      `UTC${" ".repeat(100)}`,
+      `${" ".repeat(70)}America/Los_Angeles`,
+      ` ${"US/Pacific"}${" ".repeat(64)}`,
+    ]) {
+      const parsed = progressPushSchema.safeParse({ ...base, tz });
+      expect(parsed.success, tz.trim()).toBe(true);
+      expect(parsed.data?.tz, tz.trim()).toBeUndefined();
+    }
+    // A short padded value is still accepted and trimmed.
+    expect(progressPushSchema.parse({ ...base, tz: "  UTC  " }).tz).toBe("UTC");
+  });
+
   it("stores a time zone alias in its canonical form", () => {
     expect(progressPushSchema.parse({ ...base, tz: "US/Pacific" }).tz).toBe(
       "America/Los_Angeles",

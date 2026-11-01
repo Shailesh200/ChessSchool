@@ -52,6 +52,54 @@ describe("mobile ack guard (unit)", () => {
     expect(result.streak).toBe(4);
   });
 
+  it("leaves a group when only its stamp changed in flight", () => {
+    for (const [key, valueKey] of [
+      ["ratingUpdatedAt", "rating"],
+      ["goalUpdatedAt", "dailyGoalXp"],
+    ] as const) {
+      const current = { ...pushed, [key]: 9_000 };
+      const result = adoptAckUnlessEdited(current, pushed, ack);
+      expect(result[key], key).toBe(9_000);
+      expect(result[valueKey], valueKey).toBe(pushed[valueKey]);
+      // The other groups still adopt the reply.
+      expect(result.streak, key).toBe(4);
+    }
+  });
+
+  it("leaves the streak group when only its day changed in flight", () => {
+    const current = { ...pushed, lastActiveDay: "2026-10-29" };
+    const result = adoptAckUnlessEdited(current, pushed, ack);
+    expect(result.streak).toBe(1);
+    expect(result.lastActiveDay).toBe("2026-10-29");
+    expect(result.rating).toBe(1400);
+  });
+
+  it("leaves the homework pair when its day or its streak changed in flight", () => {
+    const dayEdited = adoptAckUnlessEdited(
+      { ...pushed, homeworkLastDay: "2026-10-29" },
+      pushed,
+      ack,
+    );
+    expect(dayEdited.homeworkStreak).toBe(1);
+    expect(dayEdited.homeworkLastDay).toBe("2026-10-29");
+    expect(dayEdited.streak).toBe(4);
+    const streakEdited = adoptAckUnlessEdited(
+      { ...pushed, homeworkStreak: 2 },
+      pushed,
+      ack,
+    );
+    expect(streakEdited.homeworkStreak).toBe(2);
+    expect(streakEdited.homeworkLastDay).toBe("2026-10-28");
+  });
+
+  it("does not adopt a homework streak that arrives without its day", () => {
+    const { homeworkLastDay: _d, ...streakOnly } = ack;
+    const result = adoptAckUnlessEdited({ ...pushed }, pushed, streakOnly);
+    expect(result.homeworkStreak).toBe(1);
+    expect(result.homeworkLastDay).toBe("2026-10-28");
+    expect(result.streak).toBe(4);
+  });
+
   it("ignores a legacy reply", () => {
     const current = { ...pushed };
     expect(adoptAckUnlessEdited(current, pushed, { ok: true, count: 1 })).toBe(current);

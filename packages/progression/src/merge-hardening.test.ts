@@ -210,6 +210,18 @@ describe("mistake log", () => {
     expect(flipped).toEqual([{ id: "m1", fen: "f", at: 1000 }]);
   });
 
+  it("ranks a text `at` below any number on an id collision, in either order", () => {
+    // Without the typeof check, "9999" > 5 compares as a number and the text wins.
+    const text = { id: "m1", fen: "f", at: "9999" as unknown as number };
+    const num = { id: "m1", fen: "f", at: 5 };
+    expect(mergeMistakeLog([text], [num])).toEqual([num]);
+    expect(mergeMistakeLog([num], [text])).toEqual([num]);
+    // Two text values rank by their text, so the answer does not depend on order.
+    const t1 = { id: "m2", fen: "f", at: "10" as unknown as number, played: "a" };
+    const t2 = { id: "m2", fen: "f", at: "9" as unknown as number, played: "b" };
+    expect(mergeMistakeLog([t1], [t2])).toEqual(mergeMistakeLog([t2], [t1]));
+  });
+
   it("sorts an entry whose `at` is not a number as time 0, newest first", () => {
     const text = { id: "a", fen: "f", at: "zzz" as unknown as number };
     const newest = { id: "b", fen: "f", at: 5 };
