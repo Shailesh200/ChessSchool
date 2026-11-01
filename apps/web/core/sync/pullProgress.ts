@@ -118,6 +118,17 @@ export async function fullSnapshotAsync() {
   }
 }
 
+/** Forget the progress left in the persisted stores: another user's, or a copy not for this user. */
+function wipePersistedStore(): void {
+  useProgression.getState().reset();
+  usePlan.setState({
+    routineDay: null,
+    routineDone: [],
+    homeworkStreak: 0,
+    homeworkLastDay: null,
+  });
+}
+
 /**
  * Pull the account's progress and apply it. The account is the source of truth:
  * an established account REPLACES local state (hydrate); a brand-new account that
@@ -171,15 +182,19 @@ export async function pullProgress(): Promise<{
   if (owner !== null) {
     clearGuestOwner();
     if (owner !== data.user.id) {
-      useProgression.getState().reset();
-      usePlan.setState({
-        routineDay: null,
-        routineDone: [],
-        homeworkStreak: 0,
-        homeworkLastDay: null,
-      });
+      wipePersistedStore();
       generation = progressGeneration();
     }
+  }
+  // The last successful pull was for another user, and nothing signed them out here
+  // (no logout, no 401 that tagged the copy): this device still holds that user's store.
+  // It must not reach this user, by a merge into a new account or by what hydrate leaves
+  // alone. No marker is a real guest, whose progress merges as before; the same user's
+  // marker is a plain refresh.
+  const lastSignedIn = getSignedInMarker();
+  if (lastSignedIn !== null && lastSignedIn !== data.user.id) {
+    wipePersistedStore();
+    generation = progressGeneration();
   }
 
   const localSnap = progressSnapshot(useProgression.getState());

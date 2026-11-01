@@ -245,3 +245,56 @@ describe("web guest copy kept after a 401 is tagged with its owner", () => {
     });
   });
 });
+
+describe("(i) a pull for a user other than the signed-in marker's drops the store left on the device", () => {
+  it("A pulls, nothing signs A out (no logout, no 401), B pulls: none of A's leftover progress is visible to B", async () => {
+    await nextPull(userA, 640);
+    expect(getSignedInMarker()).toBe("A");
+    // A's work since the pull sits in the persisted stores
+    useProgression.setState({ xp: 900 });
+    usePlan.setState({
+      routineDay: "2026-11-01",
+      routineDone: ["a-lesson"],
+      homeworkStreak: 4,
+    });
+    const user = await nextPull(userB, 0); // B's account is new: it must not absorb A's store
+    expect(user?.id).toBe("B");
+    expect(useProgression.getState().xp).toBe(0);
+    expect(usePlan.getState().routineDone).toEqual([]);
+    expect(usePlan.getState().routineDay).toBeNull();
+    expect(getSignedInMarker()).toBe("B");
+  });
+
+  it("B with progress of their own: A's leftover adds nothing to it", async () => {
+    await nextPull(userA, 640);
+    useProgression.setState({ xp: 900 });
+    usePlan.setState({ routineDone: ["a-lesson"] });
+    await nextPull(userB, 120);
+    expect(useProgression.getState().xp).toBe(120);
+    expect(usePlan.getState().routineDone).toEqual([]);
+  });
+
+  it("a marker with no owner ('?') matches nobody: the store goes for any user", async () => {
+    localStorage.setItem("chessschool.signedIn", "?");
+    useProgression.setState({ xp: 640 });
+    await nextPull(userA, 0);
+    expect(useProgression.getState().xp).toBe(0);
+  });
+
+  it("A pulls again with A's own marker: the store is kept (no reset), an empty account still merges it", async () => {
+    await nextPull(userA, 640);
+    useProgression.setState({ xp: 900 });
+    usePlan.setState({ routineDone: ["a-lesson"] });
+    const user = await nextPull(userA, 0);
+    expect(user?.id).toBe("A");
+    expect(useProgression.getState().xp).toBe(900);
+    expect(usePlan.getState().routineDone).toEqual(["a-lesson"]);
+    expect(getSignedInMarker()).toBe("A");
+  });
+
+  it("no marker (a real guest): the guest's progress still merges into the account that signs in", async () => {
+    useProgression.setState({ xp: 40 });
+    await nextPull(userB, 0);
+    expect(useProgression.getState().xp).toBe(40);
+  });
+});

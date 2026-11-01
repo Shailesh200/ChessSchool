@@ -629,3 +629,89 @@ describe("the guest copy only enters the cache for the session that asked", () =
     expect(b.progressStore.get()).toBeNull();
   });
 });
+
+describe("(i) B signs in while the saved last user id is still loading after A's 401", () => {
+  /** A cold start: the saved id "A" takes a while to read; A's push gets the 401 meanwhile. */
+  async function coldStartWithSlowSavedId() {
+    disk.set(LAST_USER, "A");
+    secure.getItemAsync.mockImplementation(async (k: string) => {
+      const v = disk.get(k) ?? null;
+      if (k === LAST_USER) await new Promise((r) => setTimeout(r, 80));
+      return v;
+    });
+    const b = await boot();
+    b.progressStore.set({ user: { id: "A" }, xp: 10, lessons: {} });
+    b.apiMock.mockImplementation((async (_p: string, opts?: { method?: string }) => {
+      if (opts?.method !== "POST") throw new b.ApiError(500, "down");
+      tokenBox.token = null;
+      b.progressStore.expire();
+      throw new b.ApiError(401, "unauthorized");
+    }) as never);
+    return b;
+  }
+
+  it("no copy is tagged B, and A's edit never reaches B", async () => {
+    const b = await coldStartWithSlowSavedId();
+    const edit = b.mutateProgress((s) => ({ ...s, xp: 700 })); // A's push: 401, then waits for the saved id
+    await settle(10); // the 401 has landed; the saved id is still being read
+    b.progressStore.beginSession("B"); // B signs in in that window
+    signInWith(b, emptyAccount("B"));
+    b.apiMock.mockClear(); // count only what B's sign-in sends, not A's own push
+    const out = await b.syncProgressAfterAuth();
+    await edit;
+    await settle(120);
+
+    expect(out.merged).toBe(false);
+    expect(posts(b)).toHaveLength(0); // A's xp 700 was not pushed into B's account
+    expect((b.progressStore.get() as { xp: number }).xp).toBe(0);
+    expect(
+      JSON.stringify([...disk.entries()].filter(([k]) => k === GUEST)),
+    ).not.toContain('"B"');
+    expect(disk.has(GUEST)).toBe(false); // nothing of A's was kept either, for anyone to pick up
+    expect(disk.get(LAST_USER)).toBe("B");
+  });
+
+  it("the same B, signing in after the wait, still gets none of A's progress", async () => {
+    const b = await coldStartWithSlowSavedId();
+    await b.mutateProgress((s) => ({ ...s, xp: 700 })); // no sign-in in the window: the copy is kept, tagged A
+    expect(stored()).toMatchObject({
+      origin: "signed-in",
+      owner: "A",
+      snap: { xp: 700 },
+    });
+    b.progressStore.beginSession("B");
+    signInWith(b, emptyAccount("B"));
+    b.apiMock.mockClear(); // count only what B's sign-in sends, not A's own push
+    expect((await b.syncProgressAfterAuth()).merged).toBe(false);
+    expect(posts(b)).toHaveLength(0);
+    expect(disk.has(GUEST)).toBe(false);
+  });
+
+  it("A signed in this run (so a different user starts a new generation): B signing in during the wait still gets no tag and none of A's edit", async () => {
+    const b = await coldStartWithSlowSavedId();
+    b.progressStore.beginSession("A"); // A is known in memory; the saved id is still being read
+    const edit = b.mutateProgress((s) => ({ ...s, xp: 700 }));
+    await settle(10);
+    b.progressStore.beginSession("B"); // A -> B: a new generation
+    signInWith(b, emptyAccount("B"));
+    b.apiMock.mockClear();
+    const out = await b.syncProgressAfterAuth();
+    await edit;
+    await settle(120);
+    expect(out.merged).toBe(false);
+    expect(posts(b)).toHaveLength(0);
+    expect((b.progressStore.get() as { xp: number }).xp).toBe(0);
+    expect(disk.has(GUEST)).toBe(false);
+  });
+
+  it("a logout in that window keeps nothing and tags nobody", async () => {
+    const b = await coldStartWithSlowSavedId();
+    const edit = b.mutateProgress((s) => ({ ...s, xp: 700 }));
+    await settle(10);
+    b.progressStore.clear(); // explicit logout while the saved id loads
+    await edit;
+    await settle(120);
+    expect(disk.has(GUEST)).toBe(false);
+    expect(disk.has(LAST_USER)).toBe(false);
+  });
+});

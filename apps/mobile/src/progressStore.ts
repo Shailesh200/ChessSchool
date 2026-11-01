@@ -487,13 +487,24 @@ export function mutateProgress(
         return;
       }
       if (e instanceof ApiError && e.status === 401) {
-        cache = next;
-        lastWriteError = null;
-        emit();
         // Keep the edit, marked as from a signed-in session and tagged with the user
         // whose session expired (null when unknown: it is then never merged).
         // After a restart the saved last user id may still be loading: wait for it.
+        // Someone else may sign in, or log out, in that window. beginSession() starts no
+        // new generation while the previous user is still unknown, so a moved generation
+        // is not enough: also stop when the app learned a user meanwhile (lastUserTouched
+        // flipped). Then the edit is not kept and, because the cache is set only after the
+        // wait, it never reached the next user's sync either: the tag would be theirs.
+        const expiredGeneration = generation;
+        const knewUser = lastUserTouched;
         await lastUserLoaded;
+        if (expiredGeneration !== cacheGeneration || (!knewUser && lastUserTouched)) {
+          lastWriteError = null;
+          return;
+        }
+        cache = next;
+        lastWriteError = null;
+        emit();
         await saveGuestSnap(next, { origin: "signed-in", owner: lastUserId });
         return;
       }

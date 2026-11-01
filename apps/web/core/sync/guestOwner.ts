@@ -14,6 +14,9 @@
  * means the copy came from a signed-in session: it is tagged with the marker's owner
  * (GUEST_OWNER_UNKNOWN when there is none) and follows the same fail-closed rules. With
  * no marker the visitor is a real guest, and the copy merges into whoever signs in.
+ * A successful pull for a user other than the marker's drops the store left on the device
+ * first (no logout or 401 ran in between, so nothing else would): it is the marker's user's,
+ * not this one's. The same user's marker keeps the store; no marker is a real guest.
  * A browser that was signed in before the marker existed has none until its next
  * successful pull: until then it is treated as a guest (a 401 in that one window cannot
  * be told apart from a guest's). Nothing is migrated from an older key: the (f)-era
