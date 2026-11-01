@@ -52,6 +52,10 @@ function buildFen(pieces, turn = "w") {
   return `${rows.join("/")} ${turn} - - 0 1`;
 }
 
+const PROMO_PIECES = new Set(["q", "r", "b", "n"]);
+/** Piece to store on a step. Undefined when the move does not promote. */
+const promoPiece = (piece) => (PROMO_PIECES.has(piece) ? piece : undefined);
+
 const infoStep = (id, coach, fen) => ({ id, kind: "info", coach, fen });
 const moveStep = (id, coach, fen, solution, opts = {}) => ({
   id,
@@ -59,6 +63,7 @@ const moveStep = (id, coach, fen, solution, opts = {}) => ({
   coach,
   fen,
   solution,
+  ...(opts.promotion ? { promotion: opts.promotion } : {}),
   highlight: opts.highlight,
   successText: opts.successText ?? "Correct!",
   failText: opts.failText ?? "Not quite — try again.",
@@ -316,6 +321,7 @@ function genPromotion() {
           {
             highlight: [to],
             tag: "promotion",
+            promotion: "q",
             successText: "A brand-new queen!",
           },
         ),
@@ -858,15 +864,28 @@ async function main() {
   });
   OPENINGS.forEach(([name, sub, emoji, moves], oi) => {
     const verify = new Chess();
+    const movePromotion = [];
     let ok = true;
     for (const mv of moves) {
       const [f, t] = mv.split(":");
-      if (!verify.move({ from: f, to: t, promotion: "q" })) {
+      let played;
+      try {
+        played = verify.move({ from: f, to: t, promotion: "q" });
+      } catch {
         ok = false;
         break;
       }
+      if (!played) {
+        ok = false;
+        break;
+      }
+      movePromotion.push(promoPiece(played.promotion));
     }
     if (!ok) return;
+    const openingPromotions = {};
+    moves.forEach((mv, i) => {
+      if (movePromotion[i]) openingPromotions[mv] = movePromotion[i];
+    });
     const classId = `sem-gen-openings-c${oi + 1}`;
     classes.push({
       id: classId,
@@ -901,6 +920,9 @@ async function main() {
           coach: `Watch the ${name} unfold move by move.`,
           fen: START_FEN,
           moves,
+          ...(Object.keys(openingPromotions).length
+            ? { promotions: openingPromotions }
+            : {}),
         },
       ]),
       sortOrder: 0,
@@ -908,12 +930,18 @@ async function main() {
     // Lessons 2..N — play White's moves of the line as puzzles (2 per lesson).
     const replay = new Chess();
     const whitePuzzles = [];
-    for (const mv of moves) {
+    moves.forEach((mv, i) => {
       const fenBefore = replay.fen();
       const [f, t] = mv.split(":");
-      if (replay.turn() === "w") whitePuzzles.push({ fen: fenBefore, sol: mv, to: t });
-      replay.move({ from: f, to: t, promotion: "q" });
-    }
+      if (replay.turn() === "w")
+        whitePuzzles.push({
+          fen: fenBefore,
+          sol: mv,
+          to: t,
+          promotion: movePromotion[i],
+        });
+      replay.move({ from: f, to: t, promotion: movePromotion[i] ?? "q" });
+    });
     chunk(whitePuzzles, 2).forEach((grp, li) => {
       const steps = grp.map((p, si) => ({
         id: `s${si}`,
@@ -925,6 +953,7 @@ async function main() {
         successText: "Right move!",
         failText: "That's not the main line — try again.",
         tag: "opening",
+        ...(p.promotion ? { promotion: p.promotion } : {}),
       }));
       lessons.push({
         id: `${classId}-l${li + 2}`,
@@ -976,6 +1005,13 @@ async function main() {
         });
         group.forEach((m, li) => {
           const [f, t] = m.solution.split(":");
+          let matePromo;
+          try {
+            const played = new Chess(m.fen).move({ from: f, to: t, promotion: "q" });
+            matePromo = promoPiece(played?.promotion);
+          } catch {
+            matePromo = undefined;
+          }
           lessons.push({
             id: `${classId}-l${li + 1}`,
             classId,
@@ -998,6 +1034,7 @@ async function main() {
                 successText: "Checkmate! 🏆",
                 failText: "Not mate — find the finishing move.",
                 tag: "mate",
+                ...(matePromo ? { promotion: matePromo } : {}),
               },
             ]),
             sortOrder: li,
@@ -1052,9 +1089,13 @@ async function main() {
         for (let i = 0; i < start; i++) r.move(game.sans[i]);
         const fen = r.fen();
         const moves = [];
+        const promotions = {};
         for (let i = start; i < game.sans.length; i++) {
           const mv = r.move(game.sans[i]);
-          moves.push(`${mv.from}:${mv.to}`);
+          const key = `${mv.from}:${mv.to}`;
+          moves.push(key);
+          const piece = promoPiece(mv.promotion);
+          if (piece) promotions[key] = piece;
         }
         lessons.push({
           id: `${classId}-l${gi + 1}`,
@@ -1074,6 +1115,7 @@ async function main() {
               coach: "Watch the combination unfold…",
               fen,
               moves,
+              ...(Object.keys(promotions).length ? { promotions } : {}),
             },
           ]),
           sortOrder: gi,

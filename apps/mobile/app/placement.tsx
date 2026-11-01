@@ -10,6 +10,7 @@ import { BackButton } from "@/BackButton";
 import { api } from "@/api";
 import { mutateProgress } from "@/progressStore";
 import { graduateClass } from "@/progression";
+import { matchesSolution } from "@chess-school/progression";
 import { invalidateLearnCache } from "@/useLearnData";
 import { placementStageIndex } from "@/classExam";
 import { settings } from "@/settings";
@@ -19,7 +20,12 @@ import { useAuth } from "@/auth";
 import { ScreenLoader } from "@/ScreenLoader";
 import { colors, font, radius, space, type } from "@/theme";
 
-type Puzzle = { fen: string; solution: string[] };
+type Puzzle = {
+  fen: string;
+  solution: string[];
+  promotion?: "q" | "r" | "b" | "n";
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
+};
 type PlacementStage = { id: string; name: string; classIds: string[] };
 
 const STAGE_ORDER = ["elementary", "middle", "high"] as const;
@@ -189,7 +195,7 @@ export default function PlacementScreen() {
     const e = new ChessEngine(puzzle.fen);
     const mv = e.move({ from, to, promotion });
     if (!mv) return false;
-    const ok = puzzle.solution.includes(`${from}:${to}`);
+    const ok = matchesSolution(puzzle, { from, to, promotion });
     setDisplayFen(e.fen());
     setLastMove({ from, to });
     if (ok) {

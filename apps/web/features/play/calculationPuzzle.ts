@@ -1,5 +1,10 @@
 import type { LessonStep } from "@/features/lessons/types";
 import type { MoveInput } from "@/core/types/chess";
+import {
+  matchesSolution,
+  type PromotionPiece,
+  type SolutionLike,
+} from "@chess-school/progression";
 
 export interface CalculationPuzzle {
   lessonId: string;
@@ -12,6 +17,10 @@ export interface CalculationPuzzle {
   /** Primary solution — `from:to`. */
   solutionKey: string;
   allSolutions: string[];
+  /** Set when every solution promotes to this piece. */
+  promotion?: PromotionPiece;
+  /** Per-`from:to` piece when solutions promote to different pieces. */
+  promotions?: SolutionLike["promotions"];
   coach: string;
   successText: string;
   failText: string;
@@ -22,10 +31,18 @@ export function moveKey(move: Pick<MoveInput, "from" | "to">): string {
 }
 
 export function moveMatchesSolution(
-  move: Pick<MoveInput, "from" | "to">,
+  move: Pick<MoveInput, "from" | "to" | "promotion">,
   solutions: string[],
+  promotion?: Pick<SolutionLike, "promotion" | "promotions">,
 ): boolean {
-  return solutions.includes(moveKey(move));
+  return matchesSolution(
+    {
+      solution: solutions,
+      promotion: promotion?.promotion,
+      promotions: promotion?.promotions,
+    },
+    move,
+  );
 }
 
 export function hashSeed(s: string): number {
@@ -67,6 +84,8 @@ export function puzzleFromStep(
     orientation: step.orientation ?? "white",
     solutionKey: step.solution[0]!,
     allSolutions: step.solution,
+    ...(step.promotion ? { promotion: step.promotion } : {}),
+    ...(step.promotions ? { promotions: step.promotions } : {}),
     coach: step.coach,
     successText: step.successText ?? "Correct!",
     failText: step.failText ?? "Not quite — calculate again or reveal the answer.",

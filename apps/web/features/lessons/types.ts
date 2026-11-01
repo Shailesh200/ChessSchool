@@ -38,6 +38,16 @@ export interface LessonStep {
   orientation?: "white" | "black";
   /** "move" steps: acceptable moves expressed as `from:to`. */
   solution?: string[];
+  /**
+   * Set when every solution promotes to this piece. Omitted when the move
+   * does not promote, so older clients (which ignore unknown fields) stay lenient.
+   */
+  promotion?: "q" | "r" | "b" | "n";
+  /**
+   * Per-`from:to` piece when solutions on one step promote to different pieces.
+   * Wins over `promotion` for that key. Omit `promotion` in that case.
+   */
+  promotions?: Partial<Record<string, "q" | "r" | "b" | "n">>;
   /** "observe" steps: a sequence of moves `from:to` auto-played in order. */
   moves?: string[];
   arrows?: BoardArrow[];
