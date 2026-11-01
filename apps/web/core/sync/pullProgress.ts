@@ -1,5 +1,6 @@
 import {
   useProgression,
+  progressGeneration,
   progressSnapshot,
   type ProgressSnapshot,
 } from "@/core/store/progression.store";
@@ -120,6 +121,7 @@ export async function pullProgress(): Promise<{
   name: string;
   role: string;
 } | null> {
+  const generation = progressGeneration();
   let r: Response;
   try {
     r = await fetch("/api/progress");
@@ -140,6 +142,8 @@ export async function pullProgress(): Promise<{
   }
   if (!r.ok) return null;
   const data = (await r.json()) as ServerSnapshot;
+  // Logged out (store reset) while the GET was in flight: the reply is the old user's.
+  if (generation !== progressGeneration()) return null;
 
   const localSnap = progressSnapshot(useProgression.getState());
   const guestHadProgress = localProgressPresent({

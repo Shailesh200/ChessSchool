@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Expired session → guest academy if orientation is done, else orientation.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      progressStore.clear();
+      // Session expired: keep the in-flight edit as guest progress (no new generation).
+      progressStore.expire();
       void getOrientationSeen().then((done) => {
         if (done) void restoreGuestBrowse(setGuest, setUser, setNeedsOnboarding);
         else {
@@ -124,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const { user } = await api<{ user: User }>("/api/auth/me");
           if (cancelled) return;
+          progressStore.beginSession(user.id);
           setUser(user);
           setGuest(false);
           setNeedsOnboarding(false);
@@ -158,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const adoptSessionToken = async (token: string) => {
     await setToken(token);
     const { user } = await api<{ user: User }>("/api/auth/me");
+    progressStore.beginSession(user.id);
     setOrientationDone(true);
     setNeedsOnboarding(false);
     setGuest(false);
@@ -171,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password },
     });
     await setToken(token);
+    progressStore.beginSession(user.id);
     setGuest(false);
     setUser(user);
     await afterAuth();
@@ -186,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { idToken },
     });
     await setToken(token);
+    progressStore.beginSession(user.id);
     setGuest(false);
     setUser(user);
     await afterAuth({ isNewUser });
@@ -198,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { email, password, name },
     });
     await setToken(token);
+    progressStore.beginSession(user.id);
     setNeedsOnboarding(true);
     setGuest(false);
     setUser(user);

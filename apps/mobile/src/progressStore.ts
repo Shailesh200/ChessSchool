@@ -18,6 +18,15 @@ let cache: ProgressSnap = null;
 let inflight: Promise<ProgressSnap> | null = null;
 let lastFetchAt = 0;
 let lastWriteError: string | null = null;
+/**
+ * Bumped on an explicit logout or account deletion (progressStore.clear()) and when
+ * a different user signs in (progressStore.beginSession()). A push or pull notes it
+ * at the start and drops its reply if it moved. A session-expiry 401
+ * (progressStore.expire()) does not move it: the edit stays as guest progress.
+ */
+let cacheGeneration = 0;
+/** The last user that signed in, to tell a re-sign-in from an account switch. */
+let lastUserId: string | null = null;
 const PROGRESS_STALE_MS = 30_000;
 const GUEST_KEY = "chessschool.guestProgress";
 const GAMES_CACHE_KEY = "chessschool.recentGamesCache";
@@ -95,8 +104,11 @@ async function loadGamesCache(): Promise<unknown[] | null> {
 }
 
 async function pullRemote(): Promise<ProgressSnap> {
+  const generation = cacheGeneration;
   return api<ProgressSnap>("/api/progress")
     .then(async (d) => {
+      // Cleared (logout) while the GET was in flight: the reply is the old user's.
+      if (generation !== cacheGeneration) return null;
       cache = d;
       lastFetchAt = Date.now();
       inflight = null;
@@ -115,8 +127,10 @@ async function pullRemote(): Promise<ProgressSnap> {
       return d;
     })
     .catch((e) => {
-      inflight = null;
+      if (generation === cacheGeneration) inflight = null;
       if (e instanceof ApiError && e.status === 401) {
+        // The old user's late 401 must not wipe the next user's cache.
+        if (generation !== cacheGeneration) return null;
         cache = null;
         emit();
         return null;
@@ -130,6 +144,7 @@ export async function syncProgressAfterAuth(): Promise<{
   snap: ProgressSnap;
   merged: boolean;
 }> {
+  const generation = cacheGeneration;
   const local = cache ? snapBody(cache as Record<string, unknown>) : {};
   if (!localProgressPresent(local)) {
     const guest = await loadGuestSnap();
@@ -150,15 +165,20 @@ export async function syncProgressAfterAuth(): Promise<{
         method: "POST",
         body: { ...merged, tz: deviceTimeZone() },
       });
-      cache = applyProgressPushAck(
-        { ...(server as Record<string, unknown>), ...merged },
-        ack,
-      );
-      lastWriteError = null;
+      // Logged out while the push was in flight: the reply is the old user's.
+      if (generation === cacheGeneration) {
+        cache = applyProgressPushAck(
+          { ...(server as Record<string, unknown>), ...merged },
+          ack,
+        );
+        lastWriteError = null;
+      }
       await clearGuestProgress();
     } catch (e) {
-      cache = { ...(server as Record<string, unknown>), ...merged };
-      lastWriteError = e instanceof Error ? e.message : "Progress save failed";
+      if (generation === cacheGeneration) {
+        cache = { ...(server as Record<string, unknown>), ...merged };
+        lastWriteError = e instanceof Error ? e.message : "Progress save failed";
+      }
     }
     lastFetchAt = Date.now();
     emit();
@@ -199,9 +219,28 @@ export const progressStore = {
     cache = d;
     emit();
   },
+  /** Explicit logout or account deletion: the old user's replies must not land. */
   clear: () => {
+    cacheGeneration += 1;
+    inflight = null;
+    lastUserId = null;
     cache = null;
     emit();
+  },
+  /** Session expired (401): drop the cache but keep the generation, so the last edit stays as guest progress. */
+  expire: () => {
+    cache = null;
+    emit();
+  },
+  /** Call when a user signs in. A different user than the last one starts a new generation. */
+  beginSession: (userId: string) => {
+    if (lastUserId !== null && lastUserId !== userId) {
+      cacheGeneration += 1;
+      inflight = null;
+      cache = null;
+      emit();
+    }
+    lastUserId = userId;
   },
   subscribe: (l: () => void) => {
     listeners.add(l);
@@ -220,7 +259,11 @@ let writeChain: Promise<void> = Promise.resolve();
 export function mutateProgress(
   fn: (snap: Record<string, unknown>) => Record<string, unknown>,
 ): Promise<void> {
+  const queuedGeneration = cacheGeneration;
   const run = async () => {
+    // Queued as the old user, cleared before it got its turn: drop it.
+    if (queuedGeneration !== cacheGeneration) return;
+    const generation = cacheGeneration;
     if (inflight) {
       try {
         await inflight;
@@ -261,6 +304,12 @@ export function mutateProgress(
         method: "POST",
         body: { ...next, tz: deviceTimeZone() },
       });
+      // Cleared (logout, account deletion) while the push was in flight: the reply
+      // is the old user's. Do not write it, or its games, back into the cache.
+      if (generation !== cacheGeneration) {
+        lastWriteError = null;
+        return;
+      }
       // The store may have changed while the push was in flight. Adopt the reply
       // only for the groups the user did not touch since.
       const live = cache as Record<string, unknown> | null;
@@ -277,6 +326,10 @@ export function mutateProgress(
       if (Array.isArray(next.recentGames))
         await saveGamesCache(next.recentGames as unknown[]);
     } catch (e) {
+      if (generation !== cacheGeneration) {
+        lastWriteError = null;
+        return;
+      }
       if (e instanceof ApiError && e.status === 401) {
         cache = next;
         lastWriteError = null;

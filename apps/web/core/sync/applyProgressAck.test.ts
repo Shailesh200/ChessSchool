@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyServerProgressAck } from "@/core/sync/applyProgressAck";
 import { usePlan } from "@/core/store/plan.store";
-import { useProgression } from "@/core/store/progression.store";
+import { progressGeneration, useProgression } from "@/core/store/progression.store";
 
 describe("applyServerProgressAck", () => {
   beforeEach(() => {
@@ -49,5 +49,45 @@ describe("applyServerProgressAck", () => {
     applyServerProgressAck({ ok: true, count: 4 });
     expect(useProgression.getState().streak).toBe(3);
     expect(usePlan.getState().homeworkStreak).toBe(0);
+  });
+
+  it("drops the reply when the store was wiped after the push started", () => {
+    // The wiped store equals a default-valued push, so the value check alone
+    // would adopt the old user's merged values. The generation is what stops it.
+    const state = useProgression.getState();
+    const pushed = {
+      streak: state.streak,
+      lastActiveDay: state.lastActiveDay,
+      rating: state.rating,
+      ratingUpdatedAt: state.ratingUpdatedAt,
+    };
+    const generation = progressGeneration();
+    useProgression.getState().reset(); // logout
+    applyServerProgressAck(
+      {
+        ok: true,
+        count: 1,
+        streak: 9,
+        lastActiveDay: "2026-10-28",
+        rating: 1700,
+        ratingUpdatedAt: 7_000,
+      },
+      pushed,
+      generation,
+    );
+    const after = useProgression.getState();
+    expect(after.streak).toBe(pushed.streak);
+    expect(after.rating).toBe(pushed.rating);
+    expect(after.lastActiveDay).toBe(pushed.lastActiveDay);
+  });
+
+  it("still adopts the reply when the generation did not move", () => {
+    const generation = progressGeneration();
+    applyServerProgressAck(
+      { ok: true, count: 1, streak: 9, lastActiveDay: "2026-10-28" },
+      undefined,
+      generation,
+    );
+    expect(useProgression.getState().streak).toBe(9);
   });
 });

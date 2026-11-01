@@ -180,13 +180,24 @@ const defaults = {
   arenaHistory: [] as ArenaRunRecord[],
 };
 
+/**
+ * Counts the times personal progress was wiped (logout, account deletion). A push
+ * notes it when it starts; its reply is dropped if the number moved, so the old
+ * user's merged values never land in the wiped store.
+ */
+let progressGenerationCount = 0;
+export const progressGeneration = (): number => progressGenerationCount;
+
 export const useProgression = create<ProgressionState>()(
   persist(
     (set, get) => ({
       ...defaults,
 
       // Wipe all personal progress (used on logout so the next user/guest starts clean).
-      reset: () => set({ ...defaults }),
+      reset: () => {
+        progressGenerationCount += 1;
+        set({ ...defaults });
+      },
 
       updateRating: (botElo, score) =>
         set((s) => {

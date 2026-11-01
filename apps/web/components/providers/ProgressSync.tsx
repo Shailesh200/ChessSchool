@@ -10,7 +10,7 @@ import {
   applyServerProgressAck,
   type PushedProgress,
 } from "@/core/sync/applyProgressAck";
-import { progressSnapshot } from "@/core/store/progression.store";
+import { progressGeneration, progressSnapshot } from "@/core/store/progression.store";
 import { localProgressPresent } from "@chess-school/progression";
 import { onSyncTrigger } from "@/core/sync/syncTrigger";
 import { toast } from "@/core/store/toast.store";
@@ -39,6 +39,7 @@ export function ProgressSync() {
         return pullProgress().then(async (user) => {
           if (cancelled) return;
           if (user) {
+            const generation = progressGeneration();
             const snapshot = await fullSnapshotAsync();
             const body = JSON.stringify(snapshot);
             lastPushed.current = body;
@@ -53,6 +54,7 @@ export function ProgressSync() {
                   applyServerProgressAck(
                     await res.json().catch(() => null),
                     snapshot as PushedProgress,
+                    generation,
                   );
                 })
                 .catch(() => void 0);
@@ -85,6 +87,7 @@ export function ProgressSync() {
       if (useSession.getState().authed !== true) return;
       clearTimeout(timer);
       timer = setTimeout(async () => {
+        const generation = progressGeneration();
         const snapshot = await fullSnapshotAsync();
         const body = JSON.stringify(snapshot);
         if (body === lastPushed.current) return;
@@ -99,6 +102,7 @@ export function ProgressSync() {
             applyServerProgressAck(
               await res.json().catch(() => null),
               snapshot as PushedProgress,
+              generation,
             );
           })
           .catch(() => void 0);

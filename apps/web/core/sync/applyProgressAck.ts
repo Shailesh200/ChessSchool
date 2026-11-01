@@ -1,6 +1,6 @@
 import { readProgressPushAck } from "@chess-school/progression";
 import { usePlan } from "@/core/store/plan.store";
-import { useProgression } from "@/core/store/progression.store";
+import { progressGeneration, useProgression } from "@/core/store/progression.store";
 
 /** The local values a push carried. The ack may only replace values still equal to these. */
 export type PushedProgress = {
@@ -23,8 +23,18 @@ export type PushedProgress = {
  * the player may have changed rating, goal, streak or homework while it was in
  * flight. A group is adopted only when the local values still equal the pushed
  * ones. A changed group stays local and goes out with the next push.
+ *
+ * Pass `generation` as `progressGeneration()` read when the push started. If the
+ * store was wiped since (logout, account deletion) the reply belongs to the old
+ * user and is dropped. Without this a wiped store still equals a default-valued
+ * snapshot and would adopt the old user's merged values.
  */
-export function applyServerProgressAck(body: unknown, pushed?: PushedProgress): void {
+export function applyServerProgressAck(
+  body: unknown,
+  pushed?: PushedProgress,
+  generation?: number,
+): void {
+  if (generation !== undefined && generation !== progressGeneration()) return;
   const ack = readProgressPushAck(body);
   if (!ack) return;
 
