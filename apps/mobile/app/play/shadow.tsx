@@ -34,12 +34,8 @@ export default function ShadowPlayScreen() {
 
   useEffect(() => {
     void (async () => {
-      if (!games.length) {
-        const cached = await progressStore.loadCachedGames();
-        if (cached?.length && !progressStore.get()?.recentGames) {
-          progressStore.set({ ...(progressStore.get() ?? {}), recentGames: cached });
-        }
-      }
+      // Only the current user's own cached games (see progressStore.adoptCachedGames).
+      if (!games.length) await progressStore.adoptCachedGames();
       setLoading(false);
     })();
   }, [games.length]);

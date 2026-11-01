@@ -56,7 +56,9 @@ function snapBody(snap: Record<string, unknown>): Record<string, unknown> {
  * "signed-in": kept when a session expired (a 401 on a push); `owner` is the user whose
  * session it was, or null when the app did not know. A copy from a signed-in session
  * merges only for its owner; with a different owner, or none, it is dropped.
- * A value without `chessGuest` is an older plain guest copy.
+ * A value without `chessGuest` is an older plain guest copy. A value with `chessGuest: 2`
+ * and no plain-object `snap` is damaged: it is removed and read as nothing, never as an
+ * older plain copy. A `chessGuest` of any other value is never read (nor removed).
  * The (f)-era second key `chessschool.guestProgressOwner` is ignored: (f) never shipped
  * and lands together with (g), so no copy tagged that way exists and nothing is migrated.
  */
@@ -89,15 +91,29 @@ async function readGuestCopy(): Promise<GuestCopy | null> {
     const raw = await readGuestRaw();
     if (!raw) return null;
     const v = JSON.parse(raw) as Record<string, unknown> | null;
-    if (!v || typeof v !== "object") return null;
-    if (v.chessGuest === 2 && v.snap && typeof v.snap === "object") {
-      return {
-        snap: v.snap as Record<string, unknown>,
-        // Fail closed: anything but exactly "guest" counts as a signed-in copy.
-        origin: v.origin === "guest" ? "guest" : "signed-in",
-        owner: typeof v.owner === "string" && v.owner ? v.owner : null,
-      };
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+    if (v.chessGuest === 2) {
+      const snap = v.snap;
+      if (snap && typeof snap === "object" && !Array.isArray(snap)) {
+        return {
+          snap: snap as Record<string, unknown>,
+          // Fail closed: anything but exactly "guest" counts as a signed-in copy.
+          origin: v.origin === "guest" ? "guest" : "signed-in",
+          owner: typeof v.owner === "string" && v.owner ? v.owner : null,
+        };
+      }
+      // A tagged copy whose snapshot is missing or not a plain object is damaged. It
+      // must never be read as an older plain copy (that would merge it into whoever
+      // signs in, whatever its tag said): drop it and read nothing.
+      try {
+        await removeGuestRaw();
+      } catch {
+        /* unreadable and undeletable: it is still never read */
+      }
+      return null;
     }
+    // Some other version of the envelope: we cannot tell whose it is. Never merged.
+    if ("chessGuest" in v) return null;
     return { snap: v, origin: "guest", owner: null };
   } catch {
     return null;
@@ -193,31 +209,174 @@ export function getProgressWriteError(): string | null {
   return lastWriteError;
 }
 
-async function saveGamesCache(games: unknown[]): Promise<void> {
-  try {
-    const raw = JSON.stringify(games);
-    if (isWeb) {
-      if (typeof localStorage !== "undefined")
-        localStorage.setItem(GAMES_CACHE_KEY, raw);
-    } else {
-      await SecureStore.setItemAsync(GAMES_CACHE_KEY, raw);
-    }
-  } catch {
-    /* ignore */
+/**
+ * The recent-games cache on disk, in one value, tagged like the guest copy:
+ * `{ chessGames: 2, origin, owner, games }`. "signed-in" games belong to `owner` (the user
+ * whose account they were pulled from or played in) and are shown only to that user.
+ * "guest" games were made while signed out and are shown only to a signed-out guest.
+ * A value without the tag (an older build's plain array) or a damaged one is dropped when
+ * read and never shown: it may be a previous user's. clear() deletes the cache, and so
+ * does beginSession() for any user who is not its owner. Its reads and writes run in one
+ * queue, so a delete always lands after a write that was already started.
+ */
+type GamesTag = { origin: GuestOrigin; owner: string | null };
+let gamesIo: Promise<void> = Promise.resolve();
+function gamesOp<T>(fn: () => Promise<T>): Promise<T> {
+  const p = gamesIo.then(fn, fn);
+  gamesIo = p.then(
+    () => undefined,
+    () => undefined,
+  );
+  return p;
+}
+
+async function removeGamesRaw(): Promise<void> {
+  if (isWeb) {
+    if (typeof localStorage !== "undefined") localStorage.removeItem(GAMES_CACHE_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(GAMES_CACHE_KEY);
   }
 }
 
-async function loadGamesCache(): Promise<unknown[] | null> {
+/** The tagged cache, or null. A plain array (older build) or a damaged value is removed. Call inside gamesOp. */
+async function readGamesEntry(): Promise<(GamesTag & { games: unknown[] }) | null> {
+  let raw: string | null = null;
   try {
-    const raw = isWeb
+    raw = isWeb
       ? typeof localStorage !== "undefined"
         ? localStorage.getItem(GAMES_CACHE_KEY)
         : null
       : await SecureStore.getItemAsync(GAMES_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as unknown[]) : null;
   } catch {
     return null;
   }
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as Record<string, unknown> | null;
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      v.chessGames === 2 &&
+      Array.isArray(v.games)
+    ) {
+      return {
+        games: v.games,
+        // Fail closed: anything but exactly "guest" counts as a signed-in cache.
+        origin: v.origin === "guest" ? "guest" : "signed-in",
+        owner: typeof v.owner === "string" && v.owner ? v.owner : null,
+      };
+    }
+  } catch {
+    /* damaged */
+  }
+  try {
+    await removeGamesRaw();
+  } catch {
+    /* it is still never shown */
+  }
+  return null;
+}
+
+/** Write the cache with its owner. Skipped if the session ended (generation moved) before its turn. */
+function saveGamesCache(
+  games: unknown[],
+  tag: GamesTag,
+  generation: number,
+): Promise<void> {
+  return gamesOp(async () => {
+    if (generation !== cacheGeneration) return;
+    try {
+      const raw = JSON.stringify({
+        chessGames: 2,
+        origin: tag.origin,
+        owner: tag.owner,
+        games,
+      });
+      if (isWeb) {
+        if (typeof localStorage !== "undefined")
+          localStorage.setItem(GAMES_CACHE_KEY, raw);
+      } else {
+        await SecureStore.setItemAsync(GAMES_CACHE_KEY, raw);
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+/** Logout or account deletion: nothing of the user's games stays behind. */
+function dropGamesCache(): Promise<void> {
+  return gamesOp(async () => {
+    try {
+      await removeGamesRaw();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+/** A user signed in: keep the cache only if it is theirs. */
+function dropGamesCacheUnlessOwner(userId: string): Promise<void> {
+  return gamesOp(async () => {
+    const entry = await readGamesEntry();
+    if (entry && entry.origin === "signed-in" && entry.owner === userId) return;
+    try {
+      await removeGamesRaw();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+/** The user the in-memory snapshot (or the app) says is signed in, for tagging games. */
+function currentUserId(snap: ProgressSnap): string | null {
+  const id = (snap as { user?: { id?: unknown } } | null)?.user?.id;
+  return typeof id === "string" && id ? id : lastUserId;
+}
+
+/**
+ * The cached games for the current session, or null. A signed-out guest gets only games
+ * made as a guest. A signed-in user gets only games tagged with their own id: another
+ * user's, an untagged older cache and one read before the app knows who is signed in
+ * give nothing. A logout or sign-in while the cache is read gives nothing.
+ */
+async function loadGamesCache(): Promise<unknown[] | null> {
+  const generation = cacheGeneration;
+  let token: string | null = null;
+  try {
+    token = await getToken();
+  } catch {
+    token = null;
+  }
+  await lastUserLoaded; // the saved last user id is known before it is compared
+  const out = await gamesOp(async () => {
+    const entry = await readGamesEntry();
+    if (!entry) return null;
+    if (!token) return entry.origin === "guest" ? entry.games : null;
+    return entry.origin === "signed-in" &&
+      entry.owner !== null &&
+      entry.owner === lastUserId
+      ? entry.games
+      : null;
+  });
+  return generation === cacheGeneration ? out : null;
+}
+
+/**
+ * Put the cached games of the current user into the in-memory snapshot when it has none
+ * (the Shadow screen, offline or before the pull). Nothing is put there for another user:
+ * the snapshot is what the next push sends, so a game that is not the user's must never
+ * enter it. Returns whether it did.
+ */
+async function adoptCachedGames(): Promise<boolean> {
+  const generation = cacheGeneration;
+  const games = await loadGamesCache();
+  if (!games?.length || generation !== cacheGeneration) return false;
+  if ((cache as { recentGames?: unknown } | null)?.recentGames) return false;
+  cache = { ...(cache ?? {}), recentGames: games };
+  emit();
+  return true;
 }
 
 async function pullRemote(): Promise<ProgressSnap> {
@@ -230,7 +389,12 @@ async function pullRemote(): Promise<ProgressSnap> {
       lastFetchAt = Date.now();
       inflight = null;
       if (Array.isArray((d as { recentGames?: unknown[] })?.recentGames)) {
-        await saveGamesCache((d as { recentGames: unknown[] }).recentGames);
+        // Owned by the account the reply came from (the server sends its id).
+        await saveGamesCache(
+          (d as { recentGames: unknown[] }).recentGames,
+          { origin: "signed-in", owner: currentUserId(d) },
+          generation,
+        );
       }
       // Cleared while the games cache was being written: skip the old user's settings.
       if (generation !== cacheGeneration) return null;
@@ -372,6 +536,7 @@ export const progressStore = {
     cache = null;
     // Nothing of the user stays behind, not even for the same user signing back in.
     void dropKeptGuestCopy().catch(() => undefined);
+    void dropGamesCache();
     emit();
   },
   /** Session expired (401): drop the cache but keep the generation, so the last edit stays as guest progress. */
@@ -390,12 +555,17 @@ export const progressStore = {
     lastUserTouched = true;
     lastUserId = userId;
     void saveLastUser(userId);
+    // The games cache stays only for its owner: a different user, or a cache nobody
+    // owns (a guest's, an older build's), is deleted, also when the previous user was
+    // not known yet (generation did not move).
+    void dropGamesCacheUnlessOwner(userId);
   },
   subscribe: (l: () => void) => {
     listeners.add(l);
     return () => listeners.delete(l);
   },
   loadCachedGames: loadGamesCache,
+  adoptCachedGames,
 };
 
 /** Lesson mastery map from the cached progress snapshot. */
@@ -450,8 +620,16 @@ export function mutateProgress(
       lastWriteError = null;
       emit();
       await saveGuestSnap(next);
-      if (Array.isArray(next.recentGames))
-        await saveGamesCache(next.recentGames as unknown[]);
+      if (Array.isArray(next.recentGames)) {
+        // Tagged like the guest copy it came with (a copy kept after an expiry is
+        // another user's, so its games are not a guest's either).
+        const copy = await loadGuestCopy();
+        await saveGamesCache(
+          next.recentGames as unknown[],
+          { origin: copy?.origin ?? "guest", owner: copy?.owner ?? null },
+          generation,
+        );
+      }
       return;
     }
 
@@ -480,7 +658,11 @@ export function mutateProgress(
       lastWriteError = null;
       emit();
       if (Array.isArray(next.recentGames))
-        await saveGamesCache(next.recentGames as unknown[]);
+        await saveGamesCache(
+          next.recentGames as unknown[],
+          { origin: "signed-in", owner: currentUserId(cache) },
+          generation,
+        );
     } catch (e) {
       if (generation !== cacheGeneration) {
         lastWriteError = null;
