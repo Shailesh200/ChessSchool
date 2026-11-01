@@ -32,7 +32,8 @@ export function GameOverOverlay({
 }) {
   if (!visible) return null;
 
-  const showRating = ratingDelta !== undefined && newRating !== undefined && ratingDelta !== 0;
+  const showRating =
+    ratingDelta !== undefined && newRating !== undefined && ratingDelta !== 0;
 
   return (
     <Modal visible transparent animationType="fade">
@@ -42,8 +43,12 @@ export function GameOverOverlay({
           <Text style={styles.title}>{title.replace(/\s*[🏆⏱️]\s*$/u, "").trim()}</Text>
           {!!subtitle && <Text style={styles.sub}>{subtitle}</Text>}
           {showRating && (
-            <View style={[styles.ratingPill, ratingDelta! < 0 && styles.ratingPillLoss]}>
-              <Text style={[styles.ratingText, ratingDelta! < 0 && styles.ratingTextLoss]}>
+            <View
+              style={[styles.ratingPill, ratingDelta! < 0 && styles.ratingPillLoss]}
+            >
+              <Text
+                style={[styles.ratingText, ratingDelta! < 0 && styles.ratingTextLoss]}
+              >
                 Rating {ratingDelta! >= 0 ? "+" : ""}
                 {ratingDelta} → {newRating}
               </Text>
@@ -51,10 +56,19 @@ export function GameOverOverlay({
           )}
           <View style={styles.actions}>
             {onHowItHappened && (
-              <Button label="How it happened" variant="outline" size="sm" onPress={onHowItHappened} />
+              <Button
+                label="How it happened"
+                variant="outline"
+                size="sm"
+                onPress={onHowItHappened}
+              />
             )}
-            {onReflect && <Button label="Reflect" variant="outline" size="sm" onPress={onReflect} />}
-            {onReview && <Button label="Review" variant="outline" size="sm" onPress={onReview} />}
+            {onReflect && (
+              <Button label="Reflect" variant="outline" size="sm" onPress={onReflect} />
+            )}
+            {onReview && (
+              <Button label="Review" variant="outline" size="sm" onPress={onReview} />
+            )}
             <Button label="New game" variant="success" onPress={onNewGame} />
             <Pressable onPress={onExit} style={styles.exit}>
               <Text style={styles.exitText}>{exitLabel}</Text>
@@ -84,8 +98,19 @@ const styles = StyleSheet.create({
     ...shadowCard,
   },
   title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
-  sub: { ...type.sm, fontFamily: font.semibold, color: colors.ink500, textAlign: "center" },
-  ratingPill: { alignSelf: "center", backgroundColor: colors.brand50, borderRadius: radius.pill, paddingHorizontal: space[4], paddingVertical: space[2] },
+  sub: {
+    ...type.sm,
+    fontFamily: font.semibold,
+    color: colors.ink500,
+    textAlign: "center",
+  },
+  ratingPill: {
+    alignSelf: "center",
+    backgroundColor: colors.brand50,
+    borderRadius: radius.pill,
+    paddingHorizontal: space[4],
+    paddingVertical: space[2],
+  },
   ratingPillLoss: { backgroundColor: "rgba(244,63,94,0.12)" },
   ratingText: { ...type.sm, fontFamily: font.bold, color: colors.brand },
   ratingTextLoss: { color: colors.danger },

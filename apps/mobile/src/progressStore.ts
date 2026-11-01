@@ -20,7 +20,9 @@ const GUEST_KEY = "chessschool.guestProgress";
 const GAMES_CACHE_KEY = "chessschool.recentGamesCache";
 const isWeb = Platform.OS === "web";
 const listeners = new Set<() => void>();
-const emit = () => { for (const l of listeners) l(); };
+const emit = () => {
+  for (const l of listeners) l();
+};
 
 function snapBody(snap: Record<string, unknown>): Record<string, unknown> {
   const { user: _u, ...rest } = snap;
@@ -66,7 +68,8 @@ async function saveGamesCache(games: unknown[]): Promise<void> {
   try {
     const raw = JSON.stringify(games);
     if (isWeb) {
-      if (typeof localStorage !== "undefined") localStorage.setItem(GAMES_CACHE_KEY, raw);
+      if (typeof localStorage !== "undefined")
+        localStorage.setItem(GAMES_CACHE_KEY, raw);
     } else {
       await SecureStore.setItemAsync(GAMES_CACHE_KEY, raw);
     }
@@ -99,7 +102,9 @@ async function pullRemote(): Promise<ProgressSnap> {
       }
       try {
         const { loadSettingsFromAccount, hydrateSettings } = await import("./settings");
-        hydrateSettings((d as { settings?: Record<string, unknown> })?.settings as never);
+        hydrateSettings(
+          (d as { settings?: Record<string, unknown> })?.settings as never,
+        );
       } catch {
         /* ignore */
       }
@@ -118,7 +123,10 @@ async function pullRemote(): Promise<ProgressSnap> {
 }
 
 /** Pull account progress, merging any in-memory guest progress into a new account. */
-export async function syncProgressAfterAuth(): Promise<{ snap: ProgressSnap; merged: boolean }> {
+export async function syncProgressAfterAuth(): Promise<{
+  snap: ProgressSnap;
+  merged: boolean;
+}> {
   const local = cache ? snapBody(cache as Record<string, unknown>) : {};
   if (!localProgressPresent(local)) {
     const guest = await loadGuestSnap();
@@ -178,9 +186,18 @@ export async function fetchProgress(force = false): Promise<ProgressSnap> {
 
 export const progressStore = {
   get: () => cache,
-  set: (d: ProgressSnap) => { cache = d; emit(); },
-  clear: () => { cache = null; emit(); },
-  subscribe: (l: () => void) => { listeners.add(l); return () => listeners.delete(l); },
+  set: (d: ProgressSnap) => {
+    cache = d;
+    emit();
+  },
+  clear: () => {
+    cache = null;
+    emit();
+  },
+  subscribe: (l: () => void) => {
+    listeners.add(l);
+    return () => listeners.delete(l);
+  },
   loadCachedGames: loadGamesCache,
 };
 
@@ -191,38 +208,57 @@ export function lessonRecordsFromCache(): Record<string, { mastery: number }> {
 }
 
 let writeChain: Promise<void> = Promise.resolve();
-export function mutateProgress(fn: (snap: Record<string, unknown>) => Record<string, unknown>): Promise<void> {
+export function mutateProgress(
+  fn: (snap: Record<string, unknown>) => Record<string, unknown>,
+): Promise<void> {
   const run = async () => {
     if (inflight) {
-      try { await inflight; } catch { /* use cache or empty base */ }
+      try {
+        await inflight;
+      } catch {
+        /* use cache or empty base */
+      }
     }
 
     const token = await getToken();
     if (token && !cache) {
-      try { await fetchProgress(true); } catch { /* POST with normalized empty base */ }
+      try {
+        await fetchProgress(true);
+      } catch {
+        /* POST with normalized empty base */
+      }
     }
     if (!token && !cache) {
       cache = await loadGuestSnap();
     }
 
     const base = (cache as Record<string, unknown> | null) ?? {};
-    const next = normalizeProgressPush(fn(snapBody(base)) as Parameters<typeof normalizeProgressPush>[0]);
+    const next = normalizeProgressPush(
+      fn(snapBody(base)) as Parameters<typeof normalizeProgressPush>[0],
+    );
 
     if (!token) {
       cache = next;
       lastWriteError = null;
       emit();
       await saveGuestSnap(next);
-      if (Array.isArray(next.recentGames)) await saveGamesCache(next.recentGames as unknown[]);
+      if (Array.isArray(next.recentGames))
+        await saveGamesCache(next.recentGames as unknown[]);
       return;
     }
 
     try {
       await api("/api/progress", { method: "POST", body: next });
-      cache = { ...next, user: (base as { user?: unknown }).user ?? (cache as { user?: unknown } | null)?.user };
+      cache = {
+        ...next,
+        user:
+          (base as { user?: unknown }).user ??
+          (cache as { user?: unknown } | null)?.user,
+      };
       lastWriteError = null;
       emit();
-      if (Array.isArray(next.recentGames)) await saveGamesCache(next.recentGames as unknown[]);
+      if (Array.isArray(next.recentGames))
+        await saveGamesCache(next.recentGames as unknown[]);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         cache = next;
@@ -241,7 +277,11 @@ export function mutateProgress(fn: (snap: Record<string, unknown>) => Record<str
 }
 
 export function useProgress(refresh = false): ProgressSnap {
-  const data = useSyncExternalStore(progressStore.subscribe, () => cache, () => cache);
+  const data = useSyncExternalStore(
+    progressStore.subscribe,
+    () => cache,
+    () => cache,
+  );
   useEffect(() => {
     fetchProgress(refresh).catch(() => void 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
