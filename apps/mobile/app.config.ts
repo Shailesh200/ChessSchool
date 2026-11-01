@@ -1,5 +1,5 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
-import { assertQaSimApiUrl, assertQaSimFlag } from "./src/qaSimApiUrl";
+import { assertQaSimApiUrl, assertQaSimFlag } from "./src/qaSimApiUrl.ts";
 
 /**
  * Spreads app.json and records the EAS build commit on extra.gitCommit.
