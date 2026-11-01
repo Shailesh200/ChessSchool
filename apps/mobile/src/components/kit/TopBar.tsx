@@ -18,8 +18,16 @@ export function KitTopBar() {
 
   if (guest) {
     return (
-      <View style={[styles.bar, { backgroundColor: colors.surface, borderBottomColor: colors.hairline, paddingHorizontal: space["4"] }]}>
-        <KitLogo size={28} />
+      <View
+        style={[
+          styles.bar,
+          styles.wrapRow,
+          { backgroundColor: colors.surface, borderBottomColor: colors.hairline, paddingHorizontal: space["4"] },
+        ]}
+      >
+        <View style={styles.brandRow}>
+          <KitLogo size={28} />
+        </View>
         <Pressable
           accessibilityRole="button"
           style={[styles.enroll, { backgroundColor: colors.brand, borderRadius: radius.pill, paddingHorizontal: space["3"] }]}
@@ -39,6 +47,7 @@ export function KitTopBar() {
     <View
       style={[
         styles.bar,
+        styles.wrapRow,
         {
           backgroundColor: colors.surface,
           borderBottomColor: colors.hairline,
@@ -65,10 +74,10 @@ export function KitTopBar() {
           style={{ fontFamily: font.displayBold, fontSize: type.sm.fontSize, color: colors.chipStreakInk }}
         />
       </View>
-      <View style={{ flex: 1 }} />
       <View
         style={[
           styles.chip,
+          styles.xpChip,
           {
             backgroundColor: colors.chipXpBg,
             borderRadius: radius.pill,
@@ -96,6 +105,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
   },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6 },
-  enroll: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 7 },
+  wrapRow: { flexWrap: "wrap", rowGap: 4 },
+  brandRow: { flexDirection: "row", alignItems: "center", flexShrink: 1, minWidth: 0 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1, minWidth: 0 },
+  xpChip: { marginLeft: "auto" },
+  enroll: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 7, flexShrink: 0 },
 });

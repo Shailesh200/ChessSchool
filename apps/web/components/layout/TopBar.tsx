@@ -52,13 +52,13 @@ export function TopBar() {
 
   return (
     <header className="premium-topbar pt-safe sticky top-0 z-30 backdrop-blur-xl max-[1023px]:block min-[1024px]:hidden">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
+      <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
         <div className="flex items-center gap-1.5" title="Day streak">
           <Icon name="flame" size={20} className="text-accent" />
           <AnimatedNumber value={streak} className="text-ink text-sm font-extrabold" />
         </div>
 
-        <div className="flex flex-1 items-center gap-2">
+        <div className="flex min-w-0 flex-[1_1_9rem] items-center gap-2">
           <span className="rounded-pill bg-brand px-2 py-0.5 text-xs font-extrabold text-white tabular-nums">
             L{level}
           </span>

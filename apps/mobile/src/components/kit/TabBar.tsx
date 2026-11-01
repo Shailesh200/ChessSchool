@@ -6,6 +6,7 @@ import { usePremiumKitTheme } from "./kitThemeContext";
 import { KitIcon, type KitIconName } from "./Icon";
 import { useProgress } from "@/progressStore";
 import { premiumTabActive, reviewDueCount, reviewTabBadge } from "@/screens/premium/premiumModel";
+import { chromeTextProps } from "@/fontScale";
 
 const TABS: {
   routeName: string;
@@ -53,6 +54,8 @@ function TabGlyph({
         {tab.routeName === "review" ? <ReviewBadge count={due} /> : null}
       </View>
       <Text
+        {...chromeTextProps}
+        numberOfLines={1}
         style={{
           fontFamily: font.displaySemibold,
           fontSize: type.caption.fontSize,
@@ -160,6 +163,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    minWidth: 0,
     alignItems: "center",
     paddingVertical: 4,
   },

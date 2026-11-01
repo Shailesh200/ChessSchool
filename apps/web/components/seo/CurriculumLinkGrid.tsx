@@ -6,7 +6,7 @@ import { ContentIcon } from "@/components/ui/ContentIcon";
 /** Internal link grid — helps crawlers discover key curriculum pages. */
 export function CurriculumLinkGrid({ links }: { links: CurriculumLink[] }) {
   return (
-    <ul className="grid gap-2 sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {links.map((link) => (
         <li key={link.href}>
           <Link
@@ -19,7 +19,7 @@ export function CurriculumLinkGrid({ links }: { links: CurriculumLink[] }) {
               className="shrink-0"
               tone="brand"
             />
-            <span className="min-w-0 flex-1">
+            <span className="min-w-0 flex-1 break-words">
               <span className="text-ink block text-sm font-extrabold">
                 {link.title}
               </span>

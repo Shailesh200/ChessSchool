@@ -20,7 +20,7 @@ export function Logo({ withText = true, size = 32, style }: { withText?: boolean
         <Path d="M31 12 v4" stroke="#f6c343" strokeWidth="1" />
       </Svg>
       {withText && (
-        <Text style={[styles.wordmark, { color: colors.ink }]}>
+        <Text style={[styles.wordmark, { color: colors.ink }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
           Chess<Text style={{ color: colors.brand }}>School</Text>
         </Text>
       )}
@@ -29,6 +29,6 @@ export function Logo({ withText = true, size = 32, style }: { withText?: boolean
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8 },
-  wordmark: { ...type.xl, fontFamily: font.bold, letterSpacing: -0.3 },
+  row: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, minWidth: 0 },
+  wordmark: { ...type.xl, fontFamily: font.bold, letterSpacing: -0.3, flexShrink: 1 },
 });

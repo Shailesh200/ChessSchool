@@ -18,7 +18,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "btn-tactile relative inline-flex max-w-full select-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-pill font-extrabold tracking-tight transition-[transform,box-shadow,background] focus-visible:outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0";
+  "btn-tactile relative inline-flex max-w-full select-none items-center justify-center gap-2 overflow-hidden whitespace-normal text-center leading-tight rounded-pill font-extrabold tracking-tight transition-[transform,box-shadow,background] focus-visible:outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0";
 
 const variants: Record<Variant, string> = {
   primary:
@@ -36,9 +36,9 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: "min-h-11 px-4 text-sm [box-shadow:0_3px_0_var(--brand-700)]",
-  md: "min-h-12 px-6 text-base",
-  lg: "min-h-14 px-8 text-lg",
+  sm: "min-h-11 px-4 py-1.5 text-sm [box-shadow:0_3px_0_var(--brand-700)]", // 44px min tap target (#100)
+  md: "min-h-12 px-6 py-2 text-base",
+  lg: "min-h-14 px-8 py-2 text-lg",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

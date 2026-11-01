@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./Icon";
 import { useAppTheme } from "./ThemeProvider";
 import { useType } from "./typography";
+import { chromeTextProps } from "./fontScale";
 import { font } from "./theme";
 import { KitBottomNav } from "./components/kit";
 import { useUiKit } from "./components/kit/useUiKit";
@@ -63,7 +64,7 @@ function LegacyBottomNav() {
             onPress={() => router.push(tab.href)}
           >
             <Icon name={tab.icon} size={24} color={tint} duotone />
-            <Text style={[styles.label, { color: tint, fontSize: labelSize, lineHeight: type.caption.lineHeight }]}>{tab.label}</Text>
+            <Text {...chromeTextProps} numberOfLines={1} style={[styles.label, { color: tint, fontSize: labelSize, lineHeight: type.caption.lineHeight }]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -79,6 +80,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    minWidth: 0,
     alignItems: "center",
     gap: 2,
     paddingVertical: 4,

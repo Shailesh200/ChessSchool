@@ -23,11 +23,11 @@ export function LandingShell({
   return (
     <div className="bg-surface flex min-h-dvh flex-col">
       <header className="pt-safe border-hairline bg-surface/90 sticky top-0 z-30 border-b backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 py-3">
           <Link href="/" aria-label="ChessSchool home">
             <Logo withText />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {sessionPending ? (
               <div
                 className="skeleton h-9 w-28 rounded-full"

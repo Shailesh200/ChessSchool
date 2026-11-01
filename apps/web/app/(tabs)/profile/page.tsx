@@ -130,15 +130,17 @@ function ClassicProfilePage() {
             </Link>
           )}
 
-          <div className="grid grid-cols-3 gap-2 lg:grid-cols-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(max(6rem,calc((100%_-_1rem)/3)),1fr))] gap-2 lg:grid-cols-[repeat(auto-fit,minmax(max(6rem,calc((100%_-_1.5rem)/4)),1fr))]">
             {hubLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="btn-tactile rounded-card border-hairline bg-surface-card flex flex-col items-center gap-1.5 border py-4 [box-shadow:var(--shadow-card)]"
+                className="btn-tactile rounded-card border-hairline bg-surface-card flex min-w-0 flex-col items-center gap-1.5 border px-1 py-4 [box-shadow:var(--shadow-card)]"
               >
                 <IconBadge name={l.icon} size="md" tone="brand" />
-                <span className="text-ink text-xs font-extrabold">{l.label}</span>
+                <span className="text-ink max-w-full text-center text-xs leading-tight font-extrabold break-words">
+                  {l.label}
+                </span>
               </Link>
             ))}
           </div>

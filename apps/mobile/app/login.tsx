@@ -4,6 +4,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -117,86 +118,89 @@ export default function LoginScreen() {
 
   return (
     <ThemedSafeArea>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.center}>
-        <View style={{ alignItems: "center", marginBottom: space[2] }}>
-          <Logo size={40} />
-        </View>
-        <Text style={styles.title}>{isRegister ? "Enroll at ChessSchool" : "Welcome back"}</Text>
-        <Text style={styles.subtitle}>
-          {isRegister ? "Create your student account to save progress and earn your ID." : "Log in to continue your studies."}
-        </Text>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+        {/* Scrollable so the hint + Privacy link stay reachable at 200% text. */}
+        <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
+          <View style={{ alignItems: "center", marginBottom: space[2] }}>
+            <Logo size={40} />
+          </View>
+          <Text style={styles.title}>{isRegister ? "Enroll at ChessSchool" : "Welcome back"}</Text>
+          <Text style={styles.subtitle}>
+            {isRegister ? "Create your student account to save progress and earn your ID." : "Log in to continue your studies."}
+          </Text>
 
-        {isRegister && (
+          {isRegister && (
+            <TextInput
+              style={styles.input}
+              placeholder="Full name"
+              placeholderTextColor={colors.ink300}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+          )}
           <TextInput
+            testID="login-email"
             style={styles.input}
-            placeholder="Full name"
+            placeholder="Email"
             placeholderTextColor={colors.ink300}
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="off"
+            textContentType="oneTimeCode"
+            importantForAutofill="no"
           />
-        )}
-        <TextInput
-          testID="login-email"
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={colors.ink300}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="off"
-          textContentType="oneTimeCode"
-          importantForAutofill="no"
-        />
-        <PasswordField
-          testID="login-password"
-          placeholder="Password"
-          placeholderTextColor={colors.ink300}
-          value={password}
-          onChangeText={setPassword}
-          autoComplete="off"
-          textContentType="oneTimeCode"
-          importantForAutofill="no"
-        />
+          <PasswordField
+            testID="login-password"
+            placeholder="Password"
+            placeholderTextColor={colors.ink300}
+            value={password}
+            onChangeText={setPassword}
+            autoComplete="off"
+            textContentType="oneTimeCode"
+            importantForAutofill="no"
+          />
 
-        {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={styles.error}>{error}</Text>}
 
-        <Button
-          testID="login-submit"
-          label={isRegister ? "Enroll" : "Log in"}
-          onPress={() => void submit()}
-          disabled={busy}
-          loading={busy}
-          size="lg"
-        />
+          <Button
+            testID="login-submit"
+            label={isRegister ? "Enroll" : "Log in"}
+            onPress={() => void submit()}
+            disabled={busy}
+            loading={busy}
+            size="lg"
+          />
 
-        <Pressable testID="login-mode-register" onPress={() => setMode(isRegister ? "login" : "register")}>
-          <Text style={styles.switch}>{isRegister ? "Already enrolled? Log in" : "New here? Enroll now"}</Text>
-        </Pressable>
+          <Pressable testID="login-mode-register" onPress={() => setMode(isRegister ? "login" : "register")}>
+            <Text style={styles.switch}>{isRegister ? "Already enrolled? Log in" : "New here? Enroll now"}</Text>
+          </Pressable>
 
-        <View style={styles.divider}>
-          <View style={styles.line} />
-          <Text style={styles.or}>or</Text>
-          <View style={styles.line} />
-        </View>
-        {GoogleBtn ? (
-          <GoogleBtn disabled={busy} onIdToken={handleGoogle} onError={handleGoogleError} />
-        ) : null}
-        <Pressable
-          style={[styles.guestButton, { marginTop: space[3] }]}
-          onPress={() => {
-            continueAsGuest();
-            router.replace("/(tabs)/academy");
-          }}
-          disabled={busy}
-        >
-          <Text style={styles.guestText}>Continue as a guest</Text>
-        </Pressable>
-        <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>
-        <Pressable onPress={() => void Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
-          <Text style={styles.legal}>Privacy policy</Text>
-        </Pressable>
+          <View style={styles.divider}>
+            <View style={styles.line} />
+            <Text style={styles.or}>or</Text>
+            <View style={styles.line} />
+          </View>
+          {GoogleBtn ? (
+            <GoogleBtn disabled={busy} onIdToken={handleGoogle} onError={handleGoogleError} />
+          ) : null}
+          <Pressable
+            style={[styles.guestButton, { marginTop: space[3] }]}
+            onPress={() => {
+              continueAsGuest();
+              router.replace("/(tabs)/academy");
+            }}
+            disabled={busy}
+          >
+            <Text style={styles.guestText}>Continue as a guest</Text>
+          </Pressable>
+          <Text style={styles.guestHint}>Browse & play without an account — enroll later to save progress.</Text>
+          <Pressable onPress={() => void Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
+            <Text style={styles.legal}>Privacy policy</Text>
+          </Pressable>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ThemedSafeArea>
   );
@@ -204,7 +208,8 @@ export default function LoginScreen() {
 
 function makeStyles(colors: ReturnType<typeof useAppTheme>["colors"], type: ReturnType<typeof useType>) {
   return StyleSheet.create({
-    center: { flex: 1, justifyContent: "center", paddingHorizontal: space[6] },
+    flex: { flex: 1 },
+    center: { flexGrow: 1, justifyContent: "center", paddingHorizontal: space[6], paddingVertical: space[4] },
     title: { ...type.xl, fontFamily: font.bold, color: colors.ink, textAlign: "center" },
     subtitle: { ...type.sm, fontFamily: font.medium, color: colors.ink500, textAlign: "center", marginTop: 6, marginBottom: space[5] },
     input: {

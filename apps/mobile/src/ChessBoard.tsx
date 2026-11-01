@@ -6,6 +6,7 @@ import { colors, font, radius, shadowCard, space, type } from "./theme";
 import { useSettings, BOARD_THEMES } from "./settings";
 import { Piece, type PieceThemeId } from "./Piece";
 import { createBoardPanConfig } from "./boardPan";
+import { chromeTextProps } from "./fontScale";
 
 type PieceType = "p" | "n" | "b" | "r" | "q" | "k";
 type Cell = { type: PieceType; color: "w" | "b" } | null;
@@ -367,10 +368,10 @@ export function ChessBoard({
                   />
                 ) : null}
                 {showRank && (
-                  <Text style={[styles.coord, styles.coordRank, { color: coordColor }]}>{rank}</Text>
+                  <Text {...chromeTextProps} style={[styles.coord, styles.coordRank, { color: coordColor }]}>{rank}</Text>
                 )}
                 {showFile && (
-                  <Text style={[styles.coord, styles.coordFile, { color: coordColor }]}>{file}</Text>
+                  <Text {...chromeTextProps} style={[styles.coord, styles.coordFile, { color: coordColor }]}>{file}</Text>
                 )}
                 {isLast && <View style={[styles.lastMoveOverlay, { backgroundColor: lastTone.fill, borderColor: lastTone.border }]} />}
                 {captures.has(sq) && (

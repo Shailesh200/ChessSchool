@@ -25,7 +25,19 @@ export function KitLogo({ withText = true, size = 32, style }: Props) {
         <Path d="M31 12 v4" stroke={colors.gold} strokeWidth="1" />
       </Svg>
       {withText ? (
-        <Text style={[styles.wordmark, { color: colors.ink, fontSize: type.xl.fontSize, lineHeight: type.xl.lineHeight }]}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+          style={[
+            styles.wordmark,
+            {
+              color: colors.ink,
+              fontSize: type.xl.fontSize,
+              lineHeight: type.xl.lineHeight,
+            },
+          ]}
+        >
           Chess<Text style={{ color: colors.brand }}>School</Text>
         </Text>
       ) : null}
@@ -34,6 +46,6 @@ export function KitLogo({ withText = true, size = 32, style }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8 },
-  wordmark: { fontFamily: "Fredoka_700Bold", letterSpacing: -0.3 },
+  row: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, minWidth: 0 },
+  wordmark: { fontFamily: "Fredoka_700Bold", letterSpacing: -0.3, flexShrink: 1 },
 });

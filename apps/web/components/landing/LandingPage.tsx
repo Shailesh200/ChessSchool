@@ -100,8 +100,8 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
       <FaqJsonLd items={SEO_FAQ} />
 
       {/* Hero */}
-      <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-12">
-        <div className="flex flex-1 flex-col gap-4">
+      <section className="flex flex-wrap items-center gap-8 lg:gap-12">
+        <div className="flex min-w-0 flex-[1_1_24rem] flex-col gap-4">
           <p className="text-brand text-xs font-extrabold tracking-wide uppercase">
             Free online chess academy
           </p>
@@ -124,7 +124,7 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
             No credit card · Works offline as a PWA · Android &amp; iOS apps available
           </p>
         </div>
-        <div className="relative mx-auto w-full max-w-sm shrink-0 lg:max-w-md">
+        <div className="relative mx-auto w-full max-w-sm min-w-0 flex-[1_1_20rem] lg:max-w-md">
           <Image
             src="/mascots/cody-wave-v2.png"
             alt="Cody, your chess coach mascot"
@@ -168,7 +168,7 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
         <h2 id="how-heading" className="text-ink text-xl font-extrabold">
           How ChessSchool works
         </h2>
-        <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {HOW_IT_WORKS.map((item) => (
             <Card key={item.step} className="flex flex-col gap-2">
               <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-full text-sm font-extrabold text-white">
@@ -188,11 +188,11 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
         <h2 id="features-heading" className="text-ink text-xl font-extrabold">
           Everything in one academy
         </h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
             <Card key={f.title} className="flex gap-3">
               <IconBadge name={f.icon} size="md" tone="brand" />
-              <div>
+              <div className="min-w-0 break-words">
                 <h3 className="text-ink text-sm font-extrabold">{f.title}</h3>
                 <p className="text-ink-500 mt-1 text-xs leading-relaxed font-semibold">
                   {f.body}
@@ -212,11 +212,11 @@ export function LandingPage({ stats }: { stats: CurriculumSkeleton }) {
           From Starter (board setup and piece moves) through Elementary, Middle School,
           High School, and University — each stage unlocks when you graduate the last.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {STAGES.map((stage) => (
             <Card key={stage.id} className="flex items-start gap-3">
               <ContentIcon emoji={stage.emoji} size={28} tone="brand" selected />
-              <div>
+              <div className="min-w-0 break-words">
                 <h3 className="text-ink text-sm font-extrabold">{stage.name}</h3>
                 <p className="text-ink-500 mt-1 text-xs font-semibold">{stage.blurb}</p>
               </div>
