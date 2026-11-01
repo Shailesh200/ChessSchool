@@ -68,7 +68,8 @@ export type Settings = {
 
 const KEY = "chessschool.settings";
 const isWeb = Platform.OS === "web";
-const DEFAULTS: Settings = {
+// Frozen: reset() and the initial state copy it; nothing may change the defaults themselves.
+const DEFAULTS: Readonly<Settings> = Object.freeze({
   uiKit: DEFAULT_UI_KIT,
   haptics: true,
   sound: true,
@@ -95,9 +96,11 @@ const DEFAULTS: Settings = {
   enrollPromptDismissedAt: null,
   diagnostics: false,
   textScale: 1,
-  shareAnalytics: true,
+  // Opt-in: nothing is sent until the user turns this on. Also what the app sees until the saved
+  // settings have loaded from storage.
+  shareAnalytics: false,
   ...NOTIFICATION_DEFAULTS,
-};
+});
 let state: Settings = { ...DEFAULTS };
 const listeners = new Set<() => void>();
 
@@ -118,8 +121,9 @@ function normalizeSettings(next: Partial<Settings>): Partial<Settings> {
     schoolTheme: schoolTheme && ["elementary", "highschool", "university", "graduation"].includes(schoolTheme)
       ? schoolTheme
       : next.schoolTheme ?? "university",
-    shareAnalytics:
-      next.shareAnalytics === undefined ? undefined : Boolean(next.shareAnalytics),
+    // A saved or account copy that never stored the flag is not an opt-in: an explicit false, not
+    // undefined (which would leave whatever the state had).
+    shareAnalytics: next.shareAnalytics === undefined ? false : Boolean(next.shareAnalytics),
     uiKit:
       next.uiKit === "classic" || next.uiKit === "premium"
         ? next.uiKit
@@ -193,6 +197,10 @@ export async function loadSettingsFromAccount() {
 
 export const settings = {
   get: () => state,
+  /**
+   * The wipe path (logout, a 401, delete: wipeUserData). Analytics is off after it. DEFAULTS has
+   * it off too (opt-in), and the explicit override keeps the wipe safe if that default ever flips.
+   */
   reset: () => {
     state = { ...DEFAULTS, shareAnalytics: false };
     persist();

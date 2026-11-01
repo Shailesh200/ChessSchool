@@ -211,7 +211,7 @@ describe("wipeUserData: an Academy fetch in flight across the wipe (bleed-a)", (
   });
 });
 
-describe("wipeUserData: analytics opt-out survives the wipe (bleed-b)", () => {
+describe("wipeUserData: analytics is off after the wipe (bleed-b)", () => {
   async function trackedPosts(): Promise<number> {
     const { api } = await import("./api");
     const { trackEvent } = await import("./productAnalytics/track");
@@ -227,36 +227,67 @@ describe("wipeUserData: analytics opt-out survives the wipe (bleed-b)", () => {
       .length;
   }
 
-  it("control: an opted-in user is tracked (the harness sees a post)", async () => {
+  it("control: a user who opted in is tracked (the harness sees a post)", async () => {
     const r = await boot();
-    expect(r.settingsMod.settings.get().shareAnalytics).toBe(true);
+    r.settingsMod.hydrateSettings({ shareAnalytics: true });
     expect(await trackedPosts()).toBe(1);
   });
 
-  it("an opted-out user is still not tracked after a logout", async () => {
+  it("a user who opted in is not tracked after a logout", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: false });
+    r.settingsMod.hydrateSettings({ shareAnalytics: true });
     await r.wipe.wipeUserData();
     expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
     expect(await trackedPosts()).toBe(0);
   });
 
-  it("an opted-out user is still not tracked after a 401", async () => {
+  it("a user who opted in is not tracked after a 401", async () => {
     const r = await boot();
-    r.settingsMod.hydrateSettings({ shareAnalytics: false });
+    r.settingsMod.hydrateSettings({ shareAnalytics: true });
     await r.wipe.wipeUserData({ expired: true });
     expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
     expect(await trackedPosts()).toBe(0);
   });
 
-  it("a fresh install still defaults to analytics on (only the reset path changed)", async () => {
+  it("an opted-in user logs out and back in and keeps their choice (the account copy brings it back)", async () => {
+    const r = await boot();
+    r.settingsMod.hydrateSettings({ shareAnalytics: true });
+    const account = { ...r.settingsMod.settings.get() }; // what pushToAccount stored for this user
+    await r.wipe.wipeUserData();
+    expect(r.settingsMod.settings.get().shareAnalytics).toBe(false); // off while logged out
+    expect(await trackedPosts()).toBe(0);
+    r.settingsMod.hydrateSettings(account); // logs back in
+    expect(r.settingsMod.settings.get().shareAnalytics).toBe(true);
+    expect(await trackedPosts()).toBe(1);
+  });
+
+  it("an account that never stored the flag signs in with analytics off (explicit false, not undefined)", async () => {
+    const r = await boot();
+    r.settingsMod.hydrateSettings({ shareAnalytics: true });
+    r.settingsMod.hydrateSettings({ avatar: "ava-other" });
+    expect(r.settingsMod.settings.get().shareAnalytics).toBe(false);
+    expect(await trackedPosts()).toBe(0);
+  });
+
+  it("reset() does not change the defaults it copies (a later fresh state is still opt-out and clean)", async () => {
     vi.resetModules();
     const fresh = await import("./settings");
-    const initial = { ...fresh.settings.get() };
-    expect(initial.shareAnalytics).toBe(true);
-    fresh.hydrateSettings({ shareAnalytics: false, avatar: "ava-other" });
+    const before = { ...fresh.settings.get() };
+    fresh.hydrateSettings({ shareAnalytics: true, avatar: "ava-other" });
     fresh.settings.reset();
-    // every default is back, except that analytics stays off
+    fresh.settings.reset();
+    expect(fresh.settings.get()).toEqual(before);
+  });
+
+  it("reset() puts every default back and leaves analytics off", async () => {
+    vi.resetModules();
+    const fresh = await import("./settings");
+    // fresh install: analytics off (see analyticsOptIn.test.ts)
+    const initial = { ...fresh.settings.get() };
+    expect(initial.shareAnalytics).toBe(false);
+    fresh.hydrateSettings({ shareAnalytics: true, avatar: "ava-other" });
+    fresh.settings.reset();
+    // every default is back, and analytics is off
     expect(fresh.settings.get()).toEqual({ ...initial, shareAnalytics: false });
   });
 });
