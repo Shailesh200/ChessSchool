@@ -121,4 +121,5 @@ Passed on 2026-11-04:
 - **Android sign-up in the Phase 1 script:** the emulator keyboard drops characters after "@" when adb types the email, so that step needs typing by hand. The form itself is unchanged.
 - The bots are a small in-app engine (no Stockfish), so King Atlas is strong for beginners but not for club players. There's no online play.
 - Lessons and puzzles are bundled; there's no server-side content or admin yet.
-- **Not done since Phase 1:** API hosting and the new Turso database. Store builds and submission only when asked.
+- **Hosting:** the API runs on Vercel (`chessschool-api`, https://api.chess-school.in) with the Turso database `chessschool-v2`; see `apps/chessschool-api/README.md`. The new PWA isn't deployed yet.
+- **Release:** 0.4.0 (Android versionCode 31) was submitted to Play internal testing as a draft on 2026-11-04. iOS isn't built.
