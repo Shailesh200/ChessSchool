@@ -1,0 +1,103 @@
+"use client";
+
+import { LESSONS } from "@chessschool/chess";
+import { copy, dayKey, goalMet, nextNode, nodeState, PATH, visibleStreak } from "@chessschool/design";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { LessonDone } from "@/components/LessonDone";
+import { LessonPlayer } from "@/components/LessonPlayer";
+import { Cody } from "@/components/Lottie";
+import { Button } from "@/components/ui";
+import { useApp } from "@/lib/state";
+
+type Before = { id: string; done: boolean; streak: number; goal: boolean };
+
+export default function LessonPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { state, ready, completeLesson, cue } = useApp();
+  const lesson = LESSONS[id];
+  const node = PATH.find((n) => n.id === id);
+  // What the learner had just before finishing, so the ending can show what changed.
+  const [before, setBefore] = useState<Before | null>(null);
+
+  const unknown = !lesson || !node;
+  useEffect(() => {
+    if (id === "meet") router.replace("/orientation");
+    else if (unknown) router.replace("/today");
+  }, [id, unknown, router]);
+
+  if (!ready || id === "meet" || unknown) return <div className="page-skeleton" aria-busy="true" />;
+
+  if (nodeState(state.progress, id) === "locked") {
+    const prev = PATH[PATH.findIndex((n) => n.id === id) - 1];
+    return (
+      <div className="flow">
+        <span />
+        <div className="flow-body">
+          <Cody animation="thinking" size={160} label={copy.a11y.mascot} />
+          <h1>{copy.lesson.locked}</h1>
+          <p className="lead">{copy.lesson.lockedBody(copy.path[prev.id].title)}</p>
+        </div>
+        <footer className="flow-actions">
+          <Button block href="/today" icon="learn">
+            {copy.lesson.back}
+          </Button>
+        </footer>
+      </div>
+    );
+  }
+
+  const today = dayKey(new Date());
+  const streak = visibleStreak(state.progress.streak, today);
+  const b = before?.id === id ? before : null;
+  const next = nextNode(state.progress);
+
+  return (
+    <LessonPlayer
+      key={id}
+      steps={lesson.steps}
+      closeHref="/today"
+      onFinished={() => {
+        setBefore({
+          id,
+          done: Boolean(state.progress.completed[id]),
+          streak: visibleStreak(state.progress.streak, dayKey(new Date())),
+          goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())),
+        });
+        completeLesson(id);
+        cue("level-up");
+      }}
+      done={
+        b ? (
+          <LessonDone
+            title={b.done ? copy.today.done : copy.lesson.doneTitle}
+            body={b.done ? copy.lesson.replayDone : next ? copy.lesson.doneNext(copy.path[next.id].title) : copy.lesson.doneLast}
+            xp={b.done ? undefined : node.xp}
+            streak={streak > b.streak ? streak : undefined}
+            goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}
+          >
+            {next && !b.done ? (
+              <Button block href={`/lesson/${next.id}`} icon="arrowRight">
+                {copy.lesson.nextLesson}
+              </Button>
+            ) : null}
+            {!next && !b.done ? (
+              <Button block href="/play" icon="play">
+                {copy.today.heroAllCta}
+              </Button>
+            ) : null}
+            <Button block variant={!b.done ? "secondary" : "primary"} href="/today" icon="learn">
+              {copy.lesson.back}
+            </Button>
+            {!state.account ? (
+              <Button block variant="ghost" href="/signup" icon="shield">
+                {copy.lesson.save}
+              </Button>
+            ) : null}
+          </LessonDone>
+        ) : null
+      }
+    />
+  );
+}

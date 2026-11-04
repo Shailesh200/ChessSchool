@@ -1,0 +1,40 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "local" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3300",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com"
+      },
+      "ios": { "simulator": true }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.chess-school.in",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-ued7hs0q3qceermfductglsdr1mh8bb0.apps.googleusercontent.com"
+      },
+      "android": { "buildType": "apk", "image": "sdk-54", "resourceClass": "medium" }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.chess-school.in",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1055675597789-ued7hs0q3qceermfductglsdr1mh8bb0.apps.googleusercontent.com"
+      },
+      "android": { "buildType": "app-bundle", "image": "sdk-54", "resourceClass": "medium" }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": { "track": "internal", "releaseStatus": "draft" }
+    }
+  }
+}

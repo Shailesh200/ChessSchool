@@ -1,0 +1,101 @@
+{
+  "version": 2,
+  "fps": 60,
+  "size": [
+    512,
+    512
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "file": "idle.json",
+      "frames": 180,
+      "loop": true,
+      "poster": 0
+    },
+    {
+      "name": "wave",
+      "file": "wave.json",
+      "frames": 120,
+      "loop": false,
+      "poster": 32
+    },
+    {
+      "name": "happy",
+      "file": "happy.json",
+      "frames": 72,
+      "loop": true,
+      "poster": 22
+    },
+    {
+      "name": "giggle",
+      "file": "giggle.json",
+      "frames": 96,
+      "loop": true,
+      "poster": 0
+    },
+    {
+      "name": "celebrate",
+      "file": "celebrate.json",
+      "frames": 120,
+      "loop": false,
+      "poster": 40
+    },
+    {
+      "name": "thinking",
+      "file": "thinking.json",
+      "frames": 150,
+      "loop": true,
+      "poster": 40
+    },
+    {
+      "name": "proud",
+      "file": "proud.json",
+      "frames": 120,
+      "loop": true,
+      "poster": 30
+    },
+    {
+      "name": "wow",
+      "file": "wow.json",
+      "frames": 90,
+      "loop": false,
+      "poster": 20
+    },
+    {
+      "name": "oops",
+      "file": "oops.json",
+      "frames": 120,
+      "loop": true,
+      "poster": 30
+    },
+    {
+      "name": "sad-soft",
+      "file": "sad-soft.json",
+      "frames": 150,
+      "loop": true,
+      "poster": 40
+    },
+    {
+      "name": "love",
+      "file": "love.json",
+      "frames": 120,
+      "loop": true,
+      "poster": 10
+    },
+    {
+      "name": "sleepy",
+      "file": "sleepy.json",
+      "frames": 180,
+      "loop": true,
+      "poster": 60
+    },
+    {
+      "name": "reading",
+      "file": "reading.json",
+      "frames": 180,
+      "loop": true,
+      "poster": 40
+    }
+  ]
+}

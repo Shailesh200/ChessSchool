@@ -28,7 +28,12 @@
     "parity:semantic": "pnpm --filter web exec playwright test e2e/parity-matrix.spec.ts",
     "verify:coverage": "bash scripts/verify-test-coverage.sh",
     "puzzle-school": "node packages/puzzle-school/cli/puzzle-school.mjs",
-    "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate"
+    "puzzle-school:validate": "node packages/puzzle-school/cli/puzzle-school.mjs validate",
+    "cs:api": "pnpm --filter chessschool-api dev",
+    "cs:web": "pnpm --filter chessschool-web dev",
+    "cs:native": "pnpm --filter chessschool start",
+    "cs:assets": "pnpm --filter @chessschool/design generate",
+    "cs:check": "pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api --filter chessschool-web --filter chessschool typecheck && pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api test"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

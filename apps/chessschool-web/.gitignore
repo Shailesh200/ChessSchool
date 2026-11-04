@@ -1,0 +1,6 @@
+.next
+node_modules
+next-env.d.ts
+*.tsbuildinfo
+# copied from packages/chessschool-design by scripts/sync-assets.mjs
+public/assets
