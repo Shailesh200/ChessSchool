@@ -9,11 +9,11 @@ import { Button, Card, Page, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
-const MODES: { key: "friend" | "shuffle" | "position" | "review" | "club"; href: Href; icon: IconName; locked?: boolean }[] = [
+const MODES: { key: "friend" | "shuffle" | "position" | "endgames" | "club"; href: Href; icon: IconName; locked?: boolean }[] = [
   { key: "friend", href: "/play?mode=friend", icon: "club" },
   { key: "shuffle", href: "/play?mode=shuffle", icon: "shuffle" },
   { key: "position", href: "/play?mode=position", icon: "pawn" },
-  { key: "review", href: "/review", icon: "history" },
+  { key: "endgames", href: "/play?mode=endgame", icon: "trophy" },
   { key: "club", href: "/rooms/club", icon: "lock", locked: true },
 ];
 
@@ -22,7 +22,7 @@ export default function Gym() {
   const { c } = useTheme();
   const bots = state.progress.bots;
   const tile = (key: string, title: string, body: string, icon: IconName, onPress: () => void, locked = false) => (
-    <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${title}. ${body}`} onPress={onPress} style={({ pressed }) => ({ flexGrow: 1, flexBasis: "45%", minHeight: 112, gap: 4, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: locked ? c.sunken : pressed ? c.sunken : c.card })}>
+    <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${title}. ${body}`} onPress={onPress} style={({ pressed }) => ({ flexGrow: 1, flexBasis: "45%", minHeight: 124, gap: 4, padding: 14, borderRadius: 20, borderWidth: 1, borderBottomWidth: 4, borderColor: locked ? c.line : c.brandEdge, backgroundColor: locked ? c.sunken : pressed ? c.sunken : c.card })}>
       <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft }}>
         <Icon name={icon} color={c.brandText} />
       </View>

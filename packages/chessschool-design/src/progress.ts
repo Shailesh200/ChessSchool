@@ -5,6 +5,12 @@ export const STATE_VERSION = 2;
 
 export type Who = "me" | "child" | "class";
 export type DailyMinutes = 5 | 10 | 15;
+export const AVATARS = ["cody", "otto", "kira", "skye", "ash", "rex"] as const;
+export type AvatarId = (typeof AVATARS)[number];
+export const FLAIRS = ["learner", "puzzler", "gym", "monitor"] as const;
+export type FlairId = (typeof FLAIRS)[number];
+export const isAvatarId = (v: unknown): v is AvatarId => AVATARS.includes(v as AvatarId);
+export const isFlairId = (v: unknown): v is FlairId => FLAIRS.includes(v as FlairId);
 export type NotificationStatus = "unknown" | "granted" | "denied" | "dismissed";
 
 export type Streak = { count: number; lastDay: string | null };
@@ -35,7 +41,7 @@ export type PuzzleProgress = {
   daily: { lastDay: string | null; count: number };
 };
 
-export type Profile = { name: string; who: Who | null; dailyMinutes: DailyMinutes };
+export type Profile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; avatar: AvatarId; flair: FlairId | null };
 
 export type Prefs = {
   appearance: Appearance;
@@ -129,7 +135,7 @@ export function createInitialState(guestId: string): LocalState {
     version: STATE_VERSION,
     guestId,
     seenWelcome: false,
-    profile: { name: "", who: null, dailyMinutes: 10 },
+    profile: { name: "", who: null, dailyMinutes: 10, avatar: "cody", flair: null },
     prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "classroom", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom" },
     progress: emptyProgress(),
     account: null,
@@ -145,6 +151,11 @@ export function createInitialState(guestId: string): LocalState {
   };
 }
 
+function cleanProfile(base: Profile, raw: Partial<Profile> | undefined): Profile {
+  const next = { ...base, ...(raw ?? {}) };
+  return { ...next, avatar: isAvatarId(next.avatar) ? next.avatar : base.avatar, flair: isFlairId(next.flair) ? next.flair : null };
+}
+
 /** Accepts anything read from storage and returns a valid state (never throws). */
 export function hydrateState(raw: unknown, newGuestId: () => string): LocalState {
   const base = createInitialState(newGuestId());
@@ -155,7 +166,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     ...base,
     ...r,
     guestId: typeof r.guestId === "string" && r.guestId ? r.guestId : base.guestId,
-    profile: { ...base.profile, ...(r.profile ?? {}) },
+    profile: cleanProfile(base.profile, r.profile),
     prefs: hydratePrefs(base.prefs, r.prefs),
     progress: isProgress(r.progress) ? sanitizeProgress({ ...base.progress, ...r.progress }) : base.progress,
     account: r.account ?? null,
@@ -250,10 +261,10 @@ export function minutesToday(progress: Progress, today: string): number {
 
 /* ---------- path ---------- */
 
-export type UnitId = "unit1" | "unit2" | "unit3";
+export type UnitId = "unit1" | "unit2" | "unit3" | "unit4" | "unit5" | "unit6" | "unit7";
 export type PathNodeDef = { id: string; unit: UnitId; minutes: number; xp: number; available: boolean };
 
-/** The path, in three units. Lessons open one after another; "meet" is the product tour. */
+/** The path. "meet" is the product tour. Later units stay open so a learner can browse ahead. */
 export const PATH: readonly PathNodeDef[] = [
   { id: "meet", unit: "unit1", minutes: 2, xp: 10, available: true },
   { id: "board", unit: "unit1", minutes: 5, xp: 20, available: true },
@@ -268,8 +279,27 @@ export const PATH: readonly PathNodeDef[] = [
   { id: "pins", unit: "unit2", minutes: 6, xp: 25, available: true },
   { id: "ladder", unit: "unit3", minutes: 5, xp: 25, available: true },
   { id: "queenMate", unit: "unit3", minutes: 6, xp: 30, available: true },
+  { id: "centre", unit: "unit4", minutes: 5, xp: 20, available: true },
+  { id: "develop", unit: "unit4", minutes: 5, xp: 20, available: true },
+  { id: "italian", unit: "unit4", minutes: 6, xp: 25, available: true },
+  { id: "queenOut", unit: "unit4", minutes: 5, xp: 20, available: true },
+  { id: "weakSquare", unit: "unit4", minutes: 5, xp: 25, available: true },
+  { id: "skewer", unit: "unit5", minutes: 5, xp: 25, available: true },
+  { id: "discovery", unit: "unit5", minutes: 5, xp: 25, available: true },
+  { id: "defender", unit: "unit5", minutes: 6, xp: 25, available: true },
+  { id: "doubleCheck", unit: "unit5", minutes: 5, xp: 25, available: true },
+  { id: "activeKing", unit: "unit6", minutes: 5, xp: 20, available: true },
+  { id: "opposition", unit: "unit6", minutes: 5, xp: 25, available: true },
+  { id: "passedPawn", unit: "unit6", minutes: 5, xp: 20, available: true },
+  { id: "escort", unit: "unit6", minutes: 5, xp: 25, available: true },
+  { id: "rookFile", unit: "unit6", minutes: 5, xp: 20, available: true },
+  { id: "backRank", unit: "unit7", minutes: 5, xp: 25, available: true },
+  { id: "smothered", unit: "unit7", minutes: 5, xp: 25, available: true },
+  { id: "arabian", unit: "unit7", minutes: 5, xp: 25, available: true },
+  { id: "bishopPair", unit: "unit7", minutes: 5, xp: 30, available: true },
+  { id: "rookKing", unit: "unit7", minutes: 5, xp: 30, available: true },
 ];
-export const UNITS: readonly UnitId[] = ["unit1", "unit2", "unit3"];
+export const UNITS: readonly UnitId[] = ["unit1", "unit2", "unit3", "unit4", "unit5", "unit6", "unit7"];
 
 export type NodeState = "done" | "current" | "locked";
 
@@ -277,11 +307,8 @@ export function pathStates(progress: Progress): { id: string; state: NodeState }
   let currentAssigned = false;
   return PATH.map((n) => {
     if (progress.completed[n.id]) return { id: n.id, state: "done" as const };
-    if (!currentAssigned) {
-      currentAssigned = true;
-      return { id: n.id, state: "current" as const };
-    }
-    return { id: n.id, state: "locked" as const };
+    if (!currentAssigned) currentAssigned = true;
+    return { id: n.id, state: "current" as const };
   });
 }
 
@@ -297,7 +324,7 @@ export function nodeState(progress: Progress, nodeId: string): NodeState | null 
 
 export function completeNode(state: LocalState, nodeId: string, now: Date): LocalState {
   const node = PATH.find((n) => n.id === nodeId);
-  if (!node || nodeState(state.progress, nodeId) === "locked") return state;
+  if (!node) return state;
   const today = dayKey(now);
   const first = !state.progress.completed[nodeId];
   const prevMinutes = minutesToday(state.progress, today);
@@ -360,7 +387,7 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
   const today = dayKey(now);
   const s = p.solved ? activity(state, now, 1) : state;
   const pz = s.progress.puzzles;
-  const daily = p.daily && p.solved && pz.daily.lastDay !== today ? { lastDay: today, count: pz.daily.lastDay && daysBetween(pz.daily.lastDay, today) === 1 ? pz.daily.count + 1 : 1 } : pz.daily;
+  const daily = p.daily && pz.daily.lastDay !== today ? { lastDay: today, count: p.solved && pz.daily.lastDay && daysBetween(pz.daily.lastDay, today) === 1 ? pz.daily.count + 1 : p.solved ? 1 : pz.daily.count } : pz.daily;
   return {
     ...s,
     progress: {
@@ -603,6 +630,10 @@ export type BadgeId =
   | "unit1"
   | "unit2"
   | "unit3"
+  | "unit4"
+  | "unit5"
+  | "unit6"
+  | "unit7"
   | "streak3"
   | "streak7"
   | "firstGame"
@@ -621,6 +652,10 @@ export const BADGES: readonly { id: BadgeId; earned: (p: Progress) => boolean }[
   { id: "unit1", earned: (p) => unitDone(p, "unit1") },
   { id: "unit2", earned: (p) => unitDone(p, "unit2") },
   { id: "unit3", earned: (p) => unitDone(p, "unit3") },
+  { id: "unit4", earned: (p) => unitDone(p, "unit4") },
+  { id: "unit5", earned: (p) => unitDone(p, "unit5") },
+  { id: "unit6", earned: (p) => unitDone(p, "unit6") },
+  { id: "unit7", earned: (p) => unitDone(p, "unit7") },
   { id: "streak3", earned: (p) => p.streak.count >= 3 },
   { id: "streak7", earned: (p) => p.streak.count >= 7 },
   { id: "firstGame", earned: (p) => p.games.played >= 1 },

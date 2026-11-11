@@ -1,4 +1,4 @@
-import { readFen, turnOf, type Color, type MoveRef, type Square } from "./board";
+import { fileIndex, moveEffects, readFen, turnOf, type Color, type MoveRef, type Square } from "./board";
 import { bestMove, quickEval } from "./engine";
 import { kingInCheck, legalTargets, load, moveRef, tryMove } from "./game";
 
@@ -91,13 +91,27 @@ export function summarise(plies: ReviewPly[], notes: Record<number, MoveNote>, s
   return { accuracy: n ? Math.round(score / n) : 0, counts, moments, best };
 }
 
-export type MoveCue = "move" | "capture" | "check" | "castle" | "promote";
+export type MoveCue = "move" | "capture" | "check" | "mate" | "castle" | "promote";
 /** Which sound a move makes. */
 export function moveCue(san: string): MoveCue {
-  if (san.includes("+") || san.includes("#")) return "check";
+  if (san.includes("#")) return "mate";
+  if (san.includes("+")) return "check";
   if (san.includes("=")) return "promote";
   if (san.startsWith("O-O")) return "castle";
   if (san.includes("x")) return "capture";
+  return "move";
+}
+
+/** The sound for a move when only the positions are known (lessons, puzzles). */
+export function positionCue(beforeFen: string, afterFen: string, move: MoveRef | null): MoveCue {
+  const after = load(afterFen);
+  if (after.isCheckmate()) return "mate";
+  if (after.inCheck()) return "check";
+  const e = moveEffects(beforeFen, afterFen, move);
+  if (e.promoted) return "promote";
+  if (e.captured) return "capture";
+  const mover = move ? readFen(beforeFen).get(move.from) : undefined;
+  if (move && mover?.type === "k" && Math.abs(fileIndex(move.from) - fileIndex(move.to)) === 2) return "castle";
   return "move";
 }
 

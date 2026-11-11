@@ -6,16 +6,18 @@ import { pick, type BoardView } from "./runner";
 
 /* ---------------- setup ---------------- */
 
-export type TimeControlId = "none" | "10+0" | "5+3" | "3+2";
+export type TimeControlId = "none" | "10+0" | "30+0" | "5+3" | "3+2";
 export const TIME_CONTROLS: readonly { id: TimeControlId; label: string; base: number; inc: number }[] = [
   { id: "none", label: "No clock", base: 0, inc: 0 },
   { id: "10+0", label: "10 min", base: 600_000, inc: 0 },
+  { id: "30+0", label: "30 min", base: 1_800_000, inc: 0 },
   { id: "5+3", label: "5 + 3", base: 300_000, inc: 3_000 },
   { id: "3+2", label: "3 + 2", base: 180_000, inc: 2_000 },
 ];
 export const timeControl = (id: TimeControlId) => TIME_CONTROLS.find((t) => t.id === id) ?? TIME_CONTROLS[0];
 
 /** Practice positions you can start a game from. */
+export const ENDGAME_IDS = ["kq-k", "kr-k", "krr-k", "kp-k"] as const;
 export const START_POSITIONS: readonly { id: string; name: string; blurb: string; fen: string }[] = [
   { id: "kq-k", name: "Queen vs king", blurb: "Practise the basic checkmate.", fen: "8/8/8/4k3/8/8/8/3QK3 w - - 0 1" },
   { id: "kr-k", name: "Rook vs king", blurb: "Push the king to the edge.", fen: "8/8/8/4k3/8/8/8/R3K3 w - - 0 1" },
@@ -78,6 +80,8 @@ export type PlayState = BoardView & {
   botThinking: boolean;
   over: PlayOver | null;
   takebacks: number;
+  /** Batches removed by take-back, newest first. One redo puts a batch back. */
+  undone: string[][];
   clock: Clock | null;
   promotion: MoveRef | null;
 };
@@ -88,6 +92,7 @@ export type PlayAction =
   | { type: "cancelPromotion" }
   | { type: "bot"; move: MoveRef & { promotion?: string }; now: number }
   | { type: "takeback"; now: number }
+  | { type: "redo"; now: number }
   | { type: "resign"; now: number }
   | { type: "tick"; now: number };
 
@@ -124,6 +129,7 @@ export function startGame(setup: PlaySetup, now: number, history: string[] = [],
     botThinking: isBot(setup) && chess.turn() !== setup.you && !over,
     over,
     takebacks: 0,
+    undone: [],
     clock: tc.base ? { w: clock?.w ?? tc.base, b: clock?.b ?? tc.base, turnStartedAt: over ? null : now } : null,
     promotion: null,
   };
@@ -156,6 +162,7 @@ function afterMove(s: PlayState, chess: Chess, san: string, ref: MoveRef, now: n
     botThinking: !over && isBot(s.setup) && chess.turn() !== s.setup.you,
     over,
     promotion: null,
+    undone: [],
     clock: over && clock ? { ...clock, turnStartedAt: null } : clock,
   };
 }
@@ -179,25 +186,57 @@ export function playReduce(s: PlayState, a: PlayAction): PlayState {
 
   if (a.type === "takeback") {
     if (!s.setup.takebacks || s.botThinking || !s.history.length) return s;
-    // vs a bot: undo your move and the reply; pass & play: undo one move.
-    const yourTurn = turnOf(s.fen) === s.setup.you;
-    const back = isBot(s.setup) ? s.history.length - (yourTurn ? 2 : 1) : s.history.length - 1;
-    if (back < 0) return s;
+    // One ply at a time, including a bot reply. The learner cannot move on the bot's turn.
+    const back = s.history.length - 1;
     const history = s.history.slice(0, back);
     const chess = replay(s.setup.startFen, history);
-    if (isBot(s.setup) && chess.turn() !== s.setup.you) return s;
     const last = chess.history({ verbose: true }).at(-1);
     return {
       ...s,
       fen: chess.fen(),
       history,
+      undone: [s.history.slice(back), ...s.undone],
       selected: null,
       targets: [],
       lastMove: last ? moveRef(last) : null,
       check: kingInCheck(chess),
       takebacks: s.takebacks + 1,
       promotion: null,
+      botThinking: false,
       clock: s.clock ? { ...s.clock, turnStartedAt: a.now } : null,
+    };
+  }
+
+  if (a.type === "redo") {
+    // shortcut: redo restores the moves, not the clock, upgrade if timed games need the old time back.
+    const batch = s.undone[0];
+    if (!s.setup.takebacks || s.botThinking || !batch?.length) return s;
+    const chess = replay(s.setup.startFen, s.history);
+    const applied: string[] = [];
+    for (const san of batch) {
+      try {
+        const move = chess.move(san);
+        if (!move) break;
+        applied.push(move.san);
+      } catch {
+        break;
+      }
+    }
+    if (!applied.length) return s;
+    const last = chess.history({ verbose: true }).at(-1)!;
+    const over = outcome(chess);
+    return {
+      ...s,
+      fen: chess.fen(),
+      history: [...s.history, ...applied],
+      undone: s.undone.slice(1),
+      selected: null,
+      targets: [],
+      lastMove: moveRef(last),
+      check: kingInCheck(chess),
+      botThinking: false,
+      over,
+      promotion: null,
     };
   }
 
@@ -220,6 +259,7 @@ export function playReduce(s: PlayState, a: PlayAction): PlayState {
   // tap
   const side = humanSide(s);
   if (s.botThinking || !side || s.promotion) return s;
+  if (isBot(s.setup) && turnOf(s.fen) !== s.setup.you) return s;
   const p = pick(s.fen, s.selected, s.targets, a.square, side, s.setup.askPromotion);
   if (p.kind === "select") return { ...s, selected: p.selected, targets: p.targets };
   if (p.kind === "clear") return { ...s, selected: null, targets: [] };

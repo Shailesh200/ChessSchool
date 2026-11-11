@@ -9,7 +9,7 @@ import { Cody } from "./Lottie";
 
 /* ---------- Button ---------- */
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "gold" | "accent";
 type ButtonProps = {
   variant?: ButtonVariant;
   block?: boolean;

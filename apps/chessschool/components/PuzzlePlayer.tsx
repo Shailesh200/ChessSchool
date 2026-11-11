@@ -1,4 +1,4 @@
-import { puzzleHint, puzzleReduce, startPuzzle, type Puzzle, type PuzzleAction } from "@chessschool/chess";
+import { positionCue, puzzleHint, puzzleReduce, startPuzzle, type Puzzle, type PuzzleAction } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, View } from "react-native";
@@ -39,7 +39,7 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
     } else if (next.status === "solved" && prev.status !== "solved") {
       cue("success");
       AccessibilityInfo.announceForAccessibility(copy.puzzles.solved);
-    } else if (next.fen !== prev.fen) cue("tap");
+    } else if (next.fen !== prev.fen) cue(positionCue(prev.fen, next.fen, next.lastMove));
     if (!reported.current && (next.status === "solved" || next.status === "failed")) {
       reported.current = true;
       onResult(next.status === "solved" && !next.missed);
@@ -85,7 +85,24 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
           </View>
         }
       >
-        {(size) => <Board size={size} fen={s.fen} orientation={s.you} selected={s.selected} targets={s.targets} lastMove={s.lastMove} check={s.check} hints={puzzleHint(s)} onTap={(sq) => act({ type: "tap", square: sq })} disabled={s.status !== "solving"} shake={misses} />}
+        {(size, radius) => (
+          <Board
+            size={size}
+            radius={radius}
+            fen={s.fen}
+            orientation={s.you}
+            selected={s.selected}
+            targets={s.targets}
+            lastMove={s.lastMove}
+            check={s.check}
+            hints={puzzleHint(s)}
+            onTap={(sq) => act({ type: "tap", square: sq })}
+            disabled={s.status !== "solving"}
+            shake={misses}
+            promotion={s.promotion}
+            onPromote={(p) => act(p ? { type: "promote", piece: p } : { type: "cancelPromotion" })}
+          />
+        )}
       </BoardStage>
       <View style={{ gap: 6, paddingBottom: 12 }}>
         {!sprint && s.status === "solving" && !s.hint ? <Button title={copy.puzzles.hint} icon="bulb" variant="ghost" onPress={() => act({ type: "hint" })} /> : null}

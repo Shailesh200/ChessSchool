@@ -8,7 +8,7 @@
     "orientation": "portrait",
     "scheme": "chessschool",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -20,7 +20,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "3",
+      "buildNumber": "14",
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -28,7 +28,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 31,
+      "versionCode": 35,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5B5BD6"
@@ -70,14 +70,20 @@
         "expo-build-properties",
         {
           "android": {
-            "newArchEnabled": false
+            "newArchEnabled": true
           },
           "ios": {
-            "newArchEnabled": false
+            "newArchEnabled": true,
+            "useFrameworks": "static"
           }
         }
       ],
-      "@react-native-google-signin/google-signin",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1055675597789-3uqou6qfqg76e033tpulbkjgee059o54"
+        }
+      ],
       [
         "expo-alternate-app-icons",
         [

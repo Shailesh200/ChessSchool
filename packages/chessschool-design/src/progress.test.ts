@@ -43,12 +43,11 @@ describe("orientation", () => {
     expect(s2.progress.minutes.value).toBe(4);
   });
 
-  it("marks node 1 done, opens node 2 and keeps the rest locked", () => {
+  it("marks node 1 done and leaves every later lesson open", () => {
     const s = completeNode(createInitialState("g"), "meet", at("2026-11-03"));
     const states = pathStates(s.progress);
     expect(states[0]).toEqual({ id: "meet", state: "done" });
-    expect(states[1]).toEqual({ id: "board", state: "current" });
-    expect(states.slice(2).every((n) => n.state === "locked")).toBe(true);
+    expect(states.slice(1).every((n) => n.state === "current")).toBe(true);
   });
 
   it("shows node 1 as current before completion", () => {
@@ -57,8 +56,8 @@ describe("orientation", () => {
 
   it("ignores locked or unknown nodes", () => {
     const s = createInitialState("g");
-    expect(completeNode(s, "board", at("2026-11-03"))).toBe(s);
     expect(completeNode(s, "nope", at("2026-11-03"))).toBe(s);
+    expect(completeNode(s, "castling", at("2026-11-03")).progress.completed.castling).toBe("2026-11-03");
   });
 });
 
@@ -162,7 +161,7 @@ describe("chess lessons on the path", () => {
     expect(Object.keys(s.progress.completed)).toEqual(["meet", "board", "moves"]);
     expect(s.progress.xp).toBe(50);
     expect(nextNode(s.progress)?.id).toBe("pawns");
-    expect(completeNode(s, "firstGame", at("2026-11-03"))).toBe(s);
+    expect(completeNode(s, "firstGame", at("2026-11-03")).progress.completed.firstGame).toBe("2026-11-03");
   });
 
   it("can be replayed without more XP", () => {

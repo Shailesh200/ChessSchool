@@ -1,60 +1,115 @@
 "use client";
 
-import { copy, PATH, pathStates, UNITS, type Progress } from "@chessschool/design";
+import { copy, focusCourse, type CourseLesson, type Progress } from "@chessschool/design";
 import Link from "next/link";
+import { useState } from "react";
 import { Icon } from "./Icon";
+import { Button } from "./ui";
+import { CourseSkeleton } from "./Skeleton";
+import { useCourse } from "@/lib/course";
 
-const TINTS = ["brand", "accent", "gold", "success"] as const;
+const href = (id: string) => (id === "meet" ? "/orientation" : `/lesson/${id}`);
 
 export function PathList({ progress }: { progress: Progress }) {
-  const states = pathStates(progress);
+  const course = useCourse();
+  const [review, setReview] = useState(false);
+  const [all, setAll] = useState(false);
+  if (!course) return <CourseSkeleton />;
+  const f = focusCourse(course, progress.completed);
+  const unitName = (id: string) => course.units.find((u) => u.id === id)?.title ?? "";
   return (
-    <div className="units">
-      {UNITS.map((unit) => {
-        const nodes = PATH.map((n, i) => ({ n, i, st: states[i].state })).filter((x) => x.n.unit === unit);
-        const done = nodes.filter((x) => x.st === "done").length;
-        return (
-          <section key={unit} className="unit" aria-labelledby={`${unit}-h`}>
-            <header className="unit-head">
-              <h3 id={`${unit}-h`}>{copy.units[unit].title}</h3>
-              <span className="unit-count">
-                {done}/{nodes.length}
-              </span>
-            </header>
-            <ol className="path" aria-label={copy.units[unit].title}>
-              {nodes.map(({ n, i, st }) => {
-                const c = copy.path[n.id];
-                const placed = progress.placed.includes(n.id);
-                const body = (
-                  <>
-                    <span className={`path-num tint-${TINTS[i % TINTS.length]}`} aria-hidden>
-                      {st === "done" ? <Icon name="check" size={20} /> : st === "locked" ? <Icon name="lock" size={18} /> : i}
-                    </span>
-                    <span className="path-text">
-                      <span className="path-title">{c.title}</span>
-                      <span className="path-sub">{st === "locked" ? c.reason : st === "done" ? (placed ? copy.placement.skipped : copy.today.done) : copy.today.open(n.minutes)}</span>
-                    </span>
-                    {st === "locked" ? null : <Icon name="chevron" className="path-chevron" />}
-                  </>
-                );
-                return (
-                  <li key={n.id} className={`path-row path-${st}`}>
-                    {st === "locked" ? (
-                      <div className="path-inner" aria-label={copy.a11y.locked(c.title, c.reason)}>
-                        {body}
-                      </div>
-                    ) : (
-                      <Link href={n.id === "meet" ? "/orientation" : `/lesson/${n.id}`} className="path-inner" aria-label={st === "done" ? copy.a11y.done(c.title) : undefined}>
-                        {body}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        );
-      })}
+    <div className="focus">
+      <div className="focus-head">
+        <p className="focus-meta">{copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}</p>
+        {f.currentUnit ? <span className="focus-chip">{copy.today.focus.active(f.currentUnit.title)}</span> : null}
+      </div>
+      {f.doneCount > 1 ? (
+        <div className="focus-earlier">
+          <span className="focus-dot done" aria-hidden>
+            <Icon name="check" size={16} />
+          </span>
+          <div>
+            <strong>{copy.today.focus.earlier(f.doneCount)}</strong>
+            <p>{f.unitsDone.map((u) => u.title.replace(/^Unit \d+ · /, "")).join(", ")}</p>
+          </div>
+          <button type="button" className="link-more" onClick={() => setReview((v) => !v)}>
+            {review ? copy.today.focus.hide : copy.today.focus.review}
+          </button>
+        </div>
+      ) : null}
+      {review ? (
+        <ul className="focus-rest">
+          {f.done.map((l) => (
+            <li key={l.id}>
+              <Link href={href(l.id)}>{l.title}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <ol className="focus-rail">
+        {f.justFinished ? <Stop kind="done" lesson={f.justFinished} unit={unitName(f.justFinished.unit)} kicker={copy.today.focus.justFinished} /> : null}
+        {f.current ? <Stop kind="current" lesson={f.current} unit={unitName(f.current.unit)} kicker={copy.today.focus.current} /> : null}
+        {f.upcoming.map((l, i) => (
+          <Stop key={l.id} kind="next" lesson={l} unit={unitName(l.unit)} kicker={i === 0 ? copy.today.focus.upNext : undefined} />
+        ))}
+      </ol>
+      {f.rest.length ? (
+        <div className="focus-more">
+          <div>
+            <strong>{copy.today.focus.more(f.rest.length)}</strong>
+            <p>{[...new Set(f.rest.map((l) => unitName(l.unit).replace(/^Unit \d+ · /, "")))].join(", ")}</p>
+          </div>
+          <button type="button" className="link-more" onClick={() => setAll((v) => !v)}>
+            {all ? copy.today.focus.showLess : copy.today.focus.viewAll}
+          </button>
+        </div>
+      ) : null}
+      {all ? (
+        <ul className="focus-rest">
+          {f.rest.map((l) => (
+            <li key={l.id}>
+              <Link href={href(l.id)}>
+                {l.title}
+                <span>{copy.today.open(l.minutes)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!f.current ? <p className="focus-meta">{copy.today.heroAllBody}</p> : null}
     </div>
+  );
+}
+
+function Stop({ kind, lesson, unit, kicker }: { kind: "done" | "current" | "next"; lesson: CourseLesson; unit: string; kicker?: string }) {
+  const body = (
+    <>
+      {kicker ? <span className="focus-kicker">{kicker}</span> : null}
+      <span className="focus-unit">{unit}</span>
+      <strong>{lesson.title}</strong>
+      <span className="path-sub">{kind === "done" ? `${copy.today.done} · +${lesson.xp} XP` : `${lesson.sub} · ${lesson.minutes} min`}</span>
+      {kind === "current" ? (
+        <span className="focus-go">
+          <Button href={href(lesson.id)} icon="play">
+            {lesson.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson}
+          </Button>
+        </span>
+      ) : null}
+    </>
+  );
+  return (
+    <li className={`focus-stop is-${kind}`}>
+      <span className={`focus-dot ${kind}`} aria-hidden>
+        {kind === "done" ? <Icon name="check" size={16} /> : kind === "current" ? <Icon name="play" size={14} /> : null}
+      </span>
+      {kind === "next" ? (
+        <Link href={href(lesson.id)} className="focus-card">
+          {body}
+          <Icon name="chevron" className="focus-chevron" />
+        </Link>
+      ) : (
+        <div className="focus-card">{body}</div>
+      )}
+    </li>
   );
 }

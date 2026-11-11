@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { completeNode, createInitialState, type AuthResponse } from "@chessschool/design";
+import { completeNode, createInitialState, PATH, type AuthResponse } from "@chessschool/design";
 import { createApp } from "../src/app";
 import { openDb } from "../src/db";
 import type { GoogleVerifier } from "../src/google";
@@ -31,11 +31,31 @@ const guestDone = () => {
   return { guestId: s.guestId, profile: { name: "Asha", dailyMinutes: 15 as const, who: "child" as const }, progress: s.progress };
 };
 
+describe("course", () => {
+  it("serves the outline without steps, and one lesson with its steps", async () => {
+    const outline = await call("GET", "/v1/course?outline=1");
+    expect(outline.status).toBe(200);
+    const centre = outline.json.lessons.find((l: { id: string }) => l.id === "centre");
+    expect(centre.title).toBe("The centre");
+    expect(centre.steps).toBeUndefined();
+    expect(outline.json.units.length).toBeGreaterThan(3);
+
+    const full = await call("GET", "/v1/course");
+    expect(full.json.lessons.find((l: { id: string; steps: unknown[] }) => l.id === "centre").steps.length).toBeGreaterThan(0);
+
+    const one = await call("GET", "/v1/lessons/centre");
+    expect(one.status).toBe(200);
+    expect(one.json.steps.length).toBeGreaterThan(0);
+    expect((await call("GET", "/v1/lessons/missing")).status).toBe(404);
+  });
+});
+
 describe("health", () => {
   it("responds", async () => {
     const r = await call("GET", "/v1/health");
     expect(r.status).toBe(200);
     expect(r.json.ok).toBe(true);
+    expect(r.json.app).toBe("0.4.0");
   });
 });
 
@@ -141,7 +161,7 @@ describe("me / home / progress", () => {
     const { token } = await account();
     let home = await call("GET", "/v1/home?day=2026-11-03", undefined, token);
     expect(home.json).toMatchObject({ name: "A", streak: 0, today: { nodeId: "meet", state: "current" } });
-    expect(home.json.path).toHaveLength(13);
+    expect(home.json.path).toHaveLength(PATH.length);
     expect(home.json.rooms).toEqual([
       { id: "play", open: true },
       { id: "practice", open: true },
@@ -191,5 +211,21 @@ describe("account deletion and feedback", () => {
     const statuses = [];
     for (let i = 0; i < 6; i++) statuses.push((await same()).status);
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+  });
+});
+
+describe("classes", () => {
+  it("lets a monitor create a class and a classmate join with the code", async () => {
+    const owner = (await call("POST", "/v1/auth/register", { name: "Monitor", email: "mon@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const made = await call("POST", "/v1/classes", { name: "Tuesday club" }, owner.token);
+    expect(made.status).toBe(201);
+    expect(made.json.class.role).toBe("monitor");
+    expect(made.json.class.code).toMatch(/^[A-Z0-9]{6}$/);
+    const mate = (await call("POST", "/v1/auth/register", { name: "Asha", email: "asha2@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const joined = await call("POST", "/v1/classes/join", { code: made.json.class.code }, mate.token);
+    expect(joined.status).toBe(200);
+    expect(joined.json.class.members).toHaveLength(2);
+    expect(joined.json.class.role).toBe("student");
+    expect((await call("POST", "/v1/classes/join", { code: "NOPE00" }, mate.token)).status).toBe(404);
   });
 });

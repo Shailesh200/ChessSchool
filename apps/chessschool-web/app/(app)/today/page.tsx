@@ -1,7 +1,7 @@
 "use client";
 
 import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, greetingFor, minutesToday, nextNode, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dailyDone, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
@@ -22,9 +22,6 @@ export default function TodayPage() {
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
-  const next = nextNode(progress);
-  const hero = next ? copy.path[next.id] : null;
-  const href = !next ? "/play" : next.id === "meet" ? "/orientation" : `/lesson/${next.id}`;
 
   return (
     <div className="today">
@@ -50,23 +47,6 @@ export default function TodayPage() {
 
       <div className="today-grid">
         <div className="today-main">
-          <Card className="hero" aria-labelledby="hero-title">
-            <div className="hero-text">
-              <p className="hero-label">{!next ? copy.today.heroLabelAll : done ? copy.today.heroLabelDone : copy.today.heroLabelNew}</p>
-              <h2 id="hero-title" className="hero-title">
-                {hero ? hero.title : copy.today.heroAllTitle}
-              </h2>
-              <p className="hero-meta">{next ? `${hero!.sub} · ${copy.today.heroMeta(next.minutes, next.xp)}` : copy.today.heroAllBody}</p>
-              <Button href={href} icon="play">
-                {!next ? copy.today.heroAllCta : next.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson}
-              </Button>
-            </div>
-            <div className="hero-art" aria-hidden>
-              <div className="hero-board" />
-              <Cody animation={!next ? "proud" : done ? "reading" : "wave"} size={132} className="hero-cody" />
-            </div>
-          </Card>
-
           {!state.placementDone && !progress.completed.board ? (
             <Card className="placement" aria-labelledby="place-title">
               <h2 id="place-title" className="card-title">

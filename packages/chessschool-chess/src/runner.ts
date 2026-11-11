@@ -1,5 +1,5 @@
 import type { Chess, Move } from "chess.js";
-import { readFen, turnOf, type Color, type MoveRef, type Square } from "./board";
+import { readFen, turnOf, type Color, type MoveRef, type PromotionPiece, type Square } from "./board";
 import { kingInCheck, legalTargets, load, moveRef, needsPromotion, outcome, parseUci, tryMove, withTurn, type GameOutcome } from "./game";
 import type { MoveGoal, Step } from "./lessons";
 
@@ -58,6 +58,8 @@ export type RunnerState = BoardView & {
   gameOver: GameOutcome;
   /** Index of the next move in a line step. */
   lineStep: number;
+  /** A pawn waiting on the last rank for the learner to pick a piece. */
+  promotion: MoveRef | null;
 };
 
 export type RunnerAction =
@@ -66,6 +68,8 @@ export type RunnerAction =
   | { type: "next" }
   | { type: "hint" }
   | { type: "bot"; move: MoveRef & { promotion?: string } }
+  | { type: "promote"; piece: PromotionPiece }
+  | { type: "cancelPromotion" }
   | { type: "endGame" };
 
 const PRAISE = ["Nice!", "That's it!", "Lovely.", "Exactly right.", "Well spotted!"];
@@ -90,6 +94,7 @@ function stepState(steps: Step[], index: number, misses = 0): RunnerState {
     gameMoves: 0,
     gameOver: null,
     lineStep: 0,
+    promotion: null,
   };
   return base;
 }
@@ -164,8 +169,16 @@ export function runnerReduce(s: RunnerState, a: RunnerAction): RunnerState {
     };
   }
 
+  if (a.type === "cancelPromotion") return { ...s, promotion: null, selected: null, targets: [] };
+  if (a.type === "promote") {
+    if (!s.promotion) return s;
+    const chess = load(s.fen);
+    const move = tryMove(chess, s.promotion.from, s.promotion.to, a.piece);
+    return move ? learnerMove({ ...s, promotion: null }, step, move, chess) : { ...s, promotion: null };
+  }
+
   // tap
-  if (s.status !== "working" || s.botThinking) return s;
+  if (s.status !== "working" || s.botThinking || s.promotion) return s;
   if (step.kind === "say" || step.kind === "choice") return s;
 
   if (step.kind === "tap") {
@@ -173,12 +186,14 @@ export function runnerReduce(s: RunnerState, a: RunnerAction): RunnerState {
     return { ...s, selected: a.square, misses: s.misses + 1, feedback: { tone: "hint", text: step.hint } };
   }
 
-  const p = pick(s.fen, s.selected, s.targets, a.square, "w");
+  const p = pick(s.fen, s.selected, s.targets, a.square, "w", true);
   if (p.kind === "select") return { ...s, selected: p.selected, targets: p.targets, feedback: s.feedback?.tone === "good" ? null : s.feedback };
   if (p.kind === "clear") return { ...s, selected: null, targets: [] };
+  if (p.kind === "promote") return { ...s, promotion: { from: p.from, to: p.to } };
+  return learnerMove(s, step, p.move, p.chess);
+}
 
-  if (p.kind !== "move") return s;
-  const { move, chess } = p;
+function learnerMove(s: RunnerState, step: Step, move: Move, chess: Chess): RunnerState {
   if (step.kind === "stars") {
     const fen = withTurn(chess.fen(), "w");
     const stars = s.stars.filter((sq) => sq !== move.to);
@@ -189,7 +204,7 @@ export function runnerReduce(s: RunnerState, a: RunnerAction): RunnerState {
   if (step.kind === "line") {
     const expected = step.moves[s.lineStep];
     const last = s.lineStep === step.moves.length - 1;
-    const right = `${move.from}${move.to}` === expected.slice(0, 4) || (last && step.mateEnds && chess.isCheckmate());
+    const right = sameMove(move, expected) || (last && step.mateEnds && chess.isCheckmate());
     if (!right) return { ...s, selected: null, targets: [], misses: s.misses + 1, feedback: { tone: "hint", text: step.hint } };
     const done = last;
     return {
@@ -230,6 +245,12 @@ export function runnerReduce(s: RunnerState, a: RunnerAction): RunnerState {
   };
 }
 
+/** A played move against a UCI string; the promotion piece only counts when the UCI names one. */
+export function sameMove(move: { from: string; to: string; promotion?: string }, uci: string): boolean {
+  if (`${move.from}${move.to}` !== uci.slice(0, 4)) return false;
+  return uci.length < 5 || move.promotion === uci[4];
+}
+
 function gameFeedback(o: NonNullable<GameOutcome>): Feedback {
   if (o.kind === "checkmate") return { tone: "good", text: o.winner === "w" ? "Checkmate! You won." : "Checkmate. Good game!" };
   return { tone: "good", text: "It's a draw. Good game!" };
@@ -248,4 +269,18 @@ export function hintSquares(s: RunnerState): Square[] {
   }
   if (step.kind === "tap") return step.targets;
   return [];
+}
+
+const playable = (s: Step) => s.kind === "tap" || s.kind === "move" || s.kind === "stars" || s.kind === "choice" || s.kind === "line";
+
+/** Practice picks from steps the API already sent, so the app does not ship the lesson book. */
+export function practiceSteps(steps: Step[], rand: () => number = Math.random, count = 5): Step[] {
+  const pool = steps.filter(playable);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const a = pool[i]!;
+    pool[i] = pool[j]!;
+    pool[j] = a;
+  }
+  return pool.slice(0, count);
 }

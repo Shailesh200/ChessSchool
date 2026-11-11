@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  bestMove,
   botInfo,
   BOTS,
   chooseMove,
@@ -13,6 +14,7 @@ import {
   playResult,
   reviewPlies,
   shuffleFen,
+  ENDGAME_IDS,
   START_POSITIONS,
   summarise,
   startGame,
@@ -22,6 +24,7 @@ import {
   winnerOf,
   type BotId,
   type Color,
+  type Piece,
   type PlayAction,
   type PlaySetup,
   type PlayState,
@@ -31,7 +34,7 @@ import {
 import { copy, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Board, PieceArt } from "@/components/Board";
+import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
@@ -42,7 +45,7 @@ import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 
 type Side = Color | "random";
-type Mode = "bot" | "friend" | "shuffle" | "position";
+type Mode = "bot" | "friend" | "shuffle" | "position" | "endgame";
 
 export default function PlayPage() {
   return (
@@ -68,12 +71,14 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const { state, saveGame, finishGame, cue } = useApp();
   const router = useRouter();
   const saved = state.activeGame;
-  const mode: Mode = params.get("mode") === "friend" ? "friend" : params.get("mode") === "shuffle" ? "shuffle" : params.get("mode") === "position" ? "position" : "bot";
+  const asked = params.get("mode");
+  const mode: Mode = asked === "friend" || asked === "shuffle" || asked === "position" || asked === "endgame" ? asked : "bot";
   const firstBot = params.get("bot");
   const [bot, setBot] = useState<BotId>(isBotId(firstBot) ? firstBot : "cody");
   const [side, setSide] = useState<Side>("w");
   const [time, setTime] = useState<TimeControlId>("none");
   const [takebacks, setTakebacks] = useState(botInfo(bot).takebacks || mode === "friend");
+  const [guide, setGuide] = useState<{ from: Square; to: Square; piece: Piece } | null>(null);
   const [position, setPosition] = useState(START_POSITIONS[0].id);
   const [game, setGame] = useState<PlayState | null>(null);
   const [startedAt, setStartedAt] = useState(0);
@@ -81,6 +86,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const [confirm, setConfirm] = useState(false);
   const [record, setRecord] = useState<GameRecord | null>(null);
   const [movesOpen, setMovesOpen] = useState(false);
+  const [watch, setWatch] = useState<number | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
@@ -105,8 +111,8 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
       time,
       takebacks,
       askPromotion: state.prefs.promotion === "ask",
-      startFen: mode === "shuffle" ? shuffleFen() : mode === "position" ? pos.fen : START_FEN,
-      startName: mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" ? pos.name : undefined,
+      startFen: mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN,
+      startName: mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
     };
   };
 
@@ -198,6 +204,14 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   }, [ticking]);
 
   /* ---------------- setup ---------------- */
+  useEffect(() => {
+    setWatch(null);
+  }, [game?.history.length]);
+
+  useEffect(() => {
+    setGuide(null);
+  }, [game?.fen, watch]);
+
   if (!game) {
     const info = botInfo(bot);
     return (
@@ -253,8 +267,8 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             </>
           )}
 
-          {mode === "position" ? (
-            <Options label={copy.gym.positions} value={position} onChange={setPosition} options={START_POSITIONS.map((p) => ({ value: p.id, title: p.name, body: p.blurb }))} />
+          {mode === "position" || mode === "endgame" ? (
+            <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: p.blurb }))} />
           ) : null}
           {mode !== "friend" ? <Options label={copy.play.side} value={side} onChange={setSide} options={(["w", "b", "random"] as const).map((v) => ({ value: v, title: copy.play.sides[v] }))} row /> : null}
           <Options label={copy.gym.clock} value={time} onChange={setTime} options={TIME_CONTROLS.map((t) => ({ value: t.id, title: t.label }))} row />
@@ -277,7 +291,12 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const turn = turnOf(game.fen);
   const bottomSide: Color = friend ? (game.over ? "w" : turn) : game.setup.you;
   const topSide: Color = bottomSide === "w" ? "b" : "w";
-  const canMove = !game.botThinking && !game.over && !game.promotion;
+  const plies = reviewPlies(game.setup.startFen, game.history);
+  const at = watch == null ? game.history.length : Math.max(0, Math.min(watch, game.history.length));
+  const live = at === game.history.length;
+  const ply = at === 0 ? null : plies[at - 1];
+  const shownFen = live ? game.fen : (ply?.fen ?? game.setup.startFen);
+  const canMove = live && !game.botThinking && !game.over && !game.promotion && (friend || turn === game.setup.you);
   const pose: CodyAnimation = game.botThinking ? "thinking" : game.check ? "wow" : "idle";
   const winner = winnerOf(game);
   const resultCopy = game.over
@@ -316,7 +335,10 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
           </span>
         )}
         <div className="player-text">
-          <div className="player-name">{isBot ? name : friend ? copy.play.sides[color] : "You"}</div>
+          <div className="player-name">
+            {isBot ? name : friend ? copy.play.sides[color] : "You"}
+            {live && turn === color && !game.over ? <i className="turn-pip" aria-label={copy.gym.yourTurn(copy.play.sides[color])} /> : null}
+          </div>
           <CapturedTray startFen={game.setup.startFen} fen={game.fen} color={color} />
         </div>
         {game.clock ? (
@@ -342,16 +364,43 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
     <div className="page play-page">
       <TopBar backHref="/gym" title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       <div className="play">
+        <div className="play-chrome">
+          <button type="button" className="icon-btn icon-btn-danger" aria-label={copy.play.resign} disabled={Boolean(game.over)} onClick={() => setConfirm(true)}>
+            <Icon name="flag" />
+          </button>
+          <span className="play-chrome-right">
+            <button type="button" className="icon-btn" aria-label={copy.analysis.movesTitle} onClick={() => setMovesOpen(true)}>
+              <Icon name="history" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label={copy.gym.hints}
+              onClick={() => {
+                if (!live || game.over || game.botThinking || (!friend && turn !== game.setup.you)) return;
+                const m = bestMove(game.fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
+                if (!m) return;
+                setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
+              }}
+            >
+              <Icon name="bulb" />
+            </button>
+          </span>
+        </div>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} className="play-stage">
           <Board
-            fen={game.fen}
+            fen={shownFen}
             orientation={bottomSide}
-            selected={game.selected}
-            targets={game.targets}
-            lastMove={game.lastMove}
-            check={game.check}
+            selected={live ? game.selected : null}
+            targets={live ? game.targets : []}
+            lastMove={live ? game.lastMove : ((ply?.lastMove ?? null) as typeof game.lastMove)}
+            check={live ? game.check : ((ply?.check ?? null) as typeof game.check)}
+            mate={game.over?.kind === "checkmate" ? game.check : null}
             onTap={(sq) => act({ type: "tap", square: sq, now: Date.now() })}
             disabled={!canMove}
+            guide={live ? guide : null}
+            promotion={game.promotion}
+            onPromote={(p) => act(p ? { type: "promote", piece: p, now: Date.now() } : { type: "cancelPromotion" })}
           />
         </BoardStage>
         <div className="play-panel">
@@ -383,17 +432,13 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                   <span className="muted">{statusSub ?? "\u00a0"}</span>
                 </div>
               </div>
-              <div className="play-tools">
-                {game.setup.takebacks ? (
-                  <Button variant="secondary" icon="undo" onClick={() => act({ type: "takeback", now: Date.now() })} disabled={!canMove || !game.history.length}>
-                    {copy.play.takeback}
-                  </Button>
-                ) : (
-                  <span />
-                )}
-                <Button variant="ghost" icon="flag" onClick={() => setConfirm(true)}>
-                  {copy.play.resign}
-                </Button>
+              <div className="play-steps">
+                <button type="button" className="icon-btn" aria-label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onClick={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))}>
+                  <Icon name="undo" />
+                </button>
+                <button type="button" className="icon-btn" aria-label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onClick={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))}>
+                  <Icon name="redo" />
+                </button>
               </div>
             </>
           )}
@@ -417,21 +462,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
           onBack={() => router.push("/gym")}
         />
       ) : null}
-
-      <Sheet open={Boolean(game.promotion)} onClose={() => act({ type: "cancelPromotion" })} labelledBy="promo-title">
-        <h2 id="promo-title">{copy.gym.promoteTitle}</h2>
-        <div className="promo-row">
-          {(["q", "r", "b", "n"] as const).map((p) => (
-            <button key={p} type="button" className="promo-btn" aria-label={copy.gym.promotePieces[p]} onClick={() => act({ type: "promote", piece: p, now: Date.now() })}>
-              <PieceArt piece={{ type: p, color: turn }} size={56} />
-              <span>{copy.gym.promotePieces[p]}</span>
-            </button>
-          ))}
-        </div>
-        <Button block variant="ghost" onClick={() => act({ type: "cancelPromotion" })}>
-          {copy.gym.cancel}
-        </Button>
-      </Sheet>
 
       <Sheet open={confirm} onClose={() => setConfirm(false)} labelledBy="resign-title">
         <Icon name="flag" size={40} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { dailyPuzzle, nextPuzzle, PUZZLE_THEMES, updateRating, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
-import { copy, dayKey } from "@chessschool/design";
+import { copy, dailyDone, dayKey } from "@chessschool/design";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
@@ -29,6 +29,14 @@ function SolveRoom({ daily, theme, rating, recent }: { daily: boolean; theme: Pu
   const [round, setRound] = useState(0);
   const [delta, setDelta] = useState<number | null>(null);
   const title = daily ? copy.puzzles.daily : theme ? PUZZLE_THEMES.find((t) => t.id === theme)!.name : copy.puzzles.play;
+  if (daily && dailyDone(state.progress, dayKey(new Date()))) {
+    return (
+      <div className="page">
+        <TopBar backHref="/puzzles" title={title} />
+        <p className="page-lead">{copy.puzzles.dailyDone}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page play-page">

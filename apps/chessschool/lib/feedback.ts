@@ -33,6 +33,7 @@ const HAPTIC: Partial<Record<SoundCue, () => Promise<void>>> = {
   move: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
   capture: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
   check: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+  mate: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
   castle: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
   promote: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
   "low-time": () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning),

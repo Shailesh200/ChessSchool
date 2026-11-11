@@ -34,6 +34,7 @@ export const soundSources: Record<SoundCue, number> = {
   move: require("@chessschool/design/assets/sound/move.wav"),
   capture: require("@chessschool/design/assets/sound/capture.wav"),
   check: require("@chessschool/design/assets/sound/check.wav"),
+  mate: require("@chessschool/design/assets/sound/mate.wav"),
   castle: require("@chessschool/design/assets/sound/castle.wav"),
   promote: require("@chessschool/design/assets/sound/promote.wav"),
   "low-time": require("@chessschool/design/assets/sound/low-time.wav"),

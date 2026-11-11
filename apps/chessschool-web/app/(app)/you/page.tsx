@@ -1,8 +1,8 @@
 "use client";
 
-import { BADGES, cleanName, copy, dayKey, earnedBadges, ideasLearned, rankFor, visibleStreak, type DailyMinutes, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, SaveBanner, Segmented, Sheet, TextField, TopBar, useToast } from "@/components/ui";
@@ -12,19 +12,29 @@ import { useApp } from "@/lib/state";
 export default function YouPage() {
   const { state, ready, setProfile, cue } = useApp();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "name" | "goal" | "badges">(null);
+  const [sheet, setSheet] = useState<null | "name" | "goal" | "badges" | "picture">(null);
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const nameForm = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (sheet !== "name") return;
+    const t = setTimeout(() => nameForm.current?.querySelector("input")?.focus(), 320);
+    return () => clearTimeout(t);
+  }, [sheet]);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
 
   const { profile, progress, account } = state;
   const rank = rankFor(progress.xp);
   const display = profile.name.trim() || copy.you.noName;
-  const initial = (profile.name.trim()[0] ?? "").toUpperCase();
   const earned = earnedBadges(progress);
   const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
   const toNext = rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank;
 
+  const saveLook = (patch: { avatar?: AvatarId; flair?: FlairId | null }) => {
+    setProfile(patch);
+    cue("tap");
+    if (account) api.updateMe(patch).catch(() => {});
+  };
   const openName = () => {
     setDraft(profile.name);
     setNameError(null);
@@ -88,15 +98,15 @@ export default function YouPage() {
 
       <Card className="me-card hero">
         <div className="me-row">
-          <div className="me-avatar" aria-hidden>
-            {initial ? initial : <Cody animation="idle" size={60} />}
-          </div>
+          <button type="button" className="me-avatar" aria-label={copy.you.avatar} onClick={() => setSheet("picture")}>
+            {profile.avatar === "cody" ? <Cody animation="idle" size={60} /> : <img src={`/coaches/${profile.avatar}.png`} alt="" width={72} height={72} />}
+          </button>
           <div className="me-id">
             <button type="button" className="me-name" onClick={openName} aria-label={`${display}. ${copy.you.editName}`}>
               <span>{display}</span>
               <Icon name="edit" size={18} />
             </button>
-            <span className="muted">{copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
+            <span className="muted">{profile.flair ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
             <span className={`me-chip${account ? " is-member" : ""}`}>{account ? copy.you.member : copy.you.guest}</span>
             {account ? <span className="muted small">{account.email}</span> : null}
           </div>
@@ -150,6 +160,14 @@ export default function YouPage() {
           </span>
           <Icon name="chevron" />
         </button>
+        <button className="row" onClick={() => setSheet("picture")}>
+          <Icon name="profile" />
+          <span className="row-text">
+            <span className="row-label">{copy.you.avatar}</span>
+            <span className="row-hint">{copy.you.avatarHint}</span>
+          </span>
+          <Icon name="chevron" />
+        </button>
         <Link href="/settings/looks" className="row row-link">
           <Icon name="palette" />
           <span className="row-text">
@@ -158,10 +176,19 @@ export default function YouPage() {
           </span>
           <Icon name="chevron" />
         </Link>
-        <Link href="/settings" className="row row-link">
-          <Icon name="settings" />
+        <Link href="/gym/review" className="row row-link">
+          <Icon name="history" />
           <span className="row-text">
-            <span className="row-label">{copy.you.settings}</span>
+            <span className="row-label">{copy.you.review}</span>
+            <span className="row-hint">{copy.gym.review.body}</span>
+          </span>
+          <Icon name="chevron" />
+        </Link>
+        <Link href="/class" className="row row-link">
+          <Icon name="club" />
+          <span className="row-text">
+            <span className="row-label">{copy.you.class}</span>
+            <span className="row-hint">{copy.you.classHint}</span>
           </span>
           <Icon name="chevron" />
         </Link>
@@ -170,12 +197,33 @@ export default function YouPage() {
       <Sheet open={sheet === "name"} onClose={() => setSheet(null)} labelledBy="name-title">
         <h2 id="name-title">{copy.you.editName}</h2>
         <p>{copy.you.nameHint}</p>
-        <form onSubmit={saveName} className="sheet-wide-field sheet-form">
+        <form ref={nameForm} onSubmit={saveName} className="sheet-wide-field sheet-form">
           <TextField label={copy.you.name} placeholder={copy.auth.namePlaceholder} value={draft} maxLength={40} autoComplete="given-name" onChange={(e) => (setDraft(e.target.value), setNameError(null))} error={nameError} />
           <Button type="submit" block>
             {copy.you.nameSave}
           </Button>
         </form>
+      </Sheet>
+
+      <Sheet open={sheet === "picture"} onClose={() => setSheet(null)} labelledBy="picture-title">
+        <h2 id="picture-title">{copy.you.avatar}</h2>
+        <p>{copy.you.avatarHint}</p>
+        <div className="avatar-grid" role="radiogroup" aria-label={copy.you.avatar}>
+          {AVATARS.map((id) => (
+            <button key={id} type="button" role="radio" aria-checked={profile.avatar === id} className={`avatar-pick${profile.avatar === id ? " is-on" : ""}`} onClick={() => saveLook({ avatar: id })}>
+              {id === "cody" ? <Cody animation="idle" size={64} /> : <img src={`/coaches/${id}.png`} alt="" width={72} height={72} />}
+              <span>{id === "cody" ? "Cody" : id[0].toUpperCase() + id.slice(1)}</span>
+            </button>
+          ))}
+        </div>
+        <h3>{copy.you.flair}</h3>
+        <div className="flair-list" role="radiogroup" aria-label={copy.you.flair}>
+          {FLAIRS.map((id) => (
+            <button key={id} type="button" role="radio" aria-checked={profile.flair === id} className={`choice${profile.flair === id ? " is-on" : ""}`} onClick={() => saveLook({ flair: profile.flair === id ? null : id })}>
+              {copy.you.flairs[id]}
+            </button>
+          ))}
+        </div>
       </Sheet>
 
       <Sheet open={sheet === "goal"} onClose={() => setSheet(null)} labelledBy="goal-title">

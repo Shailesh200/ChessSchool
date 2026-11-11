@@ -1,4 +1,4 @@
-import { dailyPuzzle, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
+import { allPuzzles, dailyPuzzle, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
 import { copy, dailyDone, dayKey } from "@chessschool/design";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -17,7 +17,7 @@ export default function Puzzles() {
   return (
     <Page title={copy.puzzles.title} large>
       <T role="bodyLg" color="textMuted" style={{ marginTop: -8 }}>
-        {copy.puzzles.body}
+        {`${copy.puzzles.body} ${copy.puzzles.themeCount(allPuzzles().length)}`}
       </T>
 
       <Card tone="hero" style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.line }}>
@@ -47,7 +47,7 @@ export default function Puzzles() {
         <View style={{ alignSelf: "flex-start" }}>
           <Chip tone="accent">{copy.puzzles.dailyStreak(pz.daily.count)}</Chip>
         </View>
-        {done ? null : <Button title={copy.puzzles.daily} icon="play" variant="secondary" onPress={() => router.push("/puzzle?daily=1")} />}
+        {done ? null : <Button title={copy.puzzles.daily} icon="play" variant="gold" onPress={() => router.push("/puzzle?daily=1")} />}
       </Card>
 
       <Card style={{ gap: 8 }}>
@@ -61,7 +61,7 @@ export default function Puzzles() {
         <View style={{ alignSelf: "flex-start" }}>
           <Chip tone="gold">{copy.puzzles.sprintBest(pz.sprintBest)}</Chip>
         </View>
-        <Button title={copy.puzzles.sprint} icon="bolt" variant="secondary" onPress={() => router.push("/sprint")} />
+        <Button title={copy.puzzles.sprint} icon="bolt" variant="accent" onPress={() => router.push("/sprint")} />
       </Card>
 
       <T role="heading" header>
@@ -74,7 +74,7 @@ export default function Puzzles() {
             accessibilityRole="button"
             accessibilityLabel={`${t.name}. ${t.blurb}`}
             onPress={() => router.push(`/puzzle?theme=${t.id}`)}
-            style={({ pressed }) => ({ flexGrow: 1, flexBasis: "45%", gap: 4, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: pressed ? c.sunken : c.card })}
+            style={({ pressed }) => ({ flexGrow: 1, flexBasis: "45%", gap: 4, padding: 14, borderRadius: 20, borderWidth: 1, borderBottomWidth: 4, borderColor: c.brand, backgroundColor: pressed ? c.brandSoft : c.card })}
           >
             <T role="label">{t.name}</T>
             <T role="small" color="textMuted">
@@ -86,9 +86,6 @@ export default function Puzzles() {
           </Pressable>
         ))}
       </View>
-      <T role="micro" color="textMuted">
-        {copy.puzzles.credit}
-      </T>
     </Page>
   );
 }

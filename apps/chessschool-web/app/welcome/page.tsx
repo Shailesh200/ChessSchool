@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, type CodyAnimation, type DailyMinutes, type Who } from "@chessschool/design";
+import { AVATARS, copy, type AvatarId, type CodyAnimation, type DailyMinutes } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Cody } from "@/components/Lottie";
@@ -8,7 +8,7 @@ import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
-const POSES: CodyAnimation[] = ["wave", "thinking", "happy", "celebrate"];
+const POSES: CodyAnimation[] = ["wave", "happy", "proud", "celebrate"];
 const STEPS = 4;
 
 export default function Welcome() {
@@ -53,7 +53,7 @@ export default function Welcome() {
       </header>
 
       <div className="flow-body" key={step}>
-        <Cody animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />
+        {step === 1 ? null : <Cody animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
         {step === 0 ? (
           <>
             <h1 ref={headingRef} tabIndex={-1}>
@@ -65,14 +65,13 @@ export default function Welcome() {
         {step === 1 ? (
           <>
             <h1 ref={headingRef} tabIndex={-1}>
-              {w.who.title}
+              {copy.you.avatar}
             </h1>
-            <p className="lead">{w.who.body}</p>
-            <div className="choices" role="radiogroup" aria-label={w.who.title}>
-              {(Object.keys(w.who.options) as Who[]).map((id) => (
-                <button key={id} type="button" role="radio" aria-checked={state.profile.who === id} className="choice" onClick={() => (setProfile({ who: id }), cue("tap"))}>
-                  <span>{w.who.options[id]}</span>
-                  {state.profile.who === id ? <Icon name="check" /> : null}
+            <p className="lead">{copy.you.avatarHint}</p>
+            <div className="avatar-grid" role="radiogroup" aria-label={copy.you.avatar}>
+              {AVATARS.map((id) => (
+                <button key={id} type="button" role="radio" aria-checked={state.profile.avatar === id} className={`avatar-pick${state.profile.avatar === id ? " is-on" : ""}`} onClick={() => (setProfile({ avatar: id as AvatarId }), cue("tap"))}>
+                  {id === "cody" ? <Cody animation="idle" size={64} /> : <img src={`/coaches/${id}.png`} alt="" width={72} height={72} />}
                 </button>
               ))}
             </div>
@@ -91,7 +90,7 @@ export default function Welcome() {
                   type="button"
                   role="radio"
                   aria-checked={state.profile.dailyMinutes === m}
-                  className={`choice choice-tint-${i}`}
+                  className="choice"
                   onClick={() => (setProfile({ dailyMinutes: m }), cue("tap"))}
                 >
                   <span>

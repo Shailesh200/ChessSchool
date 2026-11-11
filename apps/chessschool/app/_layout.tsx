@@ -5,7 +5,9 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { ToastProvider, useToast } from "@/components/ui";
 import { AppStateProvider, useApp } from "@/lib/state";
 import { ThemeProvider, useTheme } from "@/lib/theme";
@@ -37,6 +39,7 @@ function Themed({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       {children}
+      <UpdateBanner />
     </ToastProvider>
   );
 }
@@ -97,10 +100,12 @@ function Routes() {
 
 export default function Layout() {
   return (
-    <SafeAreaProvider>
-      <AppStateProvider>
-        <Root />
-      </AppStateProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AppStateProvider>
+          <Root />
+        </AppStateProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -2,6 +2,8 @@ import {
   cleanName,
   dayKey,
   emptyProgress,
+  isAvatarId,
+  isFlairId,
   isProgress,
   mergeProgress,
   nextNode,
@@ -14,6 +16,7 @@ import {
   type Account,
   type ApiErrorCode,
   type ApiProfile,
+  type ClassRoom,
   type AuthResponse,
   type DailyMinutes,
   type GuestPayload,
@@ -26,7 +29,7 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { feedback, profiles, progress, sessions, users } from "./schema";
+import { classMembers, classes, course, feedback, profiles, progress, sessions, users } from "./schema";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
@@ -39,6 +42,8 @@ import {
 } from "./security";
 
 export const API_VERSION = "0.4.0";
+/** Store version learners should be on. Bump when a new Play / TestFlight build is the one to install. */
+export const LATEST_APP = "0.4.0";
 
 export type AppDeps = {
   db: Db;
@@ -63,6 +68,11 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
 
+  const loadCourse = async () => {
+    const row = await db.query.course.findFirst({ where: eq(course.id, "live") });
+    return row ? (JSON.parse(row.data) as { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] }) : null;
+  };
+
   app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization"], allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"] }));
 
   app.onError((err, c) => {
@@ -83,6 +93,8 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
       dailyMinutes: ((row?.dailyMinutes ?? 10) as DailyMinutes),
       appearance: (row?.appearance as ApiProfile["appearance"]) ?? "system",
       sound: row?.sound ?? true,
+      avatar: isAvatarId(row?.avatar) ? row.avatar : "cody",
+      flair: isFlairId(row?.flair) ? row.flair : null,
     };
   }
 
@@ -182,13 +194,15 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
       dailyMinutes: MINUTES.has(gp.dailyMinutes as number) ? (gp.dailyMinutes as number) : (existing?.dailyMinutes ?? 10),
       appearance: APPEARANCE.has(gp.appearance as string) ? (gp.appearance as string) : (existing?.appearance ?? "system"),
       sound: typeof gp.sound === "boolean" ? gp.sound : (existing?.sound ?? true),
+      avatar: isAvatarId(gp.avatar) ? gp.avatar : isAvatarId(existing?.avatar) ? existing.avatar : "cody",
+      flair: gp.flair === null ? null : isFlairId(gp.flair) ? gp.flair : isFlairId(existing?.flair) ? existing.flair : null,
     };
     await db.insert(profiles).values(values).onConflictDoUpdate({ target: profiles.userId, set: values });
   }
 
   /* ---------- routes ---------- */
 
-  app.get("/v1/health", (c) => c.json({ ok: true, version: API_VERSION, time: now().toISOString() }));
+  app.get("/v1/health", (c) => c.json({ ok: true, version: API_VERSION, app: LATEST_APP, time: now().toISOString() }));
 
   app.post("/v1/auth/register", limitAuth, async (c) => {
     const b = await body<{ name: string; email: string; password: string; guest: GuestPayload }>(c);
@@ -295,8 +309,130 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     if (b.dailyMinutes !== undefined && !MINUTES.has(b.dailyMinutes)) return fail(c, 400, "invalid_input");
     if (b.appearance !== undefined && !APPEARANCE.has(b.appearance)) return fail(c, 400, "invalid_input");
     if (b.sound !== undefined && typeof b.sound !== "boolean") return fail(c, 400, "invalid_input");
+    if (b.avatar !== undefined && !isAvatarId(b.avatar)) return fail(c, 400, "invalid_input");
+    if (b.flair !== undefined && b.flair !== null && !isFlairId(b.flair)) return fail(c, 400, "invalid_input");
     await applyGuestProfile(user.id, { guestId: "patch", profile: b }, true);
     return c.json({ user: toAccount(user), profile: { ...(await loadProfile(user.id)), name: user.name } });
+  });
+
+  const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const classCode = () => {
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    return [...bytes].map((b) => ALPHABET[b % ALPHABET.length]).join("");
+  };
+
+  async function roomOf(classId: string, viewerId: string): Promise<ClassRoom | null> {
+    const row = await db.query.classes.findFirst({ where: eq(classes.id, classId) });
+    if (!row) return null;
+    const members = await db
+      .select({ id: users.id, name: users.name, role: classMembers.role })
+      .from(classMembers)
+      .innerJoin(users, eq(users.id, classMembers.userId))
+      .where(eq(classMembers.classId, classId));
+    const me = members.find((m) => m.id === viewerId);
+    if (!me) return null;
+    return {
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      role: me.role === "monitor" ? "monitor" : "student",
+      members: members.map((m) => ({ id: m.id, name: m.name || "Friend", role: m.role === "monitor" ? "monitor" : "student" })),
+    };
+  }
+
+  app.get("/v1/join/:code", async (c) => {
+    const code = c.req.param("code").trim().toUpperCase();
+    const row = await db.query.classes.findFirst({ where: eq(classes.code, code) });
+    if (!row) return fail(c, 404, "not_found");
+    return c.json({ name: row.name, code: row.code, origin: row.origin === "web" ? "web" : "app" });
+  });
+
+  app.get("/join/:code", async (c) => {
+    const code = c.req.param("code").trim().toUpperCase();
+    const row = await db.query.classes.findFirst({ where: eq(classes.code, code) });
+    if (!row) return c.html("<p>That class code does not match.</p>", 404);
+    const origin = row.origin === "web" ? "web" : "app";
+    return c.html(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>${row.name}</title><p>Join ${row.name}. Code ${code}.</p><script>
+      var code=${JSON.stringify(code)};
+      var origin=${JSON.stringify(origin)};
+      location.href="chessschool://join/"+code;
+      setTimeout(function(){
+        if (document.hidden || origin==="web") return;
+        var ua=navigator.userAgent;
+        if (/android/i.test(ua)) location.replace("https://play.google.com/store/apps/details?id=com.chessschool.app");
+        else if (/iphone|ipad/i.test(ua)) location.replace("https://apps.apple.com/app/id6828715695");
+      }, 1200);
+    </script>`);
+  });
+
+  app.get("/v1/classes", requireUser, async (c) => {
+    const user = c.get("user");
+    const mine = await db.select({ classId: classMembers.classId }).from(classMembers).where(eq(classMembers.userId, user.id));
+    const rooms = (await Promise.all(mine.map((m) => roomOf(m.classId, user.id)))).filter((r): r is ClassRoom => Boolean(r));
+    return c.json({ classes: rooms });
+  });
+
+  app.post("/v1/classes", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ name?: string; origin?: string }>(c);
+    const name = cleanName(String(b.name ?? ""));
+    if (!name) return fail(c, 400, "invalid_input");
+    const origin = b.origin === "web" ? "web" : "app";
+    let code = classCode();
+    for (let i = 0; i < 4; i++) {
+      const clash = await db.query.classes.findFirst({ where: eq(classes.code, code) });
+      if (!clash) break;
+      code = classCode();
+    }
+    const id = newId();
+    const at = now().getTime();
+    await db.insert(classes).values({ id, name, code, ownerId: user.id, createdAt: at, origin });
+    await db.insert(classMembers).values({ classId: id, userId: user.id, role: "monitor", joinedAt: at });
+    return c.json({ class: await roomOf(id, user.id) }, 201);
+  });
+
+  app.post("/v1/classes/join", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ code?: string }>(c);
+    const code = String(b.code ?? "").trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) return fail(c, 400, "invalid_input");
+    const row = await db.query.classes.findFirst({ where: eq(classes.code, code) });
+    if (!row) return fail(c, 404, "not_found");
+    const already = await db.query.classMembers.findFirst({ where: and(eq(classMembers.classId, row.id), eq(classMembers.userId, user.id)) });
+    if (!already) await db.insert(classMembers).values({ classId: row.id, userId: user.id, role: "student", joinedAt: now().getTime() });
+    return c.json({ class: await roomOf(row.id, user.id) });
+  });
+
+  app.delete("/v1/classes/:id", requireUser, async (c) => {
+    const user = c.get("user");
+    const id = c.req.param("id");
+    if (!id) return fail(c, 400, "invalid_input");
+    const row = await db.query.classes.findFirst({ where: eq(classes.id, id) });
+    if (!row) return fail(c, 404, "not_found");
+    const mine = await db.query.classMembers.findFirst({ where: and(eq(classMembers.classId, id), eq(classMembers.userId, user.id)) });
+    if (!mine) return fail(c, 404, "not_found");
+    if (row.ownerId === user.id) await db.delete(classes).where(eq(classes.id, id));
+    else await db.delete(classMembers).where(and(eq(classMembers.classId, id), eq(classMembers.userId, user.id)));
+    return c.json({ ok: true });
+  });
+
+  app.get("/v1/course", async (c) => {
+    const doc = await loadCourse();
+    if (!doc) return fail(c, 404, "not_found");
+    if (c.req.query("outline") === "1") {
+      return c.json({ ...doc, lessons: doc.lessons.map(({ steps: _steps, ...lesson }) => lesson) });
+    }
+    return c.json(doc);
+  });
+
+  app.get("/v1/lessons/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!id) return fail(c, 400, "invalid_input");
+    const doc = await loadCourse();
+    const lesson = doc?.lessons.find((l) => l.id === id);
+    if (!lesson) return fail(c, 404, "not_found");
+    return c.json(lesson);
   });
 
   app.get("/v1/home", requireUser, async (c) => {

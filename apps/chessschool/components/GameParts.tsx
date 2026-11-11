@@ -62,7 +62,7 @@ export function MoveStrip({ history, onOpen }: { history: string[]; onOpen: () =
       accessibilityLabel={`${copy.analysis.allMoves}. ${history.slice(-2).join(" ")}`}
       onPress={onOpen}
       disabled={!history.length}
-      style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 48, paddingRight: 6, borderRadius: 16, borderWidth: 1, borderColor: c.line, backgroundColor: c.card, overflow: "hidden" }}
+      style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 40, paddingRight: 6, borderRadius: 14, borderWidth: 1, borderColor: c.line, backgroundColor: c.card, overflow: "hidden" }}
     >
       <ScrollView
         ref={scroll}

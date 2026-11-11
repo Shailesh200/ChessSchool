@@ -15,7 +15,11 @@ function load(): GoogleModule | null {
   }
   try {
     mod = require("@react-native-google-signin/google-signin") as GoogleModule;
-    mod.GoogleSignin.configure({ webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID, offlineAccess: false });
+    mod.GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      offlineAccess: false,
+    });
   } catch {
     mod = null;
   }

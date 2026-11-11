@@ -38,8 +38,13 @@ export type Palette = {
   dangerText: string;
   dangerSoft: string;
   gold: string;
+  /** Text that sits on a gold fill (a gold button), not gold-coloured text. */
+  onGold: string;
+  goldEdge: string;
   goldText: string;
   goldSoft: string;
+  /** Text that sits on a danger fill. */
+  onDanger: string;
   /** Scrim behind sheets/dialogs */
   scrim: string;
   /** Focus ring */
@@ -82,7 +87,10 @@ export const palettes: Record<Scheme, Palette> = {
     danger: "#F43F5E",
     dangerText: "#BE123C",
     dangerSoft: "#FFE8EC",
+    onDanger: "#2A0A10",
     gold: "#F6C343",
+    onGold: "#4A3200",
+    goldEdge: "#A67C12",
     goldText: "#8A6100",
     goldSoft: "#FFF4D6",
     scrim: "rgba(28, 27, 46, 0.48)",
@@ -121,7 +129,10 @@ export const palettes: Record<Scheme, Palette> = {
     danger: "#FB7185",
     dangerText: "#FF9AAA",
     dangerSoft: "#3D1B2C",
+    onDanger: "#2A0A10",
     gold: "#F6C343",
+    onGold: "#3A2800",
+    goldEdge: "#A67C12",
     goldText: "#F8D375",
     goldSoft: "#3A3220",
     scrim: "rgba(5, 6, 18, 0.66)",
@@ -217,8 +228,8 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
     brand: "#3F7D4E", brandEdge: "#2A5A37", brandSoft: "#E4F1E3", brandText: "#2F6B3F", onBrand: "#FFFFFF",
     accent: "#F08A5D", accentEdge: "#C9633A", onAccent: "#2A1308",
     success: "#22A06B", successText: "#146C46", successSoft: "#E1F5EA",
-    danger: "#E5484D", dangerText: "#B42318", dangerSoft: "#FDECEC",
-    gold: "#E7B53C", goldText: "#7A5600", goldSoft: "#FBF1D3",
+    danger: "#E5484D", dangerText: "#B42318", dangerSoft: "#FDECEC", onDanger: "#2A0A10",
+    gold: "#E7B53C", onGold: "#3A2800", goldEdge: "#8F6410", goldText: "#7A5600", goldSoft: "#FBF1D3",
     scrim: "rgba(20, 30, 18, 0.48)", focus: "#3F7D4E", heroFrom: "#E9F3E2", heroTo: "#D6E9CF",
     ...board("#F1F3E3", "#7FA36B", "#4F7A3E", "#F4F7EE", "rgba(25, 40, 20, 0.32)"),
   },
@@ -228,8 +239,8 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
     brand: "#C4473A", brandEdge: "#93301F", brandSoft: "#FDEAE2", brandText: "#A8392C", onBrand: "#FFFFFF",
     accent: "#F2A541", accentEdge: "#C47A12", onAccent: "#2A1308",
     success: "#2E9E6B", successText: "#17704A", successSoft: "#E3F5EC",
-    danger: "#E04F5F", dangerText: "#B4233C", dangerSoft: "#FDE9EC",
-    gold: "#EDB443", goldText: "#7E5600", goldSoft: "#FDF1D6",
+    danger: "#E04F5F", dangerText: "#B4233C", dangerSoft: "#FDE9EC", onDanger: "#2A0A10",
+    gold: "#EDB443", onGold: "#3A2800", goldEdge: "#A56B10", goldText: "#7E5600", goldSoft: "#FDF1D6",
     scrim: "rgba(42, 26, 20, 0.48)", focus: "#C4473A", heroFrom: "#FFEDE2", heroTo: "#FFD9C6",
     ...board("#FCEBDD", "#D98A6A", "#B5654A", "#FFF6EE", "rgba(60, 25, 15, 0.3)"),
   },
@@ -239,8 +250,8 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
     brand: "#117A8C", brandEdge: "#0A4E5A", brandSoft: "#123E4A", brandText: "#7FD6E3", onBrand: "#FFFFFF",
     accent: "#FF9F7A", accentEdge: "#C96A45", onAccent: "#2A1308",
     success: "#34D399", successText: "#5EE3B0", successSoft: "#0F3A33",
-    danger: "#FB7185", dangerText: "#FF9AAA", dangerSoft: "#3A1B28",
-    gold: "#F6C343", goldText: "#F8D375", goldSoft: "#33301C",
+    danger: "#FB7185", dangerText: "#FF9AAA", dangerSoft: "#3A1B28", onDanger: "#2A0A10",
+    gold: "#F6C343", onGold: "#3A2800", goldEdge: "#A67C12", goldText: "#F8D375", goldSoft: "#33301C",
     scrim: "rgba(3, 14, 18, 0.7)", focus: "#7FD6E3", heroFrom: "#123A45", heroTo: "#0F2F38",
     ...board("#BFE6EA", "#3C8D9A", "#2C6F7A", "#EAF8FA", "rgba(5, 30, 36, 0.4)"),
   },
@@ -250,8 +261,8 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
     brand: "#E3B341", brandEdge: "#9C7A1E", brandSoft: "#2A2412", brandText: "#F0CC6E", onBrand: "#1A1408",
     accent: "#E8A06A", accentEdge: "#A86A3A", onAccent: "#1A0E05",
     success: "#4ADE80", successText: "#6EE7A0", successSoft: "#0E2A1B",
-    danger: "#F87171", dangerText: "#FCA5A5", dangerSoft: "#2E1214",
-    gold: "#E3B341", goldText: "#F0CC6E", goldSoft: "#2A2412",
+    danger: "#F87171", dangerText: "#FCA5A5", dangerSoft: "#2E1214", onDanger: "#2A0A10",
+    gold: "#E3B341", onGold: "#1A1408", goldEdge: "#9C7A1E", goldText: "#F0CC6E", goldSoft: "#2A2412",
     scrim: "rgba(0, 0, 0, 0.72)", focus: "#F0CC6E", heroFrom: "#16130B", heroTo: "#0E0C07",
     ...board("#D7BE7E", "#8A6F37", "#6E5A2E", "#FBF1D6", "rgba(20, 16, 8, 0.42)"),
   },
@@ -261,8 +272,8 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
     brand: "#7A4A23", brandEdge: "#4F2E12", brandSoft: "#F2E4D0", brandText: "#6E4220", onBrand: "#FFFFFF",
     accent: "#D9824B", accentEdge: "#A85A27", onAccent: "#2A1308",
     success: "#2F8F5B", successText: "#1D6B42", successSoft: "#E3F2E8",
-    danger: "#D64545", dangerText: "#A82727", dangerSoft: "#FBE8E5",
-    gold: "#D9A53A", goldText: "#7A5400", goldSoft: "#FAEFD4",
+    danger: "#D64545", dangerText: "#A82727", dangerSoft: "#FBE8E5", onDanger: "#000000",
+    gold: "#D9A53A", onGold: "#3A2800", goldEdge: "#8F6410", goldText: "#7A5400", goldSoft: "#FAEFD4",
     scrim: "rgba(43, 33, 23, 0.5)", focus: "#7A4A23", heroFrom: "#F4E8D6", heroTo: "#EAD8BD",
     ...board("#F0D9B5", "#B58863", "#946F4B", "#FFF4E4", "rgba(40, 25, 10, 0.3)"),
   },
@@ -272,8 +283,8 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
     brand: "#000000", brandEdge: "#000000", brandSoft: "#EDEDED", brandText: "#000000", onBrand: "#FFFFFF",
     accent: "#FFD400", accentEdge: "#B39400", onAccent: "#000000",
     success: "#007A3D", successText: "#005C2E", successSoft: "#E5F5EC",
-    danger: "#C40000", dangerText: "#A30000", dangerSoft: "#FDE7E7",
-    gold: "#FFC400", goldText: "#5C4300", goldSoft: "#FFF3C4",
+    danger: "#C40000", dangerText: "#A30000", dangerSoft: "#FDE7E7", onDanger: "#FFFFFF",
+    gold: "#FFC400", onGold: "#000000", goldEdge: "#8A6A00", goldText: "#5C4300", goldSoft: "#FFF3C4",
     scrim: "rgba(0, 0, 0, 0.6)", focus: "#0047FF", heroFrom: "#F0F0F0", heroTo: "#E6E6E6",
     ...board("#FFFFFF", "#8C8C8C", "#000000", "#FFFFFF", "rgba(0, 0, 0, 0.55)"),
     boardMove: "rgba(0, 71, 255, 0.22)",

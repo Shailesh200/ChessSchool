@@ -1,6 +1,6 @@
 "use client";
 
-import { dailyPuzzle, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
+import { allPuzzles, dailyPuzzle, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
 import { copy, dailyDone, dayKey } from "@chessschool/design";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
@@ -18,7 +18,7 @@ export default function PuzzlesPage() {
   return (
     <div className="page">
       <TopBar title={copy.puzzles.title} large back={false} />
-      <p className="page-lead">{copy.puzzles.body}</p>
+      <p className="page-lead">{`${copy.puzzles.body} ${copy.puzzles.themeCount(allPuzzles().length)}`}</p>
 
       <div className="puzzle-hub">
         <Card className="gym-hero">
@@ -40,7 +40,7 @@ export default function PuzzlesPage() {
           <p className="muted">{done ? copy.puzzles.dailyDone : copy.puzzles.dailyBody}</p>
           <p className="chip chip-accent">{copy.puzzles.dailyStreak(pz.daily.count)}</p>
           {done ? null : (
-            <Button href={`/puzzles/solve?daily=1`} icon="play" variant="secondary">
+            <Button href={`/puzzles/solve?daily=1`} icon="play" variant="gold">
               {copy.puzzles.daily} · {daily.rating}
             </Button>
           )}
@@ -52,7 +52,7 @@ export default function PuzzlesPage() {
           </h2>
           <p className="muted">{copy.puzzles.sprintBody}</p>
           <p className="chip chip-gold">{copy.puzzles.sprintBest(pz.sprintBest)}</p>
-          <Button href="/puzzles/sprint" icon="bolt" variant="secondary">
+          <Button href="/puzzles/sprint" icon="bolt" variant="accent">
             {copy.puzzles.sprint}
           </Button>
         </Card>
@@ -73,7 +73,6 @@ export default function PuzzlesPage() {
             </li>
           ))}
         </ul>
-        <p className="muted small">{copy.puzzles.credit}</p>
       </section>
     </div>
   );

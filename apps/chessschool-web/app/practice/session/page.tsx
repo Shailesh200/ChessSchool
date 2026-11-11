@@ -1,31 +1,39 @@
 "use client";
 
-import { buildDrills, type Step } from "@chessschool/chess";
+import { practiceSteps, type Step } from "@chessschool/chess";
 import { copy, dayKey, goalMet, visibleStreak } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
+import { LessonSkeleton } from "@/components/Skeleton";
+import { useCourse, useLessonScripts } from "@/lib/course";
 import { useApp } from "@/lib/state";
 
 export default function PracticeSessionPage() {
   const { ready } = useApp();
-  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
+  if (!ready) return <LessonSkeleton />;
   return <Session />;
 }
 
 function Session() {
   const { state, finishPractice, cue } = useApp();
+  const course = useCourse();
+  const ids = course ? course.lessons.filter((l) => state.progress.completed[l.id]).map((l) => l.id) : null;
+  const scripts = useLessonScripts(ids);
   const router = useRouter();
   const [round, setRound] = useState(0);
-  const [steps, setSteps] = useState<Step[]>(() => buildDrills(Object.keys(state.progress.completed)));
+  const [steps, setSteps] = useState<Step[] | null>(null);
   const [before, setBefore] = useState<{ streak: number; goal: boolean } | null>(null);
 
   useEffect(() => {
-    if (!steps.length) router.replace("/practice");
-  }, [steps.length, router]);
-  if (!steps.length) return null;
+    if (!scripts || steps) return;
+    const next = practiceSteps(scripts as Step[]);
+    if (!next.length) router.replace("/practice");
+    else setSteps(next);
+  }, [scripts, steps, router]);
+  if (!steps) return <LessonSkeleton />;
 
   const today = dayKey(new Date());
   const streak = visibleStreak(state.progress.streak, today);
@@ -51,7 +59,7 @@ function Session() {
               block
               icon="refresh"
               onClick={() => {
-                setSteps(buildDrills(Object.keys(state.progress.completed)));
+                setSteps(practiceSteps((scripts ?? []) as Step[]));
                 setBefore(null);
                 setRound((r) => r + 1);
               }}

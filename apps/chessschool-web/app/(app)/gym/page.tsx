@@ -13,7 +13,7 @@ const MODES: { key: keyof typeof copy.gym; href: string; icon: IconName; locked?
   { key: "friend", href: "/play?mode=friend", icon: "club" },
   { key: "shuffle", href: "/play?mode=shuffle", icon: "shuffle" },
   { key: "position", href: "/play?mode=position", icon: "pawn" },
-  { key: "review", href: "/gym/review", icon: "history" },
+  { key: "endgames", href: "/play?mode=endgame", icon: "trophy" },
   { key: "club", href: "/rooms/club", icon: "lock", locked: true },
 ];
 

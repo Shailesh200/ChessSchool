@@ -1,5 +1,5 @@
 import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, greetingFor, minutesToday, nextNode, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dailyDone, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
@@ -21,9 +21,6 @@ export default function Today() {
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
-  const next = nextNode(progress);
-  const hero = next ? copy.path[next.id] : null;
-  const open = () => router.push(!next ? "/play" : next.id === "meet" ? "/orientation" : `/lesson/${next.id}`);
   const saved = state.pendingCeremony === "saved";
   const arrival = saved ? null : state.arrival;
 
@@ -109,24 +106,6 @@ export default function Today() {
           {copy.today.xp(progress.xp)}
         </Chip>
       </View>
-
-      <Card tone="hero" style={{ overflow: "hidden", minHeight: 220, borderWidth: 1, borderColor: c.line }}>
-        <View style={{ gap: 8, paddingRight: 110 }}>
-          <T role="label" color="brandText">
-            {!next ? copy.today.heroLabelAll : done ? copy.today.heroLabelDone : copy.today.heroLabelNew}
-          </T>
-          <T role="title" header>
-            {hero ? hero.title : copy.today.heroAllTitle}
-          </T>
-          <T role="body" color="textMuted">
-            {next && hero ? `${hero.sub} · ${copy.today.heroMeta(next.minutes, next.xp)}` : copy.today.heroAllBody}
-          </T>
-        </View>
-        <View style={{ marginTop: 14, alignSelf: "flex-start" }}>
-          <Button block={false} title={!next ? copy.today.heroAllCta : next.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson} icon="play" onPress={open} />
-        </View>
-        <Cody animation={!next ? "proud" : done ? "reading" : "wave"} size={120} style={{ position: "absolute", right: 0, bottom: -6 }} />
-      </Card>
 
       {!state.placementDone && !progress.completed.board ? (
         <Card style={{ gap: 10 }}>

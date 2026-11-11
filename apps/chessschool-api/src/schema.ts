@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("cs_users", {
   id: text("id").primaryKey(),
@@ -27,7 +27,35 @@ export const profiles = sqliteTable("cs_profiles", {
   dailyMinutes: integer("daily_minutes").notNull().default(10),
   appearance: text("appearance").notNull().default("system"),
   sound: integer("sound", { mode: "boolean" }).notNull().default(true),
+  avatar: text("avatar"),
+  flair: text("flair"),
 });
+
+export const classes = sqliteTable("cs_classes", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull(),
+  origin: text("origin").notNull().default("app"),
+});
+
+export const classMembers = sqliteTable(
+  "cs_class_members",
+  {
+    classId: text("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    joinedAt: integer("joined_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.classId, t.userId] })],
+);
 
 export const progress = sqliteTable("cs_progress", {
   userId: text("user_id")
@@ -35,6 +63,11 @@ export const progress = sqliteTable("cs_progress", {
     .references(() => users.id, { onDelete: "cascade" }),
   data: text("data").notNull(),
   updatedAt: integer("updated_at").notNull(),
+});
+
+export const course = sqliteTable("cs_course", {
+  id: text("id").primaryKey(),
+  data: text("data").notNull(),
 });
 
 export const feedback = sqliteTable("cs_feedback", {
@@ -70,12 +103,36 @@ export const BOOTSTRAP_SQL = [
     who TEXT,
     daily_minutes INTEGER NOT NULL DEFAULT 10,
     appearance TEXT NOT NULL DEFAULT 'system',
-    sound INTEGER NOT NULL DEFAULT 1
+    sound INTEGER NOT NULL DEFAULT 1,
+    avatar TEXT,
+    flair TEXT
+  )`,
+  `ALTER TABLE cs_profiles ADD COLUMN avatar TEXT`,
+  `ALTER TABLE cs_profiles ADD COLUMN flair TEXT`,
+  `CREATE TABLE IF NOT EXISTS cs_classes (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    owner_id TEXT NOT NULL REFERENCES cs_users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    origin TEXT NOT NULL DEFAULT 'app'
+  )`,
+  `ALTER TABLE cs_classes ADD COLUMN origin TEXT NOT NULL DEFAULT 'app'`,
+  `CREATE TABLE IF NOT EXISTS cs_class_members (
+    class_id TEXT NOT NULL REFERENCES cs_classes(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES cs_users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    joined_at INTEGER NOT NULL,
+    PRIMARY KEY (class_id, user_id)
   )`,
   `CREATE TABLE IF NOT EXISTS cs_progress (
     user_id TEXT PRIMARY KEY REFERENCES cs_users(id) ON DELETE CASCADE,
     data TEXT NOT NULL,
     updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_course (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS cs_feedback (
     id TEXT PRIMARY KEY,

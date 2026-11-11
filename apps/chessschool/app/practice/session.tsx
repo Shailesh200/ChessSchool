@@ -1,18 +1,29 @@
-import { buildDrills, type Step } from "@chessschool/chess";
+import { practiceSteps, type Step } from "@chessschool/chess";
 import { copy, dayKey, goalMet, visibleStreak } from "@chessschool/design";
-import { Redirect, router } from "expo-router";
-import { useState } from "react";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
+import { LessonSkeleton } from "@/components/Skeleton";
+import { useCourse, useLessonScripts } from "@/lib/course";
 import { useApp } from "@/lib/state";
 
 export default function PracticeSession() {
   const { state, finishPractice, cue } = useApp();
+  const course = useCourse();
+  const ids = course ? course.lessons.filter((l) => state.progress.completed[l.id]).map((l) => l.id) : null;
+  const scripts = useLessonScripts(ids);
   const [round, setRound] = useState(0);
-  const [steps, setSteps] = useState<Step[]>(() => buildDrills(Object.keys(state.progress.completed)));
+  const [steps, setSteps] = useState<Step[] | null>(null);
   const [before, setBefore] = useState<{ streak: number; goal: boolean } | null>(null);
-  if (!steps.length) return <Redirect href="/practice" />;
+  useEffect(() => {
+    if (!scripts || steps) return;
+    const next = practiceSteps(scripts as Step[]);
+    if (!next.length) router.replace("/practice");
+    else setSteps(next);
+  }, [scripts, steps]);
+  if (!steps) return <LessonSkeleton />;
 
   const today = dayKey(new Date());
   const streak = visibleStreak(state.progress.streak, today);
@@ -38,7 +49,7 @@ export default function PracticeSession() {
               title={copy.practice.again}
               icon="refresh"
               onPress={() => {
-                setSteps(buildDrills(Object.keys(state.progress.completed)));
+                setSteps(practiceSteps((scripts ?? []) as Step[]));
                 setBefore(null);
                 setRound((r) => r + 1);
               }}

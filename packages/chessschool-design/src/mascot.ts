@@ -54,7 +54,7 @@ export const fxAnimations = ["xp-pop", "streak-spark", "stamp", "error-shake", "
 export type FxAnimation = (typeof fxAnimations)[number];
 
 /** Sound cues (assets/sound/<name>.wav). */
-export const soundCues = ["tap", "success", "stamp", "gentle-no", "level-up", "move", "capture", "check", "castle", "promote", "low-time"] as const;
+export const soundCues = ["tap", "success", "stamp", "gentle-no", "level-up", "move", "capture", "check", "mate", "castle", "promote", "low-time"] as const;
 export type SoundCue = (typeof soundCues)[number];
 
 /** Switchable app icons (assets/raster/app-icons/<id>.png, -fg.png, -preview.png). */

@@ -24,10 +24,6 @@ export default function Settings() {
     <Page title={s.title} banner={false}>
 
       <Card style={{ padding: 8 }}>
-        <Row icon="palette" label={s.looks} hint={s.looksHint} chevron onPress={() => router.push("/looks")} />
-      </Card>
-
-      <Card style={{ padding: 8 }}>
         <SwitchRow
           icon={prefs.sound ? "sound" : "mute"}
           label={s.sound}

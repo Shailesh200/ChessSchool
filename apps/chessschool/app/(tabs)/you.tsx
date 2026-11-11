@@ -1,9 +1,9 @@
-import { BADGES, cleanName, copy, dayKey, earnedBadges, ideasLearned, rankFor, visibleStreak, type DailyMinutes } from "@chessschool/design";
+import { BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
-import { Cody } from "@/components/Lottie";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -13,13 +13,23 @@ export default function You() {
   const { state, setProfile, cue } = useApp();
   const { c } = useTheme();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "name" | "goal" | "badges">(null);
+  const [sheet, setSheet] = useState<null | "name" | "goal" | "badges" | "picture">(null);
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const nameRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (sheet !== "name") return;
+    const t = setTimeout(() => nameRef.current?.focus(), 420);
+    return () => clearTimeout(t);
+  }, [sheet]);
   const { profile, progress, account } = state;
   const rank = rankFor(progress.xp);
   const earned = earnedBadges(progress);
-  const initial = (profile.name.trim()[0] ?? "").toUpperCase();
+  const saveLook = (patch: { avatar?: AvatarId; flair?: FlairId | null }) => {
+    setProfile(patch);
+    cue("tap");
+    if (account) api.updateMe(patch).catch(() => {});
+  };
   const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
 
   const saveName = () => {
@@ -58,7 +68,7 @@ export default function You() {
         key={id}
         accessible
         accessibilityLabel={`${bc.name}. ${bc.body}${on ? "" : ` (${copy.you.badgeLocked})`}`}
-        style={{ width: wide ? undefined : 112, flexGrow: wide ? 1 : 0, flexBasis: wide ? "45%" : undefined, alignItems: "center", gap: 4, paddingVertical: 12, paddingHorizontal: 8, borderRadius: 18, backgroundColor: on ? c.goldSoft : c.sunken }}
+        style={{ width: wide ? undefined : 112, flexGrow: wide ? 1 : 0, flexBasis: wide ? "45%" : undefined, alignItems: "center", gap: 4, paddingVertical: 12, paddingHorizontal: 8, borderRadius: 18, backgroundColor: on ? c.goldSoft : c.card, borderWidth: 1, borderColor: on ? c.gold : c.line, borderBottomWidth: 4 }}
       >
         <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: c.card, opacity: on ? 1 : 0.7 }}>
           <Icon name={on ? "trophy" : "lock"} color={on ? c.goldText : c.textMuted} size={22} />
@@ -79,15 +89,9 @@ export default function You() {
     <Page title={copy.you.title} large action={<IconButton icon="settings" label={copy.you.settings} onPress={() => router.push("/settings")} />}>
       <Card tone="hero" style={{ gap: 14, borderWidth: 1, borderColor: c.line }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: c.card, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 3, borderColor: c.brand }}>
-            {initial ? (
-              <T role="title" color="brandText">
-                {initial}
-              </T>
-            ) : (
-              <Cody animation="idle" size={60} />
-            )}
-          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel={copy.you.avatar} onPress={() => setSheet("picture")}>
+            <AvatarFace id={profile.avatar} size={72} />
+          </Pressable>
           <View style={{ flex: 1, gap: 2 }}>
             <Pressable
               accessibilityRole="button"
@@ -105,7 +109,7 @@ export default function You() {
               <Icon name="edit" size={18} color={c.textMuted} />
             </Pressable>
             <T role="small" color="textMuted">
-              {copy.today.level(copy.ranks[rank.rank], rank.level)}
+              {profile.flair ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
             </T>
             <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 10, minHeight: 24, borderRadius: 12, justifyContent: "center", backgroundColor: account ? c.successSoft : c.sunken }}>
               <T role="micro" style={{ color: account ? c.successText : c.textMuted, fontFamily: fonts.semibold }}>
@@ -174,8 +178,10 @@ export default function You() {
         <Card style={{ padding: 6 }}>
           <Row icon="profile" label={copy.you.name} hint={profile.name.trim() || copy.you.noName} chevron onPress={() => (setDraft(profile.name), setNameError(null), setSheet("name"))} />
           <Row icon="clock" label={copy.you.goal} hint={copy.you.goalOption(profile.dailyMinutes)} chevron onPress={() => setSheet("goal")} />
+          <Row icon="profile" label={copy.you.avatar} hint={copy.you.avatarHint} chevron onPress={() => setSheet("picture")} />
           <Row icon="palette" label={copy.settings.looks} hint={copy.you.looksHint} chevron onPress={() => router.push("/looks")} />
-          <Row icon="settings" label={copy.you.settings} chevron onPress={() => router.push("/settings")} />
+          <Row icon="history" label={copy.you.review} hint={copy.gym.review.body} chevron onPress={() => router.push("/review")} />
+          <Row icon="club" label={copy.you.class} hint={copy.you.classHint} chevron onPress={() => router.push("/class")} />
         </Card>
       </View>
 
@@ -187,9 +193,30 @@ export default function You() {
           {copy.you.nameHint}
         </T>
         <View style={{ alignSelf: "stretch" }}>
-          <TextField label={copy.you.name} placeholder={copy.auth.namePlaceholder} value={draft} onChangeText={(v) => (setDraft(v), setNameError(null))} error={nameError} maxLength={40} returnKeyType="done" onSubmitEditing={saveName} autoFocus />
+          <TextField ref={nameRef} label={copy.you.name} placeholder={copy.auth.namePlaceholder} value={draft} onChangeText={(v) => (setDraft(v), setNameError(null))} error={nameError} maxLength={40} returnKeyType="done" onSubmitEditing={saveName} />
         </View>
         <Button title={copy.you.nameSave} onPress={saveName} />
+      </Sheet>
+
+      <Sheet visible={sheet === "picture"} onClose={() => setSheet(null)} scroll>
+        <T role="heading" header center>
+          {copy.you.avatar}
+        </T>
+        <T role="small" color="textMuted" center>
+          {copy.you.avatarHint}
+        </T>
+        <AvatarPicker value={profile.avatar} onChange={(id) => saveLook({ avatar: id })} />
+        <T role="label" center>
+          {copy.you.flair}
+        </T>
+        <View style={{ alignSelf: "stretch", gap: 8 }}>
+          {FLAIRS.map((id) => (
+            <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: profile.flair === id }} onPress={() => saveLook({ flair: profile.flair === id ? null : id })} style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: 14, borderRadius: 16, borderWidth: 2, borderColor: profile.flair === id ? c.brand : c.line, backgroundColor: c.card }}>
+              <T role="label">{copy.you.flairs[id]}</T>
+            </Pressable>
+          ))}
+        </View>
+        <Button title={copy.analysis.close} variant="secondary" onPress={() => setSheet(null)} />
       </Sheet>
 
       <Sheet visible={sheet === "goal"} onClose={() => setSheet(null)}>

@@ -1,13 +1,14 @@
-import { copy, type CodyAnimation, type DailyMinutes, type Who } from "@chessschool/design";
+import { copy, type AvatarId, type CodyAnimation, type DailyMinutes } from "@chessschool/design";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { AvatarPicker } from "@/components/AvatarFace";
 import { Cody } from "@/components/Lottie";
 import { Button, Choice, Flow, IconButton, Steps, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
-const POSES: CodyAnimation[] = ["wave", "thinking", "happy", "celebrate"];
+const POSES: CodyAnimation[] = ["wave", "happy", "proud", "celebrate"];
 const STEPS = 4;
 
 export default function Welcome() {
@@ -15,7 +16,7 @@ export default function Welcome() {
   const { c } = useTheme();
   const [step, setStep] = useState(0);
   const w = copy.welcome.steps;
-  const tints = [c.brandSoft, c.dangerSoft, c.successSoft];
+  const tints = [c.card, c.card, c.card];
 
   const finish = (to: "/today" | "/login") => {
     setSeenWelcome();
@@ -53,7 +54,7 @@ export default function Welcome() {
         )
       }
     >
-      <Cody key={step} animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />
+      {step === 1 ? null : <Cody key={step} animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
       {step === 0 ? (
         <>
           <T role="title" header center>
@@ -67,16 +68,12 @@ export default function Welcome() {
       {step === 1 ? (
         <>
           <T role="title" header center>
-            {w.who.title}
+            {copy.you.avatar}
           </T>
           <T role="body" color="textMuted" center>
-            {w.who.body}
+            {copy.you.avatarHint}
           </T>
-          <View accessibilityRole="radiogroup" style={{ gap: 10, alignSelf: "stretch" }}>
-            {(Object.keys(w.who.options) as Who[]).map((id) => (
-              <Choice key={id} label={w.who.options[id]} selected={state.profile.who === id} onPress={() => (setProfile({ who: id }), cue("tap"))} />
-            ))}
-          </View>
+          <AvatarPicker value={state.profile.avatar} onChange={(id: AvatarId) => (setProfile({ avatar: id }), cue("tap"))} />
         </>
       ) : null}
       {step === 2 ? (

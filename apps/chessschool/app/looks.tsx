@@ -91,9 +91,6 @@ export default function Looks() {
             );
           })}
         </View>
-        <T role="micro" color="textMuted">
-          {copy.looks.credit}
-        </T>
       </Card>
 
       <Card style={{ padding: 8 }}>

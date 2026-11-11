@@ -1,4 +1,4 @@
-import { chooseMove, currentStep, hintSquares, parseUci, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
+import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
 import { copy, type CodyAnimation } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, ScrollView, View } from "react-native";
@@ -44,7 +44,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     setS(next);
     if (next.misses > prev.misses) cue("gentle-no");
     else if (next.status === "ready" && prev.status !== "ready") cue("success");
-    else if (next.fen !== prev.fen) cue("tap");
+    else if (next.fen !== prev.fen) cue(positionCue(prev.fen, next.fen, next.lastMove));
     if (next.feedback && next.feedback !== prev.feedback) AccessibilityInfo.announceForAccessibility(next.feedback.text);
     if (next.status === "finished" && !finished.current) {
       finished.current = true;
@@ -97,18 +97,20 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
         : null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
       {top}
-      <View style={{ flex: 1, paddingHorizontal: 12, gap: 10, maxWidth: 640, width: "100%", alignSelf: "center" }}>
+      <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 12, gap: 10, maxWidth: 640, width: "100%", alignSelf: "center" }}>
         <BoardStage
+          topSize={72}
+          bottomSize={40}
           top={
             <>
-              <Cody animation={poseFor(s, step)} size={56} />
+              <Cody animation={poseFor(s, step)} size={72} />
               <View style={{ flex: 1, gap: 2 }}>
-                <T role="label" header>
+                <T role="heading" header>
                   {step.title}
                 </T>
-                <T role="small" color="textMuted">
+                <T role="body" color="textMuted">
                   {step.body}
                 </T>
               </View>
@@ -126,9 +128,10 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
             </View>
           }
         >
-          {(size) => (
+          {(size, radius) => (
             <Board
               size={size}
+              radius={radius}
               fen={s.fen}
               selected={step.kind === "tap" ? (s.status === "ready" ? s.selected : null) : s.selected}
               targets={s.targets}
@@ -140,16 +143,19 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
               onTap={(sq) => act({ type: "tap", square: sq })}
               disabled={!interactive || step.kind === "choice" || s.status !== "working" || s.botThinking}
               shake={s.misses}
+              mate={s.gameOver?.kind === "checkmate" ? s.check : null}
+              promotion={s.promotion}
+              onPromote={(p) => act(p ? { type: "promote", piece: p } : { type: "cancelPromotion" })}
             />
           )}
         </BoardStage>
 
         {step.kind === "choice" ? (
-          <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+          <ScrollView accessibilityRole="radiogroup" style={{ maxHeight: 200, flexGrow: 0 }} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
             {step.options.map((o, i) => (
               <Choice key={o.label} label={o.label} selected={s.choice === i} onPress={() => s.status === "working" && act({ type: "choose", index: i })} />
             ))}
-          </View>
+          </ScrollView>
         ) : null}
       </View>
       <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12, gap: 6, maxWidth: 560, width: "100%", alignSelf: "center" }}>

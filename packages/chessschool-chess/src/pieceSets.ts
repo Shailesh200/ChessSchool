@@ -20,12 +20,12 @@ export const PIECE_SETS: readonly PieceSetInfo[] = [
   { id: "clay", name: "Clay", blurb: "Soft, hand-made feel", source: "chessschool" },
   { id: "pixel", name: "Pixel", blurb: "Retro game sprites", source: "chessschool" },
   { id: "outline", name: "Outline", blurb: "High contrast, easiest to read", source: "chessschool" },
-  { id: "spatial", name: "Spatial", blurb: "Faceted 3D", source: "lichess", credit: "Spatial by Maurits Meijer (lichess.org)" },
-  { id: "arcade", name: "Arcade", blurb: "Bright pixel art", source: "lichess", credit: "Pixel by therealqtpi (lichess.org)" },
-  { id: "bold", name: "Bold", blurb: "Thick modern outlines", source: "lichess", credit: "Chessnut by Alexis Luengas (lichess.org)" },
-  { id: "heritage", name: "Heritage", blurb: "Carved classic", source: "lichess", credit: "Dubrovny (lichess.org)" },
-  { id: "cartoon", name: "Cartoon", blurb: "Soft and rounded", source: "lichess", credit: "Kiwen-suwi by neverRare (lichess.org)" },
-  { id: "fantasy", name: "Fantasy", blurb: "Ornate storybook", source: "lichess", credit: "Fantasy by Maurizio Monge (lichess.org)" },
+  { id: "spatial", name: "Spatial", blurb: "Faceted 3D", source: "lichess" },
+  { id: "arcade", name: "Arcade", blurb: "Bright pixel art", source: "lichess" },
+  { id: "bold", name: "Bold", blurb: "Thick modern outlines", source: "lichess" },
+  { id: "heritage", name: "Heritage", blurb: "Carved classic", source: "lichess" },
+  { id: "cartoon", name: "Cartoon", blurb: "Soft and rounded", source: "lichess" },
+  { id: "fantasy", name: "Fantasy", blurb: "Ornate storybook", source: "lichess" },
 ];
 export const isPieceSet = (v: unknown): v is PieceSetId => PIECE_SETS.some((s) => s.id === v);
 

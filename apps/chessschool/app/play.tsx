@@ -1,7 +1,9 @@
 import {
+  bestMove,
   botInfo,
   BOTS,
   chooseMove,
+  ENDGAME_IDS,
   defaultSetup,
   isBotId,
   moveCue,
@@ -20,6 +22,7 @@ import {
   winnerOf,
   type BotId,
   type Color,
+  type Piece,
   type PlayAction,
   type PlaySetup,
   type PlayState,
@@ -44,7 +47,7 @@ import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
 type Side = Color | "random";
-type Mode = "bot" | "friend" | "shuffle" | "position";
+type Mode = "bot" | "friend" | "shuffle" | "position" | "endgame";
 
 const fmt = (ms: number) => {
   const s = Math.ceil(ms / 1000);
@@ -56,12 +59,14 @@ export default function Play() {
   const { state, saveGame, finishGame, cue } = useApp();
   const { c } = useTheme();
   const saved = state.activeGame;
-  const mode: Mode = params.mode === "friend" || params.mode === "shuffle" || params.mode === "position" ? params.mode : "bot";
+  const mode: Mode = params.mode === "friend" || params.mode === "shuffle" || params.mode === "position" || params.mode === "endgame" ? params.mode : "bot";
   const [bot, setBot] = useState<BotId>(isBotId(params.bot) ? params.bot : "cody");
   const [side, setSide] = useState<Side>("w");
   const [time, setTime] = useState<TimeControlId>("none");
   const [takebacks, setTakebacks] = useState(botInfo(isBotId(params.bot) ? params.bot : "cody").takebacks || mode === "friend");
   const [position, setPosition] = useState(START_POSITIONS[0].id);
+  const [watch, setWatch] = useState<number | null>(null);
+  const [guide, setGuide] = useState<{ from: Square; to: Square; piece: Piece } | null>(null);
   const [game, setGame] = useState<PlayState | null>(null);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
@@ -91,8 +96,8 @@ export default function Play() {
       time,
       takebacks,
       askPromotion: state.prefs.promotion === "ask",
-      startFen: mode === "shuffle" ? shuffleFen() : mode === "position" ? pos.fen : START_FEN,
-      startName: mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" ? pos.name : undefined,
+      startFen: mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN,
+      startName: mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
     };
   };
 
@@ -133,7 +138,7 @@ export default function Play() {
       const rec: GameRecord = { id: `${startedAt}-${next.history.length}`, endedAt: Date.now(), setup: next.setup as StoredSetup, history: next.history, winner: winnerOf(next) ?? null, reason: next.over.kind };
       setRecord(rec);
       finishGame(rec, (Date.now() - startedAt) / 60_000);
-      setTimeout(() => setResultOpen(true), 700);
+      setTimeout(() => setResultOpen(true), next.over.kind === "checkmate" ? 1600 : 700);
       cue(next.setup.opponent.kind === "friend" || result !== "loss" ? (result === "win" ? "level-up" : "success") : "tap");
     } else if (!next.over) {
       saveGame({ setup: next.setup as StoredSetup, history: next.history, startedAt, clock: next.clock ? { w: timeLeft(next, "w", Date.now()), b: timeLeft(next, "b", Date.now()) } : null });
@@ -161,6 +166,14 @@ export default function Play() {
     // act reads the latest game through the ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.botThinking, game?.fen]);
+
+  useEffect(() => {
+    setWatch(null);
+  }, [game?.history.length]);
+
+  useEffect(() => {
+    setGuide(null);
+  }, [game?.fen, watch]);
 
   const ticking = Boolean(game?.clock && !game.over);
   useEffect(() => {
@@ -236,7 +249,7 @@ export default function Play() {
             </ScrollView>
           </>
         )}
-        {mode === "position" ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={START_POSITIONS.map((p) => ({ value: p.id, title: p.name, body: p.blurb }))} /> : null}
+        {mode === "position" || mode === "endgame" ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: p.blurb }))} /> : null}
         {mode !== "friend" ? <Options label={copy.play.side} value={side} onChange={setSide} options={(["w", "b", "random"] as const).map((v) => ({ value: v, title: copy.play.sides[v] }))} row /> : null}
         <Options label={copy.gym.clock} value={time} onChange={setTime} options={TIME_CONTROLS.map((t) => ({ value: t.id, title: t.label }))} row />
         <Card style={{ padding: 8 }}>
@@ -252,7 +265,14 @@ export default function Play() {
   const turn = turnOf(game.fen);
   const bottomSide: Color = friend ? (game.over ? "w" : turn) : game.setup.you;
   const topSide: Color = bottomSide === "w" ? "b" : "w";
-  const canMove = !game.botThinking && !game.over && !game.promotion;
+  const plies = reviewPlies(game.setup.startFen, game.history);
+  const at = watch == null ? game.history.length : Math.max(0, Math.min(watch, game.history.length));
+  const live = at === game.history.length;
+  const ply = at === 0 ? null : plies[at - 1];
+  const shownFen = live ? game.fen : (ply?.fen ?? game.setup.startFen);
+  const shownLast = live ? game.lastMove : (ply?.lastMove ?? null);
+  const shownCheck = live ? game.check : (ply?.check ?? null);
+  const canMove = live && !game.botThinking && !game.over && !game.promotion && (friend || turn === game.setup.you);
   const pose: CodyAnimation = game.botThinking ? "thinking" : game.check ? "wow" : "idle";
   const winner = winnerOf(game);
   const resultCopy = game.over
@@ -301,10 +321,13 @@ export default function Play() {
           </View>
         )}
         <View style={{ flex: 1, gap: 2 }}>
-          <T role="label" numberOfLines={1}>
-            {isBot ? name : friend ? copy.play.sides[color] : "You"}
-          </T>
-          <CapturedTray startFen={game.setup.startFen} fen={game.fen} color={color} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <T role="heading" numberOfLines={1}>
+              {isBot ? name : friend ? copy.play.sides[color] : "You"}
+            </T>
+            {live && turn === color && !game.over ? <View accessibilityLabel={copy.gym.yourTurn(copy.play.sides[color])} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.brand }} /> : null}
+          </View>
+          <CapturedTray startFen={game.setup.startFen} fen={shownFen} color={color} />
         </View>
         {game.clock ? (
           <View accessibilityRole="timer" accessibilityLabel={`${copy.play.sides[color]} ${fmt(left)}`} style={{ minWidth: 76, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignItems: "center", backgroundColor: running ? (left < 20_000 ? c.danger : c.brand) : c.sunken }}>
@@ -317,18 +340,52 @@ export default function Play() {
     );
   };
 
+  const showHint = () => {
+    if (!live || game.over || game.botThinking) return;
+    if (!friend && turn !== game.setup.you) return;
+    const m = bestMove(game.fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
+    if (!m) return;
+    setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       </View>
-      <View style={{ flex: 1, paddingHorizontal: 12, gap: 10, paddingBottom: 12, maxWidth: 640, width: "100%", alignSelf: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingBottom: 4 }}>
+        <Button title="" label={copy.play.resign} icon="flag" variant="danger" block={false} disabled={Boolean(game.over)} onPress={() => setConfirm(true)} />
+        <View style={{ flex: 1 }} />
+        <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
+        <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
+      </View>
+      <View style={{ flex: 1, paddingHorizontal: 0, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)}>
-          {(size) => (
-            <Board size={size} fen={game.fen} orientation={bottomSide} selected={game.selected} targets={game.targets} lastMove={game.lastMove} check={game.check} onTap={(sq) => act({ type: "tap", square: sq, now: Date.now() })} disabled={!canMove} />
+          {(size, radius) => (
+            <Board
+              size={size}
+              radius={radius}
+              fen={shownFen}
+              orientation={bottomSide}
+              selected={live ? game.selected : null}
+              targets={live ? game.targets : []}
+              lastMove={shownLast}
+              check={(shownCheck ?? null) as Square | null}
+              mate={game.over?.kind === "checkmate" ? game.check : null}
+              guide={live ? guide : null}
+              onTap={(sq) => act({ type: "tap", square: sq, now: Date.now() })}
+              disabled={!canMove}
+              promotion={live ? game.promotion : null}
+              onPromote={(p) => act(p ? { type: "promote", piece: p, now: Date.now() } : { type: "cancelPromotion" })}
+            />
           )}
         </BoardStage>
-        <MoveStrip history={game.history} onOpen={() => setMovesOpen(true)} />
+        <View style={{ paddingHorizontal: 16, gap: 6 }}>
+        {!live ? (
+          <T role="small" color="brandText" center style={{ fontFamily: fonts.semibold }}>
+            {copy.gym.watching(at, game.history.length)}
+          </T>
+        ) : null}
         {resultCopy ? (
           <View accessibilityLiveRegion="polite" style={{ gap: 10, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -364,16 +421,13 @@ export default function Play() {
                 </T>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                {game.setup.takebacks ? <Button title={copy.play.takeback} icon="undo" variant="secondary" disabled={!canMove || !game.history.length} onPress={() => act({ type: "takeback", now: Date.now() })} /> : null}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button title={copy.play.resign} icon="flag" variant="ghost" onPress={() => setConfirm(true)} />
-              </View>
+            <View style={{ flexDirection: "row", gap: 8, alignSelf: "flex-start" }}>
+              <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
+              <Button title="" label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} icon="redo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onPress={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))} />
             </View>
           </View>
         )}
+        </View>
       </View>
 
       <MovesSheet visible={movesOpen} onClose={() => setMovesOpen(false)} history={game.history} />
@@ -403,27 +457,6 @@ export default function Play() {
           }}
         />
       ) : null}
-
-      <Sheet visible={Boolean(game.promotion)} onClose={() => act({ type: "cancelPromotion" })}>
-        <T role="heading" header center>
-          {copy.gym.promoteTitle}
-        </T>
-        <View style={{ flexDirection: "row", gap: 8, alignSelf: "stretch" }}>
-          {(["q", "r", "b", "n"] as const).map((p) => (
-            <Pressable
-              key={p}
-              accessibilityRole="button"
-              accessibilityLabel={copy.gym.promotePieces[p]}
-              onPress={() => act({ type: "promote", piece: p, now: Date.now() })}
-              style={{ flex: 1, alignItems: "center", gap: 4, paddingVertical: 10, borderRadius: 16, borderWidth: 2, borderColor: c.line, backgroundColor: c.card }}
-            >
-              <PieceArt piece={{ type: p, color: turn }} size={52} />
-              <T role="micro">{copy.gym.promotePieces[p]}</T>
-            </Pressable>
-          ))}
-        </View>
-        <Button title={copy.gym.cancel} variant="ghost" onPress={() => act({ type: "cancelPromotion" })} />
-      </Sheet>
 
       <Sheet visible={confirm} onClose={() => setConfirm(false)}>
         <Icon name="flag" color={c.text} size={40} />

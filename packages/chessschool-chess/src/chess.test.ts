@@ -1,14 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { boardSquares, isLightSquare, readFen, squareLabel, START_FEN, type Square } from "./board";
+import { boardSquares, isLightSquare, moveEffects, promotionColumn, readFen, squareLabel, START_FEN, type PromotionPiece, type Square } from "./board";
 import { chooseMove } from "./bot";
 import { legalTargets, load, withTurn } from "./game";
 import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
 import { currentStep, runnerReduce, startRunner, type RunnerState } from "./runner";
 import { defaultSetup, playReduce, playResult, shuffleFen, startGame, timeLeft, START_POSITIONS, type PlaySetup } from "./play";
-import { allPuzzles, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, updateRating } from "./puzzles";
-import { assessMove, formatEval, materialEdge, moveCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
+import { allPuzzles, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, updateRating, type PuzzleState } from "./puzzles";
+import { assessMove, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
 import { BOTS } from "./bot";
 import { PIECE_SETS, pieceArtwork } from "./pieceSets";
+
+/** Two taps, answering the promotion question (queen unless `promo` says otherwise). */
+function rMove(s: RunnerState, from: Square, to: Square, promo: PromotionPiece = "q"): RunnerState {
+  const after = runnerReduce(runnerReduce(s, { type: "tap", square: from }), { type: "tap", square: to });
+  return after.promotion ? runnerReduce(after, { type: "promote", piece: promo }) : after;
+}
+function pMove(s: PuzzleState, from: Square, to: Square, promo: PromotionPiece = "q"): PuzzleState {
+  const after = puzzleReduce(puzzleReduce(s, { type: "tap", square: from }), { type: "tap", square: to });
+  return after.promotion ? puzzleReduce(after, { type: "promote", piece: promo }) : after;
+}
 
 const seq = (seed = 1) => () => {
   seed = (seed * 16807) % 2147483647;
@@ -27,7 +37,7 @@ function solveStars(s: RunnerState): RunnerState | null {
       const key = `${to}|${left}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      queue.push(runnerReduce(runnerReduce(cur, { type: "tap", square: from }), { type: "tap", square: to }));
+      queue.push(rMove(cur, from, to));
     }
   }
   return null;
@@ -37,7 +47,7 @@ function solvingMoves(s: RunnerState): number {
   let solved = 0;
   const chess = load(s.fen);
   for (const m of chess.moves({ verbose: true })) {
-    const after = runnerReduce(runnerReduce(s, { type: "tap", square: m.from as Square }), { type: "tap", square: m.to as Square });
+    const after = rMove(s, m.from as Square, m.to as Square);
     if (after.status === "ready") solved++;
   }
   return solved;
@@ -56,7 +66,7 @@ function solveStep(s: RunnerState, step: Step): RunnerState {
     case "move": {
       const chess = load(s.fen);
       for (const m of chess.moves({ verbose: true })) {
-        const after = runnerReduce(runnerReduce(s, { type: "tap", square: m.from as Square }), { type: "tap", square: m.to as Square });
+        const after = rMove(s, m.from as Square, m.to as Square);
         if (after.status === "ready") return after;
       }
       return s;
@@ -70,7 +80,7 @@ function solveStep(s: RunnerState, step: Step): RunnerState {
           continue;
         }
         const m = step.moves[cur.lineStep];
-        const next = runnerReduce(runnerReduce(cur, { type: "tap", square: m.slice(0, 2) as Square }), { type: "tap", square: m.slice(2, 4) as Square });
+        const next = rMove(cur, m.slice(0, 2) as Square, m.slice(2, 4) as Square, (m[4] as PromotionPiece) || "q");
         if (next.misses > cur.misses || next === cur) return cur;
         cur = next;
       }
@@ -87,7 +97,7 @@ function solveStep(s: RunnerState, step: Step): RunnerState {
           cur = runnerReduce(cur, { type: "endGame" });
         } else {
           const m = chooseMove(cur.fen, "gentle", rand)!;
-          cur = runnerReduce(runnerReduce(cur, { type: "tap", square: m.from as Square }), { type: "tap", square: m.to as Square });
+          cur = rMove(cur, m.from as Square, m.to as Square);
         }
       }
       return cur;
@@ -96,6 +106,29 @@ function solveStep(s: RunnerState, step: Step): RunnerState {
 }
 
 describe("board model", () => {
+  it("reads captures, en passant and promotions from two positions", () => {
+    const cap = moveEffects("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1", "4k3/8/8/3P4/8/8/8/4K3 b - - 0 1", { from: "e4", to: "d5" });
+    expect(cap.captured).toEqual({ square: "d5", piece: { type: "p", color: "b" } });
+    expect(cap.promoted).toBeNull();
+    const ep = moveEffects("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", "4k3/8/3P4/8/8/8/8/4K3 b - - 0 1", { from: "e5", to: "d6" });
+    expect(ep.captured?.square).toBe("d5");
+    const promo = moveEffects("4k3/P7/8/8/8/8/8/4K3 w - - 0 1", "N3k3/8/8/8/8/8/8/4K3 b - - 0 1", { from: "a7", to: "a8" });
+    expect(promo.promoted).toEqual({ type: "n", color: "w" });
+    expect(moveEffects(START_FEN, START_FEN, { from: "e2", to: "e4" })).toEqual({ captured: null, promoted: null });
+  });
+
+  it("picks a move sound from two positions", () => {
+    expect(positionCue(START_FEN, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", { from: "e2", to: "e4" })).toBe("move");
+    expect(positionCue("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1", "4k3/8/8/3P4/8/8/8/4K3 b - - 0 1", { from: "e4", to: "d5" })).toBe("capture");
+    expect(positionCue("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", "R5k1/5ppp/8/8/8/8/8/6K1 b - - 1 1", { from: "a1", to: "a8" })).toBe("mate");
+    expect(positionCue("4k3/8/8/8/8/8/8/R3K3 w Q - 0 1", "4k3/8/8/8/8/8/8/2KR4 b - - 1 1", { from: "e1", to: "c1" })).toBe("castle");
+  });
+
+  it("lays the promotion picker from the last rank toward the middle", () => {
+    expect(promotionColumn("a8").map((c) => c.square)).toEqual(["a8", "a7", "a6", "a5"]);
+    expect(promotionColumn("h1").map((c) => `${c.square}${c.piece}`)).toEqual(["h1q", "h2n", "h3r", "h4b"]);
+  });
+
   it("orients the board and names squares", () => {
     expect(boardSquares("w")[0]).toBe("a8");
     expect(boardSquares("w")[63]).toBe("h1");
@@ -154,7 +187,7 @@ describe("handmade lessons", () => {
   it("a legal but wrong move does not advance", () => {
     const step = LESSONS.check.steps.find((st) => st.kind === "move" && st.goal.type === "mate")!;
     let s = startRunner([step]);
-    s = runnerReduce(runnerReduce(s, { type: "tap", square: "a1" }), { type: "tap", square: "a2" });
+    s = rMove(s, "a1", "a2");
     expect(s.status).toBe("working");
     expect(s.fen).toBe(step.fen);
   });
@@ -213,8 +246,11 @@ describe("Gym play", () => {
     expect(playReduce(s, { type: "tap", square: "d2", now: 0 })).toBe(s);
     s = playReduce(s, { type: "bot", move: { from: "e7", to: "e5" }, now: 0 });
     s = playReduce(s, { type: "takeback", now: 0 });
-    expect(s.history).toEqual([]);
-    expect(s.fen).toBe(START_FEN);
+    expect(s.history).toEqual(["e4"]);
+    expect(s.botThinking).toBe(false);
+    expect(playReduce(s, { type: "tap", square: "d2", now: 0 })).toBe(s);
+    s = playReduce(s, { type: "redo", now: 0 });
+    expect(s.history).toEqual(["e4", "e5"]);
     s = playReduce(s, { type: "resign", now: 0 });
     expect(playResult(s)).toBe("loss");
   });
@@ -242,6 +278,8 @@ describe("Gym play", () => {
     expect(s.history).toEqual(["e4", "e5"]);
     s = playReduce(s, { type: "takeback", now: 0 });
     expect(s.history).toEqual(["e4"]);
+    s = playReduce(s, { type: "redo", now: 0 });
+    expect(s.history).toEqual(["e4", "e5"]);
   });
 
   it("asks which piece to promote to", () => {
@@ -325,7 +363,7 @@ describe("puzzles", () => {
       if (s.status === "reply") s = puzzleReduce(s, { type: "reply" });
       else {
         const m = p.moves[s.step];
-        s = puzzleReduce(puzzleReduce(s, { type: "tap", square: m.slice(0, 2) as Square }), { type: "tap", square: m.slice(2, 4) as Square });
+        s = pMove(s, m.slice(0, 2) as Square, m.slice(2, 4) as Square, (m[4] as PromotionPiece) || "q");
       }
     }
     expect(s.status).toBe("solved");
@@ -334,7 +372,7 @@ describe("puzzles", () => {
     let w = puzzleReduce(startPuzzle(p), { type: "setup" });
     const right = p.moves[1];
     const wrong = load(w.fen).moves({ verbose: true }).find((m) => `${m.from}${m.to}` !== right.slice(0, 4) && !m.san.endsWith("#"))!;
-    w = puzzleReduce(puzzleReduce(w, { type: "tap", square: wrong.from as Square }), { type: "tap", square: wrong.to as Square });
+    w = pMove(w, wrong.from as Square, wrong.to as Square);
     expect(w.status).toBe("failed");
     const shown = puzzleReduce(w, { type: "solution" });
     expect(shown.step).toBe(p.moves.length);
@@ -351,7 +389,7 @@ describe("puzzles", () => {
         if (s.status === "reply") s = puzzleReduce(s, { type: "reply" });
         else {
           const m = p.moves[s.step];
-          s = puzzleReduce(puzzleReduce(s, { type: "tap", square: m.slice(0, 2) as Square }), { type: "tap", square: m.slice(2, 4) as Square });
+          s = pMove(s, m.slice(0, 2) as Square, m.slice(2, 4) as Square, (m[4] as PromotionPiece) || "q");
         }
       }
       expect(s.status, p.id).toBe("solved");
@@ -395,7 +433,7 @@ describe("game review", () => {
   });
 
   it("names move sounds and counts material", () => {
-    expect(["e4", "Nxe5", "Qh5+", "Qxf7#", "O-O", "O-O-O", "e8=Q"].map(moveCue)).toEqual(["move", "capture", "check", "check", "castle", "castle", "promote"]);
+    expect(["e4", "Nxe5", "Qh5+", "Qxf7#", "O-O", "O-O-O", "e8=Q"].map(moveCue)).toEqual(["move", "capture", "check", "mate", "castle", "castle", "promote"]);
     expect(materialEdge(START_FEN)).toBe(0);
     expect(materialEdge("4k3/8/8/8/8/8/8/R3K3 w - - 0 1")).toBe(5);
     expect([0, 140, -60, 99999].map(formatEval)).toEqual(["0.0", "+1.4", "−0.6", "+M"]);

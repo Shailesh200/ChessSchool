@@ -81,7 +81,20 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
           </div>
         }
       >
-        <Board fen={s.fen} orientation={s.you} selected={s.selected} targets={s.targets} lastMove={s.lastMove} check={s.check} hints={puzzleHint(s)} onTap={(sq) => act({ type: "tap", square: sq })} disabled={s.status !== "solving"} shake={misses} />
+        <Board
+          fen={s.fen}
+          orientation={s.you}
+          selected={s.selected}
+          targets={s.targets}
+          lastMove={s.lastMove}
+          check={s.check}
+          hints={puzzleHint(s)}
+          onTap={(sq) => act({ type: "tap", square: sq })}
+          disabled={s.status !== "solving"}
+          shake={misses}
+          promotion={s.promotion}
+          onPromote={(p) => act(p ? { type: "promote", piece: p } : { type: "cancelPromotion" })}
+        />
       </BoardStage>
       <div className="lesson-actions">
         {!sprint && s.status === "solving" && !s.hint ? (

@@ -18,7 +18,7 @@ export default function LooksPage() {
 
   return (
     <div className="page page-narrow">
-      <TopBar backHref="/settings" title={copy.looks.title} />
+      <TopBar backHref="/you" title={copy.looks.title} />
 
       <Card>
         <h2 className="card-title">{copy.looks.theme}</h2>
@@ -69,7 +69,6 @@ export default function LooksPage() {
             </button>
           ))}
         </div>
-        <p className="muted small">{copy.looks.credit}</p>
       </Card>
 
       <Card className="settings-group">

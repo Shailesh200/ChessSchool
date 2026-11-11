@@ -27,6 +27,8 @@ const pairs: [keyof Palette, keyof Palette, number][] = [
   ["brandText", "brandSoft", 4.5],
   ["onBrand", "brand", 4.5],
   ["onAccent", "accent", 4.5],
+  ["onGold", "gold", 4.5],
+  ["onDanger", "danger", 4.5],
   ["successText", "card", 4.5],
   ["successText", "successSoft", 4.5],
   ["dangerText", "card", 4.5],

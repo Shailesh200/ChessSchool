@@ -31,17 +31,6 @@ export default function SettingsPage() {
       <TopBar title={s.title} backHref="/you" />
 
       <Card className="list">
-        <Link className="row" href="/settings/looks">
-          <Icon name="palette" />
-          <span className="row-text">
-            <span className="row-label">{s.looks}</span>
-            <span className="row-hint">{s.looksHint}</span>
-          </span>
-          <Icon name="chevron" />
-        </Link>
-      </Card>
-
-      <Card className="list">
         <Switch
           icon={prefs.sound ? "sound" : "mute"}
           label={s.sound}

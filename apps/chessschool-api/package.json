@@ -11,6 +11,7 @@
     "build:vercel": "node scripts/build-vercel.mjs"
   },
   "dependencies": {
+    "@chessschool/chess": "workspace:*",
     "@chessschool/design": "workspace:*",
     "@hono/node-server": "^1.19.5",
     "@libsql/client": "^0.17.4",

@@ -147,6 +147,8 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
             targets={s.targets}
             lastMove={s.lastMove}
             check={s.check}
+            promotion={s.promotion}
+            onPromote={(p) => act(p ? { type: "promote", piece: p } : { type: "cancelPromotion" })}
             highlight={step.highlight}
             hints={hintSquares(s)}
             stars={s.stars}

@@ -1,13 +1,35 @@
 "use client";
 
-import { arrowShape, boardSquares, fileIndex, isPieceSet, pieceArtwork, rankIndex, readFen, squareLabel, type BoardArrow, type Color, type MoveRef, type Piece, type PieceOp, type PieceSetId, type Square } from "@chessschool/chess";
+import {
+  arrowShape,
+  boardSquares,
+  fileIndex,
+  isPieceSet,
+  moveEffects,
+  pieceArtwork,
+  promotionColumn,
+  rankIndex,
+  readFen,
+  squareLabel,
+  turnOf,
+  type BoardArrow,
+  type Color,
+  type MoveRef,
+  type Piece,
+  type PieceOp,
+  type PieceSetId,
+  type PromotionPiece,
+  type Square,
+} from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 
-function Op({ op }: { op: PieceOp }) {
-  const paint = { fill: op.fill ?? "#000", stroke: op.stroke, strokeWidth: op.sw };
+function Op({ op, tint }: { op: PieceOp; tint?: string }) {
+  const fill = tint ? (op.fill === "none" ? "none" : tint) : (op.fill ?? "#000");
+  const stroke = tint && op.stroke ? tint : op.stroke;
+  const paint = { fill, stroke, strokeWidth: op.sw };
   if (op.t === "circle") return <circle cx={op.cx} cy={op.cy} r={op.r} {...paint} />;
   if (op.t === "ellipse") return <ellipse cx={op.cx} cy={op.cy} rx={op.rx} ry={op.ry} {...paint} />;
   return (
@@ -16,26 +38,26 @@ function Op({ op }: { op: PieceOp }) {
       {...paint}
       strokeLinejoin={op.lj as "round" | undefined}
       strokeLinecap={op.lc as "round" | undefined}
-      fillOpacity={op.fo}
+      fillOpacity={tint ? 1 : op.fo}
       fillRule={op.fr as "evenodd" | undefined}
     />
   );
 }
 
-/** One piece in the chosen set (the learner's set unless `set` is given). */
-export function PieceArt({ piece, size, set }: { piece: Piece; size?: number; set?: PieceSetId }) {
+/** One piece in the chosen set (the learner's set unless `set` is given). `tint` draws a solid silhouette. */
+export function PieceArt({ piece, size, set, tint }: { piece: Piece; size?: number; set?: PieceSetId; tint?: string }) {
   const { state } = useApp();
   const chosen = set ?? (isPieceSet(state.prefs.pieceSet) ? state.prefs.pieceSet : "toy");
   const art = pieceArtwork(chosen, piece.color, piece.type);
   if (art.kind === "asset") {
     // eslint-disable-next-line @next/next/no-img-element -- tiny local SVGs, no optimisation needed
-    return <img src={`/assets/pieces/${art.asset}.svg`} width={size} height={size} alt="" className={`piece-svg${art.pixelated ? " is-pixel" : ""}`} draggable={false} />;
+    return <img src={`/assets/pieces/${art.asset}.svg`} width={size} height={size} alt="" className={`piece-svg${art.pixelated ? " is-pixel" : ""}`} style={tint ? { filter: "grayscale(1) contrast(1.4)", opacity: 0.92 } : undefined} draggable={false} />;
   }
   const d = art.drawing;
   return (
     <svg viewBox={d.viewBox} width={size} height={size} className="piece-svg" aria-hidden focusable="false" shapeRendering={d.pixelated ? "crispEdges" : undefined}>
       {d.ops.map((op, i) => (
-        <Op key={i} op={op} />
+        <Op key={i} op={op} tint={tint} />
       ))}
     </svg>
   );
@@ -48,26 +70,67 @@ type BoardProps = {
   targets?: Square[];
   lastMove?: MoveRef | null;
   check?: Square | null;
+  mate?: Square | null;
   highlight?: Square[];
   hints?: Square[];
   stars?: Square[];
   onTap?: (sq: Square) => void;
   disabled?: boolean;
-  /** Change this number to play the "not quite" shake. */
   shake?: number;
   label?: string;
   arrows?: BoardArrow[];
+  promotion?: MoveRef | null;
+  onPromote?: (piece: PromotionPiece | null) => void;
+  /** Faded piece on the destination of a suggested move. */
+  guide?: { from: Square; to: Square; piece: Piece } | null;
 };
 
-export function Board({ fen, orientation = "w", selected, targets = [], lastMove, check, highlight = [], hints = [], stars = [], onTap, disabled, shake = 0, label = copy.lesson.board, arrows = [] }: BoardProps) {
+type Fx = { id: number; captured: { square: Square; piece: Piece } | null; promoted: Square | null };
+
+function cell(sq: Square, squares: Square[]): React.CSSProperties {
+  const i = squares.indexOf(sq);
+  return { left: `${(i % 8) * 12.5}%`, top: `${Math.floor(i / 8) * 12.5}%` };
+}
+
+export function Board({
+  fen,
+  orientation = "w",
+  selected,
+  targets = [],
+  lastMove,
+  check,
+  mate,
+  highlight = [],
+  hints = [],
+  stars = [],
+  onTap,
+  disabled,
+  shake = 0,
+  label = copy.lesson.board,
+  arrows = [],
+  promotion,
+  onPromote,
+  guide = null,
+}: BoardProps) {
   const { state } = useApp();
   const { coords, legalDots } = state.prefs;
   const pieces = useMemo(() => readFen(fen), [fen]);
   const squares = useMemo(() => boardSquares(orientation), [orientation]);
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+  const prevFen = useRef(fen);
   const btns = useRef<(HTMLButtonElement | null)[]>([]);
   const [focus, setFocus] = useState(() => squares.indexOf(orientation === "w" ? "e2" : "e7"));
+  const [fx, setFx] = useState<Fx | null>(null);
+  const mover = turnOf(fen);
+
+  useEffect(() => {
+    const before = prevFen.current;
+    prevFen.current = fen;
+    if (before === fen) return;
+    const e = moveEffects(before, fen, lastMove);
+    setFx(e.captured || e.promoted ? { id: Date.now(), captured: e.captured, promoted: e.promoted && lastMove ? lastMove.to : null } : null);
+  }, [fen, lastMove]);
 
   useEffect(() => {
     if (!shake || reduced) return;
@@ -89,7 +152,7 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
   };
 
   const slide = (sq: Square) => {
-    if (reduced || !lastMove || lastMove.to !== sq) return undefined;
+    if (reduced || !lastMove || lastMove.to !== sq || mate === sq) return undefined;
     const sign = orientation === "w" ? 1 : -1;
     const dx = (fileIndex(lastMove.from) - fileIndex(sq)) * 100 * sign;
     const dy = (rankIndex(sq) - rankIndex(lastMove.from)) * 100 * sign;
@@ -97,7 +160,7 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
   };
 
   return (
-    <div ref={ref} className={`board${disabled ? " board-disabled" : ""}`} role="group" aria-label={label} data-fen={fen} data-stars={stars.join(" ")}>
+    <div ref={ref} className={`board${disabled ? " board-disabled" : ""}${mate ? " is-mate" : ""}`} role="group" aria-label={label} data-fen={fen} data-stars={stars.join(" ")}>
       {squares.map((sq, i) => {
         const piece = pieces.get(sq);
         const light = (fileIndex(sq) + rankIndex(sq)) % 2 === 1;
@@ -113,8 +176,9 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
           selected === sq && "is-selected",
           lastMove && (lastMove.from === sq || lastMove.to === sq) && "is-last",
           highlight.includes(sq) && "is-teach",
-          hints.includes(sq) && "is-hint",
+          (hints.includes(sq) || guide?.from === sq || guide?.to === sq) && "is-hint",
           check === sq && "is-check",
+          mate === sq && "is-mated",
         ]
           .filter(Boolean)
           .join(" ");
@@ -133,7 +197,7 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
             aria-disabled={disabled || undefined}
             onFocus={() => setFocus(i)}
             onKeyDown={(e) => onKey(e, i)}
-            onClick={() => !disabled && onTap?.(sq)}
+            onClick={() => !disabled && !promotion && onTap?.(sq)}
           >
             {coords && col === 0 ? <span className="coord coord-rank">{sq[1]}</span> : null}
             {coords && row === 7 ? <span className="coord coord-file">{sq[0]}</span> : null}
@@ -142,8 +206,13 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
                 <path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9L12 2.8Z" />
               </svg>
             ) : null}
+            {guide?.to === sq ? (
+              <span className="piece guide-piece" aria-hidden>
+                <PieceArt piece={guide.piece} />
+              </span>
+            ) : null}
             {piece ? (
-              <span className="piece" key={lastMove?.to === sq ? `${lastMove.from}${fen}` : sq} style={slide(sq)} data-slide={slide(sq) ? "" : undefined}>
+              <span className={`piece${mate === sq ? " is-falling" : ""}${fx?.promoted === sq ? " is-promoted" : ""}`} key={lastMove?.to === sq ? `${lastMove.from}${fen}` : sq} style={slide(sq)} data-slide={slide(sq) ? "" : undefined}>
                 <PieceArt piece={piece} />
               </span>
             ) : null}
@@ -151,6 +220,21 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
           </button>
         );
       })}
+
+      {fx && !reduced ? (
+        <div key={fx.id} className="board-fx" aria-hidden>
+          {fx.captured ? (
+            <span className="capture-ghost" style={cell(fx.captured.square, squares)}>
+              <PieceArt piece={fx.captured.piece} tint={fx.captured.piece.color === "w" ? "#FFFFFF" : "#1C1B2E"} />
+              {Array.from({ length: 8 }, (_, i) => (
+                <i key={i} className="capture-spark" style={{ "--a": `${(i / 8) * 360}deg` } as React.CSSProperties} />
+              ))}
+            </span>
+          ) : null}
+          {fx.promoted ? <span className="promo-ring" style={cell(fx.promoted, squares)} /> : null}
+        </div>
+      ) : null}
+
       {arrows.length ? (
         <svg className="board-arrows" viewBox="0 0 800 800" aria-hidden>
           {arrows.map((a) => {
@@ -163,6 +247,24 @@ export function Board({ fen, orientation = "w", selected, targets = [], lastMove
             );
           })}
         </svg>
+      ) : null}
+
+      {promotion ? (
+        <div className="promo-layer">
+          <button type="button" className="promo-scrim" aria-label={copy.gym.cancel} onClick={() => onPromote?.(null)} />
+          {promotionColumn(promotion.to).map(({ square, piece, index }) => (
+            <button
+              key={piece}
+              type="button"
+              className={`promo-pick${index === 0 ? " is-queen" : ""}`}
+              style={{ ...cell(square, squares), animationDelay: `${index * 45}ms` }}
+              aria-label={copy.gym.promotePieces[piece]}
+              onClick={() => onPromote?.(piece)}
+            >
+              <PieceArt piece={{ type: piece, color: mover }} />
+            </button>
+          ))}
+        </div>
       ) : null}
     </div>
   );

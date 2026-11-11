@@ -60,7 +60,7 @@ export function T({ role = "body", color = "text", center, style, children, head
 type ButtonProps = {
   title: string;
   onPress?: () => void;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "gold" | "accent";
   icon?: IconName;
   loading?: boolean;
   disabled?: boolean;
@@ -77,7 +77,9 @@ export function Button({ title, onPress, variant = "primary", icon, loading, dis
     primary: { bg: c.brand, fg: c.onBrand, edge: c.brandEdge, border: "transparent" },
     secondary: { bg: c.card, fg: c.brandText, edge: c.line, border: c.line },
     ghost: { bg: "transparent", fg: c.brandText, edge: "transparent", border: "transparent" },
-    danger: { bg: c.danger, fg: "#FFFFFF", edge: c.dangerText, border: "transparent" },
+    danger: { bg: c.danger, fg: c.onDanger, edge: c.dangerText, border: "transparent" },
+    gold: { bg: c.gold, fg: c.onGold, edge: c.goldEdge, border: "transparent" },
+    accent: { bg: c.accent, fg: c.onAccent, edge: c.accentEdge, border: "transparent" },
   }[variant];
   return (
     <Pressable
@@ -90,8 +92,8 @@ export function Button({ title, onPress, variant = "primary", icon, loading, dis
       style={[block ? { alignSelf: "stretch" } : { alignSelf: "flex-start" }, style]}
     >
       {({ pressed }) => (
-        <View style={{ paddingBottom: 4 }}>
-          {variant !== "ghost" ? <View style={[StyleSheet.absoluteFill, { top: 4, borderRadius: radius.pill, backgroundColor: pal.edge }]} /> : null}
+        <View style={{ paddingBottom: variant === "ghost" ? 0 : 5 }}>
+          {variant !== "ghost" ? <View style={[StyleSheet.absoluteFill, { top: 5, borderRadius: radius.pill, backgroundColor: pal.edge }]} /> : null}
           <View
             style={{
               minHeight: minTarget,
@@ -104,7 +106,7 @@ export function Button({ title, onPress, variant = "primary", icon, loading, dis
               alignItems: "center",
               justifyContent: "center",
               gap: 10,
-              transform: [{ translateY: pressed && variant !== "ghost" ? 3 : 0 }],
+              transform: [{ translateY: pressed && variant !== "ghost" ? 4 : 0 }],
               opacity: disabled ? 0.6 : pressed && variant === "ghost" ? 0.6 : 1,
             }}
           >

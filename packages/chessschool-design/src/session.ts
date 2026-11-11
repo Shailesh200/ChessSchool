@@ -11,6 +11,8 @@ export function guestPayload(state: LocalState): GuestPayload {
       dailyMinutes: state.profile.dailyMinutes,
       appearance: state.prefs.appearance,
       sound: state.prefs.sound,
+      avatar: state.profile.avatar,
+      flair: state.profile.flair,
     },
     progress: state.progress,
   };
@@ -26,6 +28,8 @@ export function applyAuth(state: LocalState, auth: Pick<AuthResponse, "user" | "
       name: auth.user.name || state.profile.name,
       who: auth.profile.who ?? state.profile.who,
       dailyMinutes: auth.profile.dailyMinutes,
+      avatar: auth.profile.avatar || state.profile.avatar,
+      flair: auth.profile.flair ?? state.profile.flair,
     },
     prefs: { ...state.prefs, appearance: auth.profile.appearance, sound: auth.profile.sound },
     progress: sanitizeProgress(mergeProgress(state.progress, auth.progress)),

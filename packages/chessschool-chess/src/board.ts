@@ -63,6 +63,43 @@ export function squareLabel(sq: Square, piece: Piece | undefined): string {
   return piece ? `${sq}, ${piece.color === "w" ? "white" : "black"} ${PIECE_NAMES[piece.type]}` : `${sq}, empty`;
 }
 
+export type PromotionPiece = "q" | "r" | "b" | "n";
+export const PROMOTION_PIECES: PromotionPiece[] = ["q", "n", "r", "b"];
+
+export type MoveEffects = {
+  /** The piece that was taken and the square it stood on (differs from `to` for en passant). */
+  captured: { square: Square; piece: Piece } | null;
+  /** The new piece when a pawn promoted. */
+  promoted: Piece | null;
+};
+
+/** What a move did, read from the positions before and after it. */
+export function moveEffects(beforeFen: string, afterFen: string, move: MoveRef | null | undefined): MoveEffects {
+  const none: MoveEffects = { captured: null, promoted: null };
+  if (!move || beforeFen === afterFen) return none;
+  const before = readFen(beforeFen);
+  const after = readFen(afterFen);
+  const mover = before.get(move.from);
+  const landed = after.get(move.to);
+  if (!mover || !landed || landed.color !== mover.color) return none;
+  let captured: MoveEffects["captured"] = null;
+  const onTarget = before.get(move.to);
+  if (onTarget && onTarget.color !== mover.color) captured = { square: move.to, piece: onTarget };
+  else if (mover.type === "p" && move.from[0] !== move.to[0]) {
+    const passed = `${move.to[0]}${move.from[1]}` as Square;
+    const p = before.get(passed);
+    if (p && p.type === "p" && p.color !== mover.color && !after.get(passed)) captured = { square: passed, piece: p };
+  }
+  const promoted = mover.type === "p" && landed.type !== "p" ? landed : null;
+  return { captured, promoted };
+}
+
+/** Squares for the inline promotion picker: from the promotion square toward the middle of the board. */
+export function promotionColumn(square: Square): { square: Square; piece: PromotionPiece; index: number }[] {
+  const dir = square[1] === "8" ? -1 : 1;
+  return PROMOTION_PIECES.map((piece, index) => ({ square: squareAt(fileIndex(square), rankIndex(square) + dir * index), piece, index }));
+}
+
 export type BoardArrow = { from: Square; to: Square; tone: "played" | "better" };
 /** An arrow in board units (the board is 800 × 800, one square = 100): a shaft and a head polygon. */
 export function arrowShape(a: BoardArrow, orientation: Color) {

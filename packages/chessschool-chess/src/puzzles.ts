@@ -1,7 +1,8 @@
-import { turnOf, type Color, type Square } from "./board";
-import { kingInCheck, load, moveRef, needsPromotion, parseUci, tryMove } from "./game";
+import type { Chess, Move } from "chess.js";
+import { turnOf, type Color, type MoveRef, type PromotionPiece, type Square } from "./board";
+import { kingInCheck, load, moveRef, parseUci, tryMove } from "./game";
 import { PUZZLE_ROWS, PUZZLE_THEME_TAGS } from "./puzzles.data";
-import { pick, type BoardView } from "./runner";
+import { pick, sameMove, type BoardView } from "./runner";
 
 export type PuzzleThemeId = (typeof PUZZLE_THEME_TAGS)[number];
 export type Puzzle = { id: string; fen: string; moves: string[]; rating: number; themes: PuzzleThemeId[] };
@@ -71,10 +72,20 @@ export type PuzzleState = BoardView & {
   hint: boolean;
   /** The learner got it wrong at least once (counts as a fail for rating). */
   missed: boolean;
+  /** A pawn waiting on the last rank for the learner to pick a piece. */
+  promotion: MoveRef | null;
 };
-export type PuzzleAction = { type: "setup" } | { type: "reply" } | { type: "tap"; square: Square } | { type: "hint" } | { type: "retry" } | { type: "solution" };
+export type PuzzleAction =
+  | { type: "setup" }
+  | { type: "reply" }
+  | { type: "tap"; square: Square }
+  | { type: "promote"; piece: PromotionPiece }
+  | { type: "cancelPromotion" }
+  | { type: "hint" }
+  | { type: "retry" }
+  | { type: "solution" };
 
-/** The first move in a Lichess puzzle is the opponent's; the learner answers it. */
+/** The first move in a puzzle is the opponent's; the learner answers it. */
 export function startPuzzle(puzzle: Puzzle): PuzzleState {
   return {
     puzzle,
@@ -83,6 +94,7 @@ export function startPuzzle(puzzle: Puzzle): PuzzleState {
     status: "setup",
     hint: false,
     missed: false,
+    promotion: null,
     fen: puzzle.fen,
     selected: null,
     targets: [],
@@ -126,19 +138,30 @@ export function puzzleReduce(s: PuzzleState, a: PuzzleAction): PuzzleState {
     return { ...r, status: "failed", missed: true };
   }
 
+  if (a.type === "cancelPromotion") return { ...s, promotion: null, selected: null, targets: [] };
+  if (a.type === "promote") {
+    if (!s.promotion || s.status !== "solving") return s;
+    const chess = load(s.fen);
+    const move = tryMove(chess, s.promotion.from, s.promotion.to, a.piece);
+    return move ? judge({ ...s, promotion: null }, move, chess) : { ...s, promotion: null };
+  }
+
   // tap
-  if (s.status !== "solving") return s;
-  const p = pick(s.fen, s.selected, s.targets, a.square, s.you);
+  if (s.status !== "solving" || s.promotion) return s;
+  const p = pick(s.fen, s.selected, s.targets, a.square, s.you, true);
   if (p.kind === "select") return { ...s, selected: p.selected, targets: p.targets };
+  if (p.kind === "promote") return { ...s, promotion: { from: p.from, to: p.to } };
   if (p.kind !== "move") return { ...s, selected: null, targets: [] };
-  const expected = moves[s.step];
-  const uci = `${p.move.from}${p.move.to}`;
+  return judge(s, p.move, p.chess);
+}
+
+function judge(s: PuzzleState, move: Move, after: Chess): PuzzleState {
+  const moves = s.puzzle.moves;
   const last = s.step === moves.length - 1;
-  const promoted = needsPromotion(load(s.fen), p.move.from as Square, p.move.to as Square);
-  // Lichess accepts any checkmate on the final move.
-  const right = uci === expected.slice(0, 4) || (last && p.chess.isCheckmate());
-  if (!right) return { ...s, status: "failed", missed: true, selected: null, targets: [], lastMove: moveRef(p.move), fen: p.chess.fen(), check: kingInCheck(p.chess) };
-  const next = apply(s, promoted && uci === expected.slice(0, 4) ? expected : `${uci}${p.move.promotion ?? ""}`);
+  // Any checkmate on the final move counts.
+  const right = sameMove(move, moves[s.step]) || (last && after.isCheckmate());
+  if (!right) return { ...s, status: "failed", missed: true, selected: null, targets: [], lastMove: moveRef(move), fen: after.fen(), check: kingInCheck(after) };
+  const next = apply(s, `${move.from}${move.to}${move.promotion ?? ""}`);
   if (next.step >= moves.length) return { ...next, status: "solved" };
   return { ...next, status: "reply" };
 }
