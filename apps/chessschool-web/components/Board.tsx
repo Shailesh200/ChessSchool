@@ -159,8 +159,68 @@ export function Board({
     return { "--dx": `${dx}%`, "--dy": `${dy}%` } as React.CSSProperties;
   };
 
+  const dragRef = useRef<{ from: Square; pointer: number; moved: boolean } | null>(null);
+  const skipClick = useRef(false);
+  const [ghost, setGhost] = useState<{ piece: Piece; left: number; top: number } | null>(null);
+  const [lift, setLift] = useState<Square | null>(null);
+  const atPointer = (e: React.PointerEvent) => {
+    const box = ref.current?.getBoundingClientRect();
+    if (!box || box.width === 0) return null;
+    const col = Math.floor(((e.clientX - box.left) / box.width) * 8);
+    const row = Math.floor(((e.clientY - box.top) / box.height) * 8);
+    const sq = col >= 0 && col < 8 && row >= 0 && row < 8 ? squares[row * 8 + col] : null;
+    return { sq, left: ((e.clientX - box.left) / box.width) * 100, top: ((e.clientY - box.top) / box.height) * 100 };
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 || disabled || promotion || !onTap) return;
+    const hit = atPointer(e);
+    const piece = hit?.sq ? pieces.get(hit.sq) : undefined;
+    if (!hit?.sq || !piece || piece.color !== mover) return;
+    dragRef.current = { from: hit.sq, pointer: e.pointerId, moved: false };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* a click still works if capture is unavailable */
+    }
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerId !== drag.pointer) return;
+    const hit = atPointer(e);
+    if (!hit) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      setLift(drag.from);
+      if (selected !== drag.from) onTap?.(drag.from);
+    }
+    const piece = pieces.get(drag.from);
+    if (piece) setGhost({ piece, left: hit.left, top: hit.top });
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerId !== drag.pointer) return;
+    dragRef.current = null;
+    setGhost(null);
+    setLift(null);
+    if (!drag.moved) return;
+    skipClick.current = true;
+    const hit = atPointer(e);
+    if (hit?.sq && hit.sq !== drag.from) onTap?.(hit.sq);
+  };
+
   return (
-    <div ref={ref} className={`board${disabled ? " board-disabled" : ""}${mate ? " is-mate" : ""}`} role="group" aria-label={label} data-fen={fen} data-stars={stars.join(" ")}>
+    <div
+      ref={ref}
+      className={`board${disabled ? " board-disabled" : ""}${mate ? " is-mate" : ""}`}
+      role="group"
+      aria-label={label}
+      data-fen={fen}
+      data-stars={stars.join(" ")}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
       {squares.map((sq, i) => {
         const piece = pieces.get(sq);
         const light = (fileIndex(sq) + rankIndex(sq)) % 2 === 1;
@@ -197,7 +257,13 @@ export function Board({
             aria-disabled={disabled || undefined}
             onFocus={() => setFocus(i)}
             onKeyDown={(e) => onKey(e, i)}
-            onClick={() => !disabled && !promotion && onTap?.(sq)}
+            onClick={() => {
+              if (skipClick.current) {
+                skipClick.current = false;
+                return;
+              }
+              if (!disabled && !promotion) onTap?.(sq);
+            }}
           >
             {coords && col === 0 ? <span className="coord coord-rank">{sq[1]}</span> : null}
             {coords && row === 7 ? <span className="coord coord-file">{sq[0]}</span> : null}
@@ -212,7 +278,7 @@ export function Board({
               </span>
             ) : null}
             {piece ? (
-              <span className={`piece${mate === sq ? " is-falling" : ""}${fx?.promoted === sq ? " is-promoted" : ""}`} key={lastMove?.to === sq ? `${lastMove.from}${fen}` : sq} style={slide(sq)} data-slide={slide(sq) ? "" : undefined}>
+              <span className={`piece${mate === sq ? " is-falling" : ""}${fx?.promoted === sq ? " is-promoted" : ""}${lift === sq ? " is-lifted" : ""}`} key={lastMove?.to === sq ? `${lastMove.from}${fen}` : sq} style={slide(sq)} data-slide={slide(sq) ? "" : undefined}>
                 <PieceArt piece={piece} />
               </span>
             ) : null}
@@ -233,6 +299,12 @@ export function Board({
           ) : null}
           {fx.promoted ? <span className="promo-ring" style={cell(fx.promoted, squares)} /> : null}
         </div>
+      ) : null}
+
+      {ghost ? (
+        <span className="drag-ghost" style={{ left: `${ghost.left}%`, top: `${ghost.top}%` }} aria-hidden>
+          <PieceArt piece={ghost.piece} />
+        </span>
       ) : null}
 
       {arrows.length ? (

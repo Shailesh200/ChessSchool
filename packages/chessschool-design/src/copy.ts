@@ -163,6 +163,10 @@ export const copy = {
     arabian: { title: "Rook and knight mate", sub: "The corner pattern", reason: "Opens after smothered mate." },
     bishopPair: { title: "Two bishops mate", sub: "Both colours, one corner", reason: "Opens after the rook and knight." },
     rookKing: { title: "King and rook mate", sub: "Cut the king off, then mate", reason: "Opens after the two bishops." },
+    sacrifice: { title: "Sacrifices", sub: "Give a piece up to open the king", reason: "Opens after the king and rook." },
+    structure: { title: "Pawn structure", sub: "Weak pawns, chains and majorities", reason: "Opens after sacrifices." },
+    plan: { title: "Making a plan", sub: "What to do when there is no tactic", reason: "Opens after pawn structure." },
+    queenEnding: { title: "Queen endings", sub: "Win with a queen against a lone king", reason: "Opens after making a plan." },
   } as Record<string, { title: string; sub: string; reason: string }>,
 
   units: {
@@ -173,16 +177,15 @@ export const copy = {
     unit5: { title: "Unit 5 · More tactics", sub: "The patterns that win pieces" },
     unit6: { title: "Unit 6 · Endgames", sub: "Win when only a few pieces are left" },
     unit7: { title: "Unit 7 · More checkmates", sub: "Patterns past the ladder and the queen" },
+    unit8: { title: "Unit 8 · Sacrifices", sub: "Give a piece up when it wins" },
+    unit9: { title: "Unit 9 · Pawn structure", sub: "Which pawns are weak" },
+    unit10: { title: "Unit 10 · Making a plan", sub: "What to do when nothing is hanging" },
+    unit11: { title: "Unit 11 · Queen endings", sub: "Finish with a queen" },
     soon: { title: "Still being written", sub: "The course keeps going. These lessons are next." },
   },
 
-  /** Stops after the last written lesson. Not playable. */
-  comingSoon: [
-    { id: "sacrifices", title: "Sacrifices", sub: "Give a piece up to open the king" },
-    { id: "structure", title: "Pawn structure", sub: "Weak pawns, chains and majorities" },
-    { id: "plans", title: "Making a plan", sub: "What to do when there is no tactic" },
-    { id: "queenEnd", title: "Queen endings", sub: "Win with a queen against a pawn" },
-  ],
+  /** Nothing left unnamed. New topics become real lessons before they are listed here. */
+  comingSoon: [] as { id: string; title: string; sub: string }[],
 
   placement: {
     title: "Already know some chess?",
@@ -440,6 +443,10 @@ export const copy = {
       unit5: { name: "Pattern hunter", body: "Finish Unit 5." },
       unit6: { name: "Endgame player", body: "Finish Unit 6." },
       unit7: { name: "Mate patterns", body: "Finish Unit 7." },
+      unit8: { name: "Brave move", body: "Finish Unit 8." },
+      unit9: { name: "Pawn eye", body: "Finish Unit 9." },
+      unit10: { name: "Has a plan", body: "Finish Unit 10." },
+      unit11: { name: "Queen ending", body: "Finish Unit 11." },
       streak3: { name: "Three in a row", body: "Practise 3 days in a row." },
       streak7: { name: "Week of chess", body: "Practise 7 days in a row." },
       firstGame: { name: "First game", body: "Finish a game in the Gym." },

@@ -113,6 +113,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
             <span key={i} className={i <= s.index ? "on" : ""} />
           ))}
         </div>
+        <span className="step-count">{copy.lesson.progress(s.index + 1, total)}</span>
         <span className="icon-btn-spacer" />
       </header>
 

@@ -701,6 +701,76 @@ Object.assign(LESSONS, {
       { kind: "move", pose: "thinking", title: "One more.", body: "Same idea, other corner.", fen: "1k6/8/1K6/8/8/8/8/7R w - - 0 1", goal: { type: "mate" }, hint: "Use the top row again.", hintSquares: ["h1", "h8"] },
     ],
   },
+
+  /* ---------------- Units 8–11 · the topics that were still being written ---------------- */
+
+  sacrifice: {
+    id: "sacrifice",
+    steps: [
+      { kind: "say", pose: "wow", title: "Give something up.", body: "A sacrifice is a move that loses material on purpose. You do it when the king is caught, or when you win more than you gave.", fen: "6k1/5ppp/8/8/8/8/8/3Q2K1 w - - 0 1", highlight: ["d1", "d8"] },
+      { kind: "move", pose: "thinking", title: "The queen goes in.", body: "Put the queen on the back rank. The pawns block their own king.", fen: "6k1/5ppp/8/8/8/8/8/3Q2K1 w - - 0 1", goal: { type: "mate" }, hint: "Straight up to d8.", hintSquares: ["d1", "d8"] },
+      {
+        kind: "choice",
+        pose: "thinking",
+        title: "Was it worth it?",
+        body: "You gave nothing here, but the idea is the same. When is a sacrifice sound?",
+        fen: "6k1/5Qpp/8/8/8/8/8/6K1 b - - 1 1",
+        options: [{ label: "When it leads to mate or wins more than it cost", correct: true }, { label: "Whenever a piece can be taken" }, { label: "Only if you are already ahead" }],
+        hint: "Count what you get back, not just what you lose.",
+      },
+    ],
+  },
+
+  structure: {
+    id: "structure",
+    steps: [
+      { kind: "say", pose: "reading", title: "Pawns need neighbours.", body: "A pawn with a friend on the next file can be defended. A pawn standing alone is a target.", fen: "4k3/8/8/3p4/8/2N5/8/4K3 w - - 0 1", highlight: ["d5"] },
+      { kind: "move", pose: "thinking", title: "Take the lonely pawn.", body: "The pawn on d5 has no pawn beside it. Capture it.", fen: "4k3/8/8/3p4/8/2N5/8/4K3 w - - 0 1", goal: { type: "exact", from: "c3", to: "d5" }, hint: "The knight jumps to d5.", hintSquares: ["c3", "d5"] },
+      {
+        kind: "choice",
+        pose: "thinking",
+        title: "Quick check.",
+        body: "Which pawn is easier to attack?",
+        fen: "4k3/8/8/3p4/8/8/8/4K3 w - - 0 1",
+        options: [{ label: "One with no neighbour", correct: true }, { label: "One in a chain of three" }, { label: "They are the same" }],
+        hint: "A neighbour can recapture.",
+      },
+    ],
+  },
+
+  plan: {
+    id: "plan",
+    steps: [
+      { kind: "say", pose: "reading", title: "No tactic? Improve a piece.", body: "When nothing can be taken, don't push a random pawn. Bring a piece toward the centre.", fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", highlight: ["f3", "c3"] },
+      { kind: "move", pose: "thinking", title: "Develop the knight.", body: "Put the king's knight on f3.", fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", goal: { type: "exact", from: "g1", to: "f3" }, hint: "Two up and one toward the centre.", hintSquares: ["g1", "f3"] },
+      {
+        kind: "choice",
+        pose: "thinking",
+        title: "What is a plan?",
+        body: "A plan is the next few moves with one aim.",
+        fen: START_FEN,
+        options: [{ label: "Improve your pieces and keep the king safe", correct: true }, { label: "Move the same piece every turn" }, { label: "Trade everything as fast as you can" }],
+        hint: "Think of the opening habits: centre, develop, castle.",
+      },
+    ],
+  },
+
+  queenEnding: {
+    id: "queenEnding",
+    steps: [
+      { kind: "say", pose: "reading", title: "Queen against a lone king.", body: "Use the queen to take a whole rank away, then walk your king up. Don't step so close that the king has no move and is not in check. That is stalemate.", fen: "7k/8/6K1/8/8/8/8/6Q1 w - - 0 1" },
+      { kind: "move", pose: "thinking", title: "Mate on the edge.", body: "Check along the top rank.", fen: "k7/8/1K6/8/8/8/8/7Q w - - 0 1", goal: { type: "mate" }, hint: "The queen can reach h8 or b7.", hintSquares: ["h1", "h8"] },
+      {
+        kind: "choice",
+        pose: "thinking",
+        title: "The trap.",
+        body: "The king has no move, and it is not in check. What is that?",
+        fen: "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+        options: [{ label: "Stalemate, a draw", correct: true }, { label: "Checkmate" }, { label: "The king can still move" }],
+        hint: "Look at the king's square. Is it attacked right now?",
+      },
+    ],
+  },
 } satisfies Record<string, Lesson>);
 
 /** Handmade checkmate-in-one drills that unlock with the check lesson. */

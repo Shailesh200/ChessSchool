@@ -604,10 +604,13 @@ export function Flow({ top, children, footer, scroll = false }: { top?: React.Re
 export function Steps({ count, current, label }: { count: number; current: number; label: string }) {
   const { c } = useTheme();
   return (
-    <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: count, now: current + 1 }} style={{ flex: 1, flexDirection: "row", gap: 6, maxWidth: 260 }}>
+    <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: count, now: current + 1 }} style={{ flex: 1, gap: 4, maxWidth: 280 }}>
+      <T role="small" center color="textMuted">{label}</T>
+      <View style={{ flexDirection: "row", gap: 6 }}>
       {Array.from({ length: count }, (_, i) => (
         <View key={i} style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i <= current ? c.brand : c.sunken }} />
       ))}
+      </View>
     </View>
   );
 }

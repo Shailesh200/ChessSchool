@@ -261,7 +261,7 @@ export function minutesToday(progress: Progress, today: string): number {
 
 /* ---------- path ---------- */
 
-export type UnitId = "unit1" | "unit2" | "unit3" | "unit4" | "unit5" | "unit6" | "unit7";
+export type UnitId = "unit1" | "unit2" | "unit3" | "unit4" | "unit5" | "unit6" | "unit7" | "unit8" | "unit9" | "unit10" | "unit11";
 export type PathNodeDef = { id: string; unit: UnitId; minutes: number; xp: number; available: boolean };
 
 /** The path. "meet" is the product tour. Later units stay open so a learner can browse ahead. */
@@ -298,8 +298,12 @@ export const PATH: readonly PathNodeDef[] = [
   { id: "arabian", unit: "unit7", minutes: 5, xp: 25, available: true },
   { id: "bishopPair", unit: "unit7", minutes: 5, xp: 30, available: true },
   { id: "rookKing", unit: "unit7", minutes: 5, xp: 30, available: true },
+  { id: "sacrifice", unit: "unit8", minutes: 5, xp: 25, available: true },
+  { id: "structure", unit: "unit9", minutes: 5, xp: 25, available: true },
+  { id: "plan", unit: "unit10", minutes: 5, xp: 25, available: true },
+  { id: "queenEnding", unit: "unit11", minutes: 6, xp: 30, available: true },
 ];
-export const UNITS: readonly UnitId[] = ["unit1", "unit2", "unit3", "unit4", "unit5", "unit6", "unit7"];
+export const UNITS: readonly UnitId[] = ["unit1", "unit2", "unit3", "unit4", "unit5", "unit6", "unit7", "unit8", "unit9", "unit10", "unit11"];
 
 export type NodeState = "done" | "current" | "locked";
 
@@ -634,6 +638,10 @@ export type BadgeId =
   | "unit5"
   | "unit6"
   | "unit7"
+  | "unit8"
+  | "unit9"
+  | "unit10"
+  | "unit11"
   | "streak3"
   | "streak7"
   | "firstGame"
@@ -656,6 +664,10 @@ export const BADGES: readonly { id: BadgeId; earned: (p: Progress) => boolean }[
   { id: "unit5", earned: (p) => unitDone(p, "unit5") },
   { id: "unit6", earned: (p) => unitDone(p, "unit6") },
   { id: "unit7", earned: (p) => unitDone(p, "unit7") },
+  { id: "unit8", earned: (p) => unitDone(p, "unit8") },
+  { id: "unit9", earned: (p) => unitDone(p, "unit9") },
+  { id: "unit10", earned: (p) => unitDone(p, "unit10") },
+  { id: "unit11", earned: (p) => unitDone(p, "unit11") },
   { id: "streak3", earned: (p) => p.streak.count >= 3 },
   { id: "streak7", earned: (p) => p.streak.count >= 7 },
   { id: "firstGame", earned: (p) => p.games.played >= 1 },
