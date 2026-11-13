@@ -28,7 +28,7 @@ A native rebuild is also needed after changing Google client IDs or adding nativ
 |----------|-------|
 | `EXPO_PUBLIC_API_URL` | Every EAS profile sets `https://api.chess-school.in`. Cleartext is off (`android.usesCleartextTraffic: false`). Without the variable the app runs fully as an on-device guest |
 | `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | Web client ID (ID-token audience) — in `eas.json` |
-| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Android client (package + SHA-1s from `apps/mobile/RELEASE.md`) |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Present in `eas.json` and **unused by this app**. Native Google Sign-In reads only `EXPO_PUBLIC_GOOGLE_CLIENT_ID` (`webClientId`) and `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. Android matching is the package name plus SHA-1 on that web client, not this env var. There is no `.env.example` in this app. |
 
 ## Release
 
@@ -36,7 +36,7 @@ Version codes live in `app.json` (Android versionCode 37, iOS buildNumber 16). `
 
 - Play: `pnpm --filter chessschool build:android:prod` (app-bundle, image sdk-54, medium, channel production) then `submit:android:internal` (track internal, draft).
 - iOS: `pnpm --filter chessschool build:ios:prod` (image sdk-54, medium). Submit profile `production` carries App Store Connect app `6828715695` and Apple Team `ARDSWV5GD2`. No Apple ID or password is stored in the repo.
-- QA smoke APK: `npx eas-cli build --platform android --profile qa-apk`. Same API URL, Google client ids, channel `production`, and versionCode as the Play profile. `buildType` is `apk` (one universal APK, no ABI split) and `distribution` is `internal`, so it can be sideloaded. It is not a submit profile.
+- QA smoke APK: `npx eas-cli build --platform android --profile qa-apk`. Same API URL, Google client ids, and versionCode as the Play profile, on channel `qa` so a production OTA cannot reach a QA build (or the reverse). `buildType` is `apk` (one universal APK, no ABI split) and `distribution` is `internal`, so it can be sideloaded. It is not a submit profile.
 
 Not run automatically — store submission happens only when asked.
 

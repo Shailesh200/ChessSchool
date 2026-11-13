@@ -24,7 +24,7 @@
     },
     "qa-apk": {
       "distribution": "internal",
-      "channel": "production",
+      "channel": "qa",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.chess-school.in",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "1055675597789-kldmj8ovstoigu6jst3c34val97rriin.apps.googleusercontent.com",
