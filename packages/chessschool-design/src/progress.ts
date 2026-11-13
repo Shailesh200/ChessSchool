@@ -38,7 +38,11 @@ export type PuzzleProgress = {
   /** Most recent puzzle ids, newest first (so the same one isn't served twice). */
   recent: string[];
   sprintBest: number;
-  daily: { lastDay: string | null; count: number };
+  /**
+   * `seen` is daily puzzle ids already served, newest first.
+   * `servedDay`/`servedId` lock today's puzzle so it does not change once shown.
+   */
+  daily: { lastDay: string | null; count: number; seen: string[]; servedDay: string | null; servedId: string | null };
 };
 
 export type Profile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; avatar: AvatarId; flair: FlairId | null };
@@ -123,7 +127,7 @@ export const emptyProgress = (): Progress => ({
   minutes: { day: null, value: 0 },
   games: { played: 0, won: 0 },
   drills: 0,
-  puzzles: { rating: 600, attempts: 0, solved: 0, recent: [], sprintBest: 0, daily: { lastDay: null, count: 0 } },
+  puzzles: { rating: 600, attempts: 0, solved: 0, recent: [], sprintBest: 0, daily: { lastDay: null, count: 0, seen: [], servedDay: null, servedId: null } },
   bots: {},
   placed: [],
 });
@@ -182,12 +186,15 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
   };
 }
 
+/** Piece sets ChessSchool still ships. Keep in step with `PieceSetId` in @chessschool/chess. */
+const KEPT_PIECE_SETS = new Set(["toy", "clay", "pixel", "outline"]);
+
 function hydratePrefs(base: Prefs, raw: unknown): Prefs {
   const p = { ...base, ...((raw as Partial<Prefs>) ?? {}) };
   return {
     ...p,
     theme: isThemeId(p.theme) ? p.theme : "classroom",
-    pieceSet: typeof p.pieceSet === "string" ? p.pieceSet : "toy",
+    pieceSet: typeof p.pieceSet === "string" && KEPT_PIECE_SETS.has(p.pieceSet) ? p.pieceSet : "toy",
     coords: p.coords !== false,
     legalDots: p.legalDots !== false,
     promotion: p.promotion === "queen" ? "queen" : "ask",
@@ -225,6 +232,21 @@ export function resetDevice(newGuestId: string): LocalState {
 }
 
 /* ---------- days & streaks ---------- */
+
+/** Milliseconds until the next local midnight (12:00 AM). */
+export function msUntilLocalMidnight(now: Date): number {
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return Math.max(0, next.getTime() - now.getTime());
+}
+
+/** `H:MM:SS` remaining, for the daily-puzzle countdown. */
+export function formatDailyCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 /** Local calendar day as YYYY-MM-DD. */
 export function dayKey(date: Date): string {
@@ -386,12 +408,20 @@ export function recordGame(state: LocalState, game: GameRecord, now: Date, minut
   };
 }
 
+const DAILY_SEEN_MAX = 400;
+
 /** A puzzle attempt. Solving counts as a little practice; the new rating comes from the caller. */
 export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean; newRating: number; daily?: boolean }, now: Date): LocalState {
   const today = dayKey(now);
   const s = p.solved ? activity(state, now, 1) : state;
   const pz = s.progress.puzzles;
-  const daily = p.daily && pz.daily.lastDay !== today ? { lastDay: today, count: p.solved && pz.daily.lastDay && daysBetween(pz.daily.lastDay, today) === 1 ? pz.daily.count + 1 : p.solved ? 1 : pz.daily.count } : pz.daily;
+  const prevSeen = pz.daily.seen ?? [];
+  const seen = p.daily && p.solved ? [p.id, ...prevSeen.filter((id) => id !== p.id)].slice(0, DAILY_SEEN_MAX) : prevSeen;
+  // The day is done only once the daily puzzle is solved, so a miss can be tried again.
+  const daily =
+    p.daily && p.solved && pz.daily.lastDay !== today
+      ? { lastDay: today, count: pz.daily.lastDay && daysBetween(pz.daily.lastDay, today) === 1 ? pz.daily.count + 1 : 1, seen, servedDay: today, servedId: p.id }
+      : { ...pz.daily, seen, ...(p.daily && p.solved ? { servedDay: today, servedId: p.id } : {}) };
   return {
     ...s,
     progress: {
@@ -415,6 +445,25 @@ export function recordSprint(state: LocalState, score: number, now: Date, minute
 }
 
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;
+
+/** Remember the puzzle shown for this local day so it is not served again. No-op when that id is already stored. */
+export function serveDaily(state: LocalState, day: string, id: string): LocalState {
+  const daily = state.progress.puzzles.daily;
+  if (daily.servedDay === day && daily.servedId === id) return state;
+  const seen = [id, ...(daily.seen ?? []).filter((x) => x !== id)].slice(0, DAILY_SEEN_MAX);
+  return {
+    ...state,
+    progress: {
+      ...state.progress,
+      puzzles: { ...state.progress.puzzles, daily: { ...daily, seen, servedDay: day, servedId: id } },
+    },
+  };
+}
+
+/** Gym games (bots, coaches, pass & play) are for an account. Guests only see the sign-up card. */
+export function canUseGym(account: { id: string } | null | undefined): boolean {
+  return Boolean(account?.id);
+}
 
 /* ---------- placement ---------- */
 
@@ -530,6 +579,9 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   const lead = pa.attempts >= pb.attempts ? pa : pb;
   const dA = pa.daily.lastDay ?? "";
   const dB = pb.daily.lastDay ?? "";
+  const seenA = pa.daily.seen ?? [];
+  const seenB = pb.daily.seen ?? [];
+  const seen = [...seenA, ...seenB.filter((id) => !seenA.includes(id))].slice(0, 400);
   const bots: Progress["bots"] = {};
   for (const id of new Set([...Object.keys(a.bots ?? {}), ...Object.keys(b.bots ?? {})])) {
     const x = a.bots?.[id] ?? { played: 0, won: 0 };
@@ -549,7 +601,12 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
       solved: Math.max(pa.solved, pb.solved),
       recent: lead.recent,
       sprintBest: Math.max(pa.sprintBest, pb.sprintBest),
-      daily: dA === dB ? { lastDay: pa.daily.lastDay, count: Math.max(pa.daily.count, pb.daily.count) } : dA > dB ? pa.daily : pb.daily,
+      daily: {
+        ...(dA === dB ? { lastDay: pa.daily.lastDay, count: Math.max(pa.daily.count, pb.daily.count) } : dA > dB ? pa.daily : pb.daily),
+        seen,
+        servedDay: (dA >= dB ? pa.daily.servedDay : pb.daily.servedDay) ?? null,
+        servedId: (dA >= dB ? pa.daily.servedId : pb.daily.servedId) ?? null,
+      },
     },
     bots,
     placed: [...new Set([...(a.placed ?? []), ...(b.placed ?? [])])],
@@ -623,7 +680,13 @@ function sanitizePuzzles(raw: unknown): PuzzleProgress {
     solved: Math.min(attempts, n(p.solved, 1_000_000)),
     recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && /^[A-Za-z0-9]{3,8}$/.test(id)).slice(0, 50) : [],
     sprintBest: n(p.sprintBest, 500),
-    daily: { lastDay: day(p.daily?.lastDay), count: n(p.daily?.count, 10_000) },
+    daily: {
+      lastDay: day(p.daily?.lastDay),
+      count: n(p.daily?.count, 10_000),
+      seen: Array.isArray(p.daily?.seen) ? p.daily.seen.filter((id) => typeof id === "string" && /^[A-Za-z0-9]{3,8}$/.test(id)).slice(0, 400) : [],
+      servedDay: day(p.daily?.servedDay),
+      servedId: typeof p.daily?.servedId === "string" && /^[A-Za-z0-9]{3,8}$/.test(p.daily.servedId) ? p.daily.servedId : null,
+    },
   };
 }
 

@@ -8,26 +8,36 @@ export type PieceOp =
   | { t: "circle"; cx: number; cy: number; r: number; fill?: string; stroke?: string; sw?: number }
   | { t: "ellipse"; cx: number; cy: number; rx: number; ry: number; fill?: string; stroke?: string; sw?: number };
 export type PieceDrawing = { viewBox: string; ops: PieceOp[]; pixelated?: boolean };
-/** Retained sets are drawn from files: `<set>/<code>` under assets/pieces (.svg on web, .png on native). */
 export type PieceArtwork = { kind: "vector"; drawing: PieceDrawing } | { kind: "asset"; asset: string; pixelated?: boolean };
 
-export type PieceSetId = "toy" | "clay" | "pixel" | "outline" | "spatial" | "arcade" | "bold" | "heritage" | "cartoon" | "fantasy";
+export type PieceSetId = "toy" | "clay" | "pixel" | "outline";
 
-export type PieceSetInfo = { id: PieceSetId; name: string; blurb: string; source: "chessschool" | "lichess"; credit?: string };
+export type PieceSetInfo = { id: PieceSetId; name: string; blurb: string; source: "chessschool" };
+
+export const DEFAULT_PIECE_SET: PieceSetId = "toy";
 
 export const PIECE_SETS: readonly PieceSetInfo[] = [
   { id: "toy", name: "Toy", blurb: "Chunky and friendly", source: "chessschool" },
   { id: "clay", name: "Clay", blurb: "Soft, hand-made feel", source: "chessschool" },
   { id: "pixel", name: "Pixel", blurb: "Retro game sprites", source: "chessschool" },
   { id: "outline", name: "Outline", blurb: "High contrast, easiest to read", source: "chessschool" },
-  { id: "spatial", name: "Spatial", blurb: "Faceted 3D", source: "lichess" },
-  { id: "arcade", name: "Arcade", blurb: "Bright pixel art", source: "lichess" },
-  { id: "bold", name: "Bold", blurb: "Thick modern outlines", source: "lichess" },
-  { id: "heritage", name: "Heritage", blurb: "Carved classic", source: "lichess" },
-  { id: "cartoon", name: "Cartoon", blurb: "Soft and rounded", source: "lichess" },
-  { id: "fantasy", name: "Fantasy", blurb: "Ornate storybook", source: "lichess" },
 ];
 export const isPieceSet = (v: unknown): v is PieceSetId => PIECE_SETS.some((s) => s.id === v);
+
+/**
+ * Stored piece-set ids we no longer ship. Includes the Lichess upstream folder names
+ * (pixel→arcade, chessnut, dubrovny, kiwen-suwi) in case an older save used those.
+ * ChessSchool's own "pixel" set is not in this list.
+ */
+const REMOVED_PIECE_SETS = new Set(["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]);
+
+/** A saved preference for a removed set (or anything we don't ship) becomes Toy. */
+export function migratePieceSet(v: unknown): PieceSetId {
+  if (isPieceSet(v)) return v;
+  return DEFAULT_PIECE_SET;
+}
+
+export const isRemovedPieceSet = (v: unknown): boolean => typeof v === "string" && REMOVED_PIECE_SETS.has(v);
 
 type Palette = { fill: string; stroke: string; detail: string; dot: string; sw: number; shadow?: string };
 const STYLES: Record<"toy" | "clay" | "outline", Record<Color, Palette>> = {
@@ -60,9 +70,10 @@ function vector(style: keyof typeof STYLES, color: Color, type: PieceType): Piec
 
 /** Artwork for one piece in a set. Unknown sets fall back to Toy. */
 export function pieceArtwork(set: PieceSetId, color: Color, type: PieceType): PieceArtwork {
-  const code = `${color}${type.toUpperCase()}`;
   if (set === "clay" || set === "outline") return { kind: "vector", drawing: vector(set, color, type) };
-  if (set === "pixel") return { kind: "vector", drawing: { ...PIXEL_SET[code], pixelated: true } };
-  if (PIECE_SETS.some((s) => s.id === set && s.source === "lichess")) return { kind: "asset", asset: `${set}/${code}`, pixelated: set === "arcade" };
+  if (set === "pixel") {
+    const code = `${color}${type.toUpperCase()}`;
+    return { kind: "vector", drawing: { ...PIXEL_SET[code], pixelated: true } };
+  }
   return { kind: "vector", drawing: vector("toy", color, type) };
 }

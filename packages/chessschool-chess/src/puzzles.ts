@@ -44,12 +44,79 @@ export function nextPuzzle(opts: { rating: number; theme?: PuzzleThemeId | null;
   return list[0];
 }
 
-/** Same puzzle for everyone on a given local day. */
-export function dailyPuzzle(day: string): Puzzle {
-  const pool = allPuzzles().filter((p) => p.rating >= 800 && p.rating <= 1500);
+/**
+ * Puzzle themes a finished lesson unlocks. Lessons that only teach the board, openings or
+ * how the pieces move do not narrow the daily puzzle.
+ */
+const LESSON_PUZZLE_THEMES: Readonly<Record<string, readonly PuzzleThemeId[]>> = {
+  check: ["mateIn1"],
+  forks: ["fork"],
+  pins: ["pin"],
+  values: ["hangingPiece"],
+  special: ["promotion"],
+  ladder: ["mateIn1", "mateIn2"],
+  queenMate: ["mateIn1", "mateIn2"],
+  skewer: ["skewer"],
+  discovery: ["discoveredAttack"],
+  defender: ["defensiveMove"],
+  doubleCheck: ["discoveredAttack", "mateIn1"],
+  activeKing: ["endgame"],
+  opposition: ["endgame"],
+  passedPawn: ["endgame", "promotion"],
+  escort: ["endgame", "promotion"],
+  rookFile: ["endgame"],
+  backRank: ["backRankMate", "mateIn1"],
+  smothered: ["mateIn1"],
+  arabian: ["mateIn1", "mateIn2"],
+  bishopPair: ["endgame"],
+  rookKing: ["mateIn1", "endgame"],
+  sacrifice: ["sacrifice"],
+  queenEnding: ["endgame"],
+};
+
+/** Themes of lessons the learner has completed, in first-seen order. Unknown ids add nothing. */
+export function themesForCompletedLessons(completedIds: Iterable<string>): PuzzleThemeId[] {
+  const out: PuzzleThemeId[] = [];
+  const have = new Set<PuzzleThemeId>();
+  for (const id of completedIds) {
+    for (const theme of LESSON_PUZZLE_THEMES[id] ?? []) {
+      if (have.has(theme)) continue;
+      have.add(theme);
+      out.push(theme);
+    }
+  }
+  return out;
+}
+
+function dayHash(day: string): number {
   let h = 2166136261;
   for (const ch of day) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return pool[Math.abs(h) % pool.length];
+  return Math.abs(h);
+}
+
+/** Date-seeded puzzle from the everyday band. Same result for every learner on that day. */
+function dateSeededPuzzle(day: string): Puzzle {
+  const all = allPuzzles();
+  const pool = all.filter((p) => p.rating >= 800 && p.rating <= 1500);
+  const list = pool.length ? pool : all;
+  return list[dayHash(day) % list.length];
+}
+
+/**
+ * One puzzle for a local day (`YYYY-MM-DD`).
+ * Picks deterministically from puzzles whose themes match `completedThemes`, skipping `seenIds`.
+ * Falls back to the date-seeded puzzle when no themes are completed or every match was already served.
+ */
+export function dailyPuzzle(day: string, completedThemes: readonly string[] = [], seenIds: Iterable<string> = []): Puzzle {
+  const themes = new Set(completedThemes);
+  const seen = new Set(seenIds);
+  if (themes.size) {
+    const pool = allPuzzles()
+      .filter((p) => !seen.has(p.id) && p.themes.some((t) => themes.has(t)))
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    if (pool.length) return pool[dayHash(day) % pool.length];
+  }
+  return dateSeededPuzzle(day);
 }
 
 export const START_RATING = 600;

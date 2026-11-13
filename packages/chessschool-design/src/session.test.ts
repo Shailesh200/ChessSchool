@@ -18,7 +18,7 @@ describe("guest -> account handoff", () => {
   it("keeps orientation after signup even if the server copy is empty", () => {
     const s = applyAuth(guest(), {
       user: { id: "u1", email: "a@b.co", name: "Asha", provider: "password" },
-      profile: { name: "Asha", who: null, dailyMinutes: 15, appearance: "dark", sound: false },
+      profile: { name: "Asha", who: null, dailyMinutes: 15, appearance: "dark", sound: false, avatar: "cody", flair: null },
       progress: emptyProgress(),
     });
     expect(s.account?.id).toBe("u1");
@@ -32,7 +32,7 @@ describe("guest -> account handoff", () => {
   it("sign out forgets the account but not this device's progress", () => {
     const signedIn = applyAuth(guest(), {
       user: { id: "u1", email: "a@b.co", name: "Asha", provider: "password" },
-      profile: { name: "Asha", who: null, dailyMinutes: 15, appearance: "system", sound: true },
+      profile: { name: "Asha", who: null, dailyMinutes: 15, appearance: "system", sound: true, avatar: "cody", flair: null },
       progress: emptyProgress(),
     });
     const out = applySignOut(signedIn);
