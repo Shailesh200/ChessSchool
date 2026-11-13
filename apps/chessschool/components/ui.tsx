@@ -679,10 +679,10 @@ export function RankCurve({ xp }: { xp: number }) {
   const { c } = useTheme();
   const r = rankFor(xp);
   const W = 320;
-  const H = 130;
+  const H = 164;
   const pts = RANKS.map((_, i) => {
     const t = i / (RANKS.length - 1);
-    return [28 + t * (W - 56), H - 30 - Math.pow(t, 1.35) * (H - 62)] as const;
+    return [28 + t * (W - 56), H - 54 - Math.pow(t, 1.35) * (H - 94)] as const;
   });
   const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
   const next = pts[r.index + 1];
@@ -702,13 +702,18 @@ export function RankCurve({ xp }: { xp: number }) {
           />
         ) : null}
         {pts.map(([x, y], i) => {
+          const current = i === r.index;
           const reached = i <= r.index;
+          const badge = current ? 28 : 20;
           return (
             <G key={RANKS[i].id}>
-              {i === r.index ? <Circle cx={x} cy={y} r={27} fill={c.brand} opacity={0.18} /> : null}
-              <Circle cx={x} cy={y} r={20} fill={reached ? c.brand : c.card} stroke={reached ? c.brand : c.line} strokeWidth={3} />
-              <SvgText x={x} y={y + 8} fontSize={22} textAnchor="middle" fill={reached ? c.onBrand : c.textMuted}>
+              {current ? <Circle cx={x} cy={y} r={36} fill={c.brand} opacity={0.18} /> : null}
+              <Circle cx={x} cy={y} r={badge} fill={reached ? c.brand : c.card} stroke={reached ? c.brand : c.line} strokeWidth={3} />
+              <SvgText x={x} y={y + (current ? 10 : 8)} fontSize={current ? 28 : 22} textAnchor="middle" fill={reached ? c.onBrand : c.textMuted}>
                 {GLYPH[RANKS[i].id]}
+              </SvgText>
+              <SvgText x={x} y={y + badge + 16} fontSize={11} textAnchor="middle" fill={c.textMuted}>
+                {String(RANKS[i].xp)}
               </SvgText>
             </G>
           );
