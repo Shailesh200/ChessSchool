@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PATH,
   START_FEN,
@@ -9,6 +9,7 @@ import {
   placeAt,
   recordPuzzle,
   recordSprint,
+  serveDaily,
   completeNode,
   nextNode,
   recordGame,
@@ -16,9 +17,15 @@ import {
   reminderPlan,
   createInitialState,
   dayKey,
+  canUseGym,
+  DAILY_SEEN_MAX,
+  formatDailyCountdown,
   hydrateState,
   ideasLearned,
   mergeProgress,
+  msUntilLocalMidnight,
+  msUntilNextLocalMidnight,
+  watchLocalMidnight,
   pathStates,
   rankFor,
   sanitizeProgress,
@@ -28,6 +35,10 @@ import {
 } from "./progress";
 
 const at = (iso: string) => new Date(`${iso}T10:00:00`);
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("orientation", () => {
   it("completes once, awards XP once and starts a streak", () => {
@@ -255,6 +266,37 @@ describe("guest -> account merge hardening", () => {
     expect(hydrated.progress.games).toEqual({ played: 0, won: 0 });
     expect(hydrated.progress.completed.meet).toBe("2026-11-03");
   });
+
+  it("loads daily progress saved before the seen list and caps it at a year", () => {
+    const old = {
+      completed: { meet: "2026-11-03" },
+      xp: 10,
+      streak: { count: 1, lastDay: "2026-11-03" },
+      minutes: { day: "2026-11-03", value: 2 },
+      puzzles: { rating: 640, attempts: 2, solved: 1, recent: ["abc12"], sprintBest: 0, daily: { lastDay: "2026-11-03", count: 1 } },
+    };
+    const hydrated = hydrateState({ ...createInitialState("old"), progress: old }, () => "new");
+    expect(hydrated.progress.puzzles.daily.seen).toEqual([]);
+    expect(hydrated.progress.puzzles.daily.lastDay).toBe("2026-11-03");
+    expect(hydrated.progress.puzzles.daily.count).toBe(1);
+    const sanitized = sanitizeProgress(old as never);
+    expect(sanitized.puzzles.daily.seen).toEqual([]);
+    const merged = mergeProgress(old as never, emptyProgress());
+    expect(merged.puzzles.daily.seen).toEqual([]);
+    expect(merged.puzzles.daily.lastDay).toBe("2026-11-03");
+
+    const ids = Array.from({ length: DAILY_SEEN_MAX + 40 }, (_, i) => `a${String(i).padStart(4, "0")}`);
+    const capped = sanitizeProgress({
+      ...emptyProgress(),
+      puzzles: { ...emptyProgress().puzzles, daily: { lastDay: "2026-11-04", count: 1, seen: [...ids, "no", 12 as never] } },
+    });
+    expect(capped.puzzles.daily.seen).toEqual(ids.slice(0, DAILY_SEEN_MAX));
+
+    let served = createInitialState("g");
+    for (const id of ids) served = serveDaily(served, "2026-11-04", id);
+    expect(served.progress.puzzles.daily.seen).toHaveLength(DAILY_SEEN_MAX);
+    expect(served.progress.puzzles.daily.seen?.[0]).toBe(ids.at(-1));
+  });
 });
 
 describe("Phase 3 progress", () => {
@@ -275,7 +317,9 @@ describe("Phase 3 progress", () => {
     s = recordPuzzle(s, { id: "abc12", solved: true, newRating: 620, daily: true }, at("2026-11-03"));
     s = recordPuzzle(s, { id: "abc13", solved: true, newRating: 640, daily: true }, at("2026-11-04"));
     s = recordPuzzle(s, { id: "abc14", solved: false, newRating: 625 }, at("2026-11-04"));
-    expect(s.progress.puzzles).toMatchObject({ rating: 625, attempts: 3, solved: 2, recent: ["abc14", "abc13", "abc12"], daily: { lastDay: "2026-11-04", count: 2 } });
+    expect(s.progress.puzzles).toMatchObject({ rating: 625, attempts: 3, solved: 2, recent: ["abc14", "abc13", "abc12"], daily: { lastDay: "2026-11-04", count: 2, seen: ["abc13", "abc12"] } });
+    const missed = recordPuzzle(createInitialState("g"), { id: "abc15", solved: false, newRating: 580, daily: true }, at("2026-11-05"));
+    expect(missed.progress.puzzles.daily).toEqual({ lastDay: null, count: 0, seen: [], servedDay: null, servedId: null });
     expect(s.progress.streak.count).toBe(2);
     s = recordSprint(s, 12, at("2026-11-04"), 3);
     s = recordSprint(s, 9, at("2026-11-04"), 3);
@@ -303,6 +347,53 @@ describe("Phase 3 progress", () => {
     expect(h.prefs.theme).toBe("classroom");
     expect(h.prefs.pieceSet).toBe("pixel");
     expect(h.prefs.promotion).toBe("ask");
+    for (const removed of ["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]) {
+      expect(hydrateState({ ...createInitialState("old"), prefs: { pieceSet: removed } }, () => "n").prefs.pieceSet).toBe("toy");
+    }
+  });
+
+  it("moves the day key at local midnight with one re-armed timer", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 13, 23, 59, 59));
+    const days: string[] = [];
+    const watch = watchLocalMidnight((day) => days.push(day));
+    expect(msUntilNextLocalMidnight(new Date())).toBe(1000);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(999);
+    expect(days).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(days).toEqual(["2026-11-14"]);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    expect(days).toEqual(["2026-11-14", "2026-11-15"]);
+    watch.stop();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(48 * 60 * 60 * 1000);
+    expect(days).toEqual(["2026-11-14", "2026-11-15"]);
+  });
+
+  it("re-keys immediately when a throttled midnight timer is synced", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 13, 22, 0, 0));
+    const days: string[] = [];
+    const watch = watchLocalMidnight((day) => days.push(day));
+    vi.setSystemTime(new Date(2026, 10, 14, 8, 0, 0));
+    watch.sync();
+    expect(days).toEqual(["2026-11-14"]);
+    expect(vi.getTimerCount()).toBe(1);
+    watch.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("counts down to the next local midnight and keeps the gym for accounts", () => {
+    const now = new Date(2026, 10, 13, 23, 15, 10);
+    expect(msUntilLocalMidnight(now)).toBe((44 * 60 + 50) * 1000);
+    expect(formatDailyCountdown(msUntilLocalMidnight(now))).toBe("0:44:50");
+    expect(msUntilLocalMidnight(new Date(2026, 10, 14, 0, 0, 0))).toBe(24 * 60 * 60 * 1000);
+    expect(canUseGym(null)).toBe(false);
+    expect(canUseGym(undefined)).toBe(false);
+    expect(canUseGym({ id: "" })).toBe(false);
+    expect(canUseGym({ id: "u1" })).toBe(true);
   });
 
   it("merges puzzles and bot records from both devices", () => {
@@ -310,6 +401,11 @@ describe("Phase 3 progress", () => {
     const b = { ...emptyProgress(), puzzles: { ...emptyProgress().puzzles, rating: 700, attempts: 5, solved: 4, sprintBest: 9 }, bots: { pip: { played: 1, won: 1 } } };
     const m = mergeProgress(a, b);
     expect(m.puzzles).toMatchObject({ rating: 900, attempts: 30, solved: 20, sprintBest: 9 });
+    const withSeen = mergeProgress(
+      { ...emptyProgress(), puzzles: { ...emptyProgress().puzzles, daily: { lastDay: "2026-11-04", count: 2, seen: ["aaa11"], servedDay: "2026-11-04", servedId: "aaa11" } } },
+      { ...emptyProgress(), puzzles: { ...emptyProgress().puzzles, daily: { lastDay: "2026-11-03", count: 1, seen: ["bbb22", "aaa11"], servedDay: null, servedId: null } } },
+    );
+    expect(withSeen.puzzles.daily).toEqual({ lastDay: "2026-11-04", count: 2, seen: ["aaa11", "bbb22"], servedDay: "2026-11-04", servedId: "aaa11" });
     expect(m.bots).toEqual({ cody: { played: 3, won: 2 }, pip: { played: 1, won: 1 } });
   });
 });

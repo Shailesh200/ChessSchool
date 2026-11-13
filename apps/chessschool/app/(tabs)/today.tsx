@@ -1,10 +1,10 @@
-import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Course, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Course, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Cody, Fx } from "@/components/Lottie";
 import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
 import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
@@ -21,6 +21,7 @@ export default function Today() {
   const { c } = useTheme();
   const now = new Date();
   const today = dayKey(now);
+  const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle();
   const { progress, profile } = state;
   const name = profile.name.trim() || copy.today.friend;
   const rank = rankFor(progress.xp);
@@ -245,9 +246,9 @@ export default function Today() {
           {copy.puzzles.daily}
         </T>
         <T role="body" color="textMuted">
-          {dailyDone(progress, today) ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPuzzle(today).rating}`}
+          {dailyIsDone ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPick.rating}`}
         </T>
-        {dailyDone(progress, today) ? null : <Button title={copy.puzzles.daily} icon="puzzle" variant="secondary" onPress={() => router.push("/puzzle?daily=1")} />}
+        {dailyIsDone ? <DailyCountdown /> : <Button title={copy.puzzles.daily} icon="puzzle" variant="secondary" onPress={() => router.push("/puzzle?daily=1")} />}
       </Card>
 
       <Card>

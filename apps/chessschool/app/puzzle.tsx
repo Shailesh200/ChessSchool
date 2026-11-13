@@ -1,9 +1,10 @@
-import { dailyPuzzle, nextPuzzle, PUZZLE_THEMES, updateRating, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
-import { copy, dailyDone, dayKey } from "@chessschool/design";
+import { nextPuzzle, PUZZLE_THEMES, updateRating, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
+import { copy } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, T, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
@@ -14,16 +15,17 @@ export default function PuzzleScreen() {
   const { state, finishPuzzle } = useApp();
   const { c } = useTheme();
   const daily = params.daily === "1";
-  const todayKey = dayKey(new Date());
+  const served = useDailyPuzzle(daily);
   const theme = (PUZZLE_THEMES.find((t) => t.id === params.theme)?.id ?? null) as PuzzleThemeId | null;
-  const [puzzle, setPuzzle] = useState<Puzzle>(() => (daily ? dailyPuzzle(todayKey) : nextPuzzle({ rating: state.progress.puzzles.rating, theme, exclude: state.progress.puzzles.recent })));
+  const [puzzle, setPuzzle] = useState<Puzzle>(() => (daily ? served.puzzle : nextPuzzle({ rating: state.progress.puzzles.rating, theme, exclude: state.progress.puzzles.recent })));
   const [round, setRound] = useState(0);
   const [delta, setDelta] = useState<number | null>(null);
-  if (daily && dailyDone(state.progress, todayKey)) {
+  if (daily && served.done) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, padding: 16, gap: 16 }}>
         <TopBar title={copy.puzzles.daily} />
         <T role="bodyLg" color="textMuted">{copy.puzzles.dailyDone}</T>
+        <DailyCountdown />
         <Button title={copy.puzzles.back} icon="back" onPress={() => router.back()} />
       </SafeAreaView>
     );

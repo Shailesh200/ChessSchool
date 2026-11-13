@@ -31,10 +31,11 @@ import {
   type Square,
   type TimeControlId,
 } from "@chessschool/chess";
-import { copy, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { canUseGym, copy, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "@/components/Board";
+import { GymGuestCard } from "@/components/GymGuestCard";
 import { BoardStage } from "@/components/BoardStage";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
@@ -136,6 +137,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   useEffect(() => {
     if (auto.current) return;
     auto.current = true;
+    if (!canUseGym(state.account)) return;
     if (params.get("resume") && saved) resume();
     else if (params.get("quick")) start();
     // Runs once on mount with the URL's intent.
@@ -212,6 +214,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
     setGuide(null);
   }, [game?.fen, watch]);
 
+  if (!canUseGym(state.account)) return <GymGuestCard backHref="/today" />;
   if (!game) {
     const info = botInfo(bot);
     return (
@@ -260,7 +263,13 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                     }}
                   >
                     <BotAvatar bot={b.id} size={40} />
-                    <span>{b.name.split(" ").at(-1)}</span>
+                    <span className="bot-chip-text">
+                      <span>{b.name}</span>
+                      <span className="muted">{b.strength}</span>
+                    </span>
+                    <span className="bot-level" aria-hidden>
+                      {"★".repeat(b.level)}
+                    </span>
                   </button>
                 ))}
               </div>

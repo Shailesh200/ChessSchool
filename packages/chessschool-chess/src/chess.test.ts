@@ -5,10 +5,10 @@ import { legalTargets, load, withTurn } from "./game";
 import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
 import { currentStep, runnerReduce, startRunner, type RunnerState } from "./runner";
 import { defaultSetup, playReduce, playResult, shuffleFen, startGame, timeLeft, START_POSITIONS, type PlaySetup } from "./play";
-import { allPuzzles, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, updateRating, type PuzzleState } from "./puzzles";
+import { allPuzzles, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
 import { assessMove, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
 import { BOTS } from "./bot";
-import { PIECE_SETS, pieceArtwork } from "./pieceSets";
+import { PIECE_SETS, isRemovedPieceSet, migratePieceSet, pieceArtwork } from "./pieceSets";
 
 /** Two taps, answering the promotion question (queen unless `promo` says otherwise). */
 function rMove(s: RunnerState, from: Square, to: Square, promo: PromotionPiece = "q"): RunnerState {
@@ -400,7 +400,7 @@ describe("puzzles", () => {
     const p = nextPuzzle({ rating: 900, rand: seq() });
     expect(Math.abs(p.rating - 900)).toBeLessThanOrEqual(100);
     expect(nextPuzzle({ rating: 900, theme: "fork", rand: seq() }).themes).toContain("fork");
-    expect(dailyPuzzle("2026-11-04").id).toBe(dailyPuzzle("2026-11-04").id);
+    expect(dailyPuzzle("2026-11-04").id).toBe(dailyPuzzle("2026-11-04", [], []).id);
     expect(updateRating(600, 600, true, 0)).toBe(620);
     expect(updateRating(600, 600, false, 0)).toBe(580);
   });
@@ -453,7 +453,59 @@ describe("game review", () => {
   });
 });
 
+describe("daily puzzle", () => {
+  const day = "2026-11-04";
+
+  it("is deterministic for the same day, themes and seen list", () => {
+    const themes = ["fork", "pin"];
+    const seen = ["abc12"];
+    expect(dailyPuzzle(day, themes, seen).id).toBe(dailyPuzzle(day, themes, [...seen]).id);
+    const ids = new Set<string>();
+    for (let d = 1; d <= 24; d++) ids.add(dailyPuzzle(`2026-03-${String(d).padStart(2, "0")}`, themes, []).id);
+    expect(ids.size).toBeGreaterThan(1);
+  });
+
+  it("stays inside the completed themes and never repeats a served id", () => {
+    expect(themesForCompletedLessons(["meet", "board", "forks", "pins", "forks"])).toEqual(["fork", "pin"]);
+    expect(themesForCompletedLessons(["meet", "board"])).toEqual([]);
+    const themes = themesForCompletedLessons(["forks"]);
+    const first = dailyPuzzle(day, themes, []);
+    expect(first.themes).toContain("fork");
+    const second = dailyPuzzle(day, themes, [first.id]);
+    expect(second.id).not.toBe(first.id);
+    expect(second.themes).toContain("fork");
+    const again = dailyPuzzle(day, themes, [second.id, first.id]);
+    expect([first.id, second.id]).not.toContain(again.id);
+  });
+
+  it("falls back to the date-seeded puzzle when nothing is completed or the pool is used up", () => {
+    const seeded = dailyPuzzle(day);
+    expect(dailyPuzzle(day, [], ["zzzzz"]).id).toBe(seeded.id);
+    expect(dailyPuzzle(day, ["not-a-theme"], []).id).toBe(seeded.id);
+    const forks = allPuzzles().filter((p) => p.themes.includes("fork")).map((p) => p.id);
+    expect(forks.length).toBeGreaterThan(1);
+    expect(dailyPuzzle(day, ["fork"], forks).id).toBe(seeded.id);
+  });
+});
+
 describe("piece sets", () => {
+  it("keeps ChessSchool sets and migrates removed Lichess sets to Toy", () => {
+    expect(PIECE_SETS.map((s) => s.id)).toEqual(["toy", "clay", "pixel", "outline"]);
+    expect(PIECE_SETS.every((s) => s.source === "chessschool")).toBe(true);
+    expect(migratePieceSet("pixel")).toBe("pixel");
+    expect(migratePieceSet("outline")).toBe("outline");
+    expect(migratePieceSet("clay")).toBe("clay");
+    expect(migratePieceSet("toy")).toBe("toy");
+    for (const id of ["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]) {
+      expect(isRemovedPieceSet(id)).toBe(true);
+      expect(migratePieceSet(id)).toBe("toy");
+    }
+    expect(migratePieceSet("pixel")).toBe("pixel");
+    expect(isRemovedPieceSet("pixel")).toBe(false);
+    expect(migratePieceSet(null)).toBe("toy");
+    expect(migratePieceSet("nope")).toBe("toy");
+  });
+
   it("draws every piece in every set", () => {
     for (const set of PIECE_SETS) {
       for (const c of ["w", "b"] as const) {

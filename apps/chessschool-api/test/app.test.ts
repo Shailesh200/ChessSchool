@@ -191,6 +191,28 @@ describe("me / home / progress", () => {
     expect(stale.json.progress.completed.meet).toBe("2026-11-03");
     expect((await call("PUT", "/v1/progress", { progress: "junk" }, token)).status).toBe(400);
   });
+
+  it("accepts daily progress without a seen list and caps a long one", async () => {
+    const { token } = await account();
+    const old = {
+      completed: { meet: "2026-11-03" },
+      xp: 10,
+      streak: { count: 1, lastDay: "2026-11-03" },
+      minutes: { day: "2026-11-03", value: 2 },
+      puzzles: { rating: 600, attempts: 0, solved: 0, recent: [], sprintBest: 0, daily: { lastDay: "2026-11-03", count: 1 } },
+    };
+    const put = await call("PUT", "/v1/progress", { progress: old }, token);
+    expect(put.status).toBe(200);
+    expect(put.json.progress.puzzles.daily.lastDay).toBe("2026-11-03");
+    expect(put.json.progress.puzzles.daily.count).toBe(1);
+    expect(put.json.progress.puzzles.daily.seen).toEqual([]);
+
+    const ids = Array.from({ length: 400 }, (_, i) => `b${String(i).padStart(4, "0")}`);
+    const capped = await call("PUT", "/v1/progress", { progress: { ...old, puzzles: { ...old.puzzles, daily: { ...old.puzzles.daily, seen: ids } } } }, token);
+    expect(capped.status).toBe(200);
+    expect(capped.json.progress.puzzles.daily.seen).toHaveLength(365);
+    expect(capped.json.progress.puzzles.daily.seen[0]).toBe("b0000");
+  });
 });
 
 describe("account deletion and feedback", () => {

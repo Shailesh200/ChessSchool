@@ -1,8 +1,9 @@
 "use client";
 
-import { allPuzzles, dailyPuzzle, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
-import { copy, dailyDone, dayKey } from "@chessschool/design";
+import { allPuzzles, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
+import { copy } from "@chessschool/design";
 import Link from "next/link";
+import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, TopBar } from "@/components/ui";
@@ -10,11 +11,9 @@ import { useApp } from "@/lib/state";
 
 export default function PuzzlesPage() {
   const { state, ready } = useApp();
-  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   const pz = state.progress.puzzles;
-  const today = dayKey(new Date());
-  const done = dailyDone(state.progress, today);
-  const daily = dailyPuzzle(today);
+  const { puzzle: daily, done } = useDailyPuzzle(ready);
+  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   return (
     <div className="page">
       <TopBar title={copy.puzzles.title} large back={false} />
@@ -38,6 +37,7 @@ export default function PuzzlesPage() {
             <Icon name="sun" /> {copy.puzzles.daily}
           </h2>
           <p className="muted">{done ? copy.puzzles.dailyDone : copy.puzzles.dailyBody}</p>
+          {done ? <DailyCountdown /> : null}
           <p className="chip chip-accent">{copy.puzzles.dailyStreak(pz.daily.count)}</p>
           {done ? null : (
             <Button href={`/puzzles/solve?daily=1`} icon="play" variant="gold">

@@ -302,7 +302,7 @@ async function mobile() {
   await page.getByRole("radio", { name: "Midnight True black and gold" }).click();
   if ((await page.evaluate(() => document.documentElement.dataset.csTheme)) !== "midnight") fail("theme not applied");
   if ((await page.evaluate(() => getComputedStyle(document.body).backgroundColor)) !== "rgb(0, 0, 0)") fail("midnight background not black");
-  await page.getByRole("radio", { name: /^Heritage/ }).click();
+  await page.getByRole("radio", { name: /^Outline/ }).click();
   await page.getByRole("switch", { name: /Show coordinates/ }).click();
   await page.getByRole("radio", { name: "Garden", exact: true }).click();
   await shot(page, "14-looks");
@@ -310,7 +310,8 @@ async function mobile() {
   if (!fav?.includes("garden")) fail(`favicon not switched (${fav})`);
   await page.goto(`${BASE}/play?bot=cody&quick=1`);
   await page.waitForTimeout(800);
-  if (!(await page.locator('.board img[src*="/assets/pieces/heritage/"]').count())) fail("heritage pieces not drawn");
+  if (await page.locator('.board img[src*="/assets/pieces/"]').count()) fail("removed piece set still drawn");
+  if (!(await page.locator(".board svg.piece-svg").count())) fail("outline pieces not drawn");
   if (await page.locator(".board .coord").count()) fail("coordinates still shown");
   await shot(page, "15-midnight-heritage");
   // Reload keeps the theme without a flash.

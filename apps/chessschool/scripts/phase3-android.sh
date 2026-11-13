@@ -52,13 +52,13 @@ d shot "$OUT/05-pass-play.png"
 d tap "Resign"; sleep 1; d tap "Resign"; d has "Black resigned." 20
 adb shell input keyevent BACK; sleep 2
 
-step "looks: Ocean + Heritage"
+step "looks: Ocean + Outline"
 open looks
 d tap "Ocean."; sleep 2
 d shot "$OUT/06-ocean.png"
 for _ in 1 2 3; do adb shell input swipe 540 1800 540 700 400; sleep 1; done
-d tap "Heritage."; sleep 2
-d shot "$OUT/07-heritage.png"
+d tap "Outline."; sleep 2
+d shot "$OUT/07-outline.png"
 adb shell input keyevent BACK; sleep 2
 open looks; d tap "Classroom."; sleep 1
 for _ in 1 2; do adb shell input swipe 540 1800 540 900 400; sleep 1; done
