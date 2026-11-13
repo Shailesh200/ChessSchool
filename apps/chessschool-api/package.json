@@ -8,7 +8,9 @@
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:vercel": "node scripts/build-vercel.mjs"
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "qa:serve": "tsx scripts/qa-serve.ts",
+    "qa:delete-accounts": "tsx scripts/delete-qa-accounts.ts"
   },
   "dependencies": {
     "@chessschool/chess": "workspace:*",
