@@ -60,6 +60,7 @@ export const copy = {
     appleFailed: "Apple sign-in didn't work. Please try again.",
     appleInvalid: "That Apple sign-in didn't check out. Please try again.",
     appleUnconfigured: "Apple sign-in isn't set up yet. Use email for now.",
+    emailInUse: "This email already has an account. Sign in with email instead.",
     providerPassword: "Email",
     providerGoogle: "Google",
     providerApple: "Apple",

@@ -1,4 +1,5 @@
 import type { Course, CourseLesson } from "./course";
+import { copy } from "./copy";
 import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Who } from "./progress";
 
 /* ---------- wire types (shared by API, web, native) ---------- */
@@ -33,6 +34,7 @@ export type ApiErrorCode =
   | "invalid_input"
   | "invalid_credentials"
   | "email_taken"
+  | "email_in_use"
   | "google_only"
   | "google_invalid"
   | "google_unconfigured"
@@ -58,6 +60,25 @@ export class ApiError extends Error {
   ) {
     super(message ?? code);
   }
+}
+
+const authErrorCopy: Partial<Record<ApiErrorCode, string>> = {
+  invalid_credentials: copy.auth.errors.credentials,
+  email_taken: copy.auth.errors.emailTaken,
+  email_in_use: copy.auth.emailInUse,
+  google_only: copy.auth.errors.googleOnly,
+  google_invalid: copy.auth.errors.generic,
+  google_unconfigured: copy.auth.googleUnavailable,
+  apple_invalid: copy.auth.appleInvalid,
+  apple_unconfigured: copy.auth.appleUnconfigured,
+  rate_limited: copy.auth.errors.rateLimited,
+  offline: copy.auth.errors.offline,
+};
+
+/** Friendly text for a failed auth call. A 409 email_in_use is not an offline error. */
+export function errorMessage(err: unknown): string {
+  if (!(err instanceof ApiError)) return copy.auth.errors.generic;
+  return authErrorCopy[err.code] ?? (err.status >= 500 || err.status === 0 ? copy.auth.errors.offline : copy.auth.errors.generic);
 }
 
 /* ---------- client ---------- */
