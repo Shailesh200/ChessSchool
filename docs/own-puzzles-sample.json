@@ -1,0 +1,1085 @@
+{
+  "seed": 20261113,
+  "engine": "Stockfish 18 Lite WASM (apps/web/public/engine/stockfish-18-lite-single.js)",
+  "network": "nn-9067e33176e8.nnue",
+  "screenDepth": 8,
+  "verifyDepth": 12,
+  "gamesRequested": 48,
+  "poolSize": 49,
+  "diverseSize": 37,
+  "thresholds": {
+    "MIN_GAP": 150,
+    "WIN_CP": 150,
+    "SECOND_MAX": 50,
+    "SAVE_FLOOR": -50,
+    "LOSE_CP": -250,
+    "REPLY_GAP": 80
+  },
+  "distribution": {
+    "count": 20,
+    "buckets": {
+      "500": 1,
+      "600": 1,
+      "700": 1,
+      "900": 2,
+      "1000": 3,
+      "1100": 3,
+      "1200": 5,
+      "1300": 2,
+      "1400": 2
+    },
+    "themes": {
+      "mateIn1": 0,
+      "mateIn2": 1,
+      "fork": 3,
+      "pin": 4,
+      "skewer": 5,
+      "hangingPiece": 8,
+      "discoveredAttack": 5,
+      "backRankMate": 1,
+      "promotion": 0,
+      "endgame": 1,
+      "defensiveMove": 9,
+      "sacrifice": 4
+    },
+    "untagged": 2,
+    "lengths": {
+      "2": 16,
+      "4": 4
+    }
+  },
+  "poolDistribution": {
+    "count": 49,
+    "buckets": {
+      "400": 2,
+      "500": 2,
+      "600": 4,
+      "700": 2,
+      "800": 2,
+      "900": 8,
+      "1000": 7,
+      "1100": 7,
+      "1200": 10,
+      "1300": 3,
+      "1400": 2
+    },
+    "themes": {
+      "mateIn1": 1,
+      "mateIn2": 1,
+      "fork": 4,
+      "pin": 8,
+      "skewer": 5,
+      "hangingPiece": 28,
+      "discoveredAttack": 6,
+      "backRankMate": 2,
+      "promotion": 0,
+      "endgame": 7,
+      "defensiveMove": 25,
+      "sacrifice": 4
+    },
+    "untagged": 4,
+    "lengths": {
+      "2": 45,
+      "4": 4
+    }
+  },
+  "puzzles": [
+    {
+      "id": "csp-0001",
+      "fen": "r1b2rk1/ppp1b1pp/2N5/5p2/5R2/2N5/PPP2PPP/R1Bq2K1 w - - 0 13",
+      "moves": "c3d1 b7c6",
+      "rating": 1245,
+      "themes": [
+        "hangingPiece",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        5,
+        10
+      ],
+      "gapCp": 268,
+      "minSolverGapCp": 268,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 23,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "b7c6",
+          "role": "solver",
+          "best": "cp 10",
+          "second": "cp -258",
+          "gapCp": 268
+        }
+      ],
+      "origin": {
+        "game": 1,
+        "ply": 25,
+        "erring": "w",
+        "opening": "e2e4 e7e5 g1f3 b8c6"
+      },
+      "row": [
+        "csp-0001",
+        "r1b2rk1/ppp1b1pp/2N5/5p2/5R2/2N5/PPP2PPP/R1Bq2K1 w - - 0 13",
+        "c3d1 b7c6",
+        1245,
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0002",
+      "fen": "r7/pp3pkp/q5p1/5b2/4NP2/3r4/PPQ3PP/2R1R1K1 w - - 0 26",
+      "moves": "e4c5 a6b6",
+      "rating": 1427,
+      "themes": [
+        "pin",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        3,
+        10
+      ],
+      "gapCp": 303,
+      "minSolverGapCp": 303,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": true,
+      "keyIsCheck": false,
+      "pieceCount": 20,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "a6b6",
+          "role": "solver",
+          "best": "cp 50",
+          "second": "cp -253",
+          "gapCp": 303
+        }
+      ],
+      "origin": {
+        "game": 5,
+        "ply": 51,
+        "erring": "w",
+        "opening": "d2d4 d7d5 c2c4 e7e6"
+      },
+      "row": [
+        "csp-0002",
+        "r7/pp3pkp/q5p1/5b2/4NP2/3r4/PPQ3PP/2R1R1K1 w - - 0 26",
+        "e4c5 a6b6",
+        1427,
+        [
+          3,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0003",
+      "fen": "5rk1/4n1p1/2N2q2/1pQn1p1p/4p3/6P1/4PPBP/4R1K1 w - - 2 28",
+      "moves": "c6e7 d5e7",
+      "rating": 1124,
+      "themes": [
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        10
+      ],
+      "gapCp": 378,
+      "minSolverGapCp": 378,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 18,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "d5e7",
+          "role": "solver",
+          "best": "cp -24",
+          "second": "cp -402",
+          "gapCp": 378
+        }
+      ],
+      "origin": {
+        "game": 8,
+        "ply": 55,
+        "erring": "b",
+        "opening": "d2d4 f7f5 g1f3 g8f6"
+      },
+      "row": [
+        "csp-0003",
+        "5rk1/4n1p1/2N2q2/1pQn1p1p/4p3/6P1/4PPBP/4R1K1 w - - 2 28",
+        "c6e7 d5e7",
+        1124,
+        [
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0004",
+      "fen": "r2qk2r/pp2bppp/4p3/2P5/3Qn3/5N2/P1P2PPP/RNB2RK1 b kq - 0 11",
+      "moves": "d8d4 f3d4",
+      "rating": 761,
+      "themes": [
+        "hangingPiece"
+      ],
+      "themeIndexes": [
+        5
+      ],
+      "gapCp": 726,
+      "minSolverGapCp": 726,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 24,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "f3d4",
+          "role": "solver",
+          "best": "cp 246",
+          "second": "cp -480",
+          "gapCp": 726
+        }
+      ],
+      "origin": {
+        "game": 2,
+        "ply": 22,
+        "erring": "b",
+        "opening": "e2e4 c7c5 g1f3 d7d6"
+      },
+      "row": [
+        "csp-0004",
+        "r2qk2r/pp2bppp/4p3/2P5/3Qn3/5N2/P1P2PPP/RNB2RK1 b kq - 0 11",
+        "d8d4 f3d4",
+        761,
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "id": "csp-0005",
+      "fen": "r1qr2k1/p4ppp/1p1b4/3P4/5B2/8/P3QPPP/R2R2K1 w - - 1 22",
+      "moves": "f4d6 d8d6",
+      "rating": 976,
+      "themes": [
+        "pin",
+        "hangingPiece",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        3,
+        5,
+        10
+      ],
+      "gapCp": 513,
+      "minSolverGapCp": 513,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 19,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "d8d6",
+          "role": "solver",
+          "best": "cp 10",
+          "second": "cp -503",
+          "gapCp": 513
+        }
+      ],
+      "origin": {
+        "game": 19,
+        "ply": 43,
+        "erring": "w",
+        "opening": "e2e4 c7c5 c2c3 g8f6"
+      },
+      "row": [
+        "csp-0005",
+        "r1qr2k1/p4ppp/1p1b4/3P4/5B2/8/P3QPPP/R2R2K1 w - - 1 22",
+        "f4d6 d8d6",
+        976,
+        [
+          3,
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0006",
+      "fen": "6R1/5pk1/1p1rpq1p/p4np1/4R3/2Q4P/PP3PP1/6K1 b - - 7 30",
+      "moves": "g7g8 c3f6",
+      "rating": 566,
+      "themes": [
+        "pin",
+        "hangingPiece"
+      ],
+      "themeIndexes": [
+        3,
+        5
+      ],
+      "gapCp": 867,
+      "minSolverGapCp": 867,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 18,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "c3f6",
+          "role": "solver",
+          "best": "cp 394",
+          "second": "cp -473",
+          "gapCp": 867
+        }
+      ],
+      "origin": {
+        "game": 26,
+        "ply": 60,
+        "erring": "b",
+        "opening": "d2d4 g8f6 c2c4 e7e6"
+      },
+      "row": [
+        "csp-0006",
+        "6R1/5pk1/1p1rpq1p/p4np1/4R3/2Q4P/PP3PP1/6K1 b - - 7 30",
+        "g7g8 c3f6",
+        566,
+        [
+          3,
+          5
+        ]
+      ]
+    },
+    {
+      "id": "csp-0007",
+      "fen": "N2k2nr/p2b1qbp/3Q4/1p1P4/7P/4n3/PP2P1P1/2R1KB1R b K - 0 24",
+      "moves": "f7d5 c1c8 d8c8 d6c7",
+      "rating": 1107,
+      "themes": [
+        "mateIn2",
+        "fork",
+        "skewer",
+        "backRankMate",
+        "sacrifice"
+      ],
+      "themeIndexes": [
+        1,
+        2,
+        4,
+        7,
+        11
+      ],
+      "gapCp": 530,
+      "minSolverGapCp": 530,
+      "solverPlies": 2,
+      "mate": true,
+      "quietKey": false,
+      "keyIsCheck": true,
+      "pieceCount": 21,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "c1c8",
+          "role": "solver",
+          "best": "mate 2",
+          "second": "cp -50",
+          "gapCp": 530
+        },
+        {
+          "uci": "d8c8",
+          "role": "opponent",
+          "best": "mate -1",
+          "second": null,
+          "gapCp": 800,
+          "forced": true
+        },
+        {
+          "uci": "d6c7",
+          "role": "solver",
+          "best": "mate 1",
+          "second": "cp -442",
+          "gapCp": 922
+        }
+      ],
+      "origin": {
+        "game": 9,
+        "ply": 48,
+        "erring": "w",
+        "opening": "c2c4 e7e5 g1f3 b8c6"
+      },
+      "row": [
+        "csp-0007",
+        "N2k2nr/p2b1qbp/3Q4/1p1P4/7P/4n3/PP2P1P1/2R1KB1R b K - 0 24",
+        "f7d5 c1c8 d8c8 d6c7",
+        1107,
+        [
+          1,
+          2,
+          4,
+          7,
+          11
+        ]
+      ]
+    },
+    {
+      "id": "csp-0008",
+      "fen": "1r2k2r/3n1ppp/1q1ppn2/P2p1b2/3P4/Q1P2N2/P3PPPP/RN2KB1R b KQk - 0 11",
+      "moves": "b6b1 a1b1 b8b1 e1d2",
+      "rating": 1379,
+      "themes": [
+        "defensiveMove",
+        "sacrifice"
+      ],
+      "themeIndexes": [
+        10,
+        11
+      ],
+      "gapCp": 437,
+      "minSolverGapCp": 437,
+      "solverPlies": 2,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 27,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "a1b1",
+          "role": "solver",
+          "best": "cp 22",
+          "second": "cp -415",
+          "gapCp": 437
+        },
+        {
+          "uci": "b8b1",
+          "role": "opponent",
+          "best": "cp -67",
+          "second": "cp -279",
+          "gapCp": 212,
+          "forced": true
+        },
+        {
+          "uci": "e1d2",
+          "role": "solver",
+          "best": "cp 47",
+          "second": "cp -700",
+          "gapCp": 747
+        }
+      ],
+      "origin": {
+        "game": 11,
+        "ply": 22,
+        "erring": "w",
+        "opening": "g1f3 d7d5 d2d4 g8f6"
+      },
+      "row": [
+        "csp-0008",
+        "1r2k2r/3n1ppp/1q1ppn2/P2p1b2/3P4/Q1P2N2/P3PPPP/RN2KB1R b KQk - 0 11",
+        "b6b1 a1b1 b8b1 e1d2",
+        1379,
+        [
+          10,
+          11
+        ]
+      ]
+    },
+    {
+      "id": "csp-0009",
+      "fen": "r3r1k1/pp3ppp/2p2p2/b7/3P4/2PB4/PPK1NPPP/3R3R b - - 2 16",
+      "moves": "e8e2 d3e2",
+      "rating": 992,
+      "themes": [
+        "hangingPiece",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        5,
+        10
+      ],
+      "gapCp": 498,
+      "minSolverGapCp": 498,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 22,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "d3e2",
+          "role": "solver",
+          "best": "cp 514",
+          "second": "cp 16",
+          "gapCp": 498
+        }
+      ],
+      "origin": {
+        "game": 4,
+        "ply": 32,
+        "erring": "b",
+        "opening": "e2e4 c7c6 d2d4 d7d5"
+      },
+      "row": [
+        "csp-0009",
+        "r3r1k1/pp3ppp/2p2p2/b7/3P4/2PB4/PPK1NPPP/3R3R b - - 2 16",
+        "e8e2 d3e2",
+        992,
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0010",
+      "fen": "r1b1r1k1/p1p1b2p/2p5/5pp1/2R2B2/8/PPP2PPP/R2N2K1 w - - 0 16",
+      "moves": "f4c7 e7d8",
+      "rating": 1412,
+      "themes": [],
+      "themeIndexes": [],
+      "gapCp": 298,
+      "minSolverGapCp": 298,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": true,
+      "keyIsCheck": false,
+      "pieceCount": 21,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "e7d8",
+          "role": "solver",
+          "best": "cp 283",
+          "second": "cp -15",
+          "gapCp": 298
+        }
+      ],
+      "origin": {
+        "game": 1,
+        "ply": 31,
+        "erring": "w",
+        "opening": "e2e4 e7e5 g1f3 b8c6"
+      },
+      "row": [
+        "csp-0010",
+        "r1b1r1k1/p1p1b2p/2p5/5pp1/2R2B2/8/PPP2PPP/R2N2K1 w - - 0 16",
+        "f4c7 e7d8",
+        1412,
+        []
+      ]
+    },
+    {
+      "id": "csp-0011",
+      "fen": "2r2r2/p5pp/1p2k3/2ppP3/3P3b/B4R2/P5PP/R5K1 w - - 6 27",
+      "moves": "f3f8 c8f8",
+      "rating": 677,
+      "themes": [
+        "hangingPiece",
+        "endgame"
+      ],
+      "themeIndexes": [
+        5,
+        9
+      ],
+      "gapCp": 766,
+      "minSolverGapCp": 766,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 18,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "c8f8",
+          "role": "solver",
+          "best": "cp 386",
+          "second": "cp -380",
+          "gapCp": 766
+        }
+      ],
+      "origin": {
+        "game": 13,
+        "ply": 53,
+        "erring": "w",
+        "opening": "e2e4 g8f6 e4e5 f6d5"
+      },
+      "row": [
+        "csp-0011",
+        "2r2r2/p5pp/1p2k3/2ppP3/3P3b/B4R2/P5PP/R5K1 w - - 6 27",
+        "f3f8 c8f8",
+        677,
+        [
+          5,
+          9
+        ]
+      ]
+    },
+    {
+      "id": "csp-0012",
+      "fen": "5rk1/5ppp/Pn1pp3/3p1b2/3Pn3/Q1P1K2P/P2NPPP1/1r3B1R w - - 3 18",
+      "moves": "d2b1 b6c4",
+      "rating": 1165,
+      "themes": [
+        "fork",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        2,
+        10
+      ],
+      "gapCp": 314,
+      "minSolverGapCp": 314,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": true,
+      "pieceCount": 24,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "b6c4",
+          "role": "solver",
+          "best": "cp -2",
+          "second": "cp -316",
+          "gapCp": 314
+        }
+      ],
+      "origin": {
+        "game": 11,
+        "ply": 35,
+        "erring": "w",
+        "opening": "g1f3 d7d5 d2d4 g8f6"
+      },
+      "row": [
+        "csp-0012",
+        "5rk1/5ppp/Pn1pp3/3p1b2/3Pn3/Q1P1K2P/P2NPPP1/1r3B1R w - - 3 18",
+        "d2b1 b6c4",
+        1165,
+        [
+          2,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0013",
+      "fen": "r3r1k1/1bp1qpp1/pp1bpn1p/n1P5/3P4/4PN2/PB2NPPP/1BRQ1RK1 b - - 0 17",
+      "moves": "d6c5 d4c5",
+      "rating": 1201,
+      "themes": [
+        "skewer",
+        "discoveredAttack"
+      ],
+      "themeIndexes": [
+        4,
+        6
+      ],
+      "gapCp": 326,
+      "minSolverGapCp": 326,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 29,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "d4c5",
+          "role": "solver",
+          "best": "cp 341",
+          "second": "cp 15",
+          "gapCp": 326
+        }
+      ],
+      "origin": {
+        "game": 18,
+        "ply": 34,
+        "erring": "b",
+        "opening": "d2d4 d7d5 g1f3 g8f6"
+      },
+      "row": [
+        "csp-0013",
+        "r3r1k1/1bp1qpp1/pp1bpn1p/n1P5/3P4/4PN2/PB2NPPP/1BRQ1RK1 b - - 0 17",
+        "d6c5 d4c5",
+        1201,
+        [
+          4,
+          6
+        ]
+      ]
+    },
+    {
+      "id": "csp-0014",
+      "fen": "r7/pp3pkp/1q4p1/2N2b2/5P2/3r4/PPQ3PP/2R1R1K1 w - - 2 27",
+      "moves": "g2g4 d3g3 h2g3 f5c2",
+      "rating": 1283,
+      "themes": [
+        "discoveredAttack",
+        "sacrifice"
+      ],
+      "themeIndexes": [
+        6,
+        11
+      ],
+      "gapCp": 406,
+      "minSolverGapCp": 406,
+      "solverPlies": 2,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": true,
+      "pieceCount": 20,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "d3g3",
+          "role": "solver",
+          "best": "cp 269",
+          "second": "cp -137",
+          "gapCp": 406
+        },
+        {
+          "uci": "h2g3",
+          "role": "opponent",
+          "best": "cp -272",
+          "second": "cp -464",
+          "gapCp": 192,
+          "forced": true
+        },
+        {
+          "uci": "f5c2",
+          "role": "solver",
+          "best": "cp 246",
+          "second": "cp -384",
+          "gapCp": 630
+        }
+      ],
+      "origin": {
+        "game": 25,
+        "ply": 53,
+        "erring": "w",
+        "opening": "d2d4 d7d5 c2c4 e7e6"
+      },
+      "row": [
+        "csp-0014",
+        "r7/pp3pkp/1q4p1/2N2b2/5P2/3r4/PPQ3PP/2R1R1K1 w - - 2 27",
+        "g2g4 d3g3 h2g3 f5c2",
+        1283,
+        [
+          6,
+          11
+        ]
+      ]
+    },
+    {
+      "id": "csp-0015",
+      "fen": "2kr1b1r/ppp2ppp/2n2n2/q3p2b/1P1P4/P1N1BN1P/2P1BPP1/R2QK2R b KQ - 0 10",
+      "moves": "f8b4 a3b4",
+      "rating": 1028,
+      "themes": [
+        "skewer",
+        "discoveredAttack"
+      ],
+      "themeIndexes": [
+        4,
+        6
+      ],
+      "gapCp": 484,
+      "minSolverGapCp": 484,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 29,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "a3b4",
+          "role": "solver",
+          "best": "cp 105",
+          "second": "cp -379",
+          "gapCp": 484
+        }
+      ],
+      "origin": {
+        "game": 14,
+        "ply": 20,
+        "erring": "b",
+        "opening": "e2e4 d7d5 e4d5 d8d5"
+      },
+      "row": [
+        "csp-0015",
+        "2kr1b1r/ppp2ppp/2n2n2/q3p2b/1P1P4/P1N1BN1P/2P1BPP1/R2QK2R b KQ - 0 10",
+        "f8b4 a3b4",
+        1028,
+        [
+          4,
+          6
+        ]
+      ]
+    },
+    {
+      "id": "csp-0016",
+      "fen": "r4rk1/p4pp1/1p2p2p/2q5/3nB3/3Q4/PP3PPP/2R1R1K1 b - - 5 19",
+      "moves": "c5d6 e4a8",
+      "rating": 1261,
+      "themes": [
+        "discoveredAttack"
+      ],
+      "themeIndexes": [
+        6
+      ],
+      "gapCp": 235,
+      "minSolverGapCp": 235,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 21,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "e4a8",
+          "role": "solver",
+          "best": "cp 193",
+          "second": "cp -42",
+          "gapCp": 235
+        }
+      ],
+      "origin": {
+        "game": 26,
+        "ply": 38,
+        "erring": "b",
+        "opening": "d2d4 g8f6 c2c4 e7e6"
+      },
+      "row": [
+        "csp-0016",
+        "r4rk1/p4pp1/1p2p2p/2q5/3nB3/3Q4/PP3PPP/2R1R1K1 b - - 5 19",
+        "c5d6 e4a8",
+        1261,
+        [
+          6
+        ]
+      ]
+    },
+    {
+      "id": "csp-0017",
+      "fen": "1kq2r2/1p1rb2p/p3Qp2/4p3/4N2N/1PP3P1/4RP1P/2n1R1K1 w - - 1 26",
+      "moves": "e1c1 d7d1 c1d1 c8e6",
+      "rating": 1081,
+      "themes": [
+        "fork",
+        "hangingPiece",
+        "discoveredAttack",
+        "sacrifice"
+      ],
+      "themeIndexes": [
+        2,
+        5,
+        6,
+        11
+      ],
+      "gapCp": 590,
+      "minSolverGapCp": 590,
+      "solverPlies": 2,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": true,
+      "pieceCount": 21,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "d7d1",
+          "role": "solver",
+          "best": "cp 302",
+          "second": "cp -288",
+          "gapCp": 590
+        },
+        {
+          "uci": "c1d1",
+          "role": "opponent",
+          "best": "cp -295",
+          "second": "cp -425",
+          "gapCp": 130,
+          "forced": true
+        },
+        {
+          "uci": "c8e6",
+          "role": "solver",
+          "best": "cp 270",
+          "second": "cp -607",
+          "gapCp": 877
+        }
+      ],
+      "origin": {
+        "game": 42,
+        "ply": 51,
+        "erring": "b",
+        "opening": "e2e4 c7c5 g1f3 d7d6"
+      },
+      "row": [
+        "csp-0017",
+        "1kq2r2/1p1rb2p/p3Qp2/4p3/4N2N/1PP3P1/4RP1P/2n1R1K1 w - - 1 26",
+        "e1c1 d7d1 c1d1 c8e6",
+        1081,
+        [
+          2,
+          5,
+          6,
+          11
+        ]
+      ]
+    },
+    {
+      "id": "csp-0018",
+      "fen": "4r1k1/1p3ppp/n1p5/p1b1r3/P3P1bq/2N3QB/1PP1N1K1/R1B2R2 b - - 3 19",
+      "moves": "g4h3 g3h3",
+      "rating": 1019,
+      "themes": [
+        "skewer",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        4,
+        10
+      ],
+      "gapCp": 510,
+      "minSolverGapCp": 510,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 24,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "g3h3",
+          "role": "solver",
+          "best": "cp 18",
+          "second": "cp -492",
+          "gapCp": 510
+        }
+      ],
+      "origin": {
+        "game": 15,
+        "ply": 38,
+        "erring": "w",
+        "opening": "d2d4 d7d6 e2e4 g8f6"
+      },
+      "row": [
+        "csp-0018",
+        "4r1k1/1p3ppp/n1p5/p1b1r3/P3P1bq/2N3QB/1PP1N1K1/R1B2R2 b - - 3 19",
+        "g4h3 g3h3",
+        1019,
+        [
+          4,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0019",
+      "fen": "2r2rk1/4n1p1/8/1pRn1p1p/3Np3/6P1/qP2PPBP/2Q1R1K1 b - - 5 25",
+      "moves": "c8c5 c1c5",
+      "rating": 1202,
+      "themes": [
+        "pin",
+        "skewer",
+        "hangingPiece",
+        "defensiveMove"
+      ],
+      "themeIndexes": [
+        3,
+        4,
+        5,
+        10
+      ],
+      "gapCp": 307,
+      "minSolverGapCp": 307,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 21,
+      "kind": "save",
+      "lineEval": [
+        {
+          "uci": "c1c5",
+          "role": "solver",
+          "best": "cp -9",
+          "second": "cp -316",
+          "gapCp": 307
+        }
+      ],
+      "origin": {
+        "game": 8,
+        "ply": 50,
+        "erring": "b",
+        "opening": "d2d4 f7f5 g1f3 g8f6"
+      },
+      "row": [
+        "csp-0019",
+        "2r2rk1/4n1p1/8/1pRn1p1p/3Np3/6P1/qP2PPBP/2Q1R1K1 b - - 5 25",
+        "c8c5 c1c5",
+        1202,
+        [
+          3,
+          4,
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "id": "csp-0020",
+      "fen": "rnbqk2r/ppp2ppp/8/3np3/1b6/1QN1P3/PP1PNPPP/R1B1KB1R b KQkq - 1 6",
+      "moves": "c8e6 c3d5",
+      "rating": 1325,
+      "themes": [],
+      "themeIndexes": [],
+      "gapCp": 214,
+      "minSolverGapCp": 214,
+      "solverPlies": 1,
+      "mate": false,
+      "quietKey": false,
+      "keyIsCheck": false,
+      "pieceCount": 30,
+      "kind": "win",
+      "lineEval": [
+        {
+          "uci": "c3d5",
+          "role": "solver",
+          "best": "cp 174",
+          "second": "cp -40",
+          "gapCp": 214
+        }
+      ],
+      "origin": {
+        "game": 10,
+        "ply": 12,
+        "erring": "b",
+        "opening": "c2c4 g8f6 b1c3 e7e5"
+      },
+      "row": [
+        "csp-0020",
+        "rnbqk2r/ppp2ppp/8/3np3/1b6/1QN1P3/PP1PNPPP/R1B1KB1R b KQkq - 1 6",
+        "c8e6 c3d5",
+        1325,
+        []
+      ]
+    }
+  ]
+}
