@@ -20,15 +20,16 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "15",
-      "supportsTablet": true,
+      "buildNumber": "16",
+      "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 36,
+      "versionCode": 37,
+      "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5B5BD6"
@@ -45,7 +46,13 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-updates",
       "expo-web-browser",
       [
