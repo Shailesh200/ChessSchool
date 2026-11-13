@@ -4,6 +4,8 @@
 set -euo pipefail
 
 BASE_SHA="${BASE_SHA:-610968701e8a555823381a7d6459ac2685cd0220}"
+expected_name="Shailesh200"
+expected_email="31487364+Shailesh200@users.noreply.github.com"
 pattern='shailesh-arc|arcana|cursoragent|gmail|co-authored|anthropic|claude'
 
 if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
@@ -29,6 +31,10 @@ while IFS= read -r commit; do
   committer_name="$(git log -1 --format='%cn' "$commit")"
   committer_email="$(git log -1 --format='%ce' "$commit")"
   message="$(git log -1 --format='%B' "$commit")"
+  if [ "$author_name" != "$expected_name" ] || [ "$author_email" != "$expected_email" ] || [ "$committer_name" != "$expected_name" ] || [ "$committer_email" != "$expected_email" ]; then
+    echo "unexpected identity on ${commit}"
+    fail=1
+  fi
   for field in author_name author_email committer_name committer_email message; do
     value="${!field}"
     if printf '%s\n' "$value" | grep -qiE -- "$pattern"; then
