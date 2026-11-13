@@ -74,7 +74,7 @@ export default function SettingsPage() {
               </span>
             </div>
             <button
-              className="row"
+              className="row row-danger"
               onClick={async () => {
                 await signOut();
                 toast(s.signedOut);
@@ -86,7 +86,7 @@ export default function SettingsPage() {
                 <span className="row-label">{s.signOut}</span>
               </span>
             </button>
-            <button className="row" onClick={() => setSheet("delete")}>
+            <button className="row row-danger" onClick={() => setSheet("delete")}>
               <Icon name="trash" />
               <span className="row-text">
                 <span className="row-label">{s.deleteAccount}</span>

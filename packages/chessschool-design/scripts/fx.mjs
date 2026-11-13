@@ -137,14 +137,16 @@ FX["error-shake"] = compose({
 });
 
 // Splash mark: the app tile scales in, the pawn rises, a ring pulses.
+// Solid brand (not the light brandHi wash) so the white pawn stays readable on a light splash
+// and the tile still separates from the dark splash background.
 FX["splash-mark"] = compose({
   name: "fx-splash-mark",
   w: 256,
   h: 256,
   frames: 90,
   layers: [
-    { name: "pulse", pivot: [128, 128], shapes: [strokePath(smooth([[128, 34], [222, 128], [128, 222], [34, 128]]), C.brandHi, 5)] },
-    { name: "tile", pivot: [128, 128], shapes: [rect(128, 128, 168, 168, 44, lin(128, 44, 128, 212, [[0, C.brandHi], [1, C.brand]]))] },
+    { name: "pulse", pivot: [128, 128], shapes: [strokePath(smooth([[128, 34], [222, 128], [128, 222], [34, 128]]), C.brand, 5)] },
+    { name: "tile", pivot: [128, 128], shapes: [rect(128, 128, 168, 168, 44, C.brand)] },
     { name: "pawn", parent: "tile", pivot: [128, 170], shapes: pawnEmblem(128, 132, 104, C.white) },
   ],
   tracks: {
