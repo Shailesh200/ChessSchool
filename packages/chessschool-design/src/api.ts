@@ -35,6 +35,8 @@ export type ApiErrorCode =
   | "google_only"
   | "google_invalid"
   | "google_unconfigured"
+  | "apple_invalid"
+  | "apple_unconfigured"
   | "unauthorized"
   | "rate_limited"
   | "not_found"
