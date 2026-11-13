@@ -376,7 +376,7 @@ export function Board({
                     {isLast ? <View style={{ position: "absolute", inset: 0, backgroundColor: c.boardMove }} /> : null}
                     {highlight.includes(s) ? <View style={{ position: "absolute", inset: 0, backgroundColor: c.brand, opacity: 0.3 }} /> : null}
                     {selected === s ? <View style={{ position: "absolute", inset: 0, backgroundColor: c.boardSelect }} /> : null}
-                    {check === s ? <CheckGlow color={c.boardCheck} reduced={reduced} /> : null}
+                    {mate === s ? <View pointerEvents="none" style={{ position: "absolute", inset: 0, backgroundColor: c.danger, opacity: 0.72 }} /> : check === s ? <CheckGlow color={c.boardCheck} reduced={reduced} /> : null}
                     {hints.includes(s) || guide?.from === s || guide?.to === s ? <View style={{ position: "absolute", inset: 0, borderWidth: 5, borderColor: c.boardHint }} /> : null}
                     {coords && col === 0 ? (
                       <Text style={{ position: "absolute", top: 2, left: 3, fontSize: 10, fontFamily: fonts.bold, color: coordColor }}>{s[1]}</Text>
