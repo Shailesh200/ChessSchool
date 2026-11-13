@@ -6,11 +6,13 @@ import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Chip, Page, T } from "@/components/ui";
+import { usePuzzlePackVersion } from "@/lib/puzzlePack";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
 export default function Puzzles() {
   const { state } = useApp();
+  usePuzzlePackVersion();
   const { c } = useTheme();
   const pz = state.progress.puzzles;
   const { puzzle: daily, done } = useDailyPuzzle();

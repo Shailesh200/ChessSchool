@@ -1,4 +1,5 @@
 import { dailyPuzzle, puzzleById, themesForCompletedLessons, type Puzzle } from "@chessschool/chess";
+import { usePuzzlePackVersion } from "@/lib/puzzlePack";
 import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight, watchLocalMidnight } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { AppState, View } from "react-native";
@@ -24,6 +25,7 @@ function useLocalDay(): string {
 /** Today's puzzle. Passing `serve` records it so the same id is not offered again. */
 export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle; done: boolean } {
   const { state, serveDailyPuzzle } = useApp();
+  usePuzzlePackVersion();
   const today = useLocalDay();
   const daily = state.progress.puzzles.daily;
   const stuck = daily.servedDay === today && daily.servedId ? puzzleById(daily.servedId) : null;

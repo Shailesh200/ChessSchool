@@ -1,11 +1,13 @@
 import type { Chess, Move } from "chess.js";
 import { turnOf, type Color, type MoveRef, type PromotionPiece, type Square } from "./board";
 import { kingInCheck, load, moveRef, parseUci, tryMove } from "./game";
-import { PUZZLE_ROWS, PUZZLE_THEME_TAGS } from "./puzzles.data";
+import { FALLBACK_PACK } from "./puzzles.fallback";
 import { pick, sameMove, type BoardView } from "./runner";
 
+export const PUZZLE_THEME_TAGS = ["mateIn1", "mateIn2", "fork", "pin", "skewer", "hangingPiece", "discoveredAttack", "backRankMate", "promotion", "endgame", "defensiveMove", "sacrifice"] as const;
 export type PuzzleThemeId = (typeof PUZZLE_THEME_TAGS)[number];
 export type Puzzle = { id: string; fen: string; moves: string[]; rating: number; themes: PuzzleThemeId[] };
+export type PuzzlePack = { version: string; puzzles: Puzzle[] };
 
 export const PUZZLE_THEMES: readonly { id: PuzzleThemeId; name: string; blurb: string }[] = [
   { id: "mateIn1", name: "Mate in one", blurb: "Finish the game in a single move." },
@@ -22,11 +24,28 @@ export const PUZZLE_THEMES: readonly { id: PuzzleThemeId; name: string; blurb: s
   { id: "sacrifice", name: "Sacrifices", blurb: "Give something to get more." },
 ];
 
-let cache: Puzzle[] | null = null;
-/** The bundled pack (parsed once). */
+let pack: PuzzlePack = FALLBACK_PACK;
+const packListeners = new Set<() => void>();
+
+/** Replace the live pack. An empty pack is ignored so a bad payload cannot wipe the store. */
+export function setPuzzlePack(next: PuzzlePack) {
+  if (!next || typeof next.version !== "string" || !next.version || !Array.isArray(next.puzzles) || next.puzzles.length === 0) return;
+  pack = { version: next.version, puzzles: next.puzzles };
+  for (const fn of packListeners) fn();
+}
+
+export function getPuzzlePackVersion(): string {
+  return pack.version;
+}
+
+export function subscribePuzzlePack(fn: () => void): () => void {
+  packListeners.add(fn);
+  return () => packListeners.delete(fn);
+}
+
+/** The live pack (fallback until a cached or API pack is installed). */
 export function allPuzzles(): Puzzle[] {
-  if (!cache) cache = PUZZLE_ROWS.map(([id, fen, moves, rating, tags]) => ({ id, fen, moves: moves.split(" "), rating, themes: tags.map((t) => PUZZLE_THEME_TAGS[t]) }));
-  return cache;
+  return pack.puzzles;
 }
 export const puzzleById = (id: string) => allPuzzles().find((p) => p.id === id) ?? null;
 export const themeCount = (theme: PuzzleThemeId) => allPuzzles().filter((p) => p.themes.includes(theme)).length;

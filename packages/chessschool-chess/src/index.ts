@@ -7,5 +7,7 @@ export * from "./engine";
 export * from "./lessons";
 export * from "./runner";
 export * from "./play";
+export * from "./puzzleSource";
+export * from "./puzzlePack";
 export * from "./puzzles";
 export * from "./review";

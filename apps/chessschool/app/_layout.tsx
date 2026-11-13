@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { ToastProvider, useToast } from "@/components/ui";
+import { usePuzzlePackBoot } from "@/lib/puzzlePack";
 import { AppStateProvider, useApp } from "@/lib/state";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
@@ -16,6 +17,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Root() {
   const { state, ready } = useApp();
+  usePuzzlePackBoot();
   const [fontsLoaded, fontError] = useFonts({ Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold });
   const loaded = ready && (fontsLoaded || Boolean(fontError));
 
