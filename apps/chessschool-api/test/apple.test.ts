@@ -150,31 +150,38 @@ describe("POST /v1/auth/apple", () => {
     expect((await post(app, { identityToken: bad, nonce: raw }, "4.4.8.2")).json.error).toBe("apple_invalid");
   });
 
-  it("links a verified email and refuses an unverified one", async () => {
+  it("does not attach Apple to an existing email, verified or not, and still signs in on sub", async () => {
     const { db, app } = await appWith();
-    await app.request("/v1/auth/register", {
+    const ada = await app.request("/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-forwarded-for": "4.4.9.1" },
       body: JSON.stringify({ name: "Ada", email: "ada@example.com", password: "pawnpawn" }),
     });
+    const adaJson = (await ada.json()) as AuthResponse;
     await app.request("/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-forwarded-for": "4.4.9.2" },
       body: JSON.stringify({ name: "Bea", email: "bea@example.com", password: "pawnpawn" }),
     });
-    const linked = await post(app, { identityToken: sign(claims({ email_verified: "true" }), pair.privateKey, "test-key") }, "4.4.9.3");
-    expect(linked.status).toBe(200);
-    expect(linked.json.user).toMatchObject({ email: "ada@example.com", provider: "password" });
-    expect((await db.query.users.findFirst({ where: eq(users.email, "ada@example.com") }))?.appleSub).toBe("apple-user-1");
+    const adaBefore = await db.query.users.findFirst({ where: eq(users.email, "ada@example.com") });
+    const verified = await post(app, { identityToken: sign(claims({ email_verified: "true" }), pair.privateKey, "test-key") }, "4.4.9.3");
+    expect(verified.status).toBe(409);
+    expect(verified.json.error).toBe("email_in_use");
+    expect(await db.query.users.findFirst({ where: eq(users.email, "ada@example.com") })).toEqual(adaBefore);
+    expect(await db.query.users.findFirst({ where: eq(users.appleSub, "apple-user-1") })).toBeUndefined();
 
-    const refused = await post(
-      app,
-      { identityToken: sign(claims({ sub: "apple-user-2", email: "bea@example.com", email_verified: false }), pair.privateKey, "test-key") },
-      "4.4.9.4",
-    );
-    expect(refused.status).toBe(401);
-    expect((await db.query.users.findFirst({ where: eq(users.email, "bea@example.com") }))?.appleSub).toBeNull();
+    const beaBefore = await db.query.users.findFirst({ where: eq(users.email, "bea@example.com") });
+    const unverified = await post(app, { identityToken: sign(claims({ sub: "apple-user-2", email: "bea@example.com", email_verified: false }), pair.privateKey, "test-key") }, "4.4.9.4");
+    expect(unverified.status).toBe(409);
+    expect(unverified.json.error).toBe("email_in_use");
+    expect(await db.query.users.findFirst({ where: eq(users.email, "bea@example.com") })).toEqual(beaBefore);
     expect(await db.query.users.findFirst({ where: eq(users.appleSub, "apple-user-2") })).toBeUndefined();
+
+    const created = await post(app, { identityToken: sign(claims({ sub: "apple-user-3", email: "fresh@example.com" }), pair.privateKey, "test-key"), fullName: { givenName: "Fresh" } }, "4.4.9.5");
+    const again = await post(app, { identityToken: sign(claims({ sub: "apple-user-3", email: "fresh@example.com" }), pair.privateKey, "test-key") }, "4.4.9.6");
+    expect(again.status).toBe(200);
+    expect(again.json.user.id).toBe(created.json.user.id);
+    expect(adaJson.user.email).toBe("ada@example.com");
   });
 
   it("returns 503 when Apple client ids are unset", async () => {
@@ -253,21 +260,21 @@ describe("Apple guest merge matches Google", () => {
     expect(JSON.parse(row?.data ?? "{}").xp).toBe(wider.progress.xp);
   });
 
-  it("merges guest progress when a verified email links to an existing account", async () => {
+  it("does not merge a guest into an account that already owns the email", async () => {
     const db = await openDb(":memory:");
     const apple = async () => ({ sub: "apple-link", email: "ada@example.com", emailVerified: true });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const registered = await post(app, "/v1/auth/register", { name: "Ada", email: "ada@example.com", password: "pawnpawn", guest: guestProgress(["meet"]) }, "5.0.2.1");
-    const linked = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: guestProgress(["meet", "board"]) }, "5.0.2.2");
-    expect(linked.status).toBe(200);
-    expect(linked.json.user.id).toBe(registered.json.user.id);
-    expect(linked.json.user.name).toBe("Ada");
-    expect(linked.json.progress.completed.meet).toBe(registered.json.progress.completed.meet);
-    expect(linked.json.progress.completed.board).toBeTruthy();
-    expect(linked.json.progress.xp).toBe(guestProgress(["meet", "board"]).progress.xp);
-    const repeat = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: guestProgress(["meet", "board"]) }, "5.0.2.3");
-    expect(repeat.json.progress.xp).toBe(linked.json.progress.xp);
-    expect(repeat.json.progress.completed).toEqual(linked.json.progress.completed);
+    const beforeUser = await db.query.users.findFirst({ where: eq(users.id, registered.json.user.id) });
+    const beforeProgress = await db.query.progress.findFirst({ where: eq(progress.userId, registered.json.user.id) });
+    const beforeSessions = await db.select().from(sessions).where(eq(sessions.userId, registered.json.user.id));
+    const blocked = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: guestProgress(["meet", "board"]) }, "5.0.2.2");
+    expect(blocked.status).toBe(409);
+    expect(blocked.json.error).toBe("email_in_use");
+    expect(await db.query.users.findFirst({ where: eq(users.id, registered.json.user.id) })).toEqual(beforeUser);
+    expect(await db.query.progress.findFirst({ where: eq(progress.userId, registered.json.user.id) })).toEqual(beforeProgress);
+    expect(await db.select().from(sessions).where(eq(sessions.userId, registered.json.user.id))).toEqual(beforeSessions);
+    expect(beforeUser?.appleSub).toBeNull();
   });
 
   it("returns the same progress and profile for one guest payload on Google and Apple", async () => {

@@ -250,17 +250,11 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     let user = await db.query.users.findFirst({ where: eq(users.googleSub, identity.sub) });
     if (!user) {
       const byEmail = await db.query.users.findFirst({ where: eq(users.email, identity.email) });
-      if (byEmail) {
-        if (!identity.emailVerified) return fail(c, 401, "google_invalid");
-        await db.update(users).set({ googleSub: identity.sub }).where(eq(users.id, byEmail.id));
-        user = { ...byEmail, googleSub: identity.sub };
-        await applyGuestProfile(user.id, guest, false);
-      } else {
-        const guestName = cleanName(String(guest?.profile?.name ?? ""));
-        user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
-        await db.insert(users).values(user);
-        await applyGuestProfile(user.id, guest, true);
-      }
+      if (byEmail) return c.json({ error: "email_in_use" }, 409);
+      const guestName = cleanName(String(guest?.profile?.name ?? ""));
+      user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+      await db.insert(users).values(user);
+      await applyGuestProfile(user.id, guest, true);
     }
     return c.json(await authResponse(c, user, guest));
   });
@@ -282,17 +276,10 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const guest = guestOf(b);
     let user = await db.query.users.findFirst({ where: eq(users.appleSub, identity.sub) });
     if (!user) {
-      const byEmail = identity.email ? await db.query.users.findFirst({ where: eq(users.email, identity.email) }) : undefined;
-      if (byEmail && identity.emailVerified) {
-        if (byEmail.appleSub && byEmail.appleSub !== identity.sub) return c.json({ error: "apple_invalid" }, 401);
-        await db.update(users).set({ appleSub: identity.sub }).where(eq(users.id, byEmail.id));
-        user = { ...byEmail, appleSub: identity.sub };
-        await applyGuestProfile(user.id, guest, false);
-      } else if (byEmail) {
-        return c.json({ error: "apple_invalid" }, 401);
-      } else if (!identity.email) {
-        return c.json({ error: "apple_invalid" }, 401);
-      } else {
+      if (!identity.email) return c.json({ error: "apple_invalid" }, 401);
+      const byEmail = await db.query.users.findFirst({ where: eq(users.email, identity.email) });
+      if (byEmail) return c.json({ error: "email_in_use" }, 409);
+      {
         const guestName = cleanName(String(guest?.profile?.name ?? ""));
         user = {
           id: newId(),

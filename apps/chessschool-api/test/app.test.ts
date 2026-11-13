@@ -14,6 +14,7 @@ let ip = 0;
 const fakeGoogle: GoogleVerifier = async (token) => {
   if (token === "good") return { sub: "g-1", email: "asha@example.com", emailVerified: true, name: "Asha G" };
   if (token === "new") return { sub: "g-2", email: "new@example.com", emailVerified: true, name: "Newbie" };
+  if (token === "unverified") return { sub: "g-3", email: "asha@example.com", emailVerified: false, name: "Nope" };
   return null;
 };
 
@@ -170,11 +171,30 @@ describe("google", () => {
     expect(r.json.progress.xp).toBe(10);
   });
 
-  it("links to an existing email account and blocks password login only for Google-only users", async () => {
-    await call("POST", "/v1/auth/register", { name: "Asha", email: "asha@example.com", password: "pawnpawn" });
-    const linked = await call("POST", "/v1/auth/google", { idToken: "good" });
-    expect(linked.json.user.provider).toBe("password");
-    await call("POST", "/v1/auth/google", { idToken: "new" });
+  it("does not attach Google to an existing email, verified or not", async () => {
+    const registered = (await call("POST", "/v1/auth/register", { name: "Asha", email: "asha@example.com", password: "pawnpawn" })).json as AuthResponse;
+    const before = await db.query.users.findFirst({ where: eq(users.id, registered.user.id) });
+    const sessionsBefore = await db.select().from(sessions).where(eq(sessions.userId, registered.user.id));
+    const verified = await call("POST", "/v1/auth/google", { idToken: "good", guest: guestDone() });
+    expect(verified.status).toBe(409);
+    expect(verified.json.error).toBe("email_in_use");
+    expect(await db.query.users.findFirst({ where: eq(users.id, registered.user.id) })).toEqual(before);
+    expect(await db.select().from(sessions).where(eq(sessions.userId, registered.user.id))).toHaveLength(sessionsBefore.length);
+    expect(await db.query.progress.findFirst({ where: eq(progress.userId, registered.user.id) })).toBeUndefined();
+
+    const unverified = await call("POST", "/v1/auth/google", { idToken: "unverified" });
+    expect(unverified.status).toBe(409);
+    expect(unverified.json.error).toBe("email_in_use");
+    expect(await db.query.users.findFirst({ where: eq(users.id, registered.user.id) })).toEqual(before);
+    expect(await db.query.users.findFirst({ where: eq(users.googleSub, "g-1") })).toBeUndefined();
+    expect(await db.query.users.findFirst({ where: eq(users.googleSub, "g-3") })).toBeUndefined();
+  });
+
+  it("signs in again when the Google sub already matches", async () => {
+    const created = await call("POST", "/v1/auth/google", { idToken: "new" });
+    const again = await call("POST", "/v1/auth/google", { idToken: "new" });
+    expect(again.status).toBe(200);
+    expect((again.json as AuthResponse).user.id).toBe((created.json as AuthResponse).user.id);
     expect((await call("POST", "/v1/auth/login", { email: "new@example.com", password: "whatever1" })).json.error).toBe("google_only");
   });
 
