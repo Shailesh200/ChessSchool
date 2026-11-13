@@ -49,8 +49,7 @@
       "extends": "production",
       "env": {
         "CS_DISABLE_GOOGLE": "1",
-        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": ""
+        "EXPO_PUBLIC_CS_DISABLE_GOOGLE": "1"
       }
     }
   },

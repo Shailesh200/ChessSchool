@@ -5,11 +5,18 @@ import { TurboModuleRegistry } from "react-native";
 type GoogleModule = typeof import("@react-native-google-signin/google-signin");
 
 let mod: GoogleModule | null | undefined;
+
+/** Missing, blank, or explicitly disabled. Never reaches GoogleSignin in that case. */
+function googleOff(): boolean {
+  const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? "";
+  return process.env.EXPO_PUBLIC_CS_DISABLE_GOOGLE === "1" || clientId.length === 0;
+}
+
 function load(): GoogleModule | null {
   if (mod !== undefined) return mod;
   // Requiring the JS package without its native half throws during module init, which
   // dev builds surface as a fatal error even inside try/catch. Check first.
-  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient || !TurboModuleRegistry.get("RNGoogleSignin")) {
+  if (googleOff() || Constants.executionEnvironment === ExecutionEnvironment.StoreClient || !TurboModuleRegistry.get("RNGoogleSignin")) {
     mod = null;
     return mod;
   }
@@ -26,7 +33,7 @@ function load(): GoogleModule | null {
   return mod;
 }
 
-export const googleAvailable = () => Boolean(process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID) && load() !== null;
+export const googleAvailable = () => !googleOff() && load() !== null;
 
 /** Returns an ID token, null if the learner cancelled. Throws on configuration errors. */
 export async function googleIdToken(): Promise<string | null> {
