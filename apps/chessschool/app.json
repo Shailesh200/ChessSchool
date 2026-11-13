@@ -20,7 +20,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -28,7 +28,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 37,
+      "versionCode": 38,
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
