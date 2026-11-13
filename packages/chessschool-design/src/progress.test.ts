@@ -37,6 +37,8 @@ import {
 import { copy } from "./copy";
 
 const at = (iso: string) => new Date(`${iso}T10:00:00`);
+/** The server's check: completions in path order only, XP capped by the lessons done. */
+const checkedAgainstPath = (p: Parameters<typeof sanitizeProgress>[0]) => sanitizeProgress(p, PATH);
 
 afterEach(() => {
   vi.useRealTimers();
@@ -130,7 +132,7 @@ describe("guest -> account merge", () => {
 
 describe("sanitizeProgress", () => {
   it("drops locked/unknown nodes and caps XP to what was earned", () => {
-    const p = sanitizeProgress({
+    const p = checkedAgainstPath({
       ...emptyProgress(),
       completed: { meet: "2026-11-03", board: "2026-11-03", hack: "x", moves: "bad-date", pawns: "2026-11-03" },
       xp: 99999,
@@ -251,13 +253,13 @@ describe("guest -> account merge hardening", () => {
   it("keeps chess lessons, games and drills from both sides and is idempotent", () => {
     const guest = recordGame(finish(["meet", "board", "moves"]), game("win"), at("2026-11-03"), 5).progress;
     const account = { ...emptyProgress(), completed: { meet: "2026-10-01" }, xp: 10, games: { played: 4, won: 0 }, drills: 2 };
-    const merged = sanitizeProgress(mergeProgress(guest, account));
+    const merged = checkedAgainstPath(mergeProgress(guest, account));
     expect(Object.keys(merged.completed).sort()).toEqual(["board", "meet", "moves"]);
     expect(merged.completed.meet).toBe("2026-10-01");
     expect(merged.xp).toBe(50);
     expect(merged.games).toEqual({ played: 4, won: 1 });
     expect(merged.drills).toBe(2);
-    expect(sanitizeProgress(mergeProgress(merged, guest))).toEqual(merged);
+    expect(checkedAgainstPath(mergeProgress(merged, guest))).toEqual(merged);
   });
 
   it("accepts progress saved before games and drills existed", () => {
@@ -281,14 +283,14 @@ describe("guest -> account merge hardening", () => {
     expect(hydrated.progress.puzzles.daily.seen).toEqual([]);
     expect(hydrated.progress.puzzles.daily.lastDay).toBe("2026-11-03");
     expect(hydrated.progress.puzzles.daily.count).toBe(1);
-    const sanitized = sanitizeProgress(old as never);
+    const sanitized = checkedAgainstPath(old as never);
     expect(sanitized.puzzles.daily.seen).toEqual([]);
     const merged = mergeProgress(old as never, emptyProgress());
     expect(merged.puzzles.daily.seen).toEqual([]);
     expect(merged.puzzles.daily.lastDay).toBe("2026-11-03");
 
     const ids = Array.from({ length: DAILY_SEEN_MAX + 40 }, (_, i) => `a${String(i).padStart(4, "0")}`);
-    const capped = sanitizeProgress({
+    const capped = checkedAgainstPath({
       ...emptyProgress(),
       puzzles: { ...emptyProgress().puzzles, daily: { lastDay: "2026-11-04", count: 1, seen: [...ids, "no", 12 as never] } },
     });
@@ -303,7 +305,7 @@ describe("guest -> account merge hardening", () => {
     const locked = serveDaily(createInitialState("g"), "2026-11-13", snap.id, snap);
     expect(locked.progress.puzzles.daily.servedId).toBe("abc12");
     expect(locked.progress.puzzles.daily.served).toEqual(snap);
-    const kept = sanitizeProgress(locked.progress).puzzles.daily.served;
+    const kept = checkedAgainstPath(locked.progress).puzzles.daily.served;
     expect(kept).toEqual(snap);
   });
 });
@@ -341,7 +343,7 @@ describe("Phase 3 progress", () => {
     expect(s.progress.xp).toBe(0);
     expect(s.progress.puzzles.rating).toBe(1000);
     expect(earnedBadges(s.progress)).not.toContain("firstLesson");
-    expect(sanitizeProgress(s.progress).completed.firstGame).toBe("2026-11-04");
+    expect(checkedAgainstPath(s.progress).completed.firstGame).toBe("2026-11-04");
   });
 
   it("celebrates each badge once", () => {
@@ -456,5 +458,15 @@ describe("unit summaries", () => {
   it("names at most three units, then a count", () => {
     expect(copy.today.focus.units(["Unit 1 · First steps", "Unit 1 · First steps", "Unit 2 · Playing well"])).toBe("First steps, Playing well");
     expect(copy.today.focus.units(["Unit 1 · A", "Unit 2 · B", "Unit 3 · C", "Unit 4 · D", "Unit 5 · E"])).toBe("A, B, C and 2 more");
+  });
+});
+
+describe("client-side progress cleaning", () => {
+  it("keeps completions of lessons this build does not ship, and drops malformed ones", () => {
+    const p = { ...emptyProgress(), completed: { meet: "2026-11-01", practice01Mate: "2026-11-14", junk: "yesterday" }, xp: 40 };
+    const cleaned = sanitizeProgress(p, null);
+    expect(cleaned.completed).toEqual({ meet: "2026-11-01", practice01Mate: "2026-11-14" });
+    expect(cleaned.xp).toBe(40);
+    expect(sanitizeProgress(p, PATH).completed).toEqual({ meet: "2026-11-01" });
   });
 });

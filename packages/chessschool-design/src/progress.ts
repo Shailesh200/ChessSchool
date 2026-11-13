@@ -186,7 +186,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     guestId: typeof r.guestId === "string" && r.guestId ? r.guestId : base.guestId,
     profile: cleanProfile(base.profile, r.profile),
     prefs: hydratePrefs(base.prefs, r.prefs),
-    progress: isProgress(r.progress) ? sanitizeProgress({ ...base.progress, ...r.progress }) : base.progress,
+    progress: isProgress(r.progress) ? sanitizeProgress({ ...base.progress, ...r.progress }, null) : base.progress,
     account: r.account ?? null,
     pendingCeremony: r.pendingCeremony ?? null,
     roomReminders: Array.isArray(r.roomReminders) ? r.roomReminders.filter((id) => ROOMS.includes(id)) : [],
@@ -733,19 +733,29 @@ export function isProgress(value: unknown): value is Progress {
 /** One lesson of the path, as far as progress checks need it. */
 export type PathStep = { id: string; xp: number; available?: boolean };
 
+/** Upper bound on XP when there is no path to measure it against. */
+const XP_CEILING = 1_000_000;
+
 /**
- * Drops unknown node ids and clamps XP so a client cannot inflate progress.
- * The server passes the path from its database; clients default to the bundled one.
+ * Cleans a progress record. With a `path` (the server, from its course tables), completions only
+ * count in path order and XP is capped by the lessons done, so a client cannot inflate progress.
+ * With `null` (the apps), any well-formed completion is kept: the course comes from the API and
+ * may hold lessons this build has never heard of, and the server re-checks every save anyway.
  */
-export function sanitizeProgress(p: Progress, path: readonly PathStep[] = PATH): Progress {
+export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null): Progress {
   const completed: Record<string, string> = {};
-  let xpCap = 0;
-  // Lessons only count in path order: a completion after a gap can't have been earned.
-  for (const n of path) {
-    const day = p.completed[n.id];
-    if (n.available === false || typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) break;
-    completed[n.id] = day;
-    xpCap += n.xp;
+  const isDay = (d: unknown): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
+  let xpCap = path ? 0 : XP_CEILING;
+  if (path) {
+    // Lessons only count in path order: a completion after a gap can't have been earned.
+    for (const n of path) {
+      const day = p.completed[n.id];
+      if (n.available === false || !isDay(day)) break;
+      completed[n.id] = day;
+      xpCap += n.xp;
+    }
+  } else {
+    for (const [id, day] of Object.entries(p.completed)) if (id.length <= 64 && isDay(day)) completed[id] = day;
   }
   const day = (d: unknown) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
   const count = (n: unknown, max = 100_000) => (typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0);

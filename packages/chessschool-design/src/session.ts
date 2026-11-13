@@ -33,7 +33,7 @@ export function applyAuth(state: LocalState, auth: Pick<AuthResponse, "user" | "
       flair: auth.profile.flair ?? state.profile.flair,
     },
     prefs: { ...state.prefs, appearance: auth.profile.appearance, sound: auth.profile.sound },
-    progress: sanitizeProgress(mergeProgress(state.progress, auth.progress)),
+    progress: sanitizeProgress(mergeProgress(state.progress, auth.progress), null),
     pendingCeremony: "saved",
   };
 }
