@@ -42,7 +42,8 @@ describe("puzzle pack API", () => {
 
     const pack = await app.request("/v1/puzzles/pack", { headers: { Origin: "https://chess-school.in" } });
     expect(pack.status).toBe(200);
-    expect(pack.headers.get("etag")).toBe(`"${fixture.version}"`);
+    const etag = pack.headers.get("etag");
+    expect(etag).toMatch(new RegExp(`^"${fixture.version}-${fixture.puzzles.length}-[0-9a-f]{12}"$`));
     expect(pack.headers.get("cache-control")).toBe(CACHE);
     expect(pack.headers.get("access-control-expose-headers")?.toLowerCase()).toContain("etag");
     const body = (await pack.json()) as { version: string; puzzles: { id: string; moves: string[]; themes: string[] }[] };
@@ -51,7 +52,7 @@ describe("puzzle pack API", () => {
     expect(Array.isArray(body.puzzles[0]?.moves)).toBe(true);
     expect(Array.isArray(body.puzzles[0]?.themes)).toBe(true);
 
-    const cached = await app.request("/v1/puzzles/pack", { headers: { "If-None-Match": `"${fixture.version}"` } });
+    const cached = await app.request("/v1/puzzles/pack", { headers: { "If-None-Match": etag! } });
     expect(cached.status).toBe(304);
     expect(await cached.text()).toBe("");
 
@@ -65,6 +66,34 @@ describe("puzzle pack API", () => {
     const missing = await app.request("/v1/puzzles/missing");
     expect(missing.status).toBe(404);
     expect(await missing.json()).toMatchObject({ error: "not_found" });
+    await db.$client.close();
+  });
+});
+
+describe("puzzle pack seeded part-way", () => {
+  it("does not answer 304 to a client that cached a partial pack under the same version", async () => {
+    const { path, url } = await fileUrl();
+    const db = await openDb(url);
+    const app = createApp({ db, google: null, apple: null, secureCookies: false, corsOrigins: [], now: () => new Date("2026-11-13T00:00:00Z") });
+    const full = JSON.parse(readFileSync(fixturePath, "utf8")) as { version: string; puzzles: unknown[] };
+    expect(full.puzzles.length).toBeGreaterThan(1);
+    const partialFile = join(path, "..", "partial.json");
+    writeFileSync(partialFile, JSON.stringify({ ...full, puzzles: full.puzzles.slice(0, 1) }));
+    expect(await runSeedPuzzles({ argv: ["--file", partialFile, "--apply"], env: { DATABASE_URL: url }, log: () => {} })).toBe(0);
+
+    const partial = await app.request("/v1/puzzles/pack");
+    const stale = partial.headers.get("etag")!;
+    expect(((await partial.json()) as { puzzles: unknown[] }).puzzles).toHaveLength(1);
+
+    expect(await runSeedPuzzles({ argv: ["--file", fixturePath, "--apply"], env: { DATABASE_URL: url }, log: () => {} })).toBe(0);
+    for (const inm of [stale, `"${full.version}"`]) {
+      const res = await app.request("/v1/puzzles/pack", { headers: { "If-None-Match": inm } });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { version: string; puzzles: unknown[] };
+      expect(body.version).toBe(full.version);
+      expect(body.puzzles).toHaveLength(full.puzzles.length);
+      expect(res.headers.get("etag")).not.toBe(stale);
+    }
     await db.$client.close();
   });
 });

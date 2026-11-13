@@ -28,17 +28,41 @@ afterEach(() => {
 });
 
 describe("puzzle pack refresh", () => {
-  it("installs the cache, then replaces it on 200", async () => {
-    const storage = memory(JSON.stringify(pack("v1", "cache1")));
+  it("installs the cache, sends its stored ETag, then replaces it on 200", async () => {
+    const storage = memory(JSON.stringify({ ...pack("v1", "cache1"), etag: '"v1-1-aaa"' }));
     const fetch = vi.fn<PuzzlePackFetch>(async (_url, init) => {
-      expect(init.headers["If-None-Match"]).toBe('"v1"');
+      expect(init.headers["If-None-Match"]).toBe('"v1-1-aaa"');
       expect(getPuzzlePackVersion()).toBe("v1");
-      return { status: 200, json: async () => pack("v2", "next01") };
+      return { status: 200, json: async () => pack("v2", "next01"), etag: '"v2-1-bbb"' };
     });
     await refreshPuzzlePack({ storage, fetch, apiBase: "http://api.test", source: "api" });
     expect(fetch).toHaveBeenCalledOnce();
     expect(getPuzzlePackVersion()).toBe("v2");
-    expect(JSON.parse(storage.raw.get(PUZZLE_PACK_KEY)!).version).toBe("v2");
+    const saved = JSON.parse(storage.raw.get(PUZZLE_PACK_KEY)!);
+    expect(saved.version).toBe("v2");
+    expect(saved.etag).toBe('"v2-1-bbb"');
+  });
+
+  it("replaces a pack cached part-way through a seed with the full pack of the same version", async () => {
+    const many = (n: number): PuzzlePack => ({
+      version: "own-2026.11.13-s20261113",
+      puzzles: Array.from({ length: n }, (_, i) => ({ ...pack("x", `p${i}`).puzzles[0]!, id: `p${String(i).padStart(4, "0")}` })),
+    });
+    const storage = memory(JSON.stringify(many(278)));
+    const fetch = vi.fn<PuzzlePackFetch>(async (_url, init) => {
+      expect(init.headers["If-None-Match"]).toBeUndefined();
+      return { status: 200, json: async () => many(570), etag: '"own-2026.11.13-s20261113-570-abc"' };
+    });
+    await refreshPuzzlePack({ storage, fetch, apiBase: "http://api.test", source: "api" });
+    expect(allPuzzles()).toHaveLength(570);
+    expect(JSON.parse(storage.raw.get(PUZZLE_PACK_KEY)!).puzzles).toHaveLength(570);
+
+    const again = vi.fn<PuzzlePackFetch>(async (_url, init) => {
+      expect(init.headers["If-None-Match"]).toBe('"own-2026.11.13-s20261113-570-abc"');
+      return { status: 304, json: async () => { throw new Error("no body"); } };
+    });
+    await refreshPuzzlePack({ storage, fetch: again, apiBase: "http://api.test", source: "api" });
+    expect(allPuzzles()).toHaveLength(570);
   });
 
   it("keeps the cached pack on 304", async () => {

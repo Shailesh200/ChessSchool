@@ -27,7 +27,7 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
-import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE, puzzleEtag } from "./puzzles";
+import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
@@ -494,12 +494,12 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.get("/v1/puzzles/pack", async (c) => {
     const pack = await loadPuzzlePack(db);
     if (!pack) return fail(c, 404, "not_found");
-    const etag = puzzleEtag(pack.version);
+    const { etag } = pack;
     c.header("ETag", etag);
     c.header("Cache-Control", PUZZLE_CACHE);
     const inm = c.req.header("If-None-Match");
     if (inm?.split(",").some((part) => part.trim().replace(/^W\//, "") === etag)) return c.body(null, 304);
-    return c.json(pack);
+    return c.json({ version: pack.version, puzzles: pack.puzzles });
   });
 
   app.get("/v1/puzzles/:id", async (c) => {

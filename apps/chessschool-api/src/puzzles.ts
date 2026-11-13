@@ -1,5 +1,6 @@
 import { PUZZLE_THEMES } from "@chessschool/chess";
 import { Chess } from "chess.js";
+import { createHash } from "node:crypto";
 import { asc, eq, notInArray } from "drizzle-orm";
 import type { Db } from "./db";
 import { puzzles } from "./schema";
@@ -34,7 +35,9 @@ export function firstIllegalMove(fen: string, moves: string[]): string | null {
 }
 
 export const PUZZLE_CACHE = "public, max-age=300, stale-while-revalidate=86400";
-export const puzzleEtag = (version: string) => `"${version}"`;
+/** Tied to the rows, not just the version: a pack read mid-seed carries the final version with fewer puzzles. */
+export const puzzleEtag = (version: string, count: number, fingerprint: string) =>
+  `"${version}-${count}-${createHash("sha256").update(fingerprint).digest("hex").slice(0, 12)}"`;
 
 export type Puzzle = { id: string; fen: string; moves: string[]; rating: number; themes: string[] };
 export type PuzzlePack = { version: string; puzzles: Puzzle[] };
@@ -149,13 +152,13 @@ function toPuzzle(row: Stored): Puzzle {
   return { id: row.id, fen: row.fen, moves: JSON.parse(row.moves) as string[], rating: row.rating, themes: JSON.parse(row.themes) as string[] };
 }
 
-let packCache: { version: string; fingerprint: string; puzzles: Puzzle[] } | null = null;
+let packCache: { version: string; fingerprint: string; etag: string; puzzles: Puzzle[] } | null = null;
 
 function packFingerprint(rows: Stored[]): string {
   return rows.map((row) => [row.id, row.packVersion, row.fen, row.moves, row.rating, row.themes].join("\0")).join("\n");
 }
 
-export async function loadPuzzlePack(db: Db): Promise<{ version: string; puzzles: Puzzle[] } | null> {
+export async function loadPuzzlePack(db: Db): Promise<{ version: string; etag: string; puzzles: Puzzle[] } | null> {
   const rows = await db.select().from(puzzles).orderBy(asc(puzzles.id));
   if (!rows.length) {
     packCache = null;
@@ -163,10 +166,10 @@ export async function loadPuzzlePack(db: Db): Promise<{ version: string; puzzles
   }
   const version = rows[0]!.packVersion;
   const fingerprint = packFingerprint(rows);
-  if (packCache && packCache.version === version && packCache.fingerprint === fingerprint) return { version, puzzles: packCache.puzzles };
-  const parsed = rows.map(toPuzzle);
-  packCache = { version, fingerprint, puzzles: parsed };
-  return { version, puzzles: parsed };
+  if (!packCache || packCache.version !== version || packCache.fingerprint !== fingerprint) {
+    packCache = { version, fingerprint, etag: puzzleEtag(version, rows.length, fingerprint), puzzles: rows.map(toPuzzle) };
+  }
+  return { version, etag: packCache.etag, puzzles: packCache.puzzles };
 }
 
 export async function loadPuzzle(db: Db, id: string): Promise<Puzzle | null> {

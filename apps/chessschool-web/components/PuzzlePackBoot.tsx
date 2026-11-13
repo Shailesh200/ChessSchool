@@ -14,7 +14,7 @@ if (typeof window !== "undefined") {
     apiBase: "",
     fetch: async (url, init) => {
       const res = await fetch(url, init);
-      return { status: res.status, json: () => res.json() };
+      return { status: res.status, json: () => res.json(), etag: res.headers.get("etag") };
     },
   });
 }

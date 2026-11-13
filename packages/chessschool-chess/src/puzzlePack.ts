@@ -12,7 +12,7 @@ export type PuzzlePackStorage = {
   setItem(key: string, value: string): void | Promise<void>;
 };
 
-export type PuzzlePackResponse = { status: number; json: () => Promise<unknown> };
+export type PuzzlePackResponse = { status: number; json: () => Promise<unknown>; etag?: string | null };
 export type PuzzlePackFetch = (url: string, init: { headers: Record<string, string> }) => Promise<PuzzlePackResponse>;
 
 /** Drop entries that are not a puzzle. Returns null when nothing usable remains. */
@@ -40,17 +40,23 @@ function isThenable<T>(value: T | Promise<T>): value is Promise<T> {
   return typeof (value as Promise<T> | null)?.then === "function";
 }
 
-/** Apply a cached pack and mark the store ready. Returns its version, or "" when there is nothing usable. */
-function installCache(raw: string | null): string {
-  if (!raw) return "";
+type CachedPack = { version: string; etag: string };
+
+/**
+ * Apply a cached pack and mark the store ready. Returns null when there is nothing usable.
+ * A cache saved before the server ETag was stored has no etag, so it is fetched in full once.
+ */
+function installCache(raw: string | null): CachedPack | null {
+  if (!raw) return null;
   try {
-    const cached = parsePuzzlePack(JSON.parse(raw));
-    if (!cached) return "";
+    const body = JSON.parse(raw) as { etag?: unknown };
+    const cached = parsePuzzlePack(body);
+    if (!cached) return null;
     setPuzzlePack(cached);
     setPuzzlePackStatus("cache");
-    return cached.version;
+    return { version: cached.version, etag: typeof body.etag === "string" ? body.etag : "" };
   } catch {
-    return "";
+    return null;
   }
 }
 
@@ -76,13 +82,14 @@ export async function refreshPuzzlePack(opts: {
     return;
   }
 
-  let version = "";
+  let etag = "";
   let hadCache = false;
   try {
     const read = opts.storage.getItem(PUZZLE_PACK_KEY);
     const raw = isThenable(read) ? await read : read;
-    version = installCache(raw);
-    hadCache = version !== "";
+    const cached = installCache(raw);
+    etag = cached?.etag ?? "";
+    hadCache = cached !== null;
   } catch {
     /* keep the fallback pack */
   }
@@ -91,7 +98,7 @@ export async function refreshPuzzlePack(opts: {
     try {
       const base = opts.apiBase.replace(/\/$/, "");
       const headers: Record<string, string> = {};
-      if (version) headers["If-None-Match"] = `"${version}"`;
+      if (etag) headers["If-None-Match"] = etag;
       const res = await opts.fetch(`${base}/v1/puzzles/pack`, { headers });
       if (res.status !== 200) return "keep";
       const next = parsePuzzlePack(await res.json());
@@ -99,7 +106,7 @@ export async function refreshPuzzlePack(opts: {
       setPuzzlePack(next);
       setPuzzlePackStatus("api");
       try {
-        await opts.storage.setItem(PUZZLE_PACK_KEY, JSON.stringify(next));
+        await opts.storage.setItem(PUZZLE_PACK_KEY, JSON.stringify(res.etag ? { ...next, etag: res.etag } : next));
       } catch {
         /* the memory pack is already updated */
       }
