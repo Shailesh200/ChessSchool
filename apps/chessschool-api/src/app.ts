@@ -20,7 +20,7 @@ import {
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, desc, eq, gt, lt } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
@@ -31,7 +31,8 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { classMembers, classes, feedback, profiles, progress, sessions, users } from "./schema";
+import { blocks, classMembers, classes, feedback, profiles, progress, reports, sessions, users } from "./schema";
+import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
@@ -55,7 +56,14 @@ export type AppDeps = {
   secureCookies: boolean;
   corsOrigins: string[];
   now?: () => Date;
+  /** Lower-case emails allowed to read the usage dashboard and the report queue. */
+  adminEmails?: string[];
 };
+
+const REPORT_REASONS = ["name", "behaviour", "other"] as const;
+
+/** Escapes text placed into the HTML of /join pages (class names are typed by users). */
+const html = (v: string) => v.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
 
 type UserRow = typeof users.$inferSelect;
 type Vars = { Variables: { user: UserRow } };
@@ -67,10 +75,13 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date() }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [] }: AppDeps) {
   const app = new Hono<Vars>();
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
+  const eventsLimiter = createRateLimiter(30, 60_000, () => now().getTime());
+  const reportLimiter = createRateLimiter(10, 60 * 60_000, () => now().getTime());
+  const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
 
   app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
@@ -379,12 +390,13 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       .where(eq(classMembers.classId, classId));
     const me = members.find((m) => m.id === viewerId);
     if (!me) return null;
+    const hidden = new Set((await db.select({ id: blocks.blockedId }).from(blocks).where(eq(blocks.blockerId, viewerId))).map((b) => b.id));
     return {
       id: row.id,
       name: row.name,
       code: row.code,
       role: me.role === "monitor" ? "monitor" : "student",
-      members: members.map((m) => ({ id: m.id, name: m.name || "Friend", role: m.role === "monitor" ? "monitor" : "student" })),
+      members: members.filter((m) => !hidden.has(m.id)).map((m) => ({ id: m.id, name: m.name || "Friend", role: m.role === "monitor" ? "monitor" : "student" })),
     };
   }
 
@@ -400,7 +412,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const row = await db.query.classes.findFirst({ where: eq(classes.code, code) });
     if (!row) return c.html("<p>That class code does not match.</p>", 404);
     const origin = row.origin === "web" ? "web" : "app";
-    return c.html(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>${row.name}</title><p>Join ${row.name}. Code ${code}.</p><script>
+    const name = html(row.name);
+    return c.html(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><p>Join ${name}. Code ${html(code)}.</p><script>
       var code=${JSON.stringify(code)};
       var origin=${JSON.stringify(origin)};
       location.href="chessschool://join/"+code;
@@ -461,6 +474,95 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!mine) return fail(c, 404, "not_found");
     if (row.ownerId === user.id) await db.delete(classes).where(eq(classes.id, id));
     else await db.delete(classMembers).where(and(eq(classMembers.classId, id), eq(classMembers.userId, user.id)));
+    return c.json({ ok: true });
+  });
+
+  /** The caller and the target share this class; returns both rows, or a failure response. */
+  async function memberPair(c: Context, classId: string, memberId: string, viewerId: string) {
+    const [room, viewer, target] = await Promise.all([
+      db.query.classes.findFirst({ where: eq(classes.id, classId) }),
+      db.query.classMembers.findFirst({ where: and(eq(classMembers.classId, classId), eq(classMembers.userId, viewerId)) }),
+      db.query.classMembers.findFirst({ where: and(eq(classMembers.classId, classId), eq(classMembers.userId, memberId)) }),
+    ]);
+    if (!room || !viewer || !target) return { error: fail(c, 404, "not_found") };
+    if (memberId === viewerId) return { error: fail(c, 400, "invalid_input") };
+    return { room, viewer, target };
+  }
+
+  /** Report a classmate. It goes to the admin queue and the reporter stops seeing them. */
+  app.post("/v1/classes/:id/members/:memberId/report", requireUser, async (c) => {
+    const user = c.get("user");
+    if (!reportLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const b = await body<{ reason?: string; note?: string }>(c);
+    const reason = (REPORT_REASONS as readonly string[]).includes(b.reason ?? "") ? b.reason! : null;
+    if (!reason) return fail(c, 400, "invalid_input");
+    const pair = await memberPair(c, c.req.param("id") ?? "", c.req.param("memberId") ?? "", user.id);
+    if ("error" in pair) return pair.error;
+    const at = now().getTime();
+    await db.batch([
+      db.insert(reports).values({ id: newId(), classId: pair.room.id, reporterId: user.id, reportedId: pair.target.userId, reason, note: String(b.note ?? "").trim().slice(0, 500), status: "open", createdAt: at }),
+      db.insert(blocks).values({ blockerId: user.id, blockedId: pair.target.userId, createdAt: at }).onConflictDoNothing(),
+    ]);
+    return c.json({ ok: true });
+  });
+
+  /** Stop seeing a classmate in any class. */
+  app.post("/v1/classes/:id/members/:memberId/block", requireUser, async (c) => {
+    const user = c.get("user");
+    const pair = await memberPair(c, c.req.param("id") ?? "", c.req.param("memberId") ?? "", user.id);
+    if ("error" in pair) return pair.error;
+    await db.insert(blocks).values({ blockerId: user.id, blockedId: pair.target.userId, createdAt: now().getTime() }).onConflictDoNothing();
+    return c.json({ ok: true });
+  });
+
+  /** The class monitor removes a member. */
+  app.delete("/v1/classes/:id/members/:memberId", requireUser, async (c) => {
+    const user = c.get("user");
+    const pair = await memberPair(c, c.req.param("id") ?? "", c.req.param("memberId") ?? "", user.id);
+    if ("error" in pair) return pair.error;
+    if (pair.room.ownerId !== user.id) return fail(c, 403, "forbidden");
+    await db.delete(classMembers).where(and(eq(classMembers.classId, pair.room.id), eq(classMembers.userId, pair.target.userId)));
+    return c.json({ ok: true });
+  });
+
+  /** Anonymous usage events from the apps. No account is needed or recorded. */
+  app.post("/v1/events", async (c) => {
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "local";
+    if (!eventsLimiter(ip)) return fail(c, 429, "rate_limited");
+    const rows = parseEvents(await body<unknown>(c), now().getTime());
+    if (!rows) return fail(c, 400, "invalid_input");
+    await recordEvents(db, rows, now().getTime());
+    return c.json({ ok: true, stored: rows.length });
+  });
+
+  const requireAdmin = async (c: Context<Vars>, next: () => Promise<void>) => {
+    const user = await userFromRequest(c);
+    if (!user) return fail(c, 401, "unauthorized");
+    if (!admins.has(user.email.toLowerCase())) return fail(c, 403, "forbidden");
+    c.set("user", user);
+    await next();
+  };
+
+  app.get("/v1/admin/usage", requireAdmin, async (c) => {
+    const days = Math.min(180, Math.max(1, Number.parseInt(c.req.query("days") ?? "30", 10) || 30));
+    return c.json(await usageSummary(db, now().getTime(), days));
+  });
+
+  app.get("/v1/admin/reports", requireAdmin, async (c) => {
+    const rows = await db
+      .select({ id: reports.id, reason: reports.reason, note: reports.note, status: reports.status, createdAt: reports.createdAt, className: classes.name, reported: users.name, reportedId: reports.reportedId })
+      .from(reports)
+      .leftJoin(classes, eq(classes.id, reports.classId))
+      .leftJoin(users, eq(users.id, reports.reportedId))
+      .orderBy(desc(reports.createdAt))
+      .limit(200);
+    return c.json({ reports: rows });
+  });
+
+  app.patch("/v1/admin/reports/:id", requireAdmin, async (c) => {
+    const b = await body<{ status?: string }>(c);
+    if (b.status !== "open" && b.status !== "resolved") return fail(c, 400, "invalid_input");
+    await db.update(reports).set({ status: b.status }).where(eq(reports.id, c.req.param("id") ?? ""));
     return c.json({ ok: true });
   });
 

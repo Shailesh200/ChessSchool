@@ -17,6 +17,7 @@ async function boot() {
     apple: appleVerifierFromEnv(process.env),
     secureCookies: true,
     corsOrigins: list(process.env.CORS_ORIGINS),
+    adminEmails: list(process.env.ADMIN_EMAILS),
   });
   return handle(app);
 }

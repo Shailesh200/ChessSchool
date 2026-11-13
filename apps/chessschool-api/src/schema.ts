@@ -112,6 +112,42 @@ export const feedback = sqliteTable("cs_feedback", {
   createdAt: integer("created_at").notNull(),
 });
 
+/** A member reported from inside a class. Reviewed by an admin; the reporter also stops seeing them. */
+export const reports = sqliteTable("cs_reports", {
+  id: text("id").primaryKey(),
+  classId: text("class_id").notNull(),
+  reporterId: text("reporter_id").notNull(),
+  reportedId: text("reported_id").notNull(),
+  reason: text("reason").notNull(),
+  note: text("note").notNull(),
+  status: text("status").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** `blockerId` no longer sees `blockedId` in any class. */
+export const blocks = sqliteTable(
+  "cs_blocks",
+  {
+    blockerId: text("blocker_id").notNull(),
+    blockedId: text("blocked_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
+);
+
+/** Anonymous usage events: an install id (random, per device), never a user id, name or email. */
+export const events = sqliteTable("cs_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  at: integer("at").notNull(),
+  install: text("install").notNull(),
+  name: text("name").notNull(),
+  lesson: text("lesson"),
+  step: integer("step"),
+  value: integer("value"),
+  platform: text("platform").notNull(),
+  appVersion: text("app_version").notNull(),
+});
+
 /** Idempotent bootstrap; this schema is new and owns only cs_* tables. */
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
@@ -188,6 +224,34 @@ export const BOOTSTRAP_SQL = [
     steps TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_course_lessons_position ON cs_course_lessons (position)`,
+  `CREATE TABLE IF NOT EXISTS cs_reports (
+    id TEXT PRIMARY KEY,
+    class_id TEXT NOT NULL,
+    reporter_id TEXT NOT NULL,
+    reported_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    note TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_blocks (
+    blocker_id TEXT NOT NULL,
+    blocked_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (blocker_id, blocked_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at INTEGER NOT NULL,
+    install TEXT NOT NULL,
+    name TEXT NOT NULL,
+    lesson TEXT,
+    step INTEGER,
+    value INTEGER,
+    platform TEXT NOT NULL,
+    app_version TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
   `CREATE TABLE IF NOT EXISTS cs_puzzles (
     id TEXT PRIMARY KEY,
     fen TEXT NOT NULL,

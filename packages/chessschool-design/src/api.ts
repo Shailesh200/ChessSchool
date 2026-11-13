@@ -43,6 +43,7 @@ export type ApiErrorCode =
   | "unauthorized"
   | "rate_limited"
   | "not_found"
+  | "forbidden"
   | "offline"
   | "server"
   | "GUEST_CLASS_LIMIT";

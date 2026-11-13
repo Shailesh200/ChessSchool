@@ -16,6 +16,7 @@ const app = createApp({
   apple: appleVerifierFromEnv(process.env),
   secureCookies: process.env.NODE_ENV === "production",
   corsOrigins: list(process.env.CORS_ORIGINS ?? "http://localhost:3100"),
+  adminEmails: list(process.env.ADMIN_EMAILS),
 });
 
 const hostname = process.env.HOST ?? "0.0.0.0";
