@@ -1,13 +1,14 @@
 import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dailyDone, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Course, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Cody, Fx } from "@/components/Lottie";
-import { openLesson, PathList } from "@/components/PathList";
+import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
 import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
+import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
@@ -64,6 +65,7 @@ export default function Today() {
 
   // The reminder sheet is offered once, after the first lesson.
   const [notifOpen, setNotifOpen] = useState(false);
+  const [gate, setGate] = useState(false);
   const eligible = done && !state.notificationOffered && state.prefs.notifications === "unknown" && !saved;
   // Only while Today is in front, so it never covers the orientation celebration.
   useFocusEffect(
@@ -78,8 +80,11 @@ export default function Today() {
     markNotificationOffered();
   };
 
-  const course = useCourse();
+  const cachedCourse = useCourse();
+  const [freshCourse, setFreshCourse] = useState<Course | null>(null);
+  const course = freshCourse ?? cachedCourse;
   const current = course ? focusCourse(course, progress.completed).current : null;
+  const currentLocked = Boolean(course && current && guestClassLocked(course, current, Boolean(state.account), progress));
   const currentId = current?.id ?? null;
   const scroller = useRef<ScrollView>(null);
   const content = useRef<View>(null);
@@ -100,6 +105,20 @@ export default function Today() {
       const t = setTimeout(scrollToCurrent, 80);
       return () => clearTimeout(t);
     }, [currentId, scrollToCurrent]),
+  );
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      api
+        .course()
+        .then((next) => {
+          if (live) setFreshCourse(next);
+        })
+        .catch(() => {});
+      return () => {
+        live = false;
+      };
+    }, []),
   );
 
   return (
@@ -218,7 +237,7 @@ export default function Today() {
         <T role="heading" header style={{ marginBottom: 8 }}>
           {copy.today.pathTitle}
         </T>
-        <PathList progress={progress} currentAnchor={currentAnchor} />
+        <PathList progress={progress} currentAnchor={currentAnchor} course={course} onGuestLock={() => setGate(true)} />
       </Card>
 
       <Card style={{ gap: 8 }}>
@@ -267,6 +286,29 @@ export default function Today() {
           }}
         />
       </Sheet>
+      <Sheet visible={gate} onClose={() => setGate(false)}>
+        <T role="heading" header center>
+          {copy.today.guestGate.title}
+        </T>
+        <T role="body" color="textMuted" center>
+          {copy.today.guestGate.body}
+        </T>
+        <Button
+          title={copy.today.guestGate.signup}
+          onPress={() => {
+            setGate(false);
+            router.push("/signup");
+          }}
+        />
+        <Button
+          title={copy.today.guestGate.login}
+          variant="secondary"
+          onPress={() => {
+            setGate(false);
+            router.push("/login");
+          }}
+        />
+      </Sheet>
         </View>
       </ScrollView>
       {current ? (
@@ -275,7 +317,11 @@ export default function Today() {
             <T role="small" color="textMuted" numberOfLines={1}>
               {current.title}
             </T>
-            <Button title={current.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson} icon="play" onPress={() => openLesson(current.id)} />
+            <Button
+              title={currentLocked ? copy.today.guestGate.signup : current.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson}
+              icon={currentLocked ? "lock" : "play"}
+              onPress={() => (currentLocked ? setGate(true) : openLesson(current.id))}
+            />
           </View>
         </View>
       ) : null}

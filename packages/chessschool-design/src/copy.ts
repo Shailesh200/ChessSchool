@@ -112,6 +112,7 @@ export const copy = {
       review: "Review",
       hide: "Hide",
       justFinished: "Just finished",
+      unlocked: "Unlocked",
       current: "Current",
       upNext: "Up next",
       more: (n: number) => `${n} more ${n === 1 ? "lesson" : "lessons"} ahead`,
@@ -123,6 +124,13 @@ export const copy = {
     done: "Done",
     open: (m: number) => `Open · ${m} min`,
     saveCard: { title: "Keep your progress", body: "Make a free account so nothing is lost.", cta: "Save my progress" },
+    guestGate: {
+      title: "Enroll to keep going",
+      body: "This class stays locked until you have an account. It's free, and your progress comes with you.",
+      signup: "Create account",
+      login: "Log in",
+      locked: "Enroll to open",
+    },
     replay: "Replay",
     arrival: {
       keptTitle: "You came back!",
