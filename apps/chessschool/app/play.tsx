@@ -447,7 +447,7 @@ export default function Play() {
           </View>
         ) : (
           <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Cody animation={pose} size={40} />
+            {friend ? <Cody animation={pose} size={40} /> : null}
             <View style={{ flex: 1 }}>
               {friend ? (
                 <T role="label" numberOfLines={1}>
