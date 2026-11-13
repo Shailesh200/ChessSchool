@@ -1,7 +1,8 @@
-import { cleanName, copy, guestPayload, validEmail, validPassword } from "@chessschool/design";
+import { ApiError, cleanName, copy, guestPayload, validEmail, validPassword } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { Platform, Pressable, TextInput, View } from "react-native";
+import { appleAvailable, appleCredential, appleModule, isAppleCancel } from "@/lib/apple";
 import { api, errorMessage } from "@/lib/api";
 import { googleAvailable, googleIdToken } from "@/lib/google";
 import { useApp } from "@/lib/state";
@@ -38,8 +39,9 @@ function labelOn(bg: string, preferred: string): string {
 
 export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "login" | "signup"; initialEmail?: string; topSpacing?: number }) {
   const { state, signedIn, cue } = useApp();
-  const { c } = useTheme();
+  const { c, scheme } = useTheme();
   const signup = mode === "signup";
+  const [appleOn, setAppleOn] = useState(false);
   const [name, setName] = useState(state.profile.name);
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
@@ -52,6 +54,17 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
     setErrors({});
     setPassword("");
   }, [mode]);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    let live = true;
+    void appleAvailable().then((ok) => {
+      if (live) setAppleOn(ok);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const edit = (field: keyof Errors, set: (v: string) => void) => (v: string) => {
     set(v);
@@ -93,6 +106,28 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
     }, "google");
   };
 
+  const apple = () => {
+    if (busy) return;
+    void (async () => {
+      setBusy(true);
+      try {
+        const cred = await appleCredential();
+        if (!cred) return;
+        const auth = await api.apple(cred);
+        const firstRun = !state.seenWelcome;
+        await signedIn(auth);
+        cue("success");
+        router.replace(firstRun ? "/welcome" : "/today");
+      } catch (err) {
+        if (isAppleCancel(err)) return;
+        setErrors({ form: err instanceof ApiError ? errorMessage(err) : copy.auth.appleFailed });
+        cue("gentle-no");
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const switchMode = () => {
     setErrors({});
     setPassword("");
@@ -108,7 +143,8 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
   const guestLabel = copy.auth.guestShort.trim();
   const showGoogle = googleAvailable() && googleLabel.length > 0;
   const showGuest = !state.account && guestLabel.length > 0;
-  const showContinue = continueLabel.length > 0 && (showGoogle || showGuest);
+  const showApple = Platform.OS === "ios" && appleOn;
+  const showContinue = continueLabel.length > 0 && (showGoogle || showGuest || showApple);
   const submitLabel = (signup ? copy.auth.signup : copy.auth.login).trim();
   const hasError = Object.keys(errors).length > 0;
 
@@ -202,6 +238,7 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
             <T role="small" color="textMuted" center style={{ textAlign: "center" }}>
               {continueLabel}
             </T>
+            {showApple ? <AppleSignInButton signup={signup} scheme={scheme} disabled={busy} onPress={apple} /> : null}
             <View style={{ flexDirection: "row", gap: 10 }}>
               {showGoogle ? (
                 <Pressable
@@ -265,5 +302,23 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
         </Pressable>
       </View>
     </Flow>
+  );
+}
+
+/** Official Sign in with Apple control. Full width so the system title is not clipped. */
+function AppleSignInButton({ signup, scheme, disabled, onPress }: { signup: boolean; scheme: "light" | "dark"; disabled?: boolean; onPress: () => void }) {
+  const mod = appleModule();
+  if (!mod || Platform.OS !== "ios") return null;
+  const NativeButton = mod.AppleAuthenticationButton;
+  return (
+    <NativeButton
+      buttonType={signup ? mod.AppleAuthenticationButtonType.SIGN_UP : mod.AppleAuthenticationButtonType.SIGN_IN}
+      buttonStyle={scheme === "dark" ? mod.AppleAuthenticationButtonStyle.WHITE : mod.AppleAuthenticationButtonStyle.BLACK}
+      cornerRadius={24}
+      style={{ width: "100%", height: 48 }}
+      onPress={() => {
+        if (!disabled) onPress();
+      }}
+    />
   );
 }

@@ -57,6 +57,7 @@ export const copy = {
     google: "Continue with Google",
     googleShort: "Google",
     googleUnavailable: "Google sign-in isn't set up on this device yet. Use email for now.",
+    appleFailed: "Apple sign-in didn't work. Please try again.",
     or: "or",
     continueAs: "Continue as",
     toSignup: "New here? Create an account",
