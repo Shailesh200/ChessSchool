@@ -12,10 +12,8 @@ export type CourseLesson = {
 };
 
 export type CourseUnit = { id: string; title: string; sub: string };
-export type Course = {
-  units: CourseUnit[];
-  lessons: CourseLesson[];
-};
+export type ComingSoonItem = { id: string; title: string; sub: string };
+export type Course = { units: CourseUnit[]; lessons: CourseLesson[]; comingSoon?: ComingSoonItem[] };
 
 export const COURSE_KEY = "chessschool.v2.course";
 

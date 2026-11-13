@@ -137,6 +137,17 @@ export function PathList({
             </Pressable>
           ))
         : null}
+      <View style={{ gap: 6, padding: 14, borderRadius: 16, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
+        <T role="label">{copy.today.comingSoonTitle}</T>
+        <T role="small" color="textMuted">
+          {copy.today.comingSoonBody}
+        </T>
+        {(course.comingSoon ?? copy.comingSoon).map((item) => (
+          <T key={item.id} role="small" color="textMuted">
+            {item.title} · {item.sub}
+          </T>
+        ))}
+      </View>
       {!f.current ? <T color="textMuted">{copy.today.heroAllBody}</T> : null}
     </View>
   );

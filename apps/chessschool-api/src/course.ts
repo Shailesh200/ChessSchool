@@ -14,5 +14,6 @@ export function courseDocument(): Course {
       xp: n.xp,
       steps: LESSONS[n.id]?.steps ?? [],
     })),
+    comingSoon: copy.comingSoon,
   };
 }

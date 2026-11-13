@@ -1,5 +1,6 @@
 import { fileIndex, rankIndex, squareAt, START_FEN, type Square } from "./board";
 import type { BotLevel } from "./bot";
+import { LESSONS_V2 } from "./lessons.v2";
 
 export type Pose = "idle" | "wave" | "thinking" | "happy" | "proud" | "wow" | "reading" | "celebrate";
 
@@ -772,6 +773,7 @@ Object.assign(LESSONS, {
     ],
   },
 } satisfies Record<string, Lesson>);
+Object.assign(LESSONS, LESSONS_V2);
 
 /** Handmade checkmate-in-one drills that unlock with the check lesson. */
 export const MATE_DRILLS: MoveStep[] = [

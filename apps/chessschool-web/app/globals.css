@@ -3031,10 +3031,40 @@ a.path-inner:hover {
   font-size: 1.0625rem;
 }
 .focus-earlier p,
-.focus-more p {
+.focus-more p,
+.focus-soon p {
   margin: 2px 0 0;
   color: var(--cs-text-muted);
   font-size: 0.875rem;
+}
+.focus-soon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px dashed var(--cs-line);
+  background: var(--cs-card);
+}
+.focus-soon strong {
+  display: block;
+  font-size: 1.0625rem;
+}
+.focus-soon ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.focus-soon li {
+  color: var(--cs-text-muted);
+  font-size: 0.875rem;
+}
+.focus-soon li span {
+  display: block;
+  font-size: 0.8125rem;
+  opacity: 0.9;
 }
 .focus-rail {
   list-style: none;

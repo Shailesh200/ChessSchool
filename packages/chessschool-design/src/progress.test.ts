@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PATH,
+  UNITS,
   START_FEN,
   type GameRecord,
   arrive,
@@ -33,6 +34,7 @@ import {
   visibleStreak,
   emptyProgress,
 } from "./progress";
+import { copy } from "./copy";
 
 const at = (iso: string) => new Date(`${iso}T10:00:00`);
 
@@ -414,5 +416,27 @@ describe("Phase 3 progress", () => {
     );
     expect(withSeen.puzzles.daily).toEqual({ lastDay: "2026-11-04", count: 2, seen: ["aaa11", "bbb22"], servedDay: "2026-11-04", servedId: "aaa11" });
     expect(m.bots).toEqual({ cody: { played: 3, won: 2 }, pip: { played: 1, won: 1 } });
+  });
+});
+
+describe("extended course path", () => {
+  it("keeps the original eleven units first, then seven new ones", () => {
+    expect(UNITS.slice(0, 11)).toEqual(["unit1", "unit2", "unit3", "unit4", "unit5", "unit6", "unit7", "unit8", "unit9", "unit10", "unit11"]);
+    expect(UNITS).toHaveLength(18);
+    expect(PATH[0].id).toBe("meet");
+    expect(PATH.find((n) => n.id === "queenEnding")?.unit).toBe("unit11");
+    expect(PATH.filter((n) => n.unit === "unit11").map((n) => n.id)).toEqual(["queenEnding"]);
+    expect(PATH.at(-1)?.id).toBe("calculation");
+    expect(new Set(PATH.map((n) => n.id)).size).toBe(PATH.length);
+    expect(PATH.every((n) => UNITS.includes(n.unit) && n.available && copy.path[n.id])).toBe(true);
+  });
+
+  it("lists coming-soon teasers that are not playable path lessons", () => {
+    expect(copy.comingSoon.length).toBeGreaterThan(0);
+    const pathIds = new Set(PATH.map((n) => n.id));
+    for (const item of copy.comingSoon) {
+      expect(pathIds.has(item.id)).toBe(false);
+      expect(item.title.length).toBeGreaterThan(0);
+    }
   });
 });
