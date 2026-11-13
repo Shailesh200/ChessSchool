@@ -37,6 +37,12 @@ const pairs: [keyof Palette, keyof Palette, number][] = [
   ["goldText", "card", 4.5],
   ["text", "heroFrom", 4.5],
   ["text", "heroTo", 4.5],
+  ["textMuted", "heroFrom", 4.5],
+  ["textMuted", "heroTo", 4.5],
+  ["text", "goldSoft", 4.5],
+  ["textMuted", "goldSoft", 4.5],
+  ["text", "brandSoft", 4.5],
+  ["textMuted", "brandSoft", 4.5],
   ["focus", "bg", 3],
   ["brand", "card", 3],
 ];
