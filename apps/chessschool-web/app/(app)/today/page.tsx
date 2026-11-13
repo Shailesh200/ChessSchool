@@ -3,6 +3,7 @@
 import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
 import { PathList } from "@/components/PathList";
@@ -18,7 +19,8 @@ const href = (id: string) => (id === "meet" ? "/orientation" : `/lesson/${id}`);
 
 export default function TodayPage() {
   const { state, ready, place, cue, showGuestGate } = useApp();
-  const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle(ready);
+  const packReady = usePuzzlePackReady();
+  const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle(ready && packReady);
   const course = useCourse();
   const [showGoal, setShowGoal] = useState(false);
   const now = new Date();
@@ -30,7 +32,7 @@ export default function TodayPage() {
     localStorage.setItem(GOAL_SEEN, today);
   }, [today]);
 
-  if (!ready) return <CourseSkeleton />;
+  if (!ready || !packReady) return <CourseSkeleton />;
 
   const { progress, profile } = state;
   const name = profile.name.trim() || copy.today.friend;
@@ -118,7 +120,7 @@ export default function TodayPage() {
             <h2 id="daily-title" className="card-title">
               <Icon name="puzzle" /> {copy.puzzles.daily}
             </h2>
-            <p className="muted">{dailyIsDone ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPick.rating}`}</p>
+            <p className="muted">{dailyIsDone ? copy.puzzles.dailyDone : dailyPick ? `${copy.puzzles.dailyBody} · ${dailyPick.rating}` : copy.puzzles.dailyBody}</p>
             {dailyIsDone ? <DailyCountdown /> : (
               <Button href="/puzzles/solve?daily=1" variant="secondary" icon="puzzle" block>
                 {copy.puzzles.daily}

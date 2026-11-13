@@ -1,4 +1,5 @@
-import { dailyPuzzle, puzzleById, themesForCompletedLessons, type Puzzle } from "@chessschool/chess";
+import { selectDailyPuzzle, lockDailyPuzzle, themesForCompletedLessons, type Puzzle } from "@chessschool/chess";
+import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight, watchLocalMidnight } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { AppState, View } from "react-native";
@@ -21,18 +22,28 @@ function useLocalDay(): string {
   return today;
 }
 
-/** Today's puzzle. Passing `serve` records it so the same id is not offered again. */
-export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle; done: boolean } {
+/** Today's puzzle. Passing `serve` records it so the same id is not offered again. Null until the pack is ready. */
+export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle | null; done: boolean; ready: boolean } {
   const { state, serveDailyPuzzle } = useApp();
+  const ready = usePuzzlePackReady();
   const today = useLocalDay();
   const daily = state.progress.puzzles.daily;
-  const stuck = daily.servedDay === today && daily.servedId ? puzzleById(daily.servedId) : null;
-  const puzzle = stuck ?? dailyPuzzle(today, themesForCompletedLessons(Object.keys(state.progress.completed)), daily.seen ?? []);
+  const choice = ready
+    ? selectDailyPuzzle({
+        day: today,
+        completedThemes: themesForCompletedLessons(Object.keys(state.progress.completed)),
+        seenIds: daily.seen ?? [],
+        servedDay: daily.servedDay,
+        servedId: daily.servedId,
+        stored: (daily.served as Puzzle | undefined) ?? null,
+      })
+    : { puzzle: null, persist: false };
   useEffect(() => {
-    if (!serve || stuck) return;
-    serveDailyPuzzle(today, puzzle.id);
-  }, [serve, stuck, today, puzzle.id, serveDailyPuzzle]);
-  return { today, puzzle, done: dailyDone(state.progress, today) };
+    if (!serve || !ready || !choice.persist || !choice.puzzle) return;
+    lockDailyPuzzle(today, choice.puzzle);
+    serveDailyPuzzle(today, choice.puzzle.id, choice.puzzle);
+  }, [serve, ready, choice.persist, choice.puzzle, today, serveDailyPuzzle]);
+  return { today, puzzle: choice.puzzle, done: dailyDone(state.progress, today), ready };
 }
 
 /** Live time until local midnight, shown once today's daily puzzle is solved. */
