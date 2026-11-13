@@ -4,6 +4,12 @@ import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const apiBase = process.env.CHESSSCHOOL_API_URL ?? "";
+if (apiBase.toLowerCase().includes("chess-school.in")) {
+  console.error("refusing to run: API base URL must be a local server");
+  process.exit(1);
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const out = process.argv[2];
 const steps = ["phase1.mjs", "phase2.mjs", "phase3.mjs"];

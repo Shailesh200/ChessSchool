@@ -9,6 +9,11 @@ const require = createRequire(new URL("../../../packages/chessschool-chess/packa
 const { Chess } = require("chess.js");
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
+const apiBase = process.env.CHESSSCHOOL_API_URL ?? "";
+if (apiBase.toLowerCase().includes("chess-school.in")) {
+  console.error("refusing to run: API base URL must be a local server");
+  process.exit(1);
+}
 const OUT = process.argv[2] ?? "/tmp/cs-phase2";
 mkdirSync(OUT, { recursive: true });
 
