@@ -67,7 +67,9 @@ export default function Puzzles() {
             {`${copy.puzzles.dailyBody} · ${daily.rating}`}
           </T>
           <View style={{ alignSelf: "flex-start" }}>
-            <Chip tone="accent">{copy.puzzles.dailyStreak(pz.daily.count)}</Chip>
+            <Chip icon="spark" tone={pz.daily.count ? "accent" : "neutral"} label={copy.a11y.streak(pz.daily.count)}>
+              {String(pz.daily.count)}
+            </Chip>
           </View>
           <Button title={copy.puzzles.daily} icon="play" variant="gold" onPress={() => router.push("/puzzle?daily=1")} />
         </Card>
