@@ -20,6 +20,15 @@ export type HomeResponse = {
 };
 export type GuestPayload = { guestId: string; profile?: Partial<ApiProfile>; progress?: Progress };
 
+/** Body for `POST /v1/auth/apple`. `nonce` is the raw nonce; Apple receives its sha256 hex. `guest` is the same device payload as Google, login and register. */
+export type AppleSignInBody = {
+  identityToken: string;
+  nonce?: string;
+  fullName?: { givenName?: string; familyName?: string };
+  email?: string;
+  guest?: GuestPayload;
+};
+
 export type ApiErrorCode =
   | "invalid_input"
   | "invalid_credentials"
@@ -27,6 +36,8 @@ export type ApiErrorCode =
   | "google_only"
   | "google_invalid"
   | "google_unconfigured"
+  | "apple_invalid"
+  | "apple_unconfigured"
   | "unauthorized"
   | "rate_limited"
   | "not_found"
@@ -91,6 +102,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       request<AuthResponse>("POST", "/v1/auth/register", input),
     login: (input: { email: string; password: string; guest?: GuestPayload }) => request<AuthResponse>("POST", "/v1/auth/login", input),
     google: (input: { idToken: string; guest?: GuestPayload }) => request<AuthResponse>("POST", "/v1/auth/google", input),
+    /** Same session shape as `google`. Path sits beside `/v1/auth/google`. */
+    apple: (input: AppleSignInBody) => request<AuthResponse>("POST", "/v1/auth/apple", input),
     logout: () => request<{ ok: true }>("POST", "/v1/auth/logout"),
     me: () => request<MeResponse>("GET", "/v1/me"),
     updateMe: (patch: Partial<ApiProfile>) => request<MeResponse>("PATCH", "/v1/me", patch),

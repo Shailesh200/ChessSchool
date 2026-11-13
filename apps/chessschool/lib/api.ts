@@ -27,6 +27,8 @@ const messages: Partial<Record<ApiErrorCode, string>> = {
   email_taken: copy.auth.errors.emailTaken,
   google_only: copy.auth.errors.googleOnly,
   google_unconfigured: copy.auth.googleUnavailable,
+  apple_invalid: copy.auth.appleInvalid,
+  apple_unconfigured: copy.auth.appleUnconfigured,
   rate_limited: copy.auth.errors.rateLimited,
   offline: copy.auth.errors.offline,
 };

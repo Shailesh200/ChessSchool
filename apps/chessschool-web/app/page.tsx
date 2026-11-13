@@ -13,7 +13,8 @@ export default function Splash() {
 
   useEffect(() => {
     if (!ready) return;
-    const dest = state.account || state.seenWelcome ? "/today" : "/welcome";
+    // Signed-out first launch opens Log in. Welcome runs after signup or guest.
+    const dest = state.account || state.seenWelcome ? "/today" : "/login";
     router.prefetch(dest);
     const t = setTimeout(() => router.replace(dest), motion.duration.splash);
     return () => clearTimeout(t);

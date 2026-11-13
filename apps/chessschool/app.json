@@ -48,6 +48,7 @@
       "expo-audio",
       "expo-updates",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-notifications",
         {

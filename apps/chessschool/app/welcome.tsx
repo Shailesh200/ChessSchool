@@ -5,6 +5,7 @@ import { Pressable, View } from "react-native";
 import { AvatarPicker } from "@/components/AvatarFace";
 import { Cody } from "@/components/Lottie";
 import { Button, Choice, Flow, IconButton, Steps, T } from "@/components/ui";
+import { labelOn } from "@/lib/labelOn";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
@@ -39,13 +40,21 @@ export default function Welcome() {
       }
       footer={
         step < STEPS - 1 ? (
-          <Button
-            title={copy.welcome.next}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.welcome.next}
             onPress={() => {
               cue("tap");
               setStep(step + 1);
             }}
-          />
+            style={{ alignSelf: "stretch" }}
+          >
+            <View style={{ minHeight: 56, borderRadius: 999, backgroundColor: c.brand, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 }}>
+              <T role="label" center numberOfLines={1} style={{ color: labelOn(c.brand, c.onBrand), textAlign: "center", width: "100%" }}>
+                {copy.welcome.next}
+              </T>
+            </View>
+          </Pressable>
         ) : (
           <>
             <Button title={w.start.guest} onPress={() => finish("/today")} />

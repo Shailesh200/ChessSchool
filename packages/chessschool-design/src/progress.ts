@@ -86,7 +86,7 @@ export type GameRecord = {
 export const GAME_LOG_MAX = 30;
 export type Arrival = "kept" | "fresh";
 
-export type Account = { id: string; email: string; name: string; provider: "password" | "google" };
+export type Account = { id: string; email: string; name: string; provider: "password" | "google" | "apple" };
 
 export type LocalState = {
   version: typeof STATE_VERSION;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAuth, applySignOut, guestPayload } from "./session";
+import { applyAuth, applySignOut, canChangePassword, guestPayload, signInProviderLabel } from "./session";
 import { completeNode, createInitialState, emptyProgress } from "./progress";
 
 describe("guest -> account handoff", () => {
@@ -38,5 +38,14 @@ describe("guest -> account handoff", () => {
     const out = applySignOut(signedIn);
     expect(out.account).toBeNull();
     expect(out.progress.completed.meet).toBeDefined();
+  });
+
+  it("names Apple, Google and email, and hides password changes for Apple and Google", () => {
+    expect(signInProviderLabel("apple")).toBe("Apple");
+    expect(signInProviderLabel("google")).toBe("Google");
+    expect(signInProviderLabel("password")).toBe("Email");
+    expect(canChangePassword("password")).toBe(true);
+    expect(canChangePassword("google")).toBe(false);
+    expect(canChangePassword("apple")).toBe(false);
   });
 });
