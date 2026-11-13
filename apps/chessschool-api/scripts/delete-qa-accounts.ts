@@ -1,60 +1,118 @@
 import { readFileSync } from "node:fs";
-import { openDb } from "../src/db";
-import { parseAllowList, parseCleanupArgs, runQaCleanup, type QaReport } from "../src/qa-accounts";
+import { resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
+import { stdin, stdout } from "node:process";
+import { pathToFileURL } from "node:url";
+import { openDb, type Db } from "../src/db";
+import { confirmMatches, lockReadsOnly, parseAllowList, parseCleanupArgs, resolveDbTarget, runQaCleanup, type QaReport } from "../src/qa-accounts";
 
-function localFileUrl(raw: string | undefined): string | null {
-  if (!raw || !raw.startsWith("file:")) return null;
-  return raw;
-}
+export type CleanupIo = {
+  argv?: string[];
+  env?: NodeJS.ProcessEnv;
+  openDb?: (url: string, authToken?: string) => Promise<Db>;
+  isTTY?: boolean;
+  readLine?: () => Promise<string>;
+  log?: (line: string) => void;
+  error?: (line: string) => void;
+};
 
-function printReport(rejected: string[], report: QaReport, apply: boolean) {
-  console.log(apply && !report.refused ? "mode: apply" : "mode: dry-run");
-  console.log(`rejected: ${rejected.length}`);
-  for (const email of rejected) console.log(`rejected-email: ${email}`);
-  console.log(`found: ${report.found.length}`);
-  for (const row of report.found) console.log(`found-email: ${row.email}`);
-  console.log(`missing: ${report.missing.length}`);
-  for (const email of report.missing) console.log(`missing-email: ${email}`);
-  console.log(`unlisted: ${report.unlisted.length}`);
-  for (const email of report.unlisted) console.log(`unlisted-email: ${email}`);
+function printReport(log: (line: string) => void, error: (line: string) => void, rejected: string[], report: QaReport, apply: boolean, location: "local" | "remote") {
+  log(apply && !report.refused ? "mode: apply" : "mode: dry-run");
+  log(`database: ${location}`);
+  log(`rejected: ${rejected.length}`);
+  for (const email of rejected) log(`rejected-email: ${email}`);
+  log(`found: ${report.found.length}`);
+  for (const row of report.found) log(`found-email: ${row.email}`);
+  log(`missing: ${report.missing.length}`);
+  for (const email of report.missing) log(`missing-email: ${email}`);
+  log(`unlisted: ${report.unlisted.length}`);
+  for (const email of report.unlisted) log(`unlisted-email: ${email}`);
   if (report.refused) {
-    console.error(`refusing: ${report.refused}`);
-    console.log("deleted: 0");
-    console.log("no accounts deleted");
+    error(`refusing: ${report.refused}`);
+    log("deleted: 0");
+    log("no accounts deleted");
     return;
   }
-  console.log(`deleted: ${report.deleted.length}`);
-  for (const email of report.deleted) console.log(`deleted-email: ${email}`);
-  if (!apply) console.log("no accounts deleted");
+  log(`deleted: ${report.deleted.length}`);
+  for (const email of report.deleted) log(`deleted-email: ${email}`);
+  if (!apply || report.deleted.length === 0) log("no accounts deleted");
 }
 
-const args = parseCleanupArgs(process.argv.slice(2));
-if (args.error || !args.list) {
-  console.error(args.error ?? "--list is required");
-  process.exit(1);
+/** Runs the cleanup. A remote dry-run only reads. A remote delete waits for the exact matched count. */
+export async function runDeleteQaAccounts(io: CleanupIo = {}): Promise<number> {
+  const log = io.log ?? ((line) => console.log(line));
+  const error = io.error ?? ((line) => console.error(line));
+  const env = io.env ?? process.env;
+  const args = parseCleanupArgs(io.argv ?? process.argv.slice(2));
+  if (args.error || !args.list) {
+    error(args.error ?? "--list is required");
+    return 1;
+  }
+
+  let markdown: string;
+  try {
+    markdown = readFileSync(args.list, "utf8");
+  } catch {
+    error("allow-list could not be read");
+    return 1;
+  }
+  const list = parseAllowList(markdown);
+  if (list.error) {
+    error(list.error);
+    return 1;
+  }
+
+  const target = resolveDbTarget(env.DATABASE_URL, args.remoteProd);
+  if (!target.ok) {
+    error(target.message);
+    return 1;
+  }
+
+  let db: Db;
+  try {
+    db = await (io.openDb ?? openDb)(target.url, env.DATABASE_AUTH_TOKEN);
+  } catch {
+    error("database connection failed");
+    return 1;
+  }
+
+  const guard = target.location === "remote" && !args.apply ? lockReadsOnly(db) : null;
+  let planned;
+  try {
+    planned = await runQaCleanup(db, { emails: list.emails, apply: false, max: args.max });
+  } finally {
+    guard?.restore();
+  }
+  if (planned.refused || !args.apply) {
+    printReport(log, error, list.rejected, planned, false, target.location);
+    return planned.refused ? 1 : 0;
+  }
+
+  if (target.location === "remote") {
+    const isTTY = io.isTTY ?? Boolean(stdin.isTTY);
+    const typed = args.confirmCount ?? (isTTY ? await (io.readLine ?? readConfirmLine)() : undefined);
+    if (!confirmMatches(typed, planned.found.length)) {
+      error("aborted: confirmation does not match the matched count");
+      log("database: remote");
+      log("deleted: 0");
+      log("no accounts deleted");
+      return 1;
+    }
+  }
+
+  const deleted = await runQaCleanup(db, { emails: planned.found.map((row) => row.email), apply: true, max: args.max });
+  printReport(log, error, list.rejected, { ...planned, deleted: deleted.deleted }, true, target.location);
+  return deleted.refused ? 1 : 0;
 }
 
-let markdown: string;
-try {
-  markdown = readFileSync(args.list, "utf8");
-} catch {
-  console.error("allow-list could not be read");
-  process.exit(1);
+async function readConfirmLine(): Promise<string> {
+  const rl = createInterface({ input: stdin, output: stdout });
+  try {
+    return await rl.question("Type the matched count: ");
+  } finally {
+    rl.close();
+  }
 }
 
-const list = parseAllowList(markdown);
-if (list.error) {
-  console.error(list.error);
-  process.exit(1);
-}
-
-const url = localFileUrl(process.env.DATABASE_URL);
-if (!url) {
-  console.error("Refusing to run: DATABASE_URL must be a local sqlite file.");
-  process.exit(1);
-}
-
-const db = await openDb(url);
-const report = await runQaCleanup(db, { emails: list.emails, apply: args.apply, max: args.max });
-printReport(list.rejected, report, args.apply);
-if (report.refused) process.exit(1);
+const launchedDirectly = process.argv[1] ? import.meta.url === pathToFileURL(resolve(process.argv[1])).href : false;
+if (launchedDirectly) process.exit(await runDeleteQaAccounts());
