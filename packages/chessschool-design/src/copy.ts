@@ -117,6 +117,14 @@ export const copy = {
       showLess: "Show less",
       loading: "Loading your course…",
       offline: "Lessons will show when you're back online.",
+      start: "Start",
+      coachLine: (title: string) => `${title} next. You've got this.`,
+    },
+    guestGate: {
+      title: "Keep going from here",
+      body: "The first classes are open. Make a free account, or log in, to unlock the rest.",
+      enroll: "Create account",
+      login: "Log in",
     },
     done: "Done",
     open: (m: number) => `Open · ${m} min`,
@@ -256,6 +264,7 @@ export const copy = {
     save: "Save my progress",
     locked: "This lesson isn't open yet.",
     lockedBody: (prev: string) => `Finish “${prev}” first. It only takes a few minutes.`,
+    hintsUsed: (n: number) => (n === 1 ? "Hints used: 1" : `Hints used: ${n}`),
     board: "Chessboard",
   },
 

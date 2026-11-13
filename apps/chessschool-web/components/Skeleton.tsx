@@ -1,22 +1,23 @@
-import { copy } from "@chessschool/design";
+"use client";
 
+import { copy } from "@chessschool/design";
+import { Cody } from "./Lottie";
+
+/** Page move: Cody, the current coach, not the old shimmer board. */
 export function CourseSkeleton() {
   return (
-    <div className="path-skeleton" aria-busy="true" aria-label={copy.today.focus.loading}>
-      <span className="skel-line" />
-      <span className="skel" />
-      <span className="skel is-short" />
-      <span className="skel is-short" />
+    <div className="route-loader" aria-busy="true" aria-label={copy.today.focus.loading}>
+      <Cody animation="reading" size={120} />
+      <p>{copy.today.focus.loading}</p>
     </div>
   );
 }
 
 export function LessonSkeleton() {
   return (
-    <div className="lesson-skeleton" aria-busy="true" aria-label={copy.today.focus.loading}>
-      <span className="skel-line" />
-      <span className="skel is-board" />
-      <span className="skel" />
+    <div className="route-loader" aria-busy="true" aria-label={copy.today.focus.loading}>
+      <Cody animation="thinking" size={120} />
+      <p>{copy.today.focus.loading}</p>
     </div>
   );
 }

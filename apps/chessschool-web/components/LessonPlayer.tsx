@@ -9,6 +9,7 @@ import { Board } from "./Board";
 import { BoardStage } from "./BoardStage";
 import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
+import { Options } from "./Options";
 import { Button } from "./ui";
 
 function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
@@ -17,6 +18,27 @@ function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
   if (s.feedback?.tone === "good") return "happy";
   if (s.feedback?.tone === "hint") return "oops";
   return step?.pose ?? "idle";
+}
+
+/** Split coach copy into lines that fit the bubble, so the board never moves. */
+function wrapLines(text: string, width: number, font: string): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+  if (width < 24 || typeof document === "undefined") return [words.join(" ")];
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return [words.join(" ")];
+  ctx.font = font;
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > width) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 type Props = {
@@ -35,8 +57,11 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
   // Mirrors `s` for event handlers and timers, so cues fire from one place.
   const ref = useRef(s);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const bodyRef = useRef<HTMLParagraphElement>(null);
   const finished = useRef(false);
   const step = currentStep(s);
+  const [lines, setLines] = useState<string[]>([""]);
+  const [line, setLine] = useState(0);
 
   const act = (a: RunnerAction) => {
     const prev = ref.current;
@@ -72,6 +97,30 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
     headingRef.current?.focus({ preventScroll: true });
   }, [s.index, s.status === "finished"]);
 
+  const body = step?.body ?? "";
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const measure = () => {
+      const style = getComputedStyle(el);
+      const pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      const parent = el.parentElement?.clientWidth ?? el.clientWidth;
+      setLines(wrapLines(body, Math.min(el.clientWidth, parent) - pad - 8, style.font));
+    };
+    measure();
+    setLine(0);
+    const obs = new ResizeObserver(measure);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [body, s.index]);
+
+  useEffect(() => {
+    if (line >= lines.length - 1) return;
+    const words = lines[line]?.split(/\s+/).length ?? 1;
+    const t = setTimeout(() => setLine((n) => Math.min(n + 1, lines.length - 1)), Math.min(2600, Math.max(800, words * 320)));
+    return () => clearTimeout(t);
+  }, [line, lines]);
+
   const total = steps.length;
   if (s.status === "finished") {
     return (
@@ -101,6 +150,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
           ? copy.lesson.thinking
           : copy.lesson.yourMove
         : null;
+  const spoken = lines[Math.min(line, Math.max(0, lines.length - 1))] || body;
 
   return (
     <div className="lesson">
@@ -119,14 +169,17 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
 
       <div className="lesson-stage" data-kind={step.kind}>
         <BoardStage
+          stable
           top={
             <>
-              <Cody animation={poseFor(s, step)} size={64} />
+              <Cody animation={poseFor(s, step)} size={56} />
               <div className="bubble">
                 <h1 ref={headingRef} tabIndex={-1}>
                   {step.title}
                 </h1>
-                <p>{step.body}</p>
+                <p ref={bodyRef} aria-live="polite">
+                  {spoken}
+                </p>
               </div>
             </>
           }
@@ -160,16 +213,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
         </BoardStage>
 
         <div className="lesson-panel">
-          {step.kind === "choice" ? (
-            <div className="choices" role="radiogroup" aria-label={step.body}>
-              {step.options.map((o, i) => (
-                <button key={o.label} type="button" role="radio" className="choice" aria-checked={s.choice === i} disabled={s.status === "ready"} onClick={() => act({ type: "choose", index: i })}>
-                  {o.label}
-                  {s.choice === i && s.status === "ready" ? <Icon name="check" /> : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
+          {step.kind === "choice" ? <Options label={step.body} options={step.options} selected={s.choice} disabled={s.status === "ready"} onChoose={(index) => act({ type: "choose", index })} /> : null}
 
           <div className="lesson-actions">
             {s.status === "ready" ? (

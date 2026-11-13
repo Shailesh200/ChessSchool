@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { Cody, Fx } from "./Lottie";
 
 /** The end-of-lesson moment: stamp, Cody, earned XP and streak, then what's next. */
-export function LessonDone({ title, body, recap, xp, streak, goalMet, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; children: React.ReactNode }) {
+export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; hints?: number; children: React.ReactNode }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
@@ -24,7 +24,7 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, children }
           </div>
         ) : null}
         {streak ? (
-          <div className="streak-pill" role="img" aria-label={copy.lesson.streakUp(streak)}>
+          <div className="streak-pill is-bold" role="img" aria-label={copy.lesson.streakUp(streak)}>
             <Fx name="streak-spark" size={40} />
             <span aria-hidden>{copy.lesson.streakUp(streak)}</span>
           </div>
@@ -36,6 +36,11 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, children }
       <p className="lead">{body}</p>
       {recap ? <p>{recap}</p> : null}
       {goalMet ? <p className="beat-tag">{copy.lesson.goalMet}</p> : null}
+      {hints != null && hints > 0 ? (
+        <p className="hints-used">
+          {copy.lesson.hintsUsed(hints)}
+        </p>
+      ) : null}
       <div className="flow-actions">{children}</div>
     </>
   );
