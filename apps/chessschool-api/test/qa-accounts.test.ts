@@ -121,13 +121,21 @@ describe("QA account cleanup", () => {
     const { path, db } = await fileDb();
     const listPath = join(path, "..", "list.md");
     await writeFile(listPath, LIST);
-    const client = db.$client as { execute: (stmt: unknown) => Promise<unknown> };
+    const client = db.$client as { execute: (stmt: unknown) => Promise<unknown>; batch: (stmts: unknown[], mode?: unknown) => Promise<unknown> };
     const original = client.execute.bind(client);
+    const originalBatch = client.batch.bind(client);
     let writes = 0;
-    client.execute = async (stmt: unknown) => {
+    const count = (stmt: unknown) => {
       const sql = typeof stmt === "string" ? stmt : String((stmt as { sql?: string })?.sql ?? "");
       if (!/^\s*(select|pragma|with)\b/i.test(sql)) writes += 1;
+    };
+    client.execute = async (stmt: unknown) => {
+      count(stmt);
       return original(stmt);
+    };
+    client.batch = async (stmts: unknown[], mode?: unknown) => {
+      stmts.forEach(count);
+      return originalBatch(stmts, mode);
     };
     const lines: string[] = [];
     const errors: string[] = [];
