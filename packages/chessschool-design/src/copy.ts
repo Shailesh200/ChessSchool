@@ -235,6 +235,7 @@ export const copy = {
 
   lesson: {
     close: "Close lesson",
+    moreLine: "Tap for the next line.",
     progress: (i: number, n: number) => `Step ${i} of ${n}`,
     next: "Continue",
     hint: "Show me",

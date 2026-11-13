@@ -1,11 +1,13 @@
 import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dailyDone, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { useCallback, useRef, useEffect, useState } from "react";
+import { ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Cody, Fx } from "@/components/Lottie";
-import { PathList } from "@/components/PathList";
-import { Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Screen, Sheet, T } from "@/components/ui";
+import { openLesson, PathList } from "@/components/PathList";
+import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
+import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
@@ -53,8 +55,35 @@ export default function Today() {
     markNotificationOffered();
   };
 
+  const course = useCourse();
+  const current = course ? focusCourse(course, progress.completed).current : null;
+  const currentId = current?.id ?? null;
+  const scroller = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const currentAnchor = useRef<View>(null);
+  const scrollToCurrent = useCallback(() => {
+    const anchor = currentAnchor.current;
+    const host = content.current;
+    if (!anchor || !host) return;
+    anchor.measureLayout(
+      host,
+      (_x, y) => scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
+      () => {},
+    );
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      if (!currentId) return;
+      const t = setTimeout(scrollToCurrent, 80);
+      return () => clearTimeout(t);
+    }, [currentId, scrollToCurrent]),
+  );
+
   return (
-    <Screen>
+    <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
+      <Banner />
+      <ScrollView ref={scroller} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
+        <View ref={content} collapsable={false} style={{ gap: 16 }}>
       {saved ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: c.successSoft }}>
           <View style={{ width: 80, height: 80 }}>
@@ -133,7 +162,7 @@ export default function Today() {
         <T role="heading" header style={{ marginBottom: 8 }}>
           {copy.today.pathTitle}
         </T>
-        <PathList progress={progress} />
+        <PathList progress={progress} currentAnchor={currentAnchor} />
       </Card>
 
       <Card style={{ gap: 8 }}>
@@ -197,6 +226,18 @@ export default function Today() {
           }}
         />
       </Sheet>
-    </Screen>
+        </View>
+      </ScrollView>
+      {current ? (
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: c.bg, borderTopWidth: 1, borderTopColor: c.line }}>
+          <View style={{ maxWidth: 688, width: "100%", alignSelf: "center", gap: 4 }}>
+            <T role="small" color="textMuted" numberOfLines={1}>
+              {current.title}
+            </T>
+            <Button title={current.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson} icon="play" onPress={() => openLesson(current.id)} />
+          </View>
+        </View>
+      ) : null}
+    </SafeAreaView>
   );
 }
