@@ -90,13 +90,15 @@ export default function Today() {
   const scroller = useRef<ScrollView>(null);
   const content = useRef<View>(null);
   const currentAnchor = useRef<View>(null);
+  const viewH = useRef(0);
   const scrollToCurrent = useCallback(() => {
     const anchor = currentAnchor.current;
     const host = content.current;
-    if (!anchor || !host) return;
+    const visible = viewH.current;
+    if (!anchor || !host || !visible) return;
     anchor.measureLayout(
       host,
-      (_x, y) => scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
+      (_x, y, _w, height) => scroller.current?.scrollTo({ y: Math.max(0, y - (visible - height) / 2), animated: true }),
       () => {},
     );
   }, []);
@@ -125,7 +127,7 @@ export default function Today() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
       <Banner />
-      <ScrollView ref={scroller} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroller} onLayout={(e) => { viewH.current = e.nativeEvent.layout.height; }} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
         <View ref={content} collapsable={false} style={{ gap: 16 }}>
       {saved ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: c.successSoft }}>
