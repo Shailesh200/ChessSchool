@@ -42,28 +42,44 @@ const guestDone = () => {
 };
 
 describe("course", () => {
-  it("serves the outline without steps, and one open lesson with its steps", async () => {
+  it("marks guestLocked on every lesson: the first three are open for a guest, and none are locked once signed in", async () => {
     const outline = await call("GET", "/v1/course?outline=1");
     expect(outline.status).toBe(200);
-    const centre = outline.json.lessons.find((l: { id: string }) => l.id === "centre");
-    expect(centre.title).toBe("The centre");
-    expect(centre.steps).toBeUndefined();
-    expect(centre.state).toBe("locked");
-    expect(centre.lockedReason).toBe("guest");
-    expect(outline.json.guestLimitReached).toBe(false);
-    expect(outline.json.path[0]).toMatchObject({ id: "meet", state: "current", playable: true });
+    expect(outline.json.guestLimitReached).toBeUndefined();
+    expect(outline.json.path).toBeUndefined();
+    const guestLessons = outline.json.lessons as { id: string; title: string; steps?: unknown; guestLocked: boolean; lockedReason?: string }[];
+    expect(guestLessons.length).toBeGreaterThan(3);
+    guestLessons.forEach((lesson, index) => {
+      expect(lesson).toHaveProperty("guestLocked");
+      expect(lesson.guestLocked).toBe(index >= 3);
+      expect(lesson.lockedReason).toBeUndefined();
+      expect(lesson.steps).toBeUndefined();
+    });
+    const centre = guestLessons.find((lesson) => lesson.id === "centre");
+    expect(centre?.title).toBe("The centre");
+    expect(centre?.guestLocked).toBe(true);
     expect(outline.json.units.length).toBeGreaterThan(3);
 
     const full = await call("GET", "/v1/course");
-    expect(full.json.lessons.find((l: { id: string; steps: unknown[] }) => l.id === "board").steps.length).toBeGreaterThan(0);
-    expect(full.json.lessons.find((l: { id: string; steps?: unknown }) => l.id === "centre").steps).toBeUndefined();
+    expect(full.json.lessons.find((l: { id: string; steps: unknown[] }) => l.id === "centre").steps.length).toBeGreaterThan(0);
+    expect(full.json.lessons.every((l: { guestLocked: boolean }, index: number) => l.guestLocked === index >= 3)).toBe(true);
+
+    const { token } = (await call("POST", "/v1/auth/register", { name: "A", email: "course@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const signedIn = await call("GET", "/v1/course?outline=1", undefined, token);
+    const memberLessons = signedIn.json.lessons as { guestLocked: boolean }[];
+    expect(memberLessons.length).toBe(guestLessons.length);
+    memberLessons.forEach((lesson) => {
+      expect(lesson).toHaveProperty("guestLocked");
+      expect(lesson.guestLocked).toBe(false);
+    });
 
     const one = await call("GET", "/v1/lessons/board");
     expect(one.status).toBe(200);
     expect(one.json.steps.length).toBeGreaterThan(0);
     const capped = await call("GET", "/v1/lessons/centre");
     expect(capped.status).toBe(403);
-    expect(capped.json).toMatchObject({ error: "GUEST_CLASS_LIMIT", guestLimitReached: true, lockedReason: "guest" });
+    expect(capped.json.error).toBe("GUEST_CLASS_LIMIT");
+    expect(capped.json.guestLimitReached).toBeUndefined();
     expect((await call("GET", "/v1/lessons/missing")).status).toBe(404);
   });
 });
@@ -203,7 +219,6 @@ describe("me / home / progress", () => {
     expect(home.json.path[1].state).toBe("current");
     expect(home.json.path[2]).toMatchObject({ id: "moves", state: "locked", lockedReason: "progress" });
     expect(home.json.path.filter((n: { state: string }) => n.state === "current")).toHaveLength(1);
-    expect(home.json.guestLimitReached).toBe(false);
   });
 
   it("unlocks the next class when a lesson is completed, and keeps that state on a repeat upload", async () => {
@@ -265,22 +280,22 @@ describe("guest class cap", () => {
     expect((await call("GET", "/v1/lessons/moves")).status).toBe(200);
     const fourth = await call("GET", "/v1/lessons/pawns");
     expect(fourth.status).toBe(403);
-    expect(fourth.json).toMatchObject({ error: "GUEST_CLASS_LIMIT", guestLimitReached: true, lockedReason: "guest" });
+    expect(fourth.json.error).toBe("GUEST_CLASS_LIMIT");
 
     const { token } = await guestAccount();
+    const signedInCourse = await call("GET", "/v1/course?outline=1", undefined, token);
+    expect((signedInCourse.json.lessons as { guestLocked: boolean }[]).every((lesson) => lesson.guestLocked === false)).toBe(true);
     const three = progressThrough("moves");
     const saved = await call("PUT", "/v1/progress", { progress: three }, token);
     expect(saved.status).toBe(200);
-    expect(saved.json.guestLimitReached).toBe(true);
     expect(saved.json.path.find((n: { id: string }) => n.id === "pawns")).toMatchObject({ state: "locked", lockedReason: "guest", playable: false });
     expect((await call("GET", "/v1/lessons/pawns", undefined, token)).json.error).toBe("GUEST_CLASS_LIMIT");
 
     const four = progressThrough("pawns");
     const blocked = await call("PUT", "/v1/progress", { progress: four }, token);
     expect(blocked.status).toBe(403);
-    expect(blocked.json).toMatchObject({ error: "GUEST_CLASS_LIMIT", guestLimitReached: true, lockedReason: "guest" });
+    expect(blocked.json.error).toBe("GUEST_CLASS_LIMIT");
     const home = await call("GET", "/v1/home", undefined, token);
-    expect(home.json.guestLimitReached).toBe(true);
     expect(home.json.path.find((n: { id: string }) => n.id === "pawns").state).toBe("locked");
     expect(home.json.xp).toBe(saved.json.progress.xp);
 
@@ -294,7 +309,6 @@ describe("guest class cap", () => {
     const { token } = (await call("POST", "/v1/auth/register", { name: "M", email: "m@b.co", password: "pawnpawn" })).json as AuthResponse;
     const saved = await call("PUT", "/v1/progress", { progress: progressThrough("pawns") }, token);
     expect(saved.status).toBe(200);
-    expect(saved.json.guestLimitReached).toBe(false);
     expect(saved.json.path.find((n: { id: string }) => n.id === "pawns").state).toBe("done");
     expect(saved.json.path.find((n: { id: string }) => n.id === "check").state).toBe("current");
   });

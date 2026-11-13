@@ -6,6 +6,7 @@ import {
   isFlairId,
   isProgress,
   mergeProgress,
+  PATH,
   sanitizeProgress,
   validEmail,
   validPassword,
@@ -25,7 +26,7 @@ import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
-import { courseAccess, guestProgressOverreach, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
+import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
@@ -480,21 +481,16 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return courseAccess(prog.completed, isGuestAccount(user));
   }
 
-  function presentCourse(doc: CourseDoc, access: CourseAccess, withSteps: boolean) {
-    const byId = new Map(access.path.map((node) => [node.id, node]));
+  function presentCourse(doc: CourseDoc, signedIn: boolean, withSteps: boolean) {
     return {
       units: doc.units,
-      guestLimitReached: access.guestLimitReached,
-      path: access.path,
       lessons: doc.lessons.map((lesson) => {
-        const node = byId.get(lesson.id);
+        const index = PATH.findIndex((node) => node.id === lesson.id);
         const { steps, ...rest } = lesson;
         return {
           ...rest,
-          state: node?.state ?? "locked",
-          ...(node?.lockedReason ? { lockedReason: node.lockedReason } : {}),
-          playable: node?.playable ?? false,
-          ...(withSteps && node?.playable ? { steps: steps ?? [] } : {}),
+          guestLocked: !signedIn && index >= GUEST_CLASS_LIMIT,
+          ...(withSteps ? { steps: steps ?? [] } : {}),
         };
       }),
     };
@@ -503,15 +499,15 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   function refuseLesson(c: Context, access: CourseAccess, id: string) {
     const node = access.path.find((n) => n.id === id);
     if (!node || node.playable) return null;
-    if (node.lockedReason === "guest") return c.json({ error: GUEST_LIMIT_CODE, guestLimitReached: true, lockedReason: "guest" }, 403);
-    return c.json({ error: "lesson_locked", guestLimitReached: access.guestLimitReached, lockedReason: "progress" }, 403);
+    if (node.lockedReason === "guest") return c.json({ error: GUEST_LIMIT_CODE }, 403);
+    return c.json({ error: "lesson_locked" }, 403);
   }
 
   app.get("/v1/course", async (c) => {
     const doc = await loadCourse();
     if (!doc) return fail(c, 404, "not_found");
-    const access = await accessFor(await userFromRequest(c));
-    return c.json(presentCourse(doc, access, c.req.query("outline") !== "1"));
+    const user = await userFromRequest(c);
+    return c.json(presentCourse(doc, Boolean(user), c.req.query("outline") !== "1"));
   });
 
   app.get("/v1/lessons/:id", async (c) => {
@@ -548,7 +544,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
         { id: "club", open: false },
       ],
     };
-    return c.json({ ...home, guestLimitReached: access.guestLimitReached });
+    return c.json(home);
   });
 
   app.put("/v1/progress", requireUser, async (c) => {
@@ -557,11 +553,11 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!isProgress(b.progress)) return fail(c, 400, "invalid_input");
     const merged = sanitizeProgress(mergeProgress(await loadProgress(user.id), sanitizeProgress(b.progress)));
     if (isGuestAccount(user) && (guestProgressOverreach(b.progress.completed) || guestProgressOverreach(merged.completed))) {
-      return c.json({ error: GUEST_LIMIT_CODE, guestLimitReached: true, lockedReason: "guest" }, 403);
+      return c.json({ error: GUEST_LIMIT_CODE }, 403);
     }
     await saveProgress(user.id, merged);
     const access = courseAccess(merged.completed, isGuestAccount(user));
-    return c.json({ progress: merged, path: access.path, guestLimitReached: access.guestLimitReached });
+    return c.json({ progress: merged, path: access.path });
   });
 
   return app;
