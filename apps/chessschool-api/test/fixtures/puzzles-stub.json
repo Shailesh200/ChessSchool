@@ -1,0 +1,61 @@
+{
+  "version": "stub-1",
+  "puzzles": [
+    {
+      "id": "stub-01",
+      "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1",
+      "moves": ["h1h8"],
+      "rating": 500,
+      "themes": ["endgame"]
+    },
+    {
+      "id": "stub-02",
+      "fen": "8/8/8/3k4/8/3K4/8/3R4 w - - 0 1",
+      "moves": ["d1d5"],
+      "rating": 620,
+      "themes": ["endgame", "fork"]
+    },
+    {
+      "id": "stub-03",
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+      "moves": ["e1e8"],
+      "rating": 700,
+      "themes": ["backRankMate"]
+    },
+    {
+      "id": "stub-04",
+      "fen": "4k3/8/8/8/2b5/8/8/4K3 b - - 0 1",
+      "moves": ["c4e2"],
+      "rating": 540,
+      "themes": ["pin"]
+    },
+    {
+      "id": "stub-05",
+      "fen": "8/2p5/8/8/8/8/2P5/4K1k1 w - - 0 1",
+      "moves": ["c2c4"],
+      "rating": 480,
+      "themes": ["endgame"]
+    },
+    {
+      "id": "stub-06",
+      "fen": "4k3/8/8/8/8/8/P7/4K3 w - - 0 1",
+      "moves": ["a2a4", "e8d7", "a4a5"],
+      "rating": 560,
+      "themes": ["promotion"]
+    },
+    {
+      "id": "stub-07",
+      "fen": "7k/8/8/8/8/8/6Q1/6K1 w - - 0 1",
+      "moves": ["g2g7"],
+      "rating": 450,
+      "themes": ["mateIn1"]
+    },
+    {
+      "id": "stub-08",
+      "fen": "4k3/8/2n5/8/8/8/8/4K1R1 w - - 0 1",
+      "moves": ["g1g8"],
+      "rating": 610,
+      "themes": ["skewer"]
+    }
+  ]
+}

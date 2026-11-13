@@ -27,6 +27,7 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
+import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE, puzzleEtag } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
@@ -76,7 +77,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return row ? (JSON.parse(row.data) as { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] }) : null;
   };
 
-  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
+  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
 
   app.onError((err, c) => {
     console.error(err);
@@ -489,6 +490,26 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (node.lockedReason === "guest") return c.json({ error: GUEST_LIMIT_CODE }, 403);
     return c.json({ error: "lesson_locked" }, 403);
   }
+
+  app.get("/v1/puzzles/pack", async (c) => {
+    const pack = await loadPuzzlePack(db);
+    if (!pack) return fail(c, 404, "not_found");
+    const etag = puzzleEtag(pack.version);
+    c.header("ETag", etag);
+    c.header("Cache-Control", PUZZLE_CACHE);
+    const inm = c.req.header("If-None-Match");
+    if (inm?.split(",").some((part) => part.trim().replace(/^W\//, "") === etag)) return c.body(null, 304);
+    return c.json(pack);
+  });
+
+  app.get("/v1/puzzles/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!id) return fail(c, 400, "invalid_input");
+    const puzzle = await loadPuzzle(db, id);
+    if (!puzzle) return fail(c, 404, "not_found");
+    c.header("Cache-Control", PUZZLE_CACHE);
+    return c.json(puzzle);
+  });
 
   app.get("/v1/course", async (c) => {
     const doc = await loadCourse();

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "build:vercel": "node scripts/build-vercel.mjs",
     "qa:serve": "tsx scripts/qa-serve.ts",
-    "qa:delete-accounts": "tsx scripts/delete-qa-accounts.ts"
+    "qa:delete-accounts": "tsx scripts/delete-qa-accounts.ts",
+    "seed:puzzles": "tsx scripts/seed-puzzles.ts"
   },
   "dependencies": {
     "@chessschool/chess": "workspace:*",

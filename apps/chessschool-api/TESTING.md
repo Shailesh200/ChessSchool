@@ -44,3 +44,16 @@ A remote delete needs all of `--remote-prod`, `--apply`, `--list <file>`, and th
 An account is deleted only when its address is in the list and the local part matches `qa+<tester>-<sha7>-<n>` (`/^qa\+[a-z0-9]+-[0-9a-f]{7}-[0-9]+$/i`). The list is a markdown table whose first column is `email`. Rows that do not match are reported and skipped. The script also reports addresses on the list that are not in the database, and database rows that match the pattern but are not on the list. Those unlisted rows are never deleted.
 
 Deletion removes the same rows as `DELETE /v1/me`: sessions, progress, profile, class membership, owned classes, and feedback.
+
+## Puzzle pack
+
+```bash
+pnpm --filter chessschool-api seed:puzzles -- --file <pack.json>
+pnpm --filter chessschool-api seed:puzzles -- --file <pack.json> --apply
+```
+
+The file is `{ "version": string, "puzzles": Puzzle[] }`. Dry-run is the default. It opens a local file read-only (`mode=ro`, no schema or seed writes) and prints how many rows it would insert, update, and delete. `--apply` writes. Running the same file twice changes nothing.
+
+A remote `DATABASE_URL` is refused unless `--remote-prod`, `--apply`, and `--confirm-version <version>` are all set, and the version matches the file. The script prints `database: local` or `database: remote` and never prints the URL, token, or host. A real production run happens only at launch with Shailesh's own OK.
+
+`GET /v1/puzzles/pack` needs no auth. With a pack it returns 200 `{ version, puzzles }` ordered by id, `ETag: "<version>"`, and `Cache-Control: public, max-age=300, stale-while-revalidate=86400`. A matching `If-None-Match` returns 304 with no body. With no puzzles it returns 404 `{ "error": "not_found" }`. `GET /v1/puzzles/:id` returns 200 with one puzzle and the same cache header, or 404 `{ "error": "not_found" }`. `ETag` is exposed for cross-origin reads.

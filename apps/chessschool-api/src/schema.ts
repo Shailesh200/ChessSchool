@@ -73,6 +73,15 @@ export const course = sqliteTable("cs_course", {
   data: text("data").notNull(),
 });
 
+export const puzzles = sqliteTable("cs_puzzles", {
+  id: text("id").primaryKey(),
+  fen: text("fen").notNull(),
+  moves: text("moves").notNull(),
+  rating: integer("rating").notNull(),
+  themes: text("themes").notNull(),
+  packVersion: text("pack_version").notNull(),
+});
+
 export const feedback = sqliteTable("cs_feedback", {
   id: text("id").primaryKey(),
   userId: text("user_id"),
@@ -141,6 +150,14 @@ export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_course (
     id TEXT PRIMARY KEY,
     data TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_puzzles (
+    id TEXT PRIMARY KEY,
+    fen TEXT NOT NULL,
+    moves TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    themes TEXT NOT NULL,
+    pack_version TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS cs_feedback (
     id TEXT PRIMARY KEY,

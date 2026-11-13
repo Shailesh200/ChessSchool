@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { eq } from "drizzle-orm";
 import { emptyProgress, sanitizeProgress, type Progress } from "@chessschool/design";
 import { openDb } from "../src/db";
+import { applyPuzzlePack, parsePuzzlePack } from "../src/puzzles";
 import { profiles, progress, users } from "../src/schema";
 import { hashPassword, newId } from "../src/security";
 
@@ -22,7 +26,12 @@ export async function seedQa(url: string): Promise<void> {
   const passwordHash = await hashPassword(QA_PASSWORD);
   await ensure(db, { email: QA_GUEST_EMAIL, name: "Guest", kind: "guest", passwordHash, lessons: ["meet"] });
   await ensure(db, { email: QA_MEMBER_EMAIL, name: "Student", kind: "member", passwordHash, lessons: ["meet", "board"] });
+  const fixture = join(dirname(fileURLToPath(import.meta.url)), "../test/fixtures/puzzles-stub.json");
+  const parsed = parsePuzzlePack(readFileSync(fixture, "utf8"));
+  if (!parsed.ok) throw new Error(parsed.errors.join("; "));
+  await applyPuzzlePack(db, parsed.pack);
   console.log("seeded guest@example.com (guest) and student@example.com (member)");
+  console.log(`seeded puzzles ${parsed.pack.version}`);
 }
 
 async function ensure(
