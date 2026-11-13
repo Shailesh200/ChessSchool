@@ -1,6 +1,6 @@
 import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
 import { copy, type CodyAnimation } from "@chessschool/design";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { AccessibilityInfo, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "@/lib/hooks";
@@ -26,6 +26,17 @@ function LessonFrame({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const top = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0);
   return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: top, paddingBottom: insets.bottom }}>{children}</View>;
+}
+
+function taughtRecap(steps: Step[]): string {
+  const points = [...new Set(steps.filter((step) => step.kind === "say").map((step) => step.title.replace(/[.!?]+$/, "").trim()).filter(Boolean))].slice(0, 3);
+  if (!points.length) return copy.lesson.recap(steps.find((step) => step.title)?.title ?? "");
+  return copy.lesson.recapPoints(points);
+}
+
+function withTaughtRecap(node: ReactNode, steps: Step[]): ReactNode {
+  if (!isValidElement<{ recap?: string }>(node) || !node.props.recap) return node;
+  return cloneElement(node as ReactElement<{ recap?: string }>, { recap: taughtRecap(steps) });
 }
 
 function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
@@ -143,7 +154,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     return (
       <LessonFrame>
         {top}
-        <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", padding: 20, gap: 14 }}>{done}</ScrollView>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", padding: 20, gap: 14 }}>{withTaughtRecap(done, steps)}</ScrollView>
       </LessonFrame>
     );
   }

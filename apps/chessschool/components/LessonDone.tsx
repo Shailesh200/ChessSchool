@@ -36,9 +36,12 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, children }
         {body}
       </T>
       {recap ? (
-        <T role="body" center style={{ maxWidth: 360 }}>
-          {recap}
-        </T>
+        <View style={{ maxWidth: 360, alignSelf: "stretch", gap: 4, padding: 14, borderRadius: 16, backgroundColor: c.sunken }}>
+          <T role="label">{copy.lesson.recapTitle}</T>
+          <T role="body" color="textMuted">
+            {recap}
+          </T>
+        </View>
       ) : null}
       {goalMet ? (
         <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.brandSoft }}>
