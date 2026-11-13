@@ -1,6 +1,6 @@
 import { palettes, resolveTheme, type Appearance, type FontWeight, type Palette, type Scheme, type ThemeId } from "@chessschool/design";
 import { createContext, useContext, useMemo } from "react";
-import { useColorScheme } from "react-native";
+import { Appearance as SystemAppearance, useColorScheme } from "react-native";
 
 export const fonts: Record<FontWeight, string> = {
   regular: "Fredoka_400Regular",
@@ -13,7 +13,9 @@ type Theme = { scheme: Scheme; c: Palette };
 const ThemeCtx = createContext<Theme>({ scheme: "light", c: palettes.light });
 
 export function ThemeProvider({ appearance, theme = "classroom", children }: { appearance: Appearance; theme?: ThemeId; children: React.ReactNode }) {
-  const system = useColorScheme();
+  // useColorScheme() is null on the first paint (including the text splash). Fall back to the
+  // OS value so a dark system does not render that splash in the light palette.
+  const system = useColorScheme() ?? SystemAppearance.getColorScheme();
   const value = useMemo(() => {
     const t = resolveTheme(theme, appearance, system === "dark");
     return { scheme: t.scheme, c: t.palette };
