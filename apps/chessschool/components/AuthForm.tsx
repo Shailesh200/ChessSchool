@@ -2,7 +2,7 @@ import { ApiError, cleanName, copy, guestPayload, validEmail, validPassword } fr
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
-import { appleAvailable, appleCredential, appleModule, isAppleCancel } from "@/lib/apple";
+import { appleAvailable, appleCredential, isAppleCancel } from "@/lib/apple";
 import { api, errorMessage } from "@/lib/api";
 import { googleAvailable, googleIdToken } from "@/lib/google";
 import { labelOn } from "@/lib/labelOn";
@@ -23,7 +23,7 @@ function authHref(mode: "login" | "signup", email: string) {
 
 export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "login" | "signup"; initialEmail?: string; topSpacing?: number }) {
   const { state, signedIn, cue } = useApp();
-  const { c, scheme } = useTheme();
+  const { c } = useTheme();
   const signup = mode === "signup";
   const [appleOn, setAppleOn] = useState(false);
   const [name, setName] = useState(state.profile.name);
@@ -211,7 +211,6 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
             <T role="small" color="textMuted" center style={{ textAlign: "center" }}>
               {continueLabel}
             </T>
-            {showApple ? <AppleSignInButton signup={signup} scheme={scheme} disabled={busy} onPress={apple} /> : null}
             <View style={{ flexDirection: "row", gap: 10 }}>
               {showGoogle ? (
                 <Pressable
@@ -237,6 +236,30 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
                   <GoogleMark />
                   <T role="label" numberOfLines={1}>
                     {googleLabel}
+                  </T>
+                </Pressable>
+              ) : null}
+              {showApple ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={copy.auth.providerApple}
+                  onPress={apple}
+                  disabled={busy}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    minHeight: 48,
+                    borderRadius: 24,
+                    borderWidth: 2,
+                    borderColor: c.line,
+                    backgroundColor: c.card,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingHorizontal: 8,
+                    opacity: busy ? 0.6 : pressed ? 0.85 : 1,
+                  })}
+                >
+                  <T role="label" center numberOfLines={1} style={{ textAlign: "center" }}>
+                    {copy.auth.providerApple}
                   </T>
                 </Pressable>
               ) : null}
@@ -275,23 +298,5 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
         </Pressable>
       </View>
     </Flow>
-  );
-}
-
-/** Official Sign in with Apple control. Full width so the system title is not clipped. */
-function AppleSignInButton({ signup, scheme, disabled, onPress }: { signup: boolean; scheme: "light" | "dark"; disabled?: boolean; onPress: () => void }) {
-  const mod = appleModule();
-  if (!mod || Platform.OS !== "ios") return null;
-  const NativeButton = mod.AppleAuthenticationButton;
-  return (
-    <NativeButton
-      buttonType={signup ? mod.AppleAuthenticationButtonType.SIGN_UP : mod.AppleAuthenticationButtonType.SIGN_IN}
-      buttonStyle={scheme === "dark" ? mod.AppleAuthenticationButtonStyle.WHITE : mod.AppleAuthenticationButtonStyle.BLACK}
-      cornerRadius={24}
-      style={{ width: "100%", height: 48 }}
-      onPress={() => {
-        if (!disabled) onPress();
-      }}
-    />
   );
 }
