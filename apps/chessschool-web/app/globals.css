@@ -1685,6 +1685,24 @@ a.path-inner:hover {
   align-content: start;
   font-size: 1.0625rem;
 }
+.doc section {
+  display: grid;
+  gap: 10px;
+}
+.doc h2 {
+  margin: 8px 0 0;
+  font-size: 1.125rem;
+}
+.doc-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+.doc-meta {
+  color: var(--cs-text-muted);
+  font-size: 0.875rem;
+}
 
 /* ---------- chessboard ---------- */
 .board {
