@@ -1,7 +1,8 @@
-import { allPuzzles, dailyPuzzle, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
-import { copy, dailyDone, dayKey } from "@chessschool/design";
+import { allPuzzles, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
+import { copy } from "@chessschool/design";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
+import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Chip, Page, T } from "@/components/ui";
@@ -12,8 +13,7 @@ export default function Puzzles() {
   const { state } = useApp();
   const { c } = useTheme();
   const pz = state.progress.puzzles;
-  const today = dayKey(new Date());
-  const done = dailyDone(state.progress, today);
+  const { puzzle: daily, done } = useDailyPuzzle();
   return (
     <Page title={copy.puzzles.title} large>
       <T role="bodyLg" color="textMuted" style={{ marginTop: -8 }}>
@@ -42,8 +42,9 @@ export default function Puzzles() {
           <T role="heading">{copy.puzzles.daily}</T>
         </View>
         <T role="body" color="textMuted">
-          {done ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPuzzle(today).rating}`}
+          {done ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${daily.rating}`}
         </T>
+        {done ? <DailyCountdown /> : null}
         <View style={{ alignSelf: "flex-start" }}>
           <Chip tone="accent">{copy.puzzles.dailyStreak(pz.daily.count)}</Chip>
         </View>

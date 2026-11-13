@@ -29,13 +29,14 @@ import {
   type Square,
   type TimeControlId,
 } from "@chessschool/chess";
-import { copy, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { canUseGym, copy, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Pressable, ScrollView, View } from "react-native";
+import { AccessibilityInfo, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board, PieceArt } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
+import { GymGuestCard } from "@/components/GymGuestCard";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
@@ -120,6 +121,7 @@ export default function Play() {
   useEffect(() => {
     if (auto.current) return;
     auto.current = true;
+    if (!canUseGym(state.account)) return;
     if (params.resume && saved) resume();
     else if (params.quick) start();
     // Runs once with the link's intent.
@@ -189,6 +191,7 @@ export default function Play() {
   }, [ticking]);
 
   /* ---------------- setup ---------------- */
+  if (!canUseGym(state.account)) return <GymGuestCard back />;
   if (!game) {
     const info = botInfo(bot);
     return (
@@ -227,7 +230,7 @@ export default function Play() {
                 </T>
               </View>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel={copy.gym.bots}>
+            <View accessibilityRole="radiogroup" accessibilityLabel={copy.gym.bots} style={{ gap: 8 }}>
               {BOTS.map((b) => (
                 <Pressable
                   key={b.id}
@@ -238,15 +241,23 @@ export default function Play() {
                     setBot(b.id);
                     setTakebacks(b.takebacks);
                   }}
-                  style={{ alignItems: "center", gap: 4, width: 80, padding: 8, borderRadius: 16, borderWidth: 2, borderColor: bot === b.id ? c.brand : c.line, backgroundColor: c.card }}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2, borderColor: bot === b.id ? c.brand : c.line, backgroundColor: c.card }}
                 >
-                  <BotAvatar bot={b.id} size={40} />
-                  <T role="micro" style={{ fontFamily: fonts.semibold }} numberOfLines={1}>
-                    {b.name.split(" ").at(-1)}
+                  <BotAvatar bot={b.id} size={44} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <T role="label" numberOfLines={1}>
+                      {b.name}
+                    </T>
+                    <T role="micro" color="textMuted" numberOfLines={1}>
+                      {b.strength}
+                    </T>
+                  </View>
+                  <T role="micro" style={{ color: c.goldText, fontFamily: fonts.bold }}>
+                    {"★".repeat(b.level)}
                   </T>
                 </Pressable>
               ))}
-            </ScrollView>
+            </View>
           </>
         )}
         {mode === "position" || mode === "endgame" ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: p.blurb }))} /> : null}

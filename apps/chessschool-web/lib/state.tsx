@@ -12,6 +12,7 @@ import {
   recordPractice,
   recordPuzzle,
   recordSprint,
+  serveDaily,
   type GameRecord,
   type Placement,
   createInitialState,
@@ -41,6 +42,7 @@ type Store = {
   finishPractice: () => void;
   finishGame: (game: GameRecord, minutes: number) => void;
   finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean }) => void;
+  serveDailyPuzzle: (day: string, id: string) => void;
   finishSprint: (score: number, minutes: number) => void;
   place: (level: Placement) => void;
   markBadgesSeen: (ids: string[]) => void;
@@ -139,6 +141,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       finishPractice: () => setState((s) => recordPractice(s, new Date())),
       finishGame: (game, minutes) => setState((s) => recordGame(s, game, new Date(), minutes)),
       finishPuzzle: (p) => setState((s) => recordPuzzle(s, p, new Date())),
+      serveDailyPuzzle: (day, id) => setState((s) => serveDaily(s, day, id)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
       place: (level) => setState((s) => placeAt(s, level, new Date())),
       markBadgesSeen: (ids) => setState((s) => ({ ...s, badgesSeen: [...new Set([...s.badgesSeen, ...ids])] })),

@@ -1,9 +1,10 @@
 "use client";
 
 import { BOTS } from "@chessschool/chess";
-import { copy, type IconName } from "@chessschool/design";
+import { canUseGym, copy, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
+import { GymGuestCard } from "@/components/GymGuestCard";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, TopBar } from "@/components/ui";
@@ -20,6 +21,7 @@ const MODES: { key: keyof typeof copy.gym; href: string; icon: IconName; locked?
 export default function GymPage() {
   const { state, ready } = useApp();
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
+  if (!canUseGym(state.account)) return <GymGuestCard />;
   const bots = state.progress.bots;
   return (
     <div className="page">

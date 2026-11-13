@@ -1,8 +1,8 @@
 "use client";
 
-import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
+import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
 import { PathList } from "@/components/PathList";
@@ -12,6 +12,7 @@ import { useApp } from "@/lib/state";
 
 export default function TodayPage() {
   const { state, ready, place, cue } = useApp();
+  const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle(ready);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
 
   const now = new Date();
@@ -85,8 +86,8 @@ export default function TodayPage() {
             <h2 id="daily-title" className="card-title">
               <Icon name="puzzle" /> {copy.puzzles.daily}
             </h2>
-            <p className="muted">{dailyDone(progress, today) ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPuzzle(today).rating}`}</p>
-            {dailyDone(progress, today) ? null : (
+            <p className="muted">{dailyIsDone ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPick.rating}`}</p>
+            {dailyIsDone ? <DailyCountdown /> : (
               <Button href="/puzzles/solve?daily=1" variant="secondary" icon="puzzle" block>
                 {copy.puzzles.daily}
               </Button>

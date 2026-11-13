@@ -2485,17 +2485,15 @@ a.path-inner:hover {
 }
 .bots {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(132px, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 10px;
-  overflow-x: auto;
-  padding: 2px 2px 8px;
+  overflow: visible;
+  padding: 0;
   margin: 0;
   list-style: none;
-  scroll-snap-type: x mandatory;
 }
 .bots li {
-  scroll-snap-align: start;
+  min-width: 0;
 }
 .bot-card {
   /* Without this, mobile Chrome widens the page to fit off-screen cards in the carousel. */
@@ -2661,17 +2659,20 @@ a.path-inner:hover {
   justify-items: center;
 }
 .bot-picker {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
 }
 .bot-chip {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  min-width: 76px;
-  padding: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 12px;
   border-radius: 16px;
   border: 2px solid var(--cs-line);
   background: var(--cs-card);
@@ -2679,7 +2680,17 @@ a.path-inner:hover {
   font: inherit;
   font-size: 0.8125rem;
   font-weight: 600;
+  text-align: left;
   cursor: pointer;
+}
+.bot-chip-text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.bot-chip-text .muted {
+  font-weight: 500;
 }
 .bot-chip[aria-checked="true"] {
   border-color: var(--cs-brand);
@@ -4122,9 +4133,8 @@ a.path-inner:hover {
   padding-right: 52px;
 }
 .bots {
-  margin-inline: calc(-1 * var(--pad, 16px));
-  padding-inline: var(--pad, 16px);
-  scroll-padding-inline: var(--pad, 16px);
+  margin-inline: 0;
+  padding-inline: 0;
 }
 .me-id {
   flex: 1;
