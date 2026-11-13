@@ -2,6 +2,11 @@
 // then pages still open with the network off. Usage: node e2e/offline.mjs [baseUrl]
 import { chromium } from "@playwright/test";
 
+const apiBase = process.env.CHESSSCHOOL_API_URL ?? "";
+if (apiBase.toLowerCase().includes("chess-school.in")) {
+  console.error("refusing to run: API base URL must be a local server");
+  process.exit(1);
+}
 const BASE = process.argv[2] ?? "http://localhost:3101";
 const browser = await chromium.launch({ channel: "chrome" });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });

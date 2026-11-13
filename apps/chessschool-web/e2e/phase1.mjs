@@ -4,6 +4,11 @@ import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
+const apiBase = process.env.CHESSSCHOOL_API_URL ?? "";
+if (apiBase.toLowerCase().includes("chess-school.in")) {
+  console.error("refusing to run: API base URL must be a local server");
+  process.exit(1);
+}
 const OUT = process.argv[2] ?? "/tmp/cs-shots";
 mkdirSync(OUT, { recursive: true });
 
@@ -30,21 +35,12 @@ async function mobileFlow(scheme) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: scheme });
   const page = await ctx.newPage();
   const p = `m-${scheme}`;
+  // First launch opens the login screen.
   await page.goto(BASE + "/");
-  await page.waitForTimeout(400);
-  await shot(page, `${p}-01-splash`);
-  await page.waitForURL("**/welcome", { timeout: 8000 });
-  await page.waitForTimeout(700);
-  await shot(page, `${p}-02-welcome-intro`);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("radio", { name: "Just me" }).click();
-  await shot(page, `${p}-03-welcome-who`);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("radio", { name: /15 min/ }).click();
-  await shot(page, `${p}-04-welcome-minutes`);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await shot(page, `${p}-05-welcome-start`);
-  await page.getByRole("button", { name: "Start as a guest" }).click();
+  await page.waitForURL("**/login", { timeout: 8000 });
+  await expectText(page, "Log in to pick up where you left off.");
+  await shot(page, `${p}-01-login`);
+  await page.getByRole("link", { name: "Keep going as a guest" }).click();
   await page.waitForURL("**/today");
   await expectText(page, "friend");
   await expectText(page, "Meet the school");

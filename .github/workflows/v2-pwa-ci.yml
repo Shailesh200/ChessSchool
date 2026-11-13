@@ -1,0 +1,72 @@
+name: v2 PWA CI
+
+# Typecheck, unit tests and commit identity for the v2 app.
+# Does not replace the main-branch CI workflow.
+
+on:
+  push:
+    branches:
+      - "feat/v2-*"
+  pull_request:
+    paths:
+      - "apps/chessschool/**"
+      - "apps/chessschool-web/**"
+      - "apps/chessschool-api/**"
+      - "packages/chessschool-chess/**"
+      - "packages/chessschool-design/**"
+      - ".github/workflows/v2-pwa-ci.yml"
+      - ".github/workflows/v2-identity-guard.sh"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+
+concurrency:
+  group: v2-pwa-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: typecheck and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api --filter chessschool-web --filter chessschool typecheck
+
+      # chessschool and chessschool-web have no unit-test script.
+      - name: Test
+        run: pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api test
+
+  identity-guard:
+    name: identity guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # Full history so 6109687 is reachable from HEAD.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check author, committer and message
+        env:
+          BASE_SHA: 610968701e8a555823381a7d6459ac2685cd0220
+        run: bash .github/workflows/v2-identity-guard.sh
+
+  # Web e2e comes back once qa:serve lands.
