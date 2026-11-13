@@ -26,6 +26,7 @@ import {
   type SoundCue,
 } from "@chessschool/design";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { isGuestClassLimit } from "@chessschool/design";
 import { api } from "./api";
 import { playCue } from "./sound";
 import { applyAppearance, applyFavicon, applyTheme } from "./theme";
@@ -54,6 +55,9 @@ type Store = {
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
+  guestGateOpen: boolean;
+  showGuestGate: () => void;
+  hideGuestGate: () => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -72,6 +76,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // Server render and first client render use a stable placeholder; real state loads after mount.
   const [state, setState] = useState<LocalState>(() => createInitialState("pending"));
   const [ready, setReady] = useState(false);
+  const [guestGateOpen, setGuestGateOpen] = useState(false);
+  const showGuestGate = useCallback(() => setGuestGateOpen(true), []);
+  const hideGuestGate = useCallback(() => setGuestGateOpen(false), []);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPushed = useRef<string>("");
 
@@ -120,9 +127,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         .then(() => {
           lastPushed.current = progressJson;
         })
-        .catch(() => {});
+        .catch((err) => {
+          if (isGuestClassLimit(err)) showGuestGate();
+        });
     }, 800);
-  }, [ready, accountId, progressJson]);
+  }, [ready, accountId, progressJson, showGuestGate]);
 
   const cue = useCallback((c: SoundCue) => playCue(c, state.prefs.sound), [state.prefs.sound]);
 
@@ -164,8 +173,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           roomReminders: s.roomReminders.includes(id) ? s.roomReminders.filter((r) => r !== id) : [...s.roomReminders, id],
         })),
       markNotificationOffered: () => setState((s) => ({ ...s, notificationOffered: true })),
+      guestGateOpen,
+      showGuestGate,
+      hideGuestGate,
     }),
-    [ready, state, cue],
+    [ready, state, cue, guestGateOpen, showGuestGate, hideGuestGate],
   );
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;

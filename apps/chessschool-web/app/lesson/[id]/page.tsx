@@ -1,12 +1,11 @@
 "use client";
 
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, guestClassCap, guestUnitBlocked, lessonAccess, nextOpenLesson, visibleStreak } from "@chessschool/design";
+import { copy, dayKey, goalMet, isGuestLockedLesson, lessonAccess, nextOpenLesson, visibleStreak } from "@chessschool/design";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
-import { GuestGate } from "@/components/PathList";
 import { Button } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
 import { useCourse, useLesson } from "@/lib/course";
@@ -17,10 +16,12 @@ type Before = { id: string; done: boolean; streak: number; goal: boolean; firstL
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { state, ready, completeLesson, cue } = useApp();
+  const { state, ready, completeLesson, cue, showGuestGate } = useApp();
   const course = useCourse();
-  const loaded = useLesson(id);
-  const lesson = loaded ?? course?.lessons.find((l) => l.id === id);
+  const { lesson: loaded, guestLimited } = useLesson(id);
+  const outline = course?.lessons.find((l) => l.id === id);
+  const lesson = loaded ?? outline;
+  const guestLocked = isGuestLockedLesson(outline) || isGuestLockedLesson(loaded) || guestLimited;
   const [before, setBefore] = useState<Before | null>(null);
   const [misses, setMisses] = useState(0);
 
@@ -30,20 +31,11 @@ export default function LessonPage() {
     else if (unknown) router.replace("/today");
   }, [id, unknown, router]);
 
-  if (!ready || id === "meet" || unknown || !lesson?.steps) return <LessonSkeleton />;
+  useEffect(() => {
+    if (guestLocked) showGuestGate();
+  }, [guestLocked, showGuestGate]);
 
-  const today = dayKey(new Date());
-  const streak = visibleStreak(state.progress.streak, today);
-  const b = before?.id === id ? before : null;
-  const steps = lesson.steps as Step[];
-  const interactive = steps.some((step) => step.kind !== "say");
-  const next = course ? nextOpenLesson(course, state.progress.completed, id) : null;
-  const access = course ? lessonAccess(course, state.progress.completed, id) : "current";
-  const cap = course && !state.account ? guestClassCap(course) : null;
-  const gated = Boolean(course && guestUnitBlocked(course, lesson.unit, cap));
-  const prev = course ? course.lessons[course.lessons.findIndex((l) => l.id === id) - 1] : undefined;
-
-  if (gated) {
+  if (guestLocked) {
     return (
       <div className="lesson">
         <div className="lesson-done">
@@ -61,10 +53,20 @@ export default function LessonPage() {
             </Button>
           </div>
         </div>
-        <GuestGate open onClose={() => router.push("/today")} />
       </div>
     );
   }
+
+  if (!ready || id === "meet" || unknown || !lesson?.steps) return <LessonSkeleton />;
+
+  const today = dayKey(new Date());
+  const streak = visibleStreak(state.progress.streak, today);
+  const b = before?.id === id ? before : null;
+  const steps = lesson.steps as Step[];
+  const interactive = steps.some((step) => step.kind !== "say");
+  const next = course ? nextOpenLesson(course, state.progress.completed, id) : null;
+  const access = course ? lessonAccess(course, state.progress.completed, id) : "current";
+  const prev = course ? course.lessons[course.lessons.findIndex((l) => l.id === id) - 1] : undefined;
 
   if (access === "locked") {
     return (

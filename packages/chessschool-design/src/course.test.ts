@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { focusCourse, guestClassCap, guestUnitBlocked, lessonAccess, lessonAfter, nextOpenLesson, parseCourse, unitUnlocked, type Course } from "./course";
+import { focusCourse, isGuestLockedLesson, lessonAccess, lessonAfter, nextOpenLesson, parseCourse, unitUnlocked, type Course } from "./course";
 
 const course: Course = {
   units: [
@@ -68,16 +68,18 @@ describe("class unlock", () => {
   });
 });
 
-describe("guest class cap", () => {
-  it("reads a cap only when the course payload includes one", () => {
-    expect(guestClassCap(course)).toBeNull();
-    expect(guestClassCap(null)).toBeNull();
-    expect(guestClassCap({ ...course, guestClasses: 3 })).toBe(3);
-    expect(guestClassCap({ ...course, guestClasses: 3.9 })).toBe(3);
-    expect(guestUnitBlocked(course, "unit2", null)).toBe(false);
-    expect(guestUnitBlocked(course, "unit1", 1)).toBe(false);
-    expect(guestUnitBlocked(course, "unit2", 1)).toBe(true);
-    expect(parseCourse(JSON.stringify({ ...course, guestClasses: 3 }))?.guestClasses).toBe(3);
-    expect(parseCourse(JSON.stringify(course))?.guestClasses).toBeUndefined();
+describe("guestLocked lessons", () => {
+  it("keeps the boolean from the course payload and drops anything else", () => {
+    const raw = JSON.stringify({
+      ...course,
+      lessons: course.lessons.map((lesson, index) => ({ ...lesson, guestLocked: index >= 2 ? true : index === 1 ? false : "yes" })),
+    });
+    const parsed = parseCourse(raw);
+    expect(parsed?.lessons.map((lesson) => lesson.guestLocked)).toEqual([undefined, false, true, true, true]);
+    expect(isGuestLockedLesson(parsed?.lessons[2])).toBe(true);
+    expect(isGuestLockedLesson(parsed?.lessons[1])).toBe(false);
+    expect(isGuestLockedLesson(parsed?.lessons[0])).toBe(false);
+    expect(isGuestLockedLesson(null)).toBe(false);
+    expect(parseCourse(JSON.stringify(course))?.lessons[0].guestLocked).toBeUndefined();
   });
 });

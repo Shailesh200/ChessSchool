@@ -7,14 +7,14 @@ export type CourseLesson = {
   minutes: number;
   xp: number;
   steps?: unknown[];
+  /** True when GET /v1/course says this lesson is closed until the learner enrolls. Absent on older payloads. */
+  guestLocked?: boolean;
 };
 
 export type CourseUnit = { id: string; title: string; sub: string };
 export type Course = {
   units: CourseUnit[];
   lessons: CourseLesson[];
-  /** Set only when the API says how many classes a guest may open. */
-  guestClasses?: number;
 };
 
 export const COURSE_KEY = "chessschool.v2.course";
@@ -24,8 +24,7 @@ export function parseCourse(raw: string | null): Course | null {
   try {
     const v = JSON.parse(raw) as Course;
     if (!v || !Array.isArray(v.units) || !Array.isArray(v.lessons)) return null;
-    const cap = guestClassCap(v);
-    return cap == null ? { units: v.units, lessons: v.lessons } : { units: v.units, lessons: v.lessons, guestClasses: cap };
+    return { units: v.units, lessons: v.lessons.map(normalizeGuestLock) };
   } catch {
     return null;
   }
@@ -104,19 +103,15 @@ export function nextOpenLesson(course: Course, completed: Record<string, string 
   return course.lessons.slice(from).find((l) => l.id !== afterId && !completed[l.id] && unitUnlocked(course, marked, l.unit)) ?? null;
 }
 
-/**
- * How many classes a guest may open, from the course payload.
- * Null means the API did not say — do not invent a cap.
- */
-export function guestClassCap(course: Course | null | undefined): number | null {
-  const n = course?.guestClasses;
-  if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return null;
-  return Math.floor(n);
+/** True only when the course payload set `guestLocked`. Missing or non-boolean means open. */
+export function isGuestLockedLesson(lesson: { guestLocked?: unknown } | null | undefined): boolean {
+  return lesson?.guestLocked === true;
 }
 
-/** True when this unit is past the guest cap. A null cap never blocks. */
-export function guestUnitBlocked(course: Course, unitId: string, cap: number | null): boolean {
-  if (cap == null) return false;
-  const index = course.units.findIndex((u) => u.id === unitId);
-  return index >= cap;
+function normalizeGuestLock(lesson: CourseLesson): CourseLesson {
+  const flag = (lesson as { guestLocked?: unknown }).guestLocked;
+  if (flag === true || flag === false) return { ...lesson, guestLocked: flag };
+  if (!("guestLocked" in lesson)) return lesson;
+  const { guestLocked: _ignored, ...rest } = lesson;
+  return rest;
 }

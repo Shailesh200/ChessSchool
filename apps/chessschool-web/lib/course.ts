@@ -1,8 +1,9 @@
 "use client";
 
-import { COURSE_KEY, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
+import { COURSE_KEY, isGuestClassLimit, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import { useApp } from "./state";
 
 const lessonKey = (id: string) => `${COURSE_KEY}.lesson.${id}`;
 
@@ -31,9 +32,11 @@ export function useCourse() {
   return course;
 }
 
-/** One lesson's steps, loaded when the lesson opens. */
+/** One lesson's steps, loaded when the lesson opens. A guest-limit refusal opens the enroll sheet. */
 export function useLesson(id: string | undefined) {
+  const { showGuestGate } = useApp();
   const [lesson, setLesson] = useState<CourseLesson | null>(null);
+  const [limitedId, setLimitedId] = useState<string | null>(null);
   useEffect(() => {
     if (!id || id === "meet") return;
     const cached = readLesson(id);
@@ -46,16 +49,23 @@ export function useLesson(id: string | undefined) {
         localStorage.setItem(lessonKey(id), JSON.stringify(l));
         setLesson(l);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!live) return;
+        if (isGuestClassLimit(err)) {
+          setLimitedId(id);
+          showGuestGate();
+        }
+      });
     return () => {
       live = false;
     };
-  }, [id]);
-  return lesson;
+  }, [id, showGuestGate]);
+  return { lesson, guestLimited: limitedId === id };
 }
 
 /** Steps for the lessons practice needs, fetched only when that session starts. */
 export function useLessonScripts(ids: string[] | null) {
+  const { showGuestGate } = useApp();
   const key = ids === null ? null : ids.join(",");
   const [steps, setSteps] = useState<unknown[] | null>(null);
   useEffect(() => {
@@ -69,12 +79,14 @@ export function useLessonScripts(ids: string[] | null) {
       .then((lessons) => {
         if (live) setSteps(lessons.flatMap((l) => l.steps ?? []));
       })
-      .catch(() => {
-        if (live) setSteps([]);
+      .catch((err) => {
+        if (!live) return;
+        if (isGuestClassLimit(err)) showGuestGate();
+        setSteps([]);
       });
     return () => {
       live = false;
     };
-  }, [key]);
+  }, [key, showGuestGate]);
   return ids ? steps : null;
 }

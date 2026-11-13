@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, focusCourse, guestClassCap, guestUnitBlocked, lessonAccess, type CourseLesson, type Progress } from "@chessschool/design";
+import { copy, focusCourse, isGuestLockedLesson, lessonAccess, type CourseLesson, type Progress } from "@chessschool/design";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "./Icon";
@@ -26,17 +26,21 @@ export function GuestGate({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
-export function PathList({ progress, onGate }: { progress: Progress; onGate?: () => void }) {
+/** One enroll sheet for a guest-locked lesson, a refused lesson fetch, or a refused progress save. */
+export function GuestGateHost() {
+  const { guestGateOpen, hideGuestGate } = useApp();
+  return <GuestGate open={guestGateOpen} onClose={hideGuestGate} />;
+}
+
+export function PathList({ progress }: { progress: Progress }) {
   const course = useCourse();
-  const { state } = useApp();
+  const { showGuestGate } = useApp();
   const [review, setReview] = useState(false);
   const [all, setAll] = useState(false);
   if (!course) return <CourseSkeleton />;
-  const cap = state.account ? null : guestClassCap(course);
   const f = focusCourse(course, progress.completed);
   const unitName = (id: string) => course.units.find((u) => u.id === id)?.title ?? "";
-  const gated = (lesson: CourseLesson) => guestUnitBlocked(course, lesson.unit, cap);
-  const openGate = () => onGate?.();
+  const gated = (lesson: CourseLesson) => isGuestLockedLesson(lesson);
   return (
     <div className="focus">
       <div className="focus-head">
@@ -74,7 +78,7 @@ export function PathList({ progress, onGate }: { progress: Progress; onGate?: ()
             lesson={f.current}
             unit={unitName(f.current.unit)}
             kicker={copy.today.focus.current}
-            onGate={openGate}
+            onGate={showGuestGate}
           />
         ) : null}
         {f.upcoming.map((l, i) => (
@@ -84,7 +88,7 @@ export function PathList({ progress, onGate }: { progress: Progress; onGate?: ()
             lesson={l}
             unit={unitName(l.unit)}
             kicker={i === 0 ? copy.today.focus.upNext : undefined}
-            onGate={openGate}
+            onGate={showGuestGate}
           />
         ))}
       </ol>
@@ -104,7 +108,7 @@ export function PathList({ progress, onGate }: { progress: Progress; onGate?: ()
           {f.rest.map((l) => (
             <li key={l.id}>
               {gated(l) ? (
-                <button type="button" onClick={openGate}>
+                <button type="button" onClick={showGuestGate}>
                   {l.title}
                   <span>{copy.lesson.locked}</span>
                 </button>

@@ -1,11 +1,11 @@
 "use client";
 
 import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, focusCourse, greetingFor, guestClassCap, guestUnitBlocked, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dailyDone, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
-import { GuestGate, PathList } from "@/components/PathList";
+import { PathList } from "@/components/PathList";
 import { Icon } from "@/components/Icon";
 import { CourseSkeleton } from "@/components/Skeleton";
 import { Button, Card, Chip, GoalRing, RankCurve, SaveBanner } from "@/components/ui";
@@ -17,9 +17,8 @@ const GOAL_SEEN = "chessschool.v2.goalSeen";
 const href = (id: string) => (id === "meet" ? "/orientation" : `/lesson/${id}`);
 
 export default function TodayPage() {
-  const { state, ready, place, cue } = useApp();
+  const { state, ready, place, cue, showGuestGate } = useApp();
   const course = useCourse();
-  const [gate, setGate] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
   const now = new Date();
   const today = dayKey(now);
@@ -40,8 +39,7 @@ export default function TodayPage() {
   const done = Boolean(progress.completed.meet);
   const focus = course ? focusCourse(course, progress.completed) : null;
   const current = focus?.current ?? null;
-  const cap = course && !state.account ? guestClassCap(course) : null;
-  const gated = Boolean(course && current && guestUnitBlocked(course, current.unit, cap));
+  const gated = isGuestLockedLesson(current);
 
   return (
     <div className={`today${current ? " has-start" : ""}`}>
@@ -110,7 +108,7 @@ export default function TodayPage() {
             <h2 id="path-title" className="card-title">
               {copy.today.pathTitle}
             </h2>
-            <PathList progress={progress} onGate={() => setGate(true)} />
+            <PathList progress={progress} />
           </Card>
         </div>
 
@@ -143,7 +141,7 @@ export default function TodayPage() {
       {current ? (
         <div className="today-start">
           {gated ? (
-            <Button block icon="play" onClick={() => setGate(true)}>
+            <Button block icon="play" onClick={showGuestGate}>
               {copy.today.focus.start}
             </Button>
           ) : (
@@ -153,7 +151,6 @@ export default function TodayPage() {
           )}
         </div>
       ) : null}
-      <GuestGate open={gate} onClose={() => setGate(false)} />
       <FirstRunNotificationSheet />
     </div>
   );
