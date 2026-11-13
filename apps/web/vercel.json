@@ -3,6 +3,12 @@
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run build",
+  "git": {
+    "deploymentEnabled": {
+      "feat/v2-*": false,
+      "stable": false
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/cleanup-sessions",
