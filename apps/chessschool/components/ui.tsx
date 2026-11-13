@@ -197,7 +197,7 @@ export function Row({ icon, label, hint, onPress, right, danger, chevron }: { ic
         ) : null}
       </View>
       {right}
-      {chevron ? <Icon name="chevron" color={c.textMuted} /> : null}
+      {chevron ? <Icon name="chevron" color={danger ? c.dangerText : c.textMuted} /> : null}
     </View>
   );
   if (!onPress) return <View accessible accessibilityLabel={hint ? `${label}. ${hint}` : label}>{content(false)}</View>;

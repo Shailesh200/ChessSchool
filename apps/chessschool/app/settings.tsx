@@ -64,13 +64,14 @@ export default function Settings() {
             <Row
               icon="logout"
               label={s.signOut}
+              danger
               onPress={async () => {
                 await signOut();
                 toast(s.signedOut);
                 router.replace("/today");
               }}
             />
-            <Row icon="trash" label={s.deleteAccount} chevron onPress={() => setSheet("delete")} />
+            <Row icon="trash" label={s.deleteAccount} danger chevron onPress={() => setSheet("delete")} />
           </>
         ) : (
           <View style={{ padding: 6 }}>
