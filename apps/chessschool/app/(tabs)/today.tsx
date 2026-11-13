@@ -28,7 +28,6 @@ export default function Today() {
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
-  const firstLessonToday = !Object.values(progress.completed).includes(today);
   const [goalSeen, setGoalSeen] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
@@ -90,13 +89,15 @@ export default function Today() {
   const scroller = useRef<ScrollView>(null);
   const content = useRef<View>(null);
   const currentAnchor = useRef<View>(null);
+  const viewH = useRef(0);
   const scrollToCurrent = useCallback(() => {
     const anchor = currentAnchor.current;
     const host = content.current;
-    if (!anchor || !host) return;
+    const visible = viewH.current;
+    if (!anchor || !host || !visible) return;
     anchor.measureLayout(
       host,
-      (_x, y) => scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
+      (_x, y, _w, height) => scroller.current?.scrollTo({ y: Math.max(0, y - (visible - height) / 2), animated: true }),
       () => {},
     );
   }, []);
@@ -125,7 +126,7 @@ export default function Today() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
       <Banner />
-      <ScrollView ref={scroller} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroller} onLayout={(e) => { viewH.current = e.nativeEvent.layout.height; }} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
         <View ref={content} collapsable={false} style={{ gap: 16 }}>
       {saved ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: c.successSoft }}>
@@ -151,17 +152,13 @@ export default function Today() {
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <T role="label">{arrival === "kept" ? copy.today.arrival.keptTitle : copy.today.arrival.freshTitle}</T>
-            {arrival === "kept" && firstLessonToday ? (
-              <T role="small" color="textMuted">
-                {copy.today.arrival.keptLead}
-                <T role="small" color="textMuted" style={{ fontFamily: fonts.bold }}>
-                  {copy.today.arrival.keptStreak(streak)}
-                </T>
-                {copy.today.arrival.keptTail}
+            {arrival === "kept" ? (
+              <T role="small" color="textMuted" style={{ fontFamily: fonts.bold }}>
+                {streak}
               </T>
             ) : (
               <T role="small" color="textMuted">
-                {arrival === "kept" ? copy.today.arrival.keptBody(streak) : copy.today.arrival.freshBody}
+                {copy.today.arrival.freshBody}
               </T>
             )}
           </View>
@@ -205,7 +202,7 @@ export default function Today() {
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: -6 }}>
         <Chip icon="spark" tone={streak ? "accent" : "neutral"} label={copy.a11y.streak(streak)}>
-          {streak ? copy.today.streak(streak) : copy.today.streakZero}
+          {String(streak)}
         </Chip>
         <Chip icon="bolt" tone="gold" label={copy.a11y.xp(progress.xp)}>
           {copy.today.xp(progress.xp)}

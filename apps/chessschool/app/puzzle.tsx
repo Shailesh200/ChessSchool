@@ -4,7 +4,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { useDailyPuzzle } from "@/components/DailyCountdown";
+import { Icon } from "@/components/Icon";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, T, TopBar } from "@/components/ui";
 import { usePuzzlePackReady } from "@/lib/puzzlePack";
@@ -34,8 +35,14 @@ function PuzzleBody() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, padding: 16, gap: 16 }}>
         <TopBar title={copy.puzzles.daily} />
-        <T role="bodyLg" color="textMuted">{copy.puzzles.dailyDone}</T>
-        <DailyCountdown />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: c.successSoft }}>
+            <Icon name="check" color={c.successText} size={26} />
+          </View>
+          <T role="bodyLg" style={{ flex: 1 }}>
+            {copy.puzzles.comeBack}
+          </T>
+        </View>
         <Button title={copy.puzzles.back} icon="back" onPress={() => router.back()} />
       </SafeAreaView>
     );
