@@ -1,4 +1,4 @@
-import { ApiError, copy, createApiClient, type ApiErrorCode } from "@chessschool/design";
+import { ApiError, createApiClient, errorMessage } from "@chessschool/design";
 import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "chessschool.v2.token";
@@ -22,18 +22,4 @@ export const api = new Proxy(client, {
   },
 });
 
-const messages: Partial<Record<ApiErrorCode, string>> = {
-  invalid_credentials: copy.auth.errors.credentials,
-  email_taken: copy.auth.errors.emailTaken,
-  google_only: copy.auth.errors.googleOnly,
-  google_unconfigured: copy.auth.googleUnavailable,
-  apple_invalid: copy.auth.appleInvalid,
-  apple_unconfigured: copy.auth.appleUnconfigured,
-  rate_limited: copy.auth.errors.rateLimited,
-  offline: copy.auth.errors.offline,
-};
-
-export function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return messages[err.code] ?? (err.status >= 500 || err.status === 0 ? copy.auth.errors.offline : copy.auth.errors.generic);
-  return copy.auth.errors.generic;
-}
+export { errorMessage };
