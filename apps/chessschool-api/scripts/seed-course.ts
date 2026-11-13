@@ -102,7 +102,8 @@ export async function runSeedCourse(io: SeedCourseIo = {}): Promise<number> {
     counts = args.apply ? await applyCourse(db, doc) : await courseDiff(db, doc);
   } catch (err) {
     // Before the first apply the tables may not exist yet: everything is an insert.
-    if (args.apply || !/no such table/i.test(String(err))) throw err;
+    const detail = `${String(err)} ${String((err as { cause?: unknown }).cause ?? "")}`;
+    if (args.apply || !/no such table/i.test(detail)) throw err;
     counts = { units: doc.units.length, insert: doc.lessons.length, update: 0, delete: 0, unchanged: 0 };
   }
   printCounts(log, args.apply, local ? "local" : "remote", doc.version, doc.lessons.length, counts);
