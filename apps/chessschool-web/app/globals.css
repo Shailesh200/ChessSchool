@@ -2128,6 +2128,7 @@ a.path-inner:hover {
 .player-name {
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 .captured {
   display: flex;
@@ -2641,8 +2642,21 @@ a.path-inner:hover {
 .puzzle-play {
   justify-items: stretch;
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
+  max-width: none;
+}
+@media (min-width: 1000px) {
+  .puzzle-play > .play-stage {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+  }
+  .puzzle-play > .play-panel {
+    grid-column: 2;
+    grid-row: 1;
+    position: static;
+    align-self: start;
+    max-width: none;
+  }
 }
 .option-group {
   border: 0;

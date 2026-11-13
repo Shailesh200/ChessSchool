@@ -1,4 +1,4 @@
-import { positionCue, puzzleHint, puzzleReduce, startPuzzle, type Puzzle, type PuzzleAction } from "@chessschool/chess";
+import { armPuzzleBeat, positionCue, puzzleHint, puzzleReduce, startPuzzle, type Puzzle, type PuzzleAction, type PuzzleBeat } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, View } from "react-native";
@@ -24,6 +24,7 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
   const [s, setS] = useState(() => startPuzzle(puzzle));
   const ref = useRef(s);
   const reported = useRef(false);
+  const beat = useRef<PuzzleBeat | null>(null);
   const [misses, setMisses] = useState(0);
 
   const act = (a: PuzzleAction) => {
@@ -47,12 +48,15 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
   };
 
   useEffect(() => {
-    if (s.status !== "setup" && s.status !== "reply") return;
-    const t = setTimeout(() => act({ type: s.status === "setup" ? "setup" : "reply" }), s.status === "setup" ? 600 : 420);
-    return () => clearTimeout(t);
+    beat.current = armPuzzleBeat(s.status, s.step, beat.current, () => {
+      const cur = ref.current;
+      if (cur.status !== "setup" && cur.status !== "reply") return;
+      act({ type: cur.status === "setup" ? "setup" : "reply" });
+    });
     // act reads the latest state through the ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.status, s.step]);
+  useEffect(() => () => beat.current?.cancel(), []);
 
   const side = copy.play.sides[s.you];
   const text = s.status === "solved" ? copy.puzzles.solved : s.status === "failed" ? copy.puzzles.wrong : s.step > 1 ? copy.puzzles.correct : copy.puzzles.yourMove(side);
