@@ -29,3 +29,21 @@ curl https://api.chess-school.in/v1/health
 ```
 
 Tables are created on boot (`BOOTSTRAP_SQL` in `src/schema.ts`). Routes, auth and merge rules: see `/PHASE1.md`; account deletion and feedback: `/PHASE3.md`.
+
+## Course content
+
+Lessons live in the database (`cs_course_units`, `cs_course_lessons`, and `cs_course` row `meta` for the version and coming-soon list). `GET /v1/course` and `GET /v1/lessons/:id` read only from these tables; lesson unlocking, the guest limit and progress checks use the lesson order stored there. Nothing is written to them at boot.
+
+The editable source is `data/course.json`. To change lessons, edit it (practice units 20–42 are regenerated with `pnpm --filter chessschool-api build:practice` from the CC0 Lichess puzzles in `packages/puzzle-school`), bump `version`, then load it:
+
+```bash
+# local check: every lesson is played through with the app's lesson runner before anything is written
+DATABASE_URL=file:local.db pnpm --filter chessschool-api seed:course            # dry-run
+DATABASE_URL=file:local.db pnpm --filter chessschool-api seed:course --apply
+
+# production (dry-run, then apply with the version from course.json)
+pnpm --filter chessschool-api seed:course --remote-prod
+pnpm --filter chessschool-api seed:course --remote-prod --apply --confirm-version <version>
+```
+
+A seed replaces the whole course in one batch. No app release or API deploy is needed; apps pick it up on their next course fetch.

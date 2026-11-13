@@ -11,7 +11,9 @@
     "build:vercel": "node scripts/build-vercel.mjs",
     "qa:serve": "tsx scripts/qa-serve.ts",
     "qa:delete-accounts": "tsx scripts/delete-qa-accounts.ts",
-    "seed:puzzles": "tsx scripts/seed-puzzles.ts"
+    "seed:puzzles": "tsx scripts/seed-puzzles.ts",
+    "seed:course": "tsx scripts/seed-course.ts",
+    "build:practice": "node scripts/build-practice-lessons.mjs"
   },
   "dependencies": {
     "@chessschool/chess": "workspace:*",

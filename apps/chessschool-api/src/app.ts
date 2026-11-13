@@ -6,7 +6,6 @@ import {
   isFlairId,
   isProgress,
   mergeProgress,
-  PATH,
   sanitizeProgress,
   validEmail,
   validPassword,
@@ -27,11 +26,12 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
+import { loadLesson, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { classMembers, classes, course, feedback, profiles, progress, sessions, users } from "./schema";
+import { classMembers, classes, feedback, profiles, progress, sessions, users } from "./schema";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
@@ -72,11 +72,6 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
 
-  type CourseDoc = { units: unknown[]; lessons: { id: string; steps?: unknown[] }[]; comingSoon?: unknown[] };
-  const loadCourse = async () => {
-    const row = await db.query.course.findFirst({ where: eq(course.id, "live") });
-    return row ? (JSON.parse(row.data) as CourseDoc) : null;
-  };
 
   app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
 
@@ -108,12 +103,17 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     };
   }
 
-  async function loadProgress(userId: string): Promise<Progress> {
-    const row = await db.query.progress.findFirst({ where: eq(progress.userId, userId) });
+  /** The lesson order from the course tables. Empty only before a course has been seeded. */
+  const coursePath = () => loadPath(db);
+
+  /** With no course seeded, stored progress is returned unchecked so it is never trimmed. */
+  async function loadProgress(userId: string, path?: PathEntry[]): Promise<Progress> {
+    const [row, lessons] = await Promise.all([db.query.progress.findFirst({ where: eq(progress.userId, userId) }), path ?? coursePath()]);
     if (!row) return emptyProgress();
     try {
       const parsed = JSON.parse(row.data);
-      return isProgress(parsed) ? sanitizeProgress(parsed) : emptyProgress();
+      if (!isProgress(parsed)) return emptyProgress();
+      return lessons.length ? sanitizeProgress(parsed, lessons) : parsed;
     } catch {
       return emptyProgress();
     }
@@ -126,9 +126,10 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   }
 
   async function mergeGuestInto(user: UserRow, guest: GuestPayload | undefined): Promise<Progress> {
-    const current = await loadProgress(user.id);
-    if (!guest?.progress || !isProgress(guest.progress)) return current;
-    const merged = sanitizeProgress(mergeProgress(current, sanitizeProgress(guest.progress)));
+    const path = await coursePath();
+    const current = await loadProgress(user.id, path);
+    if (!guest?.progress || !isProgress(guest.progress) || !path.length) return current;
+    const merged = sanitizeProgress(mergeProgress(current, sanitizeProgress(guest.progress, path)), path);
     await saveProgress(user.id, merged);
     return merged;
   }
@@ -464,24 +465,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   });
 
   async function accessFor(user: UserRow | null) {
-    const prog = user ? await loadProgress(user.id) : emptyProgress();
-    return courseAccess(prog.completed, isGuestAccount(user));
-  }
-
-  function presentCourse(doc: CourseDoc, signedIn: boolean, withSteps: boolean) {
-    return {
-      units: doc.units,
-      lessons: doc.lessons.map((lesson) => {
-        const index = PATH.findIndex((node) => node.id === lesson.id);
-        const { steps, ...rest } = lesson;
-        return {
-          ...rest,
-          guestLocked: !signedIn && index >= GUEST_CLASS_LIMIT,
-          ...(withSteps ? { steps: steps ?? [] } : {}),
-        };
-      }),
-      ...(doc.comingSoon ? { comingSoon: doc.comingSoon } : {}),
-    };
+    const path = await coursePath();
+    const prog = user ? await loadProgress(user.id, path) : emptyProgress();
+    return courseAccess(prog.completed, isGuestAccount(user), path);
   }
 
   function refuseLesson(c: Context, access: CourseAccess, id: string) {
@@ -512,17 +498,26 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   });
 
   app.get("/v1/course", async (c) => {
-    const doc = await loadCourse();
-    if (!doc) return fail(c, 404, "not_found");
-    const user = await userFromRequest(c);
-    return c.json(presentCourse(doc, Boolean(user), c.req.query("outline") !== "1"));
+    const outline = await loadOutline(db);
+    if (!outline) return fail(c, 404, "not_found");
+    const signedIn = Boolean(await userFromRequest(c));
+    const steps = c.req.query("outline") === "1" ? null : new Map((await loadLessonsWithSteps(db)).map((l) => [l.id, l.steps]));
+    return c.json({
+      version: outline.version,
+      units: outline.units,
+      lessons: outline.lessons.map((lesson, index) => ({
+        ...lesson,
+        guestLocked: !signedIn && index >= GUEST_CLASS_LIMIT,
+        ...(steps ? { steps: steps.get(lesson.id) ?? [] } : {}),
+      })),
+      comingSoon: outline.comingSoon,
+    });
   });
 
   app.get("/v1/lessons/:id", async (c) => {
     const id = c.req.param("id");
     if (!id) return fail(c, 400, "invalid_input");
-    const doc = await loadCourse();
-    const lesson = doc?.lessons.find((l) => l.id === id);
+    const lesson = await loadLesson(db, id);
     if (!lesson) return fail(c, 404, "not_found");
     const access = await accessFor(await userFromRequest(c));
     const refused = refuseLesson(c, access, id);
@@ -532,10 +527,11 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
 
   app.get("/v1/home", requireUser, async (c) => {
     const user = c.get("user");
-    const [prof, prog] = await Promise.all([loadProfile(user.id), loadProgress(user.id)]);
+    const path = await coursePath();
+    const [prof, prog] = await Promise.all([loadProfile(user.id), loadProgress(user.id, path)]);
     const qDay = c.req.query("day");
     const today = qDay && /^\d{4}-\d{2}-\d{2}$/.test(qDay) ? qDay : dayKey(now());
-    const access = courseAccess(prog.completed, isGuestAccount(user));
+    const access = courseAccess(prog.completed, isGuestAccount(user), path);
     const current = access.path.find((n) => n.state === "current");
     const lastDone = [...access.path].reverse().find((n) => n.state === "done");
     const fallback = access.path[access.path.length - 1];
@@ -559,12 +555,14 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const user = c.get("user");
     const b = await body<{ progress: Progress }>(c);
     if (!isProgress(b.progress)) return fail(c, 400, "invalid_input");
-    const merged = sanitizeProgress(mergeProgress(await loadProgress(user.id), sanitizeProgress(b.progress)));
-    if (isGuestAccount(user) && (guestProgressOverreach(b.progress.completed) || guestProgressOverreach(merged.completed))) {
+    const path = await coursePath();
+    if (!path.length) return fail(c, 503, "server", "course not seeded");
+    const merged = sanitizeProgress(mergeProgress(await loadProgress(user.id, path), sanitizeProgress(b.progress, path)), path);
+    if (isGuestAccount(user) && (guestProgressOverreach(b.progress.completed, path) || guestProgressOverreach(merged.completed, path))) {
       return c.json({ error: GUEST_LIMIT_CODE }, 403);
     }
     await saveProgress(user.id, merged);
-    const access = courseAccess(merged.completed, isGuestAccount(user));
+    const access = courseAccess(merged.completed, isGuestAccount(user), path);
     return c.json({ progress: merged, path: access.path });
   });
 

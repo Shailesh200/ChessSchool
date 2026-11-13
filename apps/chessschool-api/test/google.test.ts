@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
-import { openDb } from "../src/db";
+import { seededDb } from "./course-fixture";
 import { audienceAllowed, createGoogleVerifier, parseGoogleClientIds, type GoogleTokenClaims } from "../src/google";
 
 const WEB = "web-client.example";
@@ -77,7 +77,7 @@ describe("createGoogleVerifier", () => {
   });
 
   it("signs in through the route only when the audience matches", async () => {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const google = createGoogleVerifier([WEB], async (token) => (token === "good" ? claims(WEB) : claims("other.example")));
     const app = createApp({ db, google, secureCookies: false, corsOrigins: [], now: () => new Date("2026-11-03T10:00:00Z") });
     const post = (idToken: string) =>

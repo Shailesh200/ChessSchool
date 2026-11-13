@@ -68,9 +68,29 @@ export const progress = sqliteTable("cs_progress", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+/** Course-wide data: row "meta" holds { version, comingSoon }. Units and lessons have their own tables. */
 export const course = sqliteTable("cs_course", {
   id: text("id").primaryKey(),
   data: text("data").notNull(),
+});
+
+export const courseUnits = sqliteTable("cs_course_units", {
+  id: text("id").primaryKey(),
+  position: integer("position").notNull(),
+  title: text("title").notNull(),
+  sub: text("sub").notNull(),
+});
+
+export const courseLessons = sqliteTable("cs_course_lessons", {
+  id: text("id").primaryKey(),
+  unitId: text("unit_id").notNull(),
+  position: integer("position").notNull(),
+  title: text("title").notNull(),
+  sub: text("sub").notNull(),
+  minutes: integer("minutes").notNull(),
+  xp: integer("xp").notNull(),
+  /** JSON array of lesson steps, as the app's lesson runner plays them. */
+  steps: text("steps").notNull(),
 });
 
 export const puzzles = sqliteTable("cs_puzzles", {
@@ -151,6 +171,23 @@ export const BOOTSTRAP_SQL = [
     id TEXT PRIMARY KEY,
     data TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS cs_course_units (
+    id TEXT PRIMARY KEY,
+    position INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    sub TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_course_lessons (
+    id TEXT PRIMARY KEY,
+    unit_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    sub TEXT NOT NULL,
+    minutes INTEGER NOT NULL,
+    xp INTEGER NOT NULL,
+    steps TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_course_lessons_position ON cs_course_lessons (position)`,
   `CREATE TABLE IF NOT EXISTS cs_puzzles (
     id TEXT PRIMARY KEY,
     fen TEXT NOT NULL,

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { completeNode, createInitialState, type AuthResponse, type Progress } from "@chessschool/design";
 import { createApp } from "../src/app";
 import { appleVerifierFromEnv, createAppleVerifier, type AppleJwk } from "../src/apple";
-import { openDb } from "../src/db";
+import { seededDb } from "./course-fixture";
 import type { GoogleVerifier } from "../src/google";
 import { profiles, progress, sessions, users } from "../src/schema";
 
@@ -74,7 +74,7 @@ describe("POST /v1/auth/apple", () => {
   };
 
   async function appWith(keys: () => Promise<{ keys: AppleJwk[] }> = fetchJwks, now = () => NOW) {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const apple = createAppleVerifier([AUD], { fetchJwks: keys, now, ttlMs: 1_000 });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     return { db, app };
@@ -206,7 +206,7 @@ describe("POST /v1/auth/apple", () => {
   });
 
   it("returns 503 when Apple client ids are unset", async () => {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const app = createApp({ db, google: null, apple: null, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const res = await post(app, { identityToken: "anything" });
     expect(res.status).toBe(503);
@@ -248,7 +248,7 @@ describe("Apple guest merge matches Google", () => {
   }
 
   it("stores a new Apple user's guest progress and uses the guest name", async () => {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const apple = async () => ({ sub: "apple-new", email: "new@example.com", emailVerified: true });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const guest = guestProgress(["meet"]);
@@ -263,7 +263,7 @@ describe("Apple guest merge matches Google", () => {
   });
 
   it("merges guest progress into an existing Apple sub without doubling XP", async () => {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const apple = async () => ({ sub: "apple-back", email: "back@example.com", emailVerified: true });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const first = guestProgress(["meet"]);
@@ -282,7 +282,7 @@ describe("Apple guest merge matches Google", () => {
   });
 
   it("does not merge a guest into an account that already owns the email", async () => {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const apple = async () => ({ sub: "apple-link", email: "ada@example.com", emailVerified: true });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const registered = await post(app, "/v1/auth/register", { name: "Ada", email: "ada@example.com", password: "pawnpawn", guest: guestProgress(["meet"]) }, "5.0.2.1");
@@ -299,7 +299,7 @@ describe("Apple guest merge matches Google", () => {
   });
 
   it("returns the same progress and profile for one guest payload on Google and Apple", async () => {
-    const db = await openDb(":memory:");
+    const db = await seededDb();
     const guest = guestProgress(["meet", "board"], "Asha");
     const google: GoogleVerifier = async (token) => (token === "google-token" ? { sub: "g-parity", email: "parity-g@example.com", emailVerified: true, name: "From Google" } : null);
     const apple = async (token: string) => (token === "apple-token" ? { sub: "a-parity", email: "parity-a@example.com", emailVerified: true } : null);

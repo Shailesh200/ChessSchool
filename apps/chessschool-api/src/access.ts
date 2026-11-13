@@ -1,5 +1,3 @@
-import { PATH } from "@chessschool/design";
-
 /** A guest may have at most this many path classes unlocked or started. */
 export const GUEST_CLASS_LIMIT = 3;
 /** Stable client code for the enrol / log-in sheet. */
@@ -34,26 +32,27 @@ const doneDay = (day: string | undefined) => typeof day === "string" && /^\d{4}-
  * and every class after that is locked. Guests stop at {@link GUEST_CLASS_LIMIT}.
  * The same completed map always produces the same path (repeat completion is a no-op).
  */
-export function courseAccess(completed: Record<string, string | undefined>, guest: boolean): CourseAccess {
+/** `path` is the lesson order from the course tables. */
+export function courseAccess(completed: Record<string, string | undefined>, guest: boolean, path: readonly { id: string }[]): CourseAccess {
   let firstOpen = -1;
-  for (let i = 0; i < PATH.length; i++) {
-    if (!doneDay(completed[PATH[i].id])) {
+  for (let i = 0; i < path.length; i++) {
+    if (!doneDay(completed[path[i]!.id])) {
       firstOpen = i;
       break;
     }
   }
   const guestLimitReached = guest && firstOpen >= GUEST_CLASS_LIMIT;
-  const path: PathNodeAccess[] = PATH.map((n, index) => {
+  const nodes: PathNodeAccess[] = path.map((n, index) => {
     if (doneDay(completed[n.id])) return { id: n.id, state: "done", playable: true };
     if (guest && index >= GUEST_CLASS_LIMIT) return { id: n.id, state: "locked", lockedReason: "guest", playable: false };
     if (index === firstOpen) return { id: n.id, state: "current", playable: true };
     return { id: n.id, state: "locked", lockedReason: "progress", playable: guest && index < GUEST_CLASS_LIMIT };
   });
-  return { guest, guestLimitReached, path };
+  return { guest, guestLimitReached, path: nodes };
 }
 
 /** True when a guest payload tries to record a class past the allowance. */
-export function guestProgressOverreach(completed: Record<string, string | undefined> | undefined): boolean {
+export function guestProgressOverreach(completed: Record<string, string | undefined> | undefined, path: readonly { id: string }[]): boolean {
   if (!completed) return false;
-  return PATH.some((n, index) => index >= GUEST_CLASS_LIMIT && doneDay(completed[n.id]));
+  return path.some((n, index) => index >= GUEST_CLASS_LIMIT && doneDay(completed[n.id]));
 }

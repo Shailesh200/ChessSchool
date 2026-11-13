@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { completeNode, createInitialState, PATH, type AuthResponse, type Progress } from "@chessschool/design";
 import { createApp } from "../src/app";
-import { openDb, type Db } from "../src/db";
+import { COURSE, seededDb } from "./course-fixture";
+import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
 import { classMembers, classes, feedback, profiles, progress, sessions, users } from "../src/schema";
 
@@ -19,7 +20,7 @@ const fakeGoogle: GoogleVerifier = async (token) => {
 };
 
 beforeEach(async () => {
-  db = await openDb(":memory:");
+  db = await seededDb();
   app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => NOW });
 });
 
@@ -226,7 +227,7 @@ describe("me / home / progress", () => {
     const { token } = await account();
     let home = await call("GET", "/v1/home?day=2026-11-03", undefined, token);
     expect(home.json).toMatchObject({ name: "A", streak: 0, today: { nodeId: "meet", state: "current" } });
-    expect(home.json.path).toHaveLength(PATH.length);
+    expect(home.json.path).toHaveLength(COURSE.lessons.length);
     expect(home.json.rooms).toEqual([
       { id: "play", open: true },
       { id: "practice", open: true },
