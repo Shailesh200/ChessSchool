@@ -10,6 +10,7 @@ import { profiles, progress, sessions, users } from "../src/schema";
 
 const AUD = "app.example";
 const NOW = 1_700_000_000_000;
+const RAW_NONCE = "raw-nonce-value";
 
 const pair = generateKeyPairSync("rsa", { modulusLength: 2048 });
 
@@ -28,7 +29,19 @@ function sign(payload: Record<string, unknown>, privateKey: KeyObject, kid: stri
 
 function claims(over: Record<string, unknown> = {}) {
   const seconds = Math.floor(NOW / 1000);
-  return { iss: "https://appleid.apple.com", aud: AUD, iat: seconds - 10, exp: seconds + 3600, sub: "apple-user-1", email: "Ada@Example.com", email_verified: true, ...over };
+  const payload: Record<string, unknown> = {
+    iss: "https://appleid.apple.com",
+    aud: AUD,
+    iat: seconds - 10,
+    exp: seconds + 3600,
+    sub: "apple-user-1",
+    email: "Ada@Example.com",
+    email_verified: true,
+    nonce: nonceHash(RAW_NONCE),
+    ...over,
+  };
+  if (payload.nonce === undefined) delete payload.nonce;
+  return payload;
 }
 
 function nonceHash(nonce: string) {
@@ -67,11 +80,11 @@ describe("POST /v1/auth/apple", () => {
     return { db, app };
   }
 
-  async function post(app: ReturnType<typeof createApp>, body: unknown, ip = "4.4.4.4") {
+  async function post(app: ReturnType<typeof createApp>, body: Record<string, unknown>, ip = "4.4.4.4") {
     const res = await app.request("/v1/auth/apple", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ nonce: RAW_NONCE, ...body }),
     });
     return { status: res.status, json: (await res.json()) as AuthResponse & { error?: string } };
   }
@@ -141,13 +154,21 @@ describe("POST /v1/auth/apple", () => {
     expect(calls).toBe(3);
   });
 
-  it("checks the raw nonce against the sha256 hex claim", async () => {
+  it("requires a raw nonce that matches the token claim", async () => {
     const { app } = await appWith();
-    const raw = "raw-nonce-value";
-    const good = sign(claims({ nonce: nonceHash(raw), sub: "nonce-user", email: "nonce@example.com" }), pair.privateKey, "test-key");
-    expect((await post(app, { identityToken: good, nonce: raw, fullName: { givenName: "Nia" } }, "4.4.8.1")).status).toBe(200);
-    const bad = sign(claims({ nonce: nonceHash("other"), sub: "nonce-user-2", email: "nonce2@example.com" }), pair.privateKey, "test-key");
-    expect((await post(app, { identityToken: bad, nonce: raw }, "4.4.8.2")).json.error).toBe("apple_invalid");
+    const good = sign(claims({ sub: "nonce-user", email: "nonce@example.com" }), pair.privateKey, "test-key");
+    expect((await post(app, { identityToken: good, nonce: RAW_NONCE, fullName: { givenName: "Nia" } }, "4.4.8.1")).status).toBe(200);
+    const mismatch = sign(claims({ nonce: nonceHash("other"), sub: "nonce-user-2", email: "nonce2@example.com" }), pair.privateKey, "test-key");
+    expect((await post(app, { identityToken: mismatch, nonce: RAW_NONCE }, "4.4.8.2")).json.error).toBe("apple_invalid");
+    const missing = await app.request("/v1/auth/apple", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "4.4.8.3" },
+      body: JSON.stringify({ identityToken: good }),
+    });
+    expect(((await missing.json()) as { error: string }).error).toBe("apple_invalid");
+    expect((await post(app, { identityToken: good, nonce: "" }, "4.4.8.4")).json.error).toBe("apple_invalid");
+    const noClaim = sign(claims({ nonce: undefined, sub: "nonce-user-3", email: "nonce3@example.com" }), pair.privateKey, "test-key");
+    expect((await post(app, { identityToken: noClaim, nonce: RAW_NONCE }, "4.4.8.5")).json.error).toBe("apple_invalid");
   });
 
   it("does not attach Apple to an existing email, verified or not, and still signs in on sub", async () => {
@@ -231,7 +252,7 @@ describe("Apple guest merge matches Google", () => {
     const apple = async () => ({ sub: "apple-new", email: "new@example.com", emailVerified: true });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const guest = guestProgress(["meet"]);
-    const created = await post(app, "/v1/auth/apple", { identityToken: "tok", fullName: { givenName: "Other", familyName: "Name" }, guest }, "5.0.0.1");
+    const created = await post(app, "/v1/auth/apple", { identityToken: "tok", nonce: RAW_NONCE, fullName: { givenName: "Other", familyName: "Name" }, guest }, "5.0.0.1");
     expect(created.status).toBe(200);
     expect(created.json.user.name).toBe("Asha");
     expect(created.json.profile).toMatchObject({ name: "Asha", who: "child", dailyMinutes: 15 });
@@ -246,14 +267,14 @@ describe("Apple guest merge matches Google", () => {
     const apple = async () => ({ sub: "apple-back", email: "back@example.com", emailVerified: true });
     const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const first = guestProgress(["meet"]);
-    const created = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: first }, "5.0.1.1");
+    const created = await post(app, "/v1/auth/apple", { identityToken: "tok", nonce: RAW_NONCE, guest: first }, "5.0.1.1");
     const wider = guestProgress(["meet", "board"]);
-    const again = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: wider }, "5.0.1.2");
+    const again = await post(app, "/v1/auth/apple", { identityToken: "tok", nonce: RAW_NONCE, guest: wider }, "5.0.1.2");
     expect(again.json.user.id).toBe(created.json.user.id);
     expect(again.json.progress.completed.meet).toBe(first.progress.completed.meet);
     expect(again.json.progress.completed.board).toBe(wider.progress.completed.board);
     expect(again.json.progress.xp).toBe(wider.progress.xp);
-    const repeat = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: wider }, "5.0.1.3");
+    const repeat = await post(app, "/v1/auth/apple", { identityToken: "tok", nonce: RAW_NONCE, guest: wider }, "5.0.1.3");
     expect(repeat.json.progress.xp).toBe(again.json.progress.xp);
     expect(repeat.json.progress.completed).toEqual(again.json.progress.completed);
     const row = await db.query.progress.findFirst({ where: eq(progress.userId, created.json.user.id) });
@@ -268,7 +289,7 @@ describe("Apple guest merge matches Google", () => {
     const beforeUser = await db.query.users.findFirst({ where: eq(users.id, registered.json.user.id) });
     const beforeProgress = await db.query.progress.findFirst({ where: eq(progress.userId, registered.json.user.id) });
     const beforeSessions = await db.select().from(sessions).where(eq(sessions.userId, registered.json.user.id));
-    const blocked = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: guestProgress(["meet", "board"]) }, "5.0.2.2");
+    const blocked = await post(app, "/v1/auth/apple", { identityToken: "tok", nonce: RAW_NONCE, guest: guestProgress(["meet", "board"]) }, "5.0.2.2");
     expect(blocked.status).toBe(409);
     expect(blocked.json.error).toBe("email_in_use");
     expect(await db.query.users.findFirst({ where: eq(users.id, registered.json.user.id) })).toEqual(beforeUser);
@@ -284,7 +305,7 @@ describe("Apple guest merge matches Google", () => {
     const apple = async (token: string) => (token === "apple-token" ? { sub: "a-parity", email: "parity-a@example.com", emailVerified: true } : null);
     const app = createApp({ db, google, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
     const byGoogle = await post(app, "/v1/auth/google", { idToken: "google-token", guest }, "5.0.3.1");
-    const byApple = await post(app, "/v1/auth/apple", { identityToken: "apple-token", fullName: { givenName: "Other" }, guest }, "5.0.3.2");
+    const byApple = await post(app, "/v1/auth/apple", { identityToken: "apple-token", nonce: RAW_NONCE, fullName: { givenName: "Other" }, guest }, "5.0.3.2");
     expect(byGoogle.status).toBe(200);
     expect(byApple.status).toBe(200);
     expect(byApple.json.user.name).toBe(byGoogle.json.user.name);

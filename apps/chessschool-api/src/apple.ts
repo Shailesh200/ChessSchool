@@ -86,10 +86,9 @@ export function createAppleVerifier(
       if (typeof payload.exp !== "number" || payload.exp < seconds - CLOCK_SKEW_SEC) return null;
       if (typeof payload.iat !== "number" || payload.iat > seconds + CLOCK_SKEW_SEC) return null;
       if (typeof payload.sub !== "string" || !payload.sub) return null;
-      if (typeof nonce === "string" && nonce.length > 0) {
-        const expected = createHash("sha256").update(nonce).digest("hex");
-        if (typeof payload.nonce !== "string" || payload.nonce.toLowerCase() !== expected) return null;
-      }
+      if (typeof nonce !== "string" || nonce.length === 0) return null;
+      const expected = createHash("sha256").update(nonce).digest("hex");
+      if (typeof payload.nonce !== "string" || payload.nonce.toLowerCase() !== expected) return null;
       const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
       const emailVerified = payload.email_verified === true || payload.email_verified === "true";
       return { sub: payload.sub, email, emailVerified };

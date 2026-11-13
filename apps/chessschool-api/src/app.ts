@@ -270,8 +270,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.post("/v1/auth/apple", limitAuth, async (c) => {
     if (!apple) return c.json({ error: "apple_unconfigured" }, 503);
     const b = await body<{ identityToken: string; nonce?: string; fullName?: { givenName?: string; familyName?: string }; email?: string; guest: GuestPayload }>(c);
-    const nonce = typeof b.nonce === "string" && b.nonce.length > 0 ? b.nonce : undefined;
-    const identity = typeof b.identityToken === "string" ? await apple(b.identityToken, nonce) : null;
+    if (typeof b.nonce !== "string" || b.nonce.length === 0) return c.json({ error: "apple_invalid" }, 401);
+    const identity = typeof b.identityToken === "string" ? await apple(b.identityToken, b.nonce) : null;
     if (!identity) return c.json({ error: "apple_invalid" }, 401);
     const guest = guestOf(b);
     let user = await db.query.users.findFirst({ where: eq(users.appleSub, identity.sub) });

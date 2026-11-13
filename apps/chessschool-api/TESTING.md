@@ -17,6 +17,8 @@ Env var names: `PORT`, `HOST`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `GOOGLE_CL
 
 Google sign-in needs `GOOGLE_CLIENT_IDS`. Apple sign-in needs `APPLE_CLIENT_IDS`. Each value is a comma-separated list. If a list is unset, empty, or only commas and spaces, that provider returns 503 and no token is accepted. Email login and the guest account still work.
 
+`POST /v1/auth/apple` requires `identityToken` and a raw `nonce`. The token's `nonce` claim must be the hex sha256 of that raw value. A missing nonce, an empty nonce, a token with no nonce claim, or a mismatch returns 401 `{ "error": "apple_invalid" }`. Google and Apple sign-in match an existing account only by that provider's own subject. If the email is already registered to someone else, the response is 409 `{ "error": "email_in_use" }` and nothing is changed.
+
 Seed logins (this file only):
 
 | email | password | kind | progress |
