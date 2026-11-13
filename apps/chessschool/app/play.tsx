@@ -365,7 +365,15 @@ export default function Play() {
         <TopBar title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingBottom: 4 }}>
-        <Button title="" label={copy.play.resign} icon="flag" variant="danger" block={false} disabled={Boolean(game.over)} onPress={() => setConfirm(true)} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={copy.play.resign}
+          disabled={Boolean(game.over)}
+          onPress={() => setConfirm(true)}
+          style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.danger, alignItems: "center", justifyContent: "center", opacity: game.over ? 0.6 : 1 }}
+        >
+          <Icon name="flag" color={c.onDanger} size={24} />
+        </Pressable>
         <View style={{ flex: 1 }} />
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
