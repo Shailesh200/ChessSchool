@@ -428,22 +428,18 @@ export default function Play() {
             </View>
           </View>
         ) : (
-          <View style={{ gap: 6 }}>
-            <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 8, height: 48 }}>
-              <Cody animation={pose} size={40} />
-              <View style={{ flex: 1 }}>
-                <T role="label" numberOfLines={1}>
-                  {statusTitle}
-                </T>
-                <T role="small" color="textMuted" numberOfLines={1}>
-                  {statusSub}
-                </T>
-              </View>
+          <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Cody animation={pose} size={40} />
+            <View style={{ flex: 1 }}>
+              <T role="label" numberOfLines={1}>
+                {statusTitle}
+              </T>
+              <T role="small" color="textMuted" numberOfLines={1}>
+                {statusSub}
+              </T>
             </View>
-            <View style={{ flexDirection: "row", gap: 8, alignSelf: "flex-start" }}>
-              <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
-              <Button title="" label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} icon="redo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onPress={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))} />
-            </View>
+            <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
+            <Button title="" label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} icon="redo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onPress={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))} />
           </View>
         )}
         </View>

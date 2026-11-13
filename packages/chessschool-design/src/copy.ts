@@ -409,6 +409,7 @@ export const copy = {
     daily: "Daily puzzle",
     dailyBody: "One puzzle a day, from lessons you've finished.",
     dailyDone: "Solved today. New one tomorrow!",
+    comeBack: "Come back tomorrow",
     dailyCountdown: (left: string) => `Next puzzle at 12:00 AM · ${left}`,
     dailyStreak: (n: number) => (n ? `${n}-day daily streak` : "Start a daily streak"),
     play: "Solve puzzles",
