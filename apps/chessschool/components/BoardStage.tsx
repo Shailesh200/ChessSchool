@@ -4,7 +4,8 @@ import { useWindowDimensions, View, type LayoutChangeEvent } from "react-native"
 const MAX_BOARD = 720;
 const BAR = 36;
 const GAP = 6;
-const INSET = 8;
+export const BOARD_INSET = 8;
+const INSET = BOARD_INSET;
 
 /**
  * Player bar, board, player bar, centred in the space. The board is the largest square that fits,

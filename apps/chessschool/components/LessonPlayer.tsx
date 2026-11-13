@@ -1,5 +1,5 @@
 import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
-import { copy, type CodyAnimation } from "@chessschool/design";
+import { copy, space, type CodyAnimation } from "@chessschool/design";
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { AccessibilityInfo, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,11 +7,11 @@ import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 import { Board } from "./Board";
-import { BoardStage } from "./BoardStage";
+import { BOARD_INSET, BoardStage } from "./BoardStage";
 import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
 import { Options } from "./Options";
-import { Button, IconButton, Steps, T } from "./ui";
+import { Button, CoachCard, IconButton, Steps, T } from "./ui";
 
 /** Fixed chrome so a longer line, a choice, or the Continue button cannot move the board. */
 const COACH_H = 120;
@@ -110,7 +110,8 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
   const ref = useRef(s);
   const finished = useRef(false);
   const step = currentStep(s);
-  const textW = Math.min(screen, 640) - 24 - 16 - CODY - 12 - 16;
+  // Page padding, stage inset, card padding, Cody and the gap beside it.
+  const textW = Math.min(screen, 640) - 2 * space[3] - 2 * BOARD_INSET - 2 * space[3] - CODY - space[3];
 
   const act = (a: RunnerAction) => {
     const prev = ref.current;
@@ -189,15 +190,9 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
           topSize={COACH_H}
           bottomSize={STATUS_H}
           top={
-            <View style={{ flex: 1, alignSelf: "stretch", flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 22, backgroundColor: c.brandSoft, borderWidth: 1, borderColor: c.line }}>
-              <Cody animation={poseFor(s, step)} size={CODY} />
-              <View style={{ flex: 1, justifyContent: "center", gap: 2 }}>
-                <T role="heading" header numberOfLines={1} style={{ color: c.brandText }}>
-                  {step.title}
-                </T>
-                <CoachLine key={`${s.index}:${step.body}`} text={step.body} width={textW} />
-              </View>
-            </View>
+            <CoachCard avatar={<Cody animation={poseFor(s, step)} size={CODY} />} title={step.title}>
+              <CoachLine key={`${s.index}:${step.body}`} text={step.body} width={textW} />
+            </CoachCard>
           }
           bottom={
             <View accessibilityLiveRegion="polite" style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>

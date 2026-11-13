@@ -1,4 +1,4 @@
-import { copy, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Course, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, minutesToday, rankFor, space, visibleStreak, type Course, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useEffect, useState } from "react";
@@ -153,7 +153,7 @@ export default function Today() {
           <View style={{ flex: 1, gap: 2 }}>
             <T role="label">{arrival === "kept" ? copy.today.arrival.keptTitle : copy.today.arrival.freshTitle}</T>
             {arrival === "kept" ? (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], flexWrap: "wrap", marginTop: space[1] }}>
                 <Chip icon="spark" tone={streak ? "accent" : "neutral"} label={copy.a11y.streak(streak)}>
                   {String(streak)}
                 </Chip>

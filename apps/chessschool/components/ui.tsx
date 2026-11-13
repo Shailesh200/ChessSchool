@@ -1,4 +1,4 @@
-import { copy, minTarget, radius, rankFor, RANKS, type IconName, type TypeRole, type, type Palette } from "@chessschool/design";
+import { copy, minTarget, radius, rankFor, RANKS, space, type IconName, type TypeRole, type, type Palette } from "@chessschool/design";
 import { router } from "expo-router";
 import { Cody } from "./Lottie";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -21,7 +21,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, G, Path, Text as SvgText } from "react-native-svg";
 import { fonts, useTheme } from "@/lib/theme";
 import { useConnectivity } from "@/lib/hooks";
 import { useKeyboardScroll } from "@/lib/keyboard";
@@ -175,6 +175,57 @@ export function Chip({ icon, tone = "neutral", children, label }: { icon?: IconN
       <T role="small" style={{ color: pal.fg, fontFamily: fonts.semibold }}>
         {children}
       </T>
+    </View>
+  );
+}
+
+/* ---------- progress, badges, coach ---------- */
+
+/** A determinate bar. `value` is 0..1; screen readers get the percentage. */
+export function ProgressBar({ value, label, tone = "brand" }: { value: number; label: string; tone?: "brand" | "success" }) {
+  const { c } = useTheme();
+  const v = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(v * 100) }}
+      style={{ height: space[2], borderRadius: radius.pill, backgroundColor: c.sunken, overflow: "hidden" }}
+    >
+      <View style={{ width: `${v * 100}%`, height: "100%", borderRadius: radius.pill, backgroundColor: tone === "success" ? c.success : c.brand }} />
+    </View>
+  );
+}
+
+export type BadgeTone = "brand" | "success" | "neutral";
+
+/** A short status label (one or two words). Tones carry meaning: brand = now, success = done, neutral = later. */
+export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; children: string }) {
+  const { c } = useTheme();
+  const pal = { brand: { bg: c.brandSoft, fg: c.brandText }, success: { bg: c.successSoft, fg: c.successText }, neutral: { bg: c.sunken, fg: c.textMuted } }[tone];
+  return (
+    <View style={{ alignSelf: "flex-start", paddingHorizontal: space[2], paddingVertical: 2, borderRadius: radius.pill, backgroundColor: pal.bg }}>
+      <T role="micro" style={{ color: pal.fg, fontFamily: fonts.bold, letterSpacing: 0.6, textTransform: "uppercase" }}>
+        {children}
+      </T>
+    </View>
+  );
+}
+
+/** The highlighted strip above a board: who is talking, and what to do now. Fills the bar it sits in. */
+export function CoachCard({ avatar, title, trailing, children }: { avatar: React.ReactNode; title: string; trailing?: React.ReactNode; children?: React.ReactNode }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flex: 1, alignSelf: "stretch", flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[3], paddingVertical: space[2], borderRadius: radius.lg, backgroundColor: c.brandSoft }}>
+      {avatar}
+      <View style={{ flex: 1, minWidth: 0, gap: space[1] }}>
+        <T role="label" numberOfLines={1} style={{ color: c.brandText }}>
+          {title}
+        </T>
+        {children}
+      </View>
+      {trailing}
     </View>
   );
 }
@@ -675,6 +726,9 @@ export function GoalRing({ done, goal, size = 92 }: { done: number; goal: number
 
 const GLYPH: Record<string, string> = { pawn: "♟\uFE0E", knight: "♞\uFE0E", bishop: "♝\uFE0E", rook: "♜\uFE0E", queen: "♛\uFE0E", king: "♚\uFE0E" };
 
+const RANK_BADGE = 56;
+
+/** Current rank, progress to the next one, and the whole ladder. */
 export function RankCurve({ xp }: { xp: number }) {
   const { c } = useTheme();
   const r = rankFor(xp);
@@ -685,68 +739,47 @@ export function RankCurve({ xp }: { xp: number }) {
     return [28 + t * (W - 56), H - 48 - Math.pow(t, 1.35) * (H - 88)] as const;
   });
   const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
+  const reached = pts.slice(0, r.index + 1);
   const next = pts[r.index + 1];
-  const pct = Math.round(r.fraction * 100);
+  const tip = next ? ([pts[r.index][0] + (next[0] - pts[r.index][0]) * r.fraction, pts[r.index][1] + (next[1] - pts[r.index][1]) * r.fraction] as const) : null;
+  const done = [...reached, ...(tip ? [tip] : [])].map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
+  const rankName = copy.ranks[r.rank];
+  const toNext = r.next ? copy.today.rankToNext(r.toNext, copy.ranks[r.next]) : copy.you.topRank;
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={copy.a11y.rank(copy.ranks[r.rank], r.toNext, r.next ? copy.ranks[r.next] : null)} style={{ gap: 14 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.brand, alignItems: "center", justifyContent: "center", borderWidth: 4, borderColor: c.brandSoft }}>
-          <Text style={{ fontSize: 34, lineHeight: 40, color: c.onBrand }}>{GLYPH[RANKS[r.index].id]}</Text>
+    <View style={{ gap: space[4] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+        <View importantForAccessibility="no-hide-descendants" style={{ width: RANK_BADGE, height: RANK_BADGE, borderRadius: RANK_BADGE / 2, backgroundColor: c.brand, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontSize: 30, lineHeight: 36, color: c.onBrand }}>{GLYPH[RANKS[r.index].id]}</Text>
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <T role="title" style={{ color: c.brandText }}>
-            {copy.ranks[r.rank]}
-          </T>
+          <T role="heading">{rankName}</T>
           <T role="small" color="textMuted">
-            {copy.today.level(copy.ranks[r.rank], r.level)}
-          </T>
-        </View>
-        <Chip icon="bolt" tone="gold">
-          {copy.today.xp(xp)}
-        </Chip>
-      </View>
-      <View style={{ gap: 6 }}>
-        <View style={{ height: 12, borderRadius: 6, backgroundColor: c.sunken, overflow: "hidden" }}>
-          <View style={{ width: `${pct}%`, height: "100%", borderRadius: 6, backgroundColor: c.brand }} />
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-          <T role="small" style={{ color: c.brandText, fontFamily: fonts.semibold }}>
-            {r.next ? copy.today.rankToNext(r.toNext, copy.ranks[r.next]) : copy.you.topRank}
-          </T>
-          <T role="small" color="textMuted">
-            {`${pct}%`}
+            {copy.today.level(rankName, r.level)}
           </T>
         </View>
       </View>
-      <View style={{ borderRadius: 18, backgroundColor: c.sunken, paddingVertical: 6 }}>
+      <View style={{ gap: space[2] }}>
+        <ProgressBar value={r.fraction} label={copy.a11y.rank(rankName, r.toNext, r.next ? copy.ranks[r.next] : null)} />
+        <T role="small" color="textMuted">
+          {toNext}
+        </T>
+      </View>
+      <View importantForAccessibility="no-hide-descendants">
         <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
           <Path d={d} stroke={c.line} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          {pts.slice(0, r.index).map(([x, y], i) => (
-            <Line key={i} x1={x} y1={y} x2={pts[i + 1][0]} y2={pts[i + 1][1]} stroke={c.brand} strokeWidth={6} strokeLinecap="round" />
-          ))}
-          {next ? (
-            <Line
-              x1={pts[r.index][0]}
-              y1={pts[r.index][1]}
-              x2={pts[r.index][0] + (next[0] - pts[r.index][0]) * r.fraction}
-              y2={pts[r.index][1] + (next[1] - pts[r.index][1]) * r.fraction}
-              stroke={c.brand}
-              strokeWidth={6}
-              strokeLinecap="round"
-            />
-          ) : null}
+          <Path d={done} stroke={c.brand} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
           {pts.map(([x, y], i) => {
             const current = i === r.index;
-            const reached = i <= r.index;
+            const isReached = i <= r.index;
             const badge = current ? 24 : 18;
             return (
               <G key={RANKS[i].id}>
-                {current ? <Circle cx={x} cy={y} r={32} fill={c.brand} opacity={0.18} /> : null}
-                <Circle cx={x} cy={y} r={badge} fill={reached ? c.brand : c.card} stroke={reached ? c.brand : c.line} strokeWidth={3} />
-                <SvgText x={x} y={y + (current ? 9 : 7)} fontSize={current ? 24 : 19} textAnchor="middle" fill={reached ? c.onBrand : c.textMuted}>
+                {current ? <Circle cx={x} cy={y} r={32} fill={c.brand} opacity={0.16} /> : null}
+                <Circle cx={x} cy={y} r={badge} fill={isReached ? c.brand : c.card} stroke={isReached ? c.brand : c.line} strokeWidth={3} />
+                <SvgText x={x} y={y + (current ? 9 : 7)} fontSize={current ? 24 : 19} textAnchor="middle" fill={isReached ? c.onBrand : c.textMuted}>
                   {GLYPH[RANKS[i].id]}
                 </SvgText>
-                <SvgText x={x} y={y + badge + 15} fontSize={11} fontWeight={current ? "700" : "400"} textAnchor="middle" fill={current ? c.brandText : c.textMuted}>
+                <SvgText x={x} y={y + badge + 15} fontSize={12} fontWeight={current ? "700" : "400"} textAnchor="middle" fill={current ? c.brandText : c.textMuted}>
                   {String(RANKS[i].xp)}
                 </SvgText>
               </G>

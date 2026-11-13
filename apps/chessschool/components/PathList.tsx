@@ -1,4 +1,4 @@
-import { copy, focusCourse, type Course, type CourseLesson, type Progress } from "@chessschool/design";
+import { copy, focusCourse, radius, space, type Course, type CourseLesson, type Progress } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -7,7 +7,11 @@ import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 import { Icon } from "./Icon";
-import { T } from "./ui";
+import { Badge, ProgressBar, T, type BadgeTone } from "./ui";
+
+const RAIL = 44;
+const DOT = 28;
+const DOT_CURRENT = 44;
 
 export const openLesson = (id: string) => router.push(id === "meet" ? "/orientation" : `/lesson/${id}`);
 
@@ -59,21 +63,18 @@ export function PathList({
     }
     openLesson(lesson.id);
   };
+  const share = f.doneCount / Math.max(1, course.lessons.length);
   const classOpened = Boolean(f.justFinished && f.current && f.justFinished.unit !== f.current.unit && f.unitsDone.some((u) => u.id === f.justFinished?.unit));
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ gap: 8, padding: 14, borderRadius: 18, backgroundColor: c.brandSoft }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <T role="label" style={{ color: c.brandText, flex: 1 }}>
+      <View style={{ gap: space[2] }}>
+        <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: space[2] }}>
+          <T role="label" numberOfLines={1} style={{ flex: 1 }}>
             {f.currentUnit ? f.currentUnit.title : copy.today.heroLabelAll}
           </T>
-          <T role="small" style={{ color: c.brandText, fontWeight: "700" }}>
-            {`${Math.round((f.doneCount / Math.max(1, course.lessons.length)) * 100)}%`}
-          </T>
+          <T role="label" style={{ color: c.brandText }}>{`${Math.round(share * 100)}%`}</T>
         </View>
-        <View style={{ height: 10, borderRadius: 5, backgroundColor: c.card, overflow: "hidden" }}>
-          <View style={{ width: `${Math.round((f.doneCount / Math.max(1, course.lessons.length)) * 100)}%`, height: "100%", borderRadius: 5, backgroundColor: c.brand }} />
-        </View>
+        <ProgressBar value={share} label={copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)} />
         <T role="small" color="textMuted">
           {copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}
         </T>
@@ -143,8 +144,8 @@ export function PathList({
             </Pressable>
           ))
         : null}
-      <View style={{ gap: 10, padding: 14, borderRadius: 18, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ gap: space[3], padding: space[4], borderRadius: radius.lg, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           <Icon name="sparkles" size={20} color={c.brandText} />
           <T role="label">{copy.today.comingSoonTitle}</T>
         </View>
@@ -152,7 +153,7 @@ export function PathList({
           {copy.today.comingSoonBody}
         </T>
         {(course.comingSoon ?? copy.comingSoon).map((item) => (
-          <View key={item.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.sunken }}>
+          <View key={item.id} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[2], paddingHorizontal: space[3], borderRadius: radius.md, backgroundColor: c.sunken }}>
             <Icon name="clock" size={18} color={c.textMuted} />
             <View style={{ flex: 1 }}>
               <T role="label">{item.title}</T>
@@ -186,15 +187,22 @@ function Stop({
   onOpen?: () => void;
 }) {
   const { c } = useTheme();
+  const active = kind === "current" && !locked;
+  const tone: BadgeTone = locked ? "neutral" : kind === "done" ? "success" : kind === "current" ? "brand" : "neutral";
   const card = (
-    <View style={{ flex: 1, gap: 3, padding: 14, borderRadius: 18, borderWidth: kind === "current" ? 2 : 1, borderStyle: locked ? "dashed" : "solid", borderColor: kind === "current" && !locked ? c.brand : c.line, backgroundColor: locked ? c.sunken : kind === "current" ? c.brandSoft : c.card }}>
-      {kicker ? (
-        <View style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: kind === "done" ? c.successSoft : kind === "current" ? c.card : c.brandSoft, marginBottom: 2 }}>
-          <T role="small" style={{ color: kind === "done" ? c.successText : c.brandText, fontWeight: "700", textTransform: "uppercase" }}>
-            {kicker}
-          </T>
-        </View>
-      ) : null}
+    <View
+      style={{
+        flex: 1,
+        gap: space[1],
+        padding: space[4],
+        borderRadius: radius.lg,
+        borderWidth: active ? 2 : 1,
+        borderStyle: locked ? "dashed" : "solid",
+        borderColor: active ? c.brand : c.line,
+        backgroundColor: locked ? c.sunken : c.card,
+      }}
+    >
+      {kicker ? <Badge tone={tone}>{kicker}</Badge> : null}
       <T role="small" color="textMuted">
         {unit}
       </T>
@@ -204,19 +212,19 @@ function Stop({
       </T>
     </View>
   );
-  const dot = locked ? c.sunken : kind === "done" ? c.success : kind === "current" ? c.brand : c.card;
+  const fill = locked ? c.sunken : kind === "done" ? c.success : active ? c.brand : c.card;
+  const dot = active ? DOT_CURRENT : DOT;
   const tappable = kind === "next" || kind === "current";
   return (
-    <View ref={kind === "current" ? anchor : undefined} collapsable={false} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-      <View style={{ width: 44, alignItems: "center", alignSelf: "stretch" }}>
-        <View style={{ position: "absolute", top: 0, bottom: -12, width: 3, borderRadius: 2, backgroundColor: kind === "done" ? c.success : c.line }} />
-        <View style={{ height: 14 }} />
-        <View style={{ width: kind === "current" && !locked ? 44 : 28, height: kind === "current" && !locked ? 44 : 28, borderRadius: 22, backgroundColor: dot, borderWidth: 2, borderColor: locked || kind === "next" ? c.line : dot, alignItems: "center", justifyContent: "center" }}>
-          {locked ? <Icon name="lock" size={14} color={c.textMuted} /> : kind === "done" ? <Icon name="check" size={16} color="#fff" /> : kind === "current" ? <Icon name="play" size={22} color={c.onBrand} /> : null}
+    <View ref={kind === "current" ? anchor : undefined} collapsable={false} style={{ flexDirection: "row", gap: space[3], alignItems: "stretch" }}>
+      <View style={{ width: RAIL, alignItems: "center", paddingTop: space[4] }}>
+        <View style={{ position: "absolute", top: 0, bottom: -space[3], width: 2, borderRadius: 1, backgroundColor: kind === "done" ? c.success : c.line }} />
+        <View style={{ width: dot, height: dot, borderRadius: dot / 2, backgroundColor: fill, borderWidth: 2, borderColor: locked || kind === "next" ? c.line : fill, alignItems: "center", justifyContent: "center" }}>
+          {locked ? <Icon name="lock" size={14} color={c.textMuted} /> : kind === "done" ? <Icon name="check" size={16} color={c.onBrand} /> : active ? <Icon name="play" size={22} color={c.onBrand} /> : null}
         </View>
       </View>
       {tappable ? (
-        <Pressable accessibilityRole="button" onPress={onOpen} style={{ flex: 1 }}>
+        <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.85 : 1 })}>
           {card}
         </Pressable>
       ) : (

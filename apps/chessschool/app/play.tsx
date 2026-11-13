@@ -29,7 +29,7 @@ import {
   type Square,
   type TimeControlId,
 } from "@chessschool/chess";
-import { canUseGym, copy, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { canUseGym, copy, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
@@ -42,13 +42,18 @@ import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, Verdict
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
-import { Button, Card, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
+import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
 type Side = Color | "random";
 type Mode = "bot" | "friend" | "shuffle" | "position" | "endgame";
+
+const BOT_AVATAR = 56;
+const BOT_BAR = 96;
+const PLAYER_AVATAR = 48;
+const PLAYER_BAR = 52;
 
 const fmt = (ms: number) => {
   const s = Math.ceil(ms / 1000);
@@ -318,45 +323,48 @@ export default function Play() {
     begin(startGame(setup, at), at);
   };
 
-  const bar = (color: Color) => {
-    const isBot = !friend && color !== game.setup.you;
-    const left = game.clock ? timeLeft(game, color, now) : 0;
+  const clock = (color: Color) => {
+    if (!game.clock) return null;
+    const left = timeLeft(game, color, now);
     const running = turn === color && !game.over;
     return (
-      <View
-        style={[
-          { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-          isBot ? { alignSelf: "stretch", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 22, backgroundColor: c.brandSoft, borderWidth: 1, borderColor: c.line } : null,
-        ]}
-      >
-        {isBot && game.setup.opponent.kind === "bot" ? (
-          <BotAvatar bot={game.setup.opponent.bot} size={60} />
-        ) : (
-          <View style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft }}>
-            {friend ? <T role="label" color="brandText">{copy.play.sides[color][0]}</T> : <Icon name="profile" color={c.brandText} size={22} />}
-          </View>
-        )}
+      <View accessibilityRole="timer" accessibilityLabel={`${copy.play.sides[color]} ${fmt(left)}`} style={{ minWidth: 76, paddingHorizontal: space[3], paddingVertical: 6, borderRadius: radius.md, alignItems: "center", backgroundColor: running ? (left < 20_000 ? c.danger : c.brand) : c.sunken }}>
+        <T role="label" style={{ fontFamily: fonts.bold, color: running ? c.onBrand : c.text, fontVariant: ["tabular-nums"] }}>
+          {fmt(left)}
+        </T>
+      </View>
+    );
+  };
+
+  const bar = (color: Color) => {
+    const isBot = !friend && color !== game.setup.you && game.setup.opponent.kind === "bot";
+    if (isBot && game.setup.opponent.kind === "bot") {
+      return (
+        <CoachCard avatar={<BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} />} title={name} trailing={clock(color)}>
+          {game.over ? null : (
+            <T role="bodyLg" numberOfLines={1}>
+              {statusTitle}
+            </T>
+          )}
+          <CapturedTray startFen={game.setup.startFen} fen={shownFen} color={color} />
+        </CoachCard>
+      );
+    }
+    return (
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[3] }}>
+        <View style={{ width: PLAYER_AVATAR, height: PLAYER_AVATAR, borderRadius: radius.md, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft }}>
+          {friend ? <T role="label" color="brandText">{copy.play.sides[color][0]}</T> : <Icon name="profile" color={c.brandText} size={22} />}
+        </View>
         <View style={{ flex: 1, gap: 2 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <T role="heading" numberOfLines={1}>
-              {isBot ? name : friend ? copy.play.sides[color] : "You"}
+              {friend ? copy.play.sides[color] : "You"}
             </T>
             {live && turn === color && !game.over ? <View accessibilityLabel={copy.gym.yourTurn(copy.play.sides[color])} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.brand }} /> : null}
           </View>
-          {isBot && !game.over ? (
-            <T role="bodyLg" numberOfLines={1} style={{ color: c.brandText, fontFamily: fonts.semibold }}>
-              {statusTitle}
-            </T>
-          ) : null}
           <CapturedTray startFen={game.setup.startFen} fen={shownFen} color={color} />
         </View>
-        {game.clock ? (
-          <View accessibilityRole="timer" accessibilityLabel={`${copy.play.sides[color]} ${fmt(left)}`} style={{ minWidth: 76, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignItems: "center", backgroundColor: running ? (left < 20_000 ? c.danger : c.brand) : c.sunken }}>
-            <T role="label" style={{ fontFamily: fonts.bold, color: running ? c.onBrand : c.text, fontVariant: ["tabular-nums"] }}>
-              {fmt(left)}
-            </T>
-          </View>
-        ) : null}
+        {clock(color)}
       </View>
     );
   };
@@ -389,7 +397,7 @@ export default function Play() {
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
       </View>
       <View style={{ flex: 1, paddingHorizontal: 0, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
-        <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? 52 : 96} bottomSize={52}>
+        <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
           {(size, radius) => (
             <Board
               size={size}
