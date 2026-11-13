@@ -12,41 +12,11 @@ import { T } from "./ui";
 
 export const openLesson = (id: string) => router.push(id === "meet" ? "/orientation" : `/lesson/${id}`);
 
-const GUEST_KEYS = ["guestLocked", "lockedForGuest", "guestLock"] as const;
-
-function flagged(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const rec = value as Record<string, unknown>;
-  return GUEST_KEYS.some((key) => rec[key] === true);
-}
-
-function lockedIds(value: unknown): string[] {
-  if (!value || typeof value !== "object") return [];
-  const rec = value as Record<string, unknown>;
-  const list = rec.guestLockedUnits ?? rec.guestLockedClasses;
-  return Array.isArray(list) ? list.filter((id): id is string => typeof id === "string") : [];
-}
-
-function capOf(value: unknown): number | null {
-  if (!value || typeof value !== "object") return null;
-  const rec = value as Record<string, unknown>;
-  const cap = rec.guestCap ?? rec.guestClassCap;
-  return typeof cap === "number" && cap >= 0 ? cap : null;
-}
-
-/** Honor a guest lock from course or progress. No flag means the class stays open. */
-export function guestClassLocked(course: Course, lesson: { id: string; unit: string }, signedIn: boolean, progress?: Progress): boolean {
+/** A class is locked when that lesson has `guestLocked: true`. Signed-in learners, and a missing flag, stay open. */
+export function guestClassLocked(course: Course, lesson: { id: string; unit: string }, signedIn: boolean, _progress?: Progress): boolean {
   if (signedIn) return false;
-  const unit = course.units.find((u) => u.id === lesson.unit);
-  const row = course.lessons.find((l) => l.id === lesson.id);
-  if (flagged(unit) || flagged(row)) return true;
-  for (const source of [course, progress]) {
-    const ids = lockedIds(source);
-    if (ids.includes(lesson.unit) || ids.includes(lesson.id)) return true;
-    const cap = capOf(source);
-    if (cap !== null && course.units.findIndex((u) => u.id === lesson.unit) >= cap) return true;
-  }
-  return false;
+  const row = course.lessons.find((l) => l.id === lesson.id) as (CourseLesson & { guestLocked?: boolean }) | undefined;
+  return row?.guestLocked === true;
 }
 
 export function PathList({
