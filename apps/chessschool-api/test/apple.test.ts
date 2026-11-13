@@ -1,10 +1,11 @@
 import { createHash, createSign, generateKeyPairSync, type JsonWebKey, type KeyObject } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import type { AuthResponse } from "@chessschool/design";
+import { completeNode, createInitialState, type AuthResponse, type Progress } from "@chessschool/design";
 import { createApp } from "../src/app";
 import { appleVerifierFromEnv, createAppleVerifier, type AppleJwk } from "../src/apple";
 import { openDb } from "../src/db";
+import type { GoogleVerifier } from "../src/google";
 import { profiles, progress, sessions, users } from "../src/schema";
 
 const AUD = "app.example";
@@ -32,6 +33,16 @@ function claims(over: Record<string, unknown> = {}) {
 
 function nonceHash(nonce: string) {
   return createHash("sha256").update(nonce).digest("hex");
+}
+
+function guestProgress(ids: string[], name = "Asha") {
+  let state = createInitialState("guest-apple");
+  for (const id of ids) state = completeNode(state, id, new Date(NOW));
+  return {
+    guestId: state.guestId,
+    profile: { name, dailyMinutes: 15 as const, who: "child" as const },
+    progress: state.progress,
+  };
 }
 
 describe("APPLE_CLIENT_IDS", () => {
@@ -195,5 +206,84 @@ describe("POST /v1/auth/apple", () => {
     expect(await db.select().from(progress).where(eq(progress.userId, id))).toEqual([]);
     expect(await db.select().from(profiles).where(eq(profiles.userId, id))).toEqual([]);
     expect(await db.query.users.findFirst({ where: eq(users.appleSub, "apple-delete") })).toBeUndefined();
+  });
+});
+
+describe("Apple guest merge matches Google", () => {
+  async function post(app: ReturnType<typeof createApp>, path: string, body: unknown, ip: string) {
+    const res = await app.request(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, json: (await res.json()) as AuthResponse & { error?: string } };
+  }
+
+  it("stores a new Apple user's guest progress and uses the guest name", async () => {
+    const db = await openDb(":memory:");
+    const apple = async () => ({ sub: "apple-new", email: "new@example.com", emailVerified: true });
+    const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
+    const guest = guestProgress(["meet"]);
+    const created = await post(app, "/v1/auth/apple", { identityToken: "tok", fullName: { givenName: "Other", familyName: "Name" }, guest }, "5.0.0.1");
+    expect(created.status).toBe(200);
+    expect(created.json.user.name).toBe("Asha");
+    expect(created.json.profile).toMatchObject({ name: "Asha", who: "child", dailyMinutes: 15 });
+    expect(created.json.progress.completed.meet).toBe(guest.progress.completed.meet);
+    expect(created.json.progress.xp).toBe(guest.progress.xp);
+    const row = await db.query.progress.findFirst({ where: eq(progress.userId, created.json.user.id) });
+    expect(JSON.parse(row?.data ?? "{}")).toMatchObject({ completed: { meet: guest.progress.completed.meet }, xp: guest.progress.xp });
+  });
+
+  it("merges guest progress into an existing Apple sub without doubling XP", async () => {
+    const db = await openDb(":memory:");
+    const apple = async () => ({ sub: "apple-back", email: "back@example.com", emailVerified: true });
+    const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
+    const first = guestProgress(["meet"]);
+    const created = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: first }, "5.0.1.1");
+    const wider = guestProgress(["meet", "board"]);
+    const again = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: wider }, "5.0.1.2");
+    expect(again.json.user.id).toBe(created.json.user.id);
+    expect(again.json.progress.completed.meet).toBe(first.progress.completed.meet);
+    expect(again.json.progress.completed.board).toBe(wider.progress.completed.board);
+    expect(again.json.progress.xp).toBe(wider.progress.xp);
+    const repeat = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: wider }, "5.0.1.3");
+    expect(repeat.json.progress.xp).toBe(again.json.progress.xp);
+    expect(repeat.json.progress.completed).toEqual(again.json.progress.completed);
+    const row = await db.query.progress.findFirst({ where: eq(progress.userId, created.json.user.id) });
+    expect(JSON.parse(row?.data ?? "{}").xp).toBe(wider.progress.xp);
+  });
+
+  it("merges guest progress when a verified email links to an existing account", async () => {
+    const db = await openDb(":memory:");
+    const apple = async () => ({ sub: "apple-link", email: "ada@example.com", emailVerified: true });
+    const app = createApp({ db, google: null, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
+    const registered = await post(app, "/v1/auth/register", { name: "Ada", email: "ada@example.com", password: "pawnpawn", guest: guestProgress(["meet"]) }, "5.0.2.1");
+    const linked = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: guestProgress(["meet", "board"]) }, "5.0.2.2");
+    expect(linked.status).toBe(200);
+    expect(linked.json.user.id).toBe(registered.json.user.id);
+    expect(linked.json.user.name).toBe("Ada");
+    expect(linked.json.progress.completed.meet).toBe(registered.json.progress.completed.meet);
+    expect(linked.json.progress.completed.board).toBeTruthy();
+    expect(linked.json.progress.xp).toBe(guestProgress(["meet", "board"]).progress.xp);
+    const repeat = await post(app, "/v1/auth/apple", { identityToken: "tok", guest: guestProgress(["meet", "board"]) }, "5.0.2.3");
+    expect(repeat.json.progress.xp).toBe(linked.json.progress.xp);
+    expect(repeat.json.progress.completed).toEqual(linked.json.progress.completed);
+  });
+
+  it("returns the same progress and profile for one guest payload on Google and Apple", async () => {
+    const db = await openDb(":memory:");
+    const guest = guestProgress(["meet", "board"], "Asha");
+    const google: GoogleVerifier = async (token) => (token === "google-token" ? { sub: "g-parity", email: "parity-g@example.com", emailVerified: true, name: "From Google" } : null);
+    const apple = async (token: string) => (token === "apple-token" ? { sub: "a-parity", email: "parity-a@example.com", emailVerified: true } : null);
+    const app = createApp({ db, google, apple, secureCookies: false, corsOrigins: [], now: () => new Date(NOW) });
+    const byGoogle = await post(app, "/v1/auth/google", { idToken: "google-token", guest }, "5.0.3.1");
+    const byApple = await post(app, "/v1/auth/apple", { identityToken: "apple-token", fullName: { givenName: "Other" }, guest }, "5.0.3.2");
+    expect(byGoogle.status).toBe(200);
+    expect(byApple.status).toBe(200);
+    expect(byApple.json.user.name).toBe(byGoogle.json.user.name);
+    expect(byApple.json.profile).toEqual(byGoogle.json.profile);
+    expect(byApple.json.progress).toEqual(byGoogle.json.progress);
+    const stored = async (id: string) => JSON.parse((await db.query.progress.findFirst({ where: eq(progress.userId, id) }))?.data ?? "{}") as Progress;
+    expect(await stored(byApple.json.user.id)).toEqual(await stored(byGoogle.json.user.id));
   });
 });
