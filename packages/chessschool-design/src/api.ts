@@ -42,7 +42,13 @@ export type ApiErrorCode =
   | "rate_limited"
   | "not_found"
   | "offline"
-  | "server";
+  | "server"
+  | "GUEST_CLASS_LIMIT";
+
+/** 403 `{ error: "GUEST_CLASS_LIMIT" }` from a lesson fetch or a progress save. */
+export function isGuestClassLimit(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && err.code === "GUEST_CLASS_LIMIT";
+}
 
 export class ApiError extends Error {
   constructor(

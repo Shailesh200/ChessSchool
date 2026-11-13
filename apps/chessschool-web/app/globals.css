@@ -4145,3 +4145,232 @@ a.path-inner:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- Learn + lesson (v2) ---------- */
+.route-loader {
+  min-height: 50vh;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  color: var(--cs-text-muted);
+  text-align: center;
+}
+.route-loader p {
+  margin: 0;
+}
+.today-lead {
+  display: grid;
+  gap: 10px;
+}
+.today-coach {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.today-goal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--cs-card);
+  border: 1px solid var(--cs-line);
+}
+.today-goal .card-title {
+  margin: 0;
+}
+.today.has-start {
+  padding-bottom: 88px;
+}
+.today-start {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  bottom: var(--dock-bottom);
+  padding: 16px var(--pad, 16px) 10px;
+  background: linear-gradient(to top, var(--cs-bg) 62%, transparent);
+  pointer-events: none;
+}
+.today-start .btn {
+  pointer-events: auto;
+  display: flex;
+  max-width: 560px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .today-start {
+    left: 96px;
+    bottom: 12px;
+  }
+}
+@media (min-width: 1200px) {
+  .today-start {
+    left: 264px;
+  }
+}
+.focus-rail {
+  padding-top: 22px;
+}
+.focus-start {
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--cs-brand);
+  color: var(--cs-on-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: start-float 1.5s ease-in-out infinite;
+}
+@keyframes start-float {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-6px);
+  }
+}
+.focus-rest button,
+.focus-rest .focus-locked {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  border: 0;
+  border-top: 1px solid var(--cs-line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  padding: 0;
+}
+.focus-rest button {
+  cursor: pointer;
+}
+.focus-rest .focus-locked {
+  cursor: default;
+}
+.focus-rest button span,
+.focus-rest .focus-locked span {
+  color: var(--cs-text-muted);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+button.focus-card {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.lesson {
+  padding-top: max(16px, env(safe-area-inset-top));
+}
+.lesson .flow-top {
+  position: relative;
+  z-index: 2;
+  background: var(--cs-bg);
+}
+.lesson-panel {
+  max-height: none;
+  overflow: visible;
+}
+.lesson .stage,
+.stage-stable {
+  min-height: 0;
+  height: 100%;
+}
+.lesson .stage-board {
+  min-height: 0;
+}
+.stage-stable {
+  grid-template-rows: 80px minmax(0, 1fr) 44px;
+}
+.stage-stable .stage-bar {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.stage-stable .player-avatar {
+  width: 36px;
+  height: 36px;
+}
+.stage-stable .bubble {
+  display: grid;
+  align-content: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 10px;
+}
+.stage-stable .bubble h1,
+.stage-stable .bubble p,
+.stage-stable .stage-status {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stage-stable .bubble h1 {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  margin: 0;
+}
+.stage-stable .bubble p {
+  min-height: 1.3em;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+.lesson .choices-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 0;
+}
+.lesson .choices-grid .choice {
+  min-height: 44px;
+  height: 52px;
+  padding: 6px 10px;
+  font-size: 0.95rem;
+  justify-content: center;
+  text-align: center;
+}
+.lesson .choices-grid .choice span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lesson .lesson-actions .btn {
+  min-height: 48px;
+}
+.hints-used {
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--cs-sunken);
+  color: var(--cs-text-muted);
+  font-weight: 600;
+}
+.streak-pill.is-bold {
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-start {
+    animation: none;
+  }
+}

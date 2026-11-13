@@ -129,6 +129,8 @@ export const copy = {
       showLess: "Show less",
       loading: "Loading your course…",
       offline: "Lessons will show when you're back online.",
+      start: "Start",
+      coachLine: (title: string) => `${title} next. You've got this.`,
     },
     done: "Done",
     open: (m: number) => `Open · ${m} min`,
@@ -136,6 +138,7 @@ export const copy = {
     guestGate: {
       title: "Enroll to keep going",
       body: "This class stays locked until you have an account. It's free, and your progress comes with you.",
+      enroll: "Create account",
       signup: "Create account",
       login: "Log in",
       locked: "Enroll to open",
@@ -281,6 +284,7 @@ export const copy = {
     save: "Save my progress",
     locked: "This lesson isn't open yet.",
     lockedBody: (prev: string) => `Finish “${prev}” first. It only takes a few minutes.`,
+    hintsUsed: (n: number) => (n === 1 ? "Hints used: 1" : `Hints used: ${n}`),
     board: "Chessboard",
   },
 
@@ -701,6 +705,30 @@ export const copy = {
     goalRing: (done: number, goal: number) => `Daily goal: ${done} of ${goal} minutes`,
     rank: (rank: string, toNext: number, next: string | null) =>
       next ? `Rank ${rank}. ${toNext} XP to ${next}.` : `Rank ${rank}. Top rank reached.`,
+  },
+
+  /** Public account-deletion page (Play requires a URL that does not need a login). */
+  accountDelete: {
+    title: "Delete your account",
+    signedOut: "This page deletes a ChessSchool account. Sign in first. If you can't, email us and we will delete it.",
+    steps: [
+      "Sign in with the email on your ChessSchool account.",
+      "Open this page again.",
+      "Confirm. We delete the account and the progress stored on our servers. This can't be undone.",
+    ],
+    email: "iamshailesh121@gmail.com",
+    emailLabel: "Email support",
+    login: "Log in",
+    signedIn: "This permanently deletes your account and the progress and games saved on our servers. It can't be undone.",
+    start: "Delete my account",
+    confirmTitle: "Delete your account?",
+    confirmBody: "Your account will be removed from ChessSchool. Progress on this device stays unless you reset it.",
+    confirm: "Delete my account",
+    cancel: "Keep my account",
+    retry: "We couldn't delete the account. Check your connection and try again.",
+    doneTitle: "Your account is deleted",
+    doneBody: "You're signed out. The account is gone from our servers.",
+    home: "Back to Learn",
   },
 } as const;
 

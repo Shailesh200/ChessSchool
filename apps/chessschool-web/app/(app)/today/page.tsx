@@ -1,31 +1,49 @@
 "use client";
 
-import { copy, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
 import { PathList } from "@/components/PathList";
 import { Icon } from "@/components/Icon";
+import { CourseSkeleton } from "@/components/Skeleton";
 import { Button, Card, Chip, GoalRing, RankCurve, SaveBanner } from "@/components/ui";
+import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
+import { useEffect, useState } from "react";
+
+const GOAL_SEEN = "chessschool.v2.goalSeen";
+const href = (id: string) => (id === "meet" ? "/orientation" : `/lesson/${id}`);
 
 export default function TodayPage() {
-  const { state, ready, place, cue } = useApp();
+  const { state, ready, place, cue, showGuestGate } = useApp();
   const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle(ready);
-  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
-
+  const course = useCourse();
+  const [showGoal, setShowGoal] = useState(false);
   const now = new Date();
   const today = dayKey(now);
+
+  useEffect(() => {
+    if (localStorage.getItem(GOAL_SEEN) === today) return;
+    setShowGoal(true);
+    localStorage.setItem(GOAL_SEEN, today);
+  }, [today]);
+
+  if (!ready) return <CourseSkeleton />;
+
   const { progress, profile } = state;
   const name = profile.name.trim() || copy.today.friend;
   const rank = rankFor(progress.xp);
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
+  const focus = course ? focusCourse(course, progress.completed) : null;
+  const current = focus?.current ?? null;
+  const gated = isGuestLockedLesson(current);
 
   return (
-    <div className="today">
+    <div className={`today${current ? " has-start" : ""}`}>
       <SavedCeremony />
       <ArrivalCeremony streak={streak} />
       <header className="today-head">
@@ -45,6 +63,20 @@ export default function TodayPage() {
           </Chip>
         </div>
       </header>
+
+      <div className="today-lead">
+        <p className="today-coach">{current ? copy.today.focus.coachLine(current.title) : copy.today.heroAllBody}</p>
+        {showGoal ? (
+          <div className="today-goal">
+            <div>
+              <p className="card-title">{copy.today.goalTitle}</p>
+              <p className="goal-value">{copy.today.goalValue(minutes, profile.dailyMinutes)}</p>
+              {minutes >= profile.dailyMinutes ? <p className="muted">{copy.today.goalDone}</p> : null}
+            </div>
+            <GoalRing done={minutes} goal={profile.dailyMinutes} />
+          </div>
+        ) : null}
+      </div>
 
       <div className="today-grid">
         <div className="today-main">
@@ -101,22 +133,25 @@ export default function TodayPage() {
             <RankCurve xp={progress.xp} />
           </Card>
 
-          <Card className="goal" aria-labelledby="goal-title">
-            <div>
-              <h2 id="goal-title" className="card-title">
-                {copy.today.goalTitle}
-              </h2>
-              <p className="goal-value">{copy.today.goalValue(minutes, profile.dailyMinutes)}</p>
-              {minutes >= profile.dailyMinutes ? <p className="muted">{copy.today.goalDone}</p> : null}
-            </div>
-            <GoalRing done={minutes} goal={profile.dailyMinutes} />
-          </Card>
-
           {!state.account && done ? (
             <SaveBanner title={copy.today.saveCard.title} body={copy.today.saveCard.body} />
           ) : null}
         </aside>
       </div>
+
+      {current ? (
+        <div className="today-start">
+          {gated ? (
+            <Button block icon="play" onClick={showGuestGate}>
+              {copy.today.focus.start}
+            </Button>
+          ) : (
+            <Button block href={href(current.id)} icon="play">
+              {copy.today.focus.start}
+            </Button>
+          )}
+        </div>
+      ) : null}
       <FirstRunNotificationSheet />
     </div>
   );
