@@ -1,14 +1,20 @@
 import { dailyPuzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, greetingFor, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dailyDone, dayKey, focusCourse, greetingFor, minutesToday, rankFor, visibleStreak, type Course, type Placement } from "@chessschool/design";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { useCallback, useRef, useEffect, useState } from "react";
+import { ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Cody, Fx } from "@/components/Lottie";
-import { PathList } from "@/components/PathList";
-import { Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Screen, Sheet, T } from "@/components/ui";
+import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
+import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
+import { api } from "@/lib/api";
+import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
-import { useTheme } from "@/lib/theme";
+import { fonts, useTheme } from "@/lib/theme";
+
+const GOAL_SEEN_KEY = "chessschool.v2.goalSeen";
 
 export default function Today() {
   const { state, setPrefs, clearCeremony, clearArrival, markNotificationOffered, place, cue } = useApp();
@@ -21,6 +27,26 @@ export default function Today() {
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
+  const firstLessonToday = !Object.values(progress.completed).includes(today);
+  const [goalSeen, setGoalSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    AsyncStorage.getItem(GOAL_SEEN_KEY)
+      .then((v) => {
+        if (live) setGoalSeen(v === "1");
+      })
+      .catch(() => {
+        if (live) setGoalSeen(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (goalSeen !== false) return;
+    const t = setTimeout(() => void AsyncStorage.setItem(GOAL_SEEN_KEY, "1"), 800);
+    return () => clearTimeout(t);
+  }, [goalSeen]);
   const saved = state.pendingCeremony === "saved";
   const arrival = saved ? null : state.arrival;
 
@@ -39,6 +65,7 @@ export default function Today() {
 
   // The reminder sheet is offered once, after the first lesson.
   const [notifOpen, setNotifOpen] = useState(false);
+  const [gate, setGate] = useState(false);
   const eligible = done && !state.notificationOffered && state.prefs.notifications === "unknown" && !saved;
   // Only while Today is in front, so it never covers the orientation celebration.
   useFocusEffect(
@@ -53,8 +80,52 @@ export default function Today() {
     markNotificationOffered();
   };
 
+  const cachedCourse = useCourse();
+  const [freshCourse, setFreshCourse] = useState<Course | null>(null);
+  const course = freshCourse ?? cachedCourse;
+  const current = course ? focusCourse(course, progress.completed).current : null;
+  const currentLocked = Boolean(course && current && guestClassLocked(course, current, Boolean(state.account), progress));
+  const currentId = current?.id ?? null;
+  const scroller = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const currentAnchor = useRef<View>(null);
+  const scrollToCurrent = useCallback(() => {
+    const anchor = currentAnchor.current;
+    const host = content.current;
+    if (!anchor || !host) return;
+    anchor.measureLayout(
+      host,
+      (_x, y) => scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
+      () => {},
+    );
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      if (!currentId) return;
+      const t = setTimeout(scrollToCurrent, 80);
+      return () => clearTimeout(t);
+    }, [currentId, scrollToCurrent]),
+  );
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      api
+        .course()
+        .then((next) => {
+          if (live) setFreshCourse(next);
+        })
+        .catch(() => {});
+      return () => {
+        live = false;
+      };
+    }, []),
+  );
+
   return (
-    <Screen>
+    <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
+      <Banner />
+      <ScrollView ref={scroller} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
+        <View ref={content} collapsable={false} style={{ gap: 16 }}>
       {saved ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: c.successSoft }}>
           <View style={{ width: 80, height: 80 }}>
@@ -79,12 +150,45 @@ export default function Today() {
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <T role="label">{arrival === "kept" ? copy.today.arrival.keptTitle : copy.today.arrival.freshTitle}</T>
-            <T role="small" color="textMuted">
-              {arrival === "kept" ? copy.today.arrival.keptBody(streak) : copy.today.arrival.freshBody}
-            </T>
+            {arrival === "kept" && firstLessonToday ? (
+              <T role="small" color="textMuted">
+                {copy.today.arrival.keptLead}
+                <T role="small" color="textMuted" style={{ fontFamily: fonts.bold }}>
+                  {copy.today.arrival.keptStreak(streak)}
+                </T>
+                {copy.today.arrival.keptTail}
+              </T>
+            ) : (
+              <T role="small" color="textMuted">
+                {arrival === "kept" ? copy.today.arrival.keptBody(streak) : copy.today.arrival.freshBody}
+              </T>
+            )}
           </View>
           <IconButton icon="close" label={copy.a11y.dismiss} onPress={clearArrival} />
         </View>
+      ) : null}
+
+      {course && !current ? (
+        <T role="bodyLg">{copy.today.heroAllBody}</T>
+      ) : current ? (
+        <T role="bodyLg">{copy.today.coachNext(current.title)}</T>
+      ) : null}
+
+      {goalSeen === false ? (
+        <Card style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <T role="heading" header>
+              {copy.today.goalTitle}
+            </T>
+            <T role="bodyLg">{copy.today.goalValue(minutes, profile.dailyMinutes)}</T>
+            {minutes >= profile.dailyMinutes ? (
+              <T role="small" color="textMuted">
+                {copy.today.goalDone}
+              </T>
+            ) : null}
+          </View>
+          <GoalRing done={minutes} goal={profile.dailyMinutes} />
+        </Card>
       ) : null}
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -133,7 +237,7 @@ export default function Today() {
         <T role="heading" header style={{ marginBottom: 8 }}>
           {copy.today.pathTitle}
         </T>
-        <PathList progress={progress} />
+        <PathList progress={progress} currentAnchor={currentAnchor} course={course} onGuestLock={() => setGate(true)} />
       </Card>
 
       <Card style={{ gap: 8 }}>
@@ -151,21 +255,6 @@ export default function Today() {
           {copy.today.rankTitle}
         </T>
         <RankCurve xp={progress.xp} />
-      </Card>
-
-      <Card style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <T role="heading" header>
-            {copy.today.goalTitle}
-          </T>
-          <T role="bodyLg">{copy.today.goalValue(minutes, profile.dailyMinutes)}</T>
-          {minutes >= profile.dailyMinutes ? (
-            <T role="small" color="textMuted">
-              {copy.today.goalDone}
-            </T>
-          ) : null}
-        </View>
-        <GoalRing done={minutes} goal={profile.dailyMinutes} />
       </Card>
 
       {!state.account && done ? (
@@ -197,6 +286,45 @@ export default function Today() {
           }}
         />
       </Sheet>
-    </Screen>
+      <Sheet visible={gate} onClose={() => setGate(false)}>
+        <T role="heading" header center>
+          {copy.today.guestGate.title}
+        </T>
+        <T role="body" color="textMuted" center>
+          {copy.today.guestGate.body}
+        </T>
+        <Button
+          title={copy.today.guestGate.signup}
+          onPress={() => {
+            setGate(false);
+            router.push("/signup");
+          }}
+        />
+        <Button
+          title={copy.today.guestGate.login}
+          variant="secondary"
+          onPress={() => {
+            setGate(false);
+            router.push("/login");
+          }}
+        />
+      </Sheet>
+        </View>
+      </ScrollView>
+      {current ? (
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: c.bg, borderTopWidth: 1, borderTopColor: c.line }}>
+          <View style={{ maxWidth: 688, width: "100%", alignSelf: "center", gap: 4 }}>
+            <T role="small" color="textMuted" numberOfLines={1}>
+              {current.title}
+            </T>
+            <Button
+              title={currentLocked ? copy.today.guestGate.signup : current.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson}
+              icon={currentLocked ? "lock" : "play"}
+              onPress={() => (currentLocked ? setGate(true) : openLesson(current.id))}
+            />
+          </View>
+        </View>
+      ) : null}
+    </SafeAreaView>
   );
 }

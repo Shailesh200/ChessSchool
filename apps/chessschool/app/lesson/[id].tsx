@@ -1,5 +1,5 @@
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, lessonAfter, visibleStreak } from "@chessschool/design";
+import { copy, dayKey, goalMet, visibleStreak } from "@chessschool/design";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
@@ -28,7 +28,8 @@ export default function LessonScreen() {
   const today = dayKey(new Date());
   const streak = visibleStreak(state.progress.streak, today);
   const b = before?.id === id ? before : null;
-  const next = course && lesson ? lessonAfter(course, lesson.id) : null;
+  const here = course && lesson ? course.lessons.findIndex((l) => l.id === lesson.id) : -1;
+  const next = here < 0 || !course ? null : (course.lessons.slice(here + 1).find((l) => !state.progress.completed[l.id]) ?? null);
 
   return (
     <LessonPlayer
@@ -56,8 +57,7 @@ export default function LessonScreen() {
             goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}
           >
             {next && !b.done ? <Button title={copy.lesson.nextLesson} icon="arrowRight" onPress={() => router.replace(`/lesson/${next.id}`)} /> : null}
-            {!next && !b.done ? <Button title={copy.today.heroAllCta} icon="play" onPress={() => router.replace("/play")} /> : null}
-            <Button title={copy.lesson.back} icon="learn" variant={!b.done ? "secondary" : "primary"} onPress={() => router.replace("/today")} />
+            <Button title={copy.lesson.back} icon="learn" variant={!b.done && next ? "secondary" : "primary"} onPress={() => router.replace("/today")} />
             {!state.account ? <Button title={copy.lesson.save} icon="shield" variant="ghost" onPress={() => router.replace("/signup")} /> : null}
           </LessonDone>
         ) : null
