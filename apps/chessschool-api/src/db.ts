@@ -12,6 +12,7 @@ export async function openDb(url: string, authToken?: string): Promise<Db> {
   for (const sql of schema.BOOTSTRAP_SQL) {
     try {
       await client.execute(sql);
+      if (/^\s*ALTER TABLE/i.test(sql)) console.log(`[bootstrap] applied: ${sql.trim().split(/\s+/).slice(0, 6).join(" ")}`);
     } catch (err) {
       if (!/duplicate column name/i.test(String(err))) throw err;
     }
