@@ -6,7 +6,7 @@ export const metadata = {
   description: "Terms for using the ChessSchool web app and related services.",
 };
 
-const CONTACT = "iamshailesh121@gmail.com";
+const CONTACT = "support@chess-school.in";
 const UPDATED = "July 17, 2026";
 
 export default function TermsPage() {

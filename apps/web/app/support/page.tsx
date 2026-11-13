@@ -6,7 +6,7 @@ export const metadata = {
   description: "Get help with ChessSchool accounts, progress sync, and play.",
 };
 
-const CONTACT = "iamshailesh121@gmail.com";
+const CONTACT = "support@chess-school.in";
 
 export default function SupportPage() {
   return (

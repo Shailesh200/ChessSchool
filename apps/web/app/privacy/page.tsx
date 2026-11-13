@@ -6,7 +6,7 @@ export const metadata = {
   description: "How ChessSchool collects, uses, and deletes your data.",
 };
 
-const CONTACT = "iamshailesh121@gmail.com";
+const CONTACT = "support@chess-school.in";
 const UPDATED = "July 12, 2026";
 
 export default function PrivacyPage() {

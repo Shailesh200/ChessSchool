@@ -774,7 +774,7 @@ export const copy = {
       "Open this page again.",
       "Confirm. We delete the account and the progress stored on our servers. This can't be undone.",
     ],
-    email: "iamshailesh121@gmail.com",
+    email: "support@chess-school.in",
     emailLabel: "Email support",
     login: "Log in",
     signedIn: "This permanently deletes your account and the progress and games saved on our servers. It can't be undone.",

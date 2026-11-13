@@ -13,7 +13,7 @@ test("support page renders", async ({ page }) => {
   await page.goto("/support");
   await expect(page.getByRole("heading", { name: "Support", level: 1 })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /iamshailesh121@gmail.com/i }),
+    page.getByRole("link", { name: /support@chess-school\.in/i }),
   ).toBeVisible();
 });
 
