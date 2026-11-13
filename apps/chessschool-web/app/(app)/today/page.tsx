@@ -67,7 +67,13 @@ export default function TodayPage() {
       </header>
 
       <div className="today-lead">
-        <p className="today-coach">{current ? copy.today.focus.coachLine(current.title) : copy.today.heroAllBody}</p>
+        {!course ? (
+          <p className="today-coach" aria-busy="true">
+            <span className="skel-line" />
+          </p>
+        ) : (
+          <p className="today-coach">{current ? copy.today.focus.coachLine(current.title) : copy.today.heroAllBody}</p>
+        )}
         {showGoal ? (
           <div className="today-goal">
             <div>
@@ -82,7 +88,7 @@ export default function TodayPage() {
 
       <div className="today-grid">
         <div className="today-main">
-          {!state.placementDone && !progress.completed.board ? (
+          {course && !current && !state.placementDone && !progress.completed.board ? (
             <Card className="placement" aria-labelledby="place-title">
               <h2 id="place-title" className="card-title">
                 {copy.placement.title}

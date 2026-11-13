@@ -127,7 +127,7 @@ export function PathList({ progress }: { progress: Progress }) {
           ))}
         </ul>
       ) : null}
-      {!f.current ? <p className="focus-meta">{copy.today.heroAllBody}</p> : null}
+      {course && !f.current ? <p className="focus-meta">{copy.today.heroAllBody}</p> : null}
     </div>
   );
 }
