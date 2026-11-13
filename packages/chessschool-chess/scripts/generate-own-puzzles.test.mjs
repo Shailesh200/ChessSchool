@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkThemes, dedupeLineage, gapBetween, ratePuzzle, selectPuzzles, tagThemes, uniqueTactic } from "./generate-own-puzzles.mjs";
+import { checkThemes, dedupeLineage, gapBetween, ratePuzzle, selectFullPack, selectPuzzles, tagThemes, uniqueTactic } from "./generate-own-puzzles.mjs";
 
 describe("own puzzle tags", () => {
   it("accepts the built-in theme fixtures and rating order", () => {
@@ -35,6 +35,14 @@ describe("own puzzle tags", () => {
       3,
     );
     expect(new Set(picked.map((p) => p.themes[0])).size).toBe(3);
+  });
+
+  it("drops a high rating that was not confirmed at depth 14", () => {
+    const low = { fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1", moves: "e1d1 e8d8", rating: 900, themes: ["endgame"], gapCp: 200, minSolverGapCp: 200, verifyDepth: 12, origin: { seed: 1, game: 1, ply: 1 } };
+    const unconfirmed = { ...low, moves: "e1d2 e8d7", rating: 1700, gapCp: 140, minSolverGapCp: 140, verifyDepth: 12, origin: { seed: 1, game: 2, ply: 1 } };
+    const confirmed = { ...low, moves: "e1e2 e8e7", rating: 1720, gapCp: 140, minSolverGapCp: 140, verifyDepth: 14, origin: { seed: 1, game: 3, ply: 1 } };
+    const pack = selectFullPack([low, unconfirmed, confirmed], { target: 5, bucketFloor: 0, themeFloor: 0, defensiveMax: 1 });
+    expect(pack.puzzles.map((p) => p.rating).sort((a, b) => a - b)).toEqual([900, 1720]);
   });
 
   it("drops a later fragment of the same combination", () => {
