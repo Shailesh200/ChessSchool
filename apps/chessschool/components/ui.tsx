@@ -97,7 +97,8 @@ export function Button({ title, onPress, variant = "primary", icon, loading, dis
           <View
             style={{
               minHeight: minTarget,
-              paddingHorizontal: title ? 24 : 0,
+              minWidth: title ? undefined : 56,
+              paddingHorizontal: title ? 24 : 16,
               borderRadius: radius.pill,
               backgroundColor: pal.bg,
               borderWidth: variant === "secondary" ? 2 : 0,

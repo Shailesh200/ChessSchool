@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { Cody, Fx } from "./Lottie";
 
 /** The end-of-lesson moment: stamp, Cody, earned XP and streak, then what's next. */
-export function LessonDone({ title, body, xp, streak, goalMet, children }: { title: string; body: string; xp?: number; streak?: number; goalMet?: boolean; children: React.ReactNode }) {
+export function LessonDone({ title, body, recap, xp, streak, goalMet, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; children: React.ReactNode }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
@@ -34,6 +34,7 @@ export function LessonDone({ title, body, xp, streak, goalMet, children }: { tit
         {title}
       </h1>
       <p className="lead">{body}</p>
+      {recap ? <p>{recap}</p> : null}
       {goalMet ? <p className="beat-tag">{copy.lesson.goalMet}</p> : null}
       <div className="flow-actions">{children}</div>
     </>

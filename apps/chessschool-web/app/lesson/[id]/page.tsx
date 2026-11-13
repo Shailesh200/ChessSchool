@@ -55,6 +55,7 @@ export default function LessonPage() {
           <LessonDone
             title={b.done ? copy.today.done : copy.lesson.doneTitle}
             body={b.done ? copy.lesson.replayDone : next ? copy.lesson.doneNext(next.title) : copy.lesson.doneLast}
+            recap={b.done ? undefined : copy.lesson.recap(lesson.title)}
             xp={b.done ? undefined : lesson.xp}
             streak={streak > b.streak ? streak : undefined}
             goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}

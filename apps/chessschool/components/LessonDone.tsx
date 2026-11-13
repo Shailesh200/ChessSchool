@@ -5,7 +5,7 @@ import { Cody, Fx } from "./Lottie";
 import { T } from "./ui";
 
 /** The end-of-lesson moment: stamp, Cody, earned XP and streak, then what's next. */
-export function LessonDone({ title, body, xp, streak, goalMet, children }: { title: string; body: string; xp?: number; streak?: number; goalMet?: boolean; children: React.ReactNode }) {
+export function LessonDone({ title, body, recap, xp, streak, goalMet, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; children: React.ReactNode }) {
   const { c } = useTheme();
   return (
     <>
@@ -35,6 +35,11 @@ export function LessonDone({ title, body, xp, streak, goalMet, children }: { tit
       <T role="bodyLg" color="textMuted" center style={{ maxWidth: 360 }}>
         {body}
       </T>
+      {recap ? (
+        <T role="body" center style={{ maxWidth: 360 }}>
+          {recap}
+        </T>
+      ) : null}
       {goalMet ? (
         <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.brandSoft }}>
           <T role="small" color="brandText" style={{ fontFamily: fonts.semibold }}>

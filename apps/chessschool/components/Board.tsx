@@ -106,14 +106,14 @@ function CheckGlow({ color, reduced }: { color: string; reduced: boolean }) {
 }
 
 /** The taken piece flashes as a silhouette, lifts off and fades, with a small burst. */
-function CaptureBurst({ piece, size, x, y, tint, spark }: { piece: Piece; size: number; x: number; y: number; tint: string; spark: string }) {
+function CaptureBurst({ piece, size, x, y, tint, spark, fly }: { piece: Piece; size: number; x: number; y: number; tint: string; spark: string; fly: number }) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
   }, [t]);
   const ghost = useAnimatedStyle(() => ({
     opacity: 1 - t.value,
-    transform: [{ translateY: -t.value * size * 0.55 }, { rotate: `${t.value * 28}deg` }, { scale: 1 + t.value * 0.35 }],
+    transform: [{ translateY: t.value * size * 2.2 * fly }, { rotate: `${t.value * 18 * fly}deg` }, { scale: 1 - t.value * 0.35 }],
   }));
   const dots = Array.from({ length: 8 }, (_, i) => (i / 8) * Math.PI * 2);
   return (
@@ -437,6 +437,7 @@ export function Board({
                   {...xy(fx.captured.square)}
                   tint={fx.captured.piece.color === "w" ? "#FFFFFF" : "#1C1B2E"}
                   spark={c.gold}
+                  fly={(fx.captured.piece.color === "b" ? 1 : -1) * (orientation === "w" ? 1 : -1)}
                 />
               ) : null}
               {fx.promoted ? <RingFlash size={sq} {...xy(fx.promoted)} color={c.gold} /> : null}
@@ -457,6 +458,11 @@ export function Board({
           ) : null}
 
           <Animated.View pointerEvents="none" style={[{ position: "absolute", inset: 0, backgroundColor: "#0B0A1A" }, dimStyle]} />
+          {mate ? (
+            <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: "42%", alignItems: "center" }}>
+              <Text style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, overflow: "hidden", backgroundColor: c.brand, color: c.onBrand, fontWeight: "800", fontSize: 18 }}>{copy.play.mate}</Text>
+            </View>
+          ) : null}
 
           {sq && dragPiece ? (
             <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, zIndex: 9 }, ghostStyle]}>

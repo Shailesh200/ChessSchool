@@ -290,7 +290,7 @@ export function Board({
       {fx && !reduced ? (
         <div key={fx.id} className="board-fx" aria-hidden>
           {fx.captured ? (
-            <span className="capture-ghost" style={cell(fx.captured.square, squares)}>
+            <span className={`capture-ghost${(fx.captured.piece.color === "b" ? orientation === "w" : orientation === "b") ? " is-down" : " is-up"}`} style={cell(fx.captured.square, squares)}>
               <PieceArt piece={fx.captured.piece} tint={fx.captured.piece.color === "w" ? "#FFFFFF" : "#1C1B2E"} />
               {Array.from({ length: 8 }, (_, i) => (
                 <i key={i} className="capture-spark" style={{ "--a": `${(i / 8) * 360}deg` } as React.CSSProperties} />
@@ -320,6 +320,8 @@ export function Board({
           })}
         </svg>
       ) : null}
+
+      {mate ? <div className="mate-stamp">{copy.play.mate}</div> : null}
 
       {promotion ? (
         <div className="promo-layer">
