@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cody — animation preview</title>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; background: #FBFAFF; color: #1E1B4B; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 20px 28px; }
+  h1 { font-size: 22px; margin: 0; }
+  label { font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; padding: 0 28px 28px; }
+  .card { background: #fff; border: 1px solid #E8E6FA; border-radius: 22px; padding: 14px; display: grid; gap: 8px; justify-items: center; }
+  .stage { width: 200px; height: 200px; }
+  .card strong { font-size: 15px; }
+  .card span { font-size: 12px; color: #6B6A8A; }
+  button { border: 0; border-radius: 999px; padding: 8px 14px; background: #5B5BD6; color: #fff; font-weight: 600; cursor: pointer; }
+  .sizes { display: flex; gap: 24px; align-items: end; padding: 0 28px 40px; }
+  .sizes div { display: grid; justify-items: center; gap: 6px; font-size: 12px; color: #6B6A8A; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cody (Storybook × Clay) — Lottie preview</h1>
+  <label><input type="checkbox" id="rm" /> Reduced motion (show poster frame)</label>
+</header>
+<div class="grid" id="grid"></div>
+<div class="sizes" id="sizes"></div>
+<script src="/node_modules/.pnpm/lottie-web@5.13.0/node_modules/lottie-web/build/player/lottie.min.js"></script>
+<script>
+  const BASE = "/packages/chessschool-design/assets/lottie/cody/";
+  const players = [];
+  const rm = document.getElementById("rm");
+  rm.checked = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function mount(el, a, autoplay = true) {
+    const p = lottie.loadAnimation({ container: el, renderer: "svg", loop: a.loop, autoplay: false, path: BASE + a.file });
+    p.addEventListener("DOMLoaded", () => (rm.checked ? p.goToAndStop(a.poster, true) : autoplay && p.play()));
+    players.push({ p, a });
+    return p;
+  }
+
+  // ?strip=wave:0,18,30;celebrate:0,36 freezes chosen frames side by side.
+  const params = new URLSearchParams(location.search);
+  const strip = params.get("strip");
+  const size = Number(params.get("size") ?? 150);
+  if (strip) {
+    document.getElementById("grid").style.gridTemplateColumns = `repeat(auto-fill, ${size + 20}px)`;
+    for (const part of strip.split(";")) {
+      const [name, list] = part.split(":");
+      for (const f of list.split(",").map(Number)) {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<div style="width:${size}px;height:${size}px"></div><span>${name} @${f}</span>`;
+        document.getElementById("grid").append(card);
+        const p = lottie.loadAnimation({ container: card.firstChild, renderer: "svg", loop: false, autoplay: false, path: BASE + name + ".json" });
+        p.addEventListener("DOMLoaded", () => p.goToAndStop(f, true));
+      }
+    }
+  } else fetch(BASE + "manifest.json").then((r) => r.json()).then((m) => {
+    const grid = document.getElementById("grid");
+    for (const a of m.animations) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<div class="stage"></div><strong>${a.name}</strong><span>${a.frames}f · ${a.loop ? "loop" : "one-shot"}</span><button>Replay</button>`;
+      grid.append(card);
+      const p = mount(card.querySelector(".stage"), a);
+      card.querySelector("button").onclick = () => (rm.checked ? p.goToAndStop(a.poster, true) : p.goToAndPlay(0, true));
+    }
+    const sizes = document.getElementById("sizes");
+    const idle = m.animations.find((a) => a.name === "idle");
+    for (const s of [40, 64, 96, 160]) {
+      const d = document.createElement("div");
+      d.innerHTML = `<div style="width:${s}px;height:${s}px"></div>${s}px`;
+      sizes.append(d);
+      mount(d.firstChild, idle);
+    }
+  });
+
+  rm.onchange = () => players.forEach(({ p, a }) => (rm.checked ? p.goToAndStop(a.poster, true) : p.goToAndPlay(0, true)));
+</script>
+</body>
+</html>

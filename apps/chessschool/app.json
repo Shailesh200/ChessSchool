@@ -1,0 +1,175 @@
+{
+  "expo": {
+    "name": "ChessSchool",
+    "slug": "chess-school",
+    "owner": "shaileshjha200",
+    "version": "0.4.0",
+    "description": "A few calm minutes a day to get better at chess.",
+    "orientation": "portrait",
+    "scheme": "chessschool",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/af6d1946-9dd2-42ef-b2a3-ad71bfbb7854",
+      "checkAutomatically": "ON_ERROR_RECOVERY",
+      "fallbackToCacheTimeout": 0
+    },
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.chessschool.app",
+      "buildNumber": "16",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.chessschool.app",
+      "versionCode": 37,
+      "usesCleartextTraffic": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#5B5BD6"
+      },
+      "permissions": [
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-updates",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#5B5BD6"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#FBFAFF",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#14152B"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": true
+          },
+          "ios": {
+            "newArchEnabled": true,
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1055675597789-3uqou6qfqg76e033tpulbkjgee059o54"
+        }
+      ],
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "IconClassroom",
+            "ios": "./assets/app-icons/classroom.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/classroom-fg.png",
+              "backgroundColor": "#E4E2FB"
+            }
+          },
+          {
+            "name": "IconNight",
+            "ios": "./assets/app-icons/night.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/night-fg.png",
+              "backgroundColor": "#14152B"
+            }
+          },
+          {
+            "name": "IconGarden",
+            "ios": "./assets/app-icons/garden.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/garden-fg.png",
+              "backgroundColor": "#7FA36B"
+            }
+          },
+          {
+            "name": "IconSunset",
+            "ios": "./assets/app-icons/sunset.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/sunset-fg.png",
+              "backgroundColor": "#F08A6A"
+            }
+          },
+          {
+            "name": "IconOcean",
+            "ios": "./assets/app-icons/ocean.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/ocean-fg.png",
+              "backgroundColor": "#117A8C"
+            }
+          },
+          {
+            "name": "IconMidnight",
+            "ios": "./assets/app-icons/midnight.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/midnight-fg.png",
+              "backgroundColor": "#000000"
+            }
+          },
+          {
+            "name": "IconLibrary",
+            "ios": "./assets/app-icons/library.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/library-fg.png",
+              "backgroundColor": "#7A4A23"
+            }
+          },
+          {
+            "name": "IconPixel",
+            "ios": "./assets/app-icons/pixel.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/pixel-fg.png",
+              "backgroundColor": "#F6C343"
+            }
+          }
+        ]
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "af6d1946-9dd2-42ef-b2a3-ad71bfbb7854"
+      }
+    }
+  }
+}

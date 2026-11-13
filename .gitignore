@@ -75,6 +75,8 @@ test-results/
 apps/*/.expo/
 ios/
 android/
+!apps/chessschool/store-assets/ios/
+!apps/chessschool/store-assets/ios/**
 *.orig.*
 
 # expo web export + parity harness output (build artifacts)

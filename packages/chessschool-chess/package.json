@@ -1,0 +1,25 @@
+{
+  "name": "@chessschool/chess",
+  "version": "0.4.0",
+  "private": true,
+  "engines": { "node": "22.x" },
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./assets/*": "./assets/*"
+  },
+  "scripts": {
+    "pieces": "node --experimental-strip-types scripts/build-piece-sets.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.9"
+  }
+}
