@@ -93,6 +93,8 @@ export const copy = {
     heroMeta: (minutes: number, xp: number) => `${minutes} min · +${xp} XP`,
     heroCta: "Begin",
     heroCtaLesson: "Start lesson",
+    start: "Start",
+    coachNext: (title: string) => `${title} next. You've got this.`,
     heroAllTitle: "More lessons are on the way",
     heroAllBody: "You finished every lesson we have. New ones will show up on this path.",
     heroAllCta: "Practice while you wait",
@@ -125,6 +127,9 @@ export const copy = {
     arrival: {
       keptTitle: "You came back!",
       keptBody: (n: number) => `Your ${n}-day streak is waiting. One lesson keeps it going.`,
+      keptLead: "Your ",
+      keptStreak: (n: number) => (n === 1 ? "1-day streak" : `${n}-day streak`),
+      keptTail: " is waiting. One lesson keeps it going.",
       freshTitle: "Welcome back!",
       freshBody: "Every streak starts with one day. Today's lesson is ready when you are.",
     },

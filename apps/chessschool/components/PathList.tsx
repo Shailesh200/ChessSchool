@@ -1,10 +1,11 @@
 import { copy, focusCourse, type CourseLesson, type Progress } from "@chessschool/design";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Pressable, View } from "react-native";
 import { CourseSkeleton } from "./Skeleton";
+import { useReducedMotion } from "@/lib/hooks";
 import { useCourse } from "@/lib/course";
-import { useTheme } from "@/lib/theme";
+import { fonts, useTheme } from "@/lib/theme";
 import { Icon } from "./Icon";
 import { T } from "./ui";
 
@@ -90,6 +91,35 @@ export function PathList({ progress, currentAnchor }: { progress: Progress; curr
   );
 }
 
+function StartMark() {
+  const { c } = useTheme();
+  const reduced = useReducedMotion();
+  const y = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reduced) {
+      y.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(y, { toValue: -6, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(y, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reduced, y]);
+  return (
+    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: "absolute", top: -22, alignSelf: "center", transform: [{ translateY: y }] }}>
+      <View style={{ backgroundColor: c.brand, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+        <T role="micro" style={{ color: c.onBrand, fontFamily: fonts.bold }}>
+          {copy.today.start}
+        </T>
+      </View>
+    </Animated.View>
+  );
+}
+
 function Stop({
   kind,
   lesson,
@@ -123,9 +153,12 @@ function Stop({
   const dot = kind === "done" ? c.success : kind === "current" ? c.brand : c.card;
   const tappable = kind === "next" || kind === "current";
   return (
-    <View ref={kind === "current" ? anchor : undefined} collapsable={false} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-      <View style={{ width: 28, height: 28, marginTop: 14, borderRadius: 14, backgroundColor: dot, borderWidth: 2, borderColor: kind === "next" ? c.line : dot, alignItems: "center", justifyContent: "center" }}>
-        {kind === "done" ? <Icon name="check" size={16} color="#fff" /> : kind === "current" ? <Icon name="play" size={14} color={c.onBrand} /> : null}
+    <View ref={kind === "current" ? anchor : undefined} collapsable={false} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", marginTop: kind === "current" ? 18 : 0 }}>
+      <View style={{ width: 28, alignItems: "center", marginTop: 14 }}>
+        {kind === "current" ? <StartMark /> : null}
+        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: dot, borderWidth: 2, borderColor: kind === "next" ? c.line : dot, alignItems: "center", justifyContent: "center" }}>
+          {kind === "done" ? <Icon name="check" size={16} color="#fff" /> : kind === "current" ? <Icon name="play" size={14} color={c.onBrand} /> : null}
+        </View>
       </View>
       {tappable ? (
         <Pressable accessibilityRole="button" onPress={() => openLesson(lesson.id)} style={{ flex: 1 }}>

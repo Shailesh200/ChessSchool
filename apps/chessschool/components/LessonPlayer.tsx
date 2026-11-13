@@ -1,8 +1,8 @@
 import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
 import { copy, type CodyAnimation } from "@chessschool/design";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
@@ -19,6 +19,14 @@ const STATUS_H = 40;
 const CHOICE_H = 132;
 const FOOTER_H = 76;
 const TOP_H = 56;
+
+/** Keeps the close control and step label below the status bar, including Android modals that report a 0 inset. */
+function LessonFrame({ children }: { children: React.ReactNode }) {
+  const { c } = useTheme();
+  const insets = useSafeAreaInsets();
+  const top = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0);
+  return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: top, paddingBottom: insets.bottom }}>{children}</View>;
+}
 
 function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
   if (s.botThinking) return "thinking";
@@ -133,10 +141,10 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
 
   if (s.status === "finished") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      <LessonFrame>
         {top}
         <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", padding: 20, gap: 14 }}>{done}</ScrollView>
-      </SafeAreaView>
+      </LessonFrame>
     );
   }
   if (!step) return null;
@@ -161,7 +169,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     ) : null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <LessonFrame>
       {top}
       <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 12, gap: 10, maxWidth: 640, width: "100%", alignSelf: "center" }}>
         <BoardStage
@@ -229,6 +237,6 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
         </View>
       </View>
       <View style={{ height: FOOTER_H, justifyContent: "center", paddingHorizontal: 16, maxWidth: 560, width: "100%", alignSelf: "center" }}>{action}</View>
-    </SafeAreaView>
+    </LessonFrame>
   );
 }
