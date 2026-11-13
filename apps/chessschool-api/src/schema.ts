@@ -6,6 +6,7 @@ export const users = sqliteTable("cs_users", {
   name: text("name").notNull().default(""),
   passwordHash: text("password_hash"),
   googleSub: text("google_sub").unique(),
+  appleSub: text("apple_sub").unique(),
   guestId: text("guest_id"),
   /** member: full account. guest: still inside the three-class cap. */
   kind: text("kind").notNull().default("member"),
@@ -90,11 +91,14 @@ export const BOOTSTRAP_SQL = [
     name TEXT NOT NULL DEFAULT '',
     password_hash TEXT,
     google_sub TEXT UNIQUE,
+    apple_sub TEXT UNIQUE,
     guest_id TEXT,
     kind TEXT NOT NULL DEFAULT 'member',
     created_at INTEGER NOT NULL
   )`,
   `ALTER TABLE cs_users ADD COLUMN kind TEXT NOT NULL DEFAULT 'member'`,
+  `ALTER TABLE cs_users ADD COLUMN apple_sub TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS cs_users_apple_sub ON cs_users(apple_sub)`,
   `CREATE TABLE IF NOT EXISTS cs_sessions (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES cs_users(id) ON DELETE CASCADE,

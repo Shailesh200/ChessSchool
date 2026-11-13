@@ -24,7 +24,9 @@ import { and, eq, gt, lt } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
+import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
+import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
 import { classMembers, classes, course, feedback, profiles, progress, sessions, users } from "./schema";
@@ -46,6 +48,8 @@ export const LATEST_APP = "0.4.0";
 export type AppDeps = {
   db: Db;
   google: GoogleVerifier | null;
+  /** Null when APPLE_CLIENT_IDS is unset. Sign in with Apple then returns 503. */
+  apple?: AppleVerifier | null;
   secureCookies: boolean;
   corsOrigins: string[];
   now?: () => Date;
@@ -61,7 +65,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, secureCookies, corsOrigins, now = () => new Date() }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date() }: AppDeps) {
   const app = new Hono<Vars>();
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
@@ -71,7 +75,7 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     return row ? (JSON.parse(row.data) as { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] }) : null;
   };
 
-  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization"], allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"] }));
+  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
 
   app.onError((err, c) => {
     console.error(err);
@@ -81,7 +85,12 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
 
   /* ---------- helpers ---------- */
 
-  const toAccount = (u: UserRow): Account => ({ id: u.id, email: u.email, name: u.name, provider: u.passwordHash ? "password" : "google" });
+  const toAccount = (u: UserRow): Account => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    provider: (u.passwordHash ? "password" : u.appleSub && !u.googleSub ? "apple" : "google") as Account["provider"],
+  });
 
   async function loadProfile(userId: string): Promise<ApiProfile> {
     const row = await db.query.profiles.findFirst({ where: eq(profiles.userId, userId) });
@@ -213,7 +222,7 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
     if (existing) return fail(c, 409, "email_taken");
     const guest = guestOf(b);
-    const user: UserRow = { id: newId(), email, name, passwordHash: await hashPassword(password), googleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+    const user: UserRow = { id: newId(), email, name, passwordHash: await hashPassword(password), googleSub: null, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
     await db.insert(users).values(user);
     await applyGuestProfile(user.id, guest, true);
     return c.json(await authResponse(c, user, guest), 201);
@@ -247,7 +256,54 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
         await applyGuestProfile(user.id, guest, false);
       } else {
         const guestName = cleanName(String(guest?.profile?.name ?? ""));
-        user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+        user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+        await db.insert(users).values(user);
+        await applyGuestProfile(user.id, guest, true);
+      }
+    }
+    return c.json(await authResponse(c, user, guest));
+  });
+
+  const appleName = (fullName: unknown) => {
+    if (!fullName || typeof fullName !== "object") return "";
+    const name = fullName as { givenName?: unknown; familyName?: unknown };
+    const given = typeof name.givenName === "string" ? name.givenName : "";
+    const family = typeof name.familyName === "string" ? name.familyName : "";
+    return cleanName(`${given} ${family}`);
+  };
+
+  app.post("/v1/auth/apple", limitAuth, async (c) => {
+    if (!apple) return c.json({ error: "apple_unconfigured" }, 503);
+    const b = await body<{ identityToken: string; nonce?: string; fullName?: { givenName?: string; familyName?: string }; email?: string; guest: GuestPayload }>(c);
+    const nonce = typeof b.nonce === "string" && b.nonce.length > 0 ? b.nonce : undefined;
+    const identity = typeof b.identityToken === "string" ? await apple(b.identityToken, nonce) : null;
+    if (!identity) return c.json({ error: "apple_invalid" }, 401);
+    const guest = guestOf(b);
+    let user = await db.query.users.findFirst({ where: eq(users.appleSub, identity.sub) });
+    if (!user) {
+      const byEmail = identity.email ? await db.query.users.findFirst({ where: eq(users.email, identity.email) }) : undefined;
+      if (byEmail && identity.emailVerified) {
+        if (byEmail.appleSub && byEmail.appleSub !== identity.sub) return c.json({ error: "apple_invalid" }, 401);
+        await db.update(users).set({ appleSub: identity.sub }).where(eq(users.id, byEmail.id));
+        user = { ...byEmail, appleSub: identity.sub };
+        await applyGuestProfile(user.id, guest, false);
+      } else if (byEmail) {
+        return c.json({ error: "apple_invalid" }, 401);
+      } else if (!identity.email) {
+        return c.json({ error: "apple_invalid" }, 401);
+      } else {
+        const guestName = cleanName(String(guest?.profile?.name ?? ""));
+        user = {
+          id: newId(),
+          email: identity.email,
+          name: guestName || appleName(b.fullName),
+          passwordHash: null,
+          googleSub: null,
+          appleSub: identity.sub,
+          guestId: guest?.guestId ?? null,
+          kind: "member",
+          createdAt: now().getTime(),
+        };
         await db.insert(users).values(user);
         await applyGuestProfile(user.id, guest, true);
       }
@@ -262,10 +318,10 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     return c.json({ ok: true });
   });
 
-  /** Permanently deletes the account and everything stored for it on this server (cascade). */
+  /** Permanently deletes the account and everything stored for it on this server. */
   app.delete("/v1/me", requireUser, async (c) => {
     const user = c.get("user");
-    await db.delete(users).where(eq(users.id, user.id));
+    await deleteUserData(db, user.id);
     deleteCookie(c, SESSION_COOKIE, { path: "/" });
     return c.json({ ok: true });
   });

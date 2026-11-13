@@ -4,7 +4,7 @@ import { completeNode, createInitialState, PATH, type AuthResponse, type Progres
 import { createApp } from "../src/app";
 import { openDb, type Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
-import { users } from "../src/schema";
+import { classMembers, classes, feedback, profiles, progress, sessions, users } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -117,6 +117,15 @@ describe("register / login / logout", () => {
     expect((await call("GET", "/v1/me", undefined, token)).status).toBe(200);
     await call("POST", "/v1/auth/logout", undefined, token);
     expect((await call("GET", "/v1/me", undefined, token)).status).toBe(401);
+  });
+
+  it("logout revokes only the session that presented the token", async () => {
+    await call("POST", "/v1/auth/register", { name: "A", email: "a@b.co", password: "pawnpawn" });
+    const first = (await call("POST", "/v1/auth/login", { email: "a@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const second = (await call("POST", "/v1/auth/login", { email: "a@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("POST", "/v1/auth/logout", undefined, first.token)).json).toEqual({ ok: true });
+    expect((await call("GET", "/v1/me", undefined, first.token)).status).toBe(401);
+    expect((await call("GET", "/v1/me", undefined, second.token)).status).toBe(200);
   });
 
   it("merges guest progress into an existing account on login", async () => {
@@ -308,12 +317,55 @@ describe("google configuration", () => {
 });
 
 describe("account deletion and feedback", () => {
-  it("deletes the account, its sessions and progress", async () => {
-    const { token } = (await call("POST", "/v1/auth/register", { name: "D", email: "d@b.co", password: "pawnpawn" })).json as AuthResponse;
-    await call("PUT", "/v1/progress", { progress: guestDone().progress }, token);
-    expect((await call("DELETE", "/v1/me", undefined, token)).status).toBe(200);
-    expect((await call("GET", "/v1/me", undefined, token)).status).toBe(401);
-    expect((await call("DELETE", "/v1/me")).status).toBe(401);
+  it("turns foreign keys on for this connection", async () => {
+    const result = await db.$client.execute("PRAGMA foreign_keys");
+    const row = result.rows[0] as Record<string, unknown> | undefined;
+    const value = row?.foreign_keys ?? Object.values(row ?? {})[0];
+    expect(Number(value)).toBe(1);
+  });
+
+  it("allows a cross-origin DELETE preflight", async () => {
+    const corsApp = createApp({ db, google: null, secureCookies: false, corsOrigins: ["https://chess-school.in"], now: () => NOW });
+    const res = await corsApp.request("/v1/me", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://chess-school.in",
+        "Access-Control-Request-Method": "DELETE",
+        "Access-Control-Request-Headers": "authorization,content-type",
+      },
+    });
+    expect(res.status).toBe(204);
+    expect(res.headers.get("access-control-allow-methods") ?? "").toMatch(/DELETE/);
+    expect(res.headers.get("access-control-allow-origin")).toBe("https://chess-school.in");
+  });
+
+  it("deletes the account, every session, and every per-user row", async () => {
+    const owner = (await call("POST", "/v1/auth/register", { name: "D", email: "d@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const other = (await call("POST", "/v1/auth/register", { name: "E", email: "e@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const second = (await call("POST", "/v1/auth/login", { email: "d@b.co", password: "pawnpawn" })).json as AuthResponse;
+    await call("PUT", "/v1/progress", { progress: guestDone().progress }, owner.token);
+    const made = await call("POST", "/v1/classes", { name: "Tuesday" }, owner.token);
+    expect(made.status).toBe(201);
+    const note = await call("POST", "/v1/feedback", { mood: "ok", message: "Please delete this too" }, owner.token);
+    expect(note.status).toBe(200);
+
+    const removed = await call("DELETE", "/v1/me", undefined, owner.token);
+    expect(removed.status).toBe(200);
+    expect(removed.json).toEqual({ ok: true });
+    expect((await call("GET", "/v1/me", undefined, owner.token)).json.error).toBe("unauthorized");
+    expect((await call("GET", "/v1/me", undefined, second.token)).status).toBe(401);
+    expect((await call("DELETE", "/v1/me", undefined, owner.token)).status).toBe(401);
+    expect((await call("GET", "/v1/join/" + made.json.class.code)).status).toBe(404);
+
+    const id = owner.user.id;
+    expect(await db.select().from(users).where(eq(users.id, id))).toEqual([]);
+    expect(await db.select().from(sessions).where(eq(sessions.userId, id))).toEqual([]);
+    expect(await db.select().from(progress).where(eq(progress.userId, id))).toEqual([]);
+    expect(await db.select().from(profiles).where(eq(profiles.userId, id))).toEqual([]);
+    expect(await db.select().from(feedback).where(eq(feedback.userId, id))).toEqual([]);
+    expect(await db.select().from(classMembers).where(eq(classMembers.userId, id))).toEqual([]);
+    expect(await db.select().from(classes).where(eq(classes.ownerId, id))).toEqual([]);
+    expect((await call("GET", "/v1/me", undefined, other.token)).status).toBe(200);
   });
 
   it("accepts feedback from guests, validates it and rate limits", async () => {
