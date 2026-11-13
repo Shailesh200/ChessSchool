@@ -3,13 +3,14 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { pathToFileURL } from "node:url";
-import { openDb, type Db } from "../src/db";
+import { openDb, openReadOnlyDb, type Db } from "../src/db";
 import { confirmMatches, lockReadsOnly, parseAllowList, parseCleanupArgs, resolveDbTarget, runQaCleanup, type QaReport } from "../src/qa-accounts";
 
 export type CleanupIo = {
   argv?: string[];
   env?: NodeJS.ProcessEnv;
   openDb?: (url: string, authToken?: string) => Promise<Db>;
+  openReadOnly?: (url: string, authToken?: string) => Promise<Db>;
   isTTY?: boolean;
   readLine?: () => Promise<string>;
   log?: (line: string) => void;
@@ -70,7 +71,8 @@ export async function runDeleteQaAccounts(io: CleanupIo = {}): Promise<number> {
 
   let db: Db;
   try {
-    db = await (io.openDb ?? openDb)(target.url, env.DATABASE_AUTH_TOKEN);
+    const opener = args.apply ? (io.openDb ?? openDb) : (io.openReadOnly ?? openReadOnlyDb);
+    db = await opener(target.url, env.DATABASE_AUTH_TOKEN);
   } catch {
     error("database connection failed");
     return 1;

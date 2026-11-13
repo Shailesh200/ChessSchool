@@ -152,7 +152,8 @@ function sqlText(stmt: unknown): string {
 
 function isReadStatement(sql: string): boolean {
   const text = sql.trim().replace(/^\/\*[\s\S]*?\*\//, "").trim().toLowerCase();
-  return text.startsWith("select") || text.startsWith("pragma") || text.startsWith("with");
+  if (text.startsWith("select") || text.startsWith("with")) return true;
+  return text.startsWith("pragma") && !text.includes("=");
 }
 
 /** Rejects every statement that is not a read. Used for a remote dry-run. */

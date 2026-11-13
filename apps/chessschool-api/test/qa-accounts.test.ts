@@ -1,12 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, chmodSync, readFileSync, statSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
-import { openDb } from "../src/db";
+import { openDb, openReadOnlyDb } from "../src/db";
 import { parseAllowList, resolveDbTarget, runQaCleanup } from "../src/qa-accounts";
 import { runDeleteQaAccounts } from "../scripts/delete-qa-accounts";
 import { profiles, progress, sessions, users } from "../src/schema";
@@ -135,6 +135,7 @@ describe("QA account cleanup", () => {
       argv: ["--list", listPath, "--remote-prod"],
       env: { DATABASE_URL: secretUrl, DATABASE_AUTH_TOKEN: token },
       openDb: async () => db,
+      openReadOnly: async () => db,
       isTTY: false,
       log: (line) => lines.push(line),
       error: (line) => errors.push(line),
@@ -209,5 +210,47 @@ describe("QA account cleanup", () => {
     expect(resolveDbTarget("file:/tmp/qa.db", false)).toMatchObject({ ok: true, location: "local" });
     expect(resolveDbTarget(secretUrl, false).ok).toBe(false);
     expect(resolveDbTarget(secretUrl, true)).toMatchObject({ ok: true, location: "remote" });
+  });
+
+  it("dry-run opens a local file read-only and a remote client with no DDL", async () => {
+    const { path, db } = await fileDb();
+    await db.$client.close();
+    const listPath = join(path, "..", "list.md");
+    await writeFile(listPath, LIST);
+    const before = statSync(path);
+    const bytes = readFileSync(path);
+    chmodSync(path, 0o444);
+    try {
+      const lines: string[] = [];
+      const code = await runDeleteQaAccounts({
+        argv: ["--list", listPath],
+        env: { DATABASE_URL: `file:${path}` },
+        log: (line) => lines.push(line),
+        error: (line) => lines.push(line),
+      });
+      expect(code).toBe(0);
+      expect(lines.join("\n")).toContain("found-email: qa+scout-6109687-1@example.test");
+      const after = statSync(path);
+      expect(after.mtimeMs).toBe(before.mtimeMs);
+      expect(after.size).toBe(before.size);
+      expect(readFileSync(path).equals(bytes)).toBe(true);
+    } finally {
+      chmodSync(path, 0o644);
+    }
+
+    const statements: string[] = [];
+    const remote = {
+      async execute(stmt: unknown) {
+        const sql = typeof stmt === "string" ? stmt : String((stmt as { sql?: string }).sql ?? "");
+        statements.push(sql);
+        if (!/^\s*(select|with)\b/i.test(sql) && !(/^\s*pragma\b/i.test(sql) && !sql.includes("="))) throw new Error(`write: ${sql}`);
+        return { rows: [] as unknown[] };
+      },
+    };
+    const opened = await openReadOnlyDb("libsql://secret-host.example/db", "secret-token", remote as never);
+    expect(statements).toEqual([]);
+    await opened.select({ id: users.id, email: users.email }).from(users);
+    expect(statements.length).toBeGreaterThan(0);
+    expect(statements.every((sql) => /^\s*select\b/i.test(sql))).toBe(true);
   });
 });

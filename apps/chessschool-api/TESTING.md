@@ -37,7 +37,7 @@ pnpm --filter chessschool-api qa:delete-accounts -- --list <path> --apply --max 
 
 `DATABASE_URL` must be a `file:` URL. A remote URL is refused unless `--remote-prod` is also set. The script prints `database: local` or `database: remote` and never prints the URL, the token, or the host.
 
-Dry-run is the default. With `--remote-prod` and no `--apply`, the run only reads. `--apply` deletes on a local file. `--max` defaults to 200. If more listed accounts are found than `--max`, nothing is deleted.
+Dry-run is the default. It opens the database read-only: a local file uses sqlite `mode=ro` and does not create tables or seed rows, and a remote dry-run (`--remote-prod` without `--apply`) only runs read statements. `--apply` still opens the database normally and can migrate it. `--max` defaults to 200. If more listed accounts are found than `--max`, nothing is deleted.
 
 A remote delete needs all of `--remote-prod`, `--apply`, `--list <file>`, and the exact matched count. At a terminal the operator types that count. Without a terminal, pass `--confirm-count <n>`. A missing or different count aborts and writes nothing. A real production run happens only at launch with Shailesh's own OK.
 
