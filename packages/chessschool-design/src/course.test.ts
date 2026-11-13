@@ -83,3 +83,11 @@ describe("guestLocked lessons", () => {
     expect(parseCourse(JSON.stringify(course))?.lessons[0].guestLocked).toBeUndefined();
   });
 });
+
+describe("coming-soon list", () => {
+  it("keeps valid coming-soon items from the course document and drops broken ones", () => {
+    const raw = JSON.stringify({ units: [], lessons: [], comingSoon: [{ id: "studies", title: "Endgame studies", sub: "Soon" }, { id: 3 }] });
+    expect(parseCourse(raw)?.comingSoon).toEqual([{ id: "studies", title: "Endgame studies", sub: "Soon" }]);
+    expect(parseCourse(JSON.stringify({ units: [], lessons: [] }))?.comingSoon).toBeUndefined();
+  });
+});

@@ -22,7 +22,8 @@ export function parseCourse(raw: string | null): Course | null {
   try {
     const v = JSON.parse(raw) as Course;
     if (!v || !Array.isArray(v.units) || !Array.isArray(v.lessons)) return null;
-    return { units: v.units, lessons: v.lessons.map(normalizeGuestLock) };
+    const soon = Array.isArray(v.comingSoon) ? v.comingSoon.filter((i) => i && typeof i.id === "string" && typeof i.title === "string" && typeof i.sub === "string") : [];
+    return { units: v.units, lessons: v.lessons.map(normalizeGuestLock), ...(soon.length ? { comingSoon: soon } : {}) };
   } catch {
     return null;
   }

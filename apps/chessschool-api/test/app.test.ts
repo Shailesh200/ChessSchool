@@ -60,6 +60,7 @@ describe("course", () => {
     expect(centre?.title).toBe("The centre");
     expect(centre?.guestLocked).toBe(true);
     expect(outline.json.units.length).toBeGreaterThan(3);
+    expect(outline.json.comingSoon.length).toBeGreaterThan(0);
 
     const full = await call("GET", "/v1/course");
     expect(full.json.lessons.find((l: { id: string; steps: unknown[] }) => l.id === "centre").steps.length).toBeGreaterThan(0);

@@ -72,9 +72,10 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
 
+  type CourseDoc = { units: unknown[]; lessons: { id: string; steps?: unknown[] }[]; comingSoon?: unknown[] };
   const loadCourse = async () => {
     const row = await db.query.course.findFirst({ where: eq(course.id, "live") });
-    return row ? (JSON.parse(row.data) as { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] }) : null;
+    return row ? (JSON.parse(row.data) as CourseDoc) : null;
   };
 
   app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
@@ -462,8 +463,6 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return c.json({ ok: true });
   });
 
-  type CourseDoc = { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] };
-
   async function accessFor(user: UserRow | null) {
     const prog = user ? await loadProgress(user.id) : emptyProgress();
     return courseAccess(prog.completed, isGuestAccount(user));
@@ -481,6 +480,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
           ...(withSteps ? { steps: steps ?? [] } : {}),
         };
       }),
+      ...(doc.comingSoon ? { comingSoon: doc.comingSoon } : {}),
     };
   }
 
