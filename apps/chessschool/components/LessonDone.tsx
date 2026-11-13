@@ -25,7 +25,7 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, children }
         {streak ? (
           <View accessible accessibilityLabel={copy.lesson.streakUp(streak)} style={{ flexDirection: "row", alignItems: "center", gap: 2, paddingLeft: 4, paddingRight: 16, paddingVertical: 4, borderRadius: 999, backgroundColor: c.dangerSoft }}>
             <Fx name="streak-spark" size={40} />
-            <T role="label">{copy.lesson.streakUp(streak)}</T>
+            <T role="label">{streak}</T>
           </View>
         ) : null}
       </View>
