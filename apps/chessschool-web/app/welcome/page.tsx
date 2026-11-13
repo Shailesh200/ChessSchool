@@ -114,7 +114,7 @@ export default function Welcome() {
 
       <footer className="flow-actions">
         {step < STEPS - 1 ? (
-          <Button block onClick={next}>
+          <Button block onClick={next} style={{ color: "var(--cs-on-brand)", background: "var(--cs-brand)", justifyContent: "center", textAlign: "center" }}>
             {copy.welcome.next}
           </Button>
         ) : (

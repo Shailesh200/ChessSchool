@@ -9,14 +9,16 @@ import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
 export default function Splash() {
-  const { state } = useApp();
+  const { ready, state } = useApp();
   const { c } = useTheme();
 
   useEffect(() => {
-    const dest = state.account || state.seenWelcome ? "/today" : "/welcome";
+    if (!ready) return;
+    // Signed-out first launch opens Log in. Welcome runs after signup or guest.
+    const dest = state.account || state.seenWelcome ? "/today" : "/login";
     const t = setTimeout(() => router.replace(dest), motion.duration.splash);
     return () => clearTimeout(t);
-  }, [state.account, state.seenWelcome]);
+  }, [ready, state.account, state.seenWelcome]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }} accessibilityLabel={copy.splash.loading}>
