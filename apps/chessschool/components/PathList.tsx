@@ -55,6 +55,7 @@ export function PathList({
   if (!course) return <CourseSkeleton />;
   const f = focusCourse(course, progress.completed);
   const unitName = (id: string) => course.units.find((u) => u.id === id)?.title ?? "";
+  const otherUnit = (id: string) => (id === f.currentUnit?.id ? undefined : unitName(id));
   const isLocked = (lesson: CourseLesson) => guestClassLocked(course, lesson, signedIn, progress);
   const go = (lesson: CourseLesson) => {
     if (isLocked(lesson)) {
@@ -104,12 +105,12 @@ export function PathList({
             </Pressable>
           ))
         : null}
-      {f.justFinished ? <Stop kind="done" lesson={f.justFinished} unit={unitName(f.justFinished.unit)} kicker={copy.today.focus.justFinished} /> : null}
+      {f.justFinished ? <Stop kind="done" lesson={f.justFinished} unit={otherUnit(f.justFinished.unit)} kicker={copy.today.focus.justFinished} /> : null}
       {f.current ? (
         <Stop
           kind="current"
           lesson={f.current}
-          unit={unitName(f.current.unit)}
+          unit={otherUnit(f.current.unit)}
           kicker={isLocked(f.current) ? copy.today.guestGate.locked : classOpened || freshId === f.current.id ? copy.today.focus.unlocked : copy.today.focus.current}
           anchor={currentAnchor}
           locked={isLocked(f.current)}
@@ -117,7 +118,7 @@ export function PathList({
         />
       ) : null}
       {f.upcoming.map((l, i) => (
-        <Stop key={l.id} kind="next" lesson={l} unit={unitName(l.unit)} kicker={isLocked(l) ? copy.today.guestGate.locked : i === 0 ? copy.today.focus.upNext : undefined} locked={isLocked(l)} onOpen={() => go(l)} />
+        <Stop key={l.id} kind="next" lesson={l} unit={otherUnit(l.unit)} kicker={isLocked(l) ? copy.today.guestGate.locked : i === 0 ? copy.today.focus.upNext : undefined} locked={isLocked(l)} onOpen={() => go(l)} />
       ))}
       {f.rest.length ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
@@ -180,7 +181,8 @@ function Stop({
 }: {
   kind: "done" | "current" | "next";
   lesson: CourseLesson;
-  unit: string;
+  /** Omitted when it is the unit already named above the list. */
+  unit?: string;
   kicker?: string;
   anchor?: React.RefObject<View | null>;
   locked?: boolean;
@@ -203,9 +205,11 @@ function Stop({
       }}
     >
       {kicker ? <Badge tone={tone}>{kicker}</Badge> : null}
-      <T role="small" color="textMuted">
-        {unit}
-      </T>
+      {unit ? (
+        <T role="small" color="textMuted">
+          {unit}
+        </T>
+      ) : null}
       <T role="label">{lesson.title}</T>
       <T role="small" color="textMuted">
         {locked ? copy.today.guestGate.locked : kind === "done" ? `${copy.today.done} · +${lesson.xp} XP` : `${lesson.sub} · ${lesson.minutes} min`}

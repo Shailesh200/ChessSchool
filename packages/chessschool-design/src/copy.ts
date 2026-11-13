@@ -94,6 +94,7 @@ export const copy = {
     greeting: { morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening" },
     friend: "friend",
     level: (rank: string, level: number) => `${rank} · Level ${level}`,
+    levelOnly: (level: number) => `Level ${level}`,
     streakZero: "Start a streak",
     streak: (n: number) => (n === 1 ? "1 day" : `${n} days`),
     xp: (n: number) => `${n} XP`,

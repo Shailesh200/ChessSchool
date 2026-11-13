@@ -754,7 +754,7 @@ export function RankCurve({ xp }: { xp: number }) {
         <View style={{ flex: 1, gap: 2 }}>
           <T role="heading">{rankName}</T>
           <T role="small" color="textMuted">
-            {copy.today.level(rankName, r.level)}
+            {copy.today.levelOnly(r.level)}
           </T>
         </View>
       </View>
