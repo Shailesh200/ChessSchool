@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { openDb } from "../src/db";
-import { parseAllowList, runQaCleanup } from "../src/qa-accounts";
+import { parseAllowList, resolveDbTarget, runQaCleanup } from "../src/qa-accounts";
+import { runDeleteQaAccounts } from "../scripts/delete-qa-accounts";
 import { profiles, progress, sessions, users } from "../src/schema";
 
 const LIST = `# ChessSchool v2 QA accounts on prod (api.chess-school.in). WIPE ALL BEFORE LAUNCH.
@@ -88,6 +89,7 @@ describe("QA account cleanup", () => {
     const dry = runScript(["--list", listPath], { DATABASE_URL: `file:${path}` });
     expect(dry.status).toBe(0);
     expect(dry.stdout).toContain("mode: dry-run");
+    expect(dry.stdout).toContain("database: local");
     expect(dry.stdout).toContain("no accounts deleted");
     expect(dry.stdout).toContain("unlisted-email: qa+other-abcdef0-3@example.test");
     expect((await db.query.users.findFirst({ where: eq(users.email, "qa+other-abcdef0-3@example.test") }))?.id).toBe("u2");
@@ -110,5 +112,102 @@ describe("QA account cleanup", () => {
     expect(output).toMatch(/local sqlite file/);
     expect(output).not.toContain(remote);
     expect(output).not.toContain("secret-token");
+    expect(output).not.toContain("database: remote");
+  });
+
+  it("a remote dry-run only reads, and a remote delete waits for the exact count", async () => {
+    const secretUrl = "libsql://secret-host.example/db";
+    const token = "secret-token";
+    const { path, db } = await fileDb();
+    const listPath = join(path, "..", "list.md");
+    await writeFile(listPath, LIST);
+    const client = db.$client as { execute: (stmt: unknown) => Promise<unknown> };
+    const original = client.execute.bind(client);
+    let writes = 0;
+    client.execute = async (stmt: unknown) => {
+      const sql = typeof stmt === "string" ? stmt : String((stmt as { sql?: string })?.sql ?? "");
+      if (!/^\s*(select|pragma|with)\b/i.test(sql)) writes += 1;
+      return original(stmt);
+    };
+    const lines: string[] = [];
+    const errors: string[] = [];
+    const dry = await runDeleteQaAccounts({
+      argv: ["--list", listPath, "--remote-prod"],
+      env: { DATABASE_URL: secretUrl, DATABASE_AUTH_TOKEN: token },
+      openDb: async () => db,
+      isTTY: false,
+      log: (line) => lines.push(line),
+      error: (line) => errors.push(line),
+    });
+    const output = [...lines, ...errors].join("\n");
+    expect(dry).toBe(0);
+    expect(writes).toBe(0);
+    expect(output).toContain("database: remote");
+    expect(output).toContain("mode: dry-run");
+    expect(output).not.toContain(secretUrl);
+    expect(output).not.toContain("secret-host");
+    expect(output).not.toContain(token);
+    expect(output).not.toContain("libsql");
+    expect(await db.select().from(users)).toHaveLength(4);
+
+    writes = 0;
+    const wrong = await runDeleteQaAccounts({
+      argv: ["--list", listPath, "--remote-prod", "--apply", "--confirm-count", "99"],
+      env: { DATABASE_URL: secretUrl, DATABASE_AUTH_TOKEN: token },
+      openDb: async () => db,
+      isTTY: false,
+      log: (line) => lines.push(line),
+      error: (line) => errors.push(line),
+    });
+    expect(wrong).toBe(1);
+    expect(writes).toBe(0);
+    expect(errors.join("\n")).toMatch(/confirmation does not match/);
+    expect(await db.select().from(users)).toHaveLength(4);
+
+    const missing = await runDeleteQaAccounts({
+      argv: ["--list", listPath, "--remote-prod", "--apply"],
+      env: { DATABASE_URL: secretUrl, DATABASE_AUTH_TOKEN: token },
+      openDb: async () => db,
+      isTTY: false,
+      log: () => {},
+      error: (line) => errors.push(line),
+    });
+    expect(missing).toBe(1);
+    expect(writes).toBe(0);
+    expect(await db.select().from(users)).toHaveLength(4);
+
+    let prompted = "";
+    const typed = await runDeleteQaAccounts({
+      argv: ["--list", listPath, "--remote-prod", "--apply"],
+      env: { DATABASE_URL: secretUrl, DATABASE_AUTH_TOKEN: token },
+      openDb: async () => db,
+      isTTY: true,
+      readLine: async () => {
+        prompted = "prompted";
+        return "0";
+      },
+      log: () => {},
+      error: (line) => errors.push(line),
+    });
+    expect(prompted).toBe("prompted");
+    expect(typed).toBe(1);
+    expect(writes).toBe(0);
+
+    const applied = await runDeleteQaAccounts({
+      argv: ["--list", listPath, "--remote-prod", "--apply", "--confirm-count", "1"],
+      env: { DATABASE_URL: secretUrl, DATABASE_AUTH_TOKEN: token },
+      openDb: async () => db,
+      isTTY: false,
+      log: (line) => lines.push(line),
+      error: (line) => errors.push(line),
+    });
+    expect(applied).toBe(0);
+    expect(writes).toBeGreaterThan(0);
+    expect(await db.query.users.findFirst({ where: eq(users.email, "qa+scout-6109687-1@example.test") })).toBeUndefined();
+    expect((await db.query.users.findFirst({ where: eq(users.email, "qa+other-abcdef0-3@example.test") }))?.id).toBe("u2");
+    expect(resolveDbTarget(undefined, false).ok).toBe(false);
+    expect(resolveDbTarget("file:/tmp/qa.db", false)).toMatchObject({ ok: true, location: "local" });
+    expect(resolveDbTarget(secretUrl, false).ok).toBe(false);
+    expect(resolveDbTarget(secretUrl, true)).toMatchObject({ ok: true, location: "remote" });
   });
 });
