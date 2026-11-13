@@ -9,6 +9,7 @@ import {
   placeAt,
   recordPuzzle,
   recordSprint,
+  serveDaily,
   completeNode,
   nextNode,
   recordGame,
@@ -17,6 +18,7 @@ import {
   createInitialState,
   dayKey,
   canUseGym,
+  DAILY_SEEN_MAX,
   formatDailyCountdown,
   hydrateState,
   ideasLearned,
@@ -257,6 +259,37 @@ describe("guest -> account merge hardening", () => {
     const hydrated = hydrateState({ ...createInitialState("old"), progress: old }, () => "new");
     expect(hydrated.progress.games).toEqual({ played: 0, won: 0 });
     expect(hydrated.progress.completed.meet).toBe("2026-11-03");
+  });
+
+  it("loads daily progress saved before the seen list and caps it at a year", () => {
+    const old = {
+      completed: { meet: "2026-11-03" },
+      xp: 10,
+      streak: { count: 1, lastDay: "2026-11-03" },
+      minutes: { day: "2026-11-03", value: 2 },
+      puzzles: { rating: 640, attempts: 2, solved: 1, recent: ["abc12"], sprintBest: 0, daily: { lastDay: "2026-11-03", count: 1 } },
+    };
+    const hydrated = hydrateState({ ...createInitialState("old"), progress: old }, () => "new");
+    expect(hydrated.progress.puzzles.daily.seen).toEqual([]);
+    expect(hydrated.progress.puzzles.daily.lastDay).toBe("2026-11-03");
+    expect(hydrated.progress.puzzles.daily.count).toBe(1);
+    const sanitized = sanitizeProgress(old as never);
+    expect(sanitized.puzzles.daily.seen).toEqual([]);
+    const merged = mergeProgress(old as never, emptyProgress());
+    expect(merged.puzzles.daily.seen).toEqual([]);
+    expect(merged.puzzles.daily.lastDay).toBe("2026-11-03");
+
+    const ids = Array.from({ length: DAILY_SEEN_MAX + 40 }, (_, i) => `a${String(i).padStart(4, "0")}`);
+    const capped = sanitizeProgress({
+      ...emptyProgress(),
+      puzzles: { ...emptyProgress().puzzles, daily: { lastDay: "2026-11-04", count: 1, seen: [...ids, "no", 12 as never] } },
+    });
+    expect(capped.puzzles.daily.seen).toEqual(ids.slice(0, DAILY_SEEN_MAX));
+
+    let served = createInitialState("g");
+    for (const id of ids) served = serveDaily(served, "2026-11-04", id);
+    expect(served.progress.puzzles.daily.seen).toHaveLength(DAILY_SEEN_MAX);
+    expect(served.progress.puzzles.daily.seen?.[0]).toBe(ids.at(-1));
   });
 });
 
