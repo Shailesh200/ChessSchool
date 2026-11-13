@@ -5,6 +5,7 @@ import { Platform, Pressable, TextInput, View } from "react-native";
 import { appleAvailable, appleCredential, appleModule, isAppleCancel } from "@/lib/apple";
 import { api, errorMessage } from "@/lib/api";
 import { googleAvailable, googleIdToken } from "@/lib/google";
+import { labelOn } from "@/lib/labelOn";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 import { GoogleMark } from "./Icon";
@@ -12,29 +13,12 @@ import { Cody } from "./Lottie";
 import { Flow, T, TextField, TopBar } from "./ui";
 
 type Errors = Partial<Record<"name" | "email" | "password" | "form", string>>;
-type Kind = "login" | "signup" | "google";
+type Kind = "login" | "signup" | "google" | "apple";
 
 function authHref(mode: "login" | "signup", email: string) {
   const value = email.trim();
   const path = mode === "login" ? "/login" : "/signup";
   return value ? `${path}?email=${encodeURIComponent(value)}` : path;
-}
-
-/** Prefer the token colour, and fall back when it would disappear on the fill. */
-function labelOn(bg: string, preferred: string): string {
-  const lum = (hex: string) => {
-    const h = hex.replace("#", "");
-    if (h.length < 6) return 0;
-    const chan = (i: number) => parseInt(h.slice(i, i + 2), 16) / 255;
-    const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-    return 0.2126 * lin(chan(0)) + 0.7152 * lin(chan(2)) + 0.0722 * lin(chan(4));
-  };
-  if (!bg.startsWith("#") || !preferred.startsWith("#")) return preferred;
-  const a = lum(bg);
-  const b = lum(preferred);
-  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  if (ratio >= 3) return preferred;
-  return a > 0.55 ? "#1C1B2E" : "#FFFFFF";
 }
 
 export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "login" | "signup"; initialEmail?: string; topSpacing?: number }) {
@@ -81,7 +65,9 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
       cue("success");
       router.replace(kind === "login" || !firstRun ? "/today" : "/welcome");
     } catch (err) {
-      setErrors({ form: errorMessage(err) });
+      if (kind === "apple" && isAppleCancel(err)) return;
+      const appleSdk = kind === "apple" && !(err instanceof ApiError);
+      setErrors({ form: appleSdk ? copy.auth.appleFailed : errorMessage(err) });
       cue("gentle-no");
     } finally {
       setBusy(false);
@@ -108,24 +94,11 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
 
   const apple = () => {
     if (busy) return;
-    void (async () => {
-      setBusy(true);
-      try {
-        const cred = await appleCredential();
-        if (!cred) return;
-        const auth = await api.apple(cred);
-        const firstRun = !state.seenWelcome;
-        await signedIn(auth);
-        cue("success");
-        router.replace(firstRun ? "/welcome" : "/today");
-      } catch (err) {
-        if (isAppleCancel(err)) return;
-        setErrors({ form: err instanceof ApiError ? errorMessage(err) : copy.auth.appleFailed });
-        cue("gentle-no");
-      } finally {
-        setBusy(false);
-      }
-    })();
+    void done(async () => {
+      const cred = await appleCredential();
+      if (!cred) return null;
+      return api.apple({ ...cred, guest: guestPayload(state) });
+    }, "apple");
   };
 
   const switchMode = () => {

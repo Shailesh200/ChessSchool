@@ -20,12 +20,13 @@ export type HomeResponse = {
 };
 export type GuestPayload = { guestId: string; profile?: Partial<ApiProfile>; progress?: Progress };
 
-/** Body for `POST /v1/auth/apple`. `nonce` is the raw nonce; Apple receives its sha256 hex. */
+/** Body for `POST /v1/auth/apple`. `nonce` is the raw nonce; Apple receives its sha256 hex. `guest` is the same device payload as Google, login and register. */
 export type AppleSignInBody = {
   identityToken: string;
   nonce?: string;
   fullName?: { givenName?: string; familyName?: string };
   email?: string;
+  guest?: GuestPayload;
 };
 
 export type ApiErrorCode =
