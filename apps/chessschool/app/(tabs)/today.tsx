@@ -142,7 +142,7 @@ export default function Today() {
           {copy.puzzles.daily}
         </T>
         <T role="body" color="textMuted">
-          {dailyIsDone ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${dailyPick.rating}`}
+          {dailyIsDone ? copy.puzzles.dailyDone : dailyPick ? `${copy.puzzles.dailyBody} · ${dailyPick.rating}` : copy.puzzles.dailyBody}
         </T>
         {dailyIsDone ? <DailyCountdown /> : <Button title={copy.puzzles.daily} icon="puzzle" variant="secondary" onPress={() => router.push("/puzzle?daily=1")} />}
       </Card>

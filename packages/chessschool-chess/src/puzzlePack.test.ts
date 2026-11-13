@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FALLBACK_PACK } from "./puzzles.fallback";
-import { dailyPuzzle, getPuzzlePackVersion, nextPuzzle, setPuzzlePack, type PuzzlePack } from "./puzzles";
+import { dailyPuzzle, getPuzzlePackStatus, getPuzzlePackVersion, lockDailyPuzzle, nextPuzzle, packReady, selectDailyPuzzle, setPuzzlePack, setPuzzlePackStatus, type PuzzlePack } from "./puzzles";
 import { PUZZLE_PACK_KEY, refreshPuzzlePack, type PuzzlePackFetch, type PuzzlePackStorage } from "./puzzlePack";
 
 const pack = (version: string, id: string, theme: "fork" | "pin" = "fork"): PuzzlePack => ({
@@ -21,7 +21,10 @@ function memory(initial?: string): PuzzlePackStorage & { raw: Map<string, string
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   setPuzzlePack(FALLBACK_PACK);
+  setPuzzlePackStatus("loading");
+  lockDailyPuzzle("", null);
 });
 
 describe("puzzle pack refresh", () => {
@@ -66,9 +69,80 @@ describe("puzzle pack refresh", () => {
 
   it("does not fetch in bundled mode", async () => {
     const fetch = vi.fn<PuzzlePackFetch>(async () => ({ status: 200, json: async () => pack("v9", "nope01") }));
-    await refreshPuzzlePack({ storage: memory(JSON.stringify(pack("v1", "cache1"))), fetch, apiBase: "http://api.test", source: "bundled" });
+    const pending = refreshPuzzlePack({ storage: memory(JSON.stringify(pack("v1", "cache1"))), fetch, apiBase: "http://api.test", source: "bundled" });
+    expect(packReady()).toBe(true);
+    expect(getPuzzlePackStatus()).toBe("fallback");
+    expect(fetch).not.toHaveBeenCalled();
+    await pending;
     expect(fetch).not.toHaveBeenCalled();
     expect(getPuzzlePackVersion()).toBe(FALLBACK_PACK.version);
+  });
+
+  it("keeps the daily served from the cache when a later pack arrives", async () => {
+    const cached = pack("v1", "cache1", "pin");
+    const replacement = pack("v3", "api009", "pin");
+    let release: (res: { status: number; json: () => Promise<unknown> }) => void = () => {};
+    const fetch = vi.fn<PuzzlePackFetch>(() => new Promise((resolve) => { release = resolve; }));
+    const raw = new Map<string, string>([[PUZZLE_PACK_KEY, JSON.stringify(cached)]]);
+    const pending = refreshPuzzlePack({
+      storage: { getItem: (key) => raw.get(key) ?? null, setItem: async (key, value) => { raw.set(key, value); } },
+      fetch,
+      apiBase: "http://api.test",
+      source: "api",
+    });
+    expect(getPuzzlePackStatus()).toBe("cache");
+    const first = selectDailyPuzzle({ day: "2026-11-13", completedThemes: ["pin"], seenIds: [] });
+    expect(first.persist).toBe(true);
+    expect(first.puzzle?.id).toBe("cache1");
+    lockDailyPuzzle("2026-11-13", first.puzzle!);
+    release({ status: 200, json: async () => ({ version: "v2", puzzles: [cached.puzzles[0], replacement.puzzles[0]] }) });
+    await pending;
+    expect(getPuzzlePackVersion()).toBe("v2");
+    const sameDay = selectDailyPuzzle({ day: "2026-11-13", completedThemes: ["pin"], seenIds: ["cache1"], servedDay: "2026-11-13", servedId: "cache1" });
+    expect(sameDay.persist).toBe(false);
+    expect(sameDay.puzzle?.id).toBe("cache1");
+    setPuzzlePack(replacement);
+    lockDailyPuzzle("", null);
+    const fromStored = selectDailyPuzzle({ day: "2026-11-13", completedThemes: ["pin"], seenIds: ["cache1"], servedDay: "2026-11-13", servedId: "cache1", stored: first.puzzle });
+    expect(fromStored.persist).toBe(false);
+    expect(fromStored.puzzle?.id).toBe("cache1");
+  });
+
+  it("persists nothing while the pack is loading", () => {
+    expect(getPuzzlePackStatus()).toBe("loading");
+    const saved: string[] = [];
+    const choice = selectDailyPuzzle({ day: "2026-11-13", completedThemes: ["fork"], seenIds: [] });
+    if (choice.persist && choice.puzzle) saved.push(choice.puzzle.id);
+    expect(choice).toEqual({ puzzle: null, persist: false });
+    expect(saved).toEqual([]);
+    expect(packReady()).toBe(false);
+  });
+
+  it("falls back when offline with no cache, then allows a persist", async () => {
+    vi.useFakeTimers();
+    let rejectFetch: (err: Error) => void = () => {};
+    const fetch = vi.fn<PuzzlePackFetch>(() => new Promise((_, reject) => { rejectFetch = reject; }));
+    const pending = refreshPuzzlePack({
+      storage: { getItem: () => null, setItem: async () => {} },
+      fetch,
+      apiBase: "http://api.test",
+      source: "api",
+    });
+    expect(getPuzzlePackStatus()).toBe("loading");
+    expect(selectDailyPuzzle({ day: "2026-11-13" }).persist).toBe(false);
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(getPuzzlePackStatus()).toBe("loading");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(getPuzzlePackStatus()).toBe("fallback");
+    expect(packReady()).toBe(true);
+    const choice = selectDailyPuzzle({ day: "2026-11-13", completedThemes: [], seenIds: [] });
+    const saved: string[] = [];
+    if (choice.persist && choice.puzzle) saved.push(choice.puzzle.id);
+    expect(choice.persist).toBe(true);
+    expect(choice.puzzle?.id).toBeTruthy();
+    expect(saved).toEqual([choice.puzzle?.id]);
+    rejectFetch(new Error("offline"));
+    await pending;
   });
 
   it("serves daily and next puzzles from the installed pack", () => {

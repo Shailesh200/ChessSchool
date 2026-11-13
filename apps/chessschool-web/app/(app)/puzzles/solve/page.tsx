@@ -5,6 +5,7 @@ import { copy } from "@chessschool/design";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
@@ -19,8 +20,9 @@ export default function SolvePage() {
 
 function Solve() {
   const { state, ready } = useApp();
+  const packReady = usePuzzlePackReady();
   const params = useSearchParams();
-  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
+  if (!ready || !packReady) return <div className="page-skeleton" aria-busy="true" />;
   return (
     <SolveRoom
       key={params.toString()}
@@ -33,11 +35,7 @@ function Solve() {
 }
 
 function SolveRoom({ daily, theme, rating, recent }: { daily: boolean; theme: PuzzleThemeId | null; rating: number; recent: string[] }) {
-  const { state, finishPuzzle } = useApp();
   const served = useDailyPuzzle(daily);
-  const [puzzle, setPuzzle] = useState<Puzzle>(() => (daily ? served.puzzle : nextPuzzle({ rating, theme, exclude: recent })));
-  const [round, setRound] = useState(0);
-  const [delta, setDelta] = useState<number | null>(null);
   const title = daily ? copy.puzzles.daily : theme ? PUZZLE_THEMES.find((t) => t.id === theme)!.name : copy.puzzles.play;
   if (daily && served.done) {
     return (
@@ -48,6 +46,15 @@ function SolveRoom({ daily, theme, rating, recent }: { daily: boolean; theme: Pu
       </div>
     );
   }
+  if (daily && !served.puzzle) return <div className="page-skeleton" aria-busy="true" />;
+  return <SolvePlay daily={daily} theme={theme} rating={rating} recent={recent} title={title} initial={served.puzzle} />;
+}
+
+function SolvePlay({ daily, theme, rating, recent, title, initial }: { daily: boolean; theme: PuzzleThemeId | null; rating: number; recent: string[]; title: string; initial: Puzzle | null }) {
+  const { state, finishPuzzle } = useApp();
+  const [puzzle, setPuzzle] = useState<Puzzle>(() => initial ?? nextPuzzle({ rating, theme, exclude: recent }));
+  const [round, setRound] = useState(0);
+  const [delta, setDelta] = useState<number | null>(null);
 
   return (
     <div className="page play-page">

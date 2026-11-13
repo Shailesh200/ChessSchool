@@ -1,7 +1,9 @@
 import { PUZZLE_SOURCE } from "./puzzleSource";
-import { PUZZLE_THEME_TAGS, setPuzzlePack, type Puzzle, type PuzzlePack, type PuzzleThemeId } from "./puzzles";
+import { PUZZLE_THEME_TAGS, getPuzzlePackStatus, setPuzzlePack, setPuzzlePackStatus, type Puzzle, type PuzzlePack, type PuzzleThemeId } from "./puzzles";
 
 export const PUZZLE_PACK_KEY = "chessschool.v2.puzzlePack";
+/** How long to wait for the API when nothing is cached before showing the fallback pack. */
+export const PUZZLE_PACK_WAIT_MS = 3000;
 
 const THEMES = new Set<string>(PUZZLE_THEME_TAGS);
 
@@ -34,8 +36,28 @@ export function parsePuzzlePack(raw: unknown): PuzzlePack | null {
   return { version: body.version, puzzles };
 }
 
+function isThenable<T>(value: T | Promise<T>): value is Promise<T> {
+  return typeof (value as Promise<T> | null)?.then === "function";
+}
+
+/** Apply a cached pack and mark the store ready. Returns its version, or "" when there is nothing usable. */
+function installCache(raw: string | null): string {
+  if (!raw) return "";
+  try {
+    const cached = parsePuzzlePack(JSON.parse(raw));
+    if (!cached) return "";
+    setPuzzlePack(cached);
+    setPuzzlePackStatus("cache");
+    return cached.version;
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Install a cached pack, then refresh from the API unless `PUZZLE_SOURCE` is `bundled`.
+ * A synchronous cache (localStorage) is installed before the first await.
+ * With no cache, the API attempt is given `PUZZLE_PACK_WAIT_MS` before the fallback is shown.
  * 304, 404, network errors and invalid bodies leave the cache or the fallback in place.
  */
 export async function refreshPuzzlePack(opts: {
@@ -45,38 +67,55 @@ export async function refreshPuzzlePack(opts: {
   source?: "api" | "bundled";
 }): Promise<void> {
   const source = opts.source ?? PUZZLE_SOURCE;
-  if (source === "bundled") return;
+  if (source === "bundled") {
+    setPuzzlePackStatus("fallback");
+    return;
+  }
 
   let version = "";
+  let hadCache = false;
   try {
-    const raw = await opts.storage.getItem(PUZZLE_PACK_KEY);
-    if (raw) {
-      const cached = parsePuzzlePack(JSON.parse(raw));
-      if (cached) {
-        setPuzzlePack(cached);
-        version = cached.version;
-      }
-    }
+    const read = opts.storage.getItem(PUZZLE_PACK_KEY);
+    const raw = isThenable(read) ? await read : read;
+    version = installCache(raw);
+    hadCache = version !== "";
   } catch {
     /* keep the fallback pack */
   }
 
-  try {
-    const base = opts.apiBase.replace(/\/$/, "");
-    const headers: Record<string, string> = {};
-    if (version) headers["If-None-Match"] = `"${version}"`;
-    const res = await opts.fetch(`${base}/v1/puzzles/pack`, { headers });
-    if (res.status === 304 || res.status === 404) return;
-    if (res.status !== 200) return;
-    const next = parsePuzzlePack(await res.json());
-    if (!next) return;
-    setPuzzlePack(next);
+  const pull = async (): Promise<"api" | "keep"> => {
     try {
-      await opts.storage.setItem(PUZZLE_PACK_KEY, JSON.stringify(next));
+      const base = opts.apiBase.replace(/\/$/, "");
+      const headers: Record<string, string> = {};
+      if (version) headers["If-None-Match"] = `"${version}"`;
+      const res = await opts.fetch(`${base}/v1/puzzles/pack`, { headers });
+      if (res.status !== 200) return "keep";
+      const next = parsePuzzlePack(await res.json());
+      if (!next) return "keep";
+      setPuzzlePack(next);
+      setPuzzlePackStatus("api");
+      try {
+        await opts.storage.setItem(PUZZLE_PACK_KEY, JSON.stringify(next));
+      } catch {
+        /* the memory pack is already updated */
+      }
+      return "api";
     } catch {
-      /* the memory pack is already updated */
+      return "keep";
     }
-  } catch {
-    /* keep cache or fallback */
+  };
+
+  if (hadCache) {
+    await pull();
+    return;
   }
+
+  const clock = globalThis as unknown as { setTimeout: (cb: () => void, ms: number) => unknown; clearTimeout: (id: unknown) => void };
+  let timer: unknown;
+  const timeout = new Promise<"timeout">((resolve) => {
+    timer = clock.setTimeout(() => resolve("timeout"), PUZZLE_PACK_WAIT_MS);
+  });
+  const result = await Promise.race([pull(), timeout]);
+  clock.clearTimeout(timer);
+  if (result !== "api" && getPuzzlePackStatus() === "loading") setPuzzlePackStatus("fallback");
 }

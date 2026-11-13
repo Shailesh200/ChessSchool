@@ -1,16 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getPuzzlePackVersion, refreshPuzzlePack, subscribePuzzlePack } from "@chessschool/chess";
+import { getPuzzlePackVersion, packReady, refreshPuzzlePack, subscribePuzzlePack } from "@chessschool/chess";
 import { useEffect, useState } from "react";
 import { API_URL } from "@/lib/api";
 
-/** Re-render when a cached or API pack replaces the fallback. */
-export function usePuzzlePackVersion(): string {
-  const [version, setVersion] = useState(getPuzzlePackVersion);
-  useEffect(() => subscribePuzzlePack(() => setVersion(getPuzzlePackVersion())), []);
-  return version;
+/** False until AsyncStorage and, if needed, the API attempt have settled. */
+export function usePuzzlePackReady(): boolean {
+  const [snap, setSnap] = useState({ ready: false, version: "" });
+  useEffect(() => {
+    const read = () => setSnap({ ready: packReady(), version: getPuzzlePackVersion() });
+    read();
+    return subscribePuzzlePack(read);
+  }, []);
+  return snap.ready;
 }
 
-/** Load the cached pack, then refresh from the app's API base. */
+/** AsyncStorage cannot be read before the first paint, so the store stays loading until this resolves. */
 export function usePuzzlePackBoot() {
   useEffect(() => {
     void refreshPuzzlePack({

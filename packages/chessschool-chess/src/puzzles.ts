@@ -2,6 +2,7 @@ import type { Chess, Move } from "chess.js";
 import { turnOf, type Color, type MoveRef, type PromotionPiece, type Square } from "./board";
 import { kingInCheck, load, moveRef, parseUci, tryMove } from "./game";
 import { FALLBACK_PACK } from "./puzzles.fallback";
+import { PUZZLE_SOURCE } from "./puzzleSource";
 import { pick, sameMove, type BoardView } from "./runner";
 
 export const PUZZLE_THEME_TAGS = ["mateIn1", "mateIn2", "fork", "pin", "skewer", "hangingPiece", "discoveredAttack", "backRankMate", "promotion", "endgame", "defensiveMove", "sacrifice"] as const;
@@ -24,23 +25,52 @@ export const PUZZLE_THEMES: readonly { id: PuzzleThemeId; name: string; blurb: s
   { id: "sacrifice", name: "Sacrifices", blurb: "Give something to get more." },
 ];
 
+export type PuzzlePackStatus = "loading" | "cache" | "api" | "fallback";
+
 let pack: PuzzlePack = FALLBACK_PACK;
+/** Bundled mode is ready immediately. API mode stays loading until a cache or the network settles. */
+let status: PuzzlePackStatus = PUZZLE_SOURCE === "bundled" ? "fallback" : "loading";
 const packListeners = new Set<() => void>();
+/** Puzzle captured when today's daily was served, so a later pack swap can still render it. */
+let dailyLock: { day: string; puzzle: Puzzle } | null = null;
+
+function notifyPack() {
+  for (const fn of packListeners) fn();
+}
 
 /** Replace the live pack. An empty pack is ignored so a bad payload cannot wipe the store. */
 export function setPuzzlePack(next: PuzzlePack) {
   if (!next || typeof next.version !== "string" || !next.version || !Array.isArray(next.puzzles) || next.puzzles.length === 0) return;
   pack = { version: next.version, puzzles: next.puzzles };
-  for (const fn of packListeners) fn();
+  notifyPack();
+}
+
+export function setPuzzlePackStatus(next: PuzzlePackStatus) {
+  if (status === next) return;
+  status = next;
+  notifyPack();
 }
 
 export function getPuzzlePackVersion(): string {
   return pack.version;
 }
 
+export function getPuzzlePackStatus(): PuzzlePackStatus {
+  return status;
+}
+
+export function packReady(): boolean {
+  return status !== "loading";
+}
+
 export function subscribePuzzlePack(fn: () => void): () => void {
   packListeners.add(fn);
   return () => packListeners.delete(fn);
+}
+
+/** Remember the puzzle object for this day. Pass null to clear (tests). */
+export function lockDailyPuzzle(day: string, puzzle: Puzzle | null) {
+  dailyLock = puzzle ? { day, puzzle } : null;
 }
 
 /** The live pack (fallback until a cached or API pack is installed). */
@@ -119,6 +149,39 @@ function dateSeededPuzzle(day: string): Puzzle {
   const pool = all.filter((p) => p.rating >= 800 && p.rating <= 1500);
   const list = pool.length ? pool : all;
   return list[dayHash(day) % list.length];
+}
+
+/**
+ * Puzzle to show for a local day, once the pack is ready.
+ * A persisted `servedId` stays for that day: the copy in the current pack if it is still there,
+ * otherwise `stored` (or the in-memory lock). Nothing is chosen, and `persist` stays false, while loading.
+ */
+export function selectDailyPuzzle(opts: {
+  day: string;
+  completedThemes?: readonly string[];
+  seenIds?: Iterable<string>;
+  servedDay?: string | null;
+  servedId?: string | null;
+  stored?: Puzzle | null;
+}): { puzzle: Puzzle | null; persist: boolean } {
+  if (!packReady()) return { puzzle: null, persist: false };
+  const lockedId = opts.servedDay === opts.day && opts.servedId ? opts.servedId : null;
+  if (lockedId) {
+    const fromPack = puzzleById(lockedId);
+    if (fromPack) {
+      dailyLock = { day: opts.day, puzzle: fromPack };
+      return { puzzle: fromPack, persist: false };
+    }
+    const fromMemory = dailyLock && dailyLock.day === opts.day && dailyLock.puzzle.id === lockedId ? dailyLock.puzzle : null;
+    const kept = opts.stored?.id === lockedId ? opts.stored : fromMemory;
+    if (kept) {
+      dailyLock = { day: opts.day, puzzle: kept };
+      return { puzzle: kept, persist: false };
+    }
+    return { puzzle: null, persist: false };
+  }
+  const puzzle = dailyPuzzle(opts.day, opts.completedThemes ?? [], opts.seenIds ?? []);
+  return { puzzle, persist: true };
 }
 
 /**
