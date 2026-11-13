@@ -334,10 +334,13 @@ export function minutesToday(progress: Progress, today: string): number {
 
 /* ---------- path ---------- */
 
-export type UnitId = "unit1" | "unit2" | "unit3" | "unit4" | "unit5" | "unit6" | "unit7" | "unit8" | "unit9" | "unit10" | "unit11" | "unit12" | "unit13" | "unit14" | "unit15" | "unit16" | "unit17" | "unit18";
+export type UnitId = `unit${number}`;
 export type PathNodeDef = { id: string; unit: UnitId; minutes: number; xp: number; available: boolean };
 
-/** The path. "meet" is the product tour. Later units stay open so a learner can browse ahead. */
+/**
+ * The path this build ships, used offline and as the client default. The live course, and the
+ * path the server checks progress against, come from the API database (cs_course_lessons).
+ */
 export const PATH: readonly PathNodeDef[] = [
   { id: "meet", unit: "unit1", minutes: 2, xp: 10, available: true },
   { id: "board", unit: "unit1", minutes: 5, xp: 20, available: true },
@@ -434,8 +437,14 @@ export function nodeState(progress: Progress, nodeId: string): NodeState | null 
   return pathStates(progress).find((n) => n.id === nodeId)?.state ?? null;
 }
 
-export function completeNode(state: LocalState, nodeId: string, now: Date): LocalState {
-  const node = PATH.find((n) => n.id === nodeId);
+/** A lesson's size as GET /v1/course serves it, for lessons newer than this build. */
+export type LessonMeta = { xp: number; minutes: number };
+
+const clampInt = (n: number, max: number) => (Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0);
+
+/** Marks a lesson done. Lessons this build does not ship use `meta` from the served course (the server re-checks XP). */
+export function completeNode(state: LocalState, nodeId: string, now: Date, meta?: LessonMeta): LocalState {
+  const node = PATH.find((n) => n.id === nodeId) ?? (meta ? { xp: clampInt(meta.xp, 100), minutes: clampInt(meta.minutes, 60) } : null);
   if (!node) return state;
   const today = dayKey(now);
   const first = !state.progress.completed[nodeId];
@@ -721,14 +730,20 @@ export function isProgress(value: unknown): value is Progress {
   );
 }
 
-/** Drops unknown node ids and clamps XP so a client cannot inflate progress. */
-export function sanitizeProgress(p: Progress): Progress {
+/** One lesson of the path, as far as progress checks need it. */
+export type PathStep = { id: string; xp: number; available?: boolean };
+
+/**
+ * Drops unknown node ids and clamps XP so a client cannot inflate progress.
+ * The server passes the path from its database; clients default to the bundled one.
+ */
+export function sanitizeProgress(p: Progress, path: readonly PathStep[] = PATH): Progress {
   const completed: Record<string, string> = {};
   let xpCap = 0;
   // Lessons only count in path order: a completion after a gap can't have been earned.
-  for (const n of PATH) {
+  for (const n of path) {
     const day = p.completed[n.id];
-    if (!n.available || typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) break;
+    if (n.available === false || typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) break;
     completed[n.id] = day;
     xpCap += n.xp;
   }

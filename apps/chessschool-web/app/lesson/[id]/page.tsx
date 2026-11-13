@@ -99,7 +99,7 @@ export default function LessonPage() {
           goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())),
           firstLessonToday,
         });
-        completeLesson(id);
+        completeLesson(id, { xp: lesson.xp, minutes: lesson.minutes });
         cue("level-up");
       }}
       done={

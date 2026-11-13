@@ -54,7 +54,7 @@ export function PathList({ progress }: { progress: Progress }) {
           </span>
           <div>
             <strong>{copy.today.focus.earlier(f.doneCount)}</strong>
-            <p>{f.unitsDone.map((u) => u.title.replace(/^Unit \d+ · /, "")).join(", ")}</p>
+            <p>{copy.today.focus.units(f.unitsDone.map((u) => u.title))}</p>
           </div>
           <button type="button" className="link-more" onClick={() => setReview((v) => !v)}>
             {review ? copy.today.focus.hide : copy.today.focus.review}
@@ -96,7 +96,7 @@ export function PathList({ progress }: { progress: Progress }) {
         <div className="focus-more">
           <div>
             <strong>{copy.today.focus.more(f.rest.length)}</strong>
-            <p>{[...new Set(f.rest.map((l) => unitName(l.unit).replace(/^Unit \d+ · /, "")))].join(", ")}</p>
+            <p>{copy.today.focus.units(f.rest.map((l) => unitName(l.unit)))}</p>
           </div>
           <button type="button" className="link-more" onClick={() => setAll((v) => !v)}>
             {all ? copy.today.focus.showLess : copy.today.focus.viewAll}

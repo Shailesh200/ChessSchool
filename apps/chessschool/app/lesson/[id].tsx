@@ -43,7 +43,7 @@ export default function LessonScreen() {
           streak: visibleStreak(state.progress.streak, dayKey(new Date())),
           goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())),
         });
-        completeLesson(id);
+        completeLesson(id, { xp: lesson.xp, minutes: lesson.minutes });
         cue("level-up");
       }}
       done={

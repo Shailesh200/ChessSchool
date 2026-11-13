@@ -440,3 +440,21 @@ describe("extended course path", () => {
     }
   });
 });
+
+describe("lessons the build does not ship", () => {
+  it("records a lesson served by the API using its size from the course", () => {
+    const s = createInitialState("guest-meta");
+    const done = completeNode(s, "apiOnlyLesson", new Date("2026-11-14T10:00:00"), { xp: 30, minutes: 6 });
+    expect(done.progress.completed.apiOnlyLesson).toBe("2026-11-14");
+    expect(done.progress.xp).toBe(s.progress.xp + 30);
+    expect(completeNode(s, "apiOnlyLesson", new Date("2026-11-14T10:00:00"))).toBe(s);
+    expect(completeNode(s, "apiOnlyLesson", new Date("2026-11-14T10:00:00"), { xp: 10_000, minutes: 6 }).progress.xp).toBe(s.progress.xp + 100);
+  });
+});
+
+describe("unit summaries", () => {
+  it("names at most three units, then a count", () => {
+    expect(copy.today.focus.units(["Unit 1 · First steps", "Unit 1 · First steps", "Unit 2 · Playing well"])).toBe("First steps, Playing well");
+    expect(copy.today.focus.units(["Unit 1 · A", "Unit 2 · B", "Unit 3 · C", "Unit 4 · D", "Unit 5 · E"])).toBe("A, B, C and 2 more");
+  });
+});

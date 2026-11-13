@@ -88,7 +88,7 @@ export function PathList({
           <View style={{ flex: 1 }}>
             <T role="label">{copy.today.focus.earlier(f.doneCount)}</T>
             <T role="small" color="textMuted">
-              {f.unitsDone.map((u) => u.title.replace(/^Unit \d+ · /, "")).join(", ")}
+              {copy.today.focus.units(f.unitsDone.map((u) => u.title))}
             </T>
           </View>
           <Pressable accessibilityRole="button" onPress={() => setReview((v) => !v)}>
@@ -125,7 +125,7 @@ export function PathList({
           <View style={{ flex: 1 }}>
             <T role="label">{copy.today.focus.more(f.rest.length)}</T>
             <T role="small" color="textMuted">
-              {[...new Set(f.rest.map((l) => unitName(l.unit).replace(/^Unit \d+ · /, "")))].join(", ")}
+              {copy.today.focus.units(f.rest.map((l) => unitName(l.unit)))}
             </T>
           </View>
           <Pressable accessibilityRole="button" onPress={() => setAll((v) => !v)}>

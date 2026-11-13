@@ -25,6 +25,7 @@ import {
   type RoomId,
   type SavedGame,
   type SoundCue,
+  type LessonMeta,
 } from "@chessschool/design";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { isGuestClassLimit } from "@chessschool/design";
@@ -39,7 +40,7 @@ type Store = {
   setPrefs: (p: Partial<Prefs>) => void;
   setSeenWelcome: () => void;
   completeOrientation: () => void;
-  completeLesson: (id: string) => void;
+  completeLesson: (id: string, meta?: LessonMeta) => void;
   finishPractice: () => void;
   finishGame: (game: GameRecord, minutes: number) => void;
   finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean }) => void;
@@ -146,7 +147,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),
       completeOrientation: () => setState((s) => completeNode(s, "meet", new Date())),
-      completeLesson: (id) => setState((s) => completeNode(s, id, new Date())),
+      completeLesson: (id, meta) => setState((s) => completeNode(s, id, new Date(), meta)),
       finishPractice: () => setState((s) => recordPractice(s, new Date())),
       finishGame: (game, minutes) => setState((s) => recordGame(s, game, new Date(), minutes)),
       finishPuzzle: (p) => setState((s) => recordPuzzle(s, p, new Date())),

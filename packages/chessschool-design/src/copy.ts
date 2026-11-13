@@ -129,6 +129,11 @@ export const copy = {
       current: "Current",
       upNext: "Up next",
       more: (n: number) => `${n} more ${n === 1 ? "lesson" : "lessons"} ahead`,
+      /** Unit names without the "Unit N · " prefix, first three then a count. */
+      units: (titles: string[]) => {
+        const names = [...new Set(titles.map((t) => t.replace(/^Unit \d+ · /, "")))];
+        return names.length > 3 ? `${names.slice(0, 3).join(", ")} and ${names.length - 3} more` : names.join(", ");
+      },
       viewAll: "View all",
       showLess: "Show less",
       loading: "Loading your course…",
