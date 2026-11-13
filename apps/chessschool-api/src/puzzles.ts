@@ -1,6 +1,37 @@
+import { PUZZLE_THEMES } from "@chessschool/chess";
+import { Chess } from "chess.js";
 import { asc, eq, notInArray } from "drizzle-orm";
 import type { Db } from "./db";
 import { puzzles } from "./schema";
+
+const THEME_IDS = new Set<string>(PUZZLE_THEMES.map((theme) => theme.id));
+const UCI = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
+
+/** True when chess.js accepts the FEN with validation on. */
+export function isLegalFen(fen: string): boolean {
+  try {
+    new Chess(fen);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** First move that is not legal UCI from the FEN, applied in order. Null when the line plays. */
+export function firstIllegalMove(fen: string, moves: string[]): string | null {
+  const chess = new Chess(fen);
+  for (const move of moves) {
+    const uci = move.trim().toLowerCase();
+    if (!UCI.test(uci)) return move;
+    try {
+      const played = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.length === 5 ? uci[4] : undefined });
+      if (!played) return move;
+    } catch {
+      return move;
+    }
+  }
+  return null;
+}
 
 export const PUZZLE_CACHE = "public, max-age=300, stale-while-revalidate=86400";
 export const puzzleEtag = (version: string) => `"${version}"`;
@@ -10,8 +41,6 @@ export type PuzzlePack = { version: string; puzzles: Puzzle[] };
 
 export type PackIssue = { ok: false; errors: string[] };
 export type PackOk = { ok: true; pack: PuzzlePack };
-
-const fenFields = (fen: string) => fen.trim().split(/\s+/).length === 6;
 
 export function parsePuzzlePack(raw: string): PackOk | PackIssue {
   let body: unknown;
@@ -29,27 +58,37 @@ export function parsePuzzlePack(raw: string): PackOk | PackIssue {
   const seen = new Set<string>();
   const parsed: Puzzle[] = [];
   rows.forEach((row, index) => {
-    const label = `puzzles[${index}]`;
+    const label = typeof (row as { id?: unknown })?.id === "string" && (row as { id: string }).id.trim() ? (row as { id: string }).id.trim() : `puzzles[${index}]`;
     if (!row || typeof row !== "object") {
-      errors.push(`${label} must be an object`);
+      errors.push(`${label}: must be an object`);
       return;
     }
     const item = row as { id?: unknown; fen?: unknown; moves?: unknown; rating?: unknown; themes?: unknown };
     const id = typeof item.id === "string" ? item.id.trim() : "";
-    if (!id) errors.push(`${label} id must be a non-empty string`);
-    else if (seen.has(id)) errors.push(`duplicate id: ${id}`);
+    if (!id) errors.push(`${label}: id must be a non-empty string`);
+    else if (seen.has(id)) errors.push(`${id}: duplicate id`);
     else seen.add(id);
-    if (typeof item.fen !== "string" || !fenFields(item.fen)) errors.push(`${label} fen must have 6 fields`);
-    if (!Array.isArray(item.moves) || item.moves.length === 0 || item.moves.some((move) => typeof move !== "string" || !move.trim())) errors.push(`${label} moves must be a non-empty array of strings`);
-    if (typeof item.rating !== "number" || !Number.isInteger(item.rating)) errors.push(`${label} rating must be an integer`);
-    if (!Array.isArray(item.themes) || item.themes.some((theme) => typeof theme !== "string")) errors.push(`${label} themes must be an array of strings`);
-    if (!id || typeof item.fen !== "string" || !Array.isArray(item.moves) || typeof item.rating !== "number" || !Array.isArray(item.themes)) return;
+    const fenOk = typeof item.fen === "string" && isLegalFen(item.fen);
+    if (!fenOk) errors.push(`${label}: illegal fen`);
+    const movesOk = Array.isArray(item.moves) && item.moves.length > 0 && item.moves.every((move) => typeof move === "string" && move.trim());
+    if (!movesOk) errors.push(`${label}: moves must be a non-empty array of strings`);
+    else if (fenOk) {
+      const illegal = firstIllegalMove(item.fen as string, item.moves as string[]);
+      if (illegal) errors.push(`${label}: illegal move ${illegal}`);
+    }
+    if (typeof item.rating !== "number" || !Number.isInteger(item.rating) || item.rating < 100 || item.rating > 3500) errors.push(`${label}: rating must be an integer from 100 to 3500`);
+    if (!Array.isArray(item.themes)) errors.push(`${label}: themes must be an array`);
+    else {
+      const unknown = item.themes.filter((theme) => typeof theme !== "string" || !THEME_IDS.has(theme));
+      if (unknown.length) errors.push(`${label}: unknown theme ${unknown.map(String).join(", ")}`);
+    }
+    if (!id || !fenOk || !movesOk || typeof item.rating !== "number" || !Array.isArray(item.themes)) return;
     parsed.push({
       id,
-      fen: item.fen.trim(),
-      moves: item.moves.map((move) => move.trim()),
+      fen: (item.fen as string).trim(),
+      moves: (item.moves as string[]).map((move) => move.trim()),
       rating: item.rating,
-      themes: item.themes,
+      themes: item.themes as string[],
     });
   });
   if (errors.length || typeof version !== "string") return { ok: false, errors };
@@ -110,10 +149,24 @@ function toPuzzle(row: Stored): Puzzle {
   return { id: row.id, fen: row.fen, moves: JSON.parse(row.moves) as string[], rating: row.rating, themes: JSON.parse(row.themes) as string[] };
 }
 
+let packCache: { version: string; fingerprint: string; puzzles: Puzzle[] } | null = null;
+
+function packFingerprint(rows: Stored[]): string {
+  return rows.map((row) => [row.id, row.packVersion, row.fen, row.moves, row.rating, row.themes].join("\0")).join("\n");
+}
+
 export async function loadPuzzlePack(db: Db): Promise<{ version: string; puzzles: Puzzle[] } | null> {
   const rows = await db.select().from(puzzles).orderBy(asc(puzzles.id));
-  if (!rows.length) return null;
-  return { version: rows[0]!.packVersion, puzzles: rows.map(toPuzzle) };
+  if (!rows.length) {
+    packCache = null;
+    return null;
+  }
+  const version = rows[0]!.packVersion;
+  const fingerprint = packFingerprint(rows);
+  if (packCache && packCache.version === version && packCache.fingerprint === fingerprint) return { version, puzzles: packCache.puzzles };
+  const parsed = rows.map(toPuzzle);
+  packCache = { version, fingerprint, puzzles: parsed };
+  return { version, puzzles: parsed };
 }
 
 export async function loadPuzzle(db: Db, id: string): Promise<Puzzle | null> {

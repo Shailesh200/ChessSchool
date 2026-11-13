@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { openDb } from "../src/db";
-import { parsePuzzlePack } from "../src/puzzles";
+import { isLegalFen, loadPuzzlePack, parsePuzzlePack } from "../src/puzzles";
 import { runSeedPuzzles } from "../scripts/seed-puzzles";
 
 const fixturePath = fileURLToPath(new URL("./fixtures/puzzles-stub.json", import.meta.url));
@@ -59,10 +59,55 @@ describe("puzzle pack API", () => {
     expect(one.status).toBe(200);
     expect(one.headers.get("cache-control")).toBe(CACHE);
     expect(await one.json()).toMatchObject({ id: "stub-01", moves: ["h1h8"], themes: ["endgame"] });
+    const cachedPack = await loadPuzzlePack(db);
+    const cachedAgain = await loadPuzzlePack(db);
+    expect(cachedAgain?.puzzles).toBe(cachedPack?.puzzles);
     const missing = await app.request("/v1/puzzles/missing");
     expect(missing.status).toBe(404);
     expect(await missing.json()).toMatchObject({ error: "not_found" });
     await db.$client.close();
+  });
+});
+
+const legal = { id: "ok", fen: "4k3/8/8/8/8/8/8/4K2R w - - 0 1", moves: ["h1h8"], rating: 500, themes: ["endgame"] };
+
+describe("parsePuzzlePack", () => {
+  it("rejects an illegal FEN, an illegal move, a rating outside 100 to 3500, and an unknown theme", () => {
+    expect(isLegalFen(legal.fen)).toBe(true);
+    expect(isLegalFen("8/8/8/8/8/8/8/8 w - - 0 1")).toBe(false);
+    const parsed = parsePuzzlePack(JSON.stringify({
+      version: "bad",
+      puzzles: [
+        { ...legal, id: "bad-fen", fen: "8/8/8/8/8/8/8/8 w - - 0 1" },
+        { ...legal, id: "bad-move", moves: ["a1a2"] },
+        { ...legal, id: "bad-rating", rating: 99 },
+        { ...legal, id: "bad-theme", themes: ["not-a-theme"] },
+        { ...legal, id: "many", fen: "8/8/8/8/8/8/8/8 w - - 0 1", moves: ["a1a2"], rating: 4000, themes: ["nope"] },
+      ],
+    }));
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      const text = parsed.errors.join("\n");
+      expect(text).toMatch(/bad-fen: illegal fen/);
+      expect(text).toMatch(/bad-move: illegal move a1a2/);
+      expect(text).toMatch(/bad-rating: rating must be an integer from 100 to 3500/);
+      expect(text).toMatch(/bad-theme: unknown theme not-a-theme/);
+      expect(text).toMatch(/many: illegal fen/);
+      expect(text).toMatch(/many: rating/);
+      expect(text).toMatch(/many: unknown theme nope/);
+    }
+  });
+
+  it("exits non-zero and does not write when any row is bad", async () => {
+    const { path, url } = await fileUrl();
+    const before = readFileSync(path);
+    const file = join(path, "..", "bad.json");
+    writeFileSync(file, JSON.stringify({ version: "bad", puzzles: [{ ...legal, id: "bad-move", moves: ["a1a2"] }] }));
+    const errors: string[] = [];
+    const code = await runSeedPuzzles({ argv: ["--file", file, "--apply"], env: { DATABASE_URL: url }, log: () => {}, error: (line) => errors.push(line) });
+    expect(code).not.toBe(0);
+    expect(errors.join("\n")).toMatch(/bad-move: illegal move a1a2/);
+    expect(readFileSync(path).equals(before)).toBe(true);
   });
 });
 
@@ -86,7 +131,7 @@ describe("seed:puzzles", () => {
       expect(parsed.errors.join("\n")).toMatch(/moves/);
       expect(parsed.errors.join("\n")).toMatch(/rating/);
       expect(parsed.errors.join("\n")).toMatch(/themes/);
-      expect(parsed.errors.join("\n")).toMatch(/duplicate id: dup/);
+      expect(parsed.errors.join("\n")).toMatch(/dup: duplicate id/);
     }
     const dir = join(path, "..");
     const file = join(dir, "bad.json");
