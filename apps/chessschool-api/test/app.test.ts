@@ -1,11 +1,14 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { completeNode, createInitialState, PATH, type AuthResponse } from "@chessschool/design";
+import { completeNode, createInitialState, PATH, type AuthResponse, type Progress } from "@chessschool/design";
 import { createApp } from "../src/app";
-import { openDb } from "../src/db";
-import type { GoogleVerifier } from "../src/google";
+import { openDb, type Db } from "../src/db";
+import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
+import { users } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
+let db: Db;
 let ip = 0;
 
 const fakeGoogle: GoogleVerifier = async (token) => {
@@ -15,9 +18,16 @@ const fakeGoogle: GoogleVerifier = async (token) => {
 };
 
 beforeEach(async () => {
-  const db = await openDb(":memory:");
+  db = await openDb(":memory:");
   app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => NOW });
 });
+
+function progressThrough(id: string): Progress {
+  const end = PATH.findIndex((n) => n.id === id);
+  let state = createInitialState("guest");
+  for (const node of PATH.slice(0, end + 1)) state = completeNode(state, node.id, NOW);
+  return state.progress;
+}
 
 async function call(method: string, path: string, body?: unknown, token?: string) {
   const headers: Record<string, string> = { "Content-Type": "application/json", "x-forwarded-for": `10.0.0.${++ip}` };
@@ -32,20 +42,28 @@ const guestDone = () => {
 };
 
 describe("course", () => {
-  it("serves the outline without steps, and one lesson with its steps", async () => {
+  it("serves the outline without steps, and one open lesson with its steps", async () => {
     const outline = await call("GET", "/v1/course?outline=1");
     expect(outline.status).toBe(200);
     const centre = outline.json.lessons.find((l: { id: string }) => l.id === "centre");
     expect(centre.title).toBe("The centre");
     expect(centre.steps).toBeUndefined();
+    expect(centre.state).toBe("locked");
+    expect(centre.lockedReason).toBe("guest");
+    expect(outline.json.guestLimitReached).toBe(false);
+    expect(outline.json.path[0]).toMatchObject({ id: "meet", state: "current", playable: true });
     expect(outline.json.units.length).toBeGreaterThan(3);
 
     const full = await call("GET", "/v1/course");
-    expect(full.json.lessons.find((l: { id: string; steps: unknown[] }) => l.id === "centre").steps.length).toBeGreaterThan(0);
+    expect(full.json.lessons.find((l: { id: string; steps: unknown[] }) => l.id === "board").steps.length).toBeGreaterThan(0);
+    expect(full.json.lessons.find((l: { id: string; steps?: unknown }) => l.id === "centre").steps).toBeUndefined();
 
-    const one = await call("GET", "/v1/lessons/centre");
+    const one = await call("GET", "/v1/lessons/board");
     expect(one.status).toBe(200);
     expect(one.json.steps.length).toBeGreaterThan(0);
+    const capped = await call("GET", "/v1/lessons/centre");
+    expect(capped.status).toBe(403);
+    expect(capped.json).toMatchObject({ error: "GUEST_CLASS_LIMIT", guestLimitReached: true, lockedReason: "guest" });
     expect((await call("GET", "/v1/lessons/missing")).status).toBe(404);
   });
 });
@@ -56,6 +74,7 @@ describe("health", () => {
     expect(r.status).toBe(200);
     expect(r.json.ok).toBe(true);
     expect(r.json.app).toBe("0.4.0");
+    expect((await call("GET", "/health")).status).toBe(200);
   });
 });
 
@@ -173,6 +192,37 @@ describe("me / home / progress", () => {
     expect(home.json).toMatchObject({ streak: 1, xp: 10, today: { nodeId: "board", state: "current" } });
     expect(home.json.path[0].state).toBe("done");
     expect(home.json.path[1].state).toBe("current");
+    expect(home.json.path[2]).toMatchObject({ id: "moves", state: "locked", lockedReason: "progress" });
+    expect(home.json.path.filter((n: { state: string }) => n.state === "current")).toHaveLength(1);
+    expect(home.json.guestLimitReached).toBe(false);
+  });
+
+  it("unlocks the next class when a lesson is completed, and keeps that state on a repeat upload", async () => {
+    const { token } = await account();
+    expect((await call("GET", "/v1/lessons/board", undefined, token)).json.error).toBe("lesson_locked");
+    const finished = progressThrough("meet");
+    const first = await call("PUT", "/v1/progress", { progress: finished }, token);
+    expect(first.status).toBe(200);
+    expect(first.json.progress.xp).toBe(10);
+    expect(first.json.path.find((n: { id: string }) => n.id === "meet").state).toBe("done");
+    expect(first.json.path.find((n: { id: string }) => n.id === "board").state).toBe("current");
+    expect(first.json.path.find((n: { id: string }) => n.id === "moves").state).toBe("locked");
+    expect((await call("GET", "/v1/lessons/board", undefined, token)).status).toBe(200);
+
+    const again = await call("PUT", "/v1/progress", { progress: finished }, token);
+    expect(again.status).toBe(200);
+    expect(again.json.progress.xp).toBe(10);
+    expect(again.json.path.find((n: { id: string }) => n.id === "board").state).toBe("current");
+    expect(again.json.path.filter((n: { state: string }) => n.state === "current")).toHaveLength(1);
+
+    const upToDevelop = progressThrough("centre");
+    const opened = await call("PUT", "/v1/progress", { progress: upToDevelop }, token);
+    expect(opened.json.path.find((n: { id: string }) => n.id === "centre").state).toBe("done");
+    expect(opened.json.path.find((n: { id: string }) => n.id === "develop").state).toBe("current");
+    expect((await call("GET", "/v1/lessons/develop", undefined, token)).status).toBe(200);
+    const repeat = await call("PUT", "/v1/progress", { progress: upToDevelop }, token);
+    expect(repeat.json.progress.xp).toBe(opened.json.progress.xp);
+    expect(repeat.json.path.find((n: { id: string }) => n.id === "develop").state).toBe("current");
   });
 
   it("merges progress uploads and refuses inflated or unknown progress", async () => {
@@ -190,6 +240,70 @@ describe("me / home / progress", () => {
     const stale = await call("PUT", "/v1/progress", { progress: { completed: {}, xp: 0, streak: { count: 0, lastDay: null }, minutes: { day: null, value: 0 } } }, token);
     expect(stale.json.progress.completed.meet).toBe("2026-11-03");
     expect((await call("PUT", "/v1/progress", { progress: "junk" }, token)).status).toBe(400);
+  });
+});
+
+describe("guest class cap", () => {
+  async function guestAccount() {
+    const auth = (await call("POST", "/v1/auth/register", { name: "G", email: "g@b.co", password: "pawnpawn" })).json as AuthResponse;
+    await db.update(users).set({ kind: "guest" }).where(eq(users.email, "g@b.co"));
+    return auth;
+  }
+
+  it("lets a guest start only the first three classes and blocks the fourth", async () => {
+    expect((await call("GET", "/v1/lessons/meet")).status).toBe(200);
+    expect((await call("GET", "/v1/lessons/board")).status).toBe(200);
+    expect((await call("GET", "/v1/lessons/moves")).status).toBe(200);
+    const fourth = await call("GET", "/v1/lessons/pawns");
+    expect(fourth.status).toBe(403);
+    expect(fourth.json).toMatchObject({ error: "GUEST_CLASS_LIMIT", guestLimitReached: true, lockedReason: "guest" });
+
+    const { token } = await guestAccount();
+    const three = progressThrough("moves");
+    const saved = await call("PUT", "/v1/progress", { progress: three }, token);
+    expect(saved.status).toBe(200);
+    expect(saved.json.guestLimitReached).toBe(true);
+    expect(saved.json.path.find((n: { id: string }) => n.id === "pawns")).toMatchObject({ state: "locked", lockedReason: "guest", playable: false });
+    expect((await call("GET", "/v1/lessons/pawns", undefined, token)).json.error).toBe("GUEST_CLASS_LIMIT");
+
+    const four = progressThrough("pawns");
+    const blocked = await call("PUT", "/v1/progress", { progress: four }, token);
+    expect(blocked.status).toBe(403);
+    expect(blocked.json).toMatchObject({ error: "GUEST_CLASS_LIMIT", guestLimitReached: true, lockedReason: "guest" });
+    const home = await call("GET", "/v1/home", undefined, token);
+    expect(home.json.guestLimitReached).toBe(true);
+    expect(home.json.path.find((n: { id: string }) => n.id === "pawns").state).toBe("locked");
+    expect(home.json.xp).toBe(saved.json.progress.xp);
+
+    const replay = await call("PUT", "/v1/progress", { progress: three }, token);
+    expect(replay.status).toBe(200);
+    expect(replay.json.progress.completed.pawns).toBeUndefined();
+    expect(replay.json.path.find((n: { id: string }) => n.id === "moves").state).toBe("done");
+  });
+
+  it("does not cap a signed-in member", async () => {
+    const { token } = (await call("POST", "/v1/auth/register", { name: "M", email: "m@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const saved = await call("PUT", "/v1/progress", { progress: progressThrough("pawns") }, token);
+    expect(saved.status).toBe(200);
+    expect(saved.json.guestLimitReached).toBe(false);
+    expect(saved.json.path.find((n: { id: string }) => n.id === "pawns").state).toBe("done");
+    expect(saved.json.path.find((n: { id: string }) => n.id === "check").state).toBe("current");
+  });
+});
+
+describe("google configuration", () => {
+  it("returns 503 when GOOGLE_CLIENT_IDS is unset, blank, or only commas", async () => {
+    for (const raw of [undefined, "", "   ", " , , ", ",,"]) {
+      expect(googleVerifierFromEnv({ GOOGLE_CLIENT_IDS: raw })).toBeNull();
+    }
+    const bare = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW });
+    const res = await bare.request("/v1/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "8.8.8.8" },
+      body: JSON.stringify({ idToken: "anything" }),
+    });
+    expect(res.status).toBe(503);
+    expect(((await res.json()) as { error: string }).error).toBe("google_unconfigured");
   });
 });
 

@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { handle } from "@hono/node-server/vercel";
 import { createApp } from "./app";
 import { openDb } from "./db";
-import { createGoogleVerifier } from "./google";
+import { googleVerifierFromEnv } from "./google";
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -12,7 +12,7 @@ const ready = (async () => {
   const db = await openDb(url, process.env.DATABASE_AUTH_TOKEN);
   const app = createApp({
     db,
-    google: createGoogleVerifier(list(process.env.GOOGLE_CLIENT_IDS)),
+    google: googleVerifierFromEnv(process.env),
     secureCookies: true,
     corsOrigins: list(process.env.CORS_ORIGINS),
   });
