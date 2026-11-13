@@ -153,6 +153,7 @@ export const copy = {
       keptLead: "Your ",
       keptStreak: (n: number) => (n === 1 ? "1-day streak" : `${n}-day streak`),
       keptTail: " is waiting. One lesson keeps it going.",
+      keptNudge: "One lesson keeps it going.",
       freshTitle: "Welcome back!",
       freshBody: "Every streak starts with one day. Today's lesson is ready when you are.",
     },

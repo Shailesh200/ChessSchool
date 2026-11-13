@@ -323,11 +323,16 @@ export default function Play() {
     const left = game.clock ? timeLeft(game, color, now) : 0;
     const running = turn === color && !game.over;
     return (
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View
+        style={[
+          { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+          isBot ? { alignSelf: "stretch", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 22, backgroundColor: c.brandSoft, borderWidth: 1, borderColor: c.line } : null,
+        ]}
+      >
         {isBot && game.setup.opponent.kind === "bot" ? (
-          <BotAvatar bot={game.setup.opponent.bot} />
+          <BotAvatar bot={game.setup.opponent.bot} size={60} />
         ) : (
-          <View style={{ width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft }}>
+          <View style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft }}>
             {friend ? <T role="label" color="brandText">{copy.play.sides[color][0]}</T> : <Icon name="profile" color={c.brandText} size={22} />}
           </View>
         )}
@@ -338,6 +343,11 @@ export default function Play() {
             </T>
             {live && turn === color && !game.over ? <View accessibilityLabel={copy.gym.yourTurn(copy.play.sides[color])} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.brand }} /> : null}
           </View>
+          {isBot && !game.over ? (
+            <T role="bodyLg" numberOfLines={1} style={{ color: c.brandText, fontFamily: fonts.semibold }}>
+              {statusTitle}
+            </T>
+          ) : null}
           <CapturedTray startFen={game.setup.startFen} fen={shownFen} color={color} />
         </View>
         {game.clock ? (
@@ -379,7 +389,7 @@ export default function Play() {
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
       </View>
       <View style={{ flex: 1, paddingHorizontal: 0, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
-        <BoardStage top={bar(topSide)} bottom={bar(bottomSide)}>
+        <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? 52 : 96} bottomSize={52}>
           {(size, radius) => (
             <Board
               size={size}
@@ -431,10 +441,12 @@ export default function Play() {
           <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Cody animation={pose} size={40} />
             <View style={{ flex: 1 }}>
-              <T role="label" numberOfLines={1}>
-                {statusTitle}
-              </T>
-              <T role="small" color="textMuted" numberOfLines={1}>
+              {friend ? (
+                <T role="label" numberOfLines={1}>
+                  {statusTitle}
+                </T>
+              ) : null}
+              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={1}>
                 {statusSub}
               </T>
             </View>

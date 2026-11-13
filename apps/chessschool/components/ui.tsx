@@ -679,53 +679,80 @@ export function RankCurve({ xp }: { xp: number }) {
   const { c } = useTheme();
   const r = rankFor(xp);
   const W = 320;
-  const H = 164;
+  const H = 150;
   const pts = RANKS.map((_, i) => {
     const t = i / (RANKS.length - 1);
-    return [28 + t * (W - 56), H - 54 - Math.pow(t, 1.35) * (H - 94)] as const;
+    return [28 + t * (W - 56), H - 48 - Math.pow(t, 1.35) * (H - 88)] as const;
   });
   const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
   const next = pts[r.index + 1];
+  const pct = Math.round(r.fraction * 100);
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={copy.a11y.rank(copy.ranks[r.rank], r.toNext, r.next ? copy.ranks[r.next] : null)}>
-      <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-        <Path d={d} stroke={c.line} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        {next ? (
-          <Line
-            x1={pts[r.index][0]}
-            y1={pts[r.index][1]}
-            x2={pts[r.index][0] + (next[0] - pts[r.index][0]) * r.fraction}
-            y2={pts[r.index][1] + (next[1] - pts[r.index][1]) * r.fraction}
-            stroke={c.brand}
-            strokeWidth={6}
-            strokeLinecap="round"
-          />
-        ) : null}
-        {pts.map(([x, y], i) => {
-          const current = i === r.index;
-          const reached = i <= r.index;
-          const badge = current ? 28 : 20;
-          return (
-            <G key={RANKS[i].id}>
-              {current ? <Circle cx={x} cy={y} r={36} fill={c.brand} opacity={0.18} /> : null}
-              <Circle cx={x} cy={y} r={badge} fill={reached ? c.brand : c.card} stroke={reached ? c.brand : c.line} strokeWidth={3} />
-              <SvgText x={x} y={y + (current ? 10 : 8)} fontSize={current ? 28 : 22} textAnchor="middle" fill={reached ? c.onBrand : c.textMuted}>
-                {GLYPH[RANKS[i].id]}
-              </SvgText>
-              <SvgText x={x} y={y + badge + 16} fontSize={11} textAnchor="middle" fill={c.textMuted}>
-                {String(RANKS[i].xp)}
-              </SvgText>
-            </G>
-          );
-        })}
-      </Svg>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
-        <T role="label" color="brandText">
-          {copy.ranks[r.rank]}
-        </T>
-        <T role="small" color="textMuted">
-          {r.next ? copy.today.rankToNext(r.toNext, copy.ranks[r.next]) : copy.a11y.rank(copy.ranks[r.rank], 0, null)}
-        </T>
+    <View accessible accessibilityRole="image" accessibilityLabel={copy.a11y.rank(copy.ranks[r.rank], r.toNext, r.next ? copy.ranks[r.next] : null)} style={{ gap: 14 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.brand, alignItems: "center", justifyContent: "center", borderWidth: 4, borderColor: c.brandSoft }}>
+          <Text style={{ fontSize: 34, lineHeight: 40, color: c.onBrand }}>{GLYPH[RANKS[r.index].id]}</Text>
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <T role="title" style={{ color: c.brandText }}>
+            {copy.ranks[r.rank]}
+          </T>
+          <T role="small" color="textMuted">
+            {copy.today.level(copy.ranks[r.rank], r.level)}
+          </T>
+        </View>
+        <Chip icon="bolt" tone="gold">
+          {copy.today.xp(xp)}
+        </Chip>
+      </View>
+      <View style={{ gap: 6 }}>
+        <View style={{ height: 12, borderRadius: 6, backgroundColor: c.sunken, overflow: "hidden" }}>
+          <View style={{ width: `${pct}%`, height: "100%", borderRadius: 6, backgroundColor: c.brand }} />
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+          <T role="small" style={{ color: c.brandText, fontFamily: fonts.semibold }}>
+            {r.next ? copy.today.rankToNext(r.toNext, copy.ranks[r.next]) : copy.you.topRank}
+          </T>
+          <T role="small" color="textMuted">
+            {`${pct}%`}
+          </T>
+        </View>
+      </View>
+      <View style={{ borderRadius: 18, backgroundColor: c.sunken, paddingVertical: 6 }}>
+        <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+          <Path d={d} stroke={c.line} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          {pts.slice(0, r.index).map(([x, y], i) => (
+            <Line key={i} x1={x} y1={y} x2={pts[i + 1][0]} y2={pts[i + 1][1]} stroke={c.brand} strokeWidth={6} strokeLinecap="round" />
+          ))}
+          {next ? (
+            <Line
+              x1={pts[r.index][0]}
+              y1={pts[r.index][1]}
+              x2={pts[r.index][0] + (next[0] - pts[r.index][0]) * r.fraction}
+              y2={pts[r.index][1] + (next[1] - pts[r.index][1]) * r.fraction}
+              stroke={c.brand}
+              strokeWidth={6}
+              strokeLinecap="round"
+            />
+          ) : null}
+          {pts.map(([x, y], i) => {
+            const current = i === r.index;
+            const reached = i <= r.index;
+            const badge = current ? 24 : 18;
+            return (
+              <G key={RANKS[i].id}>
+                {current ? <Circle cx={x} cy={y} r={32} fill={c.brand} opacity={0.18} /> : null}
+                <Circle cx={x} cy={y} r={badge} fill={reached ? c.brand : c.card} stroke={reached ? c.brand : c.line} strokeWidth={3} />
+                <SvgText x={x} y={y + (current ? 9 : 7)} fontSize={current ? 24 : 19} textAnchor="middle" fill={reached ? c.onBrand : c.textMuted}>
+                  {GLYPH[RANKS[i].id]}
+                </SvgText>
+                <SvgText x={x} y={y + badge + 15} fontSize={11} fontWeight={current ? "700" : "400"} textAnchor="middle" fill={current ? c.brandText : c.textMuted}>
+                  {String(RANKS[i].xp)}
+                </SvgText>
+              </G>
+            );
+          })}
+        </Svg>
       </View>
     </View>
   );

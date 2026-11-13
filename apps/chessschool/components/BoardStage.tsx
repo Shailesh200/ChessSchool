@@ -7,9 +7,9 @@ const GAP = 6;
 const INSET = 8;
 
 /**
- * Player bar, board, player bar. The board is the largest square that fits,
+ * Player bar, board, player bar, centred in the space. The board is the largest square that fits,
  * with a small inset so it never kisses the screen edge.
- * `fixed` locks each bar to its given height so coach copy cannot push the board.
+ * `fixed` locks each bar to its given height so coach copy cannot move the board.
  */
 export function BoardStage({
   top,
@@ -38,7 +38,7 @@ export function BoardStage({
   const size = Math.max(0, Math.floor(Math.min(width, box.h - bars, MAX_BOARD)));
   const bar = (sizePx: number) => (fixed ? { height: sizePx, overflow: "hidden" as const } : { minHeight: sizePx });
   return (
-    <View onLayout={onLayout} style={{ flex: 1, minHeight: 0, justifyContent: fixed ? "flex-start" : "center", gap: GAP }}>
+    <View onLayout={onLayout} style={{ flex: 1, minHeight: 0, justifyContent: "center", gap: GAP }}>
       {box.h ? (
         <>
           <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: INSET }, bar(topSize)]}>{top}</View>

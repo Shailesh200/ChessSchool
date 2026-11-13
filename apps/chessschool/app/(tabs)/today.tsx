@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
-import { fonts, useTheme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 
 const GOAL_SEEN_KEY = "chessschool.v2.goalSeen";
 
@@ -153,9 +153,14 @@ export default function Today() {
           <View style={{ flex: 1, gap: 2 }}>
             <T role="label">{arrival === "kept" ? copy.today.arrival.keptTitle : copy.today.arrival.freshTitle}</T>
             {arrival === "kept" ? (
-              <T role="small" color="textMuted" style={{ fontFamily: fonts.bold }}>
-                {streak}
-              </T>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Chip icon="spark" tone={streak ? "accent" : "neutral"} label={copy.a11y.streak(streak)}>
+                  {String(streak)}
+                </Chip>
+                <T role="small" color="textMuted">
+                  {copy.today.arrival.keptNudge}
+                </T>
+              </View>
             ) : (
               <T role="small" color="textMuted">
                 {copy.today.arrival.freshBody}

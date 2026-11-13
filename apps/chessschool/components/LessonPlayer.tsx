@@ -14,7 +14,8 @@ import { Options } from "./Options";
 import { Button, IconButton, Steps, T } from "./ui";
 
 /** Fixed chrome so a longer line, a choice, or the Continue button cannot move the board. */
-const COACH_H = 72;
+const COACH_H = 120;
+const CODY = 84;
 const STATUS_H = 40;
 const CHOICE_H = 132;
 const FOOTER_H = 76;
@@ -68,7 +69,7 @@ function coachLines(text: string, width: number): string[] {
 function CoachLine({ text, width }: { text: string; width: number }) {
   const { c } = useTheme();
   const reduced = useReducedMotion();
-  const lines = useMemo(() => coachLines(text, width), [text, width]);
+  const lines = useMemo(() => coachLines(text, width * 1.6), [text, width]);
   const [i, setI] = useState(0);
   const at = Math.min(i, lines.length - 1);
   useEffect(() => {
@@ -83,9 +84,9 @@ function CoachLine({ text, width }: { text: string; width: number }) {
       accessibilityLabel={text}
       accessibilityHint={lines.length > 1 ? copy.lesson.moreLine : undefined}
       onPress={() => setI((n) => (n + 1) % lines.length)}
-      style={{ minHeight: 24, justifyContent: "center" }}
+      style={{ minHeight: 52, justifyContent: "center" }}
     >
-      <T role="body" color="textMuted" numberOfLines={1} style={{ color: c.textMuted }}>
+      <T role="bodyLg" numberOfLines={2} style={{ color: c.text }}>
         {lines[at]}
       </T>
     </Pressable>
@@ -109,7 +110,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
   const ref = useRef(s);
   const finished = useRef(false);
   const step = currentStep(s);
-  const textW = Math.min(screen, 640) - 24 - COACH_H - 28;
+  const textW = Math.min(screen, 640) - 24 - 16 - CODY - 12 - 16;
 
   const act = (a: RunnerAction) => {
     const prev = ref.current;
@@ -188,15 +189,15 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
           topSize={COACH_H}
           bottomSize={STATUS_H}
           top={
-            <>
-              <Cody animation={poseFor(s, step)} size={64} />
-              <View style={{ flex: 1, justifyContent: "center" }}>
-                <T role="heading" header numberOfLines={1}>
+            <View style={{ flex: 1, alignSelf: "stretch", flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 22, backgroundColor: c.brandSoft, borderWidth: 1, borderColor: c.line }}>
+              <Cody animation={poseFor(s, step)} size={CODY} />
+              <View style={{ flex: 1, justifyContent: "center", gap: 2 }}>
+                <T role="heading" header numberOfLines={1} style={{ color: c.brandText }}>
                   {step.title}
                 </T>
                 <CoachLine key={`${s.index}:${step.body}`} text={step.body} width={textW} />
               </View>
-            </>
+            </View>
           }
           bottom={
             <View accessibilityLiveRegion="polite" style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>

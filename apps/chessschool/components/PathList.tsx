@@ -62,15 +62,21 @@ export function PathList({
   const classOpened = Boolean(f.justFinished && f.current && f.justFinished.unit !== f.current.unit && f.unitsDone.some((u) => u.id === f.justFinished?.unit));
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <T role="small" color="textMuted" style={{ flex: 1 }}>
+      <View style={{ gap: 8, padding: 14, borderRadius: 18, backgroundColor: c.brandSoft }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <T role="label" style={{ color: c.brandText, flex: 1 }}>
+            {f.currentUnit ? f.currentUnit.title : copy.today.heroLabelAll}
+          </T>
+          <T role="small" style={{ color: c.brandText, fontWeight: "700" }}>
+            {`${Math.round((f.doneCount / Math.max(1, course.lessons.length)) * 100)}%`}
+          </T>
+        </View>
+        <View style={{ height: 10, borderRadius: 5, backgroundColor: c.card, overflow: "hidden" }}>
+          <View style={{ width: `${Math.round((f.doneCount / Math.max(1, course.lessons.length)) * 100)}%`, height: "100%", borderRadius: 5, backgroundColor: c.brand }} />
+        </View>
+        <T role="small" color="textMuted">
           {copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}
         </T>
-        {f.currentUnit ? (
-          <T role="small" style={{ color: c.brandText, backgroundColor: c.brandSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: "hidden" }}>
-            {copy.today.focus.active(f.currentUnit.title)}
-          </T>
-        ) : null}
       </View>
       {f.doneCount > 1 ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: c.line }}>
@@ -137,15 +143,24 @@ export function PathList({
             </Pressable>
           ))
         : null}
-      <View style={{ gap: 6, padding: 14, borderRadius: 16, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
-        <T role="label">{copy.today.comingSoonTitle}</T>
+      <View style={{ gap: 10, padding: 14, borderRadius: 18, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Icon name="sparkles" size={20} color={c.brandText} />
+          <T role="label">{copy.today.comingSoonTitle}</T>
+        </View>
         <T role="small" color="textMuted">
           {copy.today.comingSoonBody}
         </T>
         {(course.comingSoon ?? copy.comingSoon).map((item) => (
-          <T key={item.id} role="small" color="textMuted">
-            {item.title} · {item.sub}
-          </T>
+          <View key={item.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.sunken }}>
+            <Icon name="clock" size={18} color={c.textMuted} />
+            <View style={{ flex: 1 }}>
+              <T role="label">{item.title}</T>
+              <T role="small" color="textMuted">
+                {item.sub}
+              </T>
+            </View>
+          </View>
         ))}
       </View>
       {!f.current ? <T color="textMuted">{copy.today.heroAllBody}</T> : null}
@@ -172,11 +187,13 @@ function Stop({
 }) {
   const { c } = useTheme();
   const card = (
-    <View style={{ flex: 1, gap: 2, padding: 14, borderRadius: 18, borderWidth: kind === "current" ? 2 : 1, borderStyle: locked ? "dashed" : "solid", borderColor: kind === "current" && !locked ? c.brand : c.line, backgroundColor: locked ? c.sunken : c.card }}>
+    <View style={{ flex: 1, gap: 3, padding: 14, borderRadius: 18, borderWidth: kind === "current" ? 2 : 1, borderStyle: locked ? "dashed" : "solid", borderColor: kind === "current" && !locked ? c.brand : c.line, backgroundColor: locked ? c.sunken : kind === "current" ? c.brandSoft : c.card }}>
       {kicker ? (
-        <T role="small" style={{ color: kind === "done" ? c.successText : c.brandText, fontWeight: "700", textTransform: "uppercase" }}>
-          {kicker}
-        </T>
+        <View style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: kind === "done" ? c.successSoft : kind === "current" ? c.card : c.brandSoft, marginBottom: 2 }}>
+          <T role="small" style={{ color: kind === "done" ? c.successText : c.brandText, fontWeight: "700", textTransform: "uppercase" }}>
+            {kicker}
+          </T>
+        </View>
       ) : null}
       <T role="small" color="textMuted">
         {unit}
@@ -191,7 +208,9 @@ function Stop({
   const tappable = kind === "next" || kind === "current";
   return (
     <View ref={kind === "current" ? anchor : undefined} collapsable={false} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-      <View style={{ width: kind === "current" && !locked ? 44 : 28, alignItems: "center", marginTop: 14 }}>
+      <View style={{ width: 44, alignItems: "center", alignSelf: "stretch" }}>
+        <View style={{ position: "absolute", top: 0, bottom: -12, width: 3, borderRadius: 2, backgroundColor: kind === "done" ? c.success : c.line }} />
+        <View style={{ height: 14 }} />
         <View style={{ width: kind === "current" && !locked ? 44 : 28, height: kind === "current" && !locked ? 44 : 28, borderRadius: 22, backgroundColor: dot, borderWidth: 2, borderColor: locked || kind === "next" ? c.line : dot, alignItems: "center", justifyContent: "center" }}>
           {locked ? <Icon name="lock" size={14} color={c.textMuted} /> : kind === "done" ? <Icon name="check" size={16} color="#fff" /> : kind === "current" ? <Icon name="play" size={22} color={c.onBrand} /> : null}
         </View>
