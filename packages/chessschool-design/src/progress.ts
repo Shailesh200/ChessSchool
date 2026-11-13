@@ -261,7 +261,7 @@ export function minutesToday(progress: Progress, today: string): number {
 
 /* ---------- path ---------- */
 
-export type UnitId = "unit1" | "unit2" | "unit3" | "unit4" | "unit5" | "unit6" | "unit7" | "unit8" | "unit9" | "unit10" | "unit11";
+export type UnitId = "unit1" | "unit2" | "unit3" | "unit4" | "unit5" | "unit6" | "unit7" | "unit8" | "unit9" | "unit10" | "unit11" | "unit12" | "unit13" | "unit14" | "unit15" | "unit16" | "unit17" | "unit18";
 export type PathNodeDef = { id: string; unit: UnitId; minutes: number; xp: number; available: boolean };
 
 /** The path. "meet" is the product tour. Later units stay open so a learner can browse ahead. */
@@ -302,8 +302,43 @@ export const PATH: readonly PathNodeDef[] = [
   { id: "structure", unit: "unit9", minutes: 5, xp: 25, available: true },
   { id: "plan", unit: "unit10", minutes: 5, xp: 25, available: true },
   { id: "queenEnding", unit: "unit11", minutes: 6, xp: 30, available: true },
+  { id: "squareOfPawn", unit: "unit12", minutes: 5, xp: 25, available: true },
+  { id: "keySquares", unit: "unit12", minutes: 5, xp: 25, available: true },
+  { id: "rookPawn", unit: "unit12", minutes: 5, xp: 25, available: true },
+  { id: "triangulation", unit: "unit12", minutes: 5, xp: 25, available: true },
+  { id: "pawnBreak", unit: "unit12", minutes: 5, xp: 25, available: true },
+  { id: "lucena", unit: "unit13", minutes: 6, xp: 30, available: true },
+  { id: "philidor", unit: "unit13", minutes: 6, xp: 30, available: true },
+  { id: "cutOff", unit: "unit13", minutes: 5, xp: 25, available: true },
+  { id: "rookVsPawn", unit: "unit13", minutes: 5, xp: 25, available: true },
+  { id: "activityRook", unit: "unit13", minutes: 5, xp: 25, available: true },
+  { id: "overload", unit: "unit14", minutes: 6, xp: 25, available: true },
+  { id: "deflection", unit: "unit14", minutes: 6, xp: 25, available: true },
+  { id: "interference", unit: "unit14", minutes: 5, xp: 25, available: true },
+  { id: "zwischenzug", unit: "unit14", minutes: 6, xp: 25, available: true },
+  { id: "attraction", unit: "unit14", minutes: 6, xp: 25, available: true },
+  { id: "windmill", unit: "unit14", minutes: 6, xp: 25, available: true },
+  { id: "greekGift", unit: "unit15", minutes: 6, xp: 30, available: true },
+  { id: "oppositeCastle", unit: "unit15", minutes: 5, xp: 25, available: true },
+  { id: "pawnStorm", unit: "unit15", minutes: 5, xp: 25, available: true },
+  { id: "liftRook", unit: "unit15", minutes: 5, xp: 25, available: true },
+  { id: "battery", unit: "unit15", minutes: 5, xp: 25, available: true },
+  { id: "queensGambit", unit: "unit16", minutes: 6, xp: 25, available: true },
+  { id: "sicilianIdea", unit: "unit16", minutes: 6, xp: 25, available: true },
+  { id: "frenchCaro", unit: "unit16", minutes: 5, xp: 25, available: true },
+  { id: "developmentRace", unit: "unit16", minutes: 5, xp: 20, available: true },
+  { id: "openingTraps", unit: "unit16", minutes: 6, xp: 25, available: true },
+  { id: "outpost", unit: "unit17", minutes: 5, xp: 25, available: true },
+  { id: "goodBishop", unit: "unit17", minutes: 5, xp: 25, available: true },
+  { id: "spaceAdvantage", unit: "unit17", minutes: 5, xp: 25, available: true },
+  { id: "exchanges", unit: "unit17", minutes: 5, xp: 25, available: true },
+  { id: "prophylaxis", unit: "unit17", minutes: 5, xp: 25, available: true },
+  { id: "convertExtra", unit: "unit18", minutes: 5, xp: 25, available: true },
+  { id: "whenToDraw", unit: "unit18", minutes: 5, xp: 25, available: true },
+  { id: "defence", unit: "unit18", minutes: 5, xp: 25, available: true },
+  { id: "calculation", unit: "unit18", minutes: 6, xp: 25, available: true },
 ];
-export const UNITS: readonly UnitId[] = ["unit1", "unit2", "unit3", "unit4", "unit5", "unit6", "unit7", "unit8", "unit9", "unit10", "unit11"];
+export const UNITS: readonly UnitId[] = ["unit1", "unit2", "unit3", "unit4", "unit5", "unit6", "unit7", "unit8", "unit9", "unit10", "unit11", "unit12", "unit13", "unit14", "unit15", "unit16", "unit17", "unit18"];
 
 export type NodeState = "done" | "current" | "locked";
 
@@ -642,6 +677,13 @@ export type BadgeId =
   | "unit9"
   | "unit10"
   | "unit11"
+  | "unit12"
+  | "unit13"
+  | "unit14"
+  | "unit15"
+  | "unit16"
+  | "unit17"
+  | "unit18"
   | "streak3"
   | "streak7"
   | "firstGame"
@@ -668,6 +710,13 @@ export const BADGES: readonly { id: BadgeId; earned: (p: Progress) => boolean }[
   { id: "unit9", earned: (p) => unitDone(p, "unit9") },
   { id: "unit10", earned: (p) => unitDone(p, "unit10") },
   { id: "unit11", earned: (p) => unitDone(p, "unit11") },
+  { id: "unit12", earned: (p) => unitDone(p, "unit12") },
+  { id: "unit13", earned: (p) => unitDone(p, "unit13") },
+  { id: "unit14", earned: (p) => unitDone(p, "unit14") },
+  { id: "unit15", earned: (p) => unitDone(p, "unit15") },
+  { id: "unit16", earned: (p) => unitDone(p, "unit16") },
+  { id: "unit17", earned: (p) => unitDone(p, "unit17") },
+  { id: "unit18", earned: (p) => unitDone(p, "unit18") },
   { id: "streak3", earned: (p) => p.streak.count >= 3 },
   { id: "streak7", earned: (p) => p.streak.count >= 7 },
   { id: "firstGame", earned: (p) => p.games.played >= 1 },

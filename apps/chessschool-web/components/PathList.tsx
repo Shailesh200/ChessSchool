@@ -76,6 +76,18 @@ export function PathList({ progress }: { progress: Progress }) {
           ))}
         </ul>
       ) : null}
+      <div className="focus-soon">
+        <strong>{copy.today.comingSoonTitle}</strong>
+        <p>{copy.today.comingSoonBody}</p>
+        <ul>
+          {(course.comingSoon ?? copy.comingSoon).map((item) => (
+            <li key={item.id}>
+              {item.title}
+              <span>{item.sub}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
       {!f.current ? <p className="focus-meta">{copy.today.heroAllBody}</p> : null}
     </div>
   );
