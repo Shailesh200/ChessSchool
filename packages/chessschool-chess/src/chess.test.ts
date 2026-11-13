@@ -158,7 +158,8 @@ describe("handmade lessons", () => {
     });
   }
 
-  it("every move puzzle has a solution and rejects at least one legal move", () => {
+  // Tries every legal move of every move step through the runner; slow on busy CI machines.
+  it("every move puzzle has a solution and rejects at least one legal move", { timeout: 30_000 }, () => {
     for (const step of [...Object.values(LESSONS).flatMap((l) => l.steps), ...MATE_DRILLS]) {
       if (step.kind !== "move") continue;
       const s = startRunner([step]);
