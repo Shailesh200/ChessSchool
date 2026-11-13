@@ -159,7 +159,7 @@ export function Board({
     return { "--dx": `${dx}%`, "--dy": `${dy}%` } as React.CSSProperties;
   };
 
-  const dragRef = useRef<{ from: Square; pointer: number; moved: boolean } | null>(null);
+  const dragRef = useRef<{ from: Square; pointer: number; x: number; y: number; moved: boolean; captured: boolean } | null>(null);
   const skipClick = useRef(false);
   const [ghost, setGhost] = useState<{ piece: Piece; left: number; top: number } | null>(null);
   const [lift, setLift] = useState<Square | null>(null);
@@ -176,12 +176,14 @@ export function Board({
     const hit = atPointer(e);
     const piece = hit?.sq ? pieces.get(hit.sq) : undefined;
     if (!hit?.sq || !piece || piece.color !== mover) return;
-    dragRef.current = { from: hit.sq, pointer: e.pointerId, moved: false };
+    let captured = false;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
+      captured = true;
     } catch {
       /* a click still works if capture is unavailable */
     }
+    dragRef.current = { from: hit.sq, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, captured };
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const drag = dragRef.current;
@@ -189,6 +191,9 @@ export function Board({
     const hit = atPointer(e);
     if (!hit) return;
     if (!drag.moved) {
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (dx * dx + dy * dy < 36) return;
       drag.moved = true;
       setLift(drag.from);
       if (selected !== drag.from) onTap?.(drag.from);
@@ -202,8 +207,13 @@ export function Board({
     dragRef.current = null;
     setGhost(null);
     setLift(null);
-    if (!drag.moved) return;
-    skipClick.current = true;
+    // With pointer capture the click lands on the board, not the square, so the tap is
+    // delivered here. Without capture, skip the square's own click so it is not applied twice.
+    if (!drag.captured) skipClick.current = true;
+    if (!drag.moved) {
+      onTap?.(drag.from);
+      return;
+    }
     const hit = atPointer(e);
     if (hit?.sq && hit.sq !== drag.from) onTap?.(hit.sq);
   };

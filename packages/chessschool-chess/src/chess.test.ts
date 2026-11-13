@@ -1,14 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { boardSquares, isLightSquare, moveEffects, promotionColumn, readFen, squareLabel, START_FEN, type PromotionPiece, type Square } from "./board";
 import { chooseMove } from "./bot";
 import { legalTargets, load, withTurn } from "./game";
 import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
 import { currentStep, runnerReduce, startRunner, type RunnerState } from "./runner";
 import { defaultSetup, playReduce, playResult, shuffleFen, startGame, timeLeft, START_POSITIONS, type PlaySetup } from "./play";
-import { allPuzzles, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
+import { allPuzzles, armPuzzleBeat, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
 import { assessMove, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
 import { BOTS } from "./bot";
 import { PIECE_SETS, isRemovedPieceSet, migratePieceSet, pieceArtwork } from "./pieceSets";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /** Two taps, answering the promotion question (queen unless `promo` says otherwise). */
 function rMove(s: RunnerState, from: Square, to: Square, promo: PromotionPiece = "q"): RunnerState {
@@ -353,6 +357,36 @@ describe("puzzles", () => {
     const all = allPuzzles();
     expect(all.length).toBeGreaterThan(1000);
     expect(all.every((p) => p.moves.length >= 2 && p.rating >= 400 && p.rating < 2000)).toBe(true);
+  });
+
+  it("plays the opponent's first move from setup into solving", () => {
+    vi.useFakeTimers();
+    const p = allPuzzles()[0];
+    const start = startPuzzle(p);
+    expect(start.status).toBe("setup");
+    expect(start.step).toBe(0);
+    const opened = puzzleReduce(start, { type: "setup" });
+    expect(opened).not.toBe(start);
+    expect(opened.status).toBe("solving");
+    expect(opened.step).toBe(1);
+    expect(opened.fen).not.toBe(start.fen);
+
+    let state = start;
+    let pending: { key: string; alive: boolean; cancel: () => void } | null = null;
+    const arm = () => {
+      pending = armPuzzleBeat(state.status, state.step, pending, () => {
+        const type = state.status === "setup" ? "setup" : "reply";
+        state = puzzleReduce(state, { type });
+      });
+    };
+    arm();
+    arm();
+    vi.advanceTimersByTime(599);
+    expect(state.status).toBe("setup");
+    vi.advanceTimersByTime(1);
+    expect(state.status).toBe("solving");
+    expect(state.step).toBe(1);
+    expect(state.fen).not.toBe(start.fen);
   });
 
   it("solves a puzzle by following its line, and fails on a wrong move", () => {

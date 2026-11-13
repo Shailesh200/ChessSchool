@@ -152,6 +152,49 @@ export type PuzzleAction =
   | { type: "retry" }
   | { type: "solution" };
 
+/** How long to wait before the opponent plays. `null` when it is the learner's turn. */
+export function puzzleBeatDelay(status: PuzzleStatus): number | null {
+  if (status === "setup") return 600;
+  if (status === "reply") return 420;
+  return null;
+}
+
+export type PuzzleBeat = { key: string; alive: boolean; cancel: () => void };
+
+/**
+ * Arms the opponent beat once per status+step. Calling it again for the same live beat keeps the
+ * original timer, so a re-render cannot cancel the move before it plays. A beat that was already
+ * cancelled (unmount, or a new step) is replaced.
+ */
+export function armPuzzleBeat(status: PuzzleStatus, step: number, pending: PuzzleBeat | null, fire: () => void): PuzzleBeat | null {
+  const delay = puzzleBeatDelay(status);
+  if (delay == null) {
+    pending?.cancel();
+    return null;
+  }
+  const key = `${status}:${step}`;
+  if (pending?.key === key && pending.alive) return pending;
+  pending?.cancel();
+  const timers = globalThis as unknown as {
+    setTimeout: (cb: () => void, ms: number) => unknown;
+    clearTimeout: (id: unknown) => void;
+  };
+  const beat: PuzzleBeat = {
+    key,
+    alive: true,
+    cancel: () => {
+      if (!beat.alive) return;
+      beat.alive = false;
+      timers.clearTimeout(timer);
+    },
+  };
+  const timer = timers.setTimeout(() => {
+    beat.alive = false;
+    fire();
+  }, delay);
+  return beat;
+}
+
 /** The first move in a puzzle is the opponent's; the learner answers it. */
 export function startPuzzle(puzzle: Puzzle): PuzzleState {
   return {
