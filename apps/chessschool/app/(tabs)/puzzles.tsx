@@ -1,19 +1,28 @@
 import { allPuzzles, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Chip, Page, T } from "@/components/ui";
+import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
 export default function Puzzles() {
   const { state } = useApp();
+  const packReady = usePuzzlePackReady();
   const { c } = useTheme();
   const pz = state.progress.puzzles;
-  const { puzzle: daily, done } = useDailyPuzzle();
+  const { puzzle: daily, done } = useDailyPuzzle(packReady);
+  if (!packReady || !daily) {
+    return (
+      <Page title={copy.puzzles.title} large>
+        <ActivityIndicator />
+      </Page>
+    );
+  }
   return (
     <Page title={copy.puzzles.title} large>
       <T role="bodyLg" color="textMuted" style={{ marginTop: -8 }}>

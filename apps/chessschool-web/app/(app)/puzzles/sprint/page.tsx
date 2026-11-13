@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Cody } from "@/components/Lottie";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, Card, TopBar } from "@/components/ui";
+import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { useApp } from "@/lib/state";
 
 const SECONDS = 180;
@@ -13,7 +14,8 @@ const LIVES = 3;
 
 export default function SprintPage() {
   const { ready } = useApp();
-  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
+  const packReady = usePuzzlePackReady();
+  if (!ready || !packReady) return <div className="page-skeleton" aria-busy="true" />;
   return <Sprint />;
 }
 

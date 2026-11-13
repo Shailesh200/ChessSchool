@@ -5,6 +5,7 @@ import { AppStateProvider } from "@/lib/state";
 import { themeBootScript } from "@/lib/theme";
 import { ToastProvider } from "@/components/ui";
 import { GuestGateHost } from "@/components/PathList";
+import { PuzzlePackBoot } from "@/components/PuzzlePackBoot";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AppStateProvider>
+          <PuzzlePackBoot />
           <ToastProvider>
             {children}
             <GuestGateHost />

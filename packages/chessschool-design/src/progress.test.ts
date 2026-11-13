@@ -296,6 +296,13 @@ describe("guest -> account merge hardening", () => {
     for (const id of ids) served = serveDaily(served, "2026-11-04", id);
     expect(served.progress.puzzles.daily.seen).toHaveLength(DAILY_SEEN_MAX);
     expect(served.progress.puzzles.daily.seen?.[0]).toBe(ids.at(-1));
+
+    const snap = { id: "abc12", fen: "7k/6pp/8/8/8/n7/Q7/6RK b - - 0 1", moves: ["a3b1", "a2a8"], rating: 900, themes: ["mateIn1"] };
+    const locked = serveDaily(createInitialState("g"), "2026-11-13", snap.id, snap);
+    expect(locked.progress.puzzles.daily.servedId).toBe("abc12");
+    expect(locked.progress.puzzles.daily.served).toEqual(snap);
+    const kept = sanitizeProgress(locked.progress).puzzles.daily.served;
+    expect(kept).toEqual(snap);
   });
 });
 

@@ -9,7 +9,10 @@
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:vercel": "node scripts/build-vercel.mjs"
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "qa:serve": "tsx scripts/qa-serve.ts",
+    "qa:delete-accounts": "tsx scripts/delete-qa-accounts.ts",
+    "seed:puzzles": "tsx scripts/seed-puzzles.ts"
   },
   "dependencies": {
     "@chessschool/chess": "workspace:*",
@@ -17,6 +20,7 @@
     "@hono/node-server": "^1.19.5",
     "@libsql/client": "^0.17.4",
     "bcryptjs": "^3.0.3",
+    "chess.js": "^1.4.0",
     "drizzle-orm": "^0.45.2",
     "google-auth-library": "^10.9.0",
     "hono": "^4.10.4"

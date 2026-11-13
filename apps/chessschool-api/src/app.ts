@@ -6,9 +6,7 @@ import {
   isFlairId,
   isProgress,
   mergeProgress,
-  nextNode,
   PATH,
-  pathStates,
   sanitizeProgress,
   validEmail,
   validPassword,
@@ -27,6 +25,10 @@ import { and, eq, gt, lt } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
+import { deleteUserData } from "./account-delete";
+import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
+import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE, puzzleEtag } from "./puzzles";
+import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
 import { classMembers, classes, course, feedback, profiles, progress, sessions, users } from "./schema";
@@ -48,6 +50,8 @@ export const LATEST_APP = "0.4.0";
 export type AppDeps = {
   db: Db;
   google: GoogleVerifier | null;
+  /** Null when APPLE_CLIENT_IDS is unset. Sign in with Apple then returns 503. */
+  apple?: AppleVerifier | null;
   secureCookies: boolean;
   corsOrigins: string[];
   now?: () => Date;
@@ -63,7 +67,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, secureCookies, corsOrigins, now = () => new Date() }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date() }: AppDeps) {
   const app = new Hono<Vars>();
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
@@ -73,7 +77,7 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     return row ? (JSON.parse(row.data) as { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] }) : null;
   };
 
-  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization"], allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"] }));
+  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
 
   app.onError((err, c) => {
     console.error(err);
@@ -83,7 +87,12 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
 
   /* ---------- helpers ---------- */
 
-  const toAccount = (u: UserRow): Account => ({ id: u.id, email: u.email, name: u.name, provider: u.passwordHash ? "password" : "google" });
+  const toAccount = (u: UserRow): Account => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    provider: (u.passwordHash ? "password" : u.appleSub && !u.googleSub ? "apple" : "google") as Account["provider"],
+  });
 
   async function loadProfile(userId: string): Promise<ApiProfile> {
     const row = await db.query.profiles.findFirst({ where: eq(profiles.userId, userId) });
@@ -202,7 +211,9 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
 
   /* ---------- routes ---------- */
 
-  app.get("/v1/health", (c) => c.json({ ok: true, version: API_VERSION, app: LATEST_APP, time: now().toISOString() }));
+  const health = (c: Context) => c.json({ ok: true, version: API_VERSION, app: LATEST_APP, time: now().toISOString() });
+  app.get("/health", health);
+  app.get("/v1/health", health);
 
   app.post("/v1/auth/register", limitAuth, async (c) => {
     const b = await body<{ name: string; email: string; password: string; guest: GuestPayload }>(c);
@@ -213,7 +224,7 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
     if (existing) return fail(c, 409, "email_taken");
     const guest = guestOf(b);
-    const user: UserRow = { id: newId(), email, name, passwordHash: await hashPassword(password), googleSub: null, guestId: guest?.guestId ?? null, createdAt: now().getTime() };
+    const user: UserRow = { id: newId(), email, name, passwordHash: await hashPassword(password), googleSub: null, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
     await db.insert(users).values(user);
     await applyGuestProfile(user.id, guest, true);
     return c.json(await authResponse(c, user, guest), 201);
@@ -240,14 +251,48 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     let user = await db.query.users.findFirst({ where: eq(users.googleSub, identity.sub) });
     if (!user) {
       const byEmail = await db.query.users.findFirst({ where: eq(users.email, identity.email) });
-      if (byEmail) {
-        if (!identity.emailVerified) return fail(c, 401, "google_invalid");
-        await db.update(users).set({ googleSub: identity.sub }).where(eq(users.id, byEmail.id));
-        user = { ...byEmail, googleSub: identity.sub };
-        await applyGuestProfile(user.id, guest, false);
-      } else {
+      if (byEmail) return c.json({ error: "email_in_use" }, 409);
+      const guestName = cleanName(String(guest?.profile?.name ?? ""));
+      user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+      await db.insert(users).values(user);
+      await applyGuestProfile(user.id, guest, true);
+    }
+    return c.json(await authResponse(c, user, guest));
+  });
+
+  const appleName = (fullName: unknown) => {
+    if (!fullName || typeof fullName !== "object") return "";
+    const name = fullName as { givenName?: unknown; familyName?: unknown };
+    const given = typeof name.givenName === "string" ? name.givenName : "";
+    const family = typeof name.familyName === "string" ? name.familyName : "";
+    return cleanName(`${given} ${family}`);
+  };
+
+  app.post("/v1/auth/apple", limitAuth, async (c) => {
+    if (!apple) return c.json({ error: "apple_unconfigured" }, 503);
+    const b = await body<{ identityToken: string; nonce?: string; fullName?: { givenName?: string; familyName?: string }; email?: string; guest: GuestPayload }>(c);
+    if (typeof b.nonce !== "string" || b.nonce.length === 0) return c.json({ error: "apple_invalid" }, 401);
+    const identity = typeof b.identityToken === "string" ? await apple(b.identityToken, b.nonce) : null;
+    if (!identity) return c.json({ error: "apple_invalid" }, 401);
+    const guest = guestOf(b);
+    let user = await db.query.users.findFirst({ where: eq(users.appleSub, identity.sub) });
+    if (!user) {
+      if (!identity.email) return c.json({ error: "apple_invalid" }, 401);
+      const byEmail = await db.query.users.findFirst({ where: eq(users.email, identity.email) });
+      if (byEmail) return c.json({ error: "email_in_use" }, 409);
+      {
         const guestName = cleanName(String(guest?.profile?.name ?? ""));
-        user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, guestId: guest?.guestId ?? null, createdAt: now().getTime() };
+        user = {
+          id: newId(),
+          email: identity.email,
+          name: guestName || appleName(b.fullName),
+          passwordHash: null,
+          googleSub: null,
+          appleSub: identity.sub,
+          guestId: guest?.guestId ?? null,
+          kind: "member",
+          createdAt: now().getTime(),
+        };
         await db.insert(users).values(user);
         await applyGuestProfile(user.id, guest, true);
       }
@@ -262,10 +307,10 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     return c.json({ ok: true });
   });
 
-  /** Permanently deletes the account and everything stored for it on this server (cascade). */
+  /** Permanently deletes the account and everything stored for it on this server. */
   app.delete("/v1/me", requireUser, async (c) => {
     const user = c.get("user");
-    await db.delete(users).where(eq(users.id, user.id));
+    await deleteUserData(db, user.id);
     deleteCookie(c, SESSION_COOKIE, { path: "/" });
     return c.json({ ok: true });
   });
@@ -417,13 +462,60 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     return c.json({ ok: true });
   });
 
+  type CourseDoc = { units: unknown[]; lessons: { id: string; steps?: unknown[] }[] };
+
+  async function accessFor(user: UserRow | null) {
+    const prog = user ? await loadProgress(user.id) : emptyProgress();
+    return courseAccess(prog.completed, isGuestAccount(user));
+  }
+
+  function presentCourse(doc: CourseDoc, signedIn: boolean, withSteps: boolean) {
+    return {
+      units: doc.units,
+      lessons: doc.lessons.map((lesson) => {
+        const index = PATH.findIndex((node) => node.id === lesson.id);
+        const { steps, ...rest } = lesson;
+        return {
+          ...rest,
+          guestLocked: !signedIn && index >= GUEST_CLASS_LIMIT,
+          ...(withSteps ? { steps: steps ?? [] } : {}),
+        };
+      }),
+    };
+  }
+
+  function refuseLesson(c: Context, access: CourseAccess, id: string) {
+    const node = access.path.find((n) => n.id === id);
+    if (!node || node.playable) return null;
+    if (node.lockedReason === "guest") return c.json({ error: GUEST_LIMIT_CODE }, 403);
+    return c.json({ error: "lesson_locked" }, 403);
+  }
+
+  app.get("/v1/puzzles/pack", async (c) => {
+    const pack = await loadPuzzlePack(db);
+    if (!pack) return fail(c, 404, "not_found");
+    const etag = puzzleEtag(pack.version);
+    c.header("ETag", etag);
+    c.header("Cache-Control", PUZZLE_CACHE);
+    const inm = c.req.header("If-None-Match");
+    if (inm?.split(",").some((part) => part.trim().replace(/^W\//, "") === etag)) return c.body(null, 304);
+    return c.json(pack);
+  });
+
+  app.get("/v1/puzzles/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!id) return fail(c, 400, "invalid_input");
+    const puzzle = await loadPuzzle(db, id);
+    if (!puzzle) return fail(c, 404, "not_found");
+    c.header("Cache-Control", PUZZLE_CACHE);
+    return c.json(puzzle);
+  });
+
   app.get("/v1/course", async (c) => {
     const doc = await loadCourse();
     if (!doc) return fail(c, 404, "not_found");
-    if (c.req.query("outline") === "1") {
-      return c.json({ ...doc, lessons: doc.lessons.map(({ steps: _steps, ...lesson }) => lesson) });
-    }
-    return c.json(doc);
+    const user = await userFromRequest(c);
+    return c.json(presentCourse(doc, Boolean(user), c.req.query("outline") !== "1"));
   });
 
   app.get("/v1/lessons/:id", async (c) => {
@@ -432,6 +524,9 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     const doc = await loadCourse();
     const lesson = doc?.lessons.find((l) => l.id === id);
     if (!lesson) return fail(c, 404, "not_found");
+    const access = await accessFor(await userFromRequest(c));
+    const refused = refuseLesson(c, access, id);
+    if (refused) return refused;
     return c.json(lesson);
   });
 
@@ -440,15 +535,17 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     const [prof, prog] = await Promise.all([loadProfile(user.id), loadProgress(user.id)]);
     const qDay = c.req.query("day");
     const today = qDay && /^\d{4}-\d{2}-\d{2}$/.test(qDay) ? qDay : dayKey(now());
-    const path = pathStates(prog);
-    const next = nextNode(prog);
+    const access = courseAccess(prog.completed, isGuestAccount(user));
+    const current = access.path.find((n) => n.state === "current");
+    const lastDone = [...access.path].reverse().find((n) => n.state === "done");
+    const fallback = access.path[access.path.length - 1];
     const home: HomeResponse = {
       name: user.name,
       streak: visibleStreak(prog.streak, today),
       dailyMinutes: prof.dailyMinutes,
       xp: prog.xp,
-      today: next ? { nodeId: next.id, state: "current" } : { nodeId: PATH[PATH.length - 1].id, state: "done" },
-      path,
+      today: current ? { nodeId: current.id, state: "current" } : { nodeId: (lastDone ?? fallback).id, state: "done" },
+      path: access.path,
       rooms: [
         { id: "play", open: true },
         { id: "practice", open: true },
@@ -463,8 +560,12 @@ export function createApp({ db, google, secureCookies, corsOrigins, now = () => 
     const b = await body<{ progress: Progress }>(c);
     if (!isProgress(b.progress)) return fail(c, 400, "invalid_input");
     const merged = sanitizeProgress(mergeProgress(await loadProgress(user.id), sanitizeProgress(b.progress)));
+    if (isGuestAccount(user) && (guestProgressOverreach(b.progress.completed) || guestProgressOverreach(merged.completed))) {
+      return c.json({ error: GUEST_LIMIT_CODE }, 403);
+    }
     await saveProgress(user.id, merged);
-    return c.json({ progress: merged });
+    const access = courseAccess(merged.completed, isGuestAccount(user));
+    return c.json({ progress: merged, path: access.path });
   });
 
   return app;

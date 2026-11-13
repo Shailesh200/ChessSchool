@@ -1,11 +1,12 @@
 import { nextPuzzle, type Puzzle } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Cody } from "@/components/Lottie";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, Flow, T, TopBar } from "@/components/ui";
+import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
@@ -14,6 +15,19 @@ const LIVES = 3;
 
 /** Puzzle sprint: 3 minutes, 3 mistakes, puzzles get harder as you go. */
 export default function Sprint() {
+  const ready = usePuzzlePackReady();
+  const { c } = useTheme();
+  if (!ready) {
+    return (
+      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
+  return <SprintBody />;
+}
+
+function SprintBody() {
   const { state, finishSprint, cue } = useApp();
   const { c } = useTheme();
   const [run, setRun] = useState(0);

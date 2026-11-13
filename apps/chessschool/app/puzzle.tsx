@@ -2,24 +2,34 @@ import { nextPuzzle, PUZZLE_THEMES, updateRating, type Puzzle, type PuzzleThemeI
 import { copy } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, T, TopBar } from "@/components/ui";
+import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
 export default function PuzzleScreen() {
-  const params = useLocalSearchParams<{ theme?: string; daily?: string }>();
-  const { state, finishPuzzle } = useApp();
+  const ready = usePuzzlePackReady();
   const { c } = useTheme();
+  if (!ready) {
+    return (
+      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
+  return <PuzzleBody />;
+}
+
+function PuzzleBody() {
+  const params = useLocalSearchParams<{ theme?: string; daily?: string }>();
   const daily = params.daily === "1";
   const served = useDailyPuzzle(daily);
+  const { c } = useTheme();
   const theme = (PUZZLE_THEMES.find((t) => t.id === params.theme)?.id ?? null) as PuzzleThemeId | null;
-  const [puzzle, setPuzzle] = useState<Puzzle>(() => (daily ? served.puzzle : nextPuzzle({ rating: state.progress.puzzles.rating, theme, exclude: state.progress.puzzles.recent })));
-  const [round, setRound] = useState(0);
-  const [delta, setDelta] = useState<number | null>(null);
   if (daily && served.done) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, padding: 16, gap: 16 }}>
@@ -30,6 +40,22 @@ export default function PuzzleScreen() {
       </SafeAreaView>
     );
   }
+  if (daily && !served.puzzle) {
+    return (
+      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
+  return <PuzzlePlay daily={daily} theme={theme} initial={served.puzzle} />;
+}
+
+function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleThemeId | null; initial: Puzzle | null }) {
+  const { state, finishPuzzle } = useApp();
+  const { c } = useTheme();
+  const [puzzle, setPuzzle] = useState<Puzzle>(() => initial ?? nextPuzzle({ rating: state.progress.puzzles.rating, theme, exclude: state.progress.puzzles.recent }));
+  const [round, setRound] = useState(0);
+  const [delta, setDelta] = useState<number | null>(null);
   const title = daily ? copy.puzzles.daily : theme ? PUZZLE_THEMES.find((t) => t.id === theme)!.name : copy.puzzles.play;
 
   return (

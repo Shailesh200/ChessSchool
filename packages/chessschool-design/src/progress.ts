@@ -31,6 +31,8 @@ export type Progress = {
   placed: string[];
 };
 
+export type DailyPuzzleSnapshot = { id: string; fen: string; moves: string[]; rating: number; themes: string[] };
+
 export type PuzzleProgress = {
   rating: number;
   attempts: number;
@@ -42,8 +44,16 @@ export type PuzzleProgress = {
    * `seen` is daily puzzle ids already served, newest first.
    * Optional: progress saved before this field, and older API clients, omit it.
    * `servedDay`/`servedId` lock today's puzzle so it does not change once shown.
+   * `served` is that puzzle's data, so it can still render if a later pack no longer contains the id.
    */
-  daily: { lastDay: string | null; count: number; seen?: string[]; servedDay?: string | null; servedId?: string | null };
+  daily: {
+    lastDay: string | null;
+    count: number;
+    seen?: string[];
+    servedDay?: string | null;
+    servedId?: string | null;
+    served?: DailyPuzzleSnapshot;
+  };
 };
 
 /** Newest-first cap so a device cannot store an unbounded seen list. */
@@ -486,15 +496,17 @@ export function recordSprint(state: LocalState, score: number, now: Date, minute
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;
 
 /** Remember the puzzle shown for this local day so it is not served again. No-op when that id is already stored. */
-export function serveDaily(state: LocalState, day: string, id: string): LocalState {
+export function serveDaily(state: LocalState, day: string, id: string, puzzle?: { id: string; fen: string; moves: readonly string[]; rating: number; themes: readonly string[] } | null): LocalState {
   const daily = state.progress.puzzles.daily ?? { lastDay: null, count: 0 };
-  if (daily.servedDay === day && daily.servedId === id) return state;
+  const snap = puzzle && puzzle.id === id ? validSnapshot(puzzle) : null;
+  if (daily.servedDay === day && daily.servedId === id && (!snap || daily.served?.id === id)) return state;
   const seen = capSeen([id, ...(daily.seen ?? []).filter((x) => x !== id)]);
+  const served = snap ?? (daily.served?.id === id ? daily.served : undefined);
   return {
     ...state,
     progress: {
       ...state.progress,
-      puzzles: { ...state.progress.puzzles, daily: { ...daily, seen, servedDay: day, servedId: id } },
+      puzzles: { ...state.progress.puzzles, daily: { ...daily, seen, servedDay: day, servedId: id, ...(served ? { served } : {}) } },
     },
   };
 }
@@ -647,6 +659,7 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
         seen,
         servedDay: (dA >= dB ? dayA.servedDay : dayB.servedDay) ?? null,
         servedId: (dA >= dB ? dayA.servedId : dayB.servedId) ?? null,
+        ...(validSnapshot((dA >= dB ? dayA : dayB).served) ? { served: validSnapshot((dA >= dB ? dayA : dayB).served)! } : {}),
       },
     },
     bots,
@@ -708,7 +721,18 @@ export function sanitizeProgress(p: Progress): Progress {
   };
 }
 
-const SEEN_ID = /^[A-Za-z0-9]{3,8}$/;
+const SEEN_ID = /^[A-Za-z0-9-]{3,8}$/;
+
+function validSnapshot(raw: unknown): DailyPuzzleSnapshot | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as DailyPuzzleSnapshot;
+  if (typeof p.id !== "string" || !SEEN_ID.test(p.id)) return null;
+  if (typeof p.fen !== "string" || !p.fen || p.fen.length > 120) return null;
+  if (!Array.isArray(p.moves) || p.moves.length < 2 || p.moves.length > 40 || p.moves.some((m) => typeof m !== "string" || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(m))) return null;
+  if (typeof p.rating !== "number" || !Number.isFinite(p.rating)) return null;
+  if (!Array.isArray(p.themes) || p.themes.length > 12 || p.themes.some((t) => typeof t !== "string" || !/^[a-zA-Z][a-zA-Z0-9]{1,31}$/.test(t))) return null;
+  return { id: p.id, fen: p.fen, moves: [...p.moves], rating: p.rating, themes: [...p.themes] };
+}
 
 /** Keep the newest valid ids. Missing, junk, and oversized lists all become a bounded array. */
 function capSeen(ids: readonly unknown[]): string[] {
@@ -730,18 +754,20 @@ function sanitizePuzzles(raw: unknown): PuzzleProgress {
   const n = (v: unknown, max: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0);
   const day = (d: unknown) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
   const attempts = n(p.attempts, 1_000_000);
+  const served = validSnapshot(p.daily?.served);
   return {
     rating: typeof p.rating === "number" && Number.isFinite(p.rating) ? Math.max(100, Math.min(3000, Math.round(p.rating))) : base.rating,
     attempts,
     solved: Math.min(attempts, n(p.solved, 1_000_000)),
-    recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && /^[A-Za-z0-9]{3,8}$/.test(id)).slice(0, 50) : [],
+    recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && SEEN_ID.test(id)).slice(0, 50) : [],
     sprintBest: n(p.sprintBest, 500),
     daily: {
       lastDay: day(p.daily?.lastDay),
       count: n(p.daily?.count, 10_000),
       seen: capSeen(Array.isArray(p.daily?.seen) ? p.daily.seen : []),
       servedDay: day(p.daily?.servedDay),
-      servedId: typeof p.daily?.servedId === "string" && /^[A-Za-z0-9]{3,8}$/.test(p.daily.servedId) ? p.daily.servedId : null,
+      servedId: typeof p.daily?.servedId === "string" && SEEN_ID.test(p.daily.servedId) ? p.daily.servedId : null,
+      ...(served && served.id === (typeof p.daily?.servedId === "string" ? p.daily.servedId : "") ? { served } : {}),
     },
   };
 }

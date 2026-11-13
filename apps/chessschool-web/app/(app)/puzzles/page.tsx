@@ -7,13 +7,15 @@ import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, TopBar } from "@/components/ui";
+import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { useApp } from "@/lib/state";
 
 export default function PuzzlesPage() {
   const { state, ready } = useApp();
+  const packReady = usePuzzlePackReady();
   const pz = state.progress.puzzles;
-  const { puzzle: daily, done } = useDailyPuzzle(ready);
-  if (!ready) return <div className="page-skeleton" aria-busy="true" />;
+  const { puzzle: daily, done } = useDailyPuzzle(ready && packReady);
+  if (!ready || !packReady || !daily) return <div className="page-skeleton" aria-busy="true" />;
   return (
     <div className="page">
       <TopBar title={copy.puzzles.title} large back={false} />

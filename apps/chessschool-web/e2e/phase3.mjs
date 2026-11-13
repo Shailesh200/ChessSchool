@@ -8,8 +8,8 @@ import { createRequire } from "node:module";
 
 const require = createRequire(new URL("../../../packages/chessschool-chess/package.json", import.meta.url));
 const { Chess } = require("chess.js");
-const rows = JSON.parse(readFileSync(new URL("../../../packages/chessschool-chess/src/puzzles.data.ts", import.meta.url), "utf8").match(/PUZZLE_ROWS[^=]*= (\[[\s\S]*\]);/)[1]);
-const PUZZLES = new Map(rows.map(([id, , moves]) => [id, moves.split(" ")]));
+const fallback = JSON.parse(readFileSync(new URL("../../../packages/chessschool-chess/data/own-puzzles-fallback.json", import.meta.url), "utf8"));
+const PUZZLES = new Map(fallback.puzzles.map((p) => [p.id, p.moves]));
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const apiBase = process.env.CHESSSCHOOL_API_URL ?? "";

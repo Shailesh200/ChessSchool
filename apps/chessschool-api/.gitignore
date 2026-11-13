@@ -1,4 +1,5 @@
 local.db*
+qa.local.db*
 node_modules
 .env
 .vercel

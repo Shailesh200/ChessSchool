@@ -1,7 +1,7 @@
 "use client";
 
 import { COURSE_KEY, isGuestClassLimit, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import { useApp } from "./state";
 
@@ -16,19 +16,97 @@ function readLesson(id: string): CourseLesson | null {
   }
 }
 
+const RETRY_MS = [1000, 2000, 4000];
+
+let loaded = false;
+let flight: Promise<Course> | null = null;
+let retryTimer: ReturnType<typeof setTimeout> | undefined;
+let retries = 0;
+const subscribers = new Set<(course: Course) => void>();
+
+function publish(next: Course) {
+  loaded = true;
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = undefined;
+  retries = 0;
+  try {
+    localStorage.setItem(COURSE_KEY, JSON.stringify(next));
+  } catch {
+    /* the in-memory course is enough to leave the loading state */
+  }
+  for (const notify of subscribers) notify(next);
+}
+
+function requestCourse(): Promise<Course> {
+  if (flight) return flight;
+  const run = api
+    .course()
+    .then((next) => {
+      publish(next);
+      return next;
+    })
+    .finally(() => {
+      if (flight === run) flight = null;
+    });
+  flight = run;
+  return run;
+}
+
+function scheduleRetry() {
+  if (loaded || flight || retryTimer || retries >= RETRY_MS.length) return;
+  const wait = RETRY_MS[retries];
+  retries += 1;
+  retryTimer = setTimeout(() => {
+    retryTimer = undefined;
+    if (loaded) return;
+    requestCourse().catch(() => scheduleRetry());
+  }, wait);
+}
+
+function kickCourse() {
+  if (loaded || flight || retryTimer) return;
+  retries = 0;
+  requestCourse().catch(() => scheduleRetry());
+}
+
 /** Cached course outline, refreshed from the API. Steps are not in this payload. */
 export function useCourse() {
+  const { state } = useApp();
+  const userId = state.account?.id ?? null;
   const [course, setCourse] = useState<Course | null>(null);
+  const sawUser = useRef<string | null | undefined>(undefined);
+
   useEffect(() => {
-    setCourse(parseCourse(localStorage.getItem(COURSE_KEY)));
-    api
-      .course()
-      .then((c) => {
-        localStorage.setItem(COURSE_KEY, JSON.stringify(c));
-        setCourse(c);
-      })
-      .catch(() => {});
-  }, []);
+    const cached = parseCourse(localStorage.getItem(COURSE_KEY));
+    if (cached) {
+      loaded = true;
+      setCourse(cached);
+    }
+    const notify = (next: Course) => setCourse(next);
+    subscribers.add(notify);
+    const onFocus = () => {
+      if (!loaded) kickCourse();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && !loaded) kickCourse();
+    };
+    const userChanged = sawUser.current !== undefined && sawUser.current !== userId;
+    sawUser.current = userId;
+    if (!loaded || userChanged) kickCourse();
+    else requestCourse().catch(() => {});
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      subscribers.delete(notify);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (subscribers.size === 0 && retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = undefined;
+      }
+    };
+  }, [userId]);
+
   return course;
 }
 
