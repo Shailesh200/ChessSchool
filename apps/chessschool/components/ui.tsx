@@ -284,14 +284,22 @@ export function Choice({ label, selected, onPress, tint }: { label: string; sele
 
 type FieldProps = { label: string; error?: string | null; hint?: string; password?: boolean; ref?: React.Ref<TextInput> } & TextInputProps;
 
-export function TextField({ label, error, hint, password, ...rest }: FieldProps) {
+export function TextField({ label, error, hint, password, style, ...rest }: FieldProps) {
   const { c } = useTheme();
   const [show, setShow] = useState(false);
   const [focus, setFocus] = useState(false);
   return (
     <View style={{ gap: 6 }}>
       <T role="label">{label}</T>
-      <View>
+      <View
+        style={{
+          borderRadius: 16,
+          borderWidth: 2,
+          borderColor: error ? c.danger : focus ? c.brand : c.line,
+          backgroundColor: c.card,
+          overflow: "hidden",
+        }}
+      >
         <TextInput
           accessibilityLabel={label}
           accessibilityHint={error ?? hint}
@@ -303,12 +311,14 @@ export function TextField({ label, error, hint, password, ...rest }: FieldProps)
           style={[
             s.input,
             {
-              backgroundColor: c.card,
+              borderWidth: 0,
+              borderRadius: 16,
+              backgroundColor: "transparent",
               color: c.text,
               fontFamily: fonts.medium,
-              borderColor: error ? c.danger : focus ? c.brand : c.line,
               paddingRight: password ? 60 : 18,
             },
+            style,
           ]}
           {...rest}
         />
@@ -725,7 +735,7 @@ const s = StyleSheet.create({
   seg: { flexDirection: "row", padding: 4, borderRadius: 18, gap: 4 },
   segItem: { flex: 1, minHeight: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
   choice: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 20, borderRadius: 18, borderWidth: 2, alignSelf: "stretch" },
-  input: { minHeight: minTarget, borderRadius: 16, borderWidth: 2, paddingHorizontal: 18, fontSize: 17 },
+  input: { minHeight: minTarget - 4, borderRadius: 16, borderWidth: 0, paddingHorizontal: 18, fontSize: 17 },
   eye: { position: "absolute", right: 4, top: 4, width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 22, paddingTop: 24, gap: 12, alignItems: "center", width: "100%", maxWidth: 560, alignSelf: "center" },
   toast: { position: "absolute", left: 24, right: 24, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, alignSelf: "center", maxWidth: 440 },
