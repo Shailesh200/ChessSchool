@@ -36,6 +36,7 @@ Version codes live in `app.json` (Android versionCode 37, iOS buildNumber 16). `
 
 - Play: `pnpm --filter chessschool build:android:prod` (app-bundle, image sdk-54, medium, channel production) then `submit:android:internal` (track internal, draft).
 - iOS: `pnpm --filter chessschool build:ios:prod` (image sdk-54, medium). Submit profile `production` carries App Store Connect app `6828715695` and Apple Team `ARDSWV5GD2`. No Apple ID or password is stored in the repo.
+- iOS without Google sign-in: profile `production-ios-nogoogle` extends `production`, sets `CS_DISABLE_GOOGLE=1`, and blanks `EXPO_PUBLIC_GOOGLE_CLIENT_ID` and `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. `app.config.js` then omits the Google plugin and any `googleusercontent` URL scheme. Other profiles are unchanged.
 - QA smoke APK: `npx eas-cli build --platform android --profile qa-apk`. Same API URL, Google client ids, and versionCode as the Play profile, on channel `qa` so a production OTA cannot reach a QA build (or the reverse). `buildType` is `apk` (one universal APK, no ABI split) and `distribution` is `internal`, so it can be sideloaded. It is not a submit profile.
 
 Not run automatically — store submission happens only when asked.

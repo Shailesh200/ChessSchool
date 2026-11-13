@@ -44,6 +44,14 @@
       },
       "android": { "buildType": "app-bundle", "image": "sdk-54", "resourceClass": "medium" },
       "ios": { "image": "sdk-54", "resourceClass": "medium" }
+    },
+    "production-ios-nogoogle": {
+      "extends": "production",
+      "env": {
+        "CS_DISABLE_GOOGLE": "1",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": ""
+      }
     }
   },
   "submit": {
