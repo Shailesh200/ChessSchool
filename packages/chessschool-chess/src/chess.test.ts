@@ -5,7 +5,7 @@ import { legalTargets, load, withTurn } from "./game";
 import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
 import { currentStep, runnerReduce, startRunner, type RunnerState } from "./runner";
 import { defaultSetup, playReduce, playResult, shuffleFen, startGame, timeLeft, START_POSITIONS, type PlaySetup } from "./play";
-import { allPuzzles, armPuzzleBeat, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
+import { allPuzzles, armPuzzleBeat, dailyPuzzle, getPuzzlePackVersion, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
 import { assessMove, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
 import { BOTS } from "./bot";
 import { PIECE_SETS, isRemovedPieceSet, migratePieceSet, pieceArtwork } from "./pieceSets";
@@ -355,7 +355,8 @@ describe("the bot roster", () => {
 describe("puzzles", () => {
   it("bundles a validated, rated pack", () => {
     const all = allPuzzles();
-    expect(all.length).toBeGreaterThanOrEqual(10);
+    expect(all.length).toBe(100);
+    expect(getPuzzlePackVersion()).toBe("own-2026.11.13-s20261113");
     expect(all.every((p) => p.moves.length >= 2 && p.rating >= 400 && p.rating < 2000)).toBe(true);
   });
 
@@ -414,6 +415,28 @@ describe("puzzles", () => {
     w = puzzleReduce(w, { type: "retry" });
     expect(w.status).toBe("solving");
     expect(w.missed).toBe(true);
+  });
+
+  it("opens on the opponent's move so the learner is the one who finds the tactic", () => {
+    for (const p of allPuzzles()) {
+      expect(p.moves.length % 2, p.id).toBe(0);
+      expect(p.moves.length, p.id).toBeGreaterThanOrEqual(2);
+      const chess = load(p.fen);
+      const sideToMove = chess.turn();
+      const setup = p.moves[0];
+      const played = chess.move({
+        from: setup.slice(0, 2),
+        to: setup.slice(2, 4),
+        promotion: setup.length > 4 ? (setup[4] as "q" | "r" | "b" | "n") : undefined,
+      });
+      expect(played, p.id).toBeTruthy();
+      // The learner is the other side, and they have a real choice.
+      expect(chess.turn(), p.id).not.toBe(sideToMove);
+      expect(chess.moves().length, p.id).toBeGreaterThan(1);
+      const answer = p.moves[1];
+      const tactic = chess.moves({ verbose: true }).some((m) => `${m.from}${m.to}` === answer.slice(0, 4));
+      expect(tactic, p.id).toBe(true);
+    }
   });
 
   it("every bundled puzzle is solvable from its first move", () => {

@@ -1,4 +1,4 @@
-import { PUZZLE_SOURCE } from "./puzzleSource";
+import { PUZZLE_SOURCE, loadBundledFullPack } from "./puzzleSource";
 import { PUZZLE_THEME_TAGS, getPuzzlePackStatus, setPuzzlePack, setPuzzlePackStatus, type Puzzle, type PuzzlePack, type PuzzleThemeId } from "./puzzles";
 
 export const PUZZLE_PACK_KEY = "chessschool.v2.puzzlePack";
@@ -67,7 +67,11 @@ export async function refreshPuzzlePack(opts: {
   source?: "api" | "bundled";
 }): Promise<void> {
   const source = opts.source ?? PUZZLE_SOURCE;
-  if (source === "bundled") {
+  if (source === "bundled" || PUZZLE_SOURCE === "bundled") {
+    if (PUZZLE_SOURCE === "bundled") {
+      const full = await loadBundledFullPack();
+      if (full) setPuzzlePack(full);
+    }
     setPuzzlePackStatus("fallback");
     return;
   }

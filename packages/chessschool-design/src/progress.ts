@@ -721,7 +721,7 @@ export function sanitizeProgress(p: Progress): Progress {
   };
 }
 
-const SEEN_ID = /^[A-Za-z0-9]{3,8}$/;
+const SEEN_ID = /^[A-Za-z0-9-]{3,8}$/;
 
 function validSnapshot(raw: unknown): DailyPuzzleSnapshot | null {
   if (!raw || typeof raw !== "object") return null;
@@ -759,14 +759,14 @@ function sanitizePuzzles(raw: unknown): PuzzleProgress {
     rating: typeof p.rating === "number" && Number.isFinite(p.rating) ? Math.max(100, Math.min(3000, Math.round(p.rating))) : base.rating,
     attempts,
     solved: Math.min(attempts, n(p.solved, 1_000_000)),
-    recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && /^[A-Za-z0-9]{3,8}$/.test(id)).slice(0, 50) : [],
+    recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && SEEN_ID.test(id)).slice(0, 50) : [],
     sprintBest: n(p.sprintBest, 500),
     daily: {
       lastDay: day(p.daily?.lastDay),
       count: n(p.daily?.count, 10_000),
       seen: capSeen(Array.isArray(p.daily?.seen) ? p.daily.seen : []),
       servedDay: day(p.daily?.servedDay),
-      servedId: typeof p.daily?.servedId === "string" && /^[A-Za-z0-9]{3,8}$/.test(p.daily.servedId) ? p.daily.servedId : null,
+      servedId: typeof p.daily?.servedId === "string" && SEEN_ID.test(p.daily.servedId) ? p.daily.servedId : null,
       ...(served && served.id === (typeof p.daily?.servedId === "string" ? p.daily.servedId : "") ? { served } : {}),
     },
   };

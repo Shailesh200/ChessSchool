@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FALLBACK_PACK } from "./puzzles.fallback";
-import { dailyPuzzle, getPuzzlePackStatus, getPuzzlePackVersion, lockDailyPuzzle, nextPuzzle, packReady, selectDailyPuzzle, setPuzzlePack, setPuzzlePackStatus, type PuzzlePack } from "./puzzles";
+import { allPuzzles, dailyPuzzle, getPuzzlePackStatus, getPuzzlePackVersion, lockDailyPuzzle, nextPuzzle, packReady, selectDailyPuzzle, setPuzzlePack, setPuzzlePackStatus, type PuzzlePack } from "./puzzles";
 import { PUZZLE_PACK_KEY, refreshPuzzlePack, type PuzzlePackFetch, type PuzzlePackStorage } from "./puzzlePack";
 
 const pack = (version: string, id: string, theme: "fork" | "pin" = "fork"): PuzzlePack => ({
@@ -143,6 +143,26 @@ describe("puzzle pack refresh", () => {
     expect(saved).toEqual([choice.puzzle?.id]);
     rejectFetch(new Error("offline"));
     await pending;
+  });
+
+  it("loads the full own pack into the store without fetching", async () => {
+    const fetch = vi.fn<PuzzlePackFetch>(async () => ({ status: 200, json: async () => pack("v9", "nope01") }));
+    const { OWN_PACK } = await import("./ownPuzzlePack");
+    expect(OWN_PACK.puzzles.length).toBeGreaterThan(500);
+    expect(FALLBACK_PACK.puzzles.length).toBe(100);
+    expect(OWN_PACK.version).toBe(FALLBACK_PACK.version);
+    const onlyFull = OWN_PACK.puzzles.find((p) => !FALLBACK_PACK.puzzles.some((f) => f.id === p.id));
+    expect(onlyFull).toBeTruthy();
+    setPuzzlePack(OWN_PACK);
+    setPuzzlePackStatus("fallback");
+    expect(packReady()).toBe(true);
+    expect(allPuzzles().some((p) => p.id === onlyFull!.id)).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+    const pending = refreshPuzzlePack({ storage: memory(), fetch, apiBase: "http://api.test", source: "bundled" });
+    expect(fetch).not.toHaveBeenCalled();
+    await pending;
+    expect(fetch).not.toHaveBeenCalled();
+    expect(getPuzzlePackStatus()).toBe("fallback");
   });
 
   it("serves daily and next puzzles from the installed pack", () => {
