@@ -1,14 +1,30 @@
 import { dailyPuzzle, puzzleById, themesForCompletedLessons, type Puzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight } from "@chessschool/design";
+import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight, watchLocalMidnight } from "@chessschool/design";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { AppState, View } from "react-native";
 import { T } from "@/components/ui";
 import { useApp } from "@/lib/state";
+
+/** Local day, replaced at midnight and when the app becomes active (a background timer may have been paused). */
+function useLocalDay(): string {
+  const [today, setToday] = useState(() => dayKey(new Date()));
+  useEffect(() => {
+    const watch = watchLocalMidnight((day) => setToday(day));
+    const sub = AppState.addEventListener("change", (status) => {
+      if (status === "active") watch.sync();
+    });
+    return () => {
+      watch.stop();
+      sub.remove();
+    };
+  }, []);
+  return today;
+}
 
 /** Today's puzzle. Passing `serve` records it so the same id is not offered again. */
 export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle; done: boolean } {
   const { state, serveDailyPuzzle } = useApp();
-  const today = dayKey(new Date());
+  const today = useLocalDay();
   const daily = state.progress.puzzles.daily;
   const stuck = daily.servedDay === today && daily.servedId ? puzzleById(daily.servedId) : null;
   const puzzle = stuck ?? dailyPuzzle(today, themesForCompletedLessons(Object.keys(state.progress.completed)), daily.seen ?? []);

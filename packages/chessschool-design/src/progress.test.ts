@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PATH,
   START_FEN,
@@ -24,6 +24,8 @@ import {
   ideasLearned,
   mergeProgress,
   msUntilLocalMidnight,
+  msUntilNextLocalMidnight,
+  watchLocalMidnight,
   pathStates,
   rankFor,
   sanitizeProgress,
@@ -33,6 +35,10 @@ import {
 } from "./progress";
 
 const at = (iso: string) => new Date(`${iso}T10:00:00`);
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("orientation", () => {
   it("completes once, awards XP once and starts a streak", () => {
@@ -344,6 +350,39 @@ describe("Phase 3 progress", () => {
     for (const removed of ["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]) {
       expect(hydrateState({ ...createInitialState("old"), prefs: { pieceSet: removed } }, () => "n").prefs.pieceSet).toBe("toy");
     }
+  });
+
+  it("moves the day key at local midnight with one re-armed timer", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 13, 23, 59, 59));
+    const days: string[] = [];
+    const watch = watchLocalMidnight((day) => days.push(day));
+    expect(msUntilNextLocalMidnight(new Date())).toBe(1000);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(999);
+    expect(days).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(days).toEqual(["2026-11-14"]);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    expect(days).toEqual(["2026-11-14", "2026-11-15"]);
+    watch.stop();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(48 * 60 * 60 * 1000);
+    expect(days).toEqual(["2026-11-14", "2026-11-15"]);
+  });
+
+  it("re-keys immediately when a throttled midnight timer is synced", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 13, 22, 0, 0));
+    const days: string[] = [];
+    const watch = watchLocalMidnight((day) => days.push(day));
+    vi.setSystemTime(new Date(2026, 10, 14, 8, 0, 0));
+    watch.sync();
+    expect(days).toEqual(["2026-11-14"]);
+    expect(vi.getTimerCount()).toBe(1);
+    watch.stop();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("counts down to the next local midnight and keeps the gym for accounts", () => {

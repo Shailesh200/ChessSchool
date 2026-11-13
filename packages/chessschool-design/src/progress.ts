@@ -243,6 +243,43 @@ export function msUntilLocalMidnight(now: Date): number {
   return Math.max(0, next.getTime() - now.getTime());
 }
 
+/** Delay for one timer until local midnight. Never 0, so a fire at 00:00:00 cannot loop. */
+export function msUntilNextLocalMidnight(now: Date): number {
+  return Math.max(1, msUntilLocalMidnight(now));
+}
+
+/**
+ * One timeout until local midnight. The callback receives the new day key, then the timer is armed again.
+ * `sync` reports the current day and re-arms, for when a background timer may have been throttled.
+ */
+export function watchLocalMidnight(onDay: (day: string) => void, now: () => Date = () => new Date()): { sync: () => void; stop: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  const arm = () => {
+    if (stopped) return;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = undefined;
+      if (stopped) return;
+      onDay(dayKey(now()));
+      arm();
+    }, msUntilNextLocalMidnight(now()));
+  };
+  arm();
+  return {
+    sync: () => {
+      if (stopped) return;
+      onDay(dayKey(now()));
+      arm();
+    },
+    stop: () => {
+      stopped = true;
+      if (timer !== undefined) clearTimeout(timer);
+      timer = undefined;
+    },
+  };
+}
+
 /** `H:MM:SS` remaining, for the daily-puzzle countdown. */
 export function formatDailyCountdown(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));

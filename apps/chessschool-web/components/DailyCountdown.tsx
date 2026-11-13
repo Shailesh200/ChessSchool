@@ -1,14 +1,33 @@
 "use client";
 
 import { dailyPuzzle, puzzleById, themesForCompletedLessons, type Puzzle } from "@chessschool/chess";
-import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight } from "@chessschool/design";
+import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight, watchLocalMidnight } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { useApp } from "@/lib/state";
+
+/** Local day, replaced at midnight and when the tab is shown again (a background timer may have been paused). */
+function useLocalDay(): string {
+  const [today, setToday] = useState(() => dayKey(new Date()));
+  useEffect(() => {
+    const watch = watchLocalMidnight((day) => setToday(day));
+    const onWake = () => {
+      if (document.visibilityState === "visible") watch.sync();
+    };
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("focus", onWake);
+    return () => {
+      watch.stop();
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("focus", onWake);
+    };
+  }, []);
+  return today;
+}
 
 /** Today's puzzle. Passing `serve` records it so the same id is not offered again. */
 export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle; done: boolean } {
   const { state, serveDailyPuzzle } = useApp();
-  const today = dayKey(new Date());
+  const today = useLocalDay();
   const daily = state.progress.puzzles.daily;
   const stuck = daily.servedDay === today && daily.servedId ? puzzleById(daily.servedId) : null;
   const puzzle = stuck ?? dailyPuzzle(today, themesForCompletedLessons(Object.keys(state.progress.completed)), daily.seen ?? []);
