@@ -2,7 +2,7 @@ import { allPuzzles, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, View } from "react-native";
-import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Chip, Page, T } from "@/components/ui";
@@ -45,20 +45,33 @@ export default function Puzzles() {
         <Cody animation="thinking" size={100} />
       </Card>
 
-      <Card style={{ gap: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Icon name="sun" color={c.text} />
-          <T role="heading">{copy.puzzles.daily}</T>
-        </View>
-        <T role="body" color="textMuted">
-          {done ? copy.puzzles.dailyDone : `${copy.puzzles.dailyBody} · ${daily.rating}`}
-        </T>
-        {done ? <DailyCountdown /> : null}
-        <View style={{ alignSelf: "flex-start" }}>
-          <Chip tone="accent">{copy.puzzles.dailyStreak(pz.daily.count)}</Chip>
-        </View>
-        {done ? null : <Button title={copy.puzzles.daily} icon="play" variant="gold" onPress={() => router.push("/puzzle?daily=1")} />}
-      </Card>
+      {done ? (
+        <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: c.successSoft }}>
+            <Icon name="check" color={c.successText} size={26} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <T role="heading">{copy.puzzles.daily}</T>
+            <T role="body" color="textMuted">
+              {copy.puzzles.comeBack}
+            </T>
+          </View>
+        </Card>
+      ) : (
+        <Card style={{ gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Icon name="sun" color={c.text} />
+            <T role="heading">{copy.puzzles.daily}</T>
+          </View>
+          <T role="body" color="textMuted">
+            {`${copy.puzzles.dailyBody} · ${daily.rating}`}
+          </T>
+          <View style={{ alignSelf: "flex-start" }}>
+            <Chip tone="accent">{copy.puzzles.dailyStreak(pz.daily.count)}</Chip>
+          </View>
+          <Button title={copy.puzzles.daily} icon="play" variant="gold" onPress={() => router.push("/puzzle?daily=1")} />
+        </Card>
+      )}
 
       <Card style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
