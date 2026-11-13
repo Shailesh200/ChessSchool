@@ -2,7 +2,6 @@ import type { Chess, Move } from "chess.js";
 import { turnOf, type Color, type MoveRef, type PromotionPiece, type Square } from "./board";
 import { kingInCheck, load, moveRef, parseUci, tryMove } from "./game";
 import { FALLBACK_PACK } from "./puzzles.fallback";
-import { PUZZLE_SOURCE } from "./puzzleSource";
 import { pick, sameMove, type BoardView } from "./runner";
 
 export const PUZZLE_THEME_TAGS = ["mateIn1", "mateIn2", "fork", "pin", "skewer", "hangingPiece", "discoveredAttack", "backRankMate", "promotion", "endgame", "defensiveMove", "sacrifice"] as const;
@@ -28,8 +27,8 @@ export const PUZZLE_THEMES: readonly { id: PuzzleThemeId; name: string; blurb: s
 export type PuzzlePackStatus = "loading" | "cache" | "api" | "fallback";
 
 let pack: PuzzlePack = FALLBACK_PACK;
-/** Bundled mode is ready immediately. API mode stays loading until a cache or the network settles. */
-let status: PuzzlePackStatus = PUZZLE_SOURCE === "bundled" ? "fallback" : "loading";
+/** Loading until a cache, the API, or the bundled full pack is installed. */
+let status: PuzzlePackStatus = "loading";
 const packListeners = new Set<() => void>();
 /** Puzzle captured when today's daily was served, so a later pack swap can still render it. */
 let dailyLock: { day: string; puzzle: Puzzle } | null = null;

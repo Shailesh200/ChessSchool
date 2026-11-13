@@ -5,7 +5,7 @@ import { legalTargets, load, withTurn } from "./game";
 import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
 import { currentStep, runnerReduce, startRunner, type RunnerState } from "./runner";
 import { defaultSetup, playReduce, playResult, shuffleFen, startGame, timeLeft, START_POSITIONS, type PlaySetup } from "./play";
-import { allPuzzles, armPuzzleBeat, dailyPuzzle, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
+import { allPuzzles, armPuzzleBeat, dailyPuzzle, getPuzzlePackVersion, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
 import { assessMove, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
 import { BOTS } from "./bot";
 import { PIECE_SETS, isRemovedPieceSet, migratePieceSet, pieceArtwork } from "./pieceSets";
@@ -355,7 +355,8 @@ describe("the bot roster", () => {
 describe("puzzles", () => {
   it("bundles a validated, rated pack", () => {
     const all = allPuzzles();
-    expect(all.length).toBeGreaterThanOrEqual(10);
+    expect(all.length).toBe(100);
+    expect(getPuzzlePackVersion()).toBe("own-2026.11.13-s20261113");
     expect(all.every((p) => p.moves.length >= 2 && p.rating >= 400 && p.rating < 2000)).toBe(true);
   });
 
