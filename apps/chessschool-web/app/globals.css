@@ -2433,6 +2433,57 @@ a.path-inner:hover {
     justify-content: center;
     gap: 32px;
   }
+  /* Gym play: board in the first column, resign and the other controls grouped beside it.
+     The back button stays in the header row and no longer shares a cell with the flag. */
+  .play-page {
+    height: auto;
+    overflow: visible;
+  }
+  .play-page .topbar {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 48px;
+    margin: 0 0 4px;
+    padding: 0;
+  }
+  .play-page .topbar-title {
+    flex: 0 1 auto;
+    text-align: start;
+  }
+  .play-page .play {
+    grid-template-columns: auto minmax(240px, 300px);
+    grid-template-areas:
+      "board tools"
+      "board panel";
+    justify-content: start;
+    gap: 16px 28px;
+    width: 100%;
+  }
+  .play-page .play-chrome {
+    grid-area: tools;
+    width: 100%;
+    max-width: none;
+    justify-content: flex-start;
+  }
+  .play-page .play-stage {
+    grid-area: board;
+    width: fit-content;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    justify-self: start;
+  }
+  .play-page .play-stage .stage-board {
+    width: min(520px, calc(100dvh - 340px));
+    height: min(520px, calc(100dvh - 340px));
+    min-height: 280px;
+  }
+  .play-page .play-panel {
+    grid-area: panel;
+    width: 100%;
+    max-width: none;
+  }
 }
 
 .row-block {
