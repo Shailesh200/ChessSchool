@@ -88,7 +88,7 @@ export default function TodayPage() {
 
       <div className="today-grid">
         <div className="today-main">
-          {course && !current && !state.placementDone && !progress.completed.board ? (
+          {course && !state.placementDone && !progress.completed.board ? (
             <Card className="placement" aria-labelledby="place-title">
               <h2 id="place-title" className="card-title">
                 {copy.placement.title}
