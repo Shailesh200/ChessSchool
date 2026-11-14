@@ -6,7 +6,7 @@ const config: NextConfig = {
   transpilePackages: ["@chessschool/design", "@chessschool/chess"],
   poweredByHeader: false,
   // "Draft with AI" in the lesson editor can take a few minutes; the default proxy timeout is 30 s.
-  experimental: { proxyTimeout: 300_000 },
+  experimental: { proxyTimeout: 180_000 },
   // The API is proxied so the session cookie stays first-party.
   async rewrites() {
     return [{ source: "/v1/:path*", destination: `${API_URL}/v1/:path*` }];

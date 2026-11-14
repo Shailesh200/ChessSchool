@@ -120,8 +120,8 @@ export const LESSON_MODEL = "claude-opus-5-5";
 /** The production writer (ANTHROPIC_API_KEY). Null without a key, which turns "Draft with AI" off. */
 export function anthropicLessonWriter(apiKey: string | undefined): LessonWriter | null {
   if (!apiKey) return null;
-  // Two attempts must fit the API's 300 s function limit.
-  const client = new Anthropic({ apiKey, timeout: 130_000, maxRetries: 0 });
+  // Two attempts must fit the API's 180 s function limit.
+  const client = new Anthropic({ apiKey, timeout: 85_000, maxRetries: 0 });
   return async (prompt) => {
     const res = await client.beta.messages.create({
       model: LESSON_MODEL,

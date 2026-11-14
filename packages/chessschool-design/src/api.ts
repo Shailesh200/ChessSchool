@@ -238,7 +238,7 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     saveLessonDraft: (id: string, lesson: unknown) => request<{ ok: true }>("PUT", `/v1/admin/course/drafts/${encodeURIComponent(id)}`, { lesson }),
     /** Writes a new lesson for this slot with the language model and saves it as the draft (never live). */
     draftLessonWithAi: (id: string, brief: { topic: string; level: "beginner" | "intermediate" | "advanced" }) =>
-      request<{ lesson: AdminLesson; errors: string[]; attempts: number }>("POST", `/v1/admin/course/lessons/${encodeURIComponent(id)}/ai-draft`, brief, 300_000),
+      request<{ lesson: AdminLesson; errors: string[]; attempts: number }>("POST", `/v1/admin/course/lessons/${encodeURIComponent(id)}/ai-draft`, brief, 180_000),
     discardLessonDraft: (id: string) => request<{ ok: true }>("DELETE", `/v1/admin/course/drafts/${encodeURIComponent(id)}`),
     publishLesson: (lesson: unknown) => request<{ ok: true; version: string }>("POST", "/v1/admin/course/publish", { lesson }),
     courseVersions: () => request<{ versions: AdminCourseVersion[] }>("GET", "/v1/admin/course/versions"),
