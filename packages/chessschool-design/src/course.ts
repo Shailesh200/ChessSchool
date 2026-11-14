@@ -5,6 +5,8 @@ export type CourseLesson = {
   unit: string;
   title: string;
   sub: string;
+  /** The lesson's key idea (the flashcard). Only on GET /v1/lessons/:id. */
+  idea?: string;
   minutes: number;
   xp: number;
   steps?: unknown[];

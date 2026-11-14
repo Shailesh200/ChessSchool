@@ -11,3 +11,4 @@ export * from "./puzzleSource";
 export * from "./puzzlePack";
 export * from "./puzzles";
 export * from "./review";
+export * from "./vision";

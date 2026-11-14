@@ -15,6 +15,8 @@ export type ClassRole = "monitor" | "student";
 export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; joinedAt: number; lessons: number; xp: number; streak: Streak };
 export type ReportReason = "name" | "behaviour" | "other";
 export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; me: boolean }[] };
+/** Today's best board-vision score per game in one class (games nobody played are left out). */
+export type ClassVision = { day: string; best: { game: string; score: number; id: string; name: string; avatar: AvatarId; me: boolean }[] };
 export type UsageSummary = {
   days: number;
   installs: number;
@@ -196,6 +198,9 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     reportMember: (classId: string, memberId: string, r: { reason: ReportReason; note?: string; block: boolean }) =>
       request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/report`, r),
     leaderboard: (classId: string, day: string) => request<Leaderboard>("GET", `/v1/classes/${classId}/leaderboard?day=${day}`),
+    ideas: (ids: string[]) => request<{ items: { id: string; title: string; idea: string }[] }>("GET", `/v1/ideas?ids=${ids.map(encodeURIComponent).join(",")}${lang("&")}`),
+    classVision: (classId: string, day: string) => request<ClassVision>("GET", `/v1/classes/${classId}/vision?day=${day}`),
+    sendVisionScore: (game: string, score: number, day: string) => request<{ ok: true }>("POST", "/v1/vision/scores", { game, score, day }),
     setLeaderboardHidden: (hidden: boolean) => request<{ hidden: boolean }>("PUT", "/v1/me/leaderboard", { hidden }),
     blockMember: (classId: string, memberId: string) => request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/block`, {}),
     removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),

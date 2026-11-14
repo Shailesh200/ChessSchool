@@ -426,6 +426,40 @@ export const copy = {
     vsFriend: "Pass & play",
   },
 
+  /** The one-minute daily review of lessons' key ideas, on Learn. */
+  flashcards: {
+    title: "Flashcards",
+    body: (n: number) => `${n} key ${n === 1 ? "idea" : "ideas"} to recall. About a minute.`,
+    prompt: "What was the key idea of this lesson?",
+    reveal: "Show the idea",
+    remembered: "I remembered",
+    again: "Show again",
+    count: (n: number, of: number) => `${n} of ${of}`,
+    done: "All caught up. Finish a lesson to add a new card.",
+  },
+
+  /** Board-vision games in the Gym, and today's best in a class. */
+  vision: {
+    title: "Board vision",
+    body: "Three 30-second games to see the board faster.",
+    tile: "See the board faster in 30 seconds.",
+    games: {
+      name: { name: "Name the square", body: "A square lights up. Pick its name.", prompt: "Which square is lit?" },
+      attack: { name: "What does it attack?", body: "Tap every square one piece attacks.", prompt: (piece: string) => `Tap every square the ${piece} attacks.` },
+      knight: { name: "Knight hops", body: "Hop the knight to the star, again and again.", prompt: "Hop the knight to the star." },
+    },
+    pieces: { p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king" },
+    start: "Start",
+    again: "Play again",
+    other: "Another game",
+    score: (n: number) => `Score: ${n}`,
+    best: (n: number) => (n ? `Your best: ${n}` : "No best yet"),
+    over: "Time's up!",
+    found: (n: number, of: number) => `${n} of ${of} found`,
+    classTitle: "Board vision today",
+    classEmpty: "No board-vision scores today yet.",
+  },
+
   /** In-game move list, sounds, the result sheet and the analysis view. */
   analysis: {
     noMoves: "Moves appear here as you play.",

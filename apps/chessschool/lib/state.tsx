@@ -18,12 +18,14 @@ import {
   langFor,
   language,
   setLanguage,
+  ideaRef,
   reviewAfter,
   placeAt,
   recordGame,
   recordPractice,
   recordPuzzle,
   recordSprint,
+  recordVision,
   serveDaily,
   type GameRecord,
   type Placement,
@@ -65,6 +67,8 @@ type Store = {
   finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean }) => void;
   serveDailyPuzzle: (day: string, id: string, puzzle?: { id: string; fen: string; moves: string[]; rating: number; themes: readonly string[] } | null) => void;
   finishSprint: (score: number, minutes: number) => void;
+  /** Keeps a board-vision best on the device and, signed in, sends it for the class board. */
+  finishVision: (game: string, score: number) => void;
   place: (level: Placement) => void;
   markBadgesSeen: (ids: string[]) => void;
   deleteAccount: () => Promise<void>;
@@ -86,6 +90,8 @@ type Store = {
   placeBefore: (order: readonly string[], startAt: string) => void;
   /** Records a practice answer for spaced review. */
   answerReview: (ref: string, missed: boolean) => void;
+  /** Flashcards: "I remembered" moves the card on; "Show again" brings it back tomorrow. */
+  answerIdea: (lessonId: string, remembered: boolean) => void;
   /** Stores the next practice set for offline use. */
   setPracticeNext: (items: PracticeItem[]) => void;
   /** Anonymous usage event (dropped when "Share anonymous usage" is off). */
@@ -193,6 +199,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setParentPin: (pin) => setState((s) => ({ ...s, parentPin: pin })),
       placeBefore: (order, startAt) => setState((s) => placeBefore(s, order, startAt, new Date())),
       answerReview: (ref, missed) => setState((s) => ({ ...s, review: reviewAfter(s.review, ref, missed, dayKey(new Date())) })),
+      answerIdea: (lessonId, remembered) => setState((s) => ({ ...s, ideas: reviewAfter(s.ideas, ideaRef(lessonId), !remembered, dayKey(new Date())) })),
       setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
@@ -216,6 +223,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
+      finishVision: (game, score) => {
+        setState((s) => recordVision(s, game, score));
+        if (latest.current.account && score > 0) api.sendVisionScore(game, score, dayKey(new Date())).catch(() => {});
+      },
       place: (level) => setState((s) => placeAt(s, level, new Date())),
       markBadgesSeen: (ids) => setState((s) => ({ ...s, badgesSeen: [...new Set([...s.badgesSeen, ...ids])] })),
       deleteAccount: async () => {

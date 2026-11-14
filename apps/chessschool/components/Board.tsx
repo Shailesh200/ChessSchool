@@ -189,6 +189,8 @@ type BoardProps = {
   arrows?: BoardArrow[];
   /** A faded piece on the destination of a suggested move. */
   guide?: { from: Square; to: Square; piece: Piece } | null;
+  /** Hides the file and rank letters whatever the setting (the name-the-square game). */
+  hideCoords?: boolean;
   /** A pawn waiting on its last rank: shows the inline picker on that file. */
   promotion?: MoveRef | null;
   onPromote?: (piece: PromotionPiece | null) => void;
@@ -217,10 +219,12 @@ export function Board({
   guide = null,
   promotion,
   onPromote,
+  hideCoords,
 }: BoardProps) {
   const { c } = useTheme();
   const { state } = useApp();
-  const { coords, legalDots } = state.prefs;
+  const { legalDots } = state.prefs;
+  const coords = state.prefs.coords && !hideCoords;
   const reduced = useReducedMotion();
   // Square edge snapped to whole device pixels, so rows never show hairline seams.
   const [measured, setMeasured] = useState(0);

@@ -2,7 +2,7 @@ import { isBoardColors, isThemeId, type Appearance, type BoardColorsId, type The
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
-import { isReview, type Review } from "./review";
+import { isReview, type Review, seedIdea } from "./review";
 import type { PracticeItem } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 
@@ -170,6 +170,10 @@ export type LocalState = {
   parentPin: string | null;
   /** Today's quest counters and quest days earned (this device only; see quests.ts). */
   quests: Quests;
+  /** Board-vision personal best per game id. */
+  vision: Record<string, number>;
+  /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
+  ideas: Review;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -215,6 +219,8 @@ export function createInitialState(guestId: string): LocalState {
     parked: {},
     parentPin: null,
     quests: emptyQuests(),
+    vision: {},
+    ideas: {},
   };
 }
 
@@ -253,6 +259,8 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     parentPin: typeof r.parentPin === "string" && /^\d{4}$/.test(r.parentPin) ? r.parentPin : null,
     endgames: r.endgames && typeof r.endgames === "object" ? Object.fromEntries(Object.entries(r.endgames).filter(([, n]) => typeof n === "number")) : {},
     quests: hydrateQuests(r.quests),
+    ideas: isReview(r.ideas) ? r.ideas : {},
+    vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
@@ -522,6 +530,7 @@ export function completeNode(state: LocalState, nodeId: string, now: Date, meta?
   return trackQuests({
     ...state,
     arrival: null,
+    ideas: first ? seedIdea(state.ideas, nodeId, today) : state.ideas,
     progress: {
       ...state.progress,
       completed: first ? { ...state.progress.completed, [nodeId]: today } : state.progress.completed,
@@ -608,6 +617,10 @@ export function recordSprint(state: LocalState, score: number, now: Date, minute
   const pz = s.progress.puzzles;
   return trackQuests({ ...s, progress: { ...s.progress, puzzles: { ...pz, sprintBest: Math.max(pz.sprintBest, score) } } }, dayKey(now), { puzzles: Math.max(0, Math.floor(score)) });
 }
+
+/** Keeps the best board-vision score per game. */
+export const recordVision = (state: LocalState, game: string, score: number): LocalState =>
+  score > (state.vision[game] ?? 0) ? { ...state, vision: { ...state.vision, [game]: score } } : state;
 
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;
 

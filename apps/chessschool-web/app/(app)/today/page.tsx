@@ -3,6 +3,7 @@
 import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, nextReward, rankFor, todayQuests, visibleStreak, type LocalState, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { Flashcards } from "@/components/Flashcards";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
@@ -143,6 +144,8 @@ export default function TodayPage() {
               </Button>
             )}
           </Card>
+
+          <Flashcards />
 
           <Card aria-labelledby="rank-title">
             <h2 id="rank-title" className="card-title">

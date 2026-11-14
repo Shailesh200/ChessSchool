@@ -237,7 +237,8 @@ const unitNumber = (id) => Number(id.slice(4));
 doc.units = [...doc.units.filter((u) => !practiceUnits.has(u.id)), ...units.map(({ id, title, sub }) => ({ id, title, sub }))].sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 const order = new Map(doc.units.map((u, i) => [u.id, i]));
 const kept = doc.lessons.filter((l) => !practiceUnits.has(l.unit));
-const fresh = units.flatMap((u) => u.nodes.map((n) => ({ id: n.id, unit: u.id, title: n.title, sub: n.sub, minutes: n.minutes, xp: n.xp, steps: lessons[n.id].steps, sources: lessons[n.id].sources })));
+const ideas = new Map(doc.lessons.map((l) => [l.id, l.idea]));
+const fresh = units.flatMap((u) => u.nodes.map((n) => ({ id: n.id, unit: u.id, title: n.title, sub: n.sub, idea: ideas.get(n.id), minutes: n.minutes, xp: n.xp, steps: lessons[n.id].steps, sources: lessons[n.id].sources })));
 // Stable sort keeps the order inside each unit.
 doc.lessons = [...kept, ...fresh].sort((a, b) => order.get(a.unit) - order.get(b.unit));
 writeFileSync(COURSE, JSON.stringify(doc, null, 1) + "\n");

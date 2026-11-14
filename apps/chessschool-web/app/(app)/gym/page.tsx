@@ -89,6 +89,15 @@ export default function GymPage() {
               <span className="mode-body">{copy.rooms.list.practice.promise}</span>
             </Link>
           </li>
+          <li>
+            <Link href="/gym/vision" className="mode-tile">
+              <span className="mode-icon">
+                <Icon name="eye" />
+              </span>
+              <span className="mode-name">{copy.vision.title}</span>
+              <span className="mode-body">{copy.vision.tile}</span>
+            </Link>
+          </li>
         </ul>
       </section>
     </div>

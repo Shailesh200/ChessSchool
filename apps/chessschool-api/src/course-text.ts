@@ -13,7 +13,7 @@ import { courseText } from "./schema";
  */
 export type StepText = { title?: string; body?: string; hint?: string; options?: string[] };
 export type Named = { title?: string; sub?: string };
-export type CourseText = { lang: string; units: Record<string, Named>; lessons: Record<string, Named & { steps?: StepText[] }>; comingSoon?: Record<string, Named> };
+export type CourseText = { lang: string; units: Record<string, Named>; lessons: Record<string, Named & { idea?: string; steps?: StepText[] }>; comingSoon?: Record<string, Named> };
 
 export function readCourseTexts(dir: string): CourseText[] {
   if (!existsSync(dir)) return [];
@@ -34,6 +34,7 @@ export function checkCourseText(doc: CourseDoc, t: CourseText): string[] {
       errors.push(`${t.lang}: unknown lesson ${id}`);
       continue;
     }
+    if (text.idea != null && (typeof text.idea !== "string" || !text.idea.trim() || text.idea.length > 160)) errors.push(`${t.lang}: ${id} idea must be a short sentence (160 characters at most)`);
     if (text.steps && text.steps.length !== lesson.steps.length) errors.push(`${t.lang}: ${id} has ${text.steps.length} steps, English has ${lesson.steps.length}`);
     text.steps?.forEach((s, i) => {
       const en = lesson.steps[i] as Step | undefined;

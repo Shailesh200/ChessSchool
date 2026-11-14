@@ -5,7 +5,7 @@ import { createApp } from "../src/app";
 import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
-import { blocks, classes, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users } from "../src/schema";
+import { blocks, classes, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -1080,5 +1080,68 @@ describe("lesson editor (admin)", () => {
     const after = (await call("GET", "/v1/admin/course/versions", undefined, admin)).json.versions;
     expect(after[0].note).toBe(`rollback to ${COURSE.version}`);
     expect((await call("POST", "/v1/admin/course/versions/nope/rollback", undefined, admin)).status).toBe(404);
+  });
+});
+
+describe("lesson flashcards", () => {
+  it("every lesson has a short key idea, in English and Hindi", async () => {
+    const { readCourseTexts } = await import("../src/course-text");
+    const { DEFAULT_COURSE_FILE } = await import("../scripts/seed-course");
+    const { dirname } = await import("node:path");
+    expect(COURSE.lessons.every((l) => typeof l.idea === "string" && l.idea.length > 0 && l.idea.length <= 120)).toBe(true);
+    const hi = readCourseTexts(dirname(DEFAULT_COURSE_FILE)).find((t) => t.lang === "hi")!;
+    expect(COURSE.lessons.every((l) => hi.lessons[l.id]?.idea)).toBe(true);
+  });
+
+  it("serves ideas from the database, localized, only for lessons the caller can open", async () => {
+    const { applyCourseText, checkCourseText } = await import("../src/course-text");
+    const { checkCourse } = await import("../src/course-check");
+    const en = COURSE.lessons.find((l) => l.id === "board")!.idea;
+    expect((await call("GET", "/v1/lessons/board")).json.idea).toBe(en);
+    const res = await call("GET", "/v1/ideas?ids=board,moves,nope");
+    expect(res.json.items.map((i: { id: string; idea: string }) => i.id)).toEqual(["board", "moves"]);
+    expect(res.json.items[0]).toEqual({ id: "board", title: "The board", idea: en });
+    const late = COURSE.lessons[COURSE.lessons.length - 1].id;
+    expect((await call("GET", `/v1/ideas?ids=${late}`)).json.items).toEqual([]);
+    await applyCourseText(db, { lang: "hi", units: {}, lessons: { board: { title: "बोर्ड", idea: "हर खाने का एक नाम है।" } } });
+    expect((await call("GET", "/v1/ideas?ids=board,moves&lang=hi")).json.items.map((i: { title: string; idea: string }) => [i.title, i.idea])).toEqual([
+      ["बोर्ड", "हर खाने का एक नाम है।"],
+      ["How pieces move", COURSE.lessons.find((l) => l.id === "moves")!.idea],
+    ]);
+    expect((await call("GET", "/v1/lessons/board?lang=hi")).json.idea).toBe("हर खाने का एक नाम है।");
+    const unit = COURSE.units.slice(0, 1);
+    const long = { ...COURSE, units: unit, lessons: COURSE.lessons.filter((l) => l.unit === unit[0].id).map((l) => (l.id === "board" ? { ...l, idea: "x".repeat(161) } : l)) };
+    const checked = checkCourse(long);
+    expect(checked.ok ? [] : checked.errors).toEqual(["lesson board: idea must be a short sentence (160 characters at most)"]);
+    expect(checkCourseText(COURSE, { lang: "hi", units: {}, lessons: { board: { idea: "" } } })).toHaveLength(1);
+  });
+});
+
+describe("board vision scores", () => {
+  it("keeps each learner's daily best, shows the class best per game, and honours hiding, blocks and deletion", async () => {
+    const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;
+    const mon = await reg("Mon", "vs1@b.co");
+    const kid = await reg("Kid", "vs2@b.co");
+    const room = (await call("POST", "/v1/classes", { name: "Club" }, mon.token)).json.class;
+    await call("POST", "/v1/classes/join", { code: room.code }, kid.token);
+    const day = "2026-11-03";
+    expect((await call("POST", "/v1/vision/scores", { game: "name", score: 5, day })).status).toBe(401);
+    for (const bad of [{ game: "name", score: 201, day }, { game: "name", score: 2.5, day }, { game: "chess", score: 3, day }, { game: "name", score: 3, day: "today" }])
+      expect((await call("POST", "/v1/vision/scores", bad, kid.token)).status).toBe(400);
+    await call("POST", "/v1/vision/scores", { game: "name", score: 12, day }, kid.token);
+    await call("POST", "/v1/vision/scores", { game: "name", score: 7, day }, kid.token);
+    await call("POST", "/v1/vision/scores", { game: "name", score: 9, day }, mon.token);
+    await call("POST", "/v1/vision/scores", { game: "knight", score: 4, day }, mon.token);
+    await call("POST", "/v1/vision/scores", { game: "attack", score: 30, day: "2026-11-02" }, mon.token);
+    const best = (await call("GET", `/v1/classes/${room.id}/vision?day=${day}`, undefined, mon.token)).json;
+    expect(best.best.map((b: { game: string; name: string; score: number; me: boolean }) => [b.game, b.name, b.score, b.me])).toEqual([["name", "Kid", 12, false], ["knight", "Mon", 4, true]]);
+    await call("PUT", "/v1/me/leaderboard", { hidden: true }, kid.token);
+    expect((await call("GET", `/v1/classes/${room.id}/vision?day=${day}`, undefined, mon.token)).json.best[0]).toMatchObject({ game: "name", name: "Mon", score: 9 });
+    await call("PUT", "/v1/me/leaderboard", { hidden: false }, kid.token);
+    await call("POST", `/v1/classes/${room.id}/members/${kid.user.id}/block`, {}, mon.token);
+    expect((await call("GET", `/v1/classes/${room.id}/vision?day=${day}`, undefined, mon.token)).json.best[0].name).toBe("Mon");
+    expect((await call("GET", `/v1/classes/${room.id}/vision`, undefined, (await reg("Zed", "vs3@b.co")).token)).status).toBe(404);
+    await call("DELETE", "/v1/me", undefined, kid.token);
+    expect(await db.select().from(visionScores).where(eq(visionScores.userId, kid.user.id))).toEqual([]);
   });
 });

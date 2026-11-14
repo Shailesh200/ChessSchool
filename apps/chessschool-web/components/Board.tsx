@@ -83,6 +83,8 @@ type BoardProps = {
   onPromote?: (piece: PromotionPiece | null) => void;
   /** Faded piece on the destination of a suggested move. */
   guide?: { from: Square; to: Square; piece: Piece } | null;
+  /** Hides the file and rank letters whatever the setting (the name-the-square game). */
+  hideCoords?: boolean;
 };
 
 type Fx = { id: number; captured: { square: Square; piece: Piece } | null; promoted: Square | null };
@@ -111,9 +113,11 @@ export function Board({
   promotion,
   onPromote,
   guide = null,
+  hideCoords,
 }: BoardProps) {
   const { state } = useApp();
-  const { coords, legalDots } = state.prefs;
+  const { legalDots } = state.prefs;
+  const coords = state.prefs.coords && !hideCoords;
   const pieces = useMemo(() => readFen(fen), [fen]);
   const squares = useMemo(() => boardSquares(orientation), [orientation]);
   const reduced = useReducedMotion();

@@ -29,7 +29,8 @@ import {
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
-import { and, asc, desc, eq, gt, inArray, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
+import { isVisionGame, isVisionScore, VISION_GAMES } from "@chessschool/chess";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
@@ -37,7 +38,7 @@ import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { certificateSvg, certToken, DEV_CERT_SECRET, readCertToken } from "./certificate";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
-import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
+import { loadIdeas, loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { checkLessonEdit, deleteDraft, loadCourseDoc, loadDrafts, loadVersion, listVersions, publishCourse, saveDraft } from "./course-admin";
 import { checkCourse } from "./course-check";
 import { MAX_PRACTICE, pickPractice } from "./practice";
@@ -49,7 +50,7 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, childProgress, children, classes, classGames, classMembers, courseUnits, feedback, homework, leaderboardHidden, profiles, progress, reports, sessions, tournaments, users, weeklySummary } from "./schema";
+import { blocks, childProgress, children, classes, classGames, classMembers, courseUnits, feedback, homework, leaderboardHidden, profiles, progress, reports, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
 import { playMove, roundRobin, splitMoves, standings } from "./class-play";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
@@ -590,6 +591,36 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return c.json({ week: { from: monday, to: sunday }, hidden: Boolean(mine), entries });
   });
 
+  /** Records a board-vision run; the day keeps the learner's best per game. */
+  app.post("/v1/vision/scores", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ game: unknown; score: unknown; day: unknown }>(c);
+    if (!isVisionGame(b.game) || !isVisionScore(b.score) || typeof b.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.day)) return fail(c, 400, "invalid_input");
+    await db
+      .insert(visionScores)
+      .values({ userId: user.id, game: b.game, day: b.day, score: b.score })
+      .onConflictDoUpdate({ target: [visionScores.userId, visionScores.game, visionScores.day], set: { score: sql`max(${visionScores.score}, excluded.score)` } });
+    return c.json({ ok: true });
+  });
+
+  /** Today's best board-vision score per game in one class. Hidden learners and blocked classmates are left out. */
+  app.get("/v1/classes/:id/vision", requireUser, async (c) => {
+    const user = c.get("user");
+    const qDay = c.req.query("day");
+    const day = qDay && /^\d{4}-\d{2}-\d{2}$/.test(qDay) ? qDay : dayKey(now());
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    const hidden = new Set((await db.select().from(leaderboardHidden)).map((h) => h.userId));
+    const members = new Map(room.members.filter((m) => !hidden.has(m.id)).map((m) => [m.id, m]));
+    const rows = members.size ? await db.select().from(visionScores).where(and(eq(visionScores.day, day), inArray(visionScores.userId, [...members.keys()]))) : [];
+    const best = VISION_GAMES.flatMap((game) => {
+      const top = rows.filter((r) => r.game === game && r.score > 0).sort((a, b) => b.score - a.score || members.get(a.userId)!.name.localeCompare(members.get(b.userId)!.name))[0];
+      const m = top && members.get(top.userId)!;
+      return m ? [{ game, score: top.score, id: m.id, name: m.name, avatar: m.avatar, me: m.id === user.id }] : [];
+    });
+    return c.json({ day, best });
+  });
+
   /** Show or hide yourself on every class leaderboard. */
   app.put("/v1/me/leaderboard", requireUser, async (c) => {
     const user = c.get("user");
@@ -1060,13 +1091,29 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.get("/v1/lessons/:id", async (c) => {
     const id = c.req.param("id");
     if (!id) return fail(c, 400, "invalid_input");
-    const [lesson, text] = await Promise.all([loadLesson(db, id), textFor(c)]);
-    if (!lesson) return fail(c, 404, "not_found");
+    const [found, text, ideas] = await Promise.all([loadLesson(db, id), textFor(c), loadIdeas(db, [id])]);
+    if (!found) return fail(c, 404, "not_found");
     const access = await accessFor(await userFromRequest(c));
     const refused = refuseLesson(c, access, id);
     if (refused) return refused;
     const t = text?.lessons[id];
+    const lesson = { ...found, idea: t?.idea || ideas.get(id) };
     return c.json(t ? { ...lesson, title: t.title || lesson.title, sub: t.sub || lesson.sub, steps: localizeSteps(lesson.steps, t.steps) } : lesson);
+  });
+
+  /** Key ideas for flashcards: ?ids=a,b (up to 50). Lessons the caller can't open are left out. */
+  app.get("/v1/ideas", async (c) => {
+    const access = await accessFor(await userFromRequest(c));
+    const open = new Set(access.path.filter((n) => n.playable).map((n) => n.id));
+    const ids = [...new Set((c.req.query("ids") ?? "").split(","))].filter((id) => open.has(id)).slice(0, 50);
+    const [outline, text, ideas] = await Promise.all([ids.length ? loadOutline(db) : null, textFor(c), loadIdeas(db, ids)]);
+    const titles = new Map(outline?.lessons.map((l) => [l.id, l.title]));
+    const items = ids.flatMap((id) => {
+      const t = text?.lessons[id];
+      const idea = t?.idea || ideas.get(id);
+      return idea ? [{ id, title: t?.title || titles.get(id) || id, idea }] : [];
+    });
+    return c.json({ items });
   });
 
   /**

@@ -12,7 +12,7 @@ import {
 } from "@chessschool/chess";
 
 export type CourseUnitDoc = { id: string; title: string; sub: string };
-export type CourseLessonDoc = { id: string; unit: string; title: string; sub: string; minutes: number; xp: number; steps: Step[] };
+export type CourseLessonDoc = { id: string; unit: string; title: string; sub: string; idea?: string; minutes: number; xp: number; steps: Step[] };
 export type ComingSoonDoc = { id: string; title: string; sub: string };
 export type CourseDoc = { version: string; units: CourseUnitDoc[]; lessons: CourseLessonDoc[]; comingSoon: ComingSoonDoc[] };
 
@@ -177,6 +177,7 @@ export function checkCourse(raw: unknown, play?: (lessonId: string) => boolean):
     if (u < lastUnit) errors.push(`lesson ${id}: units must appear in order`);
     lastUnit = Math.max(lastUnit, u);
     if (!text(l.title, 120) || !text(l.sub, 200)) errors.push(`lesson ${id}: title and sub are required`);
+    if (l.idea !== undefined && !text(l.idea, 160)) errors.push(`lesson ${id}: idea must be a short sentence (160 characters at most)`);
     if (!int(l.minutes, 1, 60) || !int(l.xp, 1, 100)) errors.push(`lesson ${id}: minutes 1–60 and xp 1–100`);
     if (id === "meet") continue; // the product tour has no script; the apps play it themselves
     if (play && !play(id)) continue;
