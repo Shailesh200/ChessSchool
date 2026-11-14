@@ -1,3 +1,4 @@
+import { Baloo2_400Regular, Baloo2_500Medium, Baloo2_600SemiBold, Baloo2_700Bold } from "@expo-google-fonts/baloo-2";
 import { Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, useFonts } from "@expo-google-fonts/fredoka";
 import { copy, newBadges } from "@chessschool/design";
 import { router, Stack } from "expo-router";
@@ -18,7 +19,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {});
 function Root() {
   const { state, ready } = useApp();
   usePuzzlePackBoot();
-  const [fontsLoaded, fontError] = useFonts({ Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold });
+  const [fontsLoaded, fontError] = useFonts({ Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, Baloo2_400Regular, Baloo2_500Medium, Baloo2_600SemiBold, Baloo2_700Bold });
   const loaded = ready && (fontsLoaded || Boolean(fontError));
 
   useEffect(() => {

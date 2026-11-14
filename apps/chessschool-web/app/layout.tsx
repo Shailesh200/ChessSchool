@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka } from "next/font/google";
+import { Baloo_2, Fredoka } from "next/font/google";
 import { copy, cssVars, palettes, THEMES, themePalettes } from "@chessschool/design";
 import { AppStateProvider } from "@/lib/state";
 import { themeBootScript } from "@/lib/theme";
@@ -10,6 +10,7 @@ import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
 
 const fredoka = Fredoka({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-fredoka", display: "swap" });
+const baloo = Baloo_2({ subsets: ["devanagari", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-baloo", display: "swap", preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3100"),
@@ -46,7 +47,7 @@ ${themeCss}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={fredoka.variable} suppressHydrationWarning>
+    <html lang="en" className={`${fredoka.variable} ${baloo.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <style dangerouslySetInnerHTML={{ __html: tokenCss }} />

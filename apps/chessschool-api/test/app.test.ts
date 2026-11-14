@@ -622,3 +622,40 @@ describe("coach voice", () => {
     expect((await call("GET", "/v1/voice/meera/board")).json.clips).toEqual({ [voiceKey("Nice!")]: "https://cdn/4.mp3" });
   });
 });
+
+describe("course translations", () => {
+  it("serves translated words line by line with English fallback, and keeps the chess", async () => {
+    const { applyCourseText } = await import("../src/course-text");
+    const board = COURSE.lessons.find((l) => l.id === "board")!;
+    await applyCourseText(db, { lang: "hi", units: { [board.unit]: { title: "यूनिट" } }, lessons: { board: { title: "बोर्ड", steps: [{ body: "यह बोर्ड है।" }] } } });
+    const hi = (await call("GET", "/v1/lessons/board?lang=hi")).json;
+    expect(hi.title).toBe("बोर्ड");
+    expect(hi.steps[0].body).toBe("यह बोर्ड है।");
+    expect(hi.steps[0].title).toBe(board.steps[0].title);
+    expect(hi.steps[1].body).toBe(board.steps[1].body);
+    expect(hi.steps.map((s: { kind: string; fen?: string }) => [s.kind, s.fen])).toEqual(board.steps.map((s) => [s.kind, (s as { fen?: string }).fen]));
+    expect((await call("GET", "/v1/lessons/board")).json.title).toBe(board.title);
+    expect((await call("GET", "/v1/lessons/board?lang=xx")).json.title).toBe(board.title);
+    const outline = (await call("GET", "/v1/course?outline=1&lang=hi")).json;
+    expect(outline.units.find((u: { id: string }) => u.id === board.unit).title).toBe("यूनिट");
+  });
+
+  it("rejects a translation that does not line up with the English course", async () => {
+    const { checkCourseText } = await import("../src/course-text");
+    const board = COURSE.lessons.find((l) => l.id === "board")!;
+    expect(checkCourseText(COURSE, { lang: "hi", units: {}, lessons: { board: { steps: [{}] } } })[0]).toMatch(/steps/);
+    expect(checkCourseText(COURSE, { lang: "hi", units: { nope: {} }, lessons: { ghost: {} } })).toHaveLength(2);
+    const choice = board.steps.findIndex((s) => s.kind === "choice");
+    const steps = board.steps.map((_, i) => (i === choice ? { options: ["एक"] } : {}));
+    expect(checkCourseText(COURSE, { lang: "hi", units: {}, lessons: { board: { steps } } })[0]).toMatch(/options/);
+  });
+
+  it("the shipped Hindi translation lines up with the course", async () => {
+    const { checkCourseText, readCourseTexts } = await import("../src/course-text");
+    const { DEFAULT_COURSE_FILE } = await import("../scripts/seed-course");
+    const { dirname } = await import("node:path");
+    const texts = readCourseTexts(dirname(DEFAULT_COURSE_FILE));
+    expect(texts.map((t) => t.lang)).toContain("hi");
+    for (const t of texts) expect(checkCourseText(COURSE, t)).toEqual([]);
+  });
+});

@@ -4,6 +4,7 @@ import {
   emptyProgress,
   isAvatarId,
   isCoachId,
+  isLang,
   isFlairId,
   isProgress,
   mergeProgress,
@@ -31,6 +32,7 @@ import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CO
 import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import { lessonClips } from "./voice";
+import { loadCourseText, localizeNamed, localizeSteps, type CourseText } from "./course-text";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
@@ -635,32 +637,39 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return c.json(puzzle);
   });
 
+  /** The course words in `?lang=` (English when absent or untranslated). */
+  const textFor = (c: Context): Promise<CourseText | null> => {
+    const lang = c.req.query("lang");
+    return lang && isLang(lang) && lang !== "en" ? loadCourseText(db, lang) : Promise.resolve(null);
+  };
+
   app.get("/v1/course", async (c) => {
-    const outline = await loadOutline(db);
+    const [outline, text] = await Promise.all([loadOutline(db), textFor(c)]);
     if (!outline) return fail(c, 404, "not_found");
     const signedIn = Boolean(await userFromRequest(c));
     const steps = c.req.query("outline") === "1" ? null : new Map((await loadLessonsWithSteps(db)).map((l) => [l.id, l.steps]));
     return c.json({
       version: outline.version,
-      units: outline.units,
-      lessons: outline.lessons.map((lesson, index) => ({
+      units: localizeNamed(outline.units, text?.units),
+      lessons: localizeNamed(outline.lessons, text?.lessons).map((lesson, index) => ({
         ...lesson,
         guestLocked: !signedIn && index >= GUEST_CLASS_LIMIT,
-        ...(steps ? { steps: steps.get(lesson.id) ?? [] } : {}),
+        ...(steps ? { steps: localizeSteps(steps.get(lesson.id) ?? [], text?.lessons[lesson.id]?.steps) } : {}),
       })),
-      comingSoon: outline.comingSoon,
+      comingSoon: localizeNamed(outline.comingSoon, text?.comingSoon),
     });
   });
 
   app.get("/v1/lessons/:id", async (c) => {
     const id = c.req.param("id");
     if (!id) return fail(c, 400, "invalid_input");
-    const lesson = await loadLesson(db, id);
+    const [lesson, text] = await Promise.all([loadLesson(db, id), textFor(c)]);
     if (!lesson) return fail(c, 404, "not_found");
     const access = await accessFor(await userFromRequest(c));
     const refused = refuseLesson(c, access, id);
     if (refused) return refused;
-    return c.json(lesson);
+    const t = text?.lessons[id];
+    return c.json(t ? { ...lesson, title: t.title || lesson.title, sub: t.sub || lesson.sub, steps: localizeSteps(lesson.steps, t.steps) } : lesson);
   });
 
   /**
@@ -674,7 +683,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const open = new Set(access.path.filter((n) => n.playable).map((n) => n.id));
     const lessons = [...new Set(ids(b.lessons, 300))].filter((id) => open.has(id));
     const count = typeof b.count === "number" && Number.isInteger(b.count) ? Math.min(MAX_PRACTICE, Math.max(1, b.count)) : 5;
-    const items = pickPractice(await loadLessonSteps(db, lessons), ids(b.review, 50), count);
+    const text = await textFor(c);
+    const loaded = (await loadLessonSteps(db, lessons)).map((l) => ({ ...l, steps: localizeSteps(l.steps, text?.lessons[l.id]?.steps) }));
+    const items = pickPractice(loaded, ids(b.review, 50), count);
     return c.json({ items });
   });
 
@@ -682,10 +693,10 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.get("/v1/voice/:coach/:lesson", async (c) => {
     const coach = c.req.param("coach") ?? "";
     if (!isCoachId(coach)) return fail(c, 404, "not_found");
-    const lesson = await loadLesson(db, c.req.param("lesson") ?? "");
+    const [lesson, text] = await Promise.all([loadLesson(db, c.req.param("lesson") ?? ""), textFor(c)]);
     if (!lesson) return fail(c, 404, "not_found");
     c.header("Cache-Control", "public, max-age=300");
-    return c.json({ coach, clips: await lessonClips(db, coach, lesson.steps) });
+    return c.json({ coach, clips: await lessonClips(db, coach, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps)) });
   });
 
   app.get("/v1/home", requireUser, async (c) => {

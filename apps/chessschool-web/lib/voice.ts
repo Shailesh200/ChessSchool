@@ -1,6 +1,6 @@
 "use client";
 
-import { voiceKey } from "@chessschool/design";
+import { language, voiceKey } from "@chessschool/design";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import { useApp } from "./state";
@@ -22,7 +22,7 @@ export function stopVoice() {
 
 /** The chosen coach's clips for a lesson (empty until recorded, or offline). */
 export function useClips(coach: string, lesson: string | null) {
-  const id = `${coach}:${lesson}`;
+  const id = `${coach}:${language()}:${lesson}`;
   const [clips, setClips] = useState<Record<string, string> | null>(() => cache.get(id) ?? null);
   useEffect(() => {
     if (!lesson) return;

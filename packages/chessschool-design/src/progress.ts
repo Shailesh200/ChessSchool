@@ -1,5 +1,6 @@
 import { isThemeId, type Appearance, type ThemeId } from "./tokens";
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
+import { isLang, type Lang } from "./i18n";
 import { isReview, type Review } from "./review";
 import type { PracticeItem } from "./api";
 
@@ -84,6 +85,8 @@ export type Prefs = {
   /** Coach voice in lessons. */
   voice: boolean;
   voiceSpeed: VoiceSpeed;
+  /** App language; null follows the device. */
+  lang: Lang | null;
 };
 
 export const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -170,7 +173,7 @@ export function createInitialState(guestId: string): LocalState {
     guestId,
     seenWelcome: false,
     profile: { name: "", who: null, dailyMinutes: 10, avatar: "cody", flair: null },
-    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "classroom", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1 },
+    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "classroom", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null },
     progress: emptyProgress(),
     account: null,
     pendingCeremony: null,
@@ -240,6 +243,7 @@ function hydratePrefs(base: Prefs, raw: unknown): Prefs {
     coach: isCoachId(p.coach) ? p.coach : null,
     voice: p.voice !== false,
     voiceSpeed: (VOICE_SPEEDS as readonly number[]).includes(p.voiceSpeed) ? p.voiceSpeed : 1,
+    lang: isLang(p.lang) ? p.lang : null,
   };
 }
 

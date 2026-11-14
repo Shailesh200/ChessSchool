@@ -1,11 +1,11 @@
 "use client";
 
-import { COURSE_KEY, isGuestClassLimit, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
+import { courseKey, isGuestClassLimit, language, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import { useApp } from "./state";
 
-const lessonKey = (id: string) => `${COURSE_KEY}.lesson.${id}`;
+const lessonKey = (id: string) => `${courseKey()}.lesson.${id}`;
 
 function readLesson(id: string): CourseLesson | null {
   try {
@@ -18,19 +18,23 @@ function readLesson(id: string): CourseLesson | null {
 
 const RETRY_MS = [1000, 2000, 4000];
 
-let loaded = false;
+/** The language whose course is loaded (false: none yet). */
+let loaded: string | false = false;
 let flight: Promise<Course> | null = null;
+let flightLang = "";
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let retries = 0;
 const subscribers = new Set<(course: Course) => void>();
 
-function publish(next: Course) {
-  loaded = true;
+function publish(next: Course, lang: string) {
+  // A response for a language the app has since left is dropped.
+  if (lang !== language()) return;
+  loaded = lang;
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = undefined;
   retries = 0;
   try {
-    localStorage.setItem(COURSE_KEY, JSON.stringify(next));
+    localStorage.setItem(courseKey(), JSON.stringify(next));
   } catch {
     /* the in-memory course is enough to leave the loading state */
   }
@@ -38,11 +42,13 @@ function publish(next: Course) {
 }
 
 function requestCourse(): Promise<Course> {
-  if (flight) return flight;
+  if (flight && flightLang === language()) return flight;
+  const lang = language();
+  flightLang = lang;
   const run = api
     .course()
     .then((next) => {
-      publish(next);
+      publish(next, lang);
       return next;
     })
     .finally(() => {
@@ -53,18 +59,18 @@ function requestCourse(): Promise<Course> {
 }
 
 function scheduleRetry() {
-  if (loaded || flight || retryTimer || retries >= RETRY_MS.length) return;
+  if (loaded === language() || flight || retryTimer || retries >= RETRY_MS.length) return;
   const wait = RETRY_MS[retries];
   retries += 1;
   retryTimer = setTimeout(() => {
     retryTimer = undefined;
-    if (loaded) return;
+    if (loaded === language()) return;
     requestCourse().catch(() => scheduleRetry());
   }, wait);
 }
 
 function kickCourse() {
-  if (loaded || flight || retryTimer) return;
+  if (loaded === language() || (flight && flightLang === language()) || retryTimer) return;
   retries = 0;
   requestCourse().catch(() => scheduleRetry());
 }
@@ -77,22 +83,22 @@ export function useCourse() {
   const sawUser = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const cached = parseCourse(localStorage.getItem(COURSE_KEY));
+    const cached = parseCourse(localStorage.getItem(courseKey()));
     if (cached) {
-      loaded = true;
+      loaded = language();
       setCourse(cached);
     }
     const notify = (next: Course) => setCourse(next);
     subscribers.add(notify);
     const onFocus = () => {
-      if (!loaded) kickCourse();
+      if (loaded !== language()) kickCourse();
     };
     const onVisible = () => {
-      if (document.visibilityState === "visible" && !loaded) kickCourse();
+      if (document.visibilityState === "visible" && loaded !== language()) kickCourse();
     };
     const userChanged = sawUser.current !== undefined && sawUser.current !== userId;
     sawUser.current = userId;
-    if (!loaded || userChanged) kickCourse();
+    if (loaded !== language() || userChanged) kickCourse();
     else requestCourse().catch(() => {});
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);

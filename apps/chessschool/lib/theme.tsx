@@ -2,12 +2,13 @@ import { palettes, resolveTheme, type Appearance, type FontWeight, type Palette,
 import { createContext, useContext, useMemo } from "react";
 import { Appearance as SystemAppearance, useColorScheme } from "react-native";
 
-export const fonts: Record<FontWeight, string> = {
-  regular: "Fredoka_400Regular",
-  medium: "Fredoka_500Medium",
-  semibold: "Fredoka_600SemiBold",
-  bold: "Fredoka_700Bold",
-};
+const FREDOKA: Record<FontWeight, string> = { regular: "Fredoka_400Regular", medium: "Fredoka_500Medium", semibold: "Fredoka_600SemiBold", bold: "Fredoka_700Bold" };
+/** Baloo 2: a rounded face with Devanagari, used for everything while the app is in Hindi. */
+const BALOO: Record<FontWeight, string> = { regular: "Baloo2_400Regular", medium: "Baloo2_500Medium", semibold: "Baloo2_600SemiBold", bold: "Baloo2_700Bold" };
+
+/** Mutated in place by useLanguageFonts so styles that read it at render time follow the language. */
+export const fonts: Record<FontWeight, string> = { ...FREDOKA };
+export const setFontsFor = (lang: string) => Object.assign(fonts, lang === "hi" ? BALOO : FREDOKA);
 
 type Theme = { scheme: Scheme; c: Palette };
 const ThemeCtx = createContext<Theme>({ scheme: "light", c: palettes.light });

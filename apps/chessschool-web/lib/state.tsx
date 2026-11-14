@@ -27,8 +27,8 @@ import {
   type SoundCue,
   type LessonMeta,
 } from "@chessschool/design";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { createUsage, dayKey, isGuestClassLimit, reviewAfter, type PracticeItem, type UsageEventName } from "@chessschool/design";
+import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createUsage, dayKey, isGuestClassLimit, langFor, language, reviewAfter, setLanguage, type PracticeItem, type UsageEventName } from "@chessschool/design";
 import { version } from "../package.json";
 import { api } from "./api";
 import { playCue } from "./sound";
@@ -220,7 +220,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [ready, state, cue, usage, guestGateOpen, showGuestGate, hideGuestGate],
   );
 
-  return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
+  // The language is applied before children render; changing it remounts the tree so every screen re-reads copy.
+  const lang = ready ? (state.prefs.lang ?? langFor(navigator.language)) : "en";
+  if (language() !== lang) setLanguage(lang);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+  return (
+    <Ctx.Provider value={store}>
+      <Fragment key={lang}>{children}</Fragment>
+    </Ctx.Provider>
+  );
 }
 
 export function useApp() {

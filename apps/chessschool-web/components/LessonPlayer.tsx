@@ -1,7 +1,7 @@
 "use client";
 
 import { chooseMove, currentStep, hintSquares, parseUci, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Step } from "@chessschool/chess";
-import { copy, type CodyAnimation } from "@chessschool/design";
+import { copy, phrase, type CodyAnimation } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/state";
@@ -69,7 +69,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
     if (stepText && s.status !== "finished") say?.(stepText);
     // Re-runs when `say` changes so a step opened before its clips loaded is still read.
   }, [s.index, say]); // eslint-disable-line react-hooks/exhaustive-deps
-  const said = s.feedback?.text;
+  const said = s.feedback ? phrase(s.feedback.text) : undefined;
   useEffect(() => {
     if (said) say?.(said);
   }, [s.feedback]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -215,7 +215,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
                 <Icon name="profile" size={22} />
               </span>
               <p className={`stage-status${s.feedback ? ` ${s.feedback.tone}` : ""}`} role="status" aria-live="polite" key={`${s.misses}-${s.status}`}>
-                {s.feedback ? s.feedback.text : (status ?? (step.kind === "game" ? copy.lesson.endGameHint(step.minMoves) : ""))}
+                {s.feedback ? phrase(s.feedback.text) : (status ?? (step.kind === "game" ? copy.lesson.endGameHint(step.minMoves) : ""))}
               </p>
               {s.feedback ? <Icon name={s.feedback.tone === "good" ? "check" : "bulb"} /> : null}
             </div>

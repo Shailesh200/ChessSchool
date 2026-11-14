@@ -1,6 +1,10 @@
 import type { Course, CourseLesson } from "./course";
 import { copy } from "./copy";
 import type { UsageBatch } from "./usage";
+import { language } from "./i18n";
+
+/** `&lang=` for course words in the app language; nothing for English. */
+const lang = (sep: "?" | "&") => (language() === "en" ? "" : `${sep}lang=${language()}`);
 import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Streak, Who } from "./progress";
 
 /* ---------- wire types (shared by API, web, native) ---------- */
@@ -139,8 +143,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
 
   return {
     health: () => request<{ ok: true; version: string }>("GET", "/v1/health"),
-    course: () => request<Course>("GET", "/v1/course?outline=1"),
-    lesson: (id: string) => request<CourseLesson>("GET", `/v1/lessons/${encodeURIComponent(id)}`),
+    course: () => request<Course>("GET", `/v1/course?outline=1${lang("&")}`),
+    lesson: (id: string) => request<CourseLesson>("GET", `/v1/lessons/${encodeURIComponent(id)}${lang("?")}`),
     register: (input: { name: string; email: string; password: string; guest?: GuestPayload }) =>
       request<AuthResponse>("POST", "/v1/auth/register", input),
     login: (input: { email: string; password: string; guest?: GuestPayload }) => request<AuthResponse>("POST", "/v1/auth/login", input),
@@ -162,8 +166,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/report`, r),
     blockMember: (classId: string, memberId: string) => request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/block`, {}),
     removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),
-    voice: (coach: string, lesson: string) => request<{ coach: string; clips: Record<string, string> }>("GET", `/v1/voice/${coach}/${encodeURIComponent(lesson)}`),
-    practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", "/v1/practice", input),
+    voice: (coach: string, lesson: string) => request<{ coach: string; clips: Record<string, string> }>("GET", `/v1/voice/${coach}/${encodeURIComponent(lesson)}${lang("?")}`),
+    practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
     adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),

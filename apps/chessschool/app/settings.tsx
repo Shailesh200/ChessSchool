@@ -1,4 +1,4 @@
-import { coachOf, copy, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { coachOf, copy, LANG_NAMES, LANGS, language, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -53,6 +53,15 @@ export default function Settings() {
             <Segmented label={s.reminderTime} value={prefs.reminderHour} onChange={(h) => setPrefs({ reminderHour: h })} options={REMINDER_HOURS.map((h) => ({ value: h, label: s.reminderHour(h) }))} />
           </View>
         ) : null}
+      </Card>
+
+      <Card style={{ padding: 8, gap: 8 }}>
+        <T role="heading" header style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+          {s.language}
+        </T>
+        <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+          <Segmented label={s.language} value={language()} onChange={(lang) => setPrefs({ lang })} options={LANGS.map((l) => ({ value: l, label: LANG_NAMES[l] }))} />
+        </View>
       </Card>
 
       <Card style={{ padding: 8 }}>

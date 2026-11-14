@@ -1,9 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { COURSE_KEY, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
+import { courseKey, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 
-const lessonKey = (id: string) => `${COURSE_KEY}.lesson.${id}`;
+const lessonKey = (id: string) => `${courseKey()}.lesson.${id}`;
 
 async function readLesson(id: string): Promise<CourseLesson | null> {
   try {
@@ -19,7 +19,7 @@ export function useCourse() {
   const [course, setCourse] = useState<Course | null>(null);
   useEffect(() => {
     let live = true;
-    AsyncStorage.getItem(COURSE_KEY).then((raw) => {
+    AsyncStorage.getItem(courseKey()).then((raw) => {
       if (live) setCourse(parseCourse(raw));
     });
     api
@@ -27,7 +27,7 @@ export function useCourse() {
       .then((c) => {
         if (!live) return;
         setCourse(c);
-        void AsyncStorage.setItem(COURSE_KEY, JSON.stringify(c));
+        void AsyncStorage.setItem(courseKey(), JSON.stringify(c));
       })
       .catch(() => {});
     return () => {

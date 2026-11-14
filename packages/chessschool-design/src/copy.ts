@@ -331,6 +331,8 @@ export const copy = {
   },
 
   lesson: {
+    /** The lesson runner's own lines (praise, game results) by their English text; translations fill this. */
+    phrases: {} as Record<string, string>,
     close: "Close lesson",
     moreLine: "Tap for the next line.",
     progress: (i: number, n: number) => `Step ${i} of ${n}`,
@@ -732,6 +734,7 @@ export const copy = {
     notificationsDenied: "Notifications are off for ChessSchool. You can turn them on in your device settings.",
     notificationsUnsupported: "This browser can't show reminders.",
     notificationsWeb: "Reminders appear while ChessSchool is open in a tab or installed app.",
+    language: "Language",
     shareUsage: "Share anonymous usage",
     shareUsageHint: "Helps us see which lessons are too hard. No name, email or account is sent.",
     reminderTime: "Reminder time",
@@ -753,7 +756,7 @@ export const copy = {
     whatsNewBody: [
       "Gym: six bots, pass & play, clocks, Shuffle chess and game review.",
       "Puzzles: a daily puzzle, Puzzle sprint and themes.",
-      "Units 2 and 3: castling, tactics and checkmate patterns.",
+      "Coaches: four coaches, and every lesson read aloud.",
       "Themes, piece sets and app icons.",
     ],
     legal: "Legal",
@@ -835,6 +838,9 @@ export const copy = {
     home: "Back to Learn",
   },
 } as const;
+
+/** A runner line ("Nice!") in the app language. */
+export const phrase = (text: string) => copy.lesson.phrases[text] ?? text;
 
 export function greetingFor(date: Date): string {
   const h = date.getHours();

@@ -1,5 +1,5 @@
 import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
-import { copy, space, type CodyAnimation } from "@chessschool/design";
+import { copy, phrase, space, type CodyAnimation } from "@chessschool/design";
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { AccessibilityInfo, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -120,7 +120,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     if (stepText && s.status !== "finished") say?.(stepText);
     // Re-runs when `say` changes so a step opened before its clips loaded is still read.
   }, [s.index, say]); // eslint-disable-line react-hooks/exhaustive-deps
-  const said = s.feedback?.text;
+  const said = s.feedback ? phrase(s.feedback.text) : undefined;
   useEffect(() => {
     if (said) say?.(said);
   }, [s.feedback]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -140,7 +140,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     if (next.misses > prev.misses) cue("gentle-no");
     else if (next.status === "ready" && prev.status !== "ready") cue("success");
     else if (next.fen !== prev.fen) cue(positionCue(prev.fen, next.fen, next.lastMove));
-    if (next.feedback && next.feedback !== prev.feedback) AccessibilityInfo.announceForAccessibility(next.feedback.text);
+    if (next.feedback && next.feedback !== prev.feedback) AccessibilityInfo.announceForAccessibility(phrase(next.feedback.text));
     if (next.status === "finished" && !finished.current) {
       finished.current = true;
       onFinished(next.misses);
@@ -218,7 +218,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
                 <Icon name="profile" color={c.brandText} size={18} />
               </View>
               <T role="label" numberOfLines={1} style={{ flex: 1, color: s.feedback ? (s.feedback.tone === "good" ? c.successText : c.goldText) : c.textMuted }}>
-                {s.feedback ? s.feedback.text : (status ?? (step.kind === "game" ? copy.lesson.endGameHint(step.minMoves) : ""))}
+                {s.feedback ? phrase(s.feedback.text) : (status ?? (step.kind === "game" ? copy.lesson.endGameHint(step.minMoves) : ""))}
               </T>
               {s.feedback ? <Icon name={s.feedback.tone === "good" ? "check" : "bulb"} color={s.feedback.tone === "good" ? c.successText : c.goldText} /> : null}
             </View>

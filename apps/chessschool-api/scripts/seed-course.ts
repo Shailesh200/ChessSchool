@@ -5,6 +5,7 @@ import { applyCourse, courseDiff, type CourseCounts } from "../src/course";
 import { checkCourse } from "../src/course-check";
 import { openDb, openReadOnlyDb, type Db } from "../src/db";
 import { applyVoice, readVoiceManifests } from "../src/voice";
+import { applyCourseText, checkCourseText, readCourseTexts } from "../src/course-text";
 
 export const DEFAULT_COURSE_FILE = join(dirname(fileURLToPath(import.meta.url)), "../data/course.json");
 export const VOICE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../data/voice");
@@ -80,6 +81,13 @@ export async function runSeedCourse(io: SeedCourseIo = {}): Promise<number> {
     return 1;
   }
   const doc = checked.doc;
+  const texts = readCourseTexts(dirname(args.file));
+  const textErrors = texts.flatMap((t) => checkCourseText(doc, t));
+  if (textErrors.length) {
+    for (const issue of textErrors) error(issue);
+    error(`${textErrors.length} translation problem(s); nothing written`);
+    return 1;
+  }
   const url = env.DATABASE_URL;
   const local = Boolean(url?.startsWith("file:"));
   if (!local) {
@@ -109,6 +117,7 @@ export async function runSeedCourse(io: SeedCourseIo = {}): Promise<number> {
     counts = { units: doc.units.length, insert: doc.lessons.length, update: 0, delete: 0, unchanged: 0 };
   }
   printCounts(log, args.apply, local ? "local" : "remote", doc.version, doc.lessons.length, counts);
+  for (const t of texts) log(args.apply ? `text ${t.lang}: ${await applyCourseText(db, t)} rows` : `text ${t.lang}: ${Object.keys(t.lessons).length} lessons (dry-run)`);
   const voice = readVoiceManifests(VOICE_DIR);
   if (args.apply && voice.length) {
     for (const [coach, n] of Object.entries(await applyVoice(db, voice))) log(`voice ${coach}: ${n} clips`);

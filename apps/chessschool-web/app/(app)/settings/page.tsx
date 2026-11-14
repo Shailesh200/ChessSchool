@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, coachOf, copy, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -30,6 +30,15 @@ export default function SettingsPage() {
   return (
     <div className="page page-narrow">
       <TopBar title={s.title} backHref="/you" />
+
+      <Card className="list" aria-labelledby="lang-h">
+        <h2 id="lang-h" className="card-title list-title">
+          {s.language}
+        </h2>
+        <div className="row-block">
+          <Segmented label={s.language} value={language()} onChange={(lang) => setPrefs({ lang })} options={LANGS.map((l) => ({ value: l, label: LANG_NAMES[l] }))} />
+        </div>
+      </Card>
 
       <Card className="list" aria-labelledby="coach-h">
         <h2 id="coach-h" className="card-title list-title">

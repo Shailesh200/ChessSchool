@@ -9,11 +9,11 @@ import { ConnectivityBanner } from "./ConnectivityBanner";
 import { Wordmark } from "./Wordmark";
 import { Button } from "./ui";
 
-const TABS: { href: string; label: string; icon: IconName; also?: string[] }[] = [
-  { href: "/today", label: copy.tabs.today, icon: "learn", also: ["/practice"] },
-  { href: "/puzzles", label: copy.tabs.puzzles, icon: "puzzle" },
-  { href: "/gym", label: copy.tabs.gym, icon: "gym", also: ["/play", "/rooms"] },
-  { href: "/you", label: copy.tabs.you, icon: "profile", also: ["/settings"] },
+const TABS: { href: string; label: keyof typeof copy.tabs; icon: IconName; also?: string[] }[] = [
+  { href: "/today", label: "today", icon: "learn", also: ["/practice"] },
+  { href: "/puzzles", label: "puzzles", icon: "puzzle" },
+  { href: "/gym", label: "gym", icon: "gym", also: ["/play", "/rooms"] },
+  { href: "/you", label: "you", icon: "profile", also: ["/settings"] },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <li key={t.href}>
               <Link href={t.href} className="rail-item" aria-current={active(t.href) ? "page" : undefined}>
                 <Icon name={t.icon} />
-                <span>{t.label}</span>
+                <span>{copy.tabs[t.label]}</span>
               </Link>
             </li>
           ))}
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="tab-icon">
               <Icon name={t.icon} />
             </span>
-            <span className="tab-label">{t.label}</span>
+            <span className="tab-label">{copy.tabs[t.label]}</span>
           </Link>
         ))}
       </nav>

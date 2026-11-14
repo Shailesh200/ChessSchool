@@ -148,6 +148,17 @@ export const events = sqliteTable("cs_events", {
   appVersion: text("app_version").notNull(),
 });
 
+/** Translated course words, one row per language and unit/lesson ("unit:<id>", "lesson:<id>", "soon:<id>"). */
+export const courseText = sqliteTable(
+  "cs_course_text",
+  {
+    lang: text("lang").notNull(),
+    id: text("id").notNull(),
+    data: text("data").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.lang, t.id] })],
+);
+
 /** Recorded coach lines: one public audio URL per coach and spoken line (key = voiceKey(text)). */
 export const voiceClips = sqliteTable(
   "cs_voice_clips",
@@ -263,6 +274,12 @@ export const BOOTSTRAP_SQL = [
     app_version TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
+  `CREATE TABLE IF NOT EXISTS cs_course_text (
+    lang TEXT NOT NULL,
+    id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    PRIMARY KEY (lang, id)
+  )`,
   `CREATE TABLE IF NOT EXISTS cs_voice_clips (
     coach TEXT NOT NULL,
     key TEXT NOT NULL,

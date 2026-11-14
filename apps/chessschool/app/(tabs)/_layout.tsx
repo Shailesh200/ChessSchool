@@ -8,7 +8,8 @@ import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
 const ICONS: Record<string, IconName> = { today: "learn", puzzles: "puzzle", gym: "gym", you: "profile" };
-const LABELS: Record<string, string> = { today: copy.tabs.today, puzzles: copy.tabs.puzzles, gym: copy.tabs.gym, you: copy.tabs.you };
+/** Tab name → copy.tabs key; read at render so the language can change. */
+const LABELS: Record<string, keyof typeof copy.tabs> = { today: "today", puzzles: "puzzles", gym: "gym", you: "you" };
 
 export default function TabsLayout() {
   const { c } = useTheme();
@@ -28,7 +29,7 @@ export default function TabsLayout() {
               <Pressable
                 key={route.key}
                 accessibilityRole="tab"
-                accessibilityLabel={LABELS[route.name]}
+                accessibilityLabel={copy.tabs[LABELS[route.name]]}
                 accessibilityState={{ selected: focused }}
                 onPress={() => {
                   const e = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -43,7 +44,7 @@ export default function TabsLayout() {
                   <Icon name={ICONS[route.name]} color={focused ? c.brandText : c.textMuted} />
                 </View>
                 <T role="micro" style={{ color: focused ? c.brandText : c.textMuted, fontSize: 13 }}>
-                  {LABELS[route.name]}
+                  {copy.tabs[LABELS[route.name]]}
                 </T>
               </Pressable>
             );

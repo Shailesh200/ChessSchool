@@ -1,3 +1,4 @@
+import { language } from "./i18n";
 /** The course the API stores and both apps render. Steps are the lesson player script. */
 export type CourseLesson = {
   id: string;
@@ -16,6 +17,8 @@ export type ComingSoonItem = { id: string; title: string; sub: string };
 export type Course = { units: CourseUnit[]; lessons: CourseLesson[]; comingSoon?: ComingSoonItem[] };
 
 export const COURSE_KEY = "chessschool.v2.course";
+/** Storage key for the course in the current language (English keeps the original key). */
+export const courseKey = () => (language() === "en" ? COURSE_KEY : `${COURSE_KEY}.${language()}`);
 
 export function parseCourse(raw: string | null): Course | null {
   if (!raw) return null;

@@ -8,6 +8,9 @@ import {
   arrive,
   completeNode,
   createUsage,
+  langFor,
+  language,
+  setLanguage,
   reviewAfter,
   placeAt,
   recordGame,
@@ -34,10 +37,11 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { randomUUID } from "expo-crypto";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 import { api, token } from "./api";
 import { feedback } from "./feedback";
+import { setFontsFor } from "./theme";
 import { googleSignOut } from "./google";
 import { syncReminders } from "./notifications";
 
@@ -224,7 +228,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [ready, state, cue, usage],
   );
 
-  return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
+  // The language is applied before children render; changing it remounts the tree so every screen re-reads copy.
+  const lang = state.prefs.lang ?? langFor(Intl.DateTimeFormat().resolvedOptions().locale);
+  if (language() !== lang) setLanguage(lang);
+  setFontsFor(lang);
+  return (
+    <Ctx.Provider value={store}>
+      <Fragment key={lang}>{children}</Fragment>
+    </Ctx.Provider>
+  );
 }
 
 export function useApp() {

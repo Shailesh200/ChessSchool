@@ -61,7 +61,7 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Coach voice:</strong> lesson lines are recorded ahead of time from the
-              lesson text with ElevenLabs and played from our file storage (Vercel Blob).
+              lesson text with ElevenLabs and played from our file storage (Cloudflare R2).
               Nothing you type or say is sent to make them.
             </li>
             <li>
