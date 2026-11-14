@@ -155,6 +155,18 @@ export const tablebase = sqliteTable("cs_tablebase", {
   category: text("category").notNull(),
 });
 
+/** Best board-vision score per learner, game and local day. */
+export const visionScores = sqliteTable(
+  "cs_vision_scores",
+  {
+    userId: text("user_id").notNull(),
+    game: text("game").notNull(),
+    day: text("day").notNull(),
+    score: integer("score").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.game, t.day] })],
+);
+
 /** Learners who chose not to appear on class leaderboards. */
 export const leaderboardHidden = sqliteTable("cs_leaderboard_hidden", {
   userId: text("user_id").primaryKey(),
@@ -290,6 +302,13 @@ export const BOOTSTRAP_SQL = [
     fen TEXT PRIMARY KEY,
     move TEXT,
     category TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_vision_scores (
+    user_id TEXT NOT NULL,
+    game TEXT NOT NULL,
+    day TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    PRIMARY KEY (user_id, game, day)
   )`,
   `CREATE TABLE IF NOT EXISTS cs_leaderboard_hidden (
     user_id TEXT PRIMARY KEY

@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError, copy, dayKey, rankFor, visibleStreak, type AvatarId, type ClassMember, type ClassRoom, type Leaderboard } from "@chessschool/design";
+import { ApiError, copy, dayKey, rankFor, visibleStreak, type AvatarId, type ClassMember, type ClassRoom, type ClassVision, type Leaderboard } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -95,6 +95,7 @@ export default function ClassPage() {
                   ))}
                 </ul>
                 <WeekBoard roomId={room.id} refresh={tick} onHidden={setHidden} />
+                <VisionBoard roomId={room.id} refresh={tick} />
                 <Button variant="ghost" disabled={busy} onClick={() => void run(async () => { await api.leaveClass(room.id); }, room.role === "monitor" ? t.closed : t.left)}>
                   {room.role === "monitor" ? t.close : t.leave}
                 </Button>
@@ -257,6 +258,43 @@ function WeekBoard({ roomId, refresh, onHidden }: { roomId: string; refresh: num
         </ol>
       ) : (
         <p className="muted">{t.weekEmpty}</p>
+      )}
+    </section>
+  );
+}
+
+/** Today's best board-vision score per game in one class. */
+function VisionBoard({ roomId, refresh }: { roomId: string; refresh: number }) {
+  const t = copy.vision;
+  const [board, setBoard] = useState<ClassVision | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .classVision(roomId, dayKey(new Date()))
+      .then((b) => live && setBoard(b))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [roomId, refresh]);
+  if (!board) return null;
+  return (
+    <section className="week-board" aria-label={t.classTitle}>
+      <h3 className="row-label">{t.classTitle}</h3>
+      {board.best.length ? (
+        <ul>
+          {board.best.map((e) => (
+            <li key={e.game} className={e.me ? "me" : undefined}>
+              <MemberFace id={e.avatar} size={28} />
+              <span className="week-name">
+                {t.games[e.game as keyof typeof t.games]?.name ?? e.game}: {e.me ? `${e.name} (${copy.classroom.you})` : e.name}
+              </span>
+              <strong>{e.score}</strong>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">{t.classEmpty}</p>
       )}
     </section>
   );

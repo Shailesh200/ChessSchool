@@ -2628,6 +2628,15 @@ a.path-inner:hover {
   text-decoration: none;
   height: 100%;
 }
+button.mode-tile {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vision-choices {
+  grid-template-columns: 1fr 1fr;
+}
 .mode-tile:hover {
   border-color: var(--cs-brand);
 }
@@ -4759,11 +4768,16 @@ html[lang="hi"] body {
 .week-board h3 {
   margin: 0;
 }
-.week-board ol {
+.week-board ol,
+.week-board ul {
   margin: 0;
   padding-left: 1.6em;
   display: grid;
   gap: 4px;
+}
+.week-board ul {
+  list-style: none;
+  padding-left: 0;
 }
 .week-board li {
   padding: 6px 10px;

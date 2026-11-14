@@ -5,7 +5,7 @@ import { createApp } from "../src/app";
 import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
-import { blocks, classMembers, classes, events, feedback, profiles, progress, reports, sessions, users } from "../src/schema";
+import { blocks, classMembers, classes, events, feedback, profiles, progress, reports, sessions, users, visionScores } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -680,6 +680,35 @@ describe("class leaderboard", () => {
     expect(after.json.entries.map((e: { name: string }) => e.name)).toEqual(["Mon"]);
     const stranger = await reg("Zed", "lb3@b.co");
     expect((await call("GET", `/v1/classes/${room.id}/leaderboard`, undefined, stranger.token)).status).toBe(404);
+  });
+});
+
+describe("board vision scores", () => {
+  it("keeps each learner's daily best, shows the class best per game, and honours hiding, blocks and deletion", async () => {
+    const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;
+    const mon = await reg("Mon", "vs1@b.co");
+    const kid = await reg("Kid", "vs2@b.co");
+    const room = (await call("POST", "/v1/classes", { name: "Club" }, mon.token)).json.class;
+    await call("POST", "/v1/classes/join", { code: room.code }, kid.token);
+    const day = "2026-11-03";
+    expect((await call("POST", "/v1/vision/scores", { game: "name", score: 5, day })).status).toBe(401);
+    for (const bad of [{ game: "name", score: 201, day }, { game: "name", score: 2.5, day }, { game: "chess", score: 3, day }, { game: "name", score: 3, day: "today" }])
+      expect((await call("POST", "/v1/vision/scores", bad, kid.token)).status).toBe(400);
+    await call("POST", "/v1/vision/scores", { game: "name", score: 12, day }, kid.token);
+    await call("POST", "/v1/vision/scores", { game: "name", score: 7, day }, kid.token);
+    await call("POST", "/v1/vision/scores", { game: "name", score: 9, day }, mon.token);
+    await call("POST", "/v1/vision/scores", { game: "knight", score: 4, day }, mon.token);
+    await call("POST", "/v1/vision/scores", { game: "attack", score: 30, day: "2026-11-02" }, mon.token);
+    const best = (await call("GET", `/v1/classes/${room.id}/vision?day=${day}`, undefined, mon.token)).json;
+    expect(best.best.map((b: { game: string; name: string; score: number; me: boolean }) => [b.game, b.name, b.score, b.me])).toEqual([["name", "Kid", 12, false], ["knight", "Mon", 4, true]]);
+    await call("PUT", "/v1/me/leaderboard", { hidden: true }, kid.token);
+    expect((await call("GET", `/v1/classes/${room.id}/vision?day=${day}`, undefined, mon.token)).json.best[0]).toMatchObject({ game: "name", name: "Mon", score: 9 });
+    await call("PUT", "/v1/me/leaderboard", { hidden: false }, kid.token);
+    await call("POST", `/v1/classes/${room.id}/members/${kid.user.id}/block`, {}, mon.token);
+    expect((await call("GET", `/v1/classes/${room.id}/vision?day=${day}`, undefined, mon.token)).json.best[0].name).toBe("Mon");
+    expect((await call("GET", `/v1/classes/${room.id}/vision`, undefined, (await reg("Zed", "vs3@b.co")).token)).status).toBe(404);
+    await call("DELETE", "/v1/me", undefined, kid.token);
+    expect(await db.select().from(visionScores).where(eq(visionScores.userId, kid.user.id))).toEqual([]);
   });
 });
 

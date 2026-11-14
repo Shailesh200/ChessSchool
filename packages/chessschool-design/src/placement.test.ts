@@ -32,3 +32,14 @@ describe("endgame trainer", () => {
     expect(s.endgames).toEqual({ lucena: 1 });
   });
 });
+
+describe("board vision", () => {
+  it("keeps the best score per game on the device and survives a reload", async () => {
+    const { recordVision, hydrateState } = await import("./progress");
+    let s = recordVision(createInitialState("g"), "name", 12);
+    s = recordVision(s, "name", 9);
+    s = recordVision(s, "knight", 4);
+    expect(s.vision).toEqual({ name: 12, knight: 4 });
+    expect(hydrateState(JSON.parse(JSON.stringify(s)), () => "x").vision).toEqual({ name: 12, knight: 4 });
+  });
+});

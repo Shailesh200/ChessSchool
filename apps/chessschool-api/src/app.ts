@@ -22,7 +22,8 @@ import {
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
-import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
+import { isVisionGame, isVisionScore, VISION_GAMES } from "@chessschool/chess";
+import { and, desc, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
@@ -38,7 +39,7 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users } from "./schema";
+import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, visionScores } from "./schema";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
@@ -560,6 +561,36 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       .map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, lessons: week.get(m.id) ?? 0, me: m.id === user.id }))
       .sort((a, b) => b.lessons - a.lessons || a.name.localeCompare(b.name));
     return c.json({ week: { from: monday, to: sunday }, hidden: Boolean(mine), entries });
+  });
+
+  /** Records a board-vision run; the day keeps the learner's best per game. */
+  app.post("/v1/vision/scores", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ game: unknown; score: unknown; day: unknown }>(c);
+    if (!isVisionGame(b.game) || !isVisionScore(b.score) || typeof b.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.day)) return fail(c, 400, "invalid_input");
+    await db
+      .insert(visionScores)
+      .values({ userId: user.id, game: b.game, day: b.day, score: b.score })
+      .onConflictDoUpdate({ target: [visionScores.userId, visionScores.game, visionScores.day], set: { score: sql`max(${visionScores.score}, excluded.score)` } });
+    return c.json({ ok: true });
+  });
+
+  /** Today's best board-vision score per game in one class. Hidden learners and blocked classmates are left out. */
+  app.get("/v1/classes/:id/vision", requireUser, async (c) => {
+    const user = c.get("user");
+    const qDay = c.req.query("day");
+    const day = qDay && /^\d{4}-\d{2}-\d{2}$/.test(qDay) ? qDay : dayKey(now());
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    const hidden = new Set((await db.select().from(leaderboardHidden)).map((h) => h.userId));
+    const members = new Map(room.members.filter((m) => !hidden.has(m.id)).map((m) => [m.id, m]));
+    const rows = members.size ? await db.select().from(visionScores).where(and(eq(visionScores.day, day), inArray(visionScores.userId, [...members.keys()]))) : [];
+    const best = VISION_GAMES.flatMap((game) => {
+      const top = rows.filter((r) => r.game === game && r.score > 0).sort((a, b) => b.score - a.score || members.get(a.userId)!.name.localeCompare(members.get(b.userId)!.name))[0];
+      const m = top && members.get(top.userId)!;
+      return m ? [{ game, score: top.score, id: m.id, name: m.name, avatar: m.avatar, me: m.id === user.id }] : [];
+    });
+    return c.json({ day, best });
   });
 
   /** Show or hide yourself on every class leaderboard. */

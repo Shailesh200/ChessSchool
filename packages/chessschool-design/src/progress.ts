@@ -155,6 +155,8 @@ export type LocalState = {
   practiceNext: PracticeItem[];
   /** Endgame trainer wins per position id (mastered at ENDGAME_MASTERY). */
   endgames: Record<string, number>;
+  /** Board-vision personal best per game id. */
+  vision: Record<string, number>;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -196,6 +198,7 @@ export function createInitialState(guestId: string): LocalState {
     review: {},
     practiceNext: [],
     endgames: {},
+    vision: {},
   };
 }
 
@@ -230,6 +233,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
     review: isReview(r.review) ? r.review : {},
     endgames: r.endgames && typeof r.endgames === "object" ? Object.fromEntries(Object.entries(r.endgames).filter(([, n]) => typeof n === "number")) : {},
+    vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
@@ -582,6 +586,10 @@ export function recordSprint(state: LocalState, score: number, now: Date, minute
   const pz = s.progress.puzzles;
   return { ...s, progress: { ...s.progress, puzzles: { ...pz, sprintBest: Math.max(pz.sprintBest, score) } } };
 }
+
+/** Keeps the best board-vision score per game. */
+export const recordVision = (state: LocalState, game: string, score: number): LocalState =>
+  score > (state.vision[game] ?? 0) ? { ...state, vision: { ...state.vision, [game]: score } } : state;
 
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;
 

@@ -18,6 +18,7 @@ import {
   recordPractice,
   recordPuzzle,
   recordSprint,
+  recordVision,
   serveDaily,
   type GameRecord,
   type Placement,
@@ -59,6 +60,8 @@ type Store = {
   finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean }) => void;
   serveDailyPuzzle: (day: string, id: string, puzzle?: { id: string; fen: string; moves: string[]; rating: number; themes: readonly string[] } | null) => void;
   finishSprint: (score: number, minutes: number) => void;
+  /** Keeps a board-vision best on the device and, signed in, sends it for the class board. */
+  finishVision: (game: string, score: number) => void;
   place: (level: Placement) => void;
   markBadgesSeen: (ids: string[]) => void;
   deleteAccount: () => Promise<void>;
@@ -196,6 +199,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
+      finishVision: (game, score) => {
+        setState((s) => recordVision(s, game, score));
+        if (latest.current.account && score > 0) api.sendVisionScore(game, score, dayKey(new Date())).catch(() => {});
+      },
       place: (level) => setState((s) => placeAt(s, level, new Date())),
       markBadgesSeen: (ids) => setState((s) => ({ ...s, badgesSeen: [...new Set([...s.badgesSeen, ...ids])] })),
       deleteAccount: async () => {

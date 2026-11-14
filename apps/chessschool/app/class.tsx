@@ -1,4 +1,4 @@
-import { copy, dayKey, rankFor, visibleStreak, type ClassMember, type ClassRoom, type Leaderboard } from "@chessschool/design";
+import { copy, dayKey, rankFor, visibleStreak, type ClassMember, type ClassRoom, type ClassVision, type Leaderboard } from "@chessschool/design";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, Share, View } from "react-native";
@@ -109,6 +109,7 @@ export default function ClassScreen() {
               );
             })}
             <WeekBoard roomId={room.id} refresh={tick} onHidden={setHidden} />
+            <VisionBoard roomId={room.id} refresh={tick} />
             <Button
               title={room.role === "monitor" ? t.close : t.leave}
               variant="ghost"
@@ -274,6 +275,55 @@ function WeekBoard({ roomId, refresh, onHidden }: { roomId: string; refresh: num
       ) : (
         <T role="small" color="textMuted">
           {t.weekEmpty}
+        </T>
+      )}
+    </View>
+  );
+}
+
+/** Today's best board-vision score per game in one class. */
+function VisionBoard({ roomId, refresh }: { roomId: string; refresh: number }) {
+  const { c } = useTheme();
+  const t = copy.vision;
+  const [board, setBoard] = useState<ClassVision | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .classVision(roomId, dayKey(new Date()))
+      .then((b) => live && setBoard(b))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [roomId, refresh]);
+  if (!board) return null;
+  return (
+    <View style={{ gap: 6, paddingTop: 8 }}>
+      <T role="label">{t.classTitle}</T>
+      {board.best.length ? (
+        board.best.map((e) => {
+          const game = t.games[e.game as keyof typeof t.games]?.name ?? e.game;
+          const who = e.me ? `${e.name} (${copy.classroom.you})` : e.name;
+          return (
+            <View key={e.game} accessible accessibilityLabel={`${game}: ${who}, ${e.score}`} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: e.me ? c.brandSoft : "transparent" }}>
+              <AvatarFace id={e.avatar} size={28} />
+              <View style={{ flex: 1 }}>
+                <T role="small" color="textMuted">
+                  {game}
+                </T>
+                <T role="body" numberOfLines={1}>
+                  {who}
+                </T>
+              </View>
+              <T role="label" color="brandText">
+                {String(e.score)}
+              </T>
+            </View>
+          );
+        })
+      ) : (
+        <T role="small" color="textMuted">
+          {t.classEmpty}
         </T>
       )}
     </View>
