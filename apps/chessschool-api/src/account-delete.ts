@@ -1,20 +1,30 @@
 import { eq, inArray, or } from "drizzle-orm";
 import type { Db } from "./db";
-import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users } from "./schema";
+import { blocks, classGames, classMembers, classes, feedback, homework, leaderboardHidden, profiles, progress, reports, sessions, tournaments, users } from "./schema";
 
 /**
- * Removes one user's rows: sessions, progress, profile, classes, feedback, then the user.
+ * Removes one user's rows: sessions, progress, profile, classes (with their homework, games and tournaments),
+ * every class game they played (so opponents keep no half-game with a missing player), feedback, then the user.
  * Runs as one batch, which libsql applies atomically on a local file and over HTTP; a BEGIN/COMMIT
  * pair over HTTP lands in separate requests, so each delete committed alone and COMMIT then failed.
  */
 export async function deleteUserData(db: Db, userId: string): Promise<void> {
   const owned = await db.select({ id: classes.id }).from(classes).where(eq(classes.ownerId, userId));
   const ownedIds = owned.map((row) => row.id);
-  const first = db.delete(classMembers).where(eq(classMembers.userId, userId));
+  const first = db.delete(classGames).where(or(eq(classGames.whiteId, userId), eq(classGames.blackId, userId)));
   await db.batch([
     first,
+    db.delete(classMembers).where(eq(classMembers.userId, userId)),
+    db.delete(homework).where(eq(homework.createdBy, userId)),
+    db.delete(tournaments).where(eq(tournaments.createdBy, userId)),
     ...(ownedIds.length > 0
-      ? [db.delete(classMembers).where(inArray(classMembers.classId, ownedIds)), db.delete(classes).where(inArray(classes.id, ownedIds))]
+      ? [
+          db.delete(classGames).where(inArray(classGames.classId, ownedIds)),
+          db.delete(homework).where(inArray(homework.classId, ownedIds)),
+          db.delete(tournaments).where(inArray(tournaments.classId, ownedIds)),
+          db.delete(classMembers).where(inArray(classMembers.classId, ownedIds)),
+          db.delete(classes).where(inArray(classes.id, ownedIds)),
+        ]
       : []),
     db.delete(sessions).where(eq(sessions.userId, userId)),
     db.delete(progress).where(eq(progress.userId, userId)),

@@ -28,6 +28,28 @@ export type UsageSummary = {
 export type PracticeItem = { ref: string; step: Record<string, unknown> & { kind: string } };
 export type AdminReport = { id: string; reason: ReportReason; note: string; status: "open" | "resolved"; createdAt: number; className: string | null; reported: string | null; reporter: string | null };
 export type ClassRoom = { id: string; name: string; code: string; role: ClassRole; members: ClassMember[] };
+/** Lessons the class monitor set, due on a day (YYYY-MM-DD). `done` comes from each student's saved progress. */
+export type Homework = { id: string; lessons: string[]; due: string; createdAt: number; members: { id: string; name: string; avatar: AvatarId; done: boolean }[] };
+export type GamePlayer = { id: string; name: string; avatar: AvatarId };
+export type ClassGameResult = "1-0" | "0-1" | "1/2-1/2";
+export type ClassGameReason = "checkmate" | "stalemate" | "draw" | "repetition" | "material" | "resign";
+/** A turn-based game between two classmates. `moves` is SAN from the normal start; `you` is null for an onlooker. */
+export type ClassGame = {
+  id: string;
+  classId: string;
+  tournamentId: string | null;
+  white: GamePlayer;
+  black: GamePlayer;
+  moves: string[];
+  status: "active" | "over";
+  result: ClassGameResult | null;
+  reason: ClassGameReason | null;
+  you: "w" | "b" | null;
+  yourTurn: boolean;
+  updatedAt: number;
+};
+/** A class round robin. Standings: 1 point a win, ½ a draw, finished games only. */
+export type Tournament = { id: string; createdAt: number; done: number; total: number; standings: (GamePlayer & { points: number; played: number })[] };
 export type AuthResponse = { user: Account; profile: ApiProfile; progress: Progress; token: string };
 export type MeResponse = { user: Account; profile: ApiProfile };
 export type HomeResponse = {
@@ -64,6 +86,7 @@ export type ApiErrorCode =
   | "rate_limited"
   | "not_found"
   | "forbidden"
+  | "conflict"
   | "offline"
   | "server"
   | "GUEST_CLASS_LIMIT";
@@ -169,6 +192,16 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     setLeaderboardHidden: (hidden: boolean) => request<{ hidden: boolean }>("PUT", "/v1/me/leaderboard", { hidden }),
     blockMember: (classId: string, memberId: string) => request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/block`, {}),
     removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),
+    homework: (classId: string) => request<{ homework: Homework[] }>("GET", `/v1/classes/${classId}/homework`),
+    setHomework: (classId: string, h: { lessons: string[]; due: string }) => request<{ homework: Homework }>("POST", `/v1/classes/${classId}/homework`, h),
+    deleteHomework: (classId: string, id: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/homework/${id}`),
+    classGames: (classId: string) => request<{ games: ClassGame[] }>("GET", `/v1/classes/${classId}/games`),
+    challenge: (classId: string, opponentId: string, color: "w" | "b" | "random") => request<{ game: ClassGame }>("POST", `/v1/classes/${classId}/games`, { opponentId, color }),
+    classGame: (classId: string, id: string) => request<{ game: ClassGame }>("GET", `/v1/classes/${classId}/games/${id}`),
+    playMove: (classId: string, id: string, m: { from: string; to: string; promotion?: string }) => request<{ game: ClassGame }>("POST", `/v1/classes/${classId}/games/${id}/moves`, m),
+    resignGame: (classId: string, id: string) => request<{ game: ClassGame }>("POST", `/v1/classes/${classId}/games/${id}/resign`, {}),
+    tournaments: (classId: string) => request<{ tournaments: Tournament[] }>("GET", `/v1/classes/${classId}/tournaments`),
+    startTournament: (classId: string, players: string[]) => request<{ tournament: Tournament }>("POST", `/v1/classes/${classId}/tournaments`, { players }),
     voice: (coach: string, lesson: string) => request<{ coach: string; clips: Record<string, string> }>("GET", `/v1/voice/${coach}/${encodeURIComponent(lesson)}${lang("?")}`),
     placement: () => request<{ items: { lesson: string; step: PracticeItem["step"] }[] }>("GET", `/v1/placement${lang("?")}`),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),

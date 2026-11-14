@@ -3,9 +3,11 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, Share, View } from "react-native";
 import { AvatarFace } from "@/components/AvatarFace";
+import { GamesSection, HomeworkSection, TournamentSection } from "@/components/ClassPlay";
 import { Icon } from "@/components/Icon";
-import { Button, Card, Page, Sheet, SwitchRow, T, TextField, useToast } from "@/components/ui";
+import { Button, Card, Page, Segmented, Sheet, SwitchRow, T, TextField, useToast } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
+import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
@@ -18,9 +20,10 @@ export default function ClassScreen() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<{ room: ClassRoom; member: ClassMember } | null>(null);
-  const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
+  const [confirm, setConfirm] = useState<Confirm>(null);
   const [hidden, setHidden] = useState<boolean | null>(null);
   const [tick, setTick] = useState(0);
+  const course = useCourse();
   const t = copy.classroom;
 
   const load = () => {
@@ -108,6 +111,9 @@ export default function ClassScreen() {
                 </Pressable>
               );
             })}
+            <HomeworkSection room={room} course={course} refresh={tick} />
+            <GamesSection room={room} refresh={tick} />
+            <TournamentSection room={room} refresh={tick} onStarted={() => setTick((n) => n + 1)} />
             <WeekBoard roomId={room.id} refresh={tick} onHidden={setHidden} />
             <Button
               title={room.role === "monitor" ? t.close : t.leave}
@@ -159,6 +165,13 @@ export default function ClassScreen() {
             }}
             onBlock={() => void run(async () => { await api.blockMember(open.room.id, open.member.id); closeCard(); }, t.blocked)}
             onRemove={() => void run(async () => { await api.removeMember(open.room.id, open.member.id); closeCard(); }, t.removed)}
+            onChallenge={(color) =>
+              void run(async () => {
+                const { game } = await api.challenge(open.room.id, open.member.id, color);
+                closeCard();
+                router.push({ pathname: "/class-game", params: { classId: open.room.id, id: game.id } });
+              }, t.games.started)
+            }
           />
         ) : null}
       </Sheet>
@@ -166,19 +179,37 @@ export default function ClassScreen() {
   );
 }
 
-function MemberCard({ room, member, confirm, busy, onConfirm, onReport, onBlock, onRemove }: {
+type Confirm = "block" | "remove" | "challenge" | null;
+
+function MemberCard({ room, member, confirm, busy, onConfirm, onReport, onBlock, onRemove, onChallenge }: {
   room: ClassRoom;
   member: ClassMember;
-  confirm: "block" | "remove" | null;
+  confirm: Confirm;
   busy: boolean;
-  onConfirm: (v: "block" | "remove" | null) => void;
+  onConfirm: (v: Confirm) => void;
   onReport: () => void;
   onBlock: () => void;
   onRemove: () => void;
+  onChallenge: (color: "w" | "b" | "random") => void;
 }) {
   const { c } = useTheme();
   const t = copy.classroom;
   const name = member.name || copy.you.noName;
+  const [color, setColor] = useState<"w" | "b" | "random">("random");
+  if (confirm === "challenge") {
+    return (
+      <View style={{ gap: 12 }}>
+        <T role="heading">{t.games.challengeTitle(name)}</T>
+        <T role="body" color="textMuted">
+          {t.games.challengeBody}
+        </T>
+        <T role="label">{t.games.color}</T>
+        <Segmented label={t.games.color} value={color} onChange={setColor} options={(["w", "b", "random"] as const).map((v) => ({ value: v, label: copy.play.sides[v] }))} />
+        <Button title={t.games.send} icon="play" loading={busy} onPress={() => onChallenge(color)} />
+        <Button title={t.cancel} variant="ghost" onPress={() => onConfirm(null)} />
+      </View>
+    );
+  }
   if (confirm) {
     return (
       <View style={{ gap: 12 }}>
@@ -214,6 +245,9 @@ function MemberCard({ room, member, confirm, busy, onConfirm, onReport, onBlock,
             </T>
           </View>
         ))}
+      </View>
+      <View style={{ alignSelf: "stretch" }}>
+        <Button title={t.games.challenge} icon="play" onPress={() => onConfirm("challenge")} />
       </View>
       <View style={{ flexDirection: "row", gap: 8, alignSelf: "stretch" }}>
         <View style={{ flex: 1 }}>

@@ -4788,3 +4788,81 @@ html[lang="hi"] body {
   color: var(--cs-brand-text);
   line-height: 28px;
 }
+
+/* ---------- class homework, games and tournaments ---------- */
+.class-section {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+.class-section h3 {
+  margin: 0;
+}
+.class-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--cs-sunken);
+}
+.class-item p {
+  margin: 0;
+}
+.class-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--cs-brand-text);
+}
+.class-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+.class-line-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-brand {
+  background: var(--cs-brand-soft);
+  color: var(--cs-brand-text);
+}
+.standings {
+  width: 100%;
+  border-collapse: collapse;
+}
+.standings th {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cs-text-muted);
+  text-align: left;
+}
+.standings th:nth-child(n + 2),
+.standings td:nth-child(n + 3) {
+  text-align: right;
+  width: 64px;
+}
+.standings td:first-child {
+  width: 24px;
+}
+.standings td strong {
+  color: var(--cs-brand-text);
+}
+.pick-list {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  width: 100%;
+}
+.pick-list h4 {
+  margin: 8px 0 0;
+}
+.pick-list .choice {
+  width: 100%;
+  min-height: 52px;
+}

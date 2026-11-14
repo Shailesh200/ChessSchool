@@ -5,7 +5,7 @@ import { createApp } from "../src/app";
 import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
-import { blocks, classMembers, classes, events, feedback, profiles, progress, reports, sessions, users } from "../src/schema";
+import { blocks, classGames, classMembers, classes, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -725,5 +725,150 @@ describe("endgame tablebase", () => {
     expect((await get("not a fen")).status).toBe(400);
     const down = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, tablebase: async () => null });
     expect((await down.request(`/v1/tablebase?fen=${encodeURIComponent("8/8/8/4k3/8/8/8/R3K3 b - - 0 1")}`)).status).toBe(503);
+  });
+});
+
+describe("class homework, games and tournaments", () => {
+  const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;
+  async function club(n = 2) {
+    const mon = await reg("Mon", "hw-mon@b.co");
+    const kids: AuthResponse[] = [];
+    for (let i = 0; i < n; i++) kids.push(await reg(`Kid${i}`, `hw-kid${i}@b.co`));
+    const room = (await call("POST", "/v1/classes", { name: "Club" }, mon.token)).json.class;
+    for (const k of kids) await call("POST", "/v1/classes/join", { code: room.code }, k.token);
+    return { mon, kids, room };
+  }
+  const order = COURSE.lessons.map((l) => l.id);
+
+  it("lets the monitor set and delete homework, and shows who finished from saved progress", async () => {
+    const { mon, kids, room } = await club(2);
+    const stranger = await reg("Zed", "hw-z@b.co");
+    const lessons = [order[1], order[2]];
+    expect((await call("POST", `/v1/classes/${room.id}/homework`, { lessons, due: "2026-11-10" }, kids[0].token)).status).toBe(403);
+    expect((await call("POST", `/v1/classes/${room.id}/homework`, { lessons, due: "2026-11-10" }, stranger.token)).status).toBe(404);
+    expect((await call("POST", `/v1/classes/${room.id}/homework`, { lessons: ["nope"], due: "2026-11-10" }, mon.token)).status).toBe(400);
+    expect((await call("POST", `/v1/classes/${room.id}/homework`, { lessons, due: "next week" }, mon.token)).status).toBe(400);
+    expect((await call("POST", `/v1/classes/${room.id}/homework`, { lessons: [], due: "2026-11-10" }, mon.token)).status).toBe(400);
+    const made = await call("POST", `/v1/classes/${room.id}/homework`, { lessons, due: "2026-11-10" }, mon.token);
+    expect(made.status).toBe(201);
+    expect(made.json.homework).toMatchObject({ lessons, due: "2026-11-10" });
+    expect(made.json.homework.members.map((m: { name: string; done: boolean }) => [m.name, m.done])).toEqual([["Kid0", false], ["Kid1", false]]);
+
+    await call("PUT", "/v1/progress", { progress: progressThrough(order[2]) }, kids[0].token);
+    const seen = await call("GET", `/v1/classes/${room.id}/homework`, undefined, kids[1].token);
+    expect(seen.status).toBe(200);
+    expect(seen.json.homework[0].members.map((m: { name: string; done: boolean }) => [m.name, m.done])).toEqual([["Kid0", true], ["Kid1", false]]);
+    expect((await call("GET", `/v1/classes/${room.id}/homework`, undefined, stranger.token)).status).toBe(404);
+
+    const id = made.json.homework.id;
+    expect((await call("DELETE", `/v1/classes/${room.id}/homework/${id}`, undefined, kids[0].token)).status).toBe(403);
+    expect((await call("DELETE", `/v1/classes/${room.id}/homework/${id}`, undefined, mon.token)).status).toBe(200);
+    expect((await call("DELETE", `/v1/classes/${room.id}/homework/${id}`, undefined, mon.token)).status).toBe(404);
+    expect((await call("GET", `/v1/classes/${room.id}/homework`, undefined, mon.token)).json.homework).toEqual([]);
+  });
+
+  it("plays a turn-based game to checkmate with legality and turn checks", async () => {
+    const { mon, kids, room } = await club(2);
+    const [a, b] = kids;
+    const stranger = await reg("Zed", "g-z@b.co");
+    expect((await call("POST", `/v1/classes/${room.id}/games`, { opponentId: b.user.id, color: "w" }, stranger.token)).status).toBe(404);
+    expect((await call("POST", `/v1/classes/${room.id}/games`, { opponentId: a.user.id, color: "w" }, a.token)).status).toBe(400);
+    const made = await call("POST", `/v1/classes/${room.id}/games`, { opponentId: b.user.id, color: "w" }, a.token);
+    expect(made.status).toBe(201);
+    const game = made.json.game;
+    expect(game).toMatchObject({ white: { id: a.user.id, name: "Kid0" }, black: { id: b.user.id }, you: "w", yourTurn: true, status: "active", moves: [] });
+    const move = (token: string, from: string, to: string) => call("POST", `/v1/classes/${room.id}/games/${game.id}/moves`, { from, to }, token);
+
+    expect((await move(b.token, "e7", "e5")).status).toBe(409);
+    expect((await move(a.token, "e2", "e5")).status).toBe(400);
+    expect((await move(mon.token, "e2", "e4")).status).toBe(403);
+    expect((await move(stranger.token, "e2", "e4")).status).toBe(404);
+    expect((await move(a.token, "f2", "f3")).status).toBe(200);
+    expect((await move(a.token, "e2", "e4")).status).toBe(409);
+
+    const list = await call("GET", `/v1/classes/${room.id}/games`, undefined, b.token);
+    expect(list.json.games).toHaveLength(1);
+    expect(list.json.games[0].yourTurn).toBe(true);
+    expect((await call("GET", `/v1/classes/${room.id}/games`, undefined, mon.token)).json.games).toEqual([]);
+
+    await move(b.token, "e7", "e5");
+    await move(a.token, "g2", "g4");
+    const mate = await move(b.token, "d8", "h4");
+    expect(mate.status).toBe(200);
+    expect(mate.json.game).toMatchObject({ status: "over", result: "0-1", reason: "checkmate", moves: ["f3", "e5", "g4", "Qh4#"], yourTurn: false });
+    expect((await move(a.token, "e2", "e4")).status).toBe(409);
+    expect((await call("POST", `/v1/classes/${room.id}/games/${game.id}/resign`, {}, a.token)).status).toBe(409);
+    const watched = await call("GET", `/v1/classes/${room.id}/games/${game.id}`, undefined, mon.token);
+    expect(watched.json.game).toMatchObject({ you: null, result: "0-1" });
+    expect((await call("GET", `/v1/classes/${room.id}/games/${game.id}`, undefined, stranger.token)).status).toBe(404);
+  });
+
+  it("resigns, and refuses challenges and moves between blocked classmates", async () => {
+    const { kids, room } = await club(2);
+    const [a, b] = kids;
+    const game = (await call("POST", `/v1/classes/${room.id}/games`, { opponentId: b.user.id, color: "b" }, a.token)).json.game;
+    expect(game.white.id).toBe(b.user.id);
+    const resigned = await call("POST", `/v1/classes/${room.id}/games/${game.id}/resign`, {}, a.token);
+    expect(resigned.json.game).toMatchObject({ status: "over", result: "1-0", reason: "resign" });
+
+    const open = (await call("POST", `/v1/classes/${room.id}/games`, { opponentId: a.user.id, color: "w" }, b.token)).json.game;
+    await call("POST", `/v1/classes/${room.id}/members/${a.user.id}/block`, {}, b.token);
+    expect((await call("POST", `/v1/classes/${room.id}/games`, { opponentId: b.user.id, color: "w" }, a.token)).status).toBe(403);
+    expect((await call("POST", `/v1/classes/${room.id}/games`, { opponentId: a.user.id, color: "w" }, b.token)).status).toBe(403);
+    expect((await call("POST", `/v1/classes/${room.id}/games/${open.id}/moves`, { from: "e2", to: "e4" }, b.token)).status).toBe(403);
+  });
+
+  it("rate limits challenges", async () => {
+    const { kids, room } = await club(2);
+    const statuses: number[] = [];
+    for (let i = 0; i < 31; i++) statuses.push((await call("POST", `/v1/classes/${room.id}/games`, { opponentId: kids[1].user.id, color: "w" }, kids[0].token)).status);
+    expect(statuses.slice(0, 30).every((s) => s === 201)).toBe(true);
+    expect(statuses[30]).toBe(429);
+  });
+
+  it("runs a round robin with standings, skipping blocked pairs", async () => {
+    const { mon, kids, room } = await club(4);
+    const ids = kids.map((k) => k.user.id);
+    expect((await call("POST", `/v1/classes/${room.id}/tournaments`, { players: ids.slice(0, 3) }, kids[0].token)).status).toBe(403);
+    expect((await call("POST", `/v1/classes/${room.id}/tournaments`, { players: ids.slice(0, 2) }, mon.token)).status).toBe(400);
+    expect((await call("POST", `/v1/classes/${room.id}/tournaments`, { players: [...ids.slice(0, 2), "someone"] }, mon.token)).status).toBe(400);
+
+    const made = await call("POST", `/v1/classes/${room.id}/tournaments`, { players: ids }, mon.token);
+    expect(made.status).toBe(201);
+    expect(made.json.tournament).toMatchObject({ done: 0, total: 6 });
+    expect(made.json.tournament.standings).toHaveLength(4);
+
+    const games = (await call("GET", `/v1/classes/${room.id}/games`, undefined, kids[0].token)).json.games as { id: string; white: { id: string }; black: { id: string }; tournamentId: string }[];
+    expect(games).toHaveLength(3);
+    expect(games.every((g) => g.tournamentId === made.json.tournament.id)).toBe(true);
+    // Kid0 resigns one game and the other side of another resigns to Kid0.
+    await call("POST", `/v1/classes/${room.id}/games/${games[0].id}/resign`, {}, kids[0].token);
+    const g1 = games[1];
+    const other = kids.find((k) => k.user.id === (g1.white.id === ids[0] ? g1.black.id : g1.white.id))!;
+    await call("POST", `/v1/classes/${room.id}/games/${g1.id}/resign`, {}, other.token);
+    const list = (await call("GET", `/v1/classes/${room.id}/tournaments`, undefined, kids[3].token)).json.tournaments;
+    expect(list[0]).toMatchObject({ done: 2, total: 6 });
+    const row = list[0].standings.find((s: { id: string }) => s.id === ids[0]);
+    expect(row).toMatchObject({ points: 1, played: 2 });
+    expect(list[0].standings[0].points).toBe(1);
+
+    await call("POST", `/v1/classes/${room.id}/members/${ids[1]}/block`, {}, kids[0].token);
+    const second = await call("POST", `/v1/classes/${room.id}/tournaments`, { players: ids }, mon.token);
+    expect(second.json.tournament.total).toBe(5);
+  });
+
+  it("deletes a member's games, and a closed class's homework, games and tournaments", async () => {
+    const { mon, kids, room } = await club(3);
+    await call("POST", `/v1/classes/${room.id}/homework`, { lessons: [order[1]], due: "2026-11-10" }, mon.token);
+    await call("POST", `/v1/classes/${room.id}/tournaments`, { players: kids.map((k) => k.user.id) }, mon.token);
+    expect(await db.select().from(classGames)).toHaveLength(3);
+    expect((await call("DELETE", "/v1/me", undefined, kids[0].token)).status).toBe(200);
+    const left = await db.select().from(classGames);
+    expect(left).toHaveLength(1);
+    expect(left.every((g) => g.whiteId !== kids[0].user.id && g.blackId !== kids[0].user.id)).toBe(true);
+    expect((await call("DELETE", "/v1/me", undefined, mon.token)).status).toBe(200);
+    expect(await db.select().from(classGames)).toEqual([]);
+    expect(await db.select().from(homework)).toEqual([]);
+    expect(await db.select().from(tournaments)).toEqual([]);
   });
 });

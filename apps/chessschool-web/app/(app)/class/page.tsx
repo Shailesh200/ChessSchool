@@ -1,12 +1,14 @@
 "use client";
 
-import { ApiError, copy, dayKey, rankFor, visibleStreak, type AvatarId, type ClassMember, type ClassRoom, type Leaderboard } from "@chessschool/design";
+import { ApiError, copy, dayKey, rankFor, visibleStreak, type ClassMember, type ClassRoom, type Leaderboard } from "@chessschool/design";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { gameHref, GamesSection, HomeworkSection, MemberFace, TournamentSection } from "@/components/ClassPlay";
 import { Icon } from "@/components/Icon";
-import { Cody } from "@/components/Lottie";
-import { Button, Card, Sheet, Switch, TextField, TopBar, useToast } from "@/components/ui";
+import { Button, Card, Segmented, Sheet, Switch, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
+import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 
 export default function ClassPage() {
@@ -17,9 +19,11 @@ export default function ClassPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<{ room: ClassRoom; member: ClassMember } | null>(null);
-  const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
+  const [confirm, setConfirm] = useState<Confirm>(null);
   const [hidden, setHidden] = useState<boolean | null>(null);
   const [tick, setTick] = useState(0);
+  const course = useCourse();
+  const router = useRouter();
   const t = copy.classroom;
   const closeCard = () => {
     setOpen(null);
@@ -94,6 +98,9 @@ export default function ClassPage() {
                     </li>
                   ))}
                 </ul>
+                <HomeworkSection room={room} course={course} refresh={tick} />
+                <GamesSection room={room} refresh={tick} />
+                <TournamentSection room={room} refresh={tick} onStarted={() => setTick((n) => n + 1)} />
                 <WeekBoard roomId={room.id} refresh={tick} onHidden={setHidden} />
                 <Button variant="ghost" disabled={busy} onClick={() => void run(async () => { await api.leaveClass(room.id); }, room.role === "monitor" ? t.closed : t.left)}>
                   {room.role === "monitor" ? t.close : t.leave}
@@ -139,6 +146,13 @@ export default function ClassPage() {
                 onConfirm={setConfirm}
                 onBlock={() => void run(async () => { await api.blockMember(open.room.id, open.member.id); closeCard(); }, t.blocked)}
                 onRemove={() => void run(async () => { await api.removeMember(open.room.id, open.member.id); closeCard(); }, t.removed)}
+                onChallenge={(color) =>
+                  void run(async () => {
+                    const { game } = await api.challenge(open.room.id, open.member.id, color);
+                    closeCard();
+                    router.push(gameHref(open.room.id, game.id));
+                  }, t.games.started)
+                }
               />
             ) : null}
           </Sheet>
@@ -151,25 +165,36 @@ export default function ClassPage() {
   );
 }
 
-function MemberFace({ id, size }: { id: AvatarId; size: number }) {
-  return (
-    <span className="member-face" style={{ width: size, height: size }} aria-hidden>
-      {id === "cody" ? <Cody animation="idle" size={size - 6} /> : <img src={`/coaches/${id}.png`} alt="" width={size} height={size} />}
-    </span>
-  );
-}
+type Confirm = "block" | "remove" | "challenge" | null;
 
-function MemberCard({ room, member, confirm, busy, onConfirm, onBlock, onRemove }: {
+function MemberCard({ room, member, confirm, busy, onConfirm, onBlock, onRemove, onChallenge }: {
   room: ClassRoom;
   member: ClassMember;
-  confirm: "block" | "remove" | null;
+  confirm: Confirm;
   busy: boolean;
-  onConfirm: (v: "block" | "remove" | null) => void;
+  onConfirm: (v: Confirm) => void;
   onBlock: () => void;
   onRemove: () => void;
+  onChallenge: (color: "w" | "b" | "random") => void;
 }) {
   const t = copy.classroom;
   const name = member.name || copy.you.noName;
+  const [color, setColor] = useState<"w" | "b" | "random">("random");
+  if (confirm === "challenge") {
+    return (
+      <>
+        <h2 id="member-title">{t.games.challengeTitle(name)}</h2>
+        <p className="muted">{t.games.challengeBody}</p>
+        <Segmented label={t.games.color} value={color} onChange={setColor} options={(["w", "b", "random"] as const).map((v) => ({ value: v, label: copy.play.sides[v] }))} />
+        <Button block icon="play" loading={busy} onClick={() => onChallenge(color)}>
+          {t.games.send}
+        </Button>
+        <Button block variant="ghost" onClick={() => onConfirm(null)}>
+          {t.cancel}
+        </Button>
+      </>
+    );
+  }
   if (confirm) {
     return (
       <>
@@ -205,6 +230,9 @@ function MemberCard({ room, member, confirm, busy, onConfirm, onBlock, onRemove 
           </div>
         ))}
       </div>
+      <Button block icon="play" onClick={() => onConfirm("challenge")}>
+        {t.games.challenge}
+      </Button>
       <div className="member-actions">
         <Button variant="secondary" icon="flag" href={report}>
           {t.report}

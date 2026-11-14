@@ -135,6 +135,47 @@ export const blocks = sqliteTable(
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
 );
 
+/** Lessons a class monitor set for the class, due on a day (YYYY-MM-DD). `lessons` is a JSON id list. */
+export const homework = sqliteTable("cs_class_homework", {
+  id: text("id").primaryKey(),
+  classId: text("class_id")
+    .notNull()
+    .references(() => classes.id, { onDelete: "cascade" }),
+  createdBy: text("created_by").notNull(),
+  lessons: text("lessons").notNull(),
+  due: text("due").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** A class round robin; its players and results live in cs_class_games. */
+export const tournaments = sqliteTable("cs_class_tournaments", {
+  id: text("id").primaryKey(),
+  classId: text("class_id")
+    .notNull()
+    .references(() => classes.id, { onDelete: "cascade" }),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** A turn-based game between two classmates. `moves` is space-separated SAN from the start position. */
+export const classGames = sqliteTable("cs_class_games", {
+  id: text("id").primaryKey(),
+  classId: text("class_id")
+    .notNull()
+    .references(() => classes.id, { onDelete: "cascade" }),
+  tournamentId: text("tournament_id"),
+  whiteId: text("white_id").notNull(),
+  blackId: text("black_id").notNull(),
+  moves: text("moves").notNull().default(""),
+  /** active | over */
+  status: text("status").notNull(),
+  /** 1-0 | 0-1 | 1/2-1/2, once over. */
+  result: text("result"),
+  reason: text("reason"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 /** Anonymous usage events: an install id (random, per device), never a user id, name or email. */
 export const events = sqliteTable("cs_events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -323,4 +364,35 @@ export const BOOTSTRAP_SQL = [
     context TEXT NOT NULL,
     created_at INTEGER NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS cs_class_homework (
+    id TEXT PRIMARY KEY,
+    class_id TEXT NOT NULL REFERENCES cs_classes(id) ON DELETE CASCADE,
+    created_by TEXT NOT NULL,
+    lessons TEXT NOT NULL,
+    due TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_class_homework_class ON cs_class_homework (class_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_class_tournaments (
+    id TEXT PRIMARY KEY,
+    class_id TEXT NOT NULL REFERENCES cs_classes(id) ON DELETE CASCADE,
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_class_games (
+    id TEXT PRIMARY KEY,
+    class_id TEXT NOT NULL REFERENCES cs_classes(id) ON DELETE CASCADE,
+    tournament_id TEXT,
+    white_id TEXT NOT NULL,
+    black_id TEXT NOT NULL,
+    moves TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    result TEXT,
+    reason TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_class_games_class ON cs_class_games (class_id)`,
+  `CREATE INDEX IF NOT EXISTS cs_class_games_white ON cs_class_games (white_id)`,
+  `CREATE INDEX IF NOT EXISTS cs_class_games_black ON cs_class_games (black_id)`,
 ];
