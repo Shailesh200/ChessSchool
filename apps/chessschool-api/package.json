@@ -18,6 +18,7 @@
     "voice:migrate": "tsx scripts/voice-migrate.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@chessschool/chess": "workspace:*",
     "@chessschool/design": "workspace:*",
     "@hono/node-server": "^1.19.5",
