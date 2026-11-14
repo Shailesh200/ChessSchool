@@ -92,12 +92,10 @@ jobs:
 
       - name: Upload to TestFlight
         working-directory: apps/chessschool
-        env:
-          EXPO_ASC_API_KEY_PATH: ${{ env.ASC_KEY_PATH }}
-          EXPO_ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
-          EXPO_APPLE_TEAM_ID: ARDSWV5GD2
-        run: eas submit --platform ios --profile production --path "$RUNNER_TEMP/ChessSchool.ipa" --non-interactive --wait
+        # eas submit only takes an API key from eas.json in non-interactive mode, so add it on the runner (never committed).
+        run: |
+          node -e 'const fs = require("fs"); const j = JSON.parse(fs.readFileSync("eas.json", "utf8")); Object.assign(j.submit.production.ios, { ascApiKeyPath: process.env.ASC_KEY_PATH, ascApiKeyId: process.env.ASC_API_KEY_ID, ascApiKeyIssuerId: process.env.ASC_API_ISSUER_ID }); fs.writeFileSync("eas.json", JSON.stringify(j, null, 2));'
+          eas submit --platform ios --profile production --path "$RUNNER_TEMP/ChessSchool.ipa" --non-interactive --wait
 
       - name: Remove the key and the build
         if: always()
