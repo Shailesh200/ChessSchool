@@ -291,6 +291,25 @@ export const voiceClips = sqliteTable(
 );
 
 /** Idempotent bootstrap; this schema is new and owns only cs_* tables. */
+/** Coach explanations, keyed by a hash of the engine facts + coach + language. Holds no user data. */
+export const coachCache = sqliteTable("cs_coach_cache", {
+  key: text("key").primaryKey(),
+  texts: text("texts").notNull(),
+  provider: text("provider").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** Coach explanations asked per learner per day, for the daily caps. */
+export const coachUsage = sqliteTable(
+  "cs_coach_usage",
+  {
+    userId: text("user_id").notNull(),
+    day: text("day").notNull(),
+    count: integer("count").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
     id TEXT PRIMARY KEY,
@@ -434,6 +453,18 @@ export const BOOTSTRAP_SQL = [
     fen TEXT PRIMARY KEY,
     move TEXT,
     category TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_coach_cache (
+    key TEXT PRIMARY KEY,
+    texts TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_coach_usage (
+    user_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY (user_id, day)
   )`,
   `CREATE TABLE IF NOT EXISTS cs_lesson_ideas (
     lesson_id TEXT PRIMARY KEY,

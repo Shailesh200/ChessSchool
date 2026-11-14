@@ -5,7 +5,7 @@ import { copy } from "@chessschool/design";
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { Cody } from "@/components/Lottie";
-import { Card, TopBar } from "@/components/ui";
+import { Button, Card, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
 export default function ReviewList() {
@@ -15,6 +15,9 @@ export default function ReviewList() {
   return (
     <div className="page page-narrow">
       <TopBar backHref="/gym" title={copy.gym.review.name} />
+      <Button variant="secondary" icon="history" href="/gym/import">
+        {copy.gym.importCta}
+      </Button>
       {games.length ? (
         <ul className="game-list">
           {games.map((g) => {
@@ -25,9 +28,9 @@ export default function ReviewList() {
             return (
               <li key={g.id}>
                 <Link href={`/gym/review/${encodeURIComponent(g.id)}`} className="game-row">
-                  {bot && isBotId(bot) ? <BotAvatar bot={bot} /> : <span className="player-avatar">2P</span>}
+                  {bot && isBotId(bot) ? <BotAvatar bot={bot} /> : <span className="player-avatar">{setup.opponent.kind === "online" ? "@" : "2P"}</span>}
                   <span className="game-row-text">
-                    <strong>{setup.opponent.kind === "friend" ? copy.gym.vsFriend : copy.play.vs(opponentName(setup))}</strong>
+                    <strong>{setup.opponent.kind === "friend" ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup))}</strong>
                     <span className="muted">
                       {result} · {copy.gym.moveCount(Math.ceil(g.history.length / 2))} · {new Date(g.endedAt).toLocaleDateString()}
                     </span>

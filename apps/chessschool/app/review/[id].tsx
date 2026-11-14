@@ -1,14 +1,15 @@
 import { formatEval, opponentName, parseSetup, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type KeyMoment, type Square, type TryState } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
 import { Cody } from "@/components/Lottie";
-import { Button, T, TopBar } from "@/components/ui";
+import { Button, Sheet, T, TopBar } from "@/components/ui";
+import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
@@ -24,6 +25,17 @@ export default function ReviewGame() {
   const [ply, setPly] = useState(0);
   const [trying, setTrying] = useState<TryState | null>(null);
   const [shake, setShake] = useState(0);
+  const friend = setup?.opponent.kind === "friend";
+  const side = !setup || friend ? null : setup.you;
+  const coach = useCoachNotes(game, setup?.startFen ?? "", side);
+  useReviewedSkills(game, plies, notes, done, side);
+  const firstNote = coach.notes[0]?.ply;
+  useEffect(() => {
+    if (firstNote) {
+      setTrying(null);
+      setPly(firstNote);
+    }
+  }, [firstNote]);
 
   if (!game || !setup) {
     return (
@@ -38,8 +50,6 @@ export default function ReviewGame() {
     setTrying(null);
     setPly(Math.max(0, Math.min(plies.length, n)));
   };
-  const friend = setup.opponent.kind === "friend";
-  const side = friend ? null : setup.you;
   const orientation = friend ? "w" : setup.you;
   const sum = summarise(plies, notes, side);
   const cur = ply ? plies[ply - 1] : null;
@@ -74,6 +84,21 @@ export default function ReviewGame() {
   else if (kind === "great" || kind === "mate" || kind === "good") explain = copy.analysis.explain[kind];
   else explain = copy.analysis.explain[kind](note?.better ?? null);
 
+  const coachNote = cur && !trying ? coach.noteFor(cur.ply) : null;
+  const coachLine = !coach.signedIn
+    ? copy.coachAi.signIn
+    : !coach.allowed
+      ? copy.coachAi.off
+      : coach.status === "loading"
+        ? copy.coachAi.loading
+        : coach.status === "error"
+          ? copy.coachAi.failed
+          : coach.status === "limit"
+            ? copy.coachAi.limit
+            : coach.status === "done" && !coach.notes.length
+              ? copy.coachAi.none
+              : null;
+
   const tap = (sq: Square) => {
     if (!trying) return;
     const next = tryReduce(trying, sq);
@@ -97,7 +122,7 @@ export default function ReviewGame() {
             <>
               <Cody animation={tone === "danger" ? "thinking" : tone === "success" ? "happy" : "reading"} size={44} />
               <T role="label" style={{ flex: 1 }} numberOfLines={1}>
-                {friend ? copy.gym.vsFriend : copy.play.vs(opponentName(setup))}
+                {friend ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup))}
               </T>
               <View accessible accessibilityLabel={copy.analysis.evalLabel(formatEval(evalNow))} style={{ minWidth: 72, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignItems: "center", backgroundColor: c.sunken }}>
                 <T role="label" style={{ fontFamily: fonts.bold, fontVariant: ["tabular-nums"] }}>
@@ -178,7 +203,33 @@ export default function ReviewGame() {
             ) : null}
           </View>
           <T role="small">{explain}</T>
+          {coachNote ? (
+            <>
+              <T role="small" style={{ fontFamily: fonts.semibold }}>
+                {coachNote.text}
+              </T>
+              <T role="micro" color="textSubtle">
+                {copy.coachAi.note}
+              </T>
+            </>
+          ) : null}
         </View>
+
+        {coachLine ? (
+          <T role="small" color="textMuted" center>
+            {coachLine}
+          </T>
+        ) : coach.status === "idle" ? (
+          <Button title={copy.coachAi.button} icon="spark" variant="secondary" disabled={!done} onPress={coach.ask} />
+        ) : null}
+        <Sheet visible={coach.status === "consent"} onClose={coach.cancel}>
+          <View style={{ gap: 12 }}>
+            <T role="heading">{copy.coachAi.consentTitle}</T>
+            <T role="body">{copy.coachAi.consentBody}</T>
+            <Button title={copy.coachAi.consentAgree} icon="spark" onPress={coach.agree} />
+            <Button title={copy.coachAi.consentCancel} variant="secondary" onPress={coach.cancel} />
+          </View>
+        </Sheet>
 
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ width: 64 }}>

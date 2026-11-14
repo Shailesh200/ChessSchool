@@ -1,5 +1,5 @@
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
+import { copy, dayKey, goalMet, mistakeItems, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
@@ -21,18 +21,20 @@ export default function PracticeSession() {
   useEffect(() => {
     if (!ready || items) return;
     let live = true;
+    // Positions from the learner's own games come first; the server leans the rest toward weak ideas.
+    const own = mistakeItems(state.mistakes, state.review, dayKey(new Date()));
     api
-      .practice(practiceRequest(state.progress.completed, state.review, dayKey(new Date())))
+      .practice(practiceRequest(state.progress.completed, state.review, dayKey(new Date()), state.progress.skills))
       .then(({ items: got }) => {
         if (!live) return;
-        if (!got.length) return leave();
-        setItems(got.slice(0, PRACTICE_SET));
+        if (!got.length && !own.length) return leave();
+        setItems([...own, ...got].slice(0, PRACTICE_SET));
         setPracticeNext(got.slice(PRACTICE_SET));
       })
       .catch(() => {
         if (!live) return;
-        if (!state.practiceNext.length) return leave();
-        setItems(state.practiceNext);
+        if (!state.practiceNext.length && !own.length) return leave();
+        setItems([...own, ...state.practiceNext].slice(0, PRACTICE_SET));
         setPracticeNext([]);
       });
     return () => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Share, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
+import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
@@ -166,6 +167,8 @@ export default function You() {
           ))}
         </View>
       </Card>
+
+      <SkillsCard skills={progress.skills} />
 
       <View style={{ gap: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>

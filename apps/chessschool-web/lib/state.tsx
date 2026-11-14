@@ -29,7 +29,7 @@ import {
   type LessonMeta,
 } from "@chessschool/design";
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { type AvatarId, createUsage, dayKey, forgetProfile, freshSlice, ideaRef, isGuestClassLimit, langFor, language, mergeProgress, placeBefore, type PracticeItem, reviewAfter, sanitizeProgress, setLanguage, switchProfile, type UsageEventName } from "@chessschool/design";
+import { type AvatarId, createUsage, dayKey, forgetProfile, freshSlice, ideaRef, isGuestClassLimit, langFor, language, mergeProgress, placeBefore, type PracticeItem, answerPractice, reviewAfter, sanitizeProgress, setLanguage, switchProfile, type UsageEventName } from "@chessschool/design";
 import { version } from "../package.json";
 import { api } from "./api";
 import { playCue } from "./sound";
@@ -45,7 +45,9 @@ type Store = {
   completeLesson: (id: string, meta?: LessonMeta) => void;
   finishPractice: () => void;
   finishGame: (game: GameRecord, minutes: number) => void;
-  finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean }) => void;
+  finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean; themes?: readonly string[] }) => void;
+  /** Applies a pure state change from @chessschool/design (AI setting, imported games, reviewed-game skills). */
+  update: (fn: (s: LocalState) => LocalState) => void;
   serveDailyPuzzle: (day: string, id: string, puzzle?: { id: string; fen: string; moves: string[]; rating: number; themes: readonly string[] } | null) => void;
   finishSprint: (score: number, minutes: number) => void;
   /** Keeps a board-vision best on the device and, signed in, sends it for the class board. */
@@ -190,7 +192,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       forgetLearner: (id) => setState((s) => forgetProfile(s, id)),
       setParentPin: (pin) => setState((s) => ({ ...s, parentPin: pin })),
       placeBefore: (order, startAt) => setState((s) => placeBefore(s, order, startAt, new Date())),
-      answerReview: (ref, missed) => setState((s) => ({ ...s, review: reviewAfter(s.review, ref, missed, dayKey(new Date())) })),
+      answerReview: (ref, missed) => setState((s) => answerPractice(s, ref, missed, dayKey(new Date()))),
+      update: (fn) => setState(fn),
       answerIdea: (lessonId, remembered) => setState((s) => ({ ...s, ideas: reviewAfter(s.ideas, ideaRef(lessonId), !remembered, dayKey(new Date())) })),
       setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),

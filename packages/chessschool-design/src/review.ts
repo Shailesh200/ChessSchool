@@ -1,3 +1,8 @@
+import type { PracticeItem } from "./api";
+import { copy } from "./copy";
+import type { MistakePosition } from "./progress";
+import { weakSkills, type Skills } from "./skills";
+
 /** Spaced review for practice: a missed position comes back after 1, 3 and 7 days until solved cleanly. */
 export type ReviewCard = { due: string; box: number };
 export type Review = Record<string, ReviewCard>;
@@ -54,9 +59,22 @@ export const seedIdea = (ideas: Review, lessonId: string, today: string): Review
 /** Practice serves 5 positions and keeps 5 more for offline use. */
 export const PRACTICE_SET = 5;
 
-/** The body for POST /v1/practice: every finished lesson plus today's due reviews. */
-export const practiceRequest = (completed: Record<string, string>, review: Review, today: string) => ({
+/** The body for POST /v1/practice: every finished lesson, today's due reviews, and the weakest ideas to lean toward. */
+export const practiceRequest = (completed: Record<string, string>, review: Review, today: string, skills?: Skills) => ({
   lessons: Object.keys(completed),
   review: dueReviews(review, today, PRACTICE_SET),
   count: PRACTICE_SET * 2,
+  weak: weakSkills(skills),
 });
+
+/** Due positions from the learner's own games (at most two a round), as "find the better move" steps. */
+export function mistakeItems(mistakes: readonly MistakePosition[], review: Review, today: string, max = 2): PracticeItem[] {
+  const due = new Set(dueReviews(review, today, REVIEW_MAX));
+  return mistakes
+    .filter((m) => due.has(m.ref))
+    .slice(0, max)
+    .map((m) => ({
+      ref: m.ref,
+      step: { kind: "move", title: copy.practice.mistakeTitle, body: copy.practice.mistakeBody, fen: m.fen, goal: { type: "exact", from: m.from, to: m.to }, hint: copy.practice.mistakeHint(m.better), pose: "thinking" },
+    }));
+}

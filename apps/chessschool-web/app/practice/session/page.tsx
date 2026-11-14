@@ -1,7 +1,7 @@
 "use client";
 
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
+import { copy, dayKey, goalMet, mistakeItems, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
@@ -27,18 +27,20 @@ function Session() {
   // One request per round: due reviews first, then finished lessons. The spare half is kept for offline use.
   useEffect(() => {
     let live = true;
+    // Positions from the learner's own games come first; the server leans the rest toward weak ideas.
+    const own = mistakeItems(state.mistakes, state.review, dayKey(new Date()));
     api
-      .practice(practiceRequest(state.progress.completed, state.review, dayKey(new Date())))
+      .practice(practiceRequest(state.progress.completed, state.review, dayKey(new Date()), state.progress.skills))
       .then(({ items: got }) => {
         if (!live) return;
-        if (!got.length) return router.replace("/practice");
-        setItems(got.slice(0, PRACTICE_SET));
+        if (!got.length && !own.length) return router.replace("/practice");
+        setItems([...own, ...got].slice(0, PRACTICE_SET));
         setPracticeNext(got.slice(PRACTICE_SET));
       })
       .catch(() => {
         if (!live) return;
-        if (!state.practiceNext.length) return router.replace("/practice");
-        setItems(state.practiceNext);
+        if (!state.practiceNext.length && !own.length) return router.replace("/practice");
+        setItems([...own, ...state.practiceNext].slice(0, PRACTICE_SET));
         setPracticeNext([]);
       });
     return () => {

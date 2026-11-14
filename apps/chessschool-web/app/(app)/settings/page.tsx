@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,7 +15,7 @@ import { notificationsSupported, requestNotifications } from "@/lib/notification
 import { useApp } from "@/lib/state";
 
 export default function SettingsPage() {
-  const { state, ready, setPrefs, signOut, resetThisDevice, deleteAccount, cue } = useApp();
+  const { state, ready, setPrefs, signOut, resetThisDevice, deleteAccount, cue, update } = useApp();
   const router = useRouter();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
@@ -230,6 +230,15 @@ export default function SettingsPage() {
           {s.legal}
         </h2>
         <Switch icon="eye" label={s.shareUsage} hint={s.shareUsageHint} checked={prefs.shareUsage} onChange={(v) => setPrefs({ shareUsage: v })} />
+        {/* A child's switch only works once a parent PIN guards this page. */}
+        <Switch
+          icon="spark"
+          label={s.aiExplain}
+          hint={isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
+          checked={aiExplainOn(state)}
+          disabled={isChildProfile(state) && !state.parentPin}
+          onChange={(v) => update((st) => setAiExplain(st, v))}
+        />
         <a className="row" href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="shield" />
           <span className="row-text">

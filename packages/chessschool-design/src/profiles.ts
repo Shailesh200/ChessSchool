@@ -3,7 +3,7 @@ import { emptyProgress, type AvatarId, type LocalState } from "./progress";
 import { emptyQuests } from "./quests";
 
 /** What belongs to one learner on a shared device. Everything else (account, look, sounds) is shared. */
-export type ProfileSlice = Pick<LocalState, "profile" | "progress" | "review" | "practiceNext" | "endgames" | "placementDone" | "gameLog" | "activeGame" | "badgesSeen" | "quests" | "vision" | "ideas"> & { coach: CoachId | null };
+export type ProfileSlice = Pick<LocalState, "profile" | "progress" | "review" | "practiceNext" | "endgames" | "placementDone" | "gameLog" | "activeGame" | "badgesSeen" | "quests" | "vision" | "ideas" | "mistakes"> & { coach: CoachId | null };
 
 export const MAIN_PROFILE = "main";
 
@@ -20,6 +20,7 @@ const sliceOf = (s: LocalState): ProfileSlice => ({
   quests: s.quests,
   vision: s.vision,
   ideas: s.ideas,
+  mistakes: s.mistakes,
   coach: s.prefs.coach,
 });
 
@@ -37,6 +38,7 @@ export const freshSlice = (s: LocalState, name: string, avatar: AvatarId): Profi
   quests: emptyQuests(),
   vision: {},
   ideas: {},
+  mistakes: [],
   coach: null,
 });
 
@@ -52,7 +54,7 @@ export function switchProfile(s: LocalState, to: string | null, fresh?: ProfileS
   const slice = next ?? fresh;
   if (!slice) return s;
   const { coach, ...own } = slice;
-  return { ...s, ...own, prefs: { ...s.prefs, coach }, activeChild: to, parked: { ...rest, [from]: sliceOf(s) } };
+  return { ...s, ...own, mistakes: own.mistakes ?? [], prefs: { ...s.prefs, coach }, activeChild: to, parked: { ...rest, [from]: sliceOf(s) } };
 }
 
 /** Drops a removed child from this device (switching back to the account first if they're active). */
