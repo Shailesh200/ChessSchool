@@ -30,6 +30,8 @@ import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
 import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
+import { checkLessonEdit, deleteDraft, loadCourseDoc, loadDrafts, loadVersion, listVersions, publishCourse, saveDraft } from "./course-admin";
+import { checkCourse } from "./course-check";
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
@@ -648,6 +650,79 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (b.status !== "open" && b.status !== "resolved") return fail(c, 400, "invalid_input");
     await db.update(reports).set({ status: b.status }).where(eq(reports.id, c.req.param("id") ?? ""));
     return c.json({ ok: true });
+  });
+
+  /* ---------- lesson editor (/admin/lessons) ---------- */
+
+  /** Units and their lessons, with any saved draft. */
+  app.get("/v1/admin/course", requireAdmin, async (c) => {
+    const [doc, drafts] = await Promise.all([loadCourseDoc(db), loadDrafts(db)]);
+    if (!doc) return fail(c, 404, "not_found", "course not seeded");
+    return c.json({
+      version: doc.version,
+      units: doc.units.map((u) => ({
+        ...u,
+        lessons: doc.lessons.filter((l) => l.unit === u.id).map(({ id, title, sub, minutes, xp }) => ({ id, title, sub, minutes, xp, draft: drafts.has(id) })),
+      })),
+    });
+  });
+
+  app.get("/v1/admin/course/lessons/:id", requireAdmin, async (c) => {
+    const id = c.req.param("id") ?? "";
+    const [doc, drafts] = await Promise.all([loadCourseDoc(db), loadDrafts(db)]);
+    const lesson = doc?.lessons.find((l) => l.id === id);
+    if (!lesson) return fail(c, 404, "not_found");
+    return c.json({ lesson, draft: drafts.get(id) ?? null });
+  });
+
+  /** Runs the seed script's checks on the course with this lesson swapped in. */
+  app.post("/v1/admin/course/validate", requireAdmin, async (c) => {
+    const doc = await loadCourseDoc(db);
+    if (!doc) return fail(c, 404, "not_found", "course not seeded");
+    const checked = checkLessonEdit(doc, (await body<{ lesson: unknown }>(c)).lesson);
+    return c.json(checked.ok ? { ok: true, errors: [] } : checked);
+  });
+
+  /** Drafts may be unfinished, so only their size and id are checked. */
+  app.put("/v1/admin/course/drafts/:id", requireAdmin, async (c) => {
+    const id = c.req.param("id") ?? "";
+    const { lesson } = await body<{ lesson: { id?: unknown } }>(c);
+    if (!lesson || typeof lesson !== "object" || lesson.id !== id || JSON.stringify(lesson).length > 200_000) return fail(c, 400, "invalid_input");
+    const doc = await loadCourseDoc(db);
+    if (!doc?.lessons.some((l) => l.id === id)) return fail(c, 404, "not_found");
+    await saveDraft(db, id, lesson, c.get("user").email, now().getTime());
+    return c.json({ ok: true });
+  });
+
+  app.delete("/v1/admin/course/drafts/:id", requireAdmin, async (c) => {
+    await deleteDraft(db, c.req.param("id") ?? "");
+    return c.json({ ok: true });
+  });
+
+  /** Makes the lesson live under a new course version, logs a snapshot and clears its draft. */
+  app.post("/v1/admin/course/publish", requireAdmin, async (c) => {
+    const doc = await loadCourseDoc(db);
+    if (!doc) return fail(c, 404, "not_found", "course not seeded");
+    const { lesson } = await body<{ lesson: { id: string } }>(c);
+    const checked = checkLessonEdit(doc, lesson);
+    if (!checked.ok) return c.json({ error: "invalid_input", errors: checked.errors }, 400);
+    const id = lesson!.id;
+    const version = await publishCourse(db, doc, checked.doc, `publish ${id}`, c.get("user").email, now().getTime(), newId);
+    await deleteDraft(db, id);
+    return c.json({ ok: true, version });
+  });
+
+  app.get("/v1/admin/course/versions", requireAdmin, async (c) => c.json({ versions: await listVersions(db) }));
+
+  /** Restores a logged snapshot (as a new version, so every app refetches). */
+  app.post("/v1/admin/course/versions/:id/rollback", requireAdmin, async (c) => {
+    const [current, snap] = await Promise.all([loadCourseDoc(db), loadVersion(db, c.req.param("id") ?? "")]);
+    if (!current || !snap) return fail(c, 404, "not_found");
+    // The snapshot was checked when it went live; recheck its shape, not every play-through.
+    const checked = checkCourse(snap, () => false);
+    if (!checked.ok) return c.json({ error: "invalid_input", errors: checked.errors }, 400);
+    const version = await publishCourse(db, current, snap, `rollback to ${snap.version}`, c.get("user").email, now().getTime(), newId);
+    return c.json({ ok: true, version });
   });
 
   async function accessFor(user: UserRow | null) {

@@ -27,6 +27,13 @@ export type UsageSummary = {
 /** One practice position; `step` is a lesson step as the lesson runner plays it. */
 export type PracticeItem = { ref: string; step: Record<string, unknown> & { kind: string } };
 export type AdminReport = { id: string; reason: ReportReason; note: string; status: "open" | "resolved"; createdAt: number; className: string | null; reported: string | null; reporter: string | null };
+/** A lesson as the admin lesson editor reads and writes it (steps as the lesson runner plays them). */
+export type AdminLesson = { id: string; unit: string; title: string; sub: string; minutes: number; xp: number; steps: Record<string, unknown>[] };
+export type AdminCourse = {
+  version: string;
+  units: { id: string; title: string; sub: string; lessons: { id: string; title: string; sub: string; minutes: number; xp: number; draft: boolean }[] }[];
+};
+export type AdminCourseVersion = { id: string; version: string; note: string; createdBy: string; createdAt: number };
 export type ClassRoom = { id: string; name: string; code: string; role: ClassRole; members: ClassMember[] };
 export type AuthResponse = { user: Account; profile: ApiProfile; progress: Progress; token: string };
 export type MeResponse = { user: Account; profile: ApiProfile };
@@ -177,6 +184,15 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
     adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),
     resolveReport: (id: string, status: "open" | "resolved") => request<{ ok: true }>("PATCH", `/v1/admin/reports/${id}`, { status }),
+    adminCourse: () => request<AdminCourse>("GET", "/v1/admin/course"),
+    adminLesson: (id: string) =>
+      request<{ lesson: AdminLesson; draft: { lesson: AdminLesson; updatedBy: string; updatedAt: number } | null }>("GET", `/v1/admin/course/lessons/${encodeURIComponent(id)}`),
+    validateLesson: (lesson: unknown) => request<{ ok: boolean; errors: string[] }>("POST", "/v1/admin/course/validate", { lesson }),
+    saveLessonDraft: (id: string, lesson: unknown) => request<{ ok: true }>("PUT", `/v1/admin/course/drafts/${encodeURIComponent(id)}`, { lesson }),
+    discardLessonDraft: (id: string) => request<{ ok: true }>("DELETE", `/v1/admin/course/drafts/${encodeURIComponent(id)}`),
+    publishLesson: (lesson: unknown) => request<{ ok: true; version: string }>("POST", "/v1/admin/course/publish", { lesson }),
+    courseVersions: () => request<{ versions: AdminCourseVersion[] }>("GET", "/v1/admin/course/versions"),
+    rollbackCourse: (id: string) => request<{ ok: true; version: string }>("POST", `/v1/admin/course/versions/${encodeURIComponent(id)}/rollback`),
   };
 }
 export type ApiClient = ReturnType<typeof createApiClient>;

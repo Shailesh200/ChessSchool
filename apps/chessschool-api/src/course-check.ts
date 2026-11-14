@@ -141,8 +141,11 @@ function checkSteps(id: string, steps: unknown, errors: string[]) {
   }
 }
 
-/** Validates a course document: shape, ids, order, and that every lesson can be played to the end. */
-export function checkCourse(raw: unknown): CourseCheck {
+/**
+ * Validates a course document: shape, ids, order, and that every lesson can be played to the end.
+ * `play` limits the play-through to some lessons (the admin editor replays only the lesson it changed).
+ */
+export function checkCourse(raw: unknown, play?: (lessonId: string) => boolean): CourseCheck {
   const errors: string[] = [];
   const doc = raw as Partial<CourseDoc> | null;
   if (!doc || typeof doc !== "object") return { ok: false, errors: ["course must be an object"] };
@@ -176,6 +179,7 @@ export function checkCourse(raw: unknown): CourseCheck {
     if (!text(l.title, 120) || !text(l.sub, 200)) errors.push(`lesson ${id}: title and sub are required`);
     if (!int(l.minutes, 1, 60) || !int(l.xp, 1, 100)) errors.push(`lesson ${id}: minutes 1–60 and xp 1–100`);
     if (id === "meet") continue; // the product tour has no script; the apps play it themselves
+    if (play && !play(id)) continue;
     checkSteps(id, l.steps, errors);
   }
   for (const u of unitIds) if (!doc.lessons!.some((l) => l.unit === u)) errors.push(`unit ${u}: has no lessons`);

@@ -727,3 +727,87 @@ describe("endgame tablebase", () => {
     expect((await down.request(`/v1/tablebase?fen=${encodeURIComponent("8/8/8/4k3/8/8/8/R3K3 b - - 0 1")}`)).status).toBe(503);
   });
 });
+
+describe("lesson editor (admin)", () => {
+  const lessonOf = (id: string) => structuredClone(COURSE.lessons.find((l) => l.id === id)!);
+  const accounts = async () => ({
+    admin: ((await call("POST", "/v1/auth/register", { name: "Admin", email: "admin@b.co", password: "pawnpawn" })).json as AuthResponse).token,
+    user: ((await call("POST", "/v1/auth/register", { name: "U", email: "u@b.co", password: "pawnpawn" })).json as AuthResponse).token,
+  });
+
+  it("is admin-only", async () => {
+    const { user } = await accounts();
+    const lesson = lessonOf("board");
+    for (const [method, path, body] of [
+      ["GET", "/v1/admin/course"],
+      ["GET", "/v1/admin/course/lessons/board"],
+      ["POST", "/v1/admin/course/validate", { lesson }],
+      ["PUT", "/v1/admin/course/drafts/board", { lesson }],
+      ["DELETE", "/v1/admin/course/drafts/board"],
+      ["POST", "/v1/admin/course/publish", { lesson }],
+      ["GET", "/v1/admin/course/versions"],
+      ["POST", "/v1/admin/course/versions/x/rollback"],
+    ] as const) {
+      expect((await call(method, path, body)).status).toBe(401);
+      expect((await call(method, path, body, user)).status).toBe(403);
+    }
+  });
+
+  it("lists units and lessons, and keeps a draft per lesson", async () => {
+    const { admin } = await accounts();
+    const lesson = { ...lessonOf("board"), title: "Draft title" };
+    expect((await call("PUT", "/v1/admin/course/drafts/board", { lesson }, admin)).status).toBe(200);
+    expect((await call("PUT", "/v1/admin/course/drafts/pawns", { lesson }, admin)).status).toBe(400);
+    const course = await call("GET", "/v1/admin/course", undefined, admin);
+    expect(course.json.version).toBe(COURSE.version);
+    expect(course.json.units[0].lessons.find((l: { id: string }) => l.id === "board")).toMatchObject({ title: "The board", draft: true });
+    const one = await call("GET", "/v1/admin/course/lessons/board", undefined, admin);
+    expect(one.json.lesson.title).toBe("The board");
+    expect(one.json.draft).toMatchObject({ lesson: { title: "Draft title" }, updatedBy: "admin@b.co" });
+    expect((await call("GET", "/v1/lessons/board")).json.title).toBe("The board");
+  });
+
+  it("rejects an invalid lesson with the checker's messages", async () => {
+    const { admin } = await accounts();
+    const lesson = lessonOf("pawns");
+    lesson.minutes = 0;
+    const move = lesson.steps.find((s) => s.kind === "move")!;
+    move.fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1"; // the pawn is gone, so the goal can't be met
+    const checked = await call("POST", "/v1/admin/course/validate", { lesson }, admin);
+    expect(checked.json.ok).toBe(false);
+    expect(checked.json.errors).toContain("lesson pawns: minutes 1–60 and xp 1–100");
+    expect(checked.json.errors.some((e: string) => e.startsWith("pawns step 2"))).toBe(true);
+    const published = await call("POST", "/v1/admin/course/publish", { lesson }, admin);
+    expect(published.status).toBe(400);
+    expect(published.json.errors).toEqual(checked.json.errors);
+    expect((await call("POST", "/v1/admin/course/validate", { lesson: lessonOf("pawns") }, admin)).json).toEqual({ ok: true, errors: [] });
+    expect((await call("POST", "/v1/admin/course/validate", { lesson: { ...lessonOf("pawns"), id: "brandNew" } }, admin)).json.ok).toBe(false);
+  });
+
+  it("publishes under a new version with a logged snapshot, and rolls back", async () => {
+    const { admin } = await accounts();
+    await call("PUT", "/v1/admin/course/drafts/board", { lesson: lessonOf("board") }, admin);
+    const edited = { ...lessonOf("board"), title: "The chessboard", xp: 25 };
+    const pub = await call("POST", "/v1/admin/course/publish", { lesson: edited }, admin);
+    expect(pub.status).toBe(200);
+    expect(pub.json.version).not.toBe(COURSE.version);
+    const live = await call("GET", "/v1/course?outline=1");
+    expect(live.json.version).toBe(pub.json.version);
+    expect(live.json.lessons.find((l: { id: string }) => l.id === "board")).toMatchObject({ title: "The chessboard", xp: 25 });
+    expect((await call("GET", "/v1/admin/course/lessons/board", undefined, admin)).json.draft).toBeNull();
+
+    const versions = (await call("GET", "/v1/admin/course/versions", undefined, admin)).json.versions;
+    expect(versions.map((v: { note: string }) => v.note)).toEqual(["publish board", "before first edit"]);
+    expect(versions[0]).toMatchObject({ version: pub.json.version, createdBy: "admin@b.co", createdAt: NOW.getTime() });
+    expect(versions[1].version).toBe(COURSE.version);
+
+    const back = await call("POST", `/v1/admin/course/versions/${versions[1].id}/rollback`, undefined, admin);
+    expect(back.status).toBe(200);
+    const restored = await call("GET", "/v1/course?outline=1");
+    expect(restored.json.version).toBe(back.json.version);
+    expect(restored.json.lessons.find((l: { id: string }) => l.id === "board")).toMatchObject({ title: "The board", xp: COURSE.lessons.find((l) => l.id === "board")!.xp });
+    const after = (await call("GET", "/v1/admin/course/versions", undefined, admin)).json.versions;
+    expect(after[0].note).toBe(`rollback to ${COURSE.version}`);
+    expect((await call("POST", "/v1/admin/course/versions/nope/rollback", undefined, admin)).status).toBe(404);
+  });
+});

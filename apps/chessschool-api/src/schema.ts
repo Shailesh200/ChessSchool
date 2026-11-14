@@ -93,6 +93,27 @@ export const courseLessons = sqliteTable("cs_course_lessons", {
   steps: text("steps").notNull(),
 });
 
+/** Lesson drafts from the admin editor (/admin/lessons), one per lesson. Not live until published. */
+export const courseDrafts = sqliteTable("cs_course_drafts", {
+  lessonId: text("lesson_id").primaryKey(),
+  /** JSON lesson document ({ id, unit, title, sub, minutes, xp, steps }). */
+  data: text("data").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+/** Full course snapshots written by each admin publish or rollback (newest last), so any one can be restored. */
+export const courseVersions = sqliteTable("cs_course_versions", {
+  id: text("id").primaryKey(),
+  version: text("version").notNull(),
+  /** JSON CourseDoc. */
+  data: text("data").notNull(),
+  /** "publish <lesson>", "rollback <version>" or "before first edit". */
+  note: text("note").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
 export const puzzles = sqliteTable("cs_puzzles", {
   id: text("id").primaryKey(),
   fen: text("fen").notNull(),
@@ -258,6 +279,21 @@ export const BOOTSTRAP_SQL = [
     steps TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_course_lessons_position ON cs_course_lessons (position)`,
+  `CREATE TABLE IF NOT EXISTS cs_course_drafts (
+    lesson_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_course_versions (
+    id TEXT PRIMARY KEY,
+    version TEXT NOT NULL,
+    data TEXT NOT NULL,
+    note TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_course_versions_at ON cs_course_versions (created_at)`,
   `CREATE TABLE IF NOT EXISTS cs_reports (
     id TEXT PRIMARY KEY,
     class_id TEXT NOT NULL,
