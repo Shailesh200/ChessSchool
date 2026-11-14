@@ -3,7 +3,7 @@
 import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CoachPicker } from "@/components/CoachPicker";
 import { Icon } from "@/components/Icon";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
@@ -19,6 +19,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
+  const [weekly, setWeekly] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (state.account) api.weekly().then((w) => setWeekly(w.email || w.push)).catch(() => {});
+  }, [state.account]);
   const course = useCourse();
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
@@ -106,6 +110,23 @@ export default function SettingsPage() {
                 <span className="row-label">{account.email}</span>
               </span>
             </div>
+            {weekly !== null ? (
+              <Switch
+                icon="doc"
+                label={s.weekly}
+                hint={s.weeklyHint}
+                checked={weekly}
+                onChange={async (on) => {
+                  setWeekly(on);
+                  try {
+                    await api.setWeekly({ email: on, pushToken: null, lang: language() });
+                  } catch {
+                    setWeekly(!on);
+                    toast(copy.auth.errors.offline);
+                  }
+                }}
+              />
+            ) : null}
             <button
               className="row row-danger"
               onClick={async () => {

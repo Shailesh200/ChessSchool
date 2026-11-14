@@ -727,3 +727,39 @@ describe("endgame tablebase", () => {
     expect((await down.request(`/v1/tablebase?fen=${encodeURIComponent("8/8/8/4k3/8/8/8/R3K3 b - - 0 1")}`)).status).toBe(503);
   });
 });
+
+describe("weekly parent summary", () => {
+  it("opts in and out, sends on Sunday once, honours the secret, and counts the week", async () => {
+    const sent: { kind: string; to: string; subject: string; body: string }[] = [];
+    const weekly = {
+      email: async (to: string, subject: string, _html: string, text: string) => (sent.push({ kind: "email", to, subject, body: text }), true),
+      push: async (to: string, subject: string, body: string) => (sent.push({ kind: "push", to, subject, body }), true),
+    };
+    const sunday = new Date("2026-11-08T03:30:00Z");
+    const local = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => sunday, weekly, cronSecret: "s3cret" });
+    const req = (method: string, path: string, body?: unknown, token?: string, extra: Record<string, string> = {}) =>
+      local.request(path, { method, headers: { "Content-Type": "application/json", "x-forwarded-for": `10.1.0.${++ip}`, ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const { token } = (await (await req("POST", "/v1/auth/register", { name: "Asha", email: "parent@b.co", password: "pawnpawn" })).json()) as AuthResponse;
+    await req("PUT", "/v1/progress", { progress: progressThrough("moves") }, token);
+    expect((await req("PUT", "/v1/me/weekly", { email: "yes" }, token)).status).toBe(400);
+    expect(await (await req("PUT", "/v1/me/weekly", { email: true, pushToken: "ExponentPushToken[abcdefghijklmn]", lang: "en" }, token)).json()).toEqual({ email: true, push: true });
+    expect((await req("GET", "/v1/cron/weekly")).status).toBe(404);
+    expect((await req("GET", "/v1/cron/weekly", undefined, undefined, { Authorization: "Bearer wrong" })).status).toBe(404);
+    const run = await (await req("GET", "/v1/cron/weekly", undefined, undefined, { Authorization: "Bearer s3cret" })).json();
+    expect(run).toMatchObject({ emails: 1, pushes: 1 });
+    expect(sent[0]).toMatchObject({ kind: "email", to: "parent@b.co", subject: "Asha's week on ChessSchool" });
+    expect(sent[0].body).toMatch(/lessons finished/);
+    const again = await (await req("GET", "/v1/cron/weekly", undefined, undefined, { Authorization: "Bearer s3cret" })).json();
+    expect(again).toMatchObject({ due: 0, emails: 0 });
+    expect(await (await req("PUT", "/v1/me/weekly", { email: false }, token)).json()).toEqual({ email: false, push: false });
+    expect(await (await req("GET", "/v1/me/weekly", undefined, token)).json()).toEqual({ email: false, push: false });
+  });
+
+  it("builds the Hindi message and escapes names in the email", async () => {
+    const { summaryMessage } = await import("../src/weekly");
+    const m = summaryMessage({ name: "<b>Riya</b>", lessons: 3, puzzles: 5, streak: 4, next: "यूनिट 2" }, "hi");
+    expect(m.subject).toContain("Riya");
+    expect(m.html).not.toContain("<b>Riya</b>");
+    expect(m.text).toContain("3 पाठ पूरे");
+  });
+});

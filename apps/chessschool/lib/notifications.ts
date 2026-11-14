@@ -57,3 +57,16 @@ export async function syncReminders(state: LocalState): Promise<void> {
 }
 
 export const openSystemSettings = () => Linking.openSettings();
+
+/** This device's Expo push token for the weekly summary, or null (no permission, Expo Go, or no push setup). */
+export async function pushToken(): Promise<string | null> {
+  try {
+    if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return null;
+    const N = load();
+    if ((await N.getPermissionsAsync()).status !== "granted") return null;
+    const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+    return (await N.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
+  } catch {
+    return null;
+  }
+}

@@ -29,5 +29,5 @@ writeFileSync(
   join(fn, ".vc-config.json"),
   JSON.stringify({ runtime: "nodejs22.x", handler: "index.js", launcherType: "Nodejs", shouldAddHelpers: false, maxDuration: 30 }, null, 2),
 );
-writeFileSync(join(out, "config.json"), JSON.stringify({ version: 3, routes: [{ src: "/(.*)", dest: "/index" }] }, null, 2));
+writeFileSync(join(out, "config.json"), JSON.stringify({ version: 3, routes: [{ src: "/(.*)", dest: "/index" }], crons: [{ path: "/v1/cron/weekly", schedule: "30 3 * * *" }] }, null, 2));
 console.log("built", join(out));

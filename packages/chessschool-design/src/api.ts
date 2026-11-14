@@ -171,6 +171,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),
     voice: (coach: string, lesson: string) => request<{ coach: string; clips: Record<string, string> }>("GET", `/v1/voice/${coach}/${encodeURIComponent(lesson)}${lang("?")}`),
     placement: () => request<{ items: { lesson: string; step: PracticeItem["step"] }[] }>("GET", `/v1/placement${lang("?")}`),
+    weekly: () => request<{ email: boolean; push: boolean }>("GET", "/v1/me/weekly"),
+    setWeekly: (input: { email: boolean; pushToken?: string | null; lang: string }) => request<{ email: boolean; push: boolean }>("PUT", "/v1/me/weekly", input),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
     practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),

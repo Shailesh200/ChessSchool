@@ -73,6 +73,17 @@ export default function PrivacyPage() {
               Settings → &quot;Share anonymous usage&quot;; events are deleted after 180 days.
             </li>
             <li>
+              <strong>Weekly summary (optional):</strong> if you turn it on in Settings, each
+              Sunday we send the account&apos;s lessons finished, puzzles solved, streak and next
+              unit to the account email (sent with Resend) and, in the app, as a notification
+              (sent with Expo&apos;s push service). Turning it off stops it and deletes the setting.
+            </li>
+            <li>
+              <strong>Endgame trainer:</strong> to play perfect defence we look up the board
+              position (only the position, nothing about you) in the public Lichess endgame
+              tablebase.
+            </li>
+            <li>
               <strong>Classes:</strong> when you join a class, its members see your
               display name, avatar, join date, number of lessons finished, streak and
               rank. You can report or block a classmate; reports (reason, an optional

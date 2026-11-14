@@ -33,12 +33,13 @@ import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPat
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
+import { EMAIL_RUN_CAP, summarize, summaryMessage, type Sender } from "./weekly";
 import { loadCourseText, localizeNamed, localizeSteps, type CourseText } from "./course-text";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users } from "./schema";
+import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, weeklySummary } from "./schema";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
@@ -65,6 +66,10 @@ export type AppDeps = {
   now?: () => Date;
   /** Lower-case emails allowed to read the usage dashboard and the report queue. */
   adminEmails?: string[];
+  /** Weekly parent summary delivery (Resend + Expo push in production). */
+  weekly?: Sender;
+  /** Vercel Cron's bearer secret; without it the cron route is off. */
+  cronSecret?: string;
   /** Endgame tablebase lookup (Lichess by default; tests pass a fake). */
   tablebase?: TablebaseFetch;
   /** Crash reporting hook (Sentry in production). Gets the error only, never the request body. */
@@ -99,7 +104,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret }: AppDeps) {
   const app = new Hono<Vars>();
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const tablebaseLimiter = createRateLimiter(60, 60_000, () => now().getTime());
@@ -763,6 +768,70 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       return step ? [{ lesson, step }] : [];
     });
     return c.json({ items });
+  });
+
+  /** The weekly parent summary opt-in. */
+  app.get("/v1/me/weekly", requireUser, async (c) => {
+    const row = await db.query.weeklySummary.findFirst({ where: eq(weeklySummary.userId, c.get("user").id) });
+    return c.json({ email: Boolean(row?.email), push: Boolean(row?.pushToken) });
+  });
+
+  app.put("/v1/me/weekly", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ email?: unknown; pushToken?: unknown; lang?: unknown }>(c);
+    if (typeof b.email !== "boolean") return fail(c, 400, "invalid_input");
+    const pushToken = typeof b.pushToken === "string" && /^ExponentPushToken\[[\w-]{10,200}\]$/.test(b.pushToken) ? b.pushToken : null;
+    const lang = b.lang === "hi" ? "hi" : "en";
+    if (!b.email && !pushToken) {
+      await db.delete(weeklySummary).where(eq(weeklySummary.userId, user.id));
+      return c.json({ email: false, push: false });
+    }
+    const prog = await loadProgress(user.id, await coursePath());
+    const set = { email: b.email, pushToken, lang };
+    await db
+      .insert(weeklySummary)
+      .values({ userId: user.id, ...set, lastPuzzles: prog.puzzles.solved })
+      .onConflictDoUpdate({ target: weeklySummary.userId, set });
+    return c.json({ email: b.email, push: Boolean(pushToken) });
+  });
+
+  /**
+   * Daily cron: sends each opted-in learner's summary on Sunday, or later if a Sunday was missed.
+   * Emails per run are capped under the email plan's daily limit; the rest go out the next day.
+   */
+  app.get("/v1/cron/weekly", async (c) => {
+    if (!cronSecret || c.req.header("authorization") !== `Bearer ${cronSecret}`) return fail(c, 404, "not_found");
+    if (!weekly) return c.json({ sent: 0, skipped: "no sender" });
+    const today = dayKey(now());
+    const weekAgo = new Date(now().getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
+    const sunday = now().getUTCDay() === 0;
+    const rows = await db.select().from(weeklySummary);
+    const due = rows.filter((r) => r.lastSent !== today && (sunday ? true : !r.lastSent || r.lastSent <= weekAgo));
+    const [outline, path] = await Promise.all([loadOutline(db), coursePath()]);
+    const texts = { hi: await loadCourseText(db, "hi") };
+    let emails = 0;
+    let pushes = 0;
+    for (const r of due) {
+      if (r.email && emails >= EMAIL_RUN_CAP) continue;
+      const user = await db.query.users.findFirst({ where: eq(users.id, r.userId) });
+      if (!user) continue;
+      const p = await loadProgress(user.id, path);
+      const nextLesson = outline?.lessons.find((l) => !p.completed[l.id]);
+      const unit = nextLesson ? outline?.units.find((u) => u.id === nextLesson.unit) : null;
+      const unitTitle = unit ? (r.lang === "hi" ? texts.hi?.units[unit.id]?.title || unit.title : unit.title) : null;
+      const msg = summaryMessage(summarize(user.name, p, r.lastPuzzles, today, unitTitle), r.lang);
+      let ok = false;
+      if (r.email && (await weekly.email(user.email, msg.subject, msg.html, msg.text).catch(() => false))) {
+        emails++;
+        ok = true;
+      }
+      if (r.pushToken && (await weekly.push(r.pushToken, msg.subject, msg.push).catch(() => false))) {
+        pushes++;
+        ok = true;
+      }
+      if (ok) await db.update(weeklySummary).set({ lastSent: today, lastPuzzles: p.puzzles.solved }).where(eq(weeklySummary.userId, r.userId));
+    }
+    return c.json({ due: due.length, emails, pushes });
   });
 
   /** Perfect defence for the endgame trainer. 503 when the tablebase can't be reached (the app falls back to its bot). */

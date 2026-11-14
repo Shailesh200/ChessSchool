@@ -148,6 +148,18 @@ export const events = sqliteTable("cs_events", {
   appVersion: text("app_version").notNull(),
 });
 
+/** Weekly parent summary opt-ins: by email (the account email) and/or push (an Expo push token). */
+export const weeklySummary = sqliteTable("cs_weekly_summary", {
+  userId: text("user_id").primaryKey(),
+  email: integer("email", { mode: "boolean" }).notNull().default(false),
+  pushToken: text("push_token"),
+  lang: text("lang").notNull().default("en"),
+  /** Puzzles solved at the last summary, so the next one can show the week's count. */
+  lastPuzzles: integer("last_puzzles").notNull().default(0),
+  /** Day (YYYY-MM-DD) of the last summary sent. */
+  lastSent: text("last_sent"),
+});
+
 /** Endgame tablebase answers, cached so each position is asked of Lichess once. */
 export const tablebase = sqliteTable("cs_tablebase", {
   fen: text("fen").primaryKey(),
@@ -286,6 +298,14 @@ export const BOOTSTRAP_SQL = [
     app_version TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
+  `CREATE TABLE IF NOT EXISTS cs_weekly_summary (
+    user_id TEXT PRIMARY KEY,
+    email INTEGER NOT NULL DEFAULT 0,
+    push_token TEXT,
+    lang TEXT NOT NULL DEFAULT 'en',
+    last_puzzles INTEGER NOT NULL DEFAULT 0,
+    last_sent TEXT
+  )`,
   `CREATE TABLE IF NOT EXISTS cs_tablebase (
     fen TEXT PRIMARY KEY,
     move TEXT,

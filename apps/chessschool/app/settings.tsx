@@ -2,7 +2,7 @@ import { coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL,
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
 import { CoachPicker } from "@/components/CoachPicker";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
@@ -10,7 +10,7 @@ import { Cody } from "@/components/Lottie";
 import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { saveLessonsOffline, useCourse } from "@/lib/course";
-import { openSystemSettings, requestNotifications } from "@/lib/notifications";
+import { openSystemSettings, pushToken, requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
 
 export default function Settings() {
@@ -19,6 +19,10 @@ export default function Settings() {
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [weekly, setWeekly] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (state.account) api.weekly().then((w) => setWeekly(w.email || w.push)).catch(() => {});
+  }, [state.account]);
   const course = useCourse();
   const { prefs, account } = state;
   const s = copy.settings;
@@ -88,6 +92,23 @@ export default function Settings() {
         {account ? (
           <>
             <Row icon="mail" label={account.email} />
+            {weekly !== null ? (
+              <SwitchRow
+                icon="doc"
+                label={s.weekly}
+                hint={s.weeklyHintApp}
+                value={weekly}
+                onChange={async (on) => {
+                  setWeekly(on);
+                  try {
+                    await api.setWeekly({ email: on, pushToken: on ? await pushToken() : null, lang: language() });
+                  } catch {
+                    setWeekly(!on);
+                    toast(copy.auth.errors.offline);
+                  }
+                }}
+              />
+            ) : null}
             <Row
               icon="logout"
               label={s.signOut}

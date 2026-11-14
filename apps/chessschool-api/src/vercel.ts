@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { handle } from "@hono/node-server/vercel";
 import * as Sentry from "@sentry/node";
 import { createApp } from "./app";
+import { senderFromEnv } from "./weekly";
 import { openDb } from "./db";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
@@ -29,6 +30,8 @@ async function boot() {
     corsOrigins: list(process.env.CORS_ORIGINS),
     adminEmails: list(process.env.ADMIN_EMAILS),
     reportError,
+    weekly: senderFromEnv(process.env),
+    cronSecret: process.env.CRON_SECRET,
   });
   return handle(app);
 }
