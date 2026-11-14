@@ -3,7 +3,7 @@
     "name": "ChessSchool",
     "slug": "chess-school",
     "owner": "shaileshjha200",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "A few calm minutes a day to get better at chess.",
     "orientation": "portrait",
     "scheme": "chessschool",
@@ -20,7 +20,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -54,6 +54,7 @@
         }
       ],
       "expo-updates",
+    ["@sentry/react-native/expo", { "organization": "shailesh-jha", "project": "chessschool-mobile", "url": "https://sentry.io/" }],
       "expo-web-browser",
       "expo-apple-authentication",
       [
