@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "./Icon";
 import { CourseSkeleton } from "./Skeleton";
-import { Button, Sheet } from "./ui";
+import { CourseMap } from "./CourseMap";
+import { Button, Segmented, Sheet } from "./ui";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 
@@ -37,6 +38,7 @@ export function PathList({ progress }: { progress: Progress }) {
   const { showGuestGate } = useApp();
   const [review, setReview] = useState(false);
   const [all, setAll] = useState(false);
+  const [view, setView] = useState<"map" | "list">("map");
   if (!course) return <CourseSkeleton />;
   const f = focusCourse(course, progress.completed);
   const unitName = (id: string) => course.units.find((u) => u.id === id)?.title ?? "";
@@ -47,6 +49,19 @@ export function PathList({ progress }: { progress: Progress }) {
         <p className="focus-meta">{copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}</p>
         {f.currentUnit ? <span className="focus-chip">{copy.today.focus.active(f.currentUnit.title)}</span> : null}
       </div>
+      <Segmented
+        label={copy.today.focus.map.label}
+        value={view}
+        onChange={setView}
+        options={[
+          { value: "map", label: copy.today.focus.map.map },
+          { value: "list", label: copy.today.focus.map.list },
+        ]}
+      />
+      {view === "map" ? (
+        <CourseMap course={course} progress={progress} onGate={showGuestGate} />
+      ) : (
+        <>
       {f.doneCount > 1 ? (
         <div className="focus-earlier">
           <span className="focus-dot done" aria-hidden>
@@ -127,6 +142,8 @@ export function PathList({ progress }: { progress: Progress }) {
           ))}
         </ul>
       ) : null}
+        </>
+      )}
       <div className="focus-soon">
         <strong>{copy.today.comingSoonTitle}</strong>
         <p>{copy.today.comingSoonBody}</p>

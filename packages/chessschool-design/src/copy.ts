@@ -152,6 +152,7 @@ export const copy = {
         return names.length > 3 ? `${names.slice(0, 3).join(", ")} and ${names.length - 3} more` : names.join(", ");
       },
       viewAll: "View all",
+      map: { label: "Course view", map: "Map", list: "List", stop: (unit: string, done: number, total: number, state: string) => `${unit}, ${done} of ${total} lessons, ${state}` },
       showLess: "Show less",
       loading: "Loading your course…",
       offline: "Lessons will show when you're back online.",

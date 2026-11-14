@@ -148,6 +148,7 @@ export const hi: Translation = {
         return names.length > 3 ? `${names.slice(0, 3).join(", ")} और ${names.length - 3} और` : names.join(", ");
       },
       viewAll: "सब देखें",
+      map: { label: "कोर्स का रूप", map: "नक्शा", list: "सूची", stop: (unit: string, done: number, total: number, state: string) => `${unit}, ${total} में से ${done} पाठ, ${state}` },
       showLess: "कम दिखाएँ",
       loading: "आपका कोर्स आ रहा है…",
       offline: "इंटरनेट वापस आते ही पाठ दिखेंगे।",
