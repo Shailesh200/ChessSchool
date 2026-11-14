@@ -660,6 +660,40 @@ describe("course translations", () => {
   });
 });
 
+describe("lesson flashcards", () => {
+  it("every lesson has a short key idea, in English and Hindi", async () => {
+    const { readCourseTexts } = await import("../src/course-text");
+    const { DEFAULT_COURSE_FILE } = await import("../scripts/seed-course");
+    const { dirname } = await import("node:path");
+    expect(COURSE.lessons.every((l) => typeof l.idea === "string" && l.idea.length > 0 && l.idea.length <= 120)).toBe(true);
+    const hi = readCourseTexts(dirname(DEFAULT_COURSE_FILE)).find((t) => t.lang === "hi")!;
+    expect(COURSE.lessons.every((l) => hi.lessons[l.id]?.idea)).toBe(true);
+  });
+
+  it("serves ideas from the database, localized, only for lessons the caller can open", async () => {
+    const { applyCourseText, checkCourseText } = await import("../src/course-text");
+    const { checkCourse } = await import("../src/course-check");
+    const en = COURSE.lessons.find((l) => l.id === "board")!.idea;
+    expect((await call("GET", "/v1/lessons/board")).json.idea).toBe(en);
+    const res = await call("GET", "/v1/ideas?ids=board,moves,nope");
+    expect(res.json.items.map((i: { id: string; idea: string }) => i.id)).toEqual(["board", "moves"]);
+    expect(res.json.items[0]).toEqual({ id: "board", title: "The board", idea: en });
+    const late = COURSE.lessons[COURSE.lessons.length - 1].id;
+    expect((await call("GET", `/v1/ideas?ids=${late}`)).json.items).toEqual([]);
+    await applyCourseText(db, { lang: "hi", units: {}, lessons: { board: { title: "बोर्ड", idea: "हर खाने का एक नाम है।" } } });
+    expect((await call("GET", "/v1/ideas?ids=board,moves&lang=hi")).json.items.map((i: { title: string; idea: string }) => [i.title, i.idea])).toEqual([
+      ["बोर्ड", "हर खाने का एक नाम है।"],
+      ["How pieces move", COURSE.lessons.find((l) => l.id === "moves")!.idea],
+    ]);
+    expect((await call("GET", "/v1/lessons/board?lang=hi")).json.idea).toBe("हर खाने का एक नाम है।");
+    const unit = COURSE.units.slice(0, 1);
+    const long = { ...COURSE, units: unit, lessons: COURSE.lessons.filter((l) => l.unit === unit[0].id).map((l) => (l.id === "board" ? { ...l, idea: "x".repeat(161) } : l)) };
+    const checked = checkCourse(long);
+    expect(checked.ok ? [] : checked.errors).toEqual(["lesson board: idea must be a short sentence (160 characters at most)"]);
+    expect(checkCourseText(COURSE, { lang: "hi", units: {}, lessons: { board: { idea: "" } } })).toHaveLength(1);
+  });
+});
+
 describe("class leaderboard", () => {
   it("ranks this week's lessons, honours hiding, and ignores placed and older lessons", async () => {
     const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;

@@ -1,7 +1,7 @@
 import { isThemeId, type Appearance, type ThemeId } from "./tokens";
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
-import { isReview, type Review } from "./review";
+import { isReview, seedIdea, type Review } from "./review";
 import type { PracticeItem } from "./api";
 
 export const STORAGE_KEY = "chessschool.v2.state";
@@ -157,6 +157,8 @@ export type LocalState = {
   endgames: Record<string, number>;
   /** Board-vision personal best per game id. */
   vision: Record<string, number>;
+  /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
+  ideas: Review;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -199,6 +201,7 @@ export function createInitialState(guestId: string): LocalState {
     practiceNext: [],
     endgames: {},
     vision: {},
+    ideas: {},
   };
 }
 
@@ -233,6 +236,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
     review: isReview(r.review) ? r.review : {},
     endgames: r.endgames && typeof r.endgames === "object" ? Object.fromEntries(Object.entries(r.endgames).filter(([, n]) => typeof n === "number")) : {},
+    ideas: isReview(r.ideas) ? r.ideas : {},
     vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
@@ -500,6 +504,7 @@ export function completeNode(state: LocalState, nodeId: string, now: Date, meta?
   return {
     ...state,
     arrival: null,
+    ideas: first ? seedIdea(state.ideas, nodeId, today) : state.ideas,
     progress: {
       ...state.progress,
       completed: first ? { ...state.progress.completed, [nodeId]: today } : state.progress.completed,

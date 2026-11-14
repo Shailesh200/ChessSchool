@@ -5,6 +5,7 @@ import { useCallback, useRef, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { Flashcards } from "@/components/Flashcards";
 import { Cody, Fx } from "@/components/Lottie";
 import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
 import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
@@ -258,6 +259,8 @@ export default function Today() {
         </T>
         {dailyIsDone ? <DailyCountdown /> : <Button title={copy.puzzles.daily} icon="puzzle" variant="secondary" onPress={() => router.push("/puzzle?daily=1")} />}
       </Card>
+
+      <Flashcards />
 
       <Card>
         <T role="heading" header style={{ marginBottom: 8 }}>

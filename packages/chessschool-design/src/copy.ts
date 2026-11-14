@@ -426,6 +426,18 @@ export const copy = {
     vsFriend: "Pass & play",
   },
 
+  /** The one-minute daily review of lessons' key ideas, on Learn. */
+  flashcards: {
+    title: "Flashcards",
+    body: (n: number) => `${n} key ${n === 1 ? "idea" : "ideas"} to recall. About a minute.`,
+    prompt: "What was the key idea of this lesson?",
+    reveal: "Show the idea",
+    remembered: "I remembered",
+    again: "Show again",
+    count: (n: number, of: number) => `${n} of ${of}`,
+    done: "All caught up. Finish a lesson to add a new card.",
+  },
+
   /** Board-vision games in the Gym, and today's best in a class. */
   vision: {
     title: "Board vision",

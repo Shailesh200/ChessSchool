@@ -218,6 +218,7 @@
    "unit": "unit1",
    "title": "Meet the school",
    "sub": "A 2-minute tour",
+   "idea": "A few calm minutes every day beat one long session a week.",
    "minutes": 2,
    "xp": 10,
    "steps": []
@@ -227,6 +228,7 @@
    "unit": "unit1",
    "title": "The board",
    "sub": "64 squares and their names",
+   "idea": "Every square has a name: its file letter, then its rank number, like e4.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -351,6 +353,7 @@
    "unit": "unit1",
    "title": "How pieces move",
    "sub": "Six pieces, six moves",
+   "idea": "Rooks go straight, bishops diagonal, the queen both, the king one step, the knight in an L.",
    "minutes": 6,
    "xp": 20,
    "steps": [
@@ -560,6 +563,7 @@
    "unit": "unit1",
    "title": "Pawns & promotion",
    "sub": "Small piece, big dreams",
+   "idea": "A pawn moves forward but captures diagonally, and becomes a new piece on the last rank.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -668,6 +672,7 @@
    "unit": "unit1",
    "title": "Check & checkmate",
    "sub": "How games are won",
+   "idea": "Checkmate is check with no way out: no escape square, no block, no capture.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -782,6 +787,7 @@
    "unit": "unit1",
    "title": "Your first game",
    "sub": "A gentle game with Cody",
+   "idea": "Open with a centre pawn, bring out knights and bishops, and keep your king safe.",
    "minutes": 8,
    "xp": 30,
    "steps": [
@@ -815,6 +821,7 @@
    "unit": "unit2",
    "title": "Castling",
    "sub": "Tuck your king away",
+   "idea": "Castle early: it tucks your king away and brings a rook toward the centre.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -919,6 +926,7 @@
    "unit": "unit2",
    "title": "En passant & stalemate",
    "sub": "Two rules that surprise everyone",
+   "idea": "Stalemate is a draw: the side to move has no legal move but is not in check.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -1001,6 +1009,7 @@
    "unit": "unit2",
    "title": "What pieces are worth",
    "sub": "Make good trades",
+   "idea": "Pawn 1, knight 3, bishop 3, rook 5, queen 9. Trade only when you get as much back.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -1089,6 +1098,7 @@
    "unit": "unit2",
    "title": "Forks",
    "sub": "Attack two at once",
+   "idea": "A fork attacks two pieces at once; they can only save one of them.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -1182,6 +1192,7 @@
    "unit": "unit2",
    "title": "Pins",
    "sub": "Freeze a piece in place",
+   "idea": "A pinned piece can't move without exposing something more valuable behind it.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -1275,6 +1286,7 @@
    "unit": "unit3",
    "title": "The ladder mate",
    "sub": "Two rooks, one edge",
+   "idea": "Two rooks take turns checking, pushing the king one rank at a time to the edge.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -1341,6 +1353,7 @@
    "unit": "unit3",
    "title": "Queen and king mate",
    "sub": "The checkmate everyone needs",
+   "idea": "Use the queen to shrink the king's box, then bring your king in to help mate.",
    "minutes": 6,
    "xp": 30,
    "steps": [
@@ -1402,6 +1415,7 @@
    "unit": "unit4",
    "title": "The centre",
    "sub": "Start where the pieces reach furthest",
+   "idea": "Pieces in the centre reach the most squares, so fight for e4, d4, e5 and d5.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -1490,6 +1504,7 @@
    "unit": "unit4",
    "title": "Develop your pieces",
    "sub": "Knights and bishops leave home",
+   "idea": "Bring knights and bishops out before moving any piece a second time.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -1576,6 +1591,7 @@
    "unit": "unit4",
    "title": "The Italian game",
    "sub": "A complete way to start",
+   "idea": "In the Italian, the bishop on c4 aims at f7 while you build the centre and castle.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -1636,6 +1652,7 @@
    "unit": "unit4",
    "title": "Leave the queen at home",
    "sub": "Don't lead with your strongest piece",
+   "idea": "An early queen gets chased by smaller pieces, and each chase gives them a free move.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -1704,6 +1721,7 @@
    "unit": "unit4",
    "title": "The f7 square",
    "sub": "Why the king's pawn is tender",
+   "idea": "At the start, f7 is guarded only by the king, so it is the easiest square to attack.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -1761,6 +1779,7 @@
    "unit": "unit5",
    "title": "Skewers",
    "sub": "Attack through a more valuable piece",
+   "idea": "A skewer attacks a valuable piece; when it steps aside, you take the piece behind.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -1820,6 +1839,7 @@
    "unit": "unit5",
    "title": "Discovered attacks",
    "sub": "Step aside and uncover a check",
+   "idea": "Move one piece out of the way and the piece behind it attacks; two threats at once.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -1880,6 +1900,7 @@
    "unit": "unit5",
    "title": "Remove the guard",
    "sub": "Take the piece that protects another",
+   "idea": "If a piece is guarded only once, capture or chase the guard and it falls.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -1955,6 +1976,7 @@
    "unit": "unit5",
    "title": "Double check",
    "sub": "Two checks, and the king must move",
+   "idea": "In a double check the king must move: nothing can block or capture both checkers.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2015,6 +2037,7 @@
    "unit": "unit6",
    "title": "The active king",
    "sub": "In the endgame the king fights",
+   "idea": "Once the queens are gone, march your king to the centre; it is a strong piece now.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -2074,6 +2097,7 @@
    "unit": "unit6",
    "title": "The opposition",
    "sub": "Kings face each other",
+   "idea": "Kings face each other with one square between: the side not to move holds the opposition.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2133,6 +2157,7 @@
    "unit": "unit6",
    "title": "Passed pawns",
    "sub": "A pawn with a clear road",
+   "idea": "A passed pawn has no enemy pawns in front or beside it. Push it toward a queen.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -2192,6 +2217,7 @@
    "unit": "unit6",
    "title": "Escort the pawn",
    "sub": "Walk a pawn to a queen",
+   "idea": "Walk your king in front of the pawn, clearing its path, then push the pawn home.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2247,6 +2273,7 @@
    "unit": "unit6",
    "title": "Rook behind the pawn",
    "sub": "Help a passed pawn from behind",
+   "idea": "Put your rook behind a passed pawn: it guards the pawn and gets stronger as it advances.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -2306,6 +2333,7 @@
    "unit": "unit7",
    "title": "Back-rank mate",
    "sub": "When the king's own pawns trap it",
+   "idea": "A king behind three unmoved pawns can be mated by a rook or queen on the back rank.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2364,6 +2392,7 @@
    "unit": "unit7",
    "title": "Smothered mate",
    "sub": "A knight mates a boxed-in king",
+   "idea": "When the king is boxed in by its own pieces, a single knight check can be mate.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2423,6 +2452,7 @@
    "unit": "unit7",
    "title": "Rook and knight mate",
    "sub": "The corner pattern",
+   "idea": "A rook next to the cornered king, guarded by a knight, gives the Arabian mate.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2481,6 +2511,7 @@
    "unit": "unit7",
    "title": "Two bishops mate",
    "sub": "Both colours, one corner",
+   "idea": "Two bishops on side-by-side diagonals cover both colours and can mate a cornered king.",
    "minutes": 5,
    "xp": 30,
    "steps": [
@@ -2539,6 +2570,7 @@
    "unit": "unit7",
    "title": "King and rook mate",
    "sub": "Cut the king off, then mate",
+   "idea": "Cut the king off with the rook, bring your king up, and squeeze it to the edge for mate.",
    "minutes": 5,
    "xp": 30,
    "steps": [
@@ -2591,6 +2623,7 @@
    "unit": "unit8",
    "title": "Sacrifices",
    "sub": "Give a piece up to open the king",
+   "idea": "Giving up material is fine if it opens the king and leads to mate or more back.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2647,6 +2680,7 @@
    "unit": "unit9",
    "title": "Pawn structure",
    "sub": "Weak pawns, chains and majorities",
+   "idea": "Doubled and isolated pawns are weak; chains and a majority on one side are strengths.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2704,6 +2738,7 @@
    "unit": "unit10",
    "title": "Making a plan",
    "sub": "What to do when there is no tactic",
+   "idea": "With no tactic, find your worst piece and the weakest enemy point, and connect them.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2762,6 +2797,7 @@
    "unit": "unit11",
    "title": "Queen endings",
    "sub": "Win with a queen against a lone king",
+   "idea": "Mate with a queen: herd the king to the edge with knight-move gaps, never leaving stalemate.",
    "minutes": 6,
    "xp": 30,
    "steps": [
@@ -2814,6 +2850,7 @@
    "unit": "unit12",
    "title": "The square of the pawn",
    "sub": "Can the king catch it?",
+   "idea": "The square of the pawn: if the king can step into the square, it catches the pawn.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2874,6 +2911,7 @@
    "unit": "unit12",
    "title": "Key squares",
    "sub": "Where the king must go",
+   "idea": "Get your king to a key square in front of the pawn and the pawn will queen.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2933,6 +2971,7 @@
    "unit": "unit12",
    "title": "Rook pawns",
    "sub": "The corner is a fortress",
+   "idea": "With a rook pawn, a defending king in the corner usually draws.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -2997,6 +3036,7 @@
    "unit": "unit12",
    "title": "Triangulation",
    "sub": "Lose a move on purpose",
+   "idea": "Walk your king in a small triangle to lose a move and hand the turn back to them.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3051,6 +3091,7 @@
    "unit": "unit12",
    "title": "Breakthrough",
    "sub": "Sacrifice a pawn to queen another",
+   "idea": "Three pawns against three: sacrifice one or two pawns to break through and queen the last.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3108,6 +3149,7 @@
    "unit": "unit13",
    "title": "The Lucena position",
    "sub": "Build a bridge for the pawn",
+   "idea": "Lucena: build a bridge with your rook on the fourth rank to block the checks.",
    "minutes": 6,
    "xp": 30,
    "steps": [
@@ -3160,6 +3202,7 @@
    "unit": "unit13",
    "title": "The Philidor defence",
    "sub": "Hold the third rank to draw",
+   "idea": "Philidor: keep your rook on the third rank, then check from behind once the pawn steps up.",
    "minutes": 6,
    "xp": 30,
    "steps": [
@@ -3224,6 +3267,7 @@
    "unit": "unit13",
    "title": "Cut the king off",
    "sub": "A rook takes a whole line away",
+   "idea": "A rook on a file or rank can cut the enemy king off from the pawn completely.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3288,6 +3332,7 @@
    "unit": "unit13",
    "title": "Rook against a pawn",
    "sub": "Get behind it, then take it",
+   "idea": "Against a lone pawn, put your rook behind it and bring your king to block it.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3345,6 +3390,7 @@
    "unit": "unit13",
    "title": "An active rook",
    "sub": "The seventh rank and behind pawns",
+   "idea": "An active rook is worth more than a pawn: aim it at the seventh rank or behind pawns.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3405,6 +3451,7 @@
    "unit": "unit14",
    "title": "Overload",
    "sub": "Two jobs, one piece",
+   "idea": "A piece with two jobs can do only one; make it choose.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -3460,6 +3507,7 @@
    "unit": "unit14",
    "title": "Deflection",
    "sub": "Pull the guard away",
+   "idea": "Deflection: force the defender away from the square it guards, then take what it left.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -3515,6 +3563,7 @@
    "unit": "unit14",
    "title": "Interference",
    "sub": "Block the defence",
+   "idea": "Put a piece between a defender and what it protects to cut the line.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3574,6 +3623,7 @@
    "unit": "unit14",
    "title": "The in-between move",
    "sub": "Check first, then recapture",
+   "idea": "Before you recapture, look for a check or bigger threat to play first.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -3627,6 +3677,7 @@
    "unit": "unit14",
    "title": "Attraction",
    "sub": "Lure a piece onto a bad square",
+   "idea": "Attraction: sacrifice to lure a piece, often the king, onto a square where it gets hit.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -3682,6 +3733,7 @@
    "unit": "unit14",
    "title": "The windmill",
    "sub": "A rook and bishop saw",
+   "idea": "A windmill: rook and bishop give discovered check after check, taking a piece each time.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -3736,6 +3788,7 @@
    "unit": "unit15",
    "title": "The Greek gift",
    "sub": "Sacrifice on h7",
+   "idea": "Greek gift: bishop takes h7 with check, knight jumps to g5, and the queen joins the attack.",
    "minutes": 6,
    "xp": 30,
    "steps": [
@@ -3793,6 +3846,7 @@
    "unit": "unit15",
    "title": "Opposite-side castling",
    "sub": "A race of pawn storms",
+   "idea": "When kings castle on opposite sides, the faster pawn storm usually wins.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3853,6 +3907,7 @@
    "unit": "unit15",
    "title": "The pawn storm",
    "sub": "Open files toward the king",
+   "idea": "Push the pawns in front of their king to open files for your rooks and queen.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3911,6 +3966,7 @@
    "unit": "unit15",
    "title": "The rook lift",
    "sub": "Swing a rook over on the third rank",
+   "idea": "Lift a rook to the third rank and swing it across to join the attack on the king.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -3965,6 +4021,7 @@
    "unit": "unit15",
    "title": "Batteries",
    "sub": "Two pieces aiming the same way",
+   "idea": "Line up two pieces on one line, like queen and bishop; together they hit twice as hard.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4024,6 +4081,7 @@
    "unit": "unit16",
    "title": "The Queen's Gambit",
    "sub": "Offer a wing pawn for the centre",
+   "idea": "Queen's Gambit: offer the c-pawn to pull Black's d-pawn away from the centre.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -4080,6 +4138,7 @@
    "unit": "unit16",
    "title": "The Sicilian idea",
    "sub": "Fight for d4 with a c-pawn",
+   "idea": "In the Sicilian, Black's c-pawn fights for d4, trading a wing pawn for a centre pawn.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -4136,6 +4195,7 @@
    "unit": "unit16",
    "title": "A solid centre",
    "sub": "The French and the Caro-Kann",
+   "idea": "The French and Caro-Kann answer e4 with a pawn to e6 or c6, then strike with d5.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4194,6 +4254,7 @@
    "unit": "unit16",
    "title": "Don't move the same piece twice",
    "sub": "Every tempo matters",
+   "idea": "Every move in the opening counts: don't move the same piece twice without a reason.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -4251,6 +4312,7 @@
    "unit": "unit16",
    "title": "Look before you take",
    "sub": "Legal's mate, and how to avoid it",
+   "idea": "Before you grab a piece, ask what their last move threatens; Legal's mate punishes greed.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -4312,6 +4374,7 @@
    "unit": "unit17",
    "title": "A knight outpost",
    "sub": "A square pawns cannot chase",
+   "idea": "An outpost is a square no enemy pawn can attack; a knight there is a monster.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4369,6 +4432,7 @@
    "unit": "unit17",
    "title": "Good bishop, bad bishop",
    "sub": "Don't let your pawns block you",
+   "idea": "A bishop is bad when your own pawns sit on its colour; put pawns on the other colour.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4428,6 +4492,7 @@
    "unit": "unit17",
    "title": "Space",
    "sub": "More room for your pieces",
+   "idea": "More space means more squares for your pieces; the cramped side should trade.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4486,6 +4551,7 @@
    "unit": "unit17",
    "title": "When to trade",
    "sub": "Simplify when you are ahead",
+   "idea": "When you are ahead, trade pieces, not pawns; the extra material counts for more.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4543,6 +4609,7 @@
    "unit": "unit17",
    "title": "Stop their idea",
    "sub": "Prevent a plan before it starts",
+   "idea": "Ask what your opponent wants to do next, and stop it before it starts.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4601,6 +4668,7 @@
    "unit": "unit18",
    "title": "Convert an extra pawn",
    "sub": "Trade pieces, keep pawns, advance",
+   "idea": "Up a pawn: trade pieces, keep pawns, and push the extra pawn with your king's help.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4655,6 +4723,7 @@
    "unit": "unit18",
    "title": "When to take a draw",
    "sub": "Perpetual check is a good save",
+   "idea": "When you are losing, perpetual check is a good save: keep checking and it's a draw.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4705,6 +4774,7 @@
    "unit": "unit18",
    "title": "Stay calm in defence",
    "sub": "Take, block, or move the king",
+   "idea": "Facing a threat, stay calm: take the attacker, block it, or move away.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4761,6 +4831,7 @@
    "unit": "unit18",
    "title": "Checks, captures, threats",
    "sub": "Where every calculation starts",
+   "idea": "Every calculation starts with checks, then captures, then threats.",
    "minutes": 6,
    "xp": 25,
    "steps": [
@@ -4815,6 +4886,7 @@
    "unit": "unit19",
    "title": "Anastasia's mate",
    "sub": "Knight and rook on the edge",
+   "idea": "Anastasia's mate: a knight seals the king on the edge and a rook mates down the file.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4872,6 +4944,7 @@
    "unit": "unit19",
    "title": "Boden's mate",
    "sub": "Two bishops cross",
+   "idea": "Boden's mate: two bishops on crossing diagonals mate a king, often after queenside castling.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4929,6 +5002,7 @@
    "unit": "unit19",
    "title": "The kiss of death",
    "sub": "A guarded queen next to the king",
+   "idea": "A queen right next to the king, guarded by another piece, is mate if the king can't escape.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -4985,6 +5059,7 @@
    "unit": "unit19",
    "title": "The epaulette mate",
    "sub": "Trapped by its own rooks",
+   "idea": "Epaulette mate: the king's own rooks beside it block its escape from a queen check.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5041,6 +5116,7 @@
    "unit": "unit19",
    "title": "Damiano's mate",
    "sub": "Queen and pawn on h7",
+   "idea": "Damiano's mate: a queen on h7 backed by a pawn on g6 mates a king on g8.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5097,6 +5173,7 @@
    "unit": "unit20",
    "title": "Checkmate",
    "sub": "Starter I · 5 positions, 1 move each",
+   "idea": "Look at every check first; the forcing move is often mate.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5181,6 +5258,7 @@
    "unit": "unit20",
    "title": "Forks",
    "sub": "Starter I · 5 positions, 2 moves each",
+   "idea": "Look for a square where one piece hits two targets.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5270,6 +5348,7 @@
    "unit": "unit20",
    "title": "Pins",
    "sub": "Starter I · 5 positions, 2 moves each",
+   "idea": "A piece pinned to its king can't move at all; attack it again.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5359,6 +5438,7 @@
    "unit": "unit20",
    "title": "Discovered attacks",
    "sub": "Starter I · 5 positions, 2 moves each",
+   "idea": "Line up a piece behind one of yours; moving the front one unleashes the back one.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5448,6 +5528,7 @@
    "unit": "unit20",
    "title": "Win material",
    "sub": "Starter I · 5 positions, 2 moves each",
+   "idea": "Find the loose piece: anything unguarded can be won with one good attack.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5537,6 +5618,7 @@
    "unit": "unit20",
    "title": "Trapped pieces",
    "sub": "Starter I · 5 positions, 1–2 moves each",
+   "idea": "A piece far from home with no safe squares can be trapped.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5624,6 +5706,7 @@
    "unit": "unit21",
    "title": "The Opera mate",
    "sub": "Rook and bishop on the back rank",
+   "idea": "Opera mate: a rook mates on the back rank while a bishop guards its square.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5680,6 +5763,7 @@
    "unit": "unit21",
    "title": "Lolli's mate",
    "sub": "A pawn dagger on f6",
+   "idea": "Lolli's mate: with a pawn on f6, the queen slides to g7 for mate.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5736,6 +5820,7 @@
    "unit": "unit21",
    "title": "Morphy's mate",
    "sub": "Rook and bishop in the corner",
+   "idea": "Morphy's mate: a bishop checks the cornered king while a rook covers the escape file.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5793,6 +5878,7 @@
    "unit": "unit21",
    "title": "Two bishops in the corner",
    "sub": "King and bishops together",
+   "idea": "With two bishops, bring your king close and drive the lone king into a corner.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5850,6 +5936,7 @@
    "unit": "unit21",
    "title": "Queen and knight",
    "sub": "The knight guards h7",
+   "idea": "Queen and knight mate: the knight guards h7 and the queen lands there with mate.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -5906,6 +5993,7 @@
    "unit": "unit22",
    "title": "Discovered attacks",
    "sub": "Starter II · 5 positions, 2 moves each",
+   "idea": "With a discovered attack, the piece that moves should make its own threat too.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -5995,6 +6083,7 @@
    "unit": "unit22",
    "title": "Win material",
    "sub": "Starter II · 5 positions, 2 moves each",
+   "idea": "Count attackers and defenders before you take.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -6084,6 +6173,7 @@
    "unit": "unit22",
    "title": "Trapped pieces",
    "sub": "Starter II · 5 positions, 2 moves each",
+   "idea": "Before you attack a piece, check every square it could run to.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -6173,6 +6263,7 @@
    "unit": "unit22",
    "title": "Sacrifices",
    "sub": "Starter II · 5 positions, 2 moves each",
+   "idea": "A sacrifice is good if it forces mate or wins back more than it gave.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -6262,6 +6353,7 @@
    "unit": "unit22",
    "title": "Endgame technique",
    "sub": "Starter II · 5 positions, 2 moves each",
+   "idea": "In the endgame, activate your king first.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -6351,6 +6443,7 @@
    "unit": "unit22",
    "title": "Opening traps",
    "sub": "Starter II · 5 positions, 1 move each",
+   "idea": "In the opening, look for loose pieces and early checks on the king.",
    "minutes": 5,
    "xp": 20,
    "steps": [
@@ -6435,6 +6528,7 @@
    "unit": "unit23",
    "title": "Checks, captures, threats",
    "sub": "The habit before every move",
+   "idea": "Before every move, look at their checks, captures and threats.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -6493,6 +6587,7 @@
    "unit": "unit23",
    "title": "Three ways out of check",
    "sub": "Move, block or capture",
+   "idea": "Three ways out of check: move the king, block the line, or capture the checker.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -6551,6 +6646,7 @@
    "unit": "unit23",
    "title": "Give your king air",
    "sub": "One pawn move stops back-rank mates",
+   "idea": "One small pawn move in front of your castled king gives it air and stops back-rank mates.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -6609,6 +6705,7 @@
    "unit": "unit23",
    "title": "Is it really free?",
    "sub": "Count attackers and defenders",
+   "idea": "A piece is only free if it has more attackers than defenders; count before you take.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -6668,6 +6765,7 @@
    "unit": "unit23",
    "title": "Recapture the right way",
    "sub": "Cheapest piece first",
+   "idea": "Recapture with your cheapest piece first, and toward the centre when you can.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -6726,6 +6824,7 @@
    "unit": "unit24",
    "title": "Checkmate",
    "sub": "Starter III · 5 positions, 1–2 moves each",
+   "idea": "Count the king's escape squares; mate is a check that covers all of them.",
    "minutes": 7,
    "xp": 20,
    "steps": [
@@ -6814,6 +6913,7 @@
    "unit": "unit24",
    "title": "Forks",
    "sub": "Starter III · 5 positions, 2 moves each",
+   "idea": "Knights fork best: check every square your knight can jump to.",
    "minutes": 7,
    "xp": 20,
    "steps": [
@@ -6903,6 +7003,7 @@
    "unit": "unit24",
    "title": "Pins",
    "sub": "Starter III · 5 positions, 2 moves each",
+   "idea": "Pile up on a pinned piece: add attackers faster than they add defenders.",
    "minutes": 7,
    "xp": 20,
    "steps": [
@@ -6992,6 +7093,7 @@
    "unit": "unit24",
    "title": "Sacrifices",
    "sub": "Starter III · 5 positions, 2 moves each",
+   "idea": "Give up a piece to rip open the pawns in front of the king.",
    "minutes": 7,
    "xp": 20,
    "steps": [
@@ -7081,6 +7183,7 @@
    "unit": "unit24",
    "title": "Endgame technique",
    "sub": "Starter III · 5 positions, 2 moves each",
+   "idea": "Passed pawns must be pushed; every step makes them more dangerous.",
    "minutes": 7,
    "xp": 20,
    "steps": [
@@ -7170,6 +7273,7 @@
    "unit": "unit24",
    "title": "Opening traps",
    "sub": "Starter III · 5 positions, 1–2 moves each",
+   "idea": "If a piece looks free in the opening, ask why; it may be bait.",
    "minutes": 7,
    "xp": 20,
    "steps": [
@@ -7256,6 +7360,7 @@
    "unit": "unit25",
    "title": "The x-ray",
    "sub": "Rooks that work through each other",
+   "idea": "An x-ray: a rook or bishop still guards a square through a piece standing in its way.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -7315,6 +7420,7 @@
    "unit": "unit25",
    "title": "Clearance",
    "sub": "Move out of your own way",
+   "idea": "Clearance: move a piece off a square or line so another piece can use it.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -7371,6 +7477,7 @@
    "unit": "unit25",
    "title": "The desperado",
    "sub": "Take something before you go",
+   "idea": "A piece that is lost anyway should take something on its way out.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -7430,6 +7537,7 @@
    "unit": "unit25",
    "title": "Trap a piece",
    "sub": "No squares left to run to",
+   "idea": "A piece with no safe squares to run to can be trapped and won.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -7489,6 +7597,7 @@
    "unit": "unit25",
    "title": "The pawn fork",
    "sub": "The smallest piece, two targets",
+   "idea": "A pawn fork hits two pieces at once, and any piece is worth more than the pawn.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -7548,6 +7657,7 @@
    "unit": "unit26",
    "title": "Checkmate",
    "sub": "Elementary I · 5 positions, 1–2 moves each",
+   "idea": "A king boxed in by its own pawns is close to mate on the back rank.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -7638,6 +7748,7 @@
    "unit": "unit26",
    "title": "Forks",
    "sub": "Elementary I · 5 positions, 2 moves each",
+   "idea": "A fork with check wins: the king must move, and you take the other piece.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -7727,6 +7838,7 @@
    "unit": "unit26",
    "title": "Pins",
    "sub": "Elementary I · 5 positions, 2 moves each",
+   "idea": "Pin a piece to the queen or king with a bishop or rook, then win it.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -7816,6 +7928,7 @@
    "unit": "unit26",
    "title": "Discovered attacks",
    "sub": "Elementary I · 5 positions, 2 moves each",
+   "idea": "A discovered check lets the moving piece go anywhere, even where it can be taken.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -7905,6 +8018,7 @@
    "unit": "unit26",
    "title": "Win material",
    "sub": "Elementary I · 5 positions, 2 moves each",
+   "idea": "A trade that leaves you a pawn up is still a win of material.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -7994,6 +8108,7 @@
    "unit": "unit26",
    "title": "Trapped pieces",
    "sub": "Elementary I · 5 positions, 2 moves each",
+   "idea": "Bishops on the rim get trapped by a pawn chain; watch a2, h2, a7 and h7.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8083,6 +8198,7 @@
    "unit": "unit27",
    "title": "Perpetual check",
    "sub": "Check forever for a draw",
+   "idea": "Perpetual check: if they can never escape your checks, the game is a draw.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -8139,6 +8255,7 @@
    "unit": "unit27",
    "title": "The stalemate trick",
    "sub": "No legal moves, no loss",
+   "idea": "When losing, try to leave your king with no legal moves: stalemate is only a draw.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -8199,6 +8316,7 @@
    "unit": "unit27",
    "title": "Not enough to mate",
    "sub": "Material that can only draw",
+   "idea": "A lone king against king and bishop, or king and knight, is a draw: there is no mate.",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -8256,6 +8374,7 @@
    "unit": "unit27",
    "title": "Promote to a knight",
    "sub": "When a queen isn't best",
+   "idea": "Promote to a knight when it gives check or a fork, or a queen would stalemate.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -8309,6 +8428,7 @@
    "unit": "unit27",
    "title": "Repetition",
    "sub": "Three times and it's a draw",
+   "idea": "If the same position comes up three times, the game can be claimed as a draw.",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -8366,6 +8486,7 @@
    "unit": "unit28",
    "title": "Discovered attacks",
    "sub": "Elementary II · 5 positions, 2 moves each",
+   "idea": "Look for your bishop or rook hidden behind your own piece on a line to their king.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8455,6 +8576,7 @@
    "unit": "unit28",
    "title": "Win material",
    "sub": "Elementary II · 5 positions, 2 moves each",
+   "idea": "Attack two things at once and one of them falls.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8544,6 +8666,7 @@
    "unit": "unit28",
    "title": "Trapped pieces",
    "sub": "Elementary II · 5 positions, 2 moves each",
+   "idea": "A knight on the edge has few squares; take them away and it is lost.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8633,6 +8756,7 @@
    "unit": "unit28",
    "title": "Sacrifices",
    "sub": "Elementary II · 5 positions, 2 moves each",
+   "idea": "Before you sacrifice, check each defence; every reply must still lose.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8722,6 +8846,7 @@
    "unit": "unit28",
    "title": "Endgame technique",
    "sub": "Elementary II · 5 positions, 2 moves each",
+   "idea": "Count moves exactly: who queens first, and does it come with check?",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8811,6 +8936,7 @@
    "unit": "unit28",
    "title": "Opening traps",
    "sub": "Elementary II · 5 positions, 1–2 moves each",
+   "idea": "The f7 and f2 squares are weak early; many traps strike there.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -8898,6 +9024,7 @@
    "unit": "unit29",
    "title": "The outside passed pawn",
    "sub": "A decoy far away",
+   "idea": "An outside passed pawn pulls the enemy king away while yours eats the other pawns.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -8955,6 +9082,7 @@
    "unit": "unit29",
    "title": "A protected passer",
    "sub": "The king can't take it",
+   "idea": "A passed pawn guarded by another pawn can't be taken by the king.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9013,6 +9141,7 @@
    "unit": "unit29",
    "title": "Connected passed pawns",
    "sub": "Side by side to the end",
+   "idea": "Two connected passed pawns side by side protect each other all the way to a queen.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9071,6 +9200,7 @@
    "unit": "unit29",
    "title": "The pawn race",
    "sub": "Count the moves",
+   "idea": "In a pawn race, count the moves to queen, and check whether the new queen gives check.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9129,6 +9259,7 @@
    "unit": "unit29",
    "title": "The king leads",
    "sub": "Walk in front of your pawn",
+   "idea": "In king and pawn endings, the king walks in front of the pawn, not behind it.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9186,6 +9317,7 @@
    "unit": "unit30",
    "title": "Checkmate",
    "sub": "Elementary III · 5 positions, 1–2 moves each",
+   "idea": "Bring one more piece into the attack before you give the final check.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -9276,6 +9408,7 @@
    "unit": "unit30",
    "title": "Forks",
    "sub": "Elementary III · 5 positions, 2 moves each",
+   "idea": "Unguarded pieces are fork targets; spot them first.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -9365,6 +9498,7 @@
    "unit": "unit30",
    "title": "Pins",
    "sub": "Elementary III · 5 positions, 2 moves each",
+   "idea": "A pinned piece guards nothing; whatever it seems to protect is really loose.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -9454,6 +9588,7 @@
    "unit": "unit30",
    "title": "Sacrifices",
    "sub": "Elementary III · 5 positions, 2 moves each",
+   "idea": "Sacrifice to drag the king into the open, where your pieces can reach it.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -9543,6 +9678,7 @@
    "unit": "unit30",
    "title": "Endgame technique",
    "sub": "Elementary III · 5 positions, 2 moves each",
+   "idea": "Trade pieces when you are ahead; the fewer pieces, the easier the win.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -9632,6 +9768,7 @@
    "unit": "unit30",
    "title": "Opening traps",
    "sub": "Elementary III · 5 positions, 1–2 moves each",
+   "idea": "A king that has not castled is easy to attack along the open e-file.",
    "minutes": 7,
    "xp": 25,
    "steps": [
@@ -9719,6 +9856,7 @@
    "unit": "unit31",
    "title": "A knight stops a pawn",
    "sub": "Guard the promotion square",
+   "idea": "A knight stops a pawn best by guarding the square in front of it, or its queening square.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9777,6 +9915,7 @@
    "unit": "unit31",
    "title": "The wrong bishop",
    "sub": "Rook pawns and corner colours",
+   "idea": "Rook pawn plus a bishop that can't cover the corner is a draw if their king gets there.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9837,6 +9976,7 @@
    "unit": "unit31",
    "title": "A bishop stops a pawn",
    "sub": "Long-range defence",
+   "idea": "A bishop stops a pawn from far away by holding a square on the pawn's path.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9895,6 +10035,7 @@
    "unit": "unit31",
    "title": "Endgame forks",
    "sub": "King and rook at once",
+   "idea": "In the endgame, watch for knight forks of king and rook; they decide many games.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -9954,6 +10095,7 @@
    "unit": "unit31",
    "title": "Opposite-coloured bishops",
    "sub": "Why they often draw",
+   "idea": "Bishops of opposite colours often draw, even a pawn or two down: the defender blocks one colour.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -10011,6 +10153,7 @@
    "unit": "unit32",
    "title": "Checkmate",
    "sub": "Club I · 5 positions, 1–2 moves each",
+   "idea": "A quiet move that takes the last escape square can be stronger than a check.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10099,6 +10242,7 @@
    "unit": "unit32",
    "title": "Forks",
    "sub": "Club I · 5 positions, 2 moves each",
+   "idea": "Sometimes a capture or check first drags a piece onto a forkable square.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10188,6 +10332,7 @@
    "unit": "unit32",
    "title": "Pins",
    "sub": "Club I · 5 positions, 2 moves each",
+   "idea": "Attack a pinned piece with a pawn; it can't run away.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10277,6 +10422,7 @@
    "unit": "unit32",
    "title": "Discovered attacks",
    "sub": "Club I · 5 positions, 2 moves each",
+   "idea": "Two threats at once: they can answer the check or save the piece, not both.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10366,6 +10512,7 @@
    "unit": "unit32",
    "title": "Win material",
    "sub": "Club I · 5 positions, 2 moves each",
+   "idea": "Remove the defender first, then take the piece it was guarding.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10455,6 +10602,7 @@
    "unit": "unit32",
    "title": "Trapped pieces",
    "sub": "Club I · 5 positions, 2 moves each",
+   "idea": "A queen that grabs pawns deep in enemy land can be trapped.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10544,6 +10692,7 @@
    "unit": "unit33",
    "title": "Behind the passed pawn",
    "sub": "The Tarrasch rule",
+   "idea": "Rooks belong behind passed pawns, yours or theirs.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -10602,6 +10751,7 @@
    "unit": "unit33",
    "title": "A rook on the seventh",
    "sub": "Pawns at home are targets",
+   "idea": "A rook on the seventh rank attacks pawns still at home and traps the king on its back rank.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -10659,6 +10809,7 @@
    "unit": "unit33",
    "title": "Defend from the long side",
    "sub": "Check from a distance",
+   "idea": "When defending a rook ending, check from the long side, far from the pawn.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -10716,6 +10867,7 @@
    "unit": "unit33",
    "title": "When to trade rooks",
    "sub": "Up a pawn, down a pawn",
+   "idea": "Up a pawn, trading rooks often wins; down a pawn, keep the rooks on.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -10773,6 +10925,7 @@
    "unit": "unit33",
    "title": "Escort the pawn",
    "sub": "Push with the rook behind",
+   "idea": "Push the pawn with your rook behind it and your king beside it.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -10832,6 +10985,7 @@
    "unit": "unit34",
    "title": "Discovered attacks",
    "sub": "Club II · 5 positions, 2 moves each",
+   "idea": "Watch for their discovered attacks too: is a piece of theirs masking a line to yours?",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -10921,6 +11075,7 @@
    "unit": "unit34",
    "title": "Win material",
    "sub": "Club II · 5 positions, 2 moves each",
+   "idea": "A check can gain the time you need to grab a piece.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -11010,6 +11165,7 @@
    "unit": "unit34",
    "title": "Trapped pieces",
    "sub": "Club II · 5 positions, 2 moves each",
+   "idea": "Cut off escape squares with pawns first; then attack the piece.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -11099,6 +11255,7 @@
    "unit": "unit34",
    "title": "Sacrifices",
    "sub": "Club II · 5 positions, 2 moves each",
+   "idea": "A sacrifice that removes the only defender often decides the game.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -11188,6 +11345,7 @@
    "unit": "unit34",
    "title": "Endgame technique",
    "sub": "Club II · 5 positions, 2 moves each",
+   "idea": "Opposition decides king and pawn endings; take it when it matters.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -11277,6 +11435,7 @@
    "unit": "unit34",
    "title": "Opening traps",
    "sub": "Club II · 5 positions, 1–2 moves each",
+   "idea": "Punish an early queen: develop with threats against her.",
    "minutes": 7,
    "xp": 30,
    "steps": [
@@ -11366,6 +11525,7 @@
    "unit": "unit35",
    "title": "Castle early",
    "sub": "Safe king, active rook",
+   "idea": "Castle early: your king is safe and your rook can reach the centre files.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -11424,6 +11584,7 @@
    "unit": "unit35",
    "title": "The fianchetto",
    "sub": "A bishop on the long diagonal",
+   "idea": "A fianchettoed bishop on g2 or b2 sweeps the whole long diagonal.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -11483,6 +11644,7 @@
    "unit": "unit35",
    "title": "A gambit",
    "sub": "A pawn for speed",
+   "idea": "A gambit gives a pawn for faster development and open lines.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -11541,6 +11703,7 @@
    "unit": "unit35",
    "title": "The poisoned pawn",
    "sub": "Don't chase pawns with the queen",
+   "idea": "Grabbing a far pawn with your queen can get her trapped while you fall behind.",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -11598,6 +11761,7 @@
    "unit": "unit35",
    "title": "Stop the early attack",
    "sub": "Defend f2 with tempo",
+   "idea": "Stop an early queen attack on f7 or f2 with a move that also develops a piece.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -11657,6 +11821,7 @@
    "unit": "unit36",
    "title": "Checkmate",
    "sub": "Strong I · 5 positions, 1–3 moves each",
+   "idea": "Sacrifice to rip open the king's shelter when mate follows by force.",
    "minutes": 9,
    "xp": 30,
    "steps": [
@@ -11755,6 +11920,7 @@
    "unit": "unit36",
    "title": "Forks",
    "sub": "Strong I · 5 positions, 2–3 moves each",
+   "idea": "The queen forks too: look for a check that also hits a loose piece.",
    "minutes": 9,
    "xp": 30,
    "steps": [
@@ -11850,6 +12016,7 @@
    "unit": "unit36",
    "title": "Pins",
    "sub": "Strong I · 5 positions, 2–3 moves each",
+   "idea": "Look along lines through the enemy king and queen for a pin.",
    "minutes": 9,
    "xp": 30,
    "steps": [
@@ -11945,6 +12112,7 @@
    "unit": "unit36",
    "title": "Sacrifices",
    "sub": "Strong I · 5 positions, 2–3 moves each",
+   "idea": "Checks after a sacrifice keep the initiative; don't give them time to breathe.",
    "minutes": 9,
    "xp": 30,
    "steps": [
@@ -12036,6 +12204,7 @@
    "unit": "unit36",
    "title": "Endgame technique",
    "sub": "Strong I · 5 positions, 2–3 moves each",
+   "idea": "A rook belongs behind a passed pawn.",
    "minutes": 9,
    "xp": 30,
    "steps": [
@@ -12127,6 +12296,7 @@
    "unit": "unit36",
    "title": "Opening traps",
    "sub": "Strong I · 5 positions, 2–3 moves each",
+   "idea": "A pinned knight in the opening can cost a piece or the king.",
    "minutes": 9,
    "xp": 30,
    "steps": [
@@ -12222,6 +12392,7 @@
    "unit": "unit37",
    "title": "Rooks love open files",
    "sub": "Take the highway first",
+   "idea": "Rooks love open files: put one on a file with no pawns before your opponent does.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -12280,6 +12451,7 @@
    "unit": "unit37",
    "title": "Attack the weak pawn",
    "sub": "Isolated pawns can't be helped",
+   "idea": "An isolated pawn has no pawn to protect it; block it, then attack it with pieces.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -12338,6 +12510,7 @@
    "unit": "unit37",
    "title": "Improve your worst piece",
    "sub": "Every piece needs a job",
+   "idea": "Find your worst piece and give it a better square; every piece needs a job.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -12396,6 +12569,7 @@
    "unit": "unit37",
    "title": "The minority attack",
    "sub": "Two pawns against three",
+   "idea": "Minority attack: push two pawns against three to leave them with a weak pawn.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -12455,6 +12629,7 @@
    "unit": "unit37",
    "title": "When to attack the king",
    "sub": "Count attackers and defenders",
+   "idea": "Attack the king when you have more attackers near it than they have defenders.",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -12512,6 +12687,7 @@
    "unit": "unit38",
    "title": "Checkmate",
    "sub": "Strong II · 5 positions, 1–3 moves each",
+   "idea": "Check that the mating square is guarded, or the king just takes your piece.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -12606,6 +12782,7 @@
    "unit": "unit38",
    "title": "Forks",
    "sub": "Strong II · 5 positions, 2–3 moves each",
+   "idea": "King and queen on the same knight jump? That's a royal fork waiting.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -12701,6 +12878,7 @@
    "unit": "unit38",
    "title": "Pins",
    "sub": "Strong II · 5 positions, 2–3 moves each",
+   "idea": "Break a pin on yourself by blocking with a cheaper piece or moving the piece behind.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -12792,6 +12970,7 @@
    "unit": "unit38",
    "title": "Discovered attacks",
    "sub": "Strong II · 5 positions, 2–3 moves each",
+   "idea": "Move the front piece with a capture and the discovery wins even more.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -12887,6 +13066,7 @@
    "unit": "unit38",
    "title": "Win material",
    "sub": "Strong II · 5 positions, 2–3 moves each",
+   "idea": "Take the most valuable piece you safely can.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -12982,6 +13162,7 @@
    "unit": "unit38",
    "title": "Trapped pieces",
    "sub": "Strong II · 5 positions, 2–3 moves each",
+   "idea": "A trapped piece can't be saved, so win it calmly; no need to rush.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13073,6 +13254,7 @@
    "unit": "unit39",
    "title": "Candidate moves",
    "sub": "Checks, captures, threats first",
+   "idea": "List candidate moves first: checks, captures and threats, then choose.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -13129,6 +13311,7 @@
    "unit": "unit39",
    "title": "Follow the forcing line",
    "sub": "One reply, then mate",
+   "idea": "Follow forcing moves: if every reply is forced, you can see the whole line.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -13184,6 +13367,7 @@
    "unit": "unit39",
    "title": "Count before you capture",
    "sub": "Cheapest attacker first",
+   "idea": "Count attackers and defenders, and start the captures with your cheapest piece.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -13244,6 +13428,7 @@
    "unit": "unit39",
    "title": "The final blunder check",
    "sub": "Look once more before you move",
+   "idea": "Before you let go of the piece, look once more: what does their best reply do?",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -13301,6 +13486,7 @@
    "unit": "unit39",
    "title": "See it before you play it",
    "sub": "A two-move skewer",
+   "idea": "See the position after your move in your head before you play it.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -13355,6 +13541,7 @@
    "unit": "unit40",
    "title": "Discovered attacks",
    "sub": "Advanced · 5 positions, 2–3 moves each",
+   "idea": "A discovered attack on the queen often wins her for a minor piece.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13452,6 +13639,7 @@
    "unit": "unit40",
    "title": "Win material",
    "sub": "Advanced · 5 positions, 2–3 moves each",
+   "idea": "Look for pieces that only have one safe square; attack that square.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13543,6 +13731,7 @@
    "unit": "unit40",
    "title": "Trapped pieces",
    "sub": "Advanced · 5 positions, 2–3 moves each",
+   "idea": "Make sure your own pieces have a way back before they go hunting.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13634,6 +13823,7 @@
    "unit": "unit40",
    "title": "Sacrifices",
    "sub": "Advanced · 5 positions, 2–3 moves each",
+   "idea": "Sacrifice the exchange when a rook for a minor piece wins a mating attack.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13729,6 +13919,7 @@
    "unit": "unit40",
    "title": "Endgame technique",
    "sub": "Advanced · 5 positions, 2–3 moves each",
+   "idea": "Cut the enemy king off from your pawn with your rook.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13820,6 +14011,7 @@
    "unit": "unit40",
    "title": "Opening traps",
    "sub": "Advanced · 5 positions, 2–3 moves each",
+   "idea": "Develop and castle; most opening traps catch a player who did neither.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -13915,6 +14107,7 @@
    "unit": "unit41",
    "title": "Queen against a pawn",
    "sub": "Check your way closer",
+   "idea": "Queen against a pawn on the seventh: check or pin to force the king in front, then bring your king.",
    "minutes": 5,
    "xp": 30,
    "steps": [
@@ -13970,6 +14163,7 @@
    "unit": "unit41",
    "title": "Zugzwang",
    "sub": "When moving hurts",
+   "idea": "Zugzwang: every move makes things worse, so the side to move is in trouble.",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -14027,6 +14221,7 @@
    "unit": "unit41",
    "title": "Two weaknesses",
    "sub": "Stretch the defence",
+   "idea": "One weakness can be defended; attack a second one far away and the defence breaks.",
    "minutes": 4,
    "xp": 20,
    "steps": [
@@ -14084,6 +14279,7 @@
    "unit": "unit41",
    "title": "Spare pawn moves",
    "sub": "Pass the turn in king endings",
+   "idea": "In king endings, a spare pawn move can pass the turn and win the opposition.",
    "minutes": 5,
    "xp": 25,
    "steps": [
@@ -14141,6 +14337,7 @@
    "unit": "unit41",
    "title": "Mate, not stalemate",
    "sub": "Finish the win cleanly",
+   "idea": "Before every move in a won ending, check that their king still has a move.",
    "minutes": 5,
    "xp": 30,
    "steps": [
@@ -14195,6 +14392,7 @@
    "unit": "unit42",
    "title": "Checkmate",
    "sub": "Master · 5 positions, 2–3 moves each",
+   "idea": "In a mating net, each check should leave the king fewer squares.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -14297,6 +14495,7 @@
    "unit": "unit42",
    "title": "Forks",
    "sub": "Master · 5 positions, 2–3 moves each",
+   "idea": "Before forking, make sure the forking square is safe from capture.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -14394,6 +14593,7 @@
    "unit": "unit42",
    "title": "Pins",
    "sub": "Master · 5 positions, 2–3 moves each",
+   "idea": "A pin plus a second threat is often too much to meet.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -14491,6 +14691,7 @@
    "unit": "unit42",
    "title": "Sacrifices",
    "sub": "Master · 5 positions, 2–3 moves each",
+   "idea": "A pawn sacrifice can open a line or a square for a stronger piece.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -14588,6 +14789,7 @@
    "unit": "unit42",
    "title": "Endgame technique",
    "sub": "Master · 5 positions, 2–3 moves each",
+   "idea": "When winning, check for stalemate before every move.",
    "minutes": 9,
    "xp": 35,
    "steps": [
@@ -14683,6 +14885,7 @@
    "unit": "unit42",
    "title": "Opening traps",
    "sub": "Master · 5 positions, 2–3 moves each",
+   "idea": "Count tempi: being two moves ahead in development opens tactics.",
    "minutes": 9,
    "xp": 35,
    "steps": [

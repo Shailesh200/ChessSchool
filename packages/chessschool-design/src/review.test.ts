@@ -29,3 +29,20 @@ describe("spaced review", () => {
     expect(dueReviews(r, "2026-11-14")).toEqual(["b:2", "a:1"]);
   });
 });
+
+describe("flashcards", () => {
+  it("seeds a finished lesson's idea for tomorrow, then spaces it 3 and 7 days on", async () => {
+    const { completeNode, createInitialState } = await import("./progress");
+    const { dueIdeas, reviewAfter, ideaRef } = await import("./review");
+    let s = completeNode(createInitialState("g"), "meet", new Date("2026-11-03T10:00:00"));
+    s = completeNode(s, "board", new Date("2026-11-03T10:00:00"));
+    expect(Object.keys(s.ideas)).toEqual([ideaRef("board")]);
+    expect(dueIdeas(s.ideas, "2026-11-03")).toEqual([]);
+    expect(dueIdeas(s.ideas, "2026-11-04")).toEqual(["board"]);
+    // Finishing it again does not reset the schedule.
+    const again = completeNode({ ...s, ideas: reviewAfter(s.ideas, ideaRef("board"), false, "2026-11-04") }, "board", new Date("2026-11-05T10:00:00"));
+    expect(again.ideas[ideaRef("board")]).toEqual({ due: "2026-11-07", box: 1 });
+    // "Show again" brings it back tomorrow.
+    expect(reviewAfter(again.ideas, ideaRef("board"), true, "2026-11-07")[ideaRef("board")]).toEqual({ due: "2026-11-08", box: 0 });
+  });
+});

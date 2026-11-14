@@ -12,6 +12,7 @@ import {
   langFor,
   language,
   setLanguage,
+  ideaRef,
   reviewAfter,
   placeAt,
   recordGame,
@@ -78,6 +79,8 @@ type Store = {
   placeBefore: (order: readonly string[], startAt: string) => void;
   /** Records a practice answer for spaced review. */
   answerReview: (ref: string, missed: boolean) => void;
+  /** Flashcards: "I remembered" moves the card on; "Show again" brings it back tomorrow. */
+  answerIdea: (lessonId: string, remembered: boolean) => void;
   /** Stores the next practice set for offline use. */
   setPracticeNext: (items: PracticeItem[]) => void;
   /** Anonymous usage event (dropped when "Share anonymous usage" is off). */
@@ -176,6 +179,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       track: usage.track,
       placeBefore: (order, startAt) => setState((s) => placeBefore(s, order, startAt, new Date())),
       answerReview: (ref, missed) => setState((s) => ({ ...s, review: reviewAfter(s.review, ref, missed, dayKey(new Date())) })),
+      answerIdea: (lessonId, remembered) => setState((s) => ({ ...s, ideas: reviewAfter(s.ideas, ideaRef(lessonId), !remembered, dayKey(new Date())) })),
       setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),

@@ -41,6 +41,16 @@ export function isReview(v: unknown): v is Review {
   return Boolean(v && typeof v === "object" && Object.values(v as object).every((c) => c && typeof c.due === "string" && typeof c.box === "number"));
 }
 
+/** Flashcards: each finished lesson's key idea, scheduled like practice in its own key space ("idea:<lessonId>"). */
+export const ideaRef = (lessonId: string) => `idea:${lessonId}`;
+export const IDEA_SET = 5;
+
+/** Lesson ids whose idea is due today, most overdue first. */
+export const dueIdeas = (ideas: Review, today: string) => dueReviews(ideas, today, IDEA_SET).map((ref) => ref.slice("idea:".length));
+
+/** A newly finished lesson's idea comes up tomorrow (the tour has none to review). */
+export const seedIdea = (ideas: Review, lessonId: string, today: string): Review => (lessonId === "meet" ? ideas : reviewAfter(ideas, ideaRef(lessonId), true, today));
+
 /** Practice serves 5 positions and keeps 5 more for offline use. */
 export const PRACTICE_SET = 5;
 

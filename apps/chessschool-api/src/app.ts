@@ -30,7 +30,7 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
-import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
+import { loadIdeas, loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
@@ -746,13 +746,29 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.get("/v1/lessons/:id", async (c) => {
     const id = c.req.param("id");
     if (!id) return fail(c, 400, "invalid_input");
-    const [lesson, text] = await Promise.all([loadLesson(db, id), textFor(c)]);
-    if (!lesson) return fail(c, 404, "not_found");
+    const [found, text, ideas] = await Promise.all([loadLesson(db, id), textFor(c), loadIdeas(db, [id])]);
+    if (!found) return fail(c, 404, "not_found");
     const access = await accessFor(await userFromRequest(c));
     const refused = refuseLesson(c, access, id);
     if (refused) return refused;
     const t = text?.lessons[id];
+    const lesson = { ...found, idea: t?.idea || ideas.get(id) };
     return c.json(t ? { ...lesson, title: t.title || lesson.title, sub: t.sub || lesson.sub, steps: localizeSteps(lesson.steps, t.steps) } : lesson);
+  });
+
+  /** Key ideas for flashcards: ?ids=a,b (up to 50). Lessons the caller can't open are left out. */
+  app.get("/v1/ideas", async (c) => {
+    const access = await accessFor(await userFromRequest(c));
+    const open = new Set(access.path.filter((n) => n.playable).map((n) => n.id));
+    const ids = [...new Set((c.req.query("ids") ?? "").split(","))].filter((id) => open.has(id)).slice(0, 50);
+    const [outline, text, ideas] = await Promise.all([ids.length ? loadOutline(db) : null, textFor(c), loadIdeas(db, ids)]);
+    const titles = new Map(outline?.lessons.map((l) => [l.id, l.title]));
+    const items = ids.flatMap((id) => {
+      const t = text?.lessons[id];
+      const idea = t?.idea || ideas.get(id);
+      return idea ? [{ id, title: t?.title || titles.get(id) || id, idea }] : [];
+    });
+    return c.json({ items });
   });
 
   /**

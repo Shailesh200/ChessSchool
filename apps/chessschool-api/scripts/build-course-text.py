@@ -17,6 +17,8 @@ for e, t in zip(en, tr):
 T = lambda s: table.get(s) if s else None
 course = json.load(open(f"{data}/course.json"))
 out = {"lang": lang, "units": {}, "lessons": {}, "comingSoon": {}}
+# Key ideas are written by hand in course.<lang>.json; keep them across rebuilds.
+old = json.load(open(f"{data}/course.{lang}.json")) if os.path.exists(f"{data}/course.{lang}.json") else {"lessons": {}}
 for u in course["units"]:
     out["units"][u["id"]] = {"title": T(u["title"]), "sub": T(u.get("sub"))}
 for l in course["lessons"]:
@@ -25,7 +27,7 @@ for l in course["lessons"]:
         st = {k: T(s.get(k)) for k in ("title", "body", "hint") if s.get(k)}
         if s.get("options"): st["options"] = [T(o["label"]) for o in s["options"]]
         steps.append(st)
-    out["lessons"][l["id"]] = {"title": T(l["title"]), "sub": T(l.get("sub")), "steps": steps}
+    out["lessons"][l["id"]] = {"title": T(l["title"]), "sub": T(l.get("sub")), "idea": old["lessons"].get(l["id"], {}).get("idea"), "steps": steps}
 for c in course.get("comingSoon", []):
     out["comingSoon"][c["id"]] = {"title": T(c["title"]), "sub": T(c.get("sub"))}
 json.dump(out, open(f"{data}/course.{lang}.json", "w"), ensure_ascii=False, indent=1)

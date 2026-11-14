@@ -155,6 +155,12 @@ export const tablebase = sqliteTable("cs_tablebase", {
   category: text("category").notNull(),
 });
 
+/** Each lesson's key idea (the flashcard), seeded with the course. English; translations live in cs_course_text. */
+export const lessonIdeas = sqliteTable("cs_lesson_ideas", {
+  lessonId: text("lesson_id").primaryKey(),
+  idea: text("idea").notNull(),
+});
+
 /** Best board-vision score per learner, game and local day. */
 export const visionScores = sqliteTable(
   "cs_vision_scores",
@@ -302,6 +308,10 @@ export const BOOTSTRAP_SQL = [
     fen TEXT PRIMARY KEY,
     move TEXT,
     category TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_lesson_ideas (
+    lesson_id TEXT PRIMARY KEY,
+    idea TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS cs_vision_scores (
     user_id TEXT NOT NULL,

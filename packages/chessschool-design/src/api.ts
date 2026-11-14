@@ -168,6 +168,7 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     reportMember: (classId: string, memberId: string, r: { reason: ReportReason; note?: string; block: boolean }) =>
       request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/report`, r),
     leaderboard: (classId: string, day: string) => request<Leaderboard>("GET", `/v1/classes/${classId}/leaderboard?day=${day}`),
+    ideas: (ids: string[]) => request<{ items: { id: string; title: string; idea: string }[] }>("GET", `/v1/ideas?ids=${ids.map(encodeURIComponent).join(",")}${lang("&")}`),
     classVision: (classId: string, day: string) => request<ClassVision>("GET", `/v1/classes/${classId}/vision?day=${day}`),
     sendVisionScore: (game: string, score: number, day: string) => request<{ ok: true }>("POST", "/v1/vision/scores", { game, score, day }),
     setLeaderboardHidden: (hidden: boolean) => request<{ hidden: boolean }>("PUT", "/v1/me/leaderboard", { hidden }),

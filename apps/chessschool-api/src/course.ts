@@ -2,7 +2,7 @@ import type { Step } from "@chessschool/chess";
 import { asc, eq, inArray } from "drizzle-orm";
 import type { CourseDoc } from "./course-check";
 import type { Db } from "./db";
-import { course, courseLessons, courseUnits } from "./schema";
+import { course, courseLessons, courseUnits, lessonIdeas } from "./schema";
 
 /** The course lives in the database: cs_course_units, cs_course_lessons and cs_course("meta"). */
 
@@ -62,6 +62,13 @@ export async function loadLesson(db: Db, id: string): Promise<(LessonOutline & {
   return row ? { ...row, steps: JSON.parse(row.steps) as Step[] } : null;
 }
 
+/** Key ideas for the given lessons (lessons without one are left out). */
+export async function loadIdeas(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (!ids.length) return new Map();
+  const rows = await db.select().from(lessonIdeas).where(inArray(lessonIdeas.lessonId, ids));
+  return new Map(rows.map((r) => [r.lessonId, r.idea]));
+}
+
 export type CourseCounts = { units: number; insert: number; update: number; delete: number; unchanged: number };
 
 /** What applying `doc` would change, by lesson. */
@@ -82,13 +89,16 @@ export async function courseDiff(db: Db, doc: CourseDoc): Promise<CourseCounts> 
 /** Replaces the whole course in one batch, so readers see the old course or the new one, never a mix. */
 export async function applyCourse(db: Db, doc: CourseDoc): Promise<CourseCounts> {
   const counts = await courseDiff(db, doc);
+  const ideas = doc.lessons.flatMap((l) => (l.idea ? [{ lessonId: l.id, idea: l.idea }] : []));
   await db.batch([
     db.delete(courseLessons),
     db.delete(courseUnits),
+    db.delete(lessonIdeas),
     db.insert(courseUnits).values(doc.units.map((u, position) => ({ id: u.id, position, title: u.title, sub: u.sub }))),
     db.insert(courseLessons).values(
       doc.lessons.map((l, position) => ({ id: l.id, unitId: l.unit, position, title: l.title, sub: l.sub, minutes: l.minutes, xp: l.xp, steps: JSON.stringify(l.steps) })),
     ),
+    ...(ideas.length ? [db.insert(lessonIdeas).values(ideas)] : []),
     db
       .insert(course)
       .values({ id: META_ID, data: JSON.stringify({ version: doc.version, comingSoon: doc.comingSoon }) })
