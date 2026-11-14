@@ -23,7 +23,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path, Text as SvgText } from "react-native-svg";
 import { fonts, useTheme } from "@/lib/theme";
-import { useConnectivity } from "@/lib/hooks";
+import { useConnectivity, useReducedMotion } from "@/lib/hooks";
 import { useKeyboardScroll } from "@/lib/keyboard";
 import { Icon } from "./Icon";
 
@@ -397,6 +397,7 @@ export function TextField({ label, error, hint, password, style, ...rest }: Fiel
 export function Sheet({ visible, onClose, children, scroll }: { visible: boolean; onClose: () => void; children: React.ReactNode; scroll?: boolean }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   const [drag] = useState(() => new Animated.Value(0));
   const close = useRef(onClose);
   close.current = onClose;
@@ -426,7 +427,7 @@ export function Sheet({ visible, onClose, children, scroll }: { visible: boolean
     children
   );
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType={reduced ? "fade" : "slide"} onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityLabel={copy.a11y.closeSheet} accessibilityRole="button" />
       <View style={{ flex: 1, justifyContent: "flex-end" }} pointerEvents="box-none">
         <Animated.View accessibilityViewIsModal style={[s.sheet, { backgroundColor: c.card, paddingBottom: 22 + insets.bottom, maxHeight: "88%", transform: [{ translateY: drag }] }]}>
@@ -449,6 +450,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const [msg, setMsg] = useState<string | null>(null);
+  const reduced = useReducedMotion();
   const y = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!msg) return;
@@ -466,7 +468,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           pointerEvents="none"
           style={[
             s.toast,
-            { bottom: insets.bottom + 92, backgroundColor: c.text, opacity: y, transform: [{ translateY: y.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] },
+            { bottom: insets.bottom + 92, backgroundColor: c.text, opacity: y, transform: [{ translateY: y.interpolate({ inputRange: [0, 1], outputRange: [reduced ? 0 : 16, 0] }) }] },
           ]}
         >
           <T role="label" style={{ color: c.bg }} center>
@@ -547,9 +549,12 @@ export function Page({
   const [scrolled, setScrolled] = useState(false);
   const [rise] = useState(() => new Animated.Value(24));
   const hasFooter = Boolean(footer);
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (hasFooter) Animated.spring(rise, { toValue: 0, useNativeDriver: true, bounciness: 5 }).start();
-  }, [hasFooter, rise]);
+    if (!hasFooter) return;
+    if (reduced) rise.setValue(0);
+    else Animated.spring(rise, { toValue: 0, useNativeDriver: true, bounciness: 5 }).start();
+  }, [hasFooter, rise, reduced]);
   const firm = y.interpolate({ inputRange: large ? [28, 56] : [0, 16], outputRange: [0, 1], extrapolate: "clamp" });
   const titleY = large ? y.interpolate({ inputRange: [28, 56], outputRange: [8, 0], extrapolate: "clamp" }) : 0;
   const bar = (

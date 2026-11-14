@@ -32,7 +32,7 @@ import {
 import { canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board, PieceArt } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
@@ -153,7 +153,6 @@ export default function Play() {
       saveGame({ setup: next.setup as StoredSetup, history: next.history, startedAt, clock: next.clock ? { w: timeLeft(next, "w", Date.now()), b: timeLeft(next, "b", Date.now()) } : null });
       if (next.history.length > prev.history.length) {
         cue(moveCue(next.history.at(-1)!));
-        if (prev.botThinking) AccessibilityInfo.announceForAccessibility(`${copy.a11y.lastMove}: ${next.history.at(-1)}`);
       } else if (next.history.length < prev.history.length) cue("tap");
       const side = turnOf(next.fen);
       const human = next.setup.opponent.kind === "friend" || side === next.setup.you;

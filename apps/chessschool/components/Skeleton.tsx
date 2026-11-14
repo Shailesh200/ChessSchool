@@ -1,12 +1,15 @@
 import { copy } from "@chessschool/design";
 import { useEffect, useRef } from "react";
 import { Animated, View, type ViewStyle } from "react-native";
+import { useReducedMotion } from "@/lib/hooks";
 import { useTheme } from "@/lib/theme";
 
 function Bar({ style }: { style?: ViewStyle }) {
   const { c } = useTheme();
   const opacity = useRef(new Animated.Value(0.45)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
@@ -15,7 +18,7 @@ function Bar({ style }: { style?: ViewStyle }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity]);
+  }, [opacity, reduced]);
   return <Animated.View accessibilityElementsHidden style={[{ backgroundColor: c.sunken, borderRadius: 18, opacity }, style]} />;
 }
 

@@ -3,15 +3,18 @@ import { assessMove, type MoveNote, type ReviewPly } from "@chessschool/chess";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, AppState } from "react-native";
 import { api, API_URL } from "./api";
+import { useApp } from "./state";
 
+/** The OS "reduce motion" setting, or the in-app Reduce motion pref. */
 export function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
+  const { state } = useApp();
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled().then(setReduced);
     const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduced);
     return () => sub.remove();
   }, []);
-  return reduced;
+  return reduced || state.prefs.reduceMotion;
 }
 
 export type Connectivity = "online" | "offline" | "api-down";

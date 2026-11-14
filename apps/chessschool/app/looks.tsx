@@ -1,5 +1,5 @@
 import { PIECE_SETS } from "@chessschool/chess";
-import { APP_ICONS, copy, lockedUntil, palettes, resolveTheme, THEMES, type Appearance, type RewardKind } from "@chessschool/design";
+import { APP_ICONS, type Appearance, BOARD_COLORS, copy, lockedUntil, palettes, resolveTheme, type RewardKind, THEMES, withBoardColors } from "@chessschool/design";
 import { Image, Pressable, View } from "react-native";
 import { PieceArt } from "@/components/Board";
 import { Icon } from "@/components/Icon";
@@ -21,7 +21,7 @@ const ICON_PREVIEWS: Record<string, number> = {
 
 export default function Looks() {
   const { state, setPrefs, cue } = useApp();
-  const { c } = useTheme();
+  const { c, scheme } = useTheme();
   const toast = useToast();
   const { prefs } = state;
   const iconsOk = appIconsSupported();
@@ -114,6 +114,26 @@ export default function Looks() {
         <T role="heading" header style={{ paddingHorizontal: 12, paddingTop: 10 }}>
           {copy.looks.board}
         </T>
+        <View accessibilityRole="radiogroup" accessibilityLabel={copy.looks.boardColors} style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, padding: 6 }}>
+          {BOARD_COLORS.map((id) => {
+            const b = withBoardColors(resolveTheme(prefs.theme, prefs.appearance, scheme === "dark").palette, id);
+            const o = copy.looks.boardColorOptions[id];
+            const on = prefs.boardColors === id;
+            return (
+              <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.name}. ${o.blurb}`} onPress={() => pick({ boardColors: id })} style={[card(on), { flexGrow: 1, flexBasis: "30%" }]}>
+                <View style={{ flexDirection: "row", height: 40, borderRadius: 10, overflow: "hidden" }}>
+                  {[b.boardLight, b.boardDark, b.boardLight, b.boardDark].map((col, i) => (
+                    <View key={i} style={{ flex: 1, backgroundColor: col }} />
+                  ))}
+                </View>
+                <T role="label">{o.name}</T>
+                <T role="micro" color="textMuted">
+                  {o.blurb}
+                </T>
+              </Pressable>
+            );
+          })}
+        </View>
         <SwitchRow icon="doc" label={copy.looks.coords} value={prefs.coords} onChange={(v) => setPrefs({ coords: v })} />
         <SwitchRow icon="eye" label={copy.looks.legalDots} value={prefs.legalDots} onChange={(v) => setPrefs({ legalDots: v })} />
         <SwitchRow icon="star" label={copy.gym.promotion} hint={copy.gym.promotionHint} value={prefs.promotion === "ask"} onChange={(v) => setPrefs({ promotion: v ? "ask" : "queen" })} />

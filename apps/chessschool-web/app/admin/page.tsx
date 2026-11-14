@@ -69,7 +69,7 @@ export default function AdminPage() {
 
   return (
     <div className="page admin">
-      <TopBar title="Admin" back={false} />
+      <TopBar title="Admin" back={false} action={<Button variant="secondary" href="/admin/lessons">Lesson editor</Button>} />
       <div className="admin-head">
         <p className="page-lead">Anonymous installs only: no names, emails or accounts.</p>
         <Segmented label="Range" value={days} onChange={setDays} options={RANGES.map((d) => ({ value: d, label: `${d} days` }))} />

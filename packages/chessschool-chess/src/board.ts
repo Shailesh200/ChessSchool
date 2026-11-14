@@ -94,6 +94,20 @@ export function moveEffects(beforeFen: string, afterFen: string, move: MoveRef |
   return { captured, promoted };
 }
 
+export type MoveDescription = { piece: PieceType; to: Square; capture: boolean; castle: "king" | "queen" | null; promoted: PieceType | null };
+
+/** What a screen reader should say about a move, read from the positions before and after it (null if it doesn't fit). */
+export function describeMove(beforeFen: string, afterFen: string, move: MoveRef | null | undefined): MoveDescription | null {
+  if (!move || beforeFen === afterFen) return null;
+  const mover = readFen(beforeFen).get(move.from);
+  const landed = readFen(afterFen).get(move.to);
+  if (!mover || !landed || landed.color !== mover.color) return null;
+  const fx = moveEffects(beforeFen, afterFen, move);
+  const jump = fileIndex(move.to) - fileIndex(move.from);
+  const castle = mover.type === "k" && Math.abs(jump) === 2 ? (jump > 0 ? "king" : "queen") : null;
+  return { piece: mover.type, to: move.to, capture: Boolean(fx.captured), castle, promoted: fx.promoted?.type ?? null };
+}
+
 /** Squares for the inline promotion picker: from the promotion square toward the middle of the board. */
 export function promotionColumn(square: Square): { square: Square; piece: PromotionPiece; index: number }[] {
   const dir = square[1] === "8" ? -1 : 1;

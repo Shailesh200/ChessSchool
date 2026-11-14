@@ -3066,6 +3066,13 @@ a.path-inner:hover {
 .swatch-art span {
   border-radius: 6px;
 }
+.swatch-board {
+  padding: 0;
+  border: 0;
+}
+.swatch-board span {
+  border-radius: 0;
+}
 .set-preview {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4780,6 +4787,98 @@ button.focus-card {
   gap: 8px;
   font-size: 0.8125rem;
 }
+/* /admin/lessons */
+.admin-editor {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+@media (max-width: 860px) {
+  .admin-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.admin-edit {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.admin-units details {
+  border-top: 1px solid var(--cs-line);
+  padding: 8px 0;
+}
+.admin-units summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.admin-units ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.admin-lesson-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--cs-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-lesson-link:hover,
+.admin-lesson-link.is-on {
+  background: var(--cs-brand-soft);
+  color: var(--cs-brand-text);
+}
+.admin-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.field .admin-json {
+  width: 100%;
+  min-height: 360px;
+  padding: 12px;
+  border: 1px solid var(--cs-line);
+  border-radius: 12px;
+  background: var(--cs-sunken);
+  color: var(--cs-text);
+  font: 0.8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.admin-check-ok {
+  color: var(--cs-success-text);
+}
+.admin-check-errors {
+  color: var(--cs-danger-text);
+  padding-left: 20px;
+}
+.admin-preview {
+  height: 720px;
+  border: 1px solid var(--cs-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--cs-bg);
+}
+.admin-preview .lesson {
+  height: 100%;
+}
 .admin button.link {
   justify-self: start;
   padding: 0;
@@ -4804,6 +4903,21 @@ button.focus-card {
 /* Hindi: Baloo 2 has Devanagari and the same rounded feel as Fredoka. */
 html[lang="hi"] body {
   font-family: var(--font-baloo), var(--font-fredoka), system-ui, sans-serif;
+}
+
+/* Easy-reading font (Settings). Atkinson Hyperlegible is Latin-only, so Hindi keeps Baloo. */
+html[data-cs-font="easy"]:not([lang="hi"]) body {
+  font-family: var(--font-atkinson), system-ui, sans-serif;
+}
+
+/* Reduce motion from Settings: same as the OS preference above. */
+html[data-cs-motion="reduce"] *,
+html[data-cs-motion="reduce"] *::before,
+html[data-cs-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 .week-board {
