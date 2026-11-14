@@ -12,3 +12,5 @@ export * from "./puzzlePack";
 export * from "./puzzles";
 export * from "./review";
 export * from "./vision";
+export * from "./mistakes";
+export * from "./phase";

@@ -1,5 +1,5 @@
 import { BOTS } from "@chessschool/chess";
-import { canUseGym, copy, type IconName } from "@chessschool/design";
+import { botRatingOf, canUseGym, copy, type IconName } from "@chessschool/design";
 import { router, type Href } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BotAvatar } from "@/components/BotAvatar";
@@ -59,7 +59,7 @@ export default function Gym() {
           <Pressable
             key={b.id}
             accessibilityRole="button"
-            accessibilityLabel={`${b.name}. ${b.strength}. ${b.blurb}`}
+            accessibilityLabel={`${b.name}. ${b.strength}. ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}. ${b.blurb}`}
             onPress={() => router.push(`/play?bot=${b.id}`)}
             style={({ pressed }) => ({ flexGrow: 1, flexBasis: "46%", maxWidth: "100%", alignItems: "center", gap: 4, paddingVertical: 14, paddingHorizontal: 8, borderRadius: 20, borderWidth: 1, borderColor: pressed ? c.brand : c.line, backgroundColor: c.card })}
           >
@@ -75,6 +75,9 @@ export default function Gym() {
             </T>
             <T role="micro" color="textMuted">
               {copy.gym.record(bots[b.id]?.played ?? 0, bots[b.id]?.won ?? 0)}
+            </T>
+            <T role="micro" color="textMuted">
+              {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
             </T>
           </Pressable>
         ))}

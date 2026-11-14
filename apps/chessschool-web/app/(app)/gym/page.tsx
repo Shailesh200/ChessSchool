@@ -1,7 +1,7 @@
 "use client";
 
 import { BOTS } from "@chessschool/chess";
-import { canUseGym, copy, type IconName } from "@chessschool/design";
+import { botRatingOf, canUseGym, copy, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { GymGuestCard } from "@/components/GymGuestCard";
@@ -46,7 +46,7 @@ export default function GymPage() {
         <ul className="bots">
           {BOTS.map((b) => (
             <li key={b.id}>
-              <Link href={`/play?bot=${b.id}`} className="bot-card" aria-label={`${b.name}. ${b.strength}. ${b.blurb}`}>
+              <Link href={`/play?bot=${b.id}`} className="bot-card" aria-label={`${b.name}. ${b.strength}. ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}. ${b.blurb}`}>
                 <BotAvatar bot={b.id} size={56} />
                 <span className="bot-name">{b.name}</span>
                 <span className="bot-level">
@@ -55,6 +55,7 @@ export default function GymPage() {
                 </span>
                 <span className="bot-strength">{b.strength}</span>
                 <span className="bot-record">{copy.gym.record(bots[b.id]?.played ?? 0, bots[b.id]?.won ?? 0)}</span>
+                <span className="bot-record">{copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}</span>
               </Link>
             </li>
           ))}

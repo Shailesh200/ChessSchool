@@ -1,7 +1,14 @@
 "use client";
 
+import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
 import {
   STORAGE_KEY,
+  applyResult,
+  ratedGame,
+  ratedPuzzle,
+  sanitizeRatings,
+  type RateInput,
+  type RatedResult,
   applyAuth,
   applyMe,
   applySignOut,
@@ -45,7 +52,8 @@ type Store = {
   completeLesson: (id: string, meta?: LessonMeta) => void;
   finishPractice: () => void;
   finishGame: (game: GameRecord, minutes: number) => void;
-  finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean }) => void;
+  /** `puzzleRating` also counts the attempt toward the playing rating. */
+  finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean; puzzleRating?: number }) => void;
   serveDailyPuzzle: (day: string, id: string, puzzle?: { id: string; fen: string; moves: string[]; rating: number; themes: readonly string[] } | null) => void;
   finishSprint: (score: number, minutes: number) => void;
   /** Keeps a board-vision best on the device and, signed in, sends it for the class board. */
@@ -149,7 +157,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (!ready || !accountId) return;
     api
       .me()
-      .then((me) => setState((s) => applyMe(s, me)))
+      .then((me) => {
+        setState((s) => applyMe(s, me));
+        const child = latest.current.activeChild;
+        return api.rating(child).then((r) => setState((s) => (s.activeChild === child ? { ...s, ratings: sanitizeRatings(r.ratings) } : s)));
+      })
       .catch((err) => {
         if (err?.status === 401) setState((s) => applySignOut(s));
       });
@@ -174,6 +186,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const cue = useCallback((c: SoundCue) => playCue(c, state.prefs.sound), [state.prefs.sound]);
 
+  /** Counts a bot game or puzzle on the device now; signed in, the server's answer replaces it. */
+  const rate = (rated: { input: RateInput; result: RatedResult } | null) => {
+    if (!rated) return;
+    setState((s) => ({ ...s, ratings: applyResult(s.ratings, rated.result) }));
+    if (!latest.current.account) return;
+    const child = latest.current.activeChild;
+    api
+      .rate(child ? { ...rated.input, child } : rated.input)
+      .then((r) => setState((s) => (s.activeChild === child ? { ...s, ratings: sanitizeRatings(r.ratings) } : s)))
+      .catch(() => {});
+  };
+
   const store = useMemo<Store>(
     () => ({
       ready,
@@ -182,6 +206,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       track: usage.track,
       switchLearner: async (child) => {
         setState((s) => switchProfile(s, child?.id ?? null, child ? freshSlice(s, child.name, child.avatar) : undefined));
+        const id = child?.id ?? null;
+        api
+          .rating(id)
+          .then((r) => setState((s) => (s.activeChild === id ? { ...s, ratings: sanitizeRatings(r.ratings) } : s)))
+          .catch(() => {});
         if (!child) return;
         // A child's progress may have been saved from another device.
         const remote = await api.childProgress(child.id).catch(() => null);
@@ -208,10 +237,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       finishGame: (game, minutes) => {
         usage.track("game_finished");
         setState((s) => recordGame(s, game, new Date(), minutes));
+        // The endgame trainer defends from the tablebase, not the bot, so it is not rated.
+        const bot = game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : null;
+        if (bot && isBotId(bot) && !(ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "")) rate(ratedGame(game, botInfo(bot).rating));
       },
       finishPuzzle: (p) => {
         usage.track(p.solved ? "puzzle_solved" : "puzzle_failed");
         setState((s) => recordPuzzle(s, p, new Date()));
+        if (p.puzzleRating) rate(ratedPuzzle({ id: p.id, solved: p.solved, puzzleRating: p.puzzleRating }, Date.now()));
       },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),

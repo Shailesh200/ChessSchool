@@ -5,6 +5,7 @@ import type { ProfileSlice } from "./profiles";
 import { isReview, type Review, seedIdea } from "./review";
 import type { PracticeItem } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
+import { emptyRatings, sanitizeRatings, type Ratings } from "./rating";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -172,6 +173,8 @@ export type LocalState = {
   quests: Quests;
   /** Board-vision personal best per game id. */
   vision: Record<string, number>;
+  /** Playing rating and each bot's adapted strength (the API's copy wins when signed in). */
+  ratings: Ratings;
   /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
   ideas: Review;
 };
@@ -221,6 +224,7 @@ export function createInitialState(guestId: string): LocalState {
     quests: emptyQuests(),
     vision: {},
     ideas: {},
+    ratings: emptyRatings(),
   };
 }
 
@@ -261,6 +265,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     quests: hydrateQuests(r.quests),
     ideas: isReview(r.ideas) ? r.ideas : {},
     vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
+    ratings: sanitizeRatings(r.ratings),
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }

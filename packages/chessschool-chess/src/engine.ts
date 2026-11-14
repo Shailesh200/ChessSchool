@@ -141,6 +141,44 @@ export function bestMove(fen: string, opts: SearchOptions, rand: () => number = 
   return legal.find((m) => m.from === sq(chosen.from) && m.to === sq(chosen.to) && (m.promotion ?? "") === (chosen.promotion ?? "")) ?? legal[0];
 }
 
+export type RankedMove = { move: Move; score: number };
+
+/**
+ * Every root move with its score (centipawns, side to move), best first, from the deepest search
+ * that finished inside the time budget. Moves more than `floor` below the best only get an upper bound.
+ */
+export function rankMoves(fen: string, opts: { depth: number; quiescence: number; timeMs: number; floor?: number }): RankedMove[] {
+  const chess = load(fen);
+  const legal = chess.moves({ verbose: true });
+  const f = fastOf(chess);
+  if (!legal.length || !f) return legal.map((move) => ({ move, score: 0 }));
+  const floor = opts.floor ?? 1000;
+  const { negamax } = search(f, Date.now() + opts.timeMs);
+  let ranked = order(f._moves({ legal: true })).map((m) => ({ m, score: 0 }));
+  for (let depth = 1; depth <= opts.depth; depth++) {
+    try {
+      let best = -Infinity;
+      const next = ranked.map(({ m }) => {
+        f._makeMove(m);
+        try {
+          const score = -negamax(depth - 1, -Infinity, -(best - floor), 1, opts.quiescence);
+          best = Math.max(best, score);
+          return { m, score };
+        } finally {
+          f._undoMove();
+        }
+      });
+      ranked = next.sort((a, b) => b.score - a.score);
+      if (ranked[0].score > MATE / 2) break;
+    } catch (e) {
+      if (!(e instanceof Timeout)) throw e;
+      break;
+    }
+  }
+  const sq = (i: number) => `${"abcdefgh"[i & 0xf]}${8 - (i >> 4)}`;
+  return ranked.map(({ m, score }) => ({ move: legal.find((x) => x.from === sq(m.from) && x.to === sq(m.to) && (x.promotion ?? "") === (m.promotion ?? ""))!, score }));
+}
+
 /** Quick score (centipawns, side to move) for game review. */
 export function quickEval(fen: string): number {
   const chess = load(fen);

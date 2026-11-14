@@ -50,7 +50,8 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, childProgress, children, classes, classGames, classMembers, courseUnits, feedback, homework, leaderboardHidden, profiles, progress, reports, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
+import { blocks, childProgress, children, classes, classGames, classMembers, courseUnits, feedback, homework, leaderboardHidden, profiles, progress, ratingEvents, ratings, reports, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
+import { loadRatings, parseRateInput, rateResult } from "./ratings";
 import { playMove, roundRobin, splitMoves, standings } from "./class-play";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
@@ -1160,6 +1161,31 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return c.json({ items });
   });
 
+  /** The learner (the account, or `child` when it is one of the account's children). */
+  const learnerOf = async (userId: string, child: unknown) => {
+    if (child === undefined || child === null || child === "") return userId;
+    if (typeof child !== "string") return null;
+    return (await childOf(userId, child)) ? child : null;
+  };
+
+  /** Playing rating (Glicko-2) and each bot's adapted strength. */
+  app.get("/v1/me/rating", requireUser, async (c) => {
+    const learner = await learnerOf(c.get("user").id, c.req.query("child"));
+    if (!learner) return fail(c, 404, "not_found");
+    return c.json({ ratings: await loadRatings(db, learner) });
+  });
+
+  /** A finished bot game or puzzle. Each event id counts once. */
+  app.post("/v1/me/rating", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<Record<string, unknown>>(c);
+    const input = b && typeof b === "object" ? parseRateInput(b) : null;
+    if (!input) return fail(c, 400, "invalid_input");
+    const learner = await learnerOf(user.id, b.child);
+    if (!learner) return fail(c, 404, "not_found");
+    return c.json(await rateResult(db, user.id, learner, input.event, input.result, now().getTime()));
+  });
+
   /** The weekly parent summary opt-in. */
   app.get("/v1/me/weekly", requireUser, async (c) => {
     const row = await db.query.weeklySummary.findFirst({ where: eq(weeklySummary.userId, c.get("user").id) });
@@ -1349,7 +1375,12 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.delete("/v1/children/:id", requireUser, async (c) => {
     const child = await childOf(c.get("user").id, c.req.param("id") ?? "");
     if (!child) return fail(c, 404, "not_found");
-    await db.batch([db.delete(childProgress).where(eq(childProgress.childId, child.id)), db.delete(children).where(eq(children.id, child.id))]);
+    await db.batch([
+      db.delete(childProgress).where(eq(childProgress.childId, child.id)),
+      db.delete(ratings).where(eq(ratings.learnerId, child.id)),
+      db.delete(ratingEvents).where(eq(ratingEvents.learnerId, child.id)),
+      db.delete(children).where(eq(children.id, child.id)),
+    ]);
     return c.json({ ok: true });
   });
 

@@ -1,6 +1,7 @@
 import type { Course, CourseLesson } from "./course";
 import { copy } from "./copy";
 import type { UsageBatch } from "./usage";
+import type { Ratings } from "./rating";
 import { language } from "./i18n";
 
 /** `&lang=` for course words in the app language; nothing for English. */
@@ -41,6 +42,11 @@ export type ClassRoom = { id: string; name: string; code: string; role: ClassRol
 export type Homework = { id: string; lessons: string[]; due: string; createdAt: number; members: { id: string; name: string; avatar: AvatarId; done: boolean }[] };
 export type GamePlayer = { id: string; name: string; avatar: AvatarId };
 export type ClassGameResult = "1-0" | "0-1" | "1/2-1/2";
+/** A rated result. `event` is the game id or a puzzle attempt id. `child` rates a child profile. */
+export type RateInput = { event: string; child?: string } & (
+  | { kind: "bot"; bot: string; result: "win" | "loss" | "draw"; moves: number }
+  | { kind: "puzzle"; puzzle: string; puzzleRating: number; solved: boolean }
+);
 export type ClassGameReason = "checkmate" | "stalemate" | "draw" | "repetition" | "material" | "resign";
 /** A turn-based game between two classmates. `moves` is SAN from the normal start; `you` is null for an onlooker. */
 export type ClassGame = {
@@ -221,6 +227,9 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     removeChild: (id: string) => request<{ ok: true }>("DELETE", `/v1/children/${id}`),
     childProgress: (id: string) => request<{ progress: Progress }>("GET", `/v1/children/${id}/progress`),
     putChildProgress: (id: string, progress: Progress) => request<{ progress: Progress }>("PUT", `/v1/children/${id}/progress`, { progress }),
+    rating: (child?: string | null) => request<{ ratings: Ratings }>("GET", `/v1/me/rating${child ? `?child=${encodeURIComponent(child)}` : ""}`),
+    /** One finished bot game or puzzle; `event` is its id, so a retry is not counted twice. */
+    rate: (input: RateInput) => request<{ ratings: Ratings; counted: boolean }>("POST", "/v1/me/rating", input),
     weekly: () => request<{ email: boolean; push: boolean }>("GET", "/v1/me/weekly"),
     setWeekly: (input: { email: boolean; pushToken?: string | null; lang: string }) => request<{ email: boolean; push: boolean }>("PUT", "/v1/me/weekly", input),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),

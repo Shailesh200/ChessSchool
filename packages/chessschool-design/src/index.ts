@@ -13,3 +13,4 @@ export * from "./i18n";
 export * from "./profiles";
 export * from "./quests";
 export * from "./a11y";
+export * from "./rating";

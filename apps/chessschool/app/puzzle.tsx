@@ -78,7 +78,7 @@ function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleTh
             const pz = state.progress.puzzles;
             const newRating = updateRating(pz.rating, puzzle.rating, solved, pz.attempts);
             setDelta(newRating - pz.rating);
-            finishPuzzle({ id: puzzle.id, solved, newRating, daily });
+            finishPuzzle({ id: puzzle.id, solved, newRating, daily, puzzleRating: puzzle.rating });
           }}
           actions={
             <>

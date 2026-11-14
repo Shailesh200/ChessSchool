@@ -396,6 +396,8 @@ export const copy = {
     live: "Back to the live game",
     club: { name: "Club", body: "Play friends online. Opening later." },
     record: (played: number, won: number) => (played ? `${won}/${played} won` : "New"),
+    /** The bot's current strength, which adapts to the learner. */
+    botRating: (n: number) => `Rating ${n}`,
     setupTitle: "Game setup",
     you: "You play",
     clock: "Clock",

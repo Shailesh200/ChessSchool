@@ -1159,3 +1159,44 @@ describe("board vision scores", () => {
     expect(await db.select().from(visionScores).where(eq(visionScores.userId, kid.user.id))).toEqual([]);
   });
 });
+
+describe("playing rating", () => {
+  const game = (event: string, extra: Record<string, unknown> = {}) => ({ kind: "bot", event, bot: "cody", result: "win", moves: 40, ...extra });
+
+  it("rates a bot game once per game id, adapts the bot and checks the input", async () => {
+    const { token, user } = (await call("POST", "/v1/auth/register", { name: "Rater", email: "rate@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("GET", "/v1/me/rating", undefined, token)).json.ratings.player).toMatchObject({ rating: 800, games: 0 });
+    const first = await call("POST", "/v1/me/rating", game("g-1"), token);
+    expect(first.status).toBe(200);
+    expect(first.json.counted).toBe(true);
+    expect(first.json.ratings.player.rating).toBeGreaterThan(800);
+    expect(first.json.ratings.bots.cody).toBeGreaterThan(700);
+    const again = await call("POST", "/v1/me/rating", game("g-1", { result: "loss" }), token);
+    expect(again.json).toEqual({ ratings: first.json.ratings, counted: false });
+    const lost = await call("POST", "/v1/me/rating", game("g-2", { result: "loss" }), token);
+    expect(lost.json.ratings.bots.cody).toBeLessThan(first.json.ratings.bots.cody);
+    const puzzle = await call("POST", "/v1/me/rating", { kind: "puzzle", event: "p1-1", puzzle: "p1", puzzleRating: 900, solved: true }, token);
+    expect(puzzle.json.ratings.player.games).toBe(3);
+    expect((await call("GET", "/v1/me/rating", undefined, token)).json.ratings).toEqual(puzzle.json.ratings);
+
+    for (const bad of [game("g-3", { bot: "magnus" }), game("g-3", { result: "won" }), game("g-3", { moves: 0 }), game("g-3", { moves: 5000 }), game("g-3", { moves: 2.5 }), game("bad id!"), { kind: "puzzle", event: "x", puzzle: "p", puzzleRating: 99999, solved: true }, {}])
+      expect((await call("POST", "/v1/me/rating", bad, token)).status, JSON.stringify(bad)).toBe(400);
+    expect((await call("POST", "/v1/me/rating", game("g-4"))).status).toBe(401);
+
+    const kid = (await call("POST", "/v1/children", { name: "Riya" }, token)).json.child.id;
+    const kidRated = await call("POST", "/v1/me/rating", { ...game("g-1"), child: kid }, token);
+    expect(kidRated.json.counted).toBe(true);
+    expect(kidRated.json.ratings.player.games).toBe(1);
+    expect((await call("GET", `/v1/me/rating?child=${kid}`, undefined, token)).json.ratings.player.games).toBe(1);
+    const other = (await call("POST", "/v1/auth/register", { name: "Other", email: "rate2@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("POST", "/v1/me/rating", { ...game("g-9"), child: kid }, other.token)).status).toBe(404);
+    expect((await call("GET", `/v1/me/rating?child=${kid}`, undefined, other.token)).status).toBe(404);
+
+    const { ratings, ratingEvents } = await import("../src/schema");
+    expect((await call("DELETE", `/v1/children/${kid}`, undefined, token)).status).toBe(200);
+    expect(await db.select().from(ratings).where(eq(ratings.learnerId, kid))).toEqual([]);
+    expect((await call("DELETE", "/v1/me", undefined, token)).status).toBe(200);
+    expect(await db.select().from(ratings).where(eq(ratings.userId, user.id))).toEqual([]);
+    expect(await db.select().from(ratingEvents).where(eq(ratingEvents.userId, user.id))).toEqual([]);
+  });
+});
