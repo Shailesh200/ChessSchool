@@ -1,4 +1,4 @@
-import { coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -14,7 +14,7 @@ import { openSystemSettings, pushToken, requestNotifications } from "@/lib/notif
 import { useApp } from "@/lib/state";
 
 export default function Settings() {
-  const { state, setPrefs, signOut, resetThisDevice, deleteAccount, cue } = useApp();
+  const { state, setPrefs, signOut, resetThisDevice, deleteAccount, cue, update } = useApp();
   const toast = useToast();
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
@@ -179,6 +179,15 @@ export default function Settings() {
           {s.legal}
         </T>
         <SwitchRow icon="eye" label={s.shareUsage} hint={s.shareUsageHint} value={prefs.shareUsage} onChange={(v) => setPrefs({ shareUsage: v })} />
+        {/* A child's switch only works once a parent PIN guards this screen. */}
+        <SwitchRow
+          icon="spark"
+          label={s.aiExplain}
+          hint={isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
+          value={aiExplainOn(state)}
+          disabled={isChildProfile(state) && !state.parentPin}
+          onChange={(v) => update((st) => setAiExplain(st, v))}
+        />
         <Row icon="shield" label={s.privacy} chevron onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL))} />
         <Row icon="doc" label={s.terms} chevron onPress={() => router.push("/terms")} />
       </Card>

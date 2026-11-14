@@ -8,7 +8,8 @@ import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
 import { Cody } from "@/components/Lottie";
-import { Button, TopBar } from "@/components/ui";
+import { Button, Sheet, TopBar } from "@/components/ui";
+import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 
@@ -22,6 +23,17 @@ export default function ReviewGame() {
   const [ply, setPly] = useState(0);
   const [trying, setTrying] = useState<TryState | null>(null);
   const [shake, setShake] = useState(0);
+  const friend = setup?.opponent.kind === "friend";
+  const side = !setup || friend ? null : setup.you;
+  const coach = useCoachNotes(game, setup?.startFen ?? "", side);
+  useReviewedSkills(game, plies, notes, done, side);
+  const firstNote = coach.notes[0]?.ply;
+  useEffect(() => {
+    if (firstNote) {
+      setTrying(null);
+      setPly(firstNote);
+    }
+  }, [firstNote]);
 
   const go = (n: number) => {
     setTrying(null);
@@ -48,8 +60,6 @@ export default function ReviewGame() {
     );
   }
 
-  const friend = setup.opponent.kind === "friend";
-  const side = friend ? null : setup.you;
   const orientation = friend ? "w" : setup.you;
   const sum = summarise(plies, notes, side);
   const cur = ply ? plies[ply - 1] : null;
@@ -86,6 +96,20 @@ export default function ReviewGame() {
   else if (kind === "great" || kind === "mate" || kind === "good") explain = copy.analysis.explain[kind];
   else explain = copy.analysis.explain[kind](note?.better ?? null);
 
+  const coachLine = !coach.signedIn
+    ? copy.coachAi.signIn
+    : !coach.allowed
+      ? copy.coachAi.off
+      : coach.status === "loading"
+        ? copy.coachAi.loading
+        : coach.status === "error"
+          ? copy.coachAi.failed
+          : coach.status === "limit"
+            ? copy.coachAi.limit
+            : coach.status === "done" && !coach.notes.length
+              ? copy.coachAi.none
+              : null;
+
   const tap = (sq: Parameters<typeof tryReduce>[1]) => {
     if (!trying) return;
     const next = tryReduce(trying, sq);
@@ -106,7 +130,7 @@ export default function ReviewGame() {
           top={
             <div className="player">
               <Cody animation={tone === "danger" ? "thinking" : tone === "success" ? "happy" : "reading"} size={44} />
-              <p className="stage-status">{friend ? copy.gym.vsFriend : copy.play.vs(opponentName(setup))}</p>
+              <p className="stage-status">{friend ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup))}</p>
               <span className="clock" aria-label={copy.analysis.evalLabel(formatEval(evalNow))}>
                 {formatEval(evalNow)}
               </span>
@@ -161,6 +185,44 @@ export default function ReviewGame() {
             </div>
             <p>{explain}</p>
           </div>
+
+          <section className="coach-notes" aria-label={copy.coachAi.title}>
+            {coachLine ? (
+              <p className="muted" role="status">
+                {coachLine}
+              </p>
+            ) : coach.status === "idle" ? (
+              <Button variant="secondary" icon="spark" onClick={coach.ask} disabled={!done}>
+                {copy.coachAi.button}
+              </Button>
+            ) : null}
+            {coach.notes.length ? (
+              <>
+                <h2>{copy.coachAi.title}</h2>
+                <ul>
+                  {coach.notes.map((n) => (
+                    <li key={n.ply}>
+                      <button type="button" className={`coach-note${n.ply === ply ? " on" : ""}`} aria-pressed={n.ply === ply} onClick={() => go(n.ply)}>
+                        <strong>{copy.coachAi.moveLabel(Math.ceil(n.ply / 2), n.san)}</strong>
+                        <span>{n.text}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="muted small">{copy.coachAi.note}</p>
+              </>
+            ) : null}
+          </section>
+          <Sheet open={coach.status === "consent"} onClose={coach.cancel} labelledBy="coach-consent-title">
+            <h2 id="coach-consent-title">{copy.coachAi.consentTitle}</h2>
+            <p>{copy.coachAi.consentBody}</p>
+            <Button block icon="spark" onClick={coach.agree}>
+              {copy.coachAi.consentAgree}
+            </Button>
+            <Button block variant="ghost" onClick={coach.cancel}>
+              {copy.coachAi.consentCancel}
+            </Button>
+          </Sheet>
 
           <div className="analysis-nav">
             <Button variant="secondary" icon="back" onClick={() => go(ply - 1)} disabled={!ply} aria-label={copy.gym.prev}>

@@ -2,9 +2,10 @@ import { isBoardColors, isThemeId, type Appearance, type BoardColorsId, type The
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
-import { isReview, type Review, seedIdea } from "./review";
-import type { PracticeItem } from "./api";
+import { isReview, reviewAfter, type Review, seedIdea } from "./review";
+import type { ImportedGame, PracticeItem } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
+import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, type SkillId, type Skills } from "./skills";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -39,6 +40,8 @@ export type Progress = {
   bots: Record<string, { played: number; won: number }>;
   /** Lessons skipped with "Where should I start?" (completed without XP). */
   placed: string[];
+  /** Score per chess idea (skills.ts); steers practice, never XP. Absent until the first result. */
+  skills?: Skills;
 };
 
 export type DailyPuzzleSnapshot = { id: string; fen: string; moves: string[]; rating: number; themes: string[] };
@@ -105,7 +108,7 @@ export const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0
 
 /** Game setup as stored (validated by @chessschool/chess `parseSetup`). */
 export type StoredSetup = {
-  opponent: { kind: "bot"; bot: string } | { kind: "friend" };
+  opponent: { kind: "bot"; bot: string } | { kind: "friend" } | { kind: "online" };
   you: "w" | "b";
   time: string;
   startFen: string;
@@ -124,9 +127,15 @@ export type GameRecord = {
   setup: StoredSetup;
   history: string[];
   winner: "w" | "b" | null;
-  /** checkmate · resigned · timeout · stalemate · draw · repetition · material */
+  /** checkmate · resigned · timeout · stalemate · draw · repetition · material · imported */
   reason: string;
+  /** Its mistakes have been counted in the skills (once per game). */
+  reviewed?: boolean;
 };
+
+/** A position where the learner went wrong in their own game, replayed in practice as "find the better move". */
+export type MistakePosition = { ref: string; fen: string; from: string; to: string; better: string; skill: SkillId | null };
+export const MISTAKES_MAX = 20;
 export const GAME_LOG_MAX = 30;
 export type Arrival = "kept" | "fresh";
 
@@ -174,6 +183,12 @@ export type LocalState = {
   vision: Record<string, number>;
   /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
   ideas: Review;
+  /** Positions from the learner's own games to practise ("mistake:<n>" refs in `review`). */
+  mistakes: MistakePosition[];
+  /** "AI explanations" per profile (MAIN_PROFILE or a child id); missing means the default (on for adults, off for children). */
+  aiExplain: Record<string, boolean>;
+  /** Profiles that have seen and accepted the AI explanations notice. */
+  aiAgreed: string[];
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -221,6 +236,9 @@ export function createInitialState(guestId: string): LocalState {
     quests: emptyQuests(),
     vision: {},
     ideas: {},
+    mistakes: [],
+    aiExplain: {},
+    aiAgreed: [],
   };
 }
 
@@ -261,6 +279,9 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     quests: hydrateQuests(r.quests),
     ideas: isReview(r.ideas) ? r.ideas : {},
     vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
+    mistakes: Array.isArray(r.mistakes) ? r.mistakes.filter(isMistake).slice(0, MISTAKES_MAX) : [],
+    aiExplain: r.aiExplain && typeof r.aiExplain === "object" ? Object.fromEntries(Object.entries(r.aiExplain).filter(([, v]) => typeof v === "boolean")) : {},
+    aiAgreed: Array.isArray(r.aiAgreed) ? r.aiAgreed.filter((id) => typeof id === "string") : [],
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
@@ -294,6 +315,11 @@ const isMoves = (v: unknown): v is string[] => Array.isArray(v) && v.length < 60
 function isSetup(v: unknown): v is StoredSetup {
   const s = v as StoredSetup;
   return Boolean(s && typeof s === "object" && s.opponent && (s.you === "w" || s.you === "b") && typeof s.startFen === "string");
+}
+const SQ = /^[a-h][1-8]$/;
+function isMistake(v: unknown): v is MistakePosition {
+  const m = v as MistakePosition;
+  return Boolean(m && typeof m.ref === "string" && typeof m.fen === "string" && SQ.test(m.from) && SQ.test(m.to) && typeof m.better === "string");
 }
 function isGameRecord(v: unknown): v is GameRecord {
   const g = v as GameRecord;
@@ -535,11 +561,19 @@ export function completeNode(state: LocalState, nodeId: string, now: Date, meta?
       ...state.progress,
       completed: first ? { ...state.progress.completed, [nodeId]: today } : state.progress.completed,
       xp: state.progress.xp + (first ? node.xp : 0),
+      ...withSkills(first ? skillsAfter(state.progress.skills ?? {}, skillOf(nodeId), true) : state.progress.skills),
       streak: streakAfterActivity(state.progress.streak, today),
       minutes: { day: today, value: Math.min(1440, prevMinutes + node.minutes) },
     },
   }, today);
 }
+
+const skillOf = (lessonId: string): SkillId[] => {
+  const id = lessonSkill(lessonId);
+  return id ? [id] : [];
+};
+/** Leaves `skills` out until there is one, so stored progress keeps its old shape. */
+const withSkills = (skills: Skills | undefined): { skills?: Skills } => (skills && Object.keys(skills).length ? { skills } : {});
 
 /** Practice and games count toward the streak and today's goal, but never add XP. */
 function activity(state: LocalState, now: Date, minutes: number): LocalState {
@@ -585,7 +619,7 @@ export function recordGame(state: LocalState, game: GameRecord, now: Date, minut
 }
 
 /** A puzzle attempt. Solving counts as a little practice; the new rating comes from the caller. */
-export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean; newRating: number; daily?: boolean }, now: Date): LocalState {
+export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean; newRating: number; daily?: boolean; themes?: readonly string[] }, now: Date): LocalState {
   const today = dayKey(now);
   const s = p.solved ? activity(state, now, 1) : state;
   const pz = s.progress.puzzles;
@@ -600,6 +634,7 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
     ...s,
     progress: {
       ...s.progress,
+      ...withSkills(skillsAfter(s.progress.skills ?? {}, themeSkills(p.themes ?? []), p.solved)),
       puzzles: {
         ...pz,
         rating: Math.round(Math.max(100, Math.min(3000, p.newRating))),
@@ -826,6 +861,7 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
     },
     bots,
     placed: [...new Set([...(a.placed ?? []), ...(b.placed ?? [])])],
+    ...withSkills(mergeSkills(a.skills, b.skills)),
   };
 }
 
@@ -900,6 +936,7 @@ export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null):
         }),
     ),
     placed: Array.isArray(p.placed) ? p.placed.filter((id) => typeof id === "string" && completed[id]) : [],
+    ...withSkills(sanitizeSkills(p.skills)),
   };
 }
 
@@ -1027,3 +1064,67 @@ export const newBadges = (s: LocalState): BadgeId[] => earnedBadges(s.progress).
 
 /** Wins in the endgame trainer needed to call a position mastered. */
 export const ENDGAME_MASTERY = 3;
+
+/* ---------- skills from practice and the learner's own games ---------- */
+
+/** A practice answer: schedules the review and moves the skill it trains ("<lessonId>:<step>" or a mistake ref). */
+export function answerPractice(state: LocalState, ref: string, missed: boolean, today: string): LocalState {
+  const mistake = state.mistakes.find((m) => m.ref === ref);
+  const ids = mistake ? (mistake.skill ? [mistake.skill] : []) : skillOf(ref.split(":")[0] ?? "");
+  return { ...state, review: reviewAfter(state.review, ref, missed, today), progress: { ...state.progress, ...withSkills(skillsAfter(state.progress.skills ?? {}, ids, !missed)) } };
+}
+
+/**
+ * A reviewed game, counted once: each of the learner's mistakes (with its detector tags) lowers
+ * those skills, and the positions join practice from tomorrow.
+ */
+export function recordReviewedGame(state: LocalState, gameId: string, mistakes: { fen: string; from: string; to: string; better: string; tags: readonly string[] }[], today: string): LocalState {
+  const game = state.gameLog.find((g) => g.id === gameId);
+  if (!game || game.reviewed) return state;
+  let skills = state.progress.skills ?? {};
+  let review = state.review;
+  const added: MistakePosition[] = [];
+  for (const m of mistakes) {
+    const ids = tagSkills(m.tags);
+    skills = skillsAfter(skills, ids, false);
+    if (state.mistakes.some((x) => x.fen === m.fen) || added.some((x) => x.fen === m.fen)) continue;
+    const ref = `mistake:${gameId.slice(-12)}:${added.length}`;
+    added.push({ ref, fen: m.fen, from: m.from, to: m.to, better: m.better, skill: ids[0] ?? null });
+    review = reviewAfter(review, ref, true, today);
+  }
+  const kept = [...added, ...state.mistakes].slice(0, MISTAKES_MAX);
+  const keptRefs = new Set(kept.map((m) => m.ref));
+  const dropped = new Set([...added, ...state.mistakes].filter((m) => !keptRefs.has(m.ref)).map((m) => m.ref));
+  return {
+    ...state,
+    gameLog: state.gameLog.map((g) => (g.id === gameId ? { ...g, reviewed: true } : g)),
+    mistakes: kept,
+    review: Object.fromEntries(Object.entries(review).filter(([ref]) => !dropped.has(ref))),
+    progress: { ...state.progress, ...withSkills(skills) },
+  };
+}
+
+/** An imported game as a review-log entry. Player names are left out; a game without the learner's side reviews both sides. */
+export const importedRecord = (g: ImportedGame): GameRecord => ({
+  id: g.id,
+  endedAt: g.endedAt || Date.now(),
+  setup: { opponent: g.you ? { kind: "online" } : { kind: "friend" }, you: g.you ?? "w", time: "none", startFen: g.startFen, takebacks: false, askPromotion: true },
+  history: g.moves,
+  winner: g.result === "1-0" ? "w" : g.result === "0-1" ? "b" : null,
+  reason: "imported",
+});
+
+/** Adds an imported online game to the review log (it does not count as a game played). */
+export function importGame(state: LocalState, game: GameRecord): LocalState {
+  return { ...state, gameLog: [game, ...state.gameLog.filter((x) => x.id !== game.id)].slice(0, GAME_LOG_MAX) };
+}
+
+/* ---------- AI explanations setting ---------- */
+
+const profileKey = (s: LocalState) => s.activeChild ?? "main";
+/** Child profiles start with AI explanations off; a parent turns them on (Settings, behind the PIN). */
+export const isChildProfile = (s: LocalState) => s.activeChild !== null || s.profile.who === "child";
+export const aiExplainOn = (s: LocalState) => s.aiExplain[profileKey(s)] ?? !isChildProfile(s);
+export const setAiExplain = (s: LocalState, on: boolean): LocalState => ({ ...s, aiExplain: { ...s.aiExplain, [profileKey(s)]: on } });
+export const aiAgreed = (s: LocalState) => s.aiAgreed.includes(profileKey(s));
+export const agreeAi = (s: LocalState): LocalState => (aiAgreed(s) ? s : { ...s, aiAgreed: [...s.aiAgreed, profileKey(s)] });

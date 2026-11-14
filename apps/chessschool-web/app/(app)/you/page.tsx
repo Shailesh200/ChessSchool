@@ -4,6 +4,7 @@ import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, focusCo
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { SkillsCard } from "@/components/SkillsCard";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, SaveBanner, Segmented, Sheet, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -134,6 +135,8 @@ export default function YouPage() {
           ))}
         </ul>
       </Card>
+
+      <SkillsCard skills={progress.skills} />
 
       <div className="section-head">
         <h2>{copy.badges.title}</h2>

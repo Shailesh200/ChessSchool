@@ -5,6 +5,7 @@ import {
   isAvatarId,
   isCoachId,
   isLang,
+  isSkillId,
   isFlairId,
   isProgress,
   mergeProgress,
@@ -43,6 +44,9 @@ import { checkLessonEdit, deleteDraft, loadCourseDoc, loadDrafts, loadVersion, l
 import { checkCourse } from "./course-check";
 import { draftLesson, LEVELS, type LessonBrief, type LessonWriter } from "./lesson-draft";
 import { MAX_PRACTICE, pickPractice } from "./practice";
+import type { AiProvider } from "./ai";
+import { explainGame, parseCoachInput } from "./coach";
+import { chesscomGames, gameFromPgn, isUsername, lichessGames, PGN_MAX_BYTES, webFetch, type ImportFetch } from "./game-import";
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
 import { EMAIL_RUN_CAP, summarize, summaryMessage, type Sender } from "./weekly";
@@ -85,6 +89,10 @@ export type AppDeps = {
   cronSecret?: string;
   /** Endgame tablebase lookup (Lichess by default; tests pass a fake). */
   tablebase?: TablebaseFetch;
+  /** Language-model chain for the game coach (empty: the coach answers 503). Tests pass a fake. */
+  coachAi?: AiProvider[];
+  /** Lichess / Chess.com fetches for game import (tests pass a fake). */
+  importFetch?: ImportFetch;
   /** Crash reporting hook (Sentry in production). Gets the error only, never the request body. */
   reportError?: (err: unknown) => Promise<void> | void;
   /** HMAC key for shareable certificate links (CERT_SECRET). Without it, a dev key is used unless cookies are secure (production). */
@@ -123,7 +131,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, coachAi = [], importFetch = webFetch }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -136,6 +144,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const moveLimiter = createRateLimiter(120, 60_000, () => now().getTime());
   /** Each AI draft is one or two paid model calls. */
   const lessonDraftLimiter = createRateLimiter(20, 24 * 60 * 60_000, () => now().getTime());
+  /** Each explanation runs the engine over the whole game, so even cache hits are limited. */
+  const coachLimiter = createRateLimiter(6, 60_000, () => now().getTime());
+  const importLimiter = createRateLimiter(10, 10 * 60_000, () => now().getTime());
   const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
 
@@ -1149,7 +1160,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
    * Lessons the caller can't open (a guest past the free lessons) are skipped, never an error.
    */
   app.post("/v1/practice", async (c) => {
-    const b = await body<{ lessons?: unknown; review?: unknown; count?: unknown }>(c);
+    const b = await body<{ lessons?: unknown; review?: unknown; count?: unknown; weak?: unknown }>(c);
     const ids = (v: unknown, max: number) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.length <= 80).slice(0, max) : []);
     const access = await accessFor(await userFromRequest(c));
     const open = new Set(access.path.filter((n) => n.playable).map((n) => n.id));
@@ -1157,7 +1168,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const count = typeof b.count === "number" && Number.isInteger(b.count) ? Math.min(MAX_PRACTICE, Math.max(1, b.count)) : 5;
     const text = await textFor(c);
     const loaded = (await loadLessonSteps(db, lessons)).map((l) => ({ ...l, steps: localizeSteps(l.steps, text?.lessons[l.id]?.steps) }));
-    const items = pickPractice(loaded, ids(b.review, 50), count);
+    const items = pickPractice(loaded, ids(b.review, 50), count, Math.random, ids(b.weak, 8).filter(isSkillId));
     return c.json({ items });
   });
 
@@ -1248,6 +1259,44 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       if (ok) await db.update(weeklySummary).set({ lastSent: today, lastPuzzles: p.puzzles.solved }).where(eq(weeklySummary.userId, r.userId));
     }
     return c.json({ due: due.length, emails, pushes });
+  });
+
+  /**
+   * The AI coach explains a finished game. Body: { startFen, moves, side, coach, consent: true }.
+   * The server works out the facts from the moves itself; providers only ever see those facts.
+   */
+  app.post("/v1/coach/explain", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ startFen: unknown; moves: unknown; side: unknown; coach: unknown; consent: unknown }>(c);
+    if (b.consent !== true) return fail(c, 403, "consent_required");
+    const input = parseCoachInput(b, isCoachId);
+    if (!input) return fail(c, 400, "invalid_input");
+    if (!coachLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const lang = c.req.query("lang") === "hi" ? "hi" : "en";
+    const answer = await explainGame(db, coachAi, input, lang, user.id, dayKey(now()), now().getTime());
+    if (answer === "limit") return fail(c, 429, "rate_limited");
+    if (!answer) return fail(c, 503, "server");
+    return c.json(answer);
+  });
+
+  /** Recent games of a Lichess or Chess.com player. Body: { source, username }. The name is not stored. */
+  app.post("/v1/import/games", requireUser, async (c) => {
+    const b = await body<{ source: unknown; username: unknown }>(c);
+    if ((b.source !== "lichess" && b.source !== "chesscom") || !isUsername(b.username)) return fail(c, 400, "invalid_input");
+    if (!importLimiter(c.get("user").id)) return fail(c, 429, "rate_limited");
+    const games = await (b.source === "lichess" ? lichessGames : chesscomGames)(b.username, importFetch);
+    if (!games) return fail(c, 404, "not_found");
+    return c.json({ games });
+  });
+
+  /** One pasted PGN game. Body: { pgn }. */
+  app.post("/v1/import/pgn", requireUser, async (c) => {
+    const b = await body<{ pgn: unknown }>(c);
+    if (typeof b.pgn !== "string" || b.pgn.length > PGN_MAX_BYTES) return fail(c, 400, "invalid_input");
+    if (!importLimiter(c.get("user").id)) return fail(c, 429, "rate_limited");
+    const game = gameFromPgn(b.pgn, `pgn:${now().getTime()}`, null, now().getTime());
+    if (!game) return fail(c, 400, "invalid_input");
+    return c.json({ games: [game] });
   });
 
   /** Perfect defence for the endgame trainer. 503 when the tablebase can't be reached (the app falls back to its bot). */

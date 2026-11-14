@@ -332,6 +332,8 @@ export const hi: Translation = {
     first: "शुरुआत",
     last: "अंत",
     vsFriend: "पास और खेलें",
+    vsOnline: "ऑनलाइन खेल",
+    importCta: "खेल लाएँ",
   },
 
   flashcards: {
@@ -605,6 +607,9 @@ export const hi: Translation = {
     doneBody: "थोड़ा और रोज़। यह आज के लक्ष्य में जुड़ता है।",
     again: "फिर से अभ्यास",
     back: "जिम पर वापस",
+    mistakeTitle: "आपके खेल से",
+    mistakeBody: "आपके एक खेल में यहाँ चूक हुई थी। बेहतर चाल खोजें।",
+    mistakeHint: (better: string) => `${better} देखें।`,
   },
 
   update: {
@@ -820,6 +825,9 @@ export const hi: Translation = {
     language: "भाषा",
     shareUsage: "गुमनाम उपयोग साझा करें",
     shareUsageHint: "इससे हमें पता चलता है कौन से पाठ कठिन हैं। नाम, ईमेल या खाता नहीं भेजा जाता।",
+    aiExplain: "AI से समझाना",
+    aiExplainHint: "आपके कोच आपके खेल शब्दों में समझाते हैं। सिर्फ़ चालें और स्थितियाँ भेजी जाती हैं।",
+    aiExplainNeedsPin: "बच्चों के लिए बंद है। चालू करने के लिए “सीखने वाले” में माता-पिता का PIN सेट करें।",
     reminderTime: "रिमाइंडर का समय",
     reminderHour: (h: number) => `${h < 12 ? "सुबह" : h < 17 ? "दोपहर" : "शाम"} ${((h + 11) % 12) + 1} बजे`,
     account: "खाता",
@@ -940,6 +948,53 @@ export const hi: Translation = {
     done: (title: string) => `${title}, पूरा`,
     goalRing: (done: number, goal: number) => `रोज़ का लक्ष्य: ${goal} में से ${done} मिनट`,
     rank: (rank: string, toNext: number, next: string | null) => (next ? `रैंक ${rank}। ${next} तक ${toNext} XP।` : `रैंक ${rank}। सबसे ऊँची रैंक।`),
+  },
+
+  coachAi: {
+    button: "मेरा खेल समझाइए",
+    title: "कोच की बातें",
+    loading: "आपके कोच आपका खेल देख रहे हैं…",
+    none: "समझाने लायक कोई बड़ी गलती नहीं। बहुत बढ़िया खेला!",
+    failed: "कोच अभी यह खेल नहीं समझा पाए। थोड़ी देर बाद फिर कोशिश करें।",
+    limit: "आज के लिए इतना ही। कल फिर आइए!",
+    signIn: "कोच से समझने के लिए साइन इन करें।",
+    off: "AI से समझाना बंद है। माता-पिता इसे सेटिंग्स में चालू कर सकते हैं।",
+    moveLabel: (moveNo: number, san: string) => `चाल ${moveNo}: ${san}`,
+    note: "यह AI ने कोडी के इंजन की खोज से लिखा है। इसमें गलती हो सकती है।",
+    consentTitle: "कोच के समझाने से पहले",
+    consentBody: "ये बातें लिखने के लिए ChessSchool इस खेल की सिर्फ़ चालें और स्थितियाँ एक AI सेवा (Cloudflare Workers AI, Groq या Anthropic) को भेजता है। कोई नाम, ईमेल या आपका लिखा कुछ भी नहीं भेजा जाता।",
+    consentAgree: "ठीक है, मेरा खेल समझाइए",
+    consentCancel: "अभी नहीं",
+  },
+
+  skills: {
+    title: "कौशल",
+    empty: "पहेलियाँ, अभ्यास और अपने खेलों की समीक्षा करें, फिर आपके सबसे मज़बूत और कमज़ोर विचार यहाँ दिखेंगे।",
+    strongest: "सबसे मज़बूत",
+    weakest: "अभ्यास चाहिए",
+    next: (name: string) => `आगे अभ्यास करें: ${name}`,
+    practise: "अभी अभ्यास करें",
+    score: (name: string, s: number) => `${name}: 100 में से ${s}`,
+    names: { fork: "फ़ोर्क", pin: "पिन", skewer: "स्क्यूअर", discovery: "खुला हमला", hanging: "मोहरे सुरक्षित रखना", mate: "शह-मात", backRank: "पिछली पंक्ति की मात", endgame: "एंडगेम" },
+  },
+
+  importGames: {
+    title: "खेल लाएँ",
+    body: "Lichess या Chess.com से अपने खेल देखें, या PGN चिपकाएँ।",
+    sources: { lichess: "Lichess", chesscom: "Chess.com", pgn: "PGN चिपकाएँ" },
+    username: "यूज़रनेम",
+    find: "खेल खोजें",
+    pgnLabel: "PGN",
+    open: "खेल खोलें",
+    review: "समीक्षा",
+    empty: "इस खिलाड़ी के कोई सामान्य खेल नहीं मिले।",
+    notFound: "यह खिलाड़ी नहीं मिला।",
+    failed: "खेल नहीं आ सके। जाँचकर फिर कोशिश करें।",
+    badPgn: "यह PGN पढ़ा नहीं जा सका।",
+    signIn: "अपने खेल लाने के लिए साइन इन करें।",
+    privacy: "हम यूज़रनेम नहीं रखते। सिर्फ़ आपका खोला खेल इसी डिवाइस पर सहेजा जाता है।",
+    vs: (white: string, black: string) => `${white} बनाम ${black}`,
+    moves: (n: number) => `${Math.ceil(n / 2)} चालें`,
   },
 
   accountDelete: {

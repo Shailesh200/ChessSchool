@@ -51,7 +51,8 @@ export function shuffleFen(rand: () => number = Math.random): string {
   return `${row}/pppppppp/8/8/8/8/PPPPPPPP/${row.toUpperCase()} w - - 0 1`;
 }
 
-export type Opponent = { kind: "bot"; bot: BotId } | { kind: "friend" };
+/** `online`: a game imported from Lichess or Chess.com, kept only for review. */
+export type Opponent = { kind: "bot"; bot: BotId } | { kind: "friend" } | { kind: "online" };
 export type PlaySetup = {
   opponent: Opponent;
   /** Your side vs a bot; in pass & play, the side shown at the bottom first. */
@@ -300,7 +301,7 @@ export function parseSetup(v: unknown): PlaySetup | null {
   if (!v || typeof v !== "object") return null;
   const r = v as Record<string, unknown>;
   const opp = r.opponent as Record<string, unknown> | undefined;
-  const opponent: Opponent | null = opp?.kind === "friend" ? { kind: "friend" } : opp?.kind === "bot" ? { kind: "bot", bot: toBotId(opp.bot) } : null;
+  const opponent: Opponent | null = opp?.kind === "friend" ? { kind: "friend" } : opp?.kind === "online" ? { kind: "online" } : opp?.kind === "bot" ? { kind: "bot", bot: toBotId(opp.bot) } : null;
   if (!opponent || (r.you !== "w" && r.you !== "b") || typeof r.startFen !== "string") return null;
   try {
     load(r.startFen);
@@ -318,5 +319,5 @@ export function parseSetup(v: unknown): PlaySetup | null {
   };
 }
 
-export const opponentName = (setup: PlaySetup) => (setup.opponent.kind === "bot" ? botInfo(setup.opponent.bot).name : "Friend");
+export const opponentName = (setup: PlaySetup) => (setup.opponent.kind === "bot" ? botInfo(setup.opponent.bot).name : setup.opponent.kind === "online" ? "Online" : "Friend");
 export { isBotId };

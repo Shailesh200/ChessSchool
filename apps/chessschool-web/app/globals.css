@@ -5210,3 +5210,82 @@ html[data-cs-motion="reduce"] *::after {
   background: var(--cs-card);
   box-shadow: 0 6px 18px rgba(28, 27, 46, 0.12);
 }
+
+/* Coach notes (AI explanations) on the game review */
+.coach-notes {
+  display: grid;
+  gap: 8px;
+}
+.coach-notes h2 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+.coach-notes ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.coach-notes p {
+  margin: 0;
+}
+.coach-note {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+  color: var(--cs-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+.coach-note.on {
+  border-color: var(--cs-brand);
+  background: var(--cs-brand-soft);
+}
+
+/* Profile skills card */
+.skills-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.skill-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cs-sunken);
+  overflow: hidden;
+}
+.skill-bar span {
+  display: block;
+  height: 100%;
+  background: var(--cs-gold);
+}
+.skill-bar span.strong {
+  background: var(--cs-success);
+}
+.skill-bar span.weak {
+  background: var(--cs-danger);
+}
+button.game-row {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.import-form,
+.skills-card {
+  display: grid;
+  gap: 12px;
+}
+.skills-card h2,
+.skills-card p {
+  margin: 0;
+}

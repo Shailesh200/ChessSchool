@@ -75,3 +75,18 @@ export function capturedPieces(startFen: string, fen: string): Record<Color, ("q
   }
   return out;
 }
+
+/** One standard game from PGN text: its start position, SAN moves and header tags. Null when it doesn't parse. */
+export function parsePgn(pgn: string): { startFen: string; moves: string[]; headers: Record<string, string> } | null {
+  const chess = new Chess();
+  try {
+    chess.loadPgn(pgn);
+  } catch {
+    return null;
+  }
+  const headers = chess.getHeaders();
+  if (headers.Variant && !/^(standard|chess)$/i.test(headers.Variant)) return null;
+  const moves = chess.history();
+  const startFen = headers.FEN ?? new Chess().fen();
+  return { startFen, moves, headers };
+}
