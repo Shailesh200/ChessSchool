@@ -763,3 +763,33 @@ describe("weekly parent summary", () => {
     expect(m.text).toContain("3 पाठ पूरे");
   });
 });
+
+describe("child profiles", () => {
+  it("adds children with their own checked progress, keeps the account's progress, and deletes everything with the account", async () => {
+    const { token } = (await call("POST", "/v1/auth/register", { name: "Parent", email: "kids@b.co", password: "pawnpawn" })).json as AuthResponse;
+    await call("PUT", "/v1/progress", { progress: progressThrough("moves") }, token);
+    const a = await call("POST", "/v1/children", { name: "  Riya ", avatar: "kira" }, token);
+    expect(a.status).toBe(201);
+    expect(a.json.child).toMatchObject({ name: "Riya", avatar: "kira" });
+    const id = a.json.child.id;
+    expect((await call("GET", `/v1/children/${id}/progress`, undefined, token)).json.progress.xp).toBe(0);
+    const p = progressThrough("board");
+    const put = await call("PUT", `/v1/children/${id}/progress`, { progress: { ...p, xp: 99_999 } }, token);
+    expect(put.status).toBe(200);
+    expect(put.json.progress.xp).toBeLessThan(1000);
+    expect(Object.keys(put.json.progress.completed)).toContain("board");
+    const main = (await call("GET", "/v1/me", undefined, token)).json;
+    expect(main.user.email).toBe("kids@b.co");
+    expect((await call("GET", "/v1/children", undefined, token)).json.children).toHaveLength(1);
+    for (let i = 0; i < 4; i++) await call("POST", "/v1/children", { name: `Kid ${i}` }, token);
+    expect((await call("POST", "/v1/children", { name: "One too many" }, token)).status).toBe(409);
+    expect((await call("POST", "/v1/children", { name: "" }, token)).status).toBe(400);
+    const other = (await call("POST", "/v1/auth/register", { name: "Other", email: "other@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("GET", `/v1/children/${id}/progress`, undefined, other.token)).status).toBe(404);
+    expect((await call("PUT", `/v1/children/${id}/progress`, { progress: p }, other.token)).status).toBe(404);
+    expect((await call("DELETE", "/v1/me", undefined, token)).status).toBe(200);
+    const { children, childProgress } = await import("../src/schema");
+    expect(await db.select().from(children)).toEqual([]);
+    expect(await db.select().from(childProgress)).toEqual([]);
+  });
+});

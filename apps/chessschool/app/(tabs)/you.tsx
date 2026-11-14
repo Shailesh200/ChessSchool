@@ -182,6 +182,7 @@ export default function You() {
           <Row icon="palette" label={copy.settings.looks} hint={copy.you.looksHint} chevron onPress={() => router.push("/looks")} />
           <Row icon="history" label={copy.you.review} hint={copy.gym.review.body} chevron onPress={() => router.push("/review")} />
           <Row icon="club" label={copy.you.class} hint={copy.you.classHint} chevron onPress={() => router.push("/class")} />
+          <Row icon="profile" label={copy.learners.title} hint={copy.learners.hint} chevron onPress={() => router.push("/learners")} />
         </Card>
       </View>
 

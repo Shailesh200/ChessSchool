@@ -148,6 +148,22 @@ export const events = sqliteTable("cs_events", {
   appVersion: text("app_version").notNull(),
 });
 
+/** Extra learners under one parent account. The account's own progress stays the first profile. */
+export const children = sqliteTable("cs_children", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  avatar: text("avatar").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** A child profile's progress, in the same shape and with the same checks as cs_progress. */
+export const childProgress = sqliteTable("cs_child_progress", {
+  childId: text("child_id").primaryKey(),
+  data: text("data").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 /** Weekly parent summary opt-ins: by email (the account email) and/or push (an Expo push token). */
 export const weeklySummary = sqliteTable("cs_weekly_summary", {
   userId: text("user_id").primaryKey(),
@@ -298,6 +314,19 @@ export const BOOTSTRAP_SQL = [
     app_version TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
+  `CREATE TABLE IF NOT EXISTS cs_children (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    avatar TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_children_user ON cs_children (user_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_child_progress (
+    child_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS cs_weekly_summary (
     user_id TEXT PRIMARY KEY,
     email INTEGER NOT NULL DEFAULT 0,

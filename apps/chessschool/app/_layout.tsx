@@ -98,6 +98,7 @@ function Routes() {
       <Stack.Screen name="sprint" options={{ animation: "slide_from_bottom", presentation: "fullScreenModal", gestureEnabled: false }} />
       <Stack.Screen name="terms" options={{ presentation: "modal" }} />
       <Stack.Screen name="report" options={{ presentation: "modal" }} />
+      <Stack.Screen name="learners" />
       <Stack.Screen name="placement" options={{ animation: "slide_from_bottom", presentation: "fullScreenModal", gestureEnabled: false }} />
     </Stack>
   );

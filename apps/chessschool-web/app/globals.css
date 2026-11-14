@@ -4788,3 +4788,12 @@ html[lang="hi"] body {
   color: var(--cs-brand-text);
   line-height: 28px;
 }
+
+.learner-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.member-row.is-active {
+  background: var(--cs-brand-soft);
+}

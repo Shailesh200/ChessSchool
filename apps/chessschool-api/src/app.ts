@@ -39,7 +39,7 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, weeklySummary } from "./schema";
+import { blocks, childProgress, children, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, weeklySummary } from "./schema";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
@@ -870,6 +870,68 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       ],
     };
     return c.json(home);
+  });
+
+  /* ---------- child profiles (one parent account, several learners) ---------- */
+
+  const MAX_CHILDREN = 5;
+  const childOf = (userId: string, id: string) => db.query.children.findFirst({ where: and(eq(children.id, id), eq(children.userId, userId)) });
+
+  async function loadChildProgress(childId: string, path: PathEntry[]): Promise<Progress> {
+    const row = await db.query.childProgress.findFirst({ where: eq(childProgress.childId, childId) });
+    if (!row) return emptyProgress();
+    try {
+      const parsed = JSON.parse(row.data);
+      return isProgress(parsed) ? (path.length ? sanitizeProgress(parsed, path) : parsed) : emptyProgress();
+    } catch {
+      return emptyProgress();
+    }
+  }
+
+  app.get("/v1/children", requireUser, async (c) => {
+    const rows = await db.select({ id: children.id, name: children.name, avatar: children.avatar }).from(children).where(eq(children.userId, c.get("user").id)).orderBy(children.createdAt);
+    return c.json({ children: rows });
+  });
+
+  app.post("/v1/children", requireUser, async (c) => {
+    const user = c.get("user");
+    if (isGuestAccount(user)) return fail(c, 403, "forbidden");
+    const b = await body<{ name?: unknown; avatar?: unknown }>(c);
+    const name = cleanName(String(b.name ?? ""));
+    if (!name) return fail(c, 400, "invalid_input");
+    const count = (await db.select({ id: children.id }).from(children).where(eq(children.userId, user.id))).length;
+    if (count >= MAX_CHILDREN) return fail(c, 409, "invalid_input", "profile limit");
+    const child = { id: newId(), userId: user.id, name, avatar: isAvatarId(b.avatar) ? b.avatar : "cody", createdAt: now().getTime() };
+    await db.insert(children).values(child);
+    return c.json({ child: { id: child.id, name: child.name, avatar: child.avatar } }, 201);
+  });
+
+  app.delete("/v1/children/:id", requireUser, async (c) => {
+    const child = await childOf(c.get("user").id, c.req.param("id") ?? "");
+    if (!child) return fail(c, 404, "not_found");
+    await db.batch([db.delete(childProgress).where(eq(childProgress.childId, child.id)), db.delete(children).where(eq(children.id, child.id))]);
+    return c.json({ ok: true });
+  });
+
+  app.get("/v1/children/:id/progress", requireUser, async (c) => {
+    const child = await childOf(c.get("user").id, c.req.param("id") ?? "");
+    if (!child) return fail(c, 404, "not_found");
+    return c.json({ progress: await loadChildProgress(child.id, await coursePath()) });
+  });
+
+  /** Same merge-and-check rules as the account's own progress. */
+  app.put("/v1/children/:id/progress", requireUser, async (c) => {
+    const child = await childOf(c.get("user").id, c.req.param("id") ?? "");
+    if (!child) return fail(c, 404, "not_found");
+    const b = await body<{ progress: Progress }>(c);
+    if (!isProgress(b.progress)) return fail(c, 400, "invalid_input");
+    const path = await coursePath();
+    if (!path.length) return fail(c, 503, "server", "course not seeded");
+    const merged = sanitizeProgress(mergeProgress(await loadChildProgress(child.id, path), sanitizeProgress(b.progress, path)), path);
+    const data = JSON.stringify(merged);
+    const t = now().getTime();
+    await db.insert(childProgress).values({ childId: child.id, data, updatedAt: t }).onConflictDoUpdate({ target: childProgress.childId, set: { data, updatedAt: t } });
+    return c.json({ progress: merged });
   });
 
   app.put("/v1/progress", requireUser, async (c) => {

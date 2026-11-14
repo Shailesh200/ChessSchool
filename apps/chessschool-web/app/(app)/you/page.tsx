@@ -192,6 +192,14 @@ export default function YouPage() {
           </span>
           <Icon name="chevron" />
         </Link>
+        <Link href="/learners" className="row row-link">
+          <Icon name="profile" />
+          <span className="row-text">
+            <span className="row-label">{copy.learners.title}</span>
+            <span className="row-hint">{copy.learners.hint}</span>
+          </span>
+          <Icon name="chevron" />
+        </Link>
       </Card>
 
       <Sheet open={sheet === "name"} onClose={() => setSheet(null)} labelledBy="name-title">

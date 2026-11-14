@@ -73,6 +73,12 @@ export default function PrivacyPage() {
               Settings → &quot;Share anonymous usage&quot;; events are deleted after 180 days.
             </li>
             <li>
+              <strong>Child profiles:</strong> a parent account can add up to five children. For
+              each we store a first name, a picture choice and their learning progress, linked to
+              the parent&apos;s account. Removing a child, or deleting the account, deletes this.
+              The optional parent PIN stays on the device and is never sent to us.
+            </li>
+            <li>
               <strong>Weekly summary (optional):</strong> if you turn it on in Settings, each
               Sunday we send the account&apos;s lessons finished, puzzles solved, streak and next
               unit to the account email (sent with Resend) and, in the app, as a notification

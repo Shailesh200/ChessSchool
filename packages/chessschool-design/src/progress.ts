@@ -1,6 +1,7 @@
 import { isThemeId, type Appearance, type ThemeId } from "./tokens";
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
+import type { ProfileSlice } from "./profiles";
 import { isReview, type Review } from "./review";
 import type { PracticeItem } from "./api";
 
@@ -155,6 +156,11 @@ export type LocalState = {
   practiceNext: PracticeItem[];
   /** Endgame trainer wins per position id (mastered at ENDGAME_MASTERY). */
   endgames: Record<string, number>;
+  /** The child profile in use (null = the account's own profile) and the others' parked data. */
+  activeChild: string | null;
+  parked: Record<string, ProfileSlice>;
+  /** Optional 4-digit parent PIN that guards Settings on this device. */
+  parentPin: string | null;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -196,6 +202,9 @@ export function createInitialState(guestId: string): LocalState {
     review: {},
     practiceNext: [],
     endgames: {},
+    activeChild: null,
+    parked: {},
+    parentPin: null,
   };
 }
 
@@ -229,6 +238,9 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     placementDone: r.placementDone === true,
     usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
     review: isReview(r.review) ? r.review : {},
+    activeChild: typeof r.activeChild === "string" && r.parked?.main ? r.activeChild : null,
+    parked: r.parked && typeof r.parked === "object" && (typeof r.activeChild !== "string" || r.parked.main) ? r.parked : {},
+    parentPin: typeof r.parentPin === "string" && /^\d{4}$/.test(r.parentPin) ? r.parentPin : null,
     endgames: r.endgames && typeof r.endgames === "object" ? Object.fromEntries(Object.entries(r.endgames).filter(([, n]) => typeof n === "number")) : {},
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };

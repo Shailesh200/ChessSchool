@@ -1,6 +1,6 @@
 import { eq, inArray, or } from "drizzle-orm";
 import type { Db } from "./db";
-import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, weeklySummary } from "./schema";
+import { blocks, childProgress, children, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, weeklySummary } from "./schema";
 
 /**
  * Removes one user's rows: sessions, progress, profile, classes, feedback, then the user.
@@ -23,6 +23,8 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
     db.delete(reports).where(or(eq(reports.reporterId, userId), eq(reports.reportedId, userId))),
     db.delete(leaderboardHidden).where(eq(leaderboardHidden.userId, userId)),
     db.delete(weeklySummary).where(eq(weeklySummary.userId, userId)),
+    db.delete(childProgress).where(inArray(childProgress.childId, db.select({ id: children.id }).from(children).where(eq(children.userId, userId)))),
+    db.delete(children).where(eq(children.userId, userId)),
     db.delete(blocks).where(or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId))),
     db.delete(users).where(eq(users.id, userId)),
   ]);
