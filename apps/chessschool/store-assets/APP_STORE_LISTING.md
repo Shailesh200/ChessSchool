@@ -48,7 +48,7 @@ Practice:
 
 Start as a guest. Create an account when you want your name, streak, and lessons on every device. Sign in with email or Google. Daily reminders stay on this device. Lessons work offline and sync when you are signed in and back online.
 
-No ads. The app does not use the microphone. Club play with friends online is not in this version yet.
+No ads. The microphone and camera are used only when you choose "Say your move" (on-device speech) or the board scanner. Club play with friends online is not in this version yet.
 
 ## What's New (0.4.0)
 
@@ -56,7 +56,13 @@ Lessons, puzzles, and the Gym: bots, pass and play, clocks, and game review. The
 
 ## Review notes
 
-Sign in with email and password, or with Google. A guest can use lessons without an account. Provide a test account in App Review Information. Sign in with Apple is not in this build; see `SIGN_IN_WITH_APPLE.md` before submitting.
+Sign in with email and password, or with Google, using the test account in App Review Information. A guest can use lessons without an account. Sign in with Apple is not in this build; see `SIGN_IN_WITH_APPLE.md` before submitting.
+
+AI features: after a game the app can explain a move in plain words. Only the chess moves and board positions are sent to our server and then to an AI provider (Cloudflare Workers AI, with Groq and Anthropic as fallbacks). No names, emails, account ids or typed text are sent, and there is no free-form chat. Before the first explanation the app shows an AI consent screen. Adults can turn explanations off in Settings; on a child profile they stay off until a parent turns them on. The board scanner sends one photo of a chessboard only to read the position, and the photo is not kept. "Say your move" uses on-device speech recognition; audio never leaves the device.
+
+Classes: in a class, tap a member to Report them (reason and optional note, seen only by our team) or Block them (they disappear from your classes and are not told). The class monitor can remove members.
+
+Account deletion: Settings → Delete account. Full form answers for App Privacy and Data safety: `AI_DISCLOSURE.md`.
 
 Export compliance: the app sets `usesNonExemptEncryption` to false (standard HTTPS only).
 

@@ -1,5 +1,7 @@
 # App Store privacy nutrition label draft
 
+> Phase 2: AI explanations, the board scanner, "Say your move", crash reports and usage events change some answers below. Use `AI_DISCLOSURE.md` for the current form answers.
+
 Answers from what ChessSchool v2 actually does. No analytics SDK, no crash reporter, no ads, no App Tracking Transparency prompt, no IDFA. The app does not use the microphone, camera, photos, contacts, or location.
 
 Tracking: **No**. Leave "Data Used to Track You" empty.
