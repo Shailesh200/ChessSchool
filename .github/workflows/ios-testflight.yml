@@ -1,0 +1,104 @@
+name: iOS TestFlight
+
+# Runs by hand (Actions tab, once this file is on main) or when the `testflight` branch
+# is pushed: `git push -f origin <commit>:testflight`. Builds the iOS app on GitHub's macOS runner with `eas build --local`
+# (no Expo build credits) and uploads it to TestFlight. It never submits for App Review
+# and never publishes an over-the-air update. Bump `ios.buildNumber` in
+# apps/chessschool/app.json before each run; the job stops early if that number is
+# already in App Store Connect.
+#
+# Repo secrets: EXPO_TOKEN, SENTRY_AUTH_TOKEN, ASC_API_KEY_ID, ASC_API_ISSUER_ID,
+# ASC_API_KEY_P8_BASE64 (the AuthKey .p8 file, base64 on one line).
+# The .ipa is not uploaded as an artifact: this repo is public.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [testflight]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+      ASC_APP_ID: "6828715695"
+      EAS_BUILD_NO_EXPO_GO_WARNING: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      # Apple requires the iOS 26 SDK for uploads, so use the newest Xcode 26 on the runner.
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XC" ]; then echo "::error::No Xcode 26 on this runner"; ls -d /Applications/Xcode*.app; exit 1; fi
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g eas-cli@27.10.0
+
+      - name: Write the App Store Connect key
+        run: |
+          umask 077
+          echo "$ASC_API_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Check the build number is new
+        working-directory: apps/chessschool
+        run: |
+          node -e '
+          const c = require("crypto"), fs = require("fs");
+          const b = (s) => Buffer.from(s).toString("base64url");
+          const now = Math.floor(Date.now() / 1000);
+          const h = b(JSON.stringify({ alg: "ES256", kid: process.env.ASC_API_KEY_ID, typ: "JWT" }));
+          const p = b(JSON.stringify({ iss: process.env.ASC_API_ISSUER_ID, iat: now, exp: now + 600, aud: "appstoreconnect-v1" }));
+          const sig = c.sign("sha256", Buffer.from(h + "." + p), { key: fs.readFileSync(process.env.ASC_KEY_PATH), dsaEncoding: "ieee-p1363" }).toString("base64url");
+          const { version, ios } = JSON.parse(fs.readFileSync("app.json", "utf8")).expo;
+          const url = `https://api.appstoreconnect.apple.com/v1/builds?filter[app]=${process.env.ASC_APP_ID}&filter[preReleaseVersion.version]=${version}&filter[version]=${ios.buildNumber}&limit=1`;
+          fetch(url, { headers: { Authorization: `Bearer ${h}.${p}.${sig}` } }).then(async (r) => {
+            if (!r.ok) { console.error(`::error::App Store Connect answered ${r.status}`); process.exit(1); }
+            const { data } = await r.json();
+            if (data.length) { console.error(`::error::${version} (${ios.buildNumber}) is already in App Store Connect. Bump ios.buildNumber in apps/chessschool/app.json.`); process.exit(1); }
+            console.log(`Building ${version} (${ios.buildNumber})`);
+          });'
+
+      # pnpm hides Expo's own dependencies from config plugins that eas-cli loads directly.
+      - name: Let eas-cli resolve Expo's dependencies
+        run: echo "NODE_PATH=$(dirname "$(realpath apps/chessschool/node_modules/expo)"):$PWD/node_modules/.pnpm/node_modules" >> "$GITHUB_ENV"
+
+      - name: Build the iOS app
+        working-directory: apps/chessschool
+        run: eas build --platform ios --profile production --local --non-interactive --output "$RUNNER_TEMP/ChessSchool.ipa"
+
+      - name: Upload to TestFlight
+        working-directory: apps/chessschool
+        env:
+          EXPO_ASC_API_KEY_PATH: ${{ env.ASC_KEY_PATH }}
+          EXPO_ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          EXPO_APPLE_TEAM_ID: ARDSWV5GD2
+        run: eas submit --platform ios --profile production --path "$RUNNER_TEMP/ChessSchool.ipa" --non-interactive --wait
+
+      - name: Remove the key and the build
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/ChessSchool.ipa"
