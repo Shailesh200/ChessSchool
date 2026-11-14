@@ -1,9 +1,11 @@
 "use client";
 
-import { ApiError, copy, type ClassRoom } from "@chessschool/design";
+import { ApiError, copy, dayKey, rankFor, visibleStreak, type AvatarId, type ClassMember, type ClassRoom } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button, Card, TextField, TopBar, useToast } from "@/components/ui";
+import { Icon } from "@/components/Icon";
+import { Cody } from "@/components/Lottie";
+import { Button, Card, Sheet, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 
@@ -14,7 +16,13 @@ export default function ClassPage() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState<{ room: ClassRoom; member: ClassMember } | null>(null);
+  const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
   const t = copy.classroom;
+  const closeCard = () => {
+    setOpen(null);
+    setConfirm(null);
+  };
 
   const load = () => {
     if (!state.account) return;
@@ -73,7 +81,14 @@ export default function ClassPage() {
                 <ul className="class-members">
                   {room.members.map((m) => (
                     <li key={m.id}>
-                      {m.name || copy.you.noName} · {m.role === "monitor" ? t.monitor : t.student}
+                      <button type="button" className="member-row" disabled={m.id === state.account?.id} onClick={() => setOpen({ room, member: m })}>
+                        <MemberFace id={m.avatar} size={40} />
+                        <span className="row-text">
+                          <span className="row-label">{m.name || copy.you.noName}</span>
+                          <span className="row-hint">{m.role === "monitor" ? t.monitor : t.student}</span>
+                        </span>
+                        {m.id === state.account?.id ? null : <Icon name="chevron" />}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -97,11 +112,95 @@ export default function ClassPage() {
               {t.join}
             </Button>
           </Card>
+          <Sheet open={Boolean(open)} onClose={closeCard} labelledBy="member-title">
+            {open ? (
+              <MemberCard
+                room={open.room}
+                member={open.member}
+                confirm={confirm}
+                busy={busy}
+                onConfirm={setConfirm}
+                onBlock={() => void run(async () => { await api.blockMember(open.room.id, open.member.id); closeCard(); }, t.blocked)}
+                onRemove={() => void run(async () => { await api.removeMember(open.room.id, open.member.id); closeCard(); }, t.removed)}
+              />
+            ) : null}
+          </Sheet>
           <Link href="/login" className="link-muted">
             {copy.you.saveCard.login}
           </Link>
         </>
       )}
     </div>
+  );
+}
+
+function MemberFace({ id, size }: { id: AvatarId; size: number }) {
+  return (
+    <span className="member-face" style={{ width: size, height: size }} aria-hidden>
+      {id === "cody" ? <Cody animation="idle" size={size - 6} /> : <img src={`/coaches/${id}.png`} alt="" width={size} height={size} />}
+    </span>
+  );
+}
+
+function MemberCard({ room, member, confirm, busy, onConfirm, onBlock, onRemove }: {
+  room: ClassRoom;
+  member: ClassMember;
+  confirm: "block" | "remove" | null;
+  busy: boolean;
+  onConfirm: (v: "block" | "remove" | null) => void;
+  onBlock: () => void;
+  onRemove: () => void;
+}) {
+  const t = copy.classroom;
+  const name = member.name || copy.you.noName;
+  if (confirm) {
+    return (
+      <>
+        <h2 id="member-title">{confirm === "block" ? t.blockTitle(name) : t.removeTitle(name)}</h2>
+        <p>{confirm === "block" ? t.blockBody : t.removeBody}</p>
+        <Button block variant="danger" loading={busy} onClick={confirm === "block" ? onBlock : onRemove}>
+          {confirm === "block" ? t.block : t.remove}
+        </Button>
+        <Button block variant="ghost" onClick={() => onConfirm(null)}>
+          {t.cancel}
+        </Button>
+      </>
+    );
+  }
+  const stats = [
+    { value: String(member.lessons), label: t.stats.lessons },
+    { value: String(visibleStreak(member.streak, dayKey(new Date()))), label: t.stats.streak },
+    { value: copy.ranks[rankFor(member.xp).rank], label: t.stats.rank },
+  ];
+  const report = `/class/report?class=${encodeURIComponent(room.id)}&member=${encodeURIComponent(member.id)}&name=${encodeURIComponent(name)}`;
+  return (
+    <>
+      <MemberFace id={member.avatar} size={84} />
+      <h2 id="member-title">{name}</h2>
+      <p className="muted">
+        {member.role === "monitor" ? t.monitor : t.student} · {t.joinedOn(new Date(member.joinedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" }))}
+      </p>
+      <div className="member-stats">
+        {stats.map((st) => (
+          <div key={st.label} className="stat">
+            <strong>{st.value}</strong>
+            <span>{st.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="member-actions">
+        <Button variant="secondary" icon="flag" href={report}>
+          {t.report}
+        </Button>
+        <Button variant="secondary" icon="block" onClick={() => onConfirm("block")}>
+          {t.block}
+        </Button>
+      </div>
+      {room.role === "monitor" ? (
+        <Button block variant="danger" onClick={() => onConfirm("remove")}>
+          {t.remove}
+        </Button>
+      ) : null}
+    </>
   );
 }

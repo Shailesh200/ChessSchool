@@ -74,6 +74,8 @@ export type Prefs = {
   legalDots: boolean;
   promotion: "ask" | "queen";
   appIcon: string;
+  /** Send anonymous usage events (on by default; Settings can turn it off). */
+  shareUsage: boolean;
 };
 
 export const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -129,6 +131,8 @@ export type LocalState = {
   badgesSeen: string[];
   /** The "Where should I start?" card was answered or dismissed. */
   placementDone: boolean;
+  /** Random id for anonymous usage events only; never sent with an account or the guest id. */
+  usageId: string;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -154,7 +158,7 @@ export function createInitialState(guestId: string): LocalState {
     guestId,
     seenWelcome: false,
     profile: { name: "", who: null, dailyMinutes: 10, avatar: "cody", flair: null },
-    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "classroom", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom" },
+    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "classroom", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true },
     progress: emptyProgress(),
     account: null,
     pendingCeremony: null,
@@ -166,6 +170,7 @@ export function createInitialState(guestId: string): LocalState {
     gameLog: [],
     badgesSeen: [],
     placementDone: false,
+    usageId: `u${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 12)}`,
   };
 }
 
@@ -197,6 +202,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     gameLog: Array.isArray(r.gameLog) ? r.gameLog.filter(isGameRecord).slice(0, GAME_LOG_MAX) : [],
     badgesSeen: Array.isArray(r.badgesSeen) ? r.badgesSeen.filter((b) => typeof b === "string") : [],
     placementDone: r.placementDone === true,
+    usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
   };
 }
 
@@ -214,6 +220,7 @@ function hydratePrefs(base: Prefs, raw: unknown): Prefs {
     promotion: p.promotion === "queen" ? "queen" : "ask",
     appIcon: typeof p.appIcon === "string" ? p.appIcon : "classroom",
     reminderHour: typeof p.reminderHour === "number" && p.reminderHour >= 0 && p.reminderHour < 24 ? p.reminderHour : 18,
+    shareUsage: p.shareUsage !== false,
   };
 }
 

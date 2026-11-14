@@ -95,7 +95,8 @@ function CoachLine({ text, width }: { text: string; width: number }) {
 
 type Props = {
   steps: Step[];
-  onClose: () => void;
+  /** Called with the step the learner left on. */
+  onClose: (step: number) => void;
   closeLabel?: string;
   onFinished: (misses: number) => void;
   done: React.ReactNode;
@@ -146,7 +147,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
   const total = steps.length;
   const top = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, height: TOP_H }}>
-      {s.status === "finished" ? <View style={{ width: 48 }} /> : <IconButton icon="close" label={closeLabel} onPress={onClose} />}
+      {s.status === "finished" ? <View style={{ width: 48 }} /> : <IconButton icon="close" label={closeLabel} onPress={() => onClose(s.index)} />}
       <Steps count={total} current={s.status === "finished" ? total - 1 : s.index} label={copy.lesson.progress(Math.min(s.index + 1, total), total)} />
       <View style={{ width: 48 }} />
     </View>

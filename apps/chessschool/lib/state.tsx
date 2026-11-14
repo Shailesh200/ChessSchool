@@ -7,6 +7,7 @@ import {
   applySignOut,
   arrive,
   completeNode,
+  createUsage,
   placeAt,
   recordGame,
   recordPractice,
@@ -26,10 +27,13 @@ import {
   type SavedGame,
   type SoundCue,
   type LessonMeta,
+  type UsageEventName,
 } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { randomUUID } from "expo-crypto";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Platform } from "react-native";
 import { api, token } from "./api";
 import { feedback } from "./feedback";
 import { googleSignOut } from "./google";
@@ -60,6 +64,8 @@ type Store = {
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
+  /** Anonymous usage event (dropped when "Share anonymous usage" is off). */
+  track: (name: UsageEventName, extra?: { lesson?: string; step?: number; value?: number }) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -69,6 +75,25 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPushed = useRef("");
+  const latest = useRef(state);
+  useEffect(() => {
+    latest.current = state;
+  });
+  const [usage] = useState(() =>
+    createUsage({
+      send: api.sendUsage,
+      install: () => latest.current.usageId,
+      platform: Platform.OS === "ios" ? "ios" : "android",
+      appVersion: Constants.expoConfig?.version ?? "0.0.0",
+      enabled: () => latest.current.prefs.shareUsage,
+    }),
+  );
+  useEffect(() => {
+    if (!ready) return;
+    usage.track("app_open");
+    const sub = AppState.addEventListener("change", (s) => s !== "active" && void usage.flush());
+    return () => sub.remove();
+  }, [ready, usage]);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -118,10 +143,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // Re-plan reminders when anything that changes them changes (goal met today, hour, name, streak).
   const today = dayKey(new Date());
   const reminderKey = [state.prefs.notifications, state.prefs.reminderHour, state.profile.name, state.profile.dailyMinutes, minutesToday(state.progress, today), state.progress.streak.lastDay, today].join("|");
-  const latest = useRef(state);
-  useEffect(() => {
-    latest.current = state;
-  });
   useEffect(() => {
     if (!ready) return;
     const t = setTimeout(() => void syncReminders(latest.current), 600);
@@ -136,14 +157,27 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ready,
       state,
       cue,
+      track: usage.track,
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),
       completeOrientation: () => setState((s) => completeNode(s, "meet", new Date())),
-      completeLesson: (id, meta) => setState((s) => completeNode(s, id, new Date(), meta)),
-      finishPractice: () => setState((s) => recordPractice(s, new Date())),
-      finishGame: (game, minutes) => setState((s) => recordGame(s, game, new Date(), minutes)),
-      finishPuzzle: (p) => setState((s) => recordPuzzle(s, p, new Date())),
+      completeLesson: (id, meta) => {
+        usage.track("lesson_finish", { lesson: id });
+        setState((s) => completeNode(s, id, new Date(), meta));
+      },
+      finishPractice: () => {
+        usage.track("practice_finished");
+        setState((s) => recordPractice(s, new Date()));
+      },
+      finishGame: (game, minutes) => {
+        usage.track("game_finished");
+        setState((s) => recordGame(s, game, new Date(), minutes));
+      },
+      finishPuzzle: (p) => {
+        usage.track(p.solved ? "puzzle_solved" : "puzzle_failed");
+        setState((s) => recordPuzzle(s, p, new Date()));
+      },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
       place: (level) => setState((s) => placeAt(s, level, new Date())),
@@ -179,7 +213,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         })),
       markNotificationOffered: () => setState((s) => ({ ...s, notificationOffered: true })),
     }),
-    [ready, state, cue],
+    [ready, state, cue, usage],
   );
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;

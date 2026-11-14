@@ -28,7 +28,8 @@ import {
   type LessonMeta,
 } from "@chessschool/design";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { isGuestClassLimit } from "@chessschool/design";
+import { createUsage, isGuestClassLimit, type UsageEventName } from "@chessschool/design";
+import { version } from "../package.json";
 import { api } from "./api";
 import { playCue } from "./sound";
 import { applyAppearance, applyFavicon, applyTheme } from "./theme";
@@ -58,6 +59,8 @@ type Store = {
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
+  /** Anonymous usage event (dropped when "Share anonymous usage" is off). */
+  track: (name: UsageEventName, extra?: { lesson?: string; step?: number; value?: number }) => void;
   guestGateOpen: boolean;
   showGuestGate: () => void;
   hideGuestGate: () => void;
@@ -84,6 +87,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const hideGuestGate = useCallback(() => setGuestGateOpen(false), []);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPushed = useRef<string>("");
+  const latest = useRef(state);
+  useEffect(() => {
+    latest.current = state;
+  });
+  const [usage] = useState(() =>
+    createUsage({ send: api.sendUsage, install: () => latest.current.usageId, platform: "web", appVersion: version, enabled: () => latest.current.prefs.shareUsage }),
+  );
+  useEffect(() => {
+    if (!ready) return;
+    usage.track("app_open");
+    const hide = () => document.visibilityState === "hidden" && void usage.flush();
+    document.addEventListener("visibilitychange", hide);
+    return () => document.removeEventListener("visibilitychange", hide);
+  }, [ready, usage]);
 
   useEffect(() => {
     setState(arrive(read(), new Date()));
@@ -143,14 +160,27 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ready,
       state,
       cue,
+      track: usage.track,
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),
       completeOrientation: () => setState((s) => completeNode(s, "meet", new Date())),
-      completeLesson: (id, meta) => setState((s) => completeNode(s, id, new Date(), meta)),
-      finishPractice: () => setState((s) => recordPractice(s, new Date())),
-      finishGame: (game, minutes) => setState((s) => recordGame(s, game, new Date(), minutes)),
-      finishPuzzle: (p) => setState((s) => recordPuzzle(s, p, new Date())),
+      completeLesson: (id, meta) => {
+        usage.track("lesson_finish", { lesson: id });
+        setState((s) => completeNode(s, id, new Date(), meta));
+      },
+      finishPractice: () => {
+        usage.track("practice_finished");
+        setState((s) => recordPractice(s, new Date()));
+      },
+      finishGame: (game, minutes) => {
+        usage.track("game_finished");
+        setState((s) => recordGame(s, game, new Date(), minutes));
+      },
+      finishPuzzle: (p) => {
+        usage.track(p.solved ? "puzzle_solved" : "puzzle_failed");
+        setState((s) => recordPuzzle(s, p, new Date()));
+      },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
       place: (level) => setState((s) => placeAt(s, level, new Date())),
@@ -181,7 +211,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       showGuestGate,
       hideGuestGate,
     }),
-    [ready, state, cue, guestGateOpen, showGuestGate, hideGuestGate],
+    [ready, state, cue, usage, guestGateOpen, showGuestGate, hideGuestGate],
   );
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;

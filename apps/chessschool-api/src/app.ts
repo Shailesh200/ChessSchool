@@ -21,6 +21,7 @@ import {
   type Progress,
 } from "@chessschool/design";
 import { and, desc, eq, gt, lt } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
@@ -58,6 +59,8 @@ export type AppDeps = {
   now?: () => Date;
   /** Lower-case emails allowed to read the usage dashboard and the report queue. */
   adminEmails?: string[];
+  /** Crash reporting hook (Sentry in production). Gets the error only, never the request body. */
+  reportError?: (err: unknown) => Promise<void> | void;
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
@@ -68,6 +71,17 @@ const html = (v: string) => v.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": 
 type UserRow = typeof users.$inferSelect;
 type Vars = { Variables: { user: UserRow } };
 
+/** A member's saved progress for the class card; anything unreadable counts as a fresh start. */
+function memberProgress(data: string | null): Progress {
+  if (!data) return emptyProgress();
+  try {
+    const p = JSON.parse(data) as unknown;
+    return isProgress(p) ? p : emptyProgress();
+  } catch {
+    return emptyProgress();
+  }
+}
+
 const fail = (c: Context, status: number, error: ApiErrorCode, message?: string) =>
   c.json({ error, message }, status as 400);
 
@@ -75,7 +89,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [] }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError }: AppDeps) {
   const app = new Hono<Vars>();
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
@@ -86,8 +100,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
 
   app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
 
-  app.onError((err, c) => {
+  app.onError(async (err, c) => {
     console.error(err);
+    await reportError?.(err);
     return fail(c, 500, "server");
   });
   app.notFound((c) => fail(c, 404, "not_found"));
@@ -384,9 +399,11 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const row = await db.query.classes.findFirst({ where: eq(classes.id, classId) });
     if (!row) return null;
     const members = await db
-      .select({ id: users.id, name: users.name, role: classMembers.role })
+      .select({ id: users.id, name: users.name, role: classMembers.role, joinedAt: classMembers.joinedAt, avatar: profiles.avatar, data: progress.data })
       .from(classMembers)
       .innerJoin(users, eq(users.id, classMembers.userId))
+      .leftJoin(profiles, eq(profiles.userId, classMembers.userId))
+      .leftJoin(progress, eq(progress.userId, classMembers.userId))
       .where(eq(classMembers.classId, classId));
     const me = members.find((m) => m.id === viewerId);
     if (!me) return null;
@@ -396,7 +413,22 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       name: row.name,
       code: row.code,
       role: me.role === "monitor" ? "monitor" : "student",
-      members: members.filter((m) => !hidden.has(m.id)).map((m) => ({ id: m.id, name: m.name || "Friend", role: m.role === "monitor" ? "monitor" : "student" })),
+      members: members
+        .filter((m) => !hidden.has(m.id))
+        .map((m) => {
+          const p = memberProgress(m.data);
+          const placed = new Set(p.placed);
+          return {
+            id: m.id,
+            name: m.name || "Friend",
+            role: m.role === "monitor" ? "monitor" : "student",
+            avatar: isAvatarId(m.avatar) ? m.avatar : "cody",
+            joinedAt: m.joinedAt,
+            lessons: Object.keys(p.completed).filter((id) => !placed.has(id)).length,
+            xp: p.xp,
+            streak: p.streak,
+          };
+        }),
     };
   }
 
@@ -489,20 +521,19 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return { room, viewer, target };
   }
 
-  /** Report a classmate. It goes to the admin queue and the reporter stops seeing them. */
+  /** Report a classmate. It goes to the admin queue; unless `block: false`, the reporter also stops seeing them. */
   app.post("/v1/classes/:id/members/:memberId/report", requireUser, async (c) => {
     const user = c.get("user");
     if (!reportLimiter(user.id)) return fail(c, 429, "rate_limited");
-    const b = await body<{ reason?: string; note?: string }>(c);
+    const b = await body<{ reason?: string; note?: string; block?: boolean }>(c);
     const reason = (REPORT_REASONS as readonly string[]).includes(b.reason ?? "") ? b.reason! : null;
     if (!reason) return fail(c, 400, "invalid_input");
     const pair = await memberPair(c, c.req.param("id") ?? "", c.req.param("memberId") ?? "", user.id);
     if ("error" in pair) return pair.error;
     const at = now().getTime();
-    await db.batch([
-      db.insert(reports).values({ id: newId(), classId: pair.room.id, reporterId: user.id, reportedId: pair.target.userId, reason, note: String(b.note ?? "").trim().slice(0, 500), status: "open", createdAt: at }),
-      db.insert(blocks).values({ blockerId: user.id, blockedId: pair.target.userId, createdAt: at }).onConflictDoNothing(),
-    ]);
+    const report = db.insert(reports).values({ id: newId(), classId: pair.room.id, reporterId: user.id, reportedId: pair.target.userId, reason, note: String(b.note ?? "").trim().slice(0, 500), status: "open", createdAt: at });
+    if (b.block === false) await report;
+    else await db.batch([report, db.insert(blocks).values({ blockerId: user.id, blockedId: pair.target.userId, createdAt: at }).onConflictDoNothing()]);
     return c.json({ ok: true });
   });
 
@@ -549,11 +580,13 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   });
 
   app.get("/v1/admin/reports", requireAdmin, async (c) => {
+    const reporter = alias(users, "reporter");
     const rows = await db
-      .select({ id: reports.id, reason: reports.reason, note: reports.note, status: reports.status, createdAt: reports.createdAt, className: classes.name, reported: users.name, reportedId: reports.reportedId })
+      .select({ id: reports.id, reason: reports.reason, note: reports.note, status: reports.status, createdAt: reports.createdAt, className: classes.name, reported: users.name, reporter: reporter.name })
       .from(reports)
       .leftJoin(classes, eq(classes.id, reports.classId))
       .leftJoin(users, eq(users.id, reports.reportedId))
+      .leftJoin(reporter, eq(reporter.id, reports.reporterId))
       .orderBy(desc(reports.createdAt))
       .limit(200);
     return c.json({ reports: rows });

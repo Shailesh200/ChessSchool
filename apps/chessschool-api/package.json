@@ -20,6 +20,7 @@
     "@chessschool/design": "workspace:*",
     "@hono/node-server": "^1.19.5",
     "@libsql/client": "^0.17.4",
+    "@sentry/node": "10.66.0",
     "bcryptjs": "^3.0.3",
     "chess.js": "^1.4.0",
     "drizzle-orm": "^0.45.2",

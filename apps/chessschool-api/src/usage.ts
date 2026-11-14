@@ -1,10 +1,9 @@
 import { and, desc, gte, lt, sql } from "drizzle-orm";
 import type { Db } from "./db";
 import { events } from "./schema";
+import { USAGE_EVENTS as EVENT_NAMES, type UsageEventName as EventName, type UsageSummary } from "@chessschool/design";
 
-/** The only events the apps may send. Nothing here carries a name, email or account id. */
-export const EVENT_NAMES = ["app_open", "lesson_start", "lesson_finish", "lesson_quit", "puzzle_solved", "puzzle_failed", "game_finished", "practice_finished"] as const;
-export type EventName = (typeof EVENT_NAMES)[number];
+export { EVENT_NAMES };
 
 export const MAX_EVENTS_PER_BATCH = 50;
 /** Events older than this are deleted. */
@@ -51,16 +50,6 @@ export async function recordEvents(db: Db, rows: EventRow[], nowMs: number): Pro
   // Trim old rows now and then rather than on a schedule.
   if (Math.random() < 0.02) await db.delete(events).where(lt(events.at, nowMs - RETENTION_DAYS * DAY));
 }
-
-export type UsageSummary = {
-  days: number;
-  installs: number;
-  daily: { day: string; installs: number }[];
-  lessons: { lesson: string; starts: number; finishes: number; quits: number; completion: number; topQuitStep: number | null }[];
-  puzzles: { solved: number; failed: number };
-  games: number;
-  platforms: { platform: string; installs: number }[];
-};
 
 /** The internal dashboard's numbers for the last `days` days. */
 export async function usageSummary(db: Db, nowMs: number, days: number): Promise<UsageSummary> {

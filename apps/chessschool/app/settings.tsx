@@ -92,6 +92,7 @@ export default function Settings() {
         <T role="heading" header style={{ paddingHorizontal: 12, paddingTop: 10 }}>
           {s.legal}
         </T>
+        <SwitchRow icon="eye" label={s.shareUsage} hint={s.shareUsageHint} value={prefs.shareUsage} onChange={(v) => setPrefs({ shareUsage: v })} />
         <Row icon="shield" label={s.privacy} chevron onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL))} />
         <Row icon="doc" label={s.terms} chevron onPress={() => router.push("/terms")} />
       </Card>

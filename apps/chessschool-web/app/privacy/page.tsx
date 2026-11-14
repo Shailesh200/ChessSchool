@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT = "support@chess-school.in";
-const UPDATED = "July 12, 2026";
+const UPDATED = "November 14, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -66,35 +66,22 @@ export default function PrivacyPage() {
               to be spoken is sent — not your full profile.
             </li>
             <li>
-              <strong>Usage analytics (optional):</strong> when enabled in Settings, we
-              collect first-party product events (e.g. lesson completed, sign-in) and
-              performance metrics (Core Web Vitals such as LCP and INP) tied to page
-              paths. Signed-in users may have a user ID attached; guests send anonymous
-              events only. We also load{" "}
-              <a
-                href="https://vercel.com/docs/analytics"
-                className="link"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Vercel Analytics
-              </a>{" "}
-              and{" "}
-              <a
-                href="https://vercel.com/docs/speed-insights"
-                className="link"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Vercel Speed Insights
-              </a>{" "}
-              on the website for aggregate traffic and performance. You can turn off
-              first-party analytics and performance sharing in Settings; we honour Do
-              Not Track in the browser when set.
+              <strong>Anonymous usage:</strong> the app and website send a few events
+              (app opened, lesson started, finished or left with the step number, puzzle
+              solved or failed, game or practice finished) with a random install ID, the
+              platform and the app version. They never include your name, email, account
+              or guest ID. This is on by default and you can turn it off at any time in
+              Settings → &quot;Share anonymous usage&quot;; events are deleted after 180 days.
             </li>
             <li>
-              <strong>Error monitoring:</strong> when configured, we send crash and
-              error reports to{" "}
+              <strong>Classes:</strong> when you join a class, its members see your
+              display name, avatar, join date, number of lessons finished, streak and
+              rank. You can report or block a classmate; reports (reason, an optional
+              note and who reported whom) are read only by the ChessSchool team. The
+              class monitor can remove members.
+            </li>
+            <li>
+              <strong>Error monitoring:</strong> we send crash and error reports to{" "}
               <a
                 href="https://sentry.io/privacy/"
                 className="link"
@@ -118,7 +105,7 @@ export default function PrivacyPage() {
             <li>Track curriculum completion, exams, homework, and review schedules</li>
             <li>Enable online pass-and-play and share-code multiplayer</li>
             <li>Maintain your student profile and settings</li>
-            <li>Measure site performance and product usage when you opt in</li>
+            <li>See which lessons are too hard, from anonymous usage (unless you turn it off)</li>
           </ul>
           <p>
             We do not sell your personal information. We do not use your data for
@@ -183,14 +170,13 @@ export default function PrivacyPage() {
             We retain your account data while your account is active. You can delete
             your account at any time from the Account screen in the mobile app or web
             app. Deletion permanently removes your profile, progress, lesson records,
-            OAuth links, sessions, and any analytics or performance samples tied to your
-            user ID from our servers. This action cannot be undone.
+            OAuth links, sessions, class memberships, and reports and blocks you made or
+            received from our servers. This action cannot be undone. Anonymous usage
+            events are not tied to your account and are deleted after 180 days.
           </p>
           <p>
             Temporary online game records may remain for a short period without your
-            account identifier. Aggregate, anonymous analytics from Vercel may persist
-            according to Vercel&apos;s retention policies and cannot be tied back to you
-            after account deletion.
+            account identifier.
           </p>
           <p>
             To request deletion by email, contact us at{" "}
@@ -217,8 +203,8 @@ export default function PrivacyPage() {
           <p>
             Depending on your location, you may have rights to access, correct, or
             delete your personal data. Account deletion in the app fulfills deletion
-            requests. You can disable first-party analytics and performance sharing in
-            Settings at any time. For other requests, email{" "}
+            requests. You can turn off anonymous usage sharing in Settings at any
+            time. For other requests, email{" "}
             <a href={`mailto:${CONTACT}`} className="link">
               {CONTACT}
             </a>

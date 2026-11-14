@@ -1,12 +1,25 @@
 import type { Course, CourseLesson } from "./course";
 import { copy } from "./copy";
-import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Who } from "./progress";
+import type { UsageBatch } from "./usage";
+import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Streak, Who } from "./progress";
 
 /* ---------- wire types (shared by API, web, native) ---------- */
 
 export type ApiProfile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; appearance: Prefs["appearance"]; sound: boolean; avatar: AvatarId; flair: FlairId | null };
 export type ClassRole = "monitor" | "student";
-export type ClassMember = { id: string; name: string; role: ClassRole };
+/** A classmate as the class screen shows them. Stats come from their saved progress (zero for a new account). */
+export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; joinedAt: number; lessons: number; xp: number; streak: Streak };
+export type ReportReason = "name" | "behaviour" | "other";
+export type UsageSummary = {
+  days: number;
+  installs: number;
+  daily: { day: string; installs: number }[];
+  lessons: { lesson: string; starts: number; finishes: number; quits: number; completion: number; topQuitStep: number | null }[];
+  puzzles: { solved: number; failed: number };
+  games: number;
+  platforms: { platform: string; installs: number }[];
+};
+export type AdminReport = { id: string; reason: ReportReason; note: string; status: "open" | "resolved"; createdAt: number; className: string | null; reported: string | null; reporter: string | null };
 export type ClassRoom = { id: string; name: string; code: string; role: ClassRole; members: ClassMember[] };
 export type AuthResponse = { user: Account; profile: ApiProfile; progress: Progress; token: string };
 export type MeResponse = { user: Account; profile: ApiProfile };
@@ -143,6 +156,14 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     createClass: (name: string, origin: "web" | "app" = "app") => request<{ class: ClassRoom }>("POST", "/v1/classes", { name, origin }),
     joinClass: (code: string) => request<{ class: ClassRoom }>("POST", "/v1/classes/join", { code }),
     leaveClass: (id: string) => request<{ ok: true }>("DELETE", `/v1/classes/${id}`),
+    reportMember: (classId: string, memberId: string, r: { reason: ReportReason; note?: string; block: boolean }) =>
+      request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/report`, r),
+    blockMember: (classId: string, memberId: string) => request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/block`, {}),
+    removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),
+    sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
+    adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
+    adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),
+    resolveReport: (id: string, status: "open" | "resolved") => request<{ ok: true }>("PATCH", `/v1/admin/reports/${id}`, { status }),
   };
 }
 export type ApiClient = ReturnType<typeof createApiClient>;

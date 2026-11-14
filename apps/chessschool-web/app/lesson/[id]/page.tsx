@@ -16,7 +16,7 @@ type Before = { id: string; done: boolean; streak: number; goal: boolean; firstL
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { state, ready, completeLesson, cue, showGuestGate } = useApp();
+  const { state, ready, completeLesson, cue, showGuestGate, track } = useApp();
   const course = useCourse();
   const { lesson: loaded, guestLimited } = useLesson(id);
   const outline = course?.lessons.find((l) => l.id === id);
@@ -34,6 +34,11 @@ export default function LessonPage() {
   useEffect(() => {
     if (guestLocked) showGuestGate();
   }, [guestLocked, showGuestGate]);
+
+  const hasSteps = Boolean(lesson?.steps);
+  useEffect(() => {
+    if (ready && hasSteps && !guestLocked && id !== "meet") track("lesson_start", { lesson: id });
+  }, [ready, id, hasSteps, guestLocked, track]);
 
   if (guestLocked) {
     return (
@@ -89,6 +94,7 @@ export default function LessonPage() {
       key={id}
       steps={steps}
       closeHref="/today"
+      onClose={(step) => track("lesson_quit", { lesson: id, step })}
       onFinished={(n) => {
         const firstLessonToday = !Object.values(state.progress.completed).some((day) => day === today);
         setMisses(n);

@@ -1,7 +1,7 @@
 import type { Step } from "@chessschool/chess";
 import { copy, dayKey, goalMet, visibleStreak } from "@chessschool/design";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
@@ -15,11 +15,15 @@ const close = () => (router.canGoBack() ? router.back() : router.replace("/today
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { state, completeLesson, cue } = useApp();
+  const { state, completeLesson, cue, track } = useApp();
   const course = useCourse();
   const loaded = useLesson(id);
   const [before, setBefore] = useState<Before | null>(null);
   const lesson = loaded ?? course?.lessons.find((l) => l.id === id);
+  const hasSteps = Boolean(lesson?.steps);
+  useEffect(() => {
+    if (hasSteps && id !== "meet") track("lesson_start", { lesson: id });
+  }, [id, hasSteps, track]);
 
   if (id === "meet") return <Redirect href="/orientation" />;
   if (course && !course.lessons.some((l) => l.id === id) && !loaded) return <Redirect href="/today" />;
@@ -35,7 +39,10 @@ export default function LessonScreen() {
     <LessonPlayer
       key={id}
       steps={lesson.steps as Step[]}
-      onClose={close}
+      onClose={(step) => {
+        track("lesson_quit", { lesson: id, step });
+        close();
+      }}
       onFinished={() => {
         setBefore({
           id,

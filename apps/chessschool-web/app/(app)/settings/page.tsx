@@ -125,6 +125,7 @@ export default function SettingsPage() {
         <h2 id="legal-h" className="card-title list-title">
           {s.legal}
         </h2>
+        <Switch icon="eye" label={s.shareUsage} hint={s.shareUsageHint} checked={prefs.shareUsage} onChange={(v) => setPrefs({ shareUsage: v })} />
         <a className="row" href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="shield" />
           <span className="row-text">

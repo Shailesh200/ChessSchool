@@ -5,7 +5,7 @@ import { createApp } from "../src/app";
 import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
-import { classMembers, classes, feedback, profiles, progress, sessions, users } from "../src/schema";
+import { blocks, classMembers, classes, events, feedback, profiles, progress, reports, sessions, users } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -21,7 +21,7 @@ const fakeGoogle: GoogleVerifier = async (token) => {
 
 beforeEach(async () => {
   db = await seededDb();
-  app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => NOW });
+  app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => NOW, adminEmails: ["admin@b.co"] });
 });
 
 function progressThrough(id: string): Progress {
@@ -451,5 +451,125 @@ describe("classes", () => {
     expect(joined.json.class.members).toHaveLength(2);
     expect(joined.json.class.role).toBe("student");
     expect((await call("POST", "/v1/classes/join", { code: "NOPE00" }, mate.token)).status).toBe(404);
+  });
+});
+
+describe("class safety", () => {
+  const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;
+  async function trio() {
+    const mon = await reg("Monitor", "m@s.co");
+    const asha = await reg("Asha", "a@s.co");
+    const ravi = await reg("Ravi", "r@s.co");
+    const room = (await call("POST", "/v1/classes", { name: "Club" }, mon.token)).json.class;
+    await call("POST", "/v1/classes/join", { code: room.code }, asha.token);
+    await call("POST", "/v1/classes/join", { code: room.code }, ravi.token);
+    return { mon, asha, ravi, room };
+  }
+  const members = async (token: string) => (await call("GET", "/v1/classes", undefined, token)).json.classes[0].members as { id: string; name: string; lessons: number; xp: number; avatar: string; joinedAt: number; streak: { count: number } }[];
+
+  it("shows each member's card stats from saved progress", async () => {
+    const { mon, asha } = await trio();
+    await call("PUT", "/v1/progress", { progress: guestDone().progress }, asha.token);
+    const list = await members(mon.token);
+    const a = list.find((m) => m.name === "Asha")!;
+    expect(a.lessons).toBe(1);
+    expect(a.xp).toBeGreaterThan(0);
+    expect(a.streak.count).toBe(1);
+    expect(a.avatar).toBe("cody");
+    expect(a.joinedAt).toBe(NOW.getTime());
+    expect(list.find((m) => m.name === "Ravi")!.lessons).toBe(0);
+  });
+
+  it("reports a member, blocks them by default and hides them from the reporter only", async () => {
+    const { mon, asha, ravi, room } = await trio();
+    const res = await call("POST", `/v1/classes/${room.id}/members/${ravi.user.id}/report`, { reason: "name", note: "  rude name " }, asha.token);
+    expect(res.status).toBe(200);
+    const [row] = await db.select().from(reports);
+    expect(row).toMatchObject({ reporterId: asha.user.id, reportedId: ravi.user.id, reason: "name", note: "rude name", status: "open" });
+    expect((await members(asha.token)).map((m) => m.name).sort()).toEqual(["Asha", "Monitor"]);
+    expect(await members(mon.token)).toHaveLength(3);
+  });
+
+  it("reports without blocking when asked, and rejects bad reasons, self reports and strangers", async () => {
+    const { asha, ravi, room } = await trio();
+    expect((await call("POST", `/v1/classes/${room.id}/members/${ravi.user.id}/report`, { reason: "behaviour", block: false }, asha.token)).status).toBe(200);
+    expect(await db.select().from(blocks)).toEqual([]);
+    expect(await members(asha.token)).toHaveLength(3);
+    expect((await call("POST", `/v1/classes/${room.id}/members/${ravi.user.id}/report`, { reason: "mean" }, asha.token)).status).toBe(400);
+    expect((await call("POST", `/v1/classes/${room.id}/members/${asha.user.id}/report`, { reason: "other" }, asha.token)).status).toBe(400);
+    const stranger = await reg("Zed", "z@s.co");
+    expect((await call("POST", `/v1/classes/${room.id}/members/${ravi.user.id}/report`, { reason: "other" }, stranger.token)).status).toBe(404);
+  });
+
+  it("blocks a member, and only the monitor can remove one", async () => {
+    const { mon, asha, ravi, room } = await trio();
+    expect((await call("POST", `/v1/classes/${room.id}/members/${ravi.user.id}/block`, {}, asha.token)).status).toBe(200);
+    expect((await members(asha.token)).some((m) => m.id === ravi.user.id)).toBe(false);
+    const denied = await call("DELETE", `/v1/classes/${room.id}/members/${ravi.user.id}`, undefined, asha.token);
+    expect(denied.status).toBe(403);
+    expect(denied.json.error).toBe("forbidden");
+    expect((await call("DELETE", `/v1/classes/${room.id}/members/${ravi.user.id}`, undefined, mon.token)).status).toBe(200);
+    expect((await call("GET", "/v1/classes", undefined, ravi.token)).json.classes).toEqual([]);
+  });
+
+  it("clears reports and blocks when either account is deleted", async () => {
+    const { asha, ravi, room } = await trio();
+    await call("POST", `/v1/classes/${room.id}/members/${ravi.user.id}/report`, { reason: "name" }, asha.token);
+    expect((await call("DELETE", "/v1/me", undefined, ravi.token)).status).toBe(200);
+    expect(await db.select().from(reports)).toEqual([]);
+    expect(await db.select().from(blocks)).toEqual([]);
+  });
+});
+
+describe("usage events and admin", () => {
+  const batch = (over: Record<string, unknown> = {}) => ({
+    install: "inst_1",
+    platform: "ios",
+    appVersion: "0.4.0",
+    events: [
+      { name: "lesson_start", at: NOW.getTime() - 1000, lesson: "meet" },
+      { name: "lesson_quit", at: NOW.getTime() - 500, lesson: "meet", step: 3 },
+      { name: "made_up", at: NOW.getTime() },
+      { name: "app_open", at: NOW.getTime() - 30 * 86_400_000 },
+    ],
+    ...over,
+  });
+
+  it("stores valid events without an account and drops bad ones", async () => {
+    const res = await call("POST", "/v1/events", batch());
+    expect(res.status).toBe(200);
+    expect(res.json.stored).toBe(2);
+    const rows = await db.select().from(events);
+    expect(rows.map((r) => r.name).sort()).toEqual(["lesson_quit", "lesson_start"]);
+    expect((await call("POST", "/v1/events", batch({ install: "bad id!" }))).status).toBe(400);
+    expect((await call("POST", "/v1/events", batch({ platform: "tv" }))).status).toBe(400);
+  });
+
+  it("lets only admin emails read usage and reports, and resolve a report", async () => {
+    await call("POST", "/v1/events", batch());
+    await call("POST", "/v1/events", batch({ install: "inst_2", events: [{ name: "lesson_start", at: NOW.getTime() - 100, lesson: "meet" }, { name: "lesson_finish", at: NOW.getTime() - 50, lesson: "meet" }] }));
+    const admin = (await call("POST", "/v1/auth/register", { name: "Admin", email: "admin@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const user = (await call("POST", "/v1/auth/register", { name: "U", email: "u@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("GET", "/v1/admin/usage")).status).toBe(401);
+    expect((await call("GET", "/v1/admin/usage", undefined, user.token)).status).toBe(403);
+    const usage = await call("GET", "/v1/admin/usage?days=7", undefined, admin.token);
+    expect(usage.status).toBe(200);
+    expect(usage.json.installs).toBe(2);
+    expect(usage.json.lessons).toEqual([{ lesson: "meet", starts: 2, finishes: 1, quits: 1, completion: 50, topQuitStep: 3 }]);
+
+    const mate = (await call("POST", "/v1/auth/register", { name: "Mate", email: "mate@b.co", password: "pawnpawn" })).json as AuthResponse;
+    const room = (await call("POST", "/v1/classes", { name: "Club" }, user.token)).json.class;
+    await call("POST", "/v1/classes/join", { code: room.code }, mate.token);
+    await call("POST", `/v1/classes/${room.id}/members/${mate.user.id}/report`, { reason: "behaviour" }, user.token);
+    const list = await call("GET", "/v1/admin/reports", undefined, admin.token);
+    expect(list.status).toBe(200);
+    expect(list.json.reports).toHaveLength(1);
+    expect(list.json.reports[0]).toMatchObject({ reason: "behaviour", reported: "Mate", reporter: "U", className: "Club", status: "open" });
+    const id = list.json.reports[0].id;
+    expect((await call("PATCH", `/v1/admin/reports/${id}`, { status: "resolved" }, admin.token)).status).toBe(200);
+    expect((await call("PATCH", `/v1/admin/reports/${id}`, { status: "maybe" }, admin.token)).status).toBe(400);
+    expect((await call("PATCH", `/v1/admin/reports/${id}`, { status: "resolved" }, user.token)).status).toBe(403);
+    const [row] = await db.select().from(reports);
+    expect(row.status).toBe("resolved");
   });
 });

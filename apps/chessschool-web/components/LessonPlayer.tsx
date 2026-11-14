@@ -45,12 +45,14 @@ type Props = {
   steps: Step[];
   closeHref: string;
   closeLabel?: string;
+  /** Called with the step the learner left on, before leaving. */
+  onClose?: (step: number) => void;
   /** Called once when the last step is passed. */
   onFinished: (misses: number) => void;
   done: React.ReactNode;
 };
 
-export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close, onFinished, done }: Props) {
+export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close, onClose, onFinished, done }: Props) {
   const { cue } = useApp();
   const router = useRouter();
   const [s, setS] = useState(() => startRunner(steps));
@@ -155,7 +157,14 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
   return (
     <div className="lesson">
       <header className="flow-top">
-        <button className="icon-btn" onClick={() => router.push(closeHref)} aria-label={closeLabel}>
+        <button
+          className="icon-btn"
+          onClick={() => {
+            onClose?.(s.index);
+            router.push(closeHref);
+          }}
+          aria-label={closeLabel}
+        >
           <Icon name="close" />
         </button>
         <div className="steps" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={s.index + 1} aria-label={copy.lesson.progress(s.index + 1, total)}>
