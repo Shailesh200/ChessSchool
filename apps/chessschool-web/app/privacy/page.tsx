@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TopBar } from "@/components/ui";
+import { AiSection } from "./AiSection";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT = "support@chess-school.in";
-const UPDATED = "November 14, 2026";
+const UPDATED = "November 15, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -112,6 +113,8 @@ export default function PrivacyPage() {
             </li>
           </ul>
         </section>
+
+        <AiSection />
 
         <section>
           <h2>How we use your information</h2>

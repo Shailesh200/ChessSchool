@@ -971,6 +971,42 @@ export const copy = {
     ],
   },
 
+  /** The "AI features" section of the privacy policy (web /privacy). */
+  privacyAi: {
+    title: "AI features",
+    intro: "ChessSchool uses AI (language models from outside companies) in two places. Here is exactly what they get and what you can switch off.",
+    items: [
+      {
+        label: "Game explanations (optional)",
+        text: "After a game, the app can explain a move in plain words. To write that, we send the AI provider only the chess moves and board positions of the game. We never send names, emails, account or profile IDs, or anything a child has typed.",
+      },
+      {
+        label: "Who sees them",
+        text: "Adults see AI explanations by default and can turn them off in Settings at any time. On a child's profile they stay off until a parent turns them on.",
+      },
+      {
+        label: "Which providers",
+        text: "Cloudflare Workers AI first, then Groq, then Anthropic, used in that order only when the one before is unavailable. Each gets the same moves and positions, nothing more.",
+      },
+      {
+        label: "Saved explanations",
+        text: "An explanation is saved for its board position, so the next learner who reaches the same position gets the saved text and nothing is sent again. Saved explanations are not linked to any person.",
+      },
+      {
+        label: "Lesson-writing tool (staff only)",
+        text: "Our team uses Anthropic's AI to help draft new lessons. Only our lesson topics and course positions are sent, never learner data. Every lesson is checked and published by a person.",
+      },
+      {
+        label: "“Say your move”",
+        text: "Speech recognition runs on your device. The audio never leaves it; only the move it hears is used, on your device.",
+      },
+      {
+        label: "Board scanner",
+        text: "When you scan a real chessboard, the photo is sent to Anthropic's AI only to read the position from it. We don't keep the photo, and all that comes back is the position.",
+      },
+    ],
+  },
+
   system: {
     offline: "You're offline. Your progress is saved on this device and will sync later.",
     apiDown: "ChessSchool's servers aren't answering. You can keep learning here; we'll sync later.",
