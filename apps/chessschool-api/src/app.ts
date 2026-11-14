@@ -15,14 +15,20 @@ import {
   type Account,
   type ApiErrorCode,
   type ApiProfile,
+  type ClassGame,
+  type ClassGameReason,
+  type ClassGameResult,
   type ClassRoom,
+  type GamePlayer,
+  type Homework,
+  type Tournament,
   type AuthResponse,
   type DailyMinutes,
   type GuestPayload,
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
-import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lt, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
@@ -39,7 +45,8 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, childProgress, children, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users, weeklySummary } from "./schema";
+import { blocks, childProgress, children, classes, classGames, classMembers, feedback, homework, leaderboardHidden, profiles, progress, reports, sessions, tournaments, users, weeklySummary } from "./schema";
+import { playMove, roundRobin, splitMoves, standings } from "./class-play";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
@@ -111,6 +118,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
   const eventsLimiter = createRateLimiter(30, 60_000, () => now().getTime());
   const reportLimiter = createRateLimiter(10, 60 * 60_000, () => now().getTime());
+  /** Homework, challenges and tournaments; moves and resigns have their own, roomier limit. */
+  const classWriteLimiter = createRateLimiter(30, 10 * 60_000, () => now().getTime());
+  const moveLimiter = createRateLimiter(120, 60_000, () => now().getTime());
   const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
 
@@ -520,7 +530,13 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!row) return fail(c, 404, "not_found");
     const mine = await db.query.classMembers.findFirst({ where: and(eq(classMembers.classId, id), eq(classMembers.userId, user.id)) });
     if (!mine) return fail(c, 404, "not_found");
-    if (row.ownerId === user.id) await db.delete(classes).where(eq(classes.id, id));
+    if (row.ownerId === user.id)
+      await db.batch([
+        db.delete(classGames).where(eq(classGames.classId, id)),
+        db.delete(homework).where(eq(homework.classId, id)),
+        db.delete(tournaments).where(eq(tournaments.classId, id)),
+        db.delete(classes).where(eq(classes.id, id)),
+      ]);
     else await db.delete(classMembers).where(and(eq(classMembers.classId, id), eq(classMembers.userId, user.id)));
     return c.json({ ok: true });
   });
@@ -610,6 +626,250 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (pair.room.ownerId !== user.id) return fail(c, 403, "forbidden");
     await db.delete(classMembers).where(and(eq(classMembers.classId, pair.room.id), eq(classMembers.userId, pair.target.userId)));
     return c.json({ ok: true });
+  });
+
+  /* ---------- class homework, games and tournaments ---------- */
+
+  /** True when either user has blocked the other. */
+  async function blockedBetween(a: string, b: string) {
+    const row = await db.query.blocks.findFirst({ where: or(and(eq(blocks.blockerId, a), eq(blocks.blockedId, b)), and(eq(blocks.blockerId, b), eq(blocks.blockedId, a))) });
+    return Boolean(row);
+  }
+
+  async function players(ids: string[]): Promise<Map<string, GamePlayer>> {
+    if (!ids.length) return new Map();
+    const rows = await db
+      .select({ id: users.id, name: users.name, avatar: profiles.avatar })
+      .from(users)
+      .leftJoin(profiles, eq(profiles.userId, users.id))
+      .where(inArray(users.id, [...new Set(ids)]));
+    return new Map(rows.map((r) => [r.id, { id: r.id, name: r.name || "Friend", avatar: isAvatarId(r.avatar) ? r.avatar : "cody" }]));
+  }
+
+  type GameRow = typeof classGames.$inferSelect;
+  function gameView(g: GameRow, viewerId: string, people: Map<string, GamePlayer>): ClassGame {
+    const moves = splitMoves(g.moves);
+    const you = g.whiteId === viewerId ? "w" : g.blackId === viewerId ? "b" : null;
+    const who = (id: string): GamePlayer => people.get(id) ?? { id, name: "Friend", avatar: "cody" };
+    return {
+      id: g.id,
+      classId: g.classId,
+      tournamentId: g.tournamentId,
+      white: who(g.whiteId),
+      black: who(g.blackId),
+      moves,
+      status: g.status === "over" ? "over" : "active",
+      result: (g.result as ClassGameResult | null) ?? null,
+      reason: (g.reason as ClassGameReason | null) ?? null,
+      you,
+      yourTurn: g.status !== "over" && you === (moves.length % 2 ? "b" : "w"),
+      updatedAt: g.updatedAt,
+    };
+  }
+  const oneGame = async (g: GameRow, viewerId: string) => gameView(g, viewerId, await players([g.whiteId, g.blackId]));
+
+  /** The class's homework, soonest due first, with which students have finished every lesson. */
+  async function homeworkOf(room: ClassRoom, only?: string): Promise<Homework[]> {
+    const rows = await db.select().from(homework).where(only ? and(eq(homework.classId, room.id), eq(homework.id, only)) : eq(homework.classId, room.id)).orderBy(asc(homework.due), asc(homework.createdAt));
+    const students = room.members.filter((m) => m.role === "student");
+    const saved = students.length ? await db.select({ id: progress.userId, data: progress.data }).from(progress).where(inArray(progress.userId, students.map((m) => m.id))) : [];
+    const finished = new Map(
+      saved.map((r) => {
+        const p = memberProgress(r.data);
+        const placed = new Set(p.placed);
+        return [r.id, new Set(Object.keys(p.completed).filter((id) => !placed.has(id)))];
+      }),
+    );
+    return rows.map((h) => {
+      const lessons = JSON.parse(h.lessons) as string[];
+      return {
+        id: h.id,
+        lessons,
+        due: h.due,
+        createdAt: h.createdAt,
+        members: students.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, done: lessons.every((l) => finished.get(m.id)?.has(l)) })),
+      };
+    });
+  }
+
+  app.get("/v1/classes/:id/homework", requireUser, async (c) => {
+    const room = await roomOf(c.req.param("id") ?? "", c.get("user").id);
+    if (!room) return fail(c, 404, "not_found");
+    return c.json({ homework: await homeworkOf(room) });
+  });
+
+  app.post("/v1/classes/:id/homework", requireUser, async (c) => {
+    const user = c.get("user");
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    if (room.role !== "monitor") return fail(c, 403, "forbidden");
+    if (!classWriteLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const b = await body<{ lessons: unknown; due: unknown }>(c);
+    const known = new Set((await loadPath(db)).map((p) => p.id));
+    const lessons = Array.isArray(b.lessons) ? [...new Set(b.lessons)] : [];
+    const due = typeof b.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.due) && !Number.isNaN(Date.parse(b.due)) ? b.due : null;
+    if (!due || !lessons.length || lessons.length > 10 || !lessons.every((l) => typeof l === "string" && known.has(l))) return fail(c, 400, "invalid_input");
+    const id = newId();
+    await db.insert(homework).values({ id, classId: room.id, createdBy: user.id, lessons: JSON.stringify(lessons), due, createdAt: now().getTime() });
+    return c.json({ homework: (await homeworkOf(room, id))[0] }, 201);
+  });
+
+  app.delete("/v1/classes/:id/homework/:homeworkId", requireUser, async (c) => {
+    const room = await roomOf(c.req.param("id") ?? "", c.get("user").id);
+    if (!room) return fail(c, 404, "not_found");
+    if (room.role !== "monitor") return fail(c, 403, "forbidden");
+    const gone = await db.delete(homework).where(and(eq(homework.classId, room.id), eq(homework.id, c.req.param("homeworkId") ?? "")));
+    if (!gone.rowsAffected) return fail(c, 404, "not_found");
+    return c.json({ ok: true });
+  });
+
+  /** My games in this class: my turn first, then the most recently played. */
+  app.get("/v1/classes/:id/games", requireUser, async (c) => {
+    const user = c.get("user");
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    const rows = await db
+      .select()
+      .from(classGames)
+      .where(and(eq(classGames.classId, room.id), or(eq(classGames.whiteId, user.id), eq(classGames.blackId, user.id))))
+      .orderBy(desc(classGames.updatedAt));
+    const people = await players(rows.flatMap((g) => [g.whiteId, g.blackId]));
+    const games = rows.map((g) => gameView(g, user.id, people));
+    return c.json({ games: [...games.filter((g) => g.yourTurn), ...games.filter((g) => !g.yourTurn)] });
+  });
+
+  /** Challenge a classmate. Blocked pairs (either way) cannot play. */
+  app.post("/v1/classes/:id/games", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ opponentId: string; color: string }>(c);
+    const pair = await memberPair(c, c.req.param("id") ?? "", String(b.opponentId ?? ""), user.id);
+    if ("error" in pair) return pair.error;
+    if (await blockedBetween(user.id, pair.target.userId)) return fail(c, 403, "forbidden");
+    if (!classWriteLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const color = b.color === "w" || b.color === "b" ? b.color : Math.random() < 0.5 ? "w" : "b";
+    const at = now().getTime();
+    const row: GameRow = {
+      id: newId(),
+      classId: pair.room.id,
+      tournamentId: null,
+      whiteId: color === "w" ? user.id : pair.target.userId,
+      blackId: color === "w" ? pair.target.userId : user.id,
+      moves: "",
+      status: "active",
+      result: null,
+      reason: null,
+      createdAt: at,
+      updatedAt: at,
+    };
+    await db.insert(classGames).values(row);
+    return c.json({ game: await oneGame(row, user.id) }, 201);
+  });
+
+  /** A game in a class the caller belongs to. */
+  async function classGame(c: Context, userId: string) {
+    const room = await roomOf(c.req.param("id") ?? "", userId);
+    if (!room) return { error: fail(c, 404, "not_found") };
+    const game = await db.query.classGames.findFirst({ where: and(eq(classGames.id, c.req.param("gameId") ?? ""), eq(classGames.classId, room.id)) });
+    if (!game) return { error: fail(c, 404, "not_found") };
+    return { room, game };
+  }
+
+  app.get("/v1/classes/:id/games/:gameId", requireUser, async (c) => {
+    const user = c.get("user");
+    const found = await classGame(c, user.id);
+    if ("error" in found) return found.error;
+    return c.json({ game: await oneGame(found.game, user.id) });
+  });
+
+  /** Plays one move: 403 for onlookers and blocked pairs, 409 when it isn't your turn or the game is over, 400 when illegal. */
+  app.post("/v1/classes/:id/games/:gameId/moves", requireUser, async (c) => {
+    const user = c.get("user");
+    if (!moveLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const found = await classGame(c, user.id);
+    if ("error" in found) return found.error;
+    const g = found.game;
+    const you = g.whiteId === user.id ? "w" : g.blackId === user.id ? "b" : null;
+    if (!you) return fail(c, 403, "forbidden");
+    if (await blockedBetween(g.whiteId, g.blackId)) return fail(c, 403, "forbidden");
+    if (g.status === "over" || you !== (splitMoves(g.moves).length % 2 ? "b" : "w")) return fail(c, 409, "conflict");
+    const b = await body<{ from: string; to: string; promotion: string }>(c);
+    const played = playMove(g.moves, String(b.from ?? ""), String(b.to ?? ""), typeof b.promotion === "string" ? b.promotion : undefined);
+    if (!played) return fail(c, 400, "invalid_input");
+    const next: GameRow = { ...g, moves: played.moves, status: played.over ? "over" : "active", result: played.over?.result ?? null, reason: played.over?.reason ?? null, updatedAt: now().getTime() };
+    // Only lands on the position we checked; a second tab's move in between makes this one a 409.
+    const res = await db
+      .update(classGames)
+      .set({ moves: next.moves, status: next.status, result: next.result, reason: next.reason, updatedAt: next.updatedAt })
+      .where(and(eq(classGames.id, g.id), eq(classGames.moves, g.moves), eq(classGames.status, "active")));
+    if (!res.rowsAffected) return fail(c, 409, "conflict");
+    return c.json({ game: await oneGame(next, user.id) });
+  });
+
+  app.post("/v1/classes/:id/games/:gameId/resign", requireUser, async (c) => {
+    const user = c.get("user");
+    if (!moveLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const found = await classGame(c, user.id);
+    if ("error" in found) return found.error;
+    const g = found.game;
+    if (g.whiteId !== user.id && g.blackId !== user.id) return fail(c, 403, "forbidden");
+    if (g.status === "over") return fail(c, 409, "conflict");
+    const next: GameRow = { ...g, status: "over", result: g.whiteId === user.id ? "0-1" : "1-0", reason: "resign", updatedAt: now().getTime() };
+    await db.update(classGames).set({ status: next.status, result: next.result, reason: next.reason, updatedAt: next.updatedAt }).where(eq(classGames.id, g.id));
+    return c.json({ game: await oneGame(next, user.id) });
+  });
+
+  async function tournamentsOf(room: ClassRoom, viewerId: string, only?: string): Promise<Tournament[]> {
+    const rows = await db.select().from(tournaments).where(only ? eq(tournaments.id, only) : eq(tournaments.classId, room.id)).orderBy(desc(tournaments.createdAt));
+    if (!rows.length) return [];
+    const games = await db.select().from(classGames).where(inArray(classGames.tournamentId, rows.map((t) => t.id)));
+    const people = await players(games.flatMap((g) => [g.whiteId, g.blackId]));
+    const hidden = new Set((await db.select({ id: blocks.blockedId }).from(blocks).where(eq(blocks.blockerId, viewerId))).map((b) => b.id));
+    return rows.map((t) => {
+      const mine = games.filter((g) => g.tournamentId === t.id);
+      const table = standings(mine);
+      return {
+        id: t.id,
+        createdAt: t.createdAt,
+        done: mine.filter((g) => g.status === "over").length,
+        total: mine.length,
+        standings: [...table]
+          .filter(([id]) => !hidden.has(id))
+          .map(([id, s]) => ({ ...(people.get(id) ?? { id, name: "Friend", avatar: "cody" as const }), ...s }))
+          .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)),
+      };
+    });
+  }
+
+  app.get("/v1/classes/:id/tournaments", requireUser, async (c) => {
+    const user = c.get("user");
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    return c.json({ tournaments: await tournamentsOf(room, user.id) });
+  });
+
+  /** The class monitor starts a round robin for 3 to 8 members; pairs where one blocked the other are left out. */
+  app.post("/v1/classes/:id/tournaments", requireUser, async (c) => {
+    const user = c.get("user");
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    if (room.role !== "monitor") return fail(c, 403, "forbidden");
+    if (!classWriteLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const b = await body<{ players: unknown }>(c);
+    const ids = Array.isArray(b.players) ? [...new Set(b.players)] : [];
+    const members = new Set(room.members.map((m) => m.id));
+    if (ids.length < 3 || ids.length > 8 || !ids.every((id): id is string => typeof id === "string" && members.has(id))) return fail(c, 400, "invalid_input");
+    const blocked = await db.select().from(blocks).where(or(inArray(blocks.blockerId, ids), inArray(blocks.blockedId, ids)));
+    const apart = new Set(blocked.map((r) => [r.blockerId, r.blockedId].sort().join(" ")));
+    const at = now().getTime();
+    const id = newId();
+    const pairings = roundRobin(ids).filter(([w, bl]) => !apart.has([w, bl].sort().join(" ")));
+    await db.batch([
+      db.insert(tournaments).values({ id, classId: room.id, createdBy: user.id, createdAt: at }),
+      ...pairings.map(([whiteId, blackId]) =>
+        db.insert(classGames).values({ id: newId(), classId: room.id, tournamentId: id, whiteId, blackId, moves: "", status: "active", result: null, reason: null, createdAt: at, updatedAt: at }),
+      ),
+    ]);
+    return c.json({ tournament: (await tournamentsOf(room, user.id, id))[0] }, 201);
   });
 
   /** Anonymous usage events from the apps. No account is needed or recorded. */
