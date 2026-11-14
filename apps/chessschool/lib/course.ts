@@ -61,3 +61,15 @@ export function useLesson(id: string | undefined) {
   return lesson;
 }
 
+
+/** Saves lessons where useLesson looks first, so they open offline. Returns how many were saved. */
+export async function saveLessonsOffline(ids: string[]): Promise<number> {
+  let saved = 0;
+  for (const id of ids) {
+    try {
+      await AsyncStorage.setItem(lessonKey(id), JSON.stringify(await api.lesson(id, true)));
+      saved++;
+    } catch {}
+  }
+  return saved;
+}

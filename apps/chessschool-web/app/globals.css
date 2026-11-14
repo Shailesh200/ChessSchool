@@ -4750,3 +4750,41 @@ button.focus-card {
 html[lang="hi"] body {
   font-family: var(--font-baloo), var(--font-fredoka), system-ui, sans-serif;
 }
+
+.week-board {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+.week-board h3 {
+  margin: 0;
+}
+.week-board ol {
+  margin: 0;
+  padding-left: 1.6em;
+  display: grid;
+  gap: 4px;
+}
+.week-board li {
+  padding: 6px 10px;
+  border-radius: 12px;
+}
+.week-board li > * {
+  vertical-align: middle;
+}
+.week-board li.me {
+  background: var(--cs-brand-soft);
+}
+.week-board .member-face {
+  display: inline-grid;
+  margin-right: 10px;
+}
+.week-board .week-name {
+  display: inline-block;
+  min-width: 0;
+}
+.week-board strong {
+  float: right;
+  color: var(--cs-brand-text);
+  line-height: 28px;
+}

@@ -17,7 +17,11 @@ export const isAvatarId = (v: unknown): v is AvatarId => AVATARS.includes(v as A
 export const isFlairId = (v: unknown): v is FlairId => FLAIRS.includes(v as FlairId);
 export type NotificationStatus = "unknown" | "granted" | "denied" | "dismissed";
 
-export type Streak = { count: number; lastDay: string | null };
+/** `freezes`: spare days earned (one per 7-day stretch, at most FREEZE_MAX) that cover a missed day. */
+export type Streak = { count: number; lastDay: string | null; freezes?: number };
+export const FREEZE_MAX = 2;
+/** Leaves `freezes` out when there are none, so stored streaks keep their old shape. */
+const withFreezes = (s: { count: number; lastDay: string | null }, freezes: number): Streak => (freezes > 0 ? { ...s, freezes } : s);
 
 export type Progress = {
   /** nodeId -> local day (YYYY-MM-DD) it was first completed */
@@ -343,19 +347,24 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000);
 }
 
+/** Today's activity extends the streak; missed days are covered by freezes while there are enough. */
 export function streakAfterActivity(streak: Streak, today: string): Streak {
-  if (!streak.lastDay) return { count: 1, lastDay: today };
+  const freezes = streak.freezes ?? 0;
+  if (!streak.lastDay) return withFreezes({ count: 1, lastDay: today }, freezes);
   const gap = daysBetween(streak.lastDay, today);
   if (gap <= 0) return streak;
-  if (gap === 1) return { count: streak.count + 1, lastDay: today };
-  return { count: 1, lastDay: today };
+  const missed = gap - 1;
+  if (missed > freezes) return withFreezes({ count: 1, lastDay: today }, freezes);
+  const count = streak.count + 1;
+  const earned = count % 7 === 0 ? 1 : 0;
+  return withFreezes({ count, lastDay: today }, Math.min(FREEZE_MAX, freezes - missed + earned));
 }
 
-/** Streak to show today: a streak survives until the end of the day after its last activity. */
+/** Streak to show today: alive through the day after its last activity, plus one day per freeze. */
 export function visibleStreak(streak: Streak, today: string): number {
   if (!streak.lastDay) return 0;
   const gap = daysBetween(streak.lastDay, today);
-  return gap <= 1 ? streak.count : 0;
+  return gap - 1 <= (streak.freezes ?? 0) ? streak.count : 0;
 }
 
 export function minutesToday(progress: Progress, today: string): number {
@@ -610,6 +619,35 @@ export function placeAt(state: LocalState, level: Placement, now: Date): LocalSt
   return { ...state, placementDone: true, progress: { ...state.progress, completed, placed: [...placed], puzzles: { ...pz, rating } } };
 }
 
+/**
+ * Placement quiz result: every lesson before `startAt` (course order) counts as known, without XP.
+ * The puzzle rating starts higher the further in the learner starts, if they haven't played puzzles.
+ */
+export function placeBefore(state: LocalState, order: readonly string[], startAt: string, now: Date): LocalState {
+  const cut = order.indexOf(startAt);
+  const skip = cut < 0 ? order : order.slice(0, cut);
+  const today = dayKey(now);
+  const completed = { ...state.progress.completed };
+  const placed = new Set(state.progress.placed);
+  for (const id of skip) {
+    if (!completed[id]) {
+      completed[id] = today;
+      placed.add(id);
+    }
+  }
+  const pz = state.progress.puzzles;
+  const share = order.length ? skip.length / order.length : 0;
+  const rating = pz.attempts === 0 ? Math.round(600 + 900 * share) : pz.rating;
+  return { ...state, placementDone: true, progress: { ...state.progress, completed, placed: [...placed], puzzles: { ...pz, rating } } };
+}
+
+/** Where the quiz starts the learner: the lesson of the first item they missed, or the one after the last item. */
+export function placementStart(order: readonly string[], items: readonly string[], firstMiss: number | null): string | null {
+  if (firstMiss !== null) return items[firstMiss] ?? null;
+  const last = order.indexOf(items[items.length - 1] ?? "");
+  return last >= 0 ? (order[last + 1] ?? null) : null;
+}
+
 /* ---------- return loop ---------- */
 
 /**
@@ -621,7 +659,7 @@ export function arrive(state: LocalState, now: Date): LocalState {
   if (state.lastOpenDay === today) return state;
   const last = state.progress.streak.lastDay;
   let arrival: Arrival | null = null;
-  if (last && last < today && state.progress.streak.count > 0) arrival = daysBetween(last, today) === 1 ? "kept" : "fresh";
+  if (last && last < today && state.progress.streak.count > 0) arrival = visibleStreak(state.progress.streak, today) > 0 ? "kept" : "fresh";
   return { ...state, lastOpenDay: today, arrival };
 }
 
@@ -693,7 +731,11 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   const la = a.streak.lastDay ?? "";
   const lb = b.streak.lastDay ?? "";
   const streak =
-    la === lb ? { count: Math.max(a.streak.count, b.streak.count), lastDay: a.streak.lastDay } : la > lb ? a.streak : b.streak;
+    la === lb
+      ? withFreezes({ count: Math.max(a.streak.count, b.streak.count), lastDay: a.streak.lastDay }, Math.max(a.streak.freezes ?? 0, b.streak.freezes ?? 0))
+      : la > lb
+        ? a.streak
+        : b.streak;
   const da = a.minutes.day ?? "";
   const db = b.minutes.day ?? "";
   const minutes = da === db ? { day: a.minutes.day, value: Math.max(a.minutes.value, b.minutes.value) } : da > db ? a.minutes : b.minutes;
@@ -793,7 +835,11 @@ export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null):
   return {
     completed,
     xp: Math.min(Math.max(0, Math.floor(p.xp)), xpCap),
-    streak: { count: Math.max(0, Math.min(10_000, Math.floor(p.streak.count))), lastDay: day(p.streak.lastDay) },
+    // Freezes are earned one per 7 days of streak, so a client can't claim more than that.
+    streak: withFreezes(
+      { count: Math.max(0, Math.min(10_000, Math.floor(p.streak.count))), lastDay: day(p.streak.lastDay) },
+      Math.min(FREEZE_MAX, Math.floor(Math.max(0, p.streak.count) / 7), count(p.streak.freezes)),
+    ),
     minutes: { day: day(p.minutes.day), value: Math.max(0, Math.min(1440, Math.floor(p.minutes.value))) },
     games: { played, won: Math.min(played, count(p.games?.won)) },
     drills: count(p.drills),

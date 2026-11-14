@@ -117,3 +117,7 @@ function normalizeGuestLock(lesson: CourseLesson): CourseLesson {
   const { guestLocked: _ignored, ...rest } = lesson;
   return rest;
 }
+
+/** The next `n` lessons the learner hasn't finished, in course order (for offline download). */
+export const nextLessonIds = (course: { lessons: { id: string }[] }, completed: Record<string, string>, n = 10) =>
+  course.lessons.filter((l) => !completed[l.id] && l.id !== "meet").slice(0, n).map((l) => l.id);

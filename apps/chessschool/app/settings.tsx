@@ -1,4 +1,4 @@
-import { coachOf, copy, LANG_NAMES, LANGS, language, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -9,6 +9,7 @@ import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
+import { saveLessonsOffline, useCourse } from "@/lib/course";
 import { openSystemSettings, requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
 
@@ -17,6 +18,8 @@ export default function Settings() {
   const toast = useToast();
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const course = useCourse();
   const { prefs, account } = state;
   const s = copy.settings;
 
@@ -110,6 +113,21 @@ export default function Settings() {
         </T>
         <Row icon="chat" label={s.feedback} chevron onPress={() => setSheet("feedback")} />
         <Row icon="sparkles" label={s.whatsNew} chevron onPress={() => setSheet("news")} />
+        <Row
+          icon="wifiOff"
+          label={saving ? s.offlineWorking : s.offline}
+          hint={s.offlineHint}
+          onPress={
+            saving || !course
+              ? undefined
+              : async () => {
+                  setSaving(true);
+                  const n = await saveLessonsOffline(nextLessonIds(course, state.progress.completed));
+                  setSaving(false);
+                  toast(n ? s.offlineDone(n) : s.offlineNone);
+                }
+          }
+        />
       </Card>
 
       <Card style={{ padding: 8 }}>

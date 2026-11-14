@@ -1,10 +1,10 @@
-import { copy, dayKey, rankFor, visibleStreak, type ClassMember, type ClassRoom } from "@chessschool/design";
+import { copy, dayKey, rankFor, visibleStreak, type ClassMember, type ClassRoom, type Leaderboard } from "@chessschool/design";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, Share, View } from "react-native";
 import { AvatarFace } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
-import { Button, Card, Page, Sheet, T, TextField, useToast } from "@/components/ui";
+import { Button, Card, Page, Sheet, SwitchRow, T, TextField, useToast } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
@@ -19,6 +19,8 @@ export default function ClassScreen() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<{ room: ClassRoom; member: ClassMember } | null>(null);
   const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
+  const [hidden, setHidden] = useState<boolean | null>(null);
+  const [tick, setTick] = useState(0);
   const t = copy.classroom;
 
   const load = () => {
@@ -26,7 +28,12 @@ export default function ClassScreen() {
     api.classes().then((r) => setRooms(r.classes)).catch(() => {});
   };
   // Reload on focus so a report from the report screen hides the member right away.
-  useFocusEffect(useCallback(load, [state.account]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      setTick((n) => n + 1);
+    }, [state.account]),
+  );
   const closeCard = () => {
     setOpen(null);
     setConfirm(null);
@@ -101,6 +108,7 @@ export default function ClassScreen() {
                 </Pressable>
               );
             })}
+            <WeekBoard roomId={room.id} refresh={tick} onHidden={setHidden} />
             <Button
               title={room.role === "monitor" ? t.close : t.leave}
               variant="ghost"
@@ -114,6 +122,20 @@ export default function ClassScreen() {
           {t.empty}
         </T>
       )}
+      {rooms.length && hidden !== null ? (
+        <Card style={{ padding: 8 }}>
+          <SwitchRow
+            icon="trophy"
+            label={t.showMe}
+            hint={t.showMeHint}
+            value={!hidden}
+            onChange={(show) => {
+              setHidden(!show);
+              void api.setLeaderboardHidden(!show).then(() => setTick((n) => n + 1)).catch(() => setHidden(show));
+            }}
+          />
+        </Card>
+      ) : null}
       <Card style={{ gap: 10 }}>
         <TextField label={t.name} placeholder={t.namePlaceholder} value={name} onChangeText={setName} maxLength={40} />
         <Button title={t.create} disabled={busy || !name.trim()} onPress={() => void run(async () => { await api.createClass(name.trim()); setName(""); }, t.created)} />
@@ -206,6 +228,54 @@ function MemberCard({ room, member, confirm, busy, onConfirm, onReport, onBlock,
           <Button title={t.remove} variant="danger" onPress={() => onConfirm("remove")} />
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** This week's lessons in one class, most first. */
+function WeekBoard({ roomId, refresh, onHidden }: { roomId: string; refresh: number; onHidden: (hidden: boolean) => void }) {
+  const { c } = useTheme();
+  const t = copy.classroom;
+  const [board, setBoard] = useState<Leaderboard | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .leaderboard(roomId, dayKey(new Date()))
+      .then((b) => {
+        if (!live) return;
+        setBoard(b);
+        onHidden(b.hidden);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [roomId, refresh, onHidden]);
+  if (!board) return null;
+  const any = board.entries.some((e) => e.lessons > 0);
+  return (
+    <View style={{ gap: 6, paddingTop: 8 }}>
+      <T role="label">{t.weekTitle}</T>
+      {any ? (
+        board.entries.slice(0, 10).map((e, i) => (
+          <View key={e.id} accessible accessibilityLabel={`${i + 1}. ${e.name}, ${t.weekLessons(e.lessons)}`} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: e.me ? c.brandSoft : "transparent" }}>
+            <T role="label" color="textMuted" style={{ width: 22 }}>
+              {String(i + 1)}
+            </T>
+            <AvatarFace id={e.avatar} size={28} />
+            <T role="body" style={{ flex: 1 }} numberOfLines={1}>
+              {e.me ? `${e.name} (${t.you})` : e.name}
+            </T>
+            <T role="label" color="brandText">
+              {t.weekLessons(e.lessons)}
+            </T>
+          </View>
+        ))
+      ) : (
+        <T role="small" color="textMuted">
+          {t.weekEmpty}
+        </T>
+      )}
     </View>
   );
 }

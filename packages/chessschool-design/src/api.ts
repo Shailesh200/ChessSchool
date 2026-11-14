@@ -14,6 +14,7 @@ export type ClassRole = "monitor" | "student";
 /** A classmate as the class screen shows them. Stats come from their saved progress (zero for a new account). */
 export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; joinedAt: number; lessons: number; xp: number; streak: Streak };
 export type ReportReason = "name" | "behaviour" | "other";
+export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; me: boolean }[] };
 export type UsageSummary = {
   days: number;
   installs: number;
@@ -144,7 +145,7 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
   return {
     health: () => request<{ ok: true; version: string }>("GET", "/v1/health"),
     course: () => request<Course>("GET", `/v1/course?outline=1${lang("&")}`),
-    lesson: (id: string) => request<CourseLesson>("GET", `/v1/lessons/${encodeURIComponent(id)}${lang("?")}`),
+    lesson: (id: string, offline = false) => request<CourseLesson>("GET", `/v1/lessons/${encodeURIComponent(id)}?${offline ? "offline=1" : ""}${lang("&")}`),
     register: (input: { name: string; email: string; password: string; guest?: GuestPayload }) =>
       request<AuthResponse>("POST", "/v1/auth/register", input),
     login: (input: { email: string; password: string; guest?: GuestPayload }) => request<AuthResponse>("POST", "/v1/auth/login", input),
@@ -164,9 +165,12 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     leaveClass: (id: string) => request<{ ok: true }>("DELETE", `/v1/classes/${id}`),
     reportMember: (classId: string, memberId: string, r: { reason: ReportReason; note?: string; block: boolean }) =>
       request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/report`, r),
+    leaderboard: (classId: string, day: string) => request<Leaderboard>("GET", `/v1/classes/${classId}/leaderboard?day=${day}`),
+    setLeaderboardHidden: (hidden: boolean) => request<{ hidden: boolean }>("PUT", "/v1/me/leaderboard", { hidden }),
     blockMember: (classId: string, memberId: string) => request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/block`, {}),
     removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),
     voice: (coach: string, lesson: string) => request<{ coach: string; clips: Record<string, string> }>("GET", `/v1/voice/${coach}/${encodeURIComponent(lesson)}${lang("?")}`),
+    placement: () => request<{ items: { lesson: string; step: PracticeItem["step"] }[] }>("GET", `/v1/placement${lang("?")}`),
     practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),

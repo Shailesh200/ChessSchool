@@ -659,3 +659,54 @@ describe("course translations", () => {
     for (const t of texts) expect(checkCourseText(COURSE, t)).toEqual([]);
   });
 });
+
+describe("class leaderboard", () => {
+  it("ranks this week's lessons, honours hiding, and ignores placed and older lessons", async () => {
+    const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;
+    const mon = await reg("Mon", "lb1@b.co");
+    const kid = await reg("Kid", "lb2@b.co");
+    const room = (await call("POST", "/v1/classes", { name: "Club" }, mon.token)).json.class;
+    await call("POST", "/v1/classes/join", { code: room.code }, kid.token);
+    const p = progressThrough("moves");
+    await call("PUT", "/v1/progress", { progress: { ...p, completed: { ...p.completed, meet: "2026-10-01" } } }, kid.token);
+    const lb = await call("GET", `/v1/classes/${room.id}/leaderboard?day=2026-11-04`, undefined, mon.token);
+    expect(lb.status).toBe(200);
+    expect(lb.json.week).toEqual({ from: "2026-11-02", to: "2026-11-08" });
+    expect(lb.json.entries.map((e: { name: string; lessons: number }) => [e.name, e.lessons])).toEqual([["Kid", 2], ["Mon", 0]]);
+    expect((await call("GET", `/v1/classes/${room.id}/leaderboard?day=2026-11-20`, undefined, mon.token)).json.entries[0].lessons).toBe(0);
+    expect((await call("PUT", "/v1/me/leaderboard", { hidden: true }, kid.token)).status).toBe(200);
+    const after = await call("GET", `/v1/classes/${room.id}/leaderboard?day=2026-11-04`, undefined, kid.token);
+    expect(after.json.hidden).toBe(true);
+    expect(after.json.entries.map((e: { name: string }) => e.name)).toEqual(["Mon"]);
+    const stranger = await reg("Zed", "lb3@b.co");
+    expect((await call("GET", `/v1/classes/${room.id}/leaderboard`, undefined, stranger.token)).status).toBe(404);
+  });
+});
+
+describe("placement quiz", () => {
+  it("serves eight playable positions in course order, to guests too", async () => {
+    const res = await call("GET", "/v1/placement");
+    expect(res.status).toBe(200);
+    const items = res.json.items as { lesson: string; step: { kind: string } }[];
+    expect(items).toHaveLength(8);
+    expect(items.every((i) => i.step.kind !== "say" && i.step.kind !== "game")).toBe(true);
+    const order = COURSE.lessons.map((l) => l.id);
+    const idx = items.map((i) => order.indexOf(i.lesson));
+    expect(idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]))).toBe(true);
+  });
+});
+
+describe("offline lessons", () => {
+  it("lets a signed-in learner fetch up to 10 locked lessons ahead with offline=1, not further, and never a guest", async () => {
+    const { token } = (await call("POST", "/v1/auth/register", { name: "O", email: "off@b.co", password: "pawnpawn" })).json as AuthResponse;
+    await call("PUT", "/v1/progress", { progress: progressThrough("moves") }, token);
+    const order = COURSE.lessons.map((l) => l.id);
+    const at = order.indexOf("moves");
+    const near = order[at + 3];
+    const far = order[at + 15];
+    expect((await call("GET", `/v1/lessons/${near}`, undefined, token)).status).toBe(403);
+    expect((await call("GET", `/v1/lessons/${near}?offline=1`, undefined, token)).status).toBe(200);
+    expect((await call("GET", `/v1/lessons/${far}?offline=1`, undefined, token)).status).toBe(403);
+    expect((await call("GET", `/v1/lessons/${order[8]}?offline=1`)).status).toBe(403);
+  });
+});

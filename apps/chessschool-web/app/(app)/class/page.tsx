@@ -1,11 +1,11 @@
 "use client";
 
-import { ApiError, copy, dayKey, rankFor, visibleStreak, type AvatarId, type ClassMember, type ClassRoom } from "@chessschool/design";
+import { ApiError, copy, dayKey, rankFor, visibleStreak, type AvatarId, type ClassMember, type ClassRoom, type Leaderboard } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
-import { Button, Card, Sheet, TextField, TopBar, useToast } from "@/components/ui";
+import { Button, Card, Sheet, Switch, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 
@@ -18,6 +18,8 @@ export default function ClassPage() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<{ room: ClassRoom; member: ClassMember } | null>(null);
   const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
+  const [hidden, setHidden] = useState<boolean | null>(null);
+  const [tick, setTick] = useState(0);
   const t = copy.classroom;
   const closeCard = () => {
     setOpen(null);
@@ -92,6 +94,7 @@ export default function ClassPage() {
                     </li>
                   ))}
                 </ul>
+                <WeekBoard roomId={room.id} refresh={tick} onHidden={setHidden} />
                 <Button variant="ghost" disabled={busy} onClick={() => void run(async () => { await api.leaveClass(room.id); }, room.role === "monitor" ? t.closed : t.left)}>
                   {room.role === "monitor" ? t.close : t.leave}
                 </Button>
@@ -100,6 +103,20 @@ export default function ClassPage() {
           ) : (
             <p className="muted">{t.empty}</p>
           )}
+          {rooms.length && hidden !== null ? (
+            <Card className="list">
+              <Switch
+                icon="trophy"
+                label={t.showMe}
+                hint={t.showMeHint}
+                checked={!hidden}
+                onChange={(show) => {
+                  setHidden(!show);
+                  void api.setLeaderboardHidden(!show).then(() => setTick((n) => n + 1)).catch(() => setHidden(show));
+                }}
+              />
+            </Card>
+          ) : null}
           <Card>
             <TextField label={t.name} placeholder={t.namePlaceholder} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
             <Button block disabled={busy || !name.trim()} onClick={() => void run(async () => { await api.createClass(name.trim(), "web"); setName(""); }, t.created)}>
@@ -202,5 +219,45 @@ function MemberCard({ room, member, confirm, busy, onConfirm, onBlock, onRemove 
         </Button>
       ) : null}
     </>
+  );
+}
+
+/** This week's lessons in one class, most first. */
+function WeekBoard({ roomId, refresh, onHidden }: { roomId: string; refresh: number; onHidden: (hidden: boolean) => void }) {
+  const t = copy.classroom;
+  const [board, setBoard] = useState<Leaderboard | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .leaderboard(roomId, dayKey(new Date()))
+      .then((b) => {
+        if (!live) return;
+        setBoard(b);
+        onHidden(b.hidden);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [roomId, refresh, onHidden]);
+  if (!board) return null;
+  const any = board.entries.some((e) => e.lessons > 0);
+  return (
+    <section className="week-board" aria-label={t.weekTitle}>
+      <h3 className="row-label">{t.weekTitle}</h3>
+      {any ? (
+        <ol>
+          {board.entries.slice(0, 10).map((e) => (
+            <li key={e.id} className={e.me ? "me" : undefined}>
+              <MemberFace id={e.avatar} size={28} />
+              <span className="week-name">{e.me ? `${e.name} (${t.you})` : e.name}</span>
+              <strong>{t.weekLessons(e.lessons)}</strong>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="muted">{t.weekEmpty}</p>
+      )}
+    </section>
   );
 }

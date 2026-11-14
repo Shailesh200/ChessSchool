@@ -212,6 +212,11 @@ export default function Today() {
         <Chip icon="bolt" tone="gold" label={copy.a11y.xp(progress.xp)}>
           {copy.today.xp(progress.xp)}
         </Chip>
+        {progress.streak.freezes ? (
+          <Chip icon="snow" tone="brand" label={copy.today.freezesLabel(progress.streak.freezes)}>
+            {copy.today.freezes(progress.streak.freezes)}
+          </Chip>
+        ) : null}
       </View>
 
       {!state.placementDone && !progress.completed.board ? (
@@ -233,6 +238,7 @@ export default function Today() {
               }}
             />
           ))}
+          <Button title={copy.placement.quiz} icon="puzzle" variant="secondary" onPress={() => router.push("/placement")} />
         </Card>
       ) : null}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Segmented, Sheet, Switch, TopBar, useToast, SaveBanner } from "@/components/ui";
 import { api } from "@/lib/api";
+import { saveLessonsOffline, useCourse } from "@/lib/course";
 import { notificationsSupported, requestNotifications } from "@/lib/notifications";
 import { useApp } from "@/lib/state";
 
@@ -17,6 +18,8 @@ export default function SettingsPage() {
   const { state, ready, setPrefs, signOut, resetThisDevice, deleteAccount, cue } = useApp();
   const router = useRouter();
   const toast = useToast();
+  const [saving, setSaving] = useState(false);
+  const course = useCourse();
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
@@ -148,6 +151,24 @@ export default function SettingsPage() {
             <span className="row-label">{s.whatsNew}</span>
           </span>
           <Icon name="chevron" />
+        </button>
+        <button
+          type="button"
+          className="row"
+          disabled={saving || !course}
+          onClick={async () => {
+            if (!course) return;
+            setSaving(true);
+            const n = await saveLessonsOffline(nextLessonIds(course, state.progress.completed));
+            setSaving(false);
+            toast(n ? s.offlineDone(n) : s.offlineNone);
+          }}
+        >
+          <Icon name="wifiOff" />
+          <span className="row-text">
+            <span className="row-label">{saving ? s.offlineWorking : s.offline}</span>
+            <span className="row-hint">{s.offlineHint}</span>
+          </span>
         </button>
       </Card>
 

@@ -63,6 +63,11 @@ export default function TodayPage() {
           <Chip icon="bolt" tone="gold" label={copy.a11y.xp(progress.xp)}>
             {copy.today.xp(progress.xp)}
           </Chip>
+          {progress.streak.freezes ? (
+            <Chip icon="snow" tone="brand" label={copy.today.freezesLabel(progress.streak.freezes)}>
+              {copy.today.freezes(progress.streak.freezes)}
+            </Chip>
+          ) : null}
         </div>
       </header>
 
@@ -110,6 +115,9 @@ export default function TodayPage() {
                   </button>
                 ))}
               </div>
+              <Button block variant="secondary" icon="puzzle" href="/placement">
+                {copy.placement.quiz}
+              </Button>
             </Card>
           ) : null}
 

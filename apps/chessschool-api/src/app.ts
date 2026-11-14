@@ -22,7 +22,7 @@ import {
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
-import { and, desc, eq, gt, lt } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
@@ -37,7 +37,7 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, classMembers, classes, feedback, profiles, progress, reports, sessions, users } from "./schema";
+import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users } from "./schema";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
@@ -69,6 +69,8 @@ export type AppDeps = {
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
+/** Eight lessons of rising difficulty for the placement quiz (units 1, 2, 3, 5, 7, 12, 14, 18). */
+const PLACEMENT_LESSONS = ["check", "forks", "ladder", "skewer", "backRank", "squareOfPawn", "deflection", "calculation"] as const;
 
 /** Escapes text placed into the HTML of /join pages (class names are typed by users). */
 const html = (v: string) => v.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
@@ -526,6 +528,46 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return { room, viewer, target };
   }
 
+  /**
+   * This week's lessons per classmate, for the class leaderboard. `day` is the caller's local date;
+   * the week runs Monday to Sunday around it. Hidden learners and blocked classmates are left out.
+   */
+  app.get("/v1/classes/:id/leaderboard", requireUser, async (c) => {
+    const user = c.get("user");
+    const qDay = c.req.query("day");
+    const today = qDay && /^\d{4}-\d{2}-\d{2}$/.test(qDay) ? qDay : dayKey(now());
+    const room = await roomOf(c.req.param("id") ?? "", user.id);
+    if (!room) return fail(c, 404, "not_found");
+    const [hiddenRows, mine] = await Promise.all([db.select().from(leaderboardHidden), db.query.leaderboardHidden.findFirst({ where: eq(leaderboardHidden.userId, user.id) })]);
+    const hidden = new Set(hiddenRows.map((h) => h.userId));
+    const d = new Date(`${today}T12:00:00Z`);
+    const monday = new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86_400_000).toISOString().slice(0, 10);
+    const sunday = new Date(new Date(`${monday}T12:00:00Z`).getTime() + 6 * 86_400_000).toISOString().slice(0, 10);
+    const rows = await db.select({ id: progress.userId, data: progress.data }).from(progress).where(inArray(progress.userId, room.members.map((m) => m.id)));
+    const week = new Map(
+      rows.map((r) => {
+        const p = memberProgress(r.data);
+        const placed = new Set(p.placed);
+        return [r.id, Object.entries(p.completed).filter(([id, day]) => !placed.has(id) && day >= monday && day <= sunday).length];
+      }),
+    );
+    const entries = room.members
+      .filter((m) => !hidden.has(m.id))
+      .map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, lessons: week.get(m.id) ?? 0, me: m.id === user.id }))
+      .sort((a, b) => b.lessons - a.lessons || a.name.localeCompare(b.name));
+    return c.json({ week: { from: monday, to: sunday }, hidden: Boolean(mine), entries });
+  });
+
+  /** Show or hide yourself on every class leaderboard. */
+  app.put("/v1/me/leaderboard", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ hidden?: unknown }>(c);
+    if (typeof b.hidden !== "boolean") return fail(c, 400, "invalid_input");
+    if (b.hidden) await db.insert(leaderboardHidden).values({ userId: user.id }).onConflictDoNothing();
+    else await db.delete(leaderboardHidden).where(eq(leaderboardHidden.userId, user.id));
+    return c.json({ hidden: b.hidden });
+  });
+
   /** Report a classmate. It goes to the admin queue; unless `block: false`, the reporter also stops seeing them. */
   app.post("/v1/classes/:id/members/:memberId/report", requireUser, async (c) => {
     const user = c.get("user");
@@ -610,10 +652,16 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return courseAccess(prog.completed, isGuestAccount(user), path);
   }
 
+  /** How far past the learner's place `?offline=1` may fetch (the app still opens them in order). */
+  const OFFLINE_AHEAD = 10;
+
   function refuseLesson(c: Context, access: CourseAccess, id: string) {
-    const node = access.path.find((n) => n.id === id);
+    const index = access.path.findIndex((n) => n.id === id);
+    const node = access.path[index];
     if (!node || node.playable) return null;
     if (node.lockedReason === "guest") return c.json({ error: GUEST_LIMIT_CODE }, 403);
+    const firstLocked = access.path.findIndex((n) => !n.playable);
+    if (c.req.query("offline") === "1" && index - firstLocked < OFFLINE_AHEAD) return null;
     return c.json({ error: "lesson_locked" }, 403);
   }
 
@@ -697,6 +745,20 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!lesson) return fail(c, 404, "not_found");
     c.header("Cache-Control", "public, max-age=300");
     return c.json({ coach, clips: await lessonClips(db, coach, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps)) });
+  });
+
+  /**
+   * The placement quiz: the first exercise of eight lessons spread across the course, easiest first.
+   * Open to guests; each item says which lesson it stands for.
+   */
+  app.get("/v1/placement", async (c) => {
+    const [loaded, text] = await Promise.all([loadLessonSteps(db, [...PLACEMENT_LESSONS]), textFor(c)]);
+    const byId = new Map(loaded.map((l) => [l.id, localizeSteps(l.steps, text?.lessons[l.id]?.steps)]));
+    const items = PLACEMENT_LESSONS.flatMap((lesson) => {
+      const step = byId.get(lesson)?.find((s) => s.kind !== "say" && s.kind !== "game");
+      return step ? [{ lesson, step }] : [];
+    });
+    return c.json({ items });
   });
 
   app.get("/v1/home", requireUser, async (c) => {

@@ -148,6 +148,11 @@ export const events = sqliteTable("cs_events", {
   appVersion: text("app_version").notNull(),
 });
 
+/** Learners who chose not to appear on class leaderboards. */
+export const leaderboardHidden = sqliteTable("cs_leaderboard_hidden", {
+  userId: text("user_id").primaryKey(),
+});
+
 /** Translated course words, one row per language and unit/lesson ("unit:<id>", "lesson:<id>", "soon:<id>"). */
 export const courseText = sqliteTable(
   "cs_course_text",
@@ -274,6 +279,9 @@ export const BOOTSTRAP_SQL = [
     app_version TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
+  `CREATE TABLE IF NOT EXISTS cs_leaderboard_hidden (
+    user_id TEXT PRIMARY KEY
+  )`,
   `CREATE TABLE IF NOT EXISTS cs_course_text (
     lang TEXT NOT NULL,
     id TEXT NOT NULL,

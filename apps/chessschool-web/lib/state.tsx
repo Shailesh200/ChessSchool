@@ -28,7 +28,7 @@ import {
   type LessonMeta,
 } from "@chessschool/design";
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { createUsage, dayKey, isGuestClassLimit, langFor, language, reviewAfter, setLanguage, type PracticeItem, type UsageEventName } from "@chessschool/design";
+import { createUsage, dayKey, isGuestClassLimit, langFor, language, placeBefore, reviewAfter, setLanguage, type PracticeItem, type UsageEventName } from "@chessschool/design";
 import { version } from "../package.json";
 import { api } from "./api";
 import { playCue } from "./sound";
@@ -59,6 +59,8 @@ type Store = {
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
+  /** Placement quiz result: lessons before `startAt` count as known. */
+  placeBefore: (order: readonly string[], startAt: string) => void;
   /** Records a practice answer for spaced review. */
   answerReview: (ref: string, missed: boolean) => void;
   /** Stores the next practice set for offline use. */
@@ -165,6 +167,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       state,
       cue,
       track: usage.track,
+      placeBefore: (order, startAt) => setState((s) => placeBefore(s, order, startAt, new Date())),
       answerReview: (ref, missed) => setState((s) => ({ ...s, review: reviewAfter(s.review, ref, missed, dayKey(new Date())) })),
       setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
