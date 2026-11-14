@@ -29,6 +29,7 @@ async function boot() {
     secureCookies: true,
     corsOrigins: list(process.env.CORS_ORIGINS),
     adminEmails: list(process.env.ADMIN_EMAILS),
+    certSecret: process.env.CERT_SECRET,
     reportError,
     weekly: senderFromEnv(process.env),
     cronSecret: process.env.CRON_SECRET,

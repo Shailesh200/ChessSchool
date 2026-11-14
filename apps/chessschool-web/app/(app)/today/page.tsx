@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, rankFor, visibleStreak, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, nextReward, rankFor, todayQuests, visibleStreak, type LocalState, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
@@ -9,7 +9,7 @@ import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
 import { PathList } from "@/components/PathList";
 import { Icon } from "@/components/Icon";
 import { CourseSkeleton } from "@/components/Skeleton";
-import { Button, Card, Chip, GoalRing, RankCurve, SaveBanner } from "@/components/ui";
+import { Button, Card, Chip, GoalRing, ProgressBar, RankCurve, SaveBanner } from "@/components/ui";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { useEffect, useState } from "react";
@@ -130,6 +130,8 @@ export default function TodayPage() {
         </div>
 
         <aside className="today-side">
+          <QuestsCard state={state} today={today} />
+
           <Card className="daily-mini" aria-labelledby="daily-title">
             <h2 id="daily-title" className="card-title">
               <Icon name="puzzle" /> {copy.puzzles.daily}
@@ -170,5 +172,34 @@ export default function TodayPage() {
       ) : null}
       <FirstRunNotificationSheet />
     </div>
+  );
+}
+
+function QuestsCard({ state, today }: { state: LocalState; today: string }) {
+  const quests = todayQuests(state, today);
+  const reward = nextReward(state);
+  return (
+    <Card aria-labelledby="quests-title">
+      <div className="quest-head">
+        <h2 id="quests-title" className="card-title">
+          {copy.quests.title}
+        </h2>
+        <Chip icon="star" tone="gold">
+          {copy.quests.days(state.quests.days)}
+        </Chip>
+      </div>
+      <ul className="quest-list">
+        {quests.map((q) => (
+          <li key={q.id}>
+            <span className="quest-row">
+              <span>{copy.quests.items[q.id]}</span>
+              <span className={q.done ? "is-done" : "muted"}>{copy.quests.count(q.value, q.target)}</span>
+            </span>
+            <ProgressBar value={q.value / q.target} tone={q.done ? "success" : "brand"} label={copy.quests.a11y(copy.quests.items[q.id], q.value, q.target)} />
+          </li>
+        ))}
+      </ul>
+      <p className="muted">{quests.every((q) => q.done) ? copy.quests.allDone : reward ? copy.quests.next(reward.days) : copy.quests.allRewards}</p>
+    </Card>
   );
 }

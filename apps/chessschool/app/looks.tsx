@@ -1,7 +1,8 @@
 import { PIECE_SETS } from "@chessschool/chess";
-import { APP_ICONS, copy, palettes, resolveTheme, THEMES, type Appearance } from "@chessschool/design";
+import { APP_ICONS, copy, lockedUntil, palettes, resolveTheme, THEMES, type Appearance, type RewardKind } from "@chessschool/design";
 import { Image, Pressable, View } from "react-native";
 import { PieceArt } from "@/components/Board";
+import { Icon } from "@/components/Icon";
 import { Card, Page, Segmented, SwitchRow, T, useToast } from "@/components/ui";
 import { appIconsSupported, setAppIcon } from "@/lib/appIcon";
 import { useApp } from "@/lib/state";
@@ -28,6 +29,18 @@ export default function Looks() {
     cue("tap");
     setPrefs(p);
   };
+  /** Quest rewards stay locked until enough quest days; a tap explains how to unlock them. */
+  const lock = (kind: RewardKind, id: string) => lockedUntil(state, kind, id);
+  const choose = (need: number | null, p: Partial<typeof prefs>) => (need ? toast(copy.quests.locked(need)) : pick(p));
+  const lockNote = (need: number | null) =>
+    need ? (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <Icon name="lock" size={12} color={c.textMuted} />
+        <T role="micro" color="textMuted" style={{ flexShrink: 1 }}>
+          {copy.quests.locked(need)}
+        </T>
+      </View>
+    ) : null;
   const card = (on: boolean) => ({ borderWidth: 2, borderColor: on ? c.brand : c.line, borderRadius: 18, backgroundColor: c.card, padding: 10, gap: 4 });
 
   return (
@@ -41,8 +54,9 @@ export default function Looks() {
           {THEMES.map((t) => {
             const p = t.id === "classroom" ? palettes.light : resolveTheme(t.id, "light", false).palette;
             const on = prefs.theme === t.id;
+            const need = lock("theme", t.id);
             return (
-              <Pressable key={t.id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${t.name}. ${t.blurb}`} onPress={() => pick({ theme: t.id })} style={[card(on), { flexGrow: 1, flexBasis: "45%" }]}>
+              <Pressable key={t.id} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: Boolean(need) }} accessibilityLabel={`${t.name}. ${need ? copy.quests.locked(need) : t.blurb}`} onPress={() => choose(need, { theme: t.id })} style={[card(on), { flexGrow: 1, flexBasis: "45%", opacity: need ? 0.6 : 1 }]}>
                 <View style={{ flexDirection: "row", gap: 4, height: 40, padding: 6, borderRadius: 12, backgroundColor: p.bg, borderWidth: 1, borderColor: p.line }}>
                   {[p.brand, p.boardLight, p.boardDark, p.accent].map((col, i) => (
                     <View key={i} style={{ flex: 1, borderRadius: 6, backgroundColor: col }} />
@@ -52,6 +66,7 @@ export default function Looks() {
                 <T role="micro" color="textMuted">
                   {t.blurb}
                 </T>
+                {lockNote(need)}
               </Pressable>
             );
           })}
@@ -73,8 +88,9 @@ export default function Looks() {
         <View accessibilityRole="radiogroup" accessibilityLabel={copy.looks.pieces} style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {PIECE_SETS.map((set) => {
             const on = prefs.pieceSet === set.id;
+            const need = lock("pieces", set.id);
             return (
-              <Pressable key={set.id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${set.name}. ${set.blurb}`} onPress={() => pick({ pieceSet: set.id })} style={[card(on), { flexGrow: 1, flexBasis: "45%" }]}>
+              <Pressable key={set.id} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: Boolean(need) }} accessibilityLabel={`${set.name}. ${need ? copy.quests.locked(need) : set.blurb}`} onPress={() => choose(need, { pieceSet: set.id })} style={[card(on), { flexGrow: 1, flexBasis: "45%", opacity: need ? 0.6 : 1 }]}>
                 <View style={{ flexDirection: "row", borderRadius: 12, overflow: "hidden" }}>
                   <View style={{ flex: 1, aspectRatio: 1, backgroundColor: c.boardLight, alignItems: "center", justifyContent: "center" }}>
                     <PieceArt piece={{ type: "n", color: "w" }} size={52} set={set.id} />
@@ -87,6 +103,7 @@ export default function Looks() {
                 <T role="micro" color="textMuted">
                   {set.blurb}
                 </T>
+                {lockNote(need)}
               </Pressable>
             );
           })}
@@ -112,22 +129,25 @@ export default function Looks() {
         <View accessibilityRole="radiogroup" accessibilityLabel={copy.looks.icon} style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {APP_ICONS.map((i) => {
             const on = prefs.appIcon === i.id;
+            const need = lock("icon", i.id);
             return (
               <Pressable
                 key={i.id}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: on, disabled: !iconsOk }}
-                accessibilityLabel={i.name}
+                accessibilityState={{ checked: on, disabled: !iconsOk || Boolean(need) }}
+                accessibilityLabel={need ? `${i.name}. ${copy.quests.locked(need)}` : i.name}
                 onPress={async () => {
+                  if (need) return toast(copy.quests.locked(need));
                   if (!(await setAppIcon(i.id))) return toast(copy.looks.iconUnavailable);
                   pick({ appIcon: i.id });
                 }}
-                style={[card(on), { width: "22%", minWidth: 76, alignItems: "center", opacity: iconsOk ? 1 : 0.6 }]}
+                style={[card(on), { width: "22%", minWidth: 76, alignItems: "center", opacity: iconsOk && !need ? 1 : 0.6 }]}
               >
                 <Image source={ICON_PREVIEWS[i.id]} style={{ width: 56, height: 56, borderRadius: 14 }} />
                 <T role="micro" style={{ fontFamily: fonts.semibold }} numberOfLines={1}>
                   {i.name}
                 </T>
+                {lockNote(need)}
               </Pressable>
             );
           })}

@@ -938,3 +938,63 @@ describe("class homework, games and tournaments", () => {
     expect(await db.select().from(tournaments)).toEqual([]);
   });
 });
+
+describe("certificates", () => {
+  const unit = COURSE.lessons[0].unit;
+  const lastOfUnit = COURSE.lessons.filter((l) => l.unit === unit).at(-1)!.id;
+  const svg = async (path: string, token?: string) => {
+    const res = await app.request(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    return { status: res.status, type: res.headers.get("content-type"), text: await res.text() };
+  };
+  const member = async (name: string, through: string | null) => {
+    const { token } = (await call("POST", "/v1/auth/register", { name, email: `cert${++ip}@b.co`, password: "pawnpawn" })).json as AuthResponse;
+    if (through) await call("PUT", "/v1/progress", { progress: progressThrough(through) }, token);
+    return token;
+  };
+
+  it("refuses a unit that isn't finished, an unknown unit and anonymous callers", async () => {
+    const token = await member("Asha", "moves");
+    expect((await svg(`/v1/certificates/${unit}`, token)).status).toBe(403);
+    expect((await call("POST", `/v1/certificates/${unit}/link`, {}, token)).status).toBe(403);
+    expect((await svg("/v1/certificates/nope", token)).status).toBe(404);
+    expect((await svg(`/v1/certificates/${unit}`)).status).toBe(401);
+  });
+
+  it("serves a finished unit as SVG with the learner's name escaped", async () => {
+    const token = await member(`<script>alert("x")</script> & Co`, lastOfUnit);
+    const res = await svg(`/v1/certificates/${unit}`, token);
+    expect(res.status).toBe(200);
+    expect(res.type).toContain("image/svg+xml");
+    expect(res.text).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; Co");
+    expect(res.text).not.toContain("<script");
+    expect(res.text).toContain(COURSE.units.find((u) => u.id === unit)!.title);
+  });
+
+  it("uses the Hindi unit title and words with ?lang=hi", async () => {
+    const { applyCourseText } = await import("../src/course-text");
+    await applyCourseText(db, { lang: "hi", units: { [unit]: { title: "पहले कदम" } }, lessons: {} });
+    const token = await member("Asha", lastOfUnit);
+    const res = await svg(`/v1/certificates/${unit}?lang=hi`, token);
+    expect(res.text).toContain("पहले कदम");
+    expect(res.text).toContain("पूर्णता प्रमाणपत्र");
+  });
+
+  it("issues a share link that works without a session for 7 days, for that unit only", async () => {
+    const token = await member("Asha", lastOfUnit);
+    const link = await call("POST", `/v1/certificates/${unit}/link?lang=hi`, {}, token);
+    expect(link.status).toBe(200);
+    expect(link.json.url).toMatch(/^http.*\/v1\/certificates\/.+\?t=.+&lang=hi$/);
+    expect((await svg(link.json.path)).status).toBe(200);
+    const tokenParam = new URL(link.json.url).searchParams.get("t")!;
+    expect((await svg(`/v1/certificates/unit2?t=${tokenParam}`)).status).toBe(403);
+    expect((await svg(`/v1/certificates/${unit}?t=${tokenParam.slice(0, -2)}xx`)).status).toBe(403);
+    app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => new Date(NOW.getTime() + 7 * 86_400_000 + 1) });
+    expect((await svg(link.json.path)).status).toBe(403);
+  });
+
+  it("has no share links in production without CERT_SECRET", async () => {
+    const token = await member("Asha", lastOfUnit);
+    app = createApp({ db, google: fakeGoogle, secureCookies: true, corsOrigins: [], now: () => NOW });
+    expect((await call("POST", `/v1/certificates/${unit}/link`, {}, token)).status).toBe(503);
+  });
+});

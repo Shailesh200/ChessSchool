@@ -11,3 +11,4 @@ export * from "./review";
 export * from "./coaches";
 export * from "./i18n";
 export * from "./profiles";
+export * from "./quests";

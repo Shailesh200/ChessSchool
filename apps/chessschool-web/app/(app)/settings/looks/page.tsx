@@ -1,19 +1,35 @@
 "use client";
 
 import { PIECE_SETS } from "@chessschool/chess";
-import { APP_ICONS, copy, palettes, resolveTheme, THEMES, type Appearance } from "@chessschool/design";
+import { APP_ICONS, copy, lockedUntil, palettes, resolveTheme, THEMES, type Appearance, type RewardKind } from "@chessschool/design";
 import { PieceArt } from "@/components/Board";
-import { Card, Segmented, Switch, TopBar } from "@/components/ui";
+import { Icon } from "@/components/Icon";
+import { Card, Segmented, Switch, TopBar, useToast } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
 export default function LooksPage() {
   const { state, ready, setPrefs, cue } = useApp();
+  const toast = useToast();
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   const { prefs } = state;
   const s = copy.settings;
   const pick = (p: Partial<typeof prefs>) => {
     cue("tap");
     setPrefs(p);
+  };
+  /** Quest rewards stay locked until enough quest days; a click explains how to unlock them. */
+  const locked = (kind: RewardKind, id: string, p: Partial<typeof prefs>) => {
+    const need = lockedUntil(state, kind, id);
+    return {
+      className: need ? " is-locked" : "",
+      disabled: need ? true : undefined,
+      onClick: () => (need ? toast(copy.quests.locked(need)) : pick(p)),
+      note: need ? (
+        <span className="lock-note">
+          <Icon name="lock" size={14} /> {copy.quests.locked(need)}
+        </span>
+      ) : null,
+    };
   };
 
   return (
@@ -25,8 +41,9 @@ export default function LooksPage() {
         <div className="swatches" role="radiogroup" aria-label={copy.looks.theme}>
           {THEMES.map((t) => {
             const p = t.id === "classroom" ? palettes.light : resolveTheme(t.id, "light", false).palette;
+            const l = locked("theme", t.id, { theme: t.id });
             return (
-              <button key={t.id} type="button" role="radio" aria-checked={prefs.theme === t.id} className="swatch" onClick={() => pick({ theme: t.id })}>
+              <button key={t.id} type="button" role="radio" aria-checked={prefs.theme === t.id} aria-disabled={l.disabled} className={`swatch${l.className}`} onClick={l.onClick}>
                 <span className="swatch-art" style={{ background: p.bg, borderColor: p.line }} aria-hidden>
                   <span style={{ background: p.brand }} />
                   <span style={{ background: p.boardLight }} />
@@ -35,6 +52,7 @@ export default function LooksPage() {
                 </span>
                 <strong>{t.name}</strong>
                 <span>{t.blurb}</span>
+                {l.note}
               </button>
             );
           })}
@@ -54,20 +72,24 @@ export default function LooksPage() {
       <Card>
         <h2 className="card-title">{copy.looks.pieces}</h2>
         <div className="sets" role="radiogroup" aria-label={copy.looks.pieces}>
-          {PIECE_SETS.map((set) => (
-            <button key={set.id} type="button" role="radio" aria-checked={prefs.pieceSet === set.id} className="set-card" onClick={() => pick({ pieceSet: set.id })}>
-              <span className="set-preview" aria-hidden>
-                <span className="sq-light">
-                  <PieceArt piece={{ type: "n", color: "w" }} set={set.id} />
+          {PIECE_SETS.map((set) => {
+            const l = locked("pieces", set.id, { pieceSet: set.id });
+            return (
+              <button key={set.id} type="button" role="radio" aria-checked={prefs.pieceSet === set.id} aria-disabled={l.disabled} className={`set-card${l.className}`} onClick={l.onClick}>
+                <span className="set-preview" aria-hidden>
+                  <span className="sq-light">
+                    <PieceArt piece={{ type: "n", color: "w" }} set={set.id} />
+                  </span>
+                  <span className="sq-dark">
+                    <PieceArt piece={{ type: "q", color: "b" }} set={set.id} />
+                  </span>
                 </span>
-                <span className="sq-dark">
-                  <PieceArt piece={{ type: "q", color: "b" }} set={set.id} />
-                </span>
-              </span>
-              <strong>{set.name}</strong>
-              <span>{set.blurb}</span>
-            </button>
-          ))}
+                <strong>{set.name}</strong>
+                <span>{set.blurb}</span>
+                {l.note}
+              </button>
+            );
+          })}
         </div>
       </Card>
 
@@ -82,13 +104,17 @@ export default function LooksPage() {
         <h2 className="card-title">{copy.looks.icon}</h2>
         <p className="muted">{copy.looks.iconUnavailable}</p>
         <div className="icons" role="radiogroup" aria-label={copy.looks.icon}>
-          {APP_ICONS.map((i) => (
-            <button key={i.id} type="button" role="radio" aria-checked={prefs.appIcon === i.id} className="icon-choice" onClick={() => pick({ appIcon: i.id })}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- small local previews */}
-              <img src={`/assets/raster/app-icons/${i.id}-preview.png`} alt="" width={64} height={64} />
-              <span>{i.name}</span>
-            </button>
-          ))}
+          {APP_ICONS.map((i) => {
+            const l = locked("icon", i.id, { appIcon: i.id });
+            return (
+              <button key={i.id} type="button" role="radio" aria-checked={prefs.appIcon === i.id} aria-disabled={l.disabled} className={`icon-choice${l.className}`} onClick={l.onClick}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- small local previews */}
+                <img src={`/assets/raster/app-icons/${i.id}-preview.png`} alt="" width={64} height={64} />
+                <span>{i.name}</span>
+                {l.note}
+              </button>
+            );
+          })}
         </div>
       </Card>
     </div>

@@ -17,6 +17,7 @@ const app = createApp({
   secureCookies: process.env.NODE_ENV === "production",
   corsOrigins: list(process.env.CORS_ORIGINS ?? "http://localhost:3100"),
   adminEmails: list(process.env.ADMIN_EMAILS),
+  certSecret: process.env.CERT_SECRET,
 });
 
 const hostname = process.env.HOST ?? "0.0.0.0";
