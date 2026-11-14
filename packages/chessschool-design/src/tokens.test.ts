@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { palettes, themePalettes, THEMES, resolveTheme, type Palette } from "./tokens";
+import { boardColorPalettes, palettes, themePalettes, THEMES, resolveTheme, withBoardColors, type Palette } from "./tokens";
 
 function lum(hex: string) {
   const n = parseInt(hex.slice(1), 16);
@@ -70,5 +70,18 @@ describe("resolveTheme", () => {
     expect(resolveTheme("classroom", "light", true).palette).toBe(palettes.light);
     expect(resolveTheme("ocean", "light", false)).toEqual({ scheme: "dark", palette: themePalettes.ocean });
     expect(THEMES).toHaveLength(7);
+  });
+});
+
+describe("board colours", () => {
+  it("swaps only the board and keeps coordinates readable", () => {
+    expect(withBoardColors(palettes.light, "theme")).toBe(palettes.light);
+    const p = withBoardColors(palettes.dark, "blueOrange");
+    expect(p.bg).toBe(palettes.dark.bg);
+    expect(p.boardDark).toBe(boardColorPalettes.blueOrange.boardDark);
+    for (const b of Object.values(boardColorPalettes)) {
+      expect(contrast(b.boardCoordOnLight, b.boardLight)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(b.boardCoordOnDark, b.boardDark)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

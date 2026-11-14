@@ -232,13 +232,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [ready, state, cue, usage],
   );
 
-  // The language is applied before children render; changing it remounts the tree so every screen re-reads copy.
+  // The language and font are applied before children render; changing either remounts the tree so every screen re-reads them.
   const lang = state.prefs.lang ?? langFor(Intl.DateTimeFormat().resolvedOptions().locale);
   if (language() !== lang) setLanguage(lang);
-  setFontsFor(lang);
+  setFontsFor(lang, state.prefs.easyFont);
   return (
     <Ctx.Provider value={store}>
-      <Fragment key={lang}>{children}</Fragment>
+      <Fragment key={`${lang}-${state.prefs.easyFont}`}>{children}</Fragment>
     </Ctx.Provider>
   );
 }

@@ -3,6 +3,7 @@
 import { assessMove, type MoveNote, type ReviewPly } from "@chessschool/chess";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { api } from "./api";
+import { useApp } from "./state";
 
 function subscribeMedia(query: string) {
   return (cb: () => void) => {
@@ -20,7 +21,12 @@ export function useMediaQuery(query: string, serverValue = false) {
   );
 }
 
-export const useReducedMotion = () => useMediaQuery("(prefers-reduced-motion: reduce)");
+/** The OS "reduce motion" setting, or the in-app Reduce motion pref. */
+export function useReducedMotion() {
+  const os = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const { state } = useApp();
+  return os || state.prefs.reduceMotion;
+}
 
 export type Connectivity = "online" | "offline" | "api-down";
 

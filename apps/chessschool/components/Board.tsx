@@ -1,6 +1,7 @@
 import {
   arrowShape,
   boardSquares,
+  describeMove,
   fileIndex,
   isPieceSet,
   moveEffects,
@@ -8,7 +9,6 @@ import {
   promotionColumn,
   rankIndex,
   readFen,
-  squareLabel,
   turnOf,
   type BoardArrow,
   type Color,
@@ -19,9 +19,9 @@ import {
   type PromotionPiece,
   type Square,
 } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { copy, moveSpeech, squareSpeech } from "@chessschool/design";
 import { memo, useEffect, useMemo, useState } from "react";
-import { Image, PixelRatio, Pressable, Text, View, type LayoutChangeEvent } from "react-native";
+import { AccessibilityInfo, Image, PixelRatio, Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -234,11 +234,18 @@ export function Board({
   // Move effects are read by comparing with the position we last drew.
   const [drawn, setDrawn] = useState(fen);
   const [fx, setFx] = useState<Fx | null>(null);
+  const [spoken, setSpoken] = useState<{ fen: string; text: string } | null>(null);
   if (drawn !== fen) {
     setDrawn(fen);
     const e = moveEffects(drawn, fen, lastMove);
     setFx(e.captured || e.promoted ? { id: (fx?.id ?? 0) + 1, captured: e.captured, promoted: e.promoted && lastMove ? lastMove.to : null } : null);
+    const m = describeMove(drawn, fen, lastMove);
+    setSpoken(m ? { fen, text: moveSpeech({ ...m, check: Boolean(check || mate), mate: Boolean(mate) }) } : null);
   }
+  // Screen readers hear every move ("Knight to f3. Check"), queued after anything already being read.
+  useEffect(() => {
+    if (spoken) AccessibilityInfo.announceForAccessibilityWithOptions(spoken.text, { queue: true });
+  }, [spoken]);
 
   const shakeX = useSharedValue(0);
   useEffect(() => {
@@ -249,8 +256,8 @@ export function Board({
 
   const dim = useSharedValue(0);
   useEffect(() => {
-    dim.value = mate ? withDelay(500, withTiming(1, { duration: 500 })) : 0;
-  }, [mate, dim]);
+    dim.value = mate ? (reduced ? 1 : withDelay(500, withTiming(1, { duration: 500 }))) : 0;
+  }, [mate, dim, reduced]);
   const dimStyle = useAnimatedStyle(() => ({ opacity: dim.value * 0.32 }));
 
   /* ---------- drag ---------- */
@@ -344,7 +351,7 @@ export function Board({
                 const light = (fileIndex(s) + rankIndex(s)) % 2 === 1;
                 const isTarget = targets.includes(s);
                 const isLast = Boolean(lastMove && (lastMove.from === s || lastMove.to === s));
-                const parts = [squareLabel(s, piece)];
+                const parts = [squareSpeech(s, piece)];
                 if (selected === s) parts.push(copy.a11y.selected);
                 if (isTarget) parts.push(copy.a11y.target);
                 if (stars.includes(s)) parts.push(copy.a11y.star);
@@ -361,7 +368,7 @@ export function Board({
                     accessibilityLabel={parts.join(", ")}
                     accessibilityState={{ disabled: Boolean(disabled), selected: selected === s }}
                     accessibilityActions={[{ name: "activate" }]}
-                    onAccessibilityAction={() => !disabled && onTap?.(s)}
+                    onAccessibilityAction={() => !disabled && !promotion && onTap?.(s)}
                     style={{
                       position: "absolute",
                       left: col * sq,

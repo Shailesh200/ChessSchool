@@ -3044,6 +3044,13 @@ a.path-inner:hover {
 .swatch-art span {
   border-radius: 6px;
 }
+.swatch-board {
+  padding: 0;
+  border: 0;
+}
+.swatch-board span {
+  border-radius: 0;
+}
 .set-preview {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4749,6 +4756,21 @@ button.focus-card {
 /* Hindi: Baloo 2 has Devanagari and the same rounded feel as Fredoka. */
 html[lang="hi"] body {
   font-family: var(--font-baloo), var(--font-fredoka), system-ui, sans-serif;
+}
+
+/* Easy-reading font (Settings). Atkinson Hyperlegible is Latin-only, so Hindi keeps Baloo. */
+html[data-cs-font="easy"]:not([lang="hi"]) body {
+  font-family: var(--font-atkinson), system-ui, sans-serif;
+}
+
+/* Reduce motion from Settings: same as the OS preference above. */
+html[data-cs-motion="reduce"] *,
+html[data-cs-motion="reduce"] *::before,
+html[data-cs-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 .week-board {

@@ -292,6 +292,46 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
   },
 };
 
+/* ---------- board colours (colour-blind friendly) ---------- */
+
+/** "theme" uses the app theme's board; the others avoid red/green and work for colour-blind players. */
+export type BoardColorsId = "theme" | "blueOrange" | "greyBlue";
+export const BOARD_COLORS: readonly BoardColorsId[] = ["theme", "blueOrange", "greyBlue"];
+export const isBoardColors = (v: unknown): v is BoardColorsId => BOARD_COLORS.includes(v as BoardColorsId);
+
+type BoardKeys = Pick<Palette, "boardLight" | "boardDark" | "boardSelect" | "boardMove" | "boardHint" | "boardCheck" | "boardDot" | "boardCoordOnLight" | "boardCoordOnDark">;
+
+/** Okabe-Ito hues: blue squares with orange/yellow marks, or grey squares with blue/orange marks. */
+export const boardColorPalettes: Record<Exclude<BoardColorsId, "theme">, BoardKeys> = {
+  blueOrange: {
+    boardLight: "#EAF2FB",
+    boardDark: "#2F6DB5",
+    boardSelect: "rgba(230, 159, 0, 0.82)",
+    boardMove: "rgba(240, 228, 66, 0.55)",
+    boardHint: "rgba(213, 94, 0, 0.9)",
+    boardCheck: "rgba(213, 94, 0, 0.82)",
+    boardDot: "rgba(10, 25, 50, 0.5)",
+    boardCoordOnLight: "#1F4E8C",
+    boardCoordOnDark: "#FFFFFF",
+  },
+  greyBlue: {
+    boardLight: "#F2F2F2",
+    boardDark: "#6B6B6B",
+    boardSelect: "rgba(0, 114, 178, 0.55)",
+    boardMove: "rgba(86, 180, 233, 0.45)",
+    boardHint: "rgba(230, 159, 0, 0.95)",
+    boardCheck: "rgba(213, 94, 0, 0.85)",
+    boardDot: "rgba(0, 0, 0, 0.55)",
+    boardCoordOnLight: "#2B2B2B",
+    boardCoordOnDark: "#FFFFFF",
+  },
+};
+
+/** The palette with its board swapped for a colour-blind friendly one (unchanged for "theme"). */
+export function withBoardColors(p: Palette, id: BoardColorsId): Palette {
+  return id === "theme" || !(id in boardColorPalettes) ? p : { ...p, ...boardColorPalettes[id] };
+}
+
 /** The palette and light/dark scheme for a theme (Classroom resolves through Appearance). */
 export function resolveTheme(theme: ThemeId, appearance: Appearance, systemDark: boolean): { scheme: Scheme; palette: Palette } {
   if (theme === "classroom" || !(theme in themePalettes)) {
@@ -311,8 +351,8 @@ export function resolveScheme(appearance: Appearance, systemDark: boolean): Sche
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
 
-/** CSS custom properties for a scheme or palette, e.g. `--cs-bg:#FBFAFF;`. */
-export function cssVars(scheme: Scheme | Palette): string {
+/** CSS custom properties for a scheme or (partial) palette, e.g. `--cs-bg:#FBFAFF;`. */
+export function cssVars(scheme: Scheme | Partial<Palette>): string {
   return Object.entries(typeof scheme === "string" ? palettes[scheme] : scheme)
     .map(([k, v]) => `--cs-${kebab(k)}:${v};`)
     .join("");

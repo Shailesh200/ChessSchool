@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Baloo_2, Fredoka } from "next/font/google";
-import { copy, cssVars, palettes, THEMES, themePalettes } from "@chessschool/design";
+import { Atkinson_Hyperlegible, Baloo_2, Fredoka } from "next/font/google";
+import { boardColorPalettes, copy, cssVars, palettes, THEMES, themePalettes } from "@chessschool/design";
 import { AppStateProvider } from "@/lib/state";
 import { themeBootScript } from "@/lib/theme";
 import { ToastProvider } from "@/components/ui";
@@ -10,6 +10,7 @@ import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
 
 const fredoka = Fredoka({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-fredoka", display: "swap" });
+const atkinson = Atkinson_Hyperlegible({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-atkinson", display: "swap", preload: false });
 const baloo = Baloo_2({ subsets: ["devanagari", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-baloo", display: "swap", preload: false });
 
 export const metadata: Metadata = {
@@ -40,14 +41,19 @@ export const viewport: Viewport = {
 const themeCss = THEMES.filter((t) => t.id !== "classroom")
   .map((t) => `:root[data-cs-theme="${t.id}"]{${cssVars(themePalettes[t.id as keyof typeof themePalettes])}color-scheme:${t.scheme}}`)
   .join("\n");
+// Colour-blind friendly boards override only the board variables, on top of any theme.
+const boardCss = Object.entries(boardColorPalettes)
+  .map(([id, b]) => `:root[data-cs-board="${id}"]{${cssVars(b)}}`)
+  .join("\n");
 const tokenCss = `:root{${cssVars("light")}color-scheme:light}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${cssVars("dark")}color-scheme:dark}}
 :root[data-theme="dark"]{${cssVars("dark")}color-scheme:dark}
-${themeCss}`;
+${themeCss}
+${boardCss}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${baloo.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${fredoka.variable} ${baloo.variable} ${atkinson.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <style dangerouslySetInnerHTML={{ __html: tokenCss }} />

@@ -109,7 +109,9 @@ type Props = {
 export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, onFinished, onStep, say, done }: Props) {
   const { cue } = useApp();
   const { c } = useTheme();
-  const { width: screen } = useWindowDimensions();
+  const { width: screen, fontScale } = useWindowDimensions();
+  // Larger system text: the fixed chrome grows with it (T caps scaling at 1.8x) so nothing clips; the board gives up the space.
+  const grow = Math.min(Math.max(fontScale, 1), 1.8) - 1;
   const [s, setS] = useState(() => startRunner(steps));
   // Mirrors `s` for handlers and timers, so cues fire from one place.
   const ref = useRef(s);
@@ -205,11 +207,11 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
       <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 12, gap: 10, maxWidth: 640, width: "100%", alignSelf: "center" }}>
         <BoardStage
           fixed
-          topSize={COACH_H}
-          bottomSize={STATUS_H}
+          topSize={COACH_H + Math.round(grow * 72)}
+          bottomSize={STATUS_H + Math.round(grow * 20)}
           top={
             <CoachCard avatar={<Cody animation={poseFor(s, step)} size={CODY} />} title={step.title}>
-              <CoachLine key={`${s.index}:${step.body}`} text={step.body} width={textW} />
+              <CoachLine key={`${s.index}:${step.body}`} text={step.body} width={textW / (1 + grow)} />
             </CoachCard>
           }
           bottom={
@@ -246,7 +248,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
           )}
         </BoardStage>
 
-        <View style={{ height: CHOICE_H, justifyContent: "center", overflow: "hidden" }}>
+        <View style={{ height: CHOICE_H + Math.round(grow * 80), justifyContent: "center", overflow: "hidden" }}>
           {step.kind === "choice" ? (
             <Options<string>
               label={step.body}
@@ -261,7 +263,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
           ) : null}
         </View>
       </View>
-      <View style={{ height: FOOTER_H, justifyContent: "center", paddingHorizontal: 16, maxWidth: 560, width: "100%", alignSelf: "center" }}>{action}</View>
+      <View style={{ height: FOOTER_H + Math.round(grow * 20), justifyContent: "center", paddingHorizontal: 16, maxWidth: 560, width: "100%", alignSelf: "center" }}>{action}</View>
     </LessonFrame>
   );
 }

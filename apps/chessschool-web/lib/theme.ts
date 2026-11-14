@@ -1,4 +1,4 @@
-import type { Appearance, ThemeId } from "@chessschool/design";
+import type { Appearance, BoardColorsId, ThemeId } from "@chessschool/design";
 
 export const APPEARANCE_KEY = "chessschool.v2.appearance";
 export const THEME_KEY = "chessschool.v2.theme";
@@ -23,6 +23,17 @@ export function applyTheme(theme: ThemeId) {
   try {
     localStorage.setItem(THEME_KEY, theme);
   } catch {}
+}
+
+/** Accessibility prefs as <html> attributes: board colours, easy-reading font and reduced motion (see globals.css). */
+export function applyAccess(board: BoardColorsId, easyFont: boolean, reduceMotion: boolean) {
+  const d = document.documentElement.dataset;
+  if (board === "theme") delete d.csBoard;
+  else d.csBoard = board;
+  if (easyFont) d.csFont = "easy";
+  else delete d.csFont;
+  if (reduceMotion) d.csMotion = "reduce";
+  else delete d.csMotion;
 }
 
 /** Swaps the browser tab icon to the chosen app icon (installed PWA icons can't change). */

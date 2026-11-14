@@ -1,13 +1,15 @@
 "use client";
 
 import { PIECE_SETS } from "@chessschool/chess";
-import { APP_ICONS, copy, palettes, resolveTheme, THEMES, type Appearance } from "@chessschool/design";
+import { APP_ICONS, BOARD_COLORS, copy, palettes, resolveTheme, THEMES, withBoardColors, type Appearance } from "@chessschool/design";
 import { PieceArt } from "@/components/Board";
 import { Card, Segmented, Switch, TopBar } from "@/components/ui";
+import { useMediaQuery } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 
 export default function LooksPage() {
   const { state, ready, setPrefs, cue } = useApp();
+  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   const { prefs } = state;
   const s = copy.settings;
@@ -73,6 +75,24 @@ export default function LooksPage() {
 
       <Card className="settings-group">
         <h2 className="card-title">{copy.looks.board}</h2>
+        <div className="swatches row-block" role="radiogroup" aria-label={copy.looks.boardColors}>
+          {BOARD_COLORS.map((id) => {
+            const b = withBoardColors(resolveTheme(prefs.theme, prefs.appearance, systemDark).palette, id);
+            const o = copy.looks.boardColorOptions[id];
+            return (
+              <button key={id} type="button" role="radio" aria-checked={prefs.boardColors === id} className="swatch" onClick={() => pick({ boardColors: id })}>
+                <span className="swatch-art swatch-board" aria-hidden>
+                  <span style={{ background: b.boardLight }} />
+                  <span style={{ background: b.boardDark }} />
+                  <span style={{ background: b.boardLight }} />
+                  <span style={{ background: b.boardDark }} />
+                </span>
+                <strong>{o.name}</strong>
+                <span>{o.blurb}</span>
+              </button>
+            );
+          })}
+        </div>
         <Switch icon="doc" label={copy.looks.coords} checked={prefs.coords} onChange={(v) => setPrefs({ coords: v })} />
         <Switch icon="eye" label={copy.looks.legalDots} checked={prefs.legalDots} onChange={(v) => setPrefs({ legalDots: v })} />
         <Switch icon="star" label={copy.gym.promotion} hint={copy.gym.promotionHint} checked={prefs.promotion === "ask"} onChange={(v) => setPrefs({ promotion: v ? "ask" : "queen" })} />

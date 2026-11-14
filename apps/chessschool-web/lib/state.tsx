@@ -32,7 +32,7 @@ import { createUsage, dayKey, isGuestClassLimit, langFor, language, placeBefore,
 import { version } from "../package.json";
 import { api } from "./api";
 import { playCue } from "./sound";
-import { applyAppearance, applyFavicon, applyTheme } from "./theme";
+import { applyAccess, applyAppearance, applyFavicon, applyTheme } from "./theme";
 
 type Store = {
   ready: boolean;
@@ -126,6 +126,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (ready) applyTheme(state.prefs.theme);
   }, [ready, state.prefs.theme]);
+  useEffect(() => {
+    if (ready) applyAccess(state.prefs.boardColors, state.prefs.easyFont, state.prefs.reduceMotion);
+  }, [ready, state.prefs.boardColors, state.prefs.easyFont, state.prefs.reduceMotion]);
   useEffect(() => {
     if (ready) applyFavicon(state.prefs.appIcon);
   }, [ready, state.prefs.appIcon]);

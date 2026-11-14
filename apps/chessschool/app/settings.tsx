@@ -69,6 +69,17 @@ export default function Settings() {
 
       <Card style={{ padding: 8 }}>
         <T role="heading" header style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+          {s.accessibility}
+        </T>
+        <SwitchRow icon="eye" label={s.easyFont} hint={s.easyFontHint} value={prefs.easyFont} onChange={(v) => setPrefs({ easyFont: v })} />
+        <SwitchRow icon="snow" label={s.reduceMotion} hint={s.reduceMotionHint} value={prefs.reduceMotion} onChange={(v) => setPrefs({ reduceMotion: v })} />
+        <T role="small" color="textMuted" style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
+          {s.textSizeHint}
+        </T>
+      </Card>
+
+      <Card style={{ padding: 8 }}>
+        <T role="heading" header style={{ paddingHorizontal: 12, paddingTop: 10 }}>
           {copy.coach.title}
         </T>
         <Row icon="profile" label={coachOf(prefs.coach ?? "meera").name} hint={copy.coach.hint} chevron onPress={() => setSheet("coach")} />

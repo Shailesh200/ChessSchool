@@ -43,6 +43,15 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      <Card className="list" aria-labelledby="a11y-h">
+        <h2 id="a11y-h" className="card-title list-title">
+          {s.accessibility}
+        </h2>
+        <Switch icon="eye" label={s.easyFont} hint={s.easyFontHint} checked={prefs.easyFont} onChange={(v) => setPrefs({ easyFont: v })} />
+        <Switch icon="snow" label={s.reduceMotion} hint={s.reduceMotionHint} checked={prefs.reduceMotion} onChange={(v) => setPrefs({ reduceMotion: v })} />
+        <p className="row-hint row-block">{s.textSizeHint}</p>
+      </Card>
+
       <Card className="list" aria-labelledby="coach-h">
         <h2 id="coach-h" className="card-title list-title">
           {copy.coach.title}

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { boardSquares, isLightSquare, moveEffects, promotionColumn, readFen, squareLabel, START_FEN, type PromotionPiece, type Square } from "./board";
+import { boardSquares, describeMove, isLightSquare, moveEffects, promotionColumn, readFen, squareLabel, START_FEN, type PromotionPiece, type Square } from "./board";
 import { chooseMove } from "./bot";
 import { legalTargets, load, withTurn } from "./game";
 import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
@@ -142,6 +142,15 @@ describe("board model", () => {
     expect(readFen(START_FEN).get("e1")).toEqual({ type: "k", color: "w" });
     expect(squareLabel("e4", undefined)).toBe("e4, empty");
     expect(squareLabel("g8", { type: "n", color: "b" })).toBe("g8, black knight");
+  });
+
+  it("describes a move for screen readers", () => {
+    const after = "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1";
+    expect(describeMove(START_FEN, after, { from: "g1", to: "f3" })).toEqual({ piece: "n", to: "f3", capture: false, castle: null, promoted: null });
+    expect(describeMove(START_FEN, START_FEN, { from: "g1", to: "f3" })).toBeNull();
+    expect(describeMove("4k3/8/8/8/8/8/8/4K2R w K - 0 1", "4k3/8/8/8/8/8/8/5RK1 b - - 1 1", { from: "e1", to: "g1" })?.castle).toBe("king");
+    const promo = describeMove("1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1", "1Q2k3/8/8/8/8/8/8/4K3 b - - 0 1", { from: "a7", to: "b8" });
+    expect(promo).toMatchObject({ piece: "p", capture: true, promoted: "q" });
   });
 });
 

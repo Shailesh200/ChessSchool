@@ -3,6 +3,7 @@
 import {
   arrowShape,
   boardSquares,
+  describeMove,
   fileIndex,
   isPieceSet,
   moveEffects,
@@ -10,7 +11,6 @@ import {
   promotionColumn,
   rankIndex,
   readFen,
-  squareLabel,
   turnOf,
   type BoardArrow,
   type Color,
@@ -21,7 +21,7 @@ import {
   type PromotionPiece,
   type Square,
 } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { copy, moveSpeech, squareSpeech } from "@chessschool/design";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -122,6 +122,8 @@ export function Board({
   const btns = useRef<(HTMLButtonElement | null)[]>([]);
   const [focus, setFocus] = useState(() => squares.indexOf(orientation === "w" ? "e2" : "e7"));
   const [fx, setFx] = useState<Fx | null>(null);
+  /** Read out by the live region after each move: "Knight to f3. Check". */
+  const [said, setSaid] = useState("");
   const mover = turnOf(fen);
 
   useEffect(() => {
@@ -130,6 +132,10 @@ export function Board({
     if (before === fen) return;
     const e = moveEffects(before, fen, lastMove);
     setFx(e.captured || e.promoted ? { id: Date.now(), captured: e.captured, promoted: e.promoted && lastMove ? lastMove.to : null } : null);
+    const m = describeMove(before, fen, lastMove);
+    setSaid(m ? moveSpeech({ ...m, check: Boolean(check || mate), mate: Boolean(mate) }) : "");
+    // check/mate arrive with the same fen; reading them here (not as deps) keeps one announcement per move.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fen, lastMove]);
 
   useEffect(() => {
@@ -235,7 +241,7 @@ export function Board({
         const piece = pieces.get(sq);
         const light = (fileIndex(sq) + rankIndex(sq)) % 2 === 1;
         const isTarget = targets.includes(sq);
-        const parts = [squareLabel(sq, piece)];
+        const parts = [squareSpeech(sq, piece)];
         if (selected === sq) parts.push(copy.a11y.selected);
         if (isTarget) parts.push(copy.a11y.target);
         if (stars.includes(sq)) parts.push(copy.a11y.star);
@@ -332,6 +338,9 @@ export function Board({
       ) : null}
 
       {mate ? <div className="mate-stamp">{copy.play.mate}</div> : null}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {said}
+      </p>
 
       {promotion ? (
         <div className="promo-layer">

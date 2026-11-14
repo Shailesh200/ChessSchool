@@ -363,6 +363,15 @@ describe("Phase 3 progress", () => {
     }
   });
 
+  it("keeps accessibility prefs valid", () => {
+    const fresh = createInitialState("g").prefs;
+    expect([fresh.boardColors, fresh.easyFont, fresh.reduceMotion]).toEqual(["theme", false, false]);
+    const kept = hydrateState({ ...createInitialState("old"), prefs: { boardColors: "blueOrange", easyFont: true, reduceMotion: true } }, () => "n").prefs;
+    expect([kept.boardColors, kept.easyFont, kept.reduceMotion]).toEqual(["blueOrange", true, true]);
+    const bad = hydrateState({ ...createInitialState("old"), prefs: { boardColors: "red", easyFont: "yes", reduceMotion: 1 } }, () => "n").prefs;
+    expect([bad.boardColors, bad.easyFont, bad.reduceMotion]).toEqual(["theme", false, false]);
+  });
+
   it("moves the day key at local midnight with one re-armed timer", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 10, 13, 23, 59, 59));
