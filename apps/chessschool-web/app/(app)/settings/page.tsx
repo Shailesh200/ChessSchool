@@ -1,9 +1,10 @@
 "use client";
 
-import { REMINDER_HOURS, copy, PRIVACY_URL, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, coachOf, copy, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CoachPicker } from "@/components/CoachPicker";
 import { Icon } from "@/components/Icon";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { Cody } from "@/components/Lottie";
@@ -16,7 +17,7 @@ export default function SettingsPage() {
   const { state, ready, setPrefs, signOut, resetThisDevice, deleteAccount, cue } = useApp();
   const router = useRouter();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news">(null);
+  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
 
@@ -29,6 +30,26 @@ export default function SettingsPage() {
   return (
     <div className="page page-narrow">
       <TopBar title={s.title} backHref="/you" />
+
+      <Card className="list" aria-labelledby="coach-h">
+        <h2 id="coach-h" className="card-title list-title">
+          {copy.coach.title}
+        </h2>
+        <button type="button" className="row" onClick={() => setSheet("coach")}>
+          <Icon name="profile" />
+          <span className="row-text">
+            <span className="row-label">{coachOf(prefs.coach ?? "meera").name}</span>
+            <span className="row-hint">{copy.coach.hint}</span>
+          </span>
+          <Icon name="chevron" />
+        </button>
+        <Switch icon={prefs.voice ? "sound" : "mute"} label={copy.coach.voice} hint={copy.coach.voiceHint} checked={prefs.voice} onChange={(v) => setPrefs({ voice: v })} />
+        {prefs.voice ? (
+          <div className="row-block">
+            <Segmented label={copy.coach.speed} value={prefs.voiceSpeed} onChange={(v) => setPrefs({ voiceSpeed: v })} options={VOICE_SPEEDS.map((v) => ({ value: v, label: copy.coach.speeds[v] }))} />
+          </div>
+        ) : null}
+      </Card>
 
       <Card className="list">
         <Switch
@@ -158,6 +179,11 @@ export default function SettingsPage() {
       </Card>
 
       <p className="version">{s.version("0.4.0")}</p>
+
+      <Sheet open={sheet === "coach"} onClose={() => setSheet(null)} labelledBy="coach-title">
+        <h2 id="coach-title">{copy.coach.title}</h2>
+        <CoachPicker value={prefs.coach ?? "meera"} onChange={(id) => setPrefs({ coach: id })} />
+      </Sheet>
 
       <Sheet open={sheet === "reset"} onClose={() => setSheet(null)} labelledBy="reset-title">
         <Cody animation="sad-soft" size={110} />

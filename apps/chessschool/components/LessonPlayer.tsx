@@ -101,10 +101,12 @@ type Props = {
   onFinished: (misses: number) => void;
   /** Called when a step is solved, with whether the learner missed on it first (practice uses it for review). */
   onStep?: (index: number, missed: boolean) => void;
+  /** Speaks a line in the coach's voice (lessons pass it; it does nothing without a recording). */
+  say?: (text: string) => void;
   done: React.ReactNode;
 };
 
-export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, onFinished, onStep, done }: Props) {
+export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, onFinished, onStep, say, done }: Props) {
   const { cue } = useApp();
   const { c } = useTheme();
   const { width: screen } = useWindowDimensions();
@@ -112,6 +114,16 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
   // Mirrors `s` for handlers and timers, so cues fire from one place.
   const ref = useRef(s);
   const stepMisses = useRef(0);
+  // The coach reads each step as it opens, then the praise or hint after a move.
+  const stepText = s.steps[s.index]?.body;
+  useEffect(() => {
+    if (stepText && s.status !== "finished") say?.(stepText);
+    // Re-runs when `say` changes so a step opened before its clips loaded is still read.
+  }, [s.index, say]); // eslint-disable-line react-hooks/exhaustive-deps
+  const said = s.feedback?.text;
+  useEffect(() => {
+    if (said) say?.(said);
+  }, [s.feedback]); // eslint-disable-line react-hooks/exhaustive-deps
   const finished = useRef(false);
   const step = currentStep(s);
   // Page padding, stage inset, card padding, Cody and the gap beside it.

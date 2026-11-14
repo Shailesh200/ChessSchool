@@ -603,3 +603,22 @@ describe("practice", () => {
     expect((await call("POST", "/v1/practice", { lessons: "nope" })).json.items).toEqual([]);
   });
 });
+
+describe("coach voice", () => {
+  it("serves a coach's clips for one lesson's lines and the fixed phrases, nothing for unrecorded coaches", async () => {
+    const { applyVoice } = await import("../src/voice");
+    const { voiceKey } = await import("@chessschool/design");
+    const board = COURSE.lessons.find((l) => l.id === "board")!;
+    const line = board.steps[0].body;
+    const other = COURSE.lessons.find((l) => l.id === "castling")!.steps[0].body;
+    await applyVoice(db, [{ coach: "meera", clips: { [voiceKey(line)]: "https://cdn/1.mp3", [voiceKey("Nice!")]: "https://cdn/2.mp3", [voiceKey(other)]: "https://cdn/3.mp3" } }]);
+    const res = await call("GET", "/v1/voice/meera/board");
+    expect(res.status).toBe(200);
+    expect(res.json.clips).toEqual({ [voiceKey(line)]: "https://cdn/1.mp3", [voiceKey("Nice!")]: "https://cdn/2.mp3" });
+    expect((await call("GET", "/v1/voice/tara/board")).json.clips).toEqual({});
+    expect((await call("GET", "/v1/voice/nobody/board")).status).toBe(404);
+    expect((await call("GET", "/v1/voice/meera/nope")).status).toBe(404);
+    await applyVoice(db, [{ coach: "meera", clips: { [voiceKey("Nice!")]: "https://cdn/4.mp3" } }]);
+    expect((await call("GET", "/v1/voice/meera/board")).json.clips).toEqual({ [voiceKey("Nice!")]: "https://cdn/4.mp3" });
+  });
+});

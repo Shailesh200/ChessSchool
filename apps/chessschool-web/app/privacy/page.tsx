@@ -60,10 +60,9 @@ export default function PrivacyPage() {
               can sync.
             </li>
             <li>
-              <strong>Coach voice (TTS):</strong> lesson and play coach lines you hear
-              may be synthesized by sending the spoken text to Microsoft Edge Read Aloud
-              (default) or, when configured, Google Cloud Text-to-Speech. Only the text
-              to be spoken is sent — not your full profile.
+              <strong>Coach voice:</strong> lesson lines are recorded ahead of time from the
+              lesson text with ElevenLabs and played from our file storage (Vercel Blob).
+              Nothing you type or say is sent to make them.
             </li>
             <li>
               <strong>Anonymous usage:</strong> the app and website send a few events

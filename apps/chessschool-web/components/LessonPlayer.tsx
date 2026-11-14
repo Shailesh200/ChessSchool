@@ -51,16 +51,28 @@ type Props = {
   onFinished: (misses: number) => void;
   /** Called when a step is solved, with whether the learner missed on it first (practice uses it for review). */
   onStep?: (index: number, missed: boolean) => void;
+  /** Speaks a line in the coach's voice (lessons pass it; it does nothing without a recording). */
+  say?: (text: string) => void;
   done: React.ReactNode;
 };
 
-export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close, onClose, onFinished, onStep, done }: Props) {
+export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close, onClose, onFinished, onStep, say, done }: Props) {
   const { cue } = useApp();
   const router = useRouter();
   const [s, setS] = useState(() => startRunner(steps));
   // Mirrors `s` for event handlers and timers, so cues fire from one place.
   const ref = useRef(s);
   const stepMisses = useRef(0);
+  // The coach reads each step as it opens, then the praise or hint after a move.
+  const stepText = s.steps[s.index]?.body;
+  useEffect(() => {
+    if (stepText && s.status !== "finished") say?.(stepText);
+    // Re-runs when `say` changes so a step opened before its clips loaded is still read.
+  }, [s.index, say]); // eslint-disable-line react-hooks/exhaustive-deps
+  const said = s.feedback?.text;
+  useEffect(() => {
+    if (said) say?.(said);
+  }, [s.feedback]); // eslint-disable-line react-hooks/exhaustive-deps
   const headingRef = useRef<HTMLHeadingElement>(null);
   const bodyRef = useRef<HTMLParagraphElement>(null);
   const finished = useRef(false);

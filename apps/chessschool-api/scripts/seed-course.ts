@@ -4,8 +4,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { applyCourse, courseDiff, type CourseCounts } from "../src/course";
 import { checkCourse } from "../src/course-check";
 import { openDb, openReadOnlyDb, type Db } from "../src/db";
+import { applyVoice, readVoiceManifests } from "../src/voice";
 
 export const DEFAULT_COURSE_FILE = join(dirname(fileURLToPath(import.meta.url)), "../data/course.json");
+export const VOICE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../data/voice");
 
 export type SeedCourseIo = {
   argv?: string[];
@@ -107,6 +109,10 @@ export async function runSeedCourse(io: SeedCourseIo = {}): Promise<number> {
     counts = { units: doc.units.length, insert: doc.lessons.length, update: 0, delete: 0, unchanged: 0 };
   }
   printCounts(log, args.apply, local ? "local" : "remote", doc.version, doc.lessons.length, counts);
+  const voice = readVoiceManifests(VOICE_DIR);
+  if (args.apply && voice.length) {
+    for (const [coach, n] of Object.entries(await applyVoice(db, voice))) log(`voice ${coach}: ${n} clips`);
+  } else for (const m of voice) log(`voice ${m.coach}: ${Object.keys(m.clips).length} clips (dry-run)`);
   return 0;
 }
 

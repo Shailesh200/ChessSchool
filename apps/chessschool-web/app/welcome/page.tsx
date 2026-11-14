@@ -4,15 +4,16 @@ import { AVATARS, copy, type AvatarId, type CodyAnimation, type DailyMinutes } f
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Cody } from "@/components/Lottie";
+import { CoachPicker } from "@/components/CoachPicker";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
-const POSES: CodyAnimation[] = ["wave", "happy", "proud", "celebrate"];
-const STEPS = 4;
+const POSES: CodyAnimation[] = ["wave", "happy", "proud", "reading", "celebrate"];
+const STEPS = 5;
 
 export default function Welcome() {
-  const { state, setProfile, setSeenWelcome, cue } = useApp();
+  const { state, setProfile, setPrefs, setSeenWelcome, cue } = useApp();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -53,7 +54,7 @@ export default function Welcome() {
       </header>
 
       <div className="flow-body" key={step}>
-        {step === 1 ? null : <Cody animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
+        {step === 1 || step === 3 ? null : <Cody animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
         {step === 0 ? (
           <>
             <h1 ref={headingRef} tabIndex={-1}>
@@ -103,6 +104,15 @@ export default function Welcome() {
           </>
         ) : null}
         {step === 3 ? (
+          <>
+            <h1 ref={headingRef} tabIndex={-1}>
+              {w.coach.title}
+            </h1>
+            <p className="lead">{w.coach.body}</p>
+            <CoachPicker value={state.prefs.coach} onChange={(id) => (setPrefs({ coach: id }), cue("tap"))} />
+          </>
+        ) : null}
+        {step === 4 ? (
           <>
             <h1 ref={headingRef} tabIndex={-1}>
               {w.start.title}

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
 import { useCourse, useLesson } from "@/lib/course";
 import { useApp } from "@/lib/state";
+import { useCoachVoice } from "@/lib/voice";
 
 type Before = { id: string; done: boolean; streak: number; goal: boolean; firstLessonToday: boolean };
 
@@ -36,6 +37,7 @@ export default function LessonPage() {
   }, [guestLocked, showGuestGate]);
 
   const hasSteps = Boolean(lesson?.steps);
+  const say = useCoachVoice(id);
   useEffect(() => {
     if (ready && hasSteps && !guestLocked && id !== "meet") track("lesson_start", { lesson: id });
   }, [ready, id, hasSteps, guestLocked, track]);
@@ -93,6 +95,7 @@ export default function LessonPage() {
     <LessonPlayer
       key={id}
       steps={steps}
+      say={say}
       closeHref="/today"
       onClose={(step) => track("lesson_quit", { lesson: id, step })}
       onFinished={(n) => {

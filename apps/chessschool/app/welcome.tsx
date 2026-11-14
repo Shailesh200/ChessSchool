@@ -3,17 +3,18 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { AvatarPicker } from "@/components/AvatarFace";
+import { CoachPicker } from "@/components/CoachPicker";
 import { Cody } from "@/components/Lottie";
 import { Button, Choice, Flow, IconButton, Steps, T } from "@/components/ui";
 import { labelOn } from "@/lib/labelOn";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
-const POSES: CodyAnimation[] = ["wave", "happy", "proud", "celebrate"];
-const STEPS = 4;
+const POSES: CodyAnimation[] = ["wave", "happy", "proud", "reading", "celebrate"];
+const STEPS = 5;
 
 export default function Welcome() {
-  const { state, setProfile, setSeenWelcome, cue } = useApp();
+  const { state, setProfile, setPrefs, setSeenWelcome, cue } = useApp();
   const { c } = useTheme();
   const [step, setStep] = useState(0);
   const w = copy.welcome.steps;
@@ -63,7 +64,7 @@ export default function Welcome() {
         )
       }
     >
-      {step === 1 ? null : <Cody key={step} animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
+      {step === 1 || step === 3 ? null : <Cody key={step} animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
       {step === 0 ? (
         <>
           <T role="title" header center>
@@ -101,6 +102,17 @@ export default function Welcome() {
         </>
       ) : null}
       {step === 3 ? (
+        <>
+          <T role="title" header center>
+            {w.coach.title}
+          </T>
+          <T role="body" color="textMuted" center>
+            {w.coach.body}
+          </T>
+          <CoachPicker value={state.prefs.coach} onChange={(id) => (setPrefs({ coach: id }), cue("tap"))} />
+        </>
+      ) : null}
+      {step === 4 ? (
         <>
           <T role="title" header center>
             {w.start.title}

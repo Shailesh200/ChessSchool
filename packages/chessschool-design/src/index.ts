@@ -8,3 +8,4 @@ export * from "./mascot";
 export * from "./session";
 export * from "./usage";
 export * from "./review";
+export * from "./coaches";

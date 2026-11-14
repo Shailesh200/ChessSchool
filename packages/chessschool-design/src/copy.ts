@@ -29,6 +29,10 @@ export const copy = {
         body: "Small and steady works best. You can change this anytime.",
         options: { 5: "A quick look", 10: "A steady habit", 15: "Deep focus" },
       },
+      coach: {
+        title: "Pick your coach",
+        body: "Your coach reads each lesson to you. You can switch any time in Settings.",
+      },
       start: {
         title: "Your seat is ready.",
         body: "Start now as a guest. Make an account later to keep your progress on every device.",
@@ -36,6 +40,17 @@ export const copy = {
         account: "I have an account",
       },
     },
+  },
+
+  coach: {
+    title: "Coach",
+    hint: "Who reads your lessons to you",
+    sample: (name: string) => `Hear ${name}`,
+    soon: "Voice soon",
+    voice: "Coach voice",
+    voiceHint: "Your coach reads each step aloud.",
+    speed: "Voice speed",
+    speeds: { 0.85: "Slower", 1: "Normal", 1.15: "Faster" } as Record<number, string>,
   },
 
   auth: {

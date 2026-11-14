@@ -1,9 +1,10 @@
-import { copy, PRIVACY_URL, REMINDER_HOURS, type Appearance } from "@chessschool/design";
+import { coachOf, copy, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { Linking, View } from "react-native";
+import { CoachPicker } from "@/components/CoachPicker";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, useToast } from "@/components/ui";
@@ -14,7 +15,7 @@ import { useApp } from "@/lib/state";
 export default function Settings() {
   const { state, setPrefs, signOut, resetThisDevice, deleteAccount, cue } = useApp();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news">(null);
+  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
   const [deleting, setDeleting] = useState(false);
   const { prefs, account } = state;
   const s = copy.settings;
@@ -50,6 +51,20 @@ export default function Settings() {
           <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
             <T role="label">{s.reminderTime}</T>
             <Segmented label={s.reminderTime} value={prefs.reminderHour} onChange={(h) => setPrefs({ reminderHour: h })} options={REMINDER_HOURS.map((h) => ({ value: h, label: s.reminderHour(h) }))} />
+          </View>
+        ) : null}
+      </Card>
+
+      <Card style={{ padding: 8 }}>
+        <T role="heading" header style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+          {copy.coach.title}
+        </T>
+        <Row icon="profile" label={coachOf(prefs.coach ?? "meera").name} hint={copy.coach.hint} chevron onPress={() => setSheet("coach")} />
+        <SwitchRow icon={prefs.voice ? "sound" : "mute"} label={copy.coach.voice} hint={copy.coach.voiceHint} value={prefs.voice} onChange={(v) => setPrefs({ voice: v })} />
+        {prefs.voice ? (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
+            <T role="label">{copy.coach.speed}</T>
+            <Segmented label={copy.coach.speed} value={prefs.voiceSpeed} onChange={(v) => setPrefs({ voiceSpeed: v })} options={VOICE_SPEEDS.map((v) => ({ value: v, label: copy.coach.speeds[v] }))} />
           </View>
         ) : null}
       </Card>
@@ -112,6 +127,13 @@ export default function Settings() {
       <T role="small" color="textMuted" center>
         {s.version(Constants.expoConfig?.version ?? "0.4.0")}
       </T>
+
+      <Sheet visible={sheet === "coach"} onClose={() => setSheet(null)}>
+        <T role="heading" center>
+          {copy.coach.title}
+        </T>
+        <CoachPicker value={prefs.coach ?? "meera"} onChange={(id) => setPrefs({ coach: id })} />
+      </Sheet>
 
       <Sheet visible={sheet === "reset"} onClose={() => setSheet(null)}>
         <Cody animation="sad-soft" size={110} />

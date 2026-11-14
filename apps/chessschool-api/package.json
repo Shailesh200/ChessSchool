@@ -13,7 +13,8 @@
     "qa:delete-accounts": "tsx scripts/delete-qa-accounts.ts",
     "seed:puzzles": "tsx scripts/seed-puzzles.ts",
     "seed:course": "tsx scripts/seed-course.ts",
-    "build:practice": "node scripts/build-practice-lessons.mjs"
+    "build:practice": "node scripts/build-practice-lessons.mjs",
+    "voice:build": "tsx scripts/voice-build.ts"
   },
   "dependencies": {
     "@chessschool/chess": "workspace:*",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@vercel/blob": "^2.9.0",
     "esbuild": "^0.25.12",
     "tsx": "^4.20.6",
     "typescript": "~5.9.2",

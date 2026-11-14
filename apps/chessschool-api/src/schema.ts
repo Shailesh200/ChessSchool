@@ -148,6 +148,17 @@ export const events = sqliteTable("cs_events", {
   appVersion: text("app_version").notNull(),
 });
 
+/** Recorded coach lines: one public audio URL per coach and spoken line (key = voiceKey(text)). */
+export const voiceClips = sqliteTable(
+  "cs_voice_clips",
+  {
+    coach: text("coach").notNull(),
+    key: text("key").notNull(),
+    url: text("url").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.coach, t.key] })],
+);
+
 /** Idempotent bootstrap; this schema is new and owns only cs_* tables. */
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
@@ -252,6 +263,12 @@ export const BOOTSTRAP_SQL = [
     app_version TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
+  `CREATE TABLE IF NOT EXISTS cs_voice_clips (
+    coach TEXT NOT NULL,
+    key TEXT NOT NULL,
+    url TEXT NOT NULL,
+    PRIMARY KEY (coach, key)
+  )`,
   `CREATE TABLE IF NOT EXISTS cs_puzzles (
     id TEXT PRIMARY KEY,
     fen TEXT NOT NULL,

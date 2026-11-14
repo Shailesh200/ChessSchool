@@ -73,6 +73,13 @@ export type RunnerAction =
   | { type: "endGame" };
 
 const PRAISE = ["Nice!", "That's it!", "Lovely.", "Exactly right.", "Well spotted!"];
+/** Feedback the runner says itself, outside any lesson. Each coach records these once. */
+export const SPOKEN_PHRASES = [...PRAISE, "Great first game!", "Good. Keep going.", "Checkmate! You won.", "Checkmate. Good game!", "It's a draw. Good game!"];
+
+/** What a coach says in a lesson: every step's text and its hint. */
+export function spokenLines(steps: Step[]): string[] {
+  return steps.flatMap((s) => [s.body, "hint" in s ? s.hint : ""]).filter((t): t is string => Boolean(t?.trim()));
+}
 
 function stepState(steps: Step[], index: number, misses = 0): RunnerState {
   const step = steps[index];

@@ -4733,3 +4733,15 @@ button.focus-card {
   font: inherit;
   cursor: pointer;
 }
+.coach-choice {
+  padding: 12px 20px;
+}
+.coach-text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+.coach-text .muted {
+  font-size: 0.875rem;
+  font-weight: 400;
+}

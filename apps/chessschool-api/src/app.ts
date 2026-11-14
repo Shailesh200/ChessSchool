@@ -3,6 +3,7 @@ import {
   dayKey,
   emptyProgress,
   isAvatarId,
+  isCoachId,
   isFlairId,
   isProgress,
   mergeProgress,
@@ -29,6 +30,7 @@ import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
 import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { MAX_PRACTICE, pickPractice } from "./practice";
+import { lessonClips } from "./voice";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
@@ -674,6 +676,16 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const count = typeof b.count === "number" && Number.isInteger(b.count) ? Math.min(MAX_PRACTICE, Math.max(1, b.count)) : 5;
     const items = pickPractice(await loadLessonSteps(db, lessons), ids(b.review, 50), count);
     return c.json({ items });
+  });
+
+  /** A coach's recorded clips for one lesson. Empty while that coach's voice isn't recorded yet. */
+  app.get("/v1/voice/:coach/:lesson", async (c) => {
+    const coach = c.req.param("coach") ?? "";
+    if (!isCoachId(coach)) return fail(c, 404, "not_found");
+    const lesson = await loadLesson(db, c.req.param("lesson") ?? "");
+    if (!lesson) return fail(c, 404, "not_found");
+    c.header("Cache-Control", "public, max-age=300");
+    return c.json({ coach, clips: await lessonClips(db, coach, lesson.steps) });
   });
 
   app.get("/v1/home", requireUser, async (c) => {

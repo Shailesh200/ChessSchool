@@ -8,6 +8,7 @@ import { Button } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
 import { useCourse, useLesson } from "@/lib/course";
 import { useApp } from "@/lib/state";
+import { useCoachVoice } from "@/lib/voice";
 
 type Before = { id: string; done: boolean; streak: number; goal: boolean };
 
@@ -21,6 +22,7 @@ export default function LessonScreen() {
   const [before, setBefore] = useState<Before | null>(null);
   const lesson = loaded ?? course?.lessons.find((l) => l.id === id);
   const hasSteps = Boolean(lesson?.steps);
+  const say = useCoachVoice(id);
   useEffect(() => {
     if (hasSteps && id !== "meet") track("lesson_start", { lesson: id });
   }, [id, hasSteps, track]);
@@ -39,6 +41,7 @@ export default function LessonScreen() {
     <LessonPlayer
       key={id}
       steps={lesson.steps as Step[]}
+      say={say}
       onClose={(step) => {
         track("lesson_quit", { lesson: id, step });
         close();
