@@ -7,7 +7,8 @@ import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 import { Icon } from "./Icon";
-import { Badge, ProgressBar, T, type BadgeTone } from "./ui";
+import { CourseMap } from "./CourseMap";
+import { Badge, ProgressBar, Segmented, T, type BadgeTone } from "./ui";
 
 const RAIL = 44;
 const DOT = 28;
@@ -41,6 +42,7 @@ export function PathList({
   const { c } = useTheme();
   const [review, setReview] = useState(false);
   const [all, setAll] = useState(false);
+  const [view, setView] = useState<"map" | "list">("map");
   const seenIds = useRef<Set<string> | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
   useEffect(() => {
@@ -80,6 +82,26 @@ export function PathList({
           {copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}
         </T>
       </View>
+      <Segmented
+        label={copy.today.focus.map.label}
+        value={view}
+        onChange={setView}
+        options={[
+          { value: "map", label: copy.today.focus.map.map },
+          { value: "list", label: copy.today.focus.map.list },
+        ]}
+      />
+      {view === "map" ? (
+        <CourseMap
+          course={course}
+          progress={progress}
+          onOpen={(id) => {
+            const lesson = course.lessons.find((l) => l.id === id);
+            if (lesson) go(lesson);
+          }}
+        />
+      ) : (
+        <>
       {f.doneCount > 1 ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: c.line }}>
           <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
@@ -145,6 +167,8 @@ export function PathList({
             </Pressable>
           ))
         : null}
+        </>
+      )}
       <View style={{ gap: space[3], padding: space[4], borderRadius: radius.lg, borderWidth: 1, borderStyle: "dashed", borderColor: c.line }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           <Icon name="sparkles" size={20} color={c.brandText} />

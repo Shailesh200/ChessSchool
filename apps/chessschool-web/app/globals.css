@@ -4983,6 +4983,7 @@ html[data-cs-motion="reduce"] *::after {
 }
 .member-row.is-active {
   background: var(--cs-brand-soft);
+}
 /* ---------- class homework, games and tournaments ---------- */
 .class-section {
   display: grid;
@@ -5059,6 +5060,7 @@ html[data-cs-motion="reduce"] *::after {
 .pick-list .choice {
   width: 100%;
   min-height: 52px;
+}
 /* ---------- Certificate (A4 landscape, print shows only the sheet) ---------- */
 .certificate-page {
   min-height: 100dvh;
@@ -5103,4 +5105,108 @@ html[data-cs-motion="reduce"] *::after {
     border-radius: 0;
     box-shadow: none;
   }
+}
+
+/* 1.11 course map: winding trail, one stop per unit */
+.cmap {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+.cmap-trail {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+}
+.cmap-trail svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cmap-road {
+  fill: none;
+  stroke: var(--cs-line);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+.cmap-road.done {
+  stroke: var(--cs-brand);
+}
+.cmap-trail ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cmap-stop {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.cmap-stop > a,
+.cmap-stop > button {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.cmap-stop > a:focus-visible,
+.cmap-stop > button:focus-visible {
+  outline: 3px solid var(--cs-brand);
+  outline-offset: 4px;
+}
+.cmap-node {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cs-card);
+  border: 4px solid var(--cs-line);
+  color: var(--cs-text-muted);
+}
+.cmap-node.done {
+  background: var(--cs-success);
+  border-color: var(--cs-success);
+  color: #fff;
+}
+.cmap-node.current {
+  width: 80px;
+  height: 80px;
+  background: var(--cs-gold);
+  border: 0;
+  box-shadow: 0 0 0 10px var(--cs-gold-soft), 0 6px 0 var(--cs-gold-edge);
+  overflow: hidden;
+}
+.cmap-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: 130px;
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--cs-text-muted);
+  pointer-events: none;
+}
+.cmap-label strong {
+  color: var(--cs-text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+.cmap-label.right {
+  left: calc(100% + 14px);
+}
+.cmap-label.left {
+  right: calc(100% + 14px);
+  text-align: right;
+  justify-items: end;
+}
+.cmap-label.current {
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--cs-card);
+  box-shadow: 0 6px 18px rgba(28, 27, 46, 0.12);
 }

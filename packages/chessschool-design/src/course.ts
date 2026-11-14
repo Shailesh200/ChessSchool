@@ -107,6 +107,19 @@ export function nextOpenLesson(course: Course, completed: Record<string, string 
   return course.lessons.slice(from).find((l) => l.id !== afterId && !completed[l.id] && unitUnlocked(course, marked, l.unit)) ?? null;
 }
 
+export type TrailStop = { unit: CourseUnit; state: "done" | "current" | "locked"; done: number; total: number; lesson: CourseLesson | null };
+
+/** One stop per unit for the course map. `lesson` is what a tap opens: the first lesson of a done unit, the next open one of the current unit, nothing for a locked unit. */
+export function courseTrail(course: Course, completed: Record<string, string | undefined>): TrailStop[] {
+  const current = course.lessons.find((l) => !completed[l.id]);
+  return course.units.map((unit) => {
+    const mine = course.lessons.filter((l) => l.unit === unit.id);
+    const done = mine.filter((l) => completed[l.id]).length;
+    const state = mine.length > 0 && done === mine.length ? "done" : current?.unit === unit.id ? "current" : "locked";
+    return { unit, state, done, total: mine.length, lesson: state === "done" ? mine[0] : state === "current" ? (current ?? null) : null };
+  });
+}
+
 /** True only when the course payload set `guestLocked`. Missing or non-boolean means open. */
 export function isGuestLockedLesson(lesson: { guestLocked?: unknown } | null | undefined): boolean {
   return lesson?.guestLocked === true;

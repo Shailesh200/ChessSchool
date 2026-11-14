@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { focusCourse, isGuestLockedLesson, lessonAccess, lessonAfter, nextOpenLesson, parseCourse, unitUnlocked, type Course } from "./course";
+import { courseTrail, focusCourse, isGuestLockedLesson, lessonAccess, lessonAfter, nextOpenLesson, parseCourse, unitUnlocked, type Course } from "./course";
 
 const course: Course = {
   units: [
@@ -89,5 +89,19 @@ describe("coming-soon list", () => {
     const raw = JSON.stringify({ units: [], lessons: [], comingSoon: [{ id: "studies", title: "Endgame studies", sub: "Soon" }, { id: 3 }] });
     expect(parseCourse(raw)?.comingSoon).toEqual([{ id: "studies", title: "Endgame studies", sub: "Soon" }]);
     expect(parseCourse(JSON.stringify({ units: [], lessons: [] }))?.comingSoon).toBeUndefined();
+  });
+});
+
+describe("courseTrail", () => {
+  it("marks done, current and locked units with what a tap opens", () => {
+    const t = courseTrail(course, { a: "x", b: "x", c: "x" });
+    expect(t.map((s) => [s.state, s.done, s.total, s.lesson?.id ?? null])).toEqual([
+      ["done", 2, 2, "a"],
+      ["current", 1, 3, "d"],
+    ]);
+  });
+  it("leaves later units locked and has no current stop when all is done", () => {
+    expect(courseTrail(course, {}).map((s) => s.state)).toEqual(["current", "locked"]);
+    expect(courseTrail(course, { a: "x", b: "x", c: "x", d: "x", e: "x" }).map((s) => s.state)).toEqual(["done", "done"]);
   });
 });
