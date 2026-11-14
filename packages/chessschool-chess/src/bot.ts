@@ -83,6 +83,13 @@ export function pickByLoss(ranked: readonly RankedMove[], target: number, like: 
   return pick;
 }
 
+/**
+ * Our quick search scores moves less sharply than the engine behind the Lichess evals, so the same
+ * loss distribution plays closer to the middle. Self-play (scripts/bot-ladder.ts) showed the roster's
+ * spread squeezed to a fraction of its targets; stretching around 1100 widens it again.
+ */
+export const modelRating = (rating: number) => 1100 + (rating - 1100) * 1.6;
+
 const plyOf = (fen: string) => {
   const [, turn, , , , full] = fen.split(" ");
   return (Math.max(1, Number(full) || 1) - 1) * 2 + (turn === "b" ? 1 : 0);
@@ -97,9 +104,9 @@ export function chooseMove(fen: string, bot: BotId | LegacyLevel, rand: () => nu
   const id = toBotId(bot);
   const moves = load(fen).moves({ verbose: true });
   if (moves.length <= 1) return moves[0] ?? null;
-  const r = rating ?? botInfo(id).rating;
+  const r = modelRating(rating ?? botInfo(id).rating);
   // Below the data's floor (400), mix in moves a brand-new player might make.
-  if (r < 400 && rand() < (400 - r) / 400) {
+  if (r < 400 && rand() < (400 - r) / 800) {
     const captures = moves.filter((m) => m.captured);
     return captures.length && rand() < 0.4 ? captures[Math.floor(rand() * captures.length)] : moves[Math.floor(rand() * moves.length)];
   }
