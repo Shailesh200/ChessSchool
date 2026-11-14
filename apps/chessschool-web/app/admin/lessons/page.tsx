@@ -4,7 +4,7 @@ import type { Step } from "@chessschool/chess";
 import { ApiError, type AdminCourse, type AdminCourseVersion, type AdminLesson } from "@chessschool/design";
 import { Component, useCallback, useEffect, useState } from "react";
 import { LessonPlayer } from "@/components/LessonPlayer";
-import { Button, Card, Chip, TextField, TopBar, useToast } from "@/components/ui";
+import { Button, Card, Chip, Segmented, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 
 type Load = { state: "loading" } | { state: "signin" } | { state: "forbidden" } | { state: "error" } | { state: "ok"; course: AdminCourse; versions: AdminCourseVersion[] };
@@ -19,6 +19,12 @@ function parse(text: string): AdminLesson | null {
     return null;
   }
 }
+type Level = "beginner" | "intermediate" | "advanced";
+const LEVELS: { value: Level; label: string }[] = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+];
 const when = (at: number) => new Date(at).toLocaleString();
 
 /** A broken step should break the preview, not the editor. */
@@ -41,7 +47,9 @@ export default function LessonEditorPage() {
   const [draftNote, setDraftNote] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [check, setCheck] = useState<Check>(null);
-  const [busy, setBusy] = useState<null | "validate" | "draft" | "publish" | "rollback">(null);
+  const [busy, setBusy] = useState<null | "validate" | "draft" | "publish" | "rollback" | "ai">(null);
+  const [topic, setTopic] = useState("");
+  const [level, setLevel] = useState<Level>("beginner");
 
   const fetchAll = useCallback(() => {
     Promise.all([api.adminCourse(), api.courseVersions()])
@@ -122,6 +130,16 @@ export default function LessonEditorPage() {
       setLive(lesson);
       fetchAll();
     });
+  const draftWithAi = () =>
+    run("ai", async () => {
+      if (draftNote && !window.confirm("Replace the saved draft with a new AI draft?")) return;
+      const r = await api.draftLessonWithAi(id!, { topic: topic.trim(), level });
+      setText(pretty(r.lesson));
+      setCheck({ ok: r.errors.length === 0, errors: r.errors });
+      setDraftNote(`AI draft saved, ${when(Date.now())}. Check it, edit it and publish by hand.`);
+      toast(r.errors.length ? "AI draft saved, but it still fails some checks." : "AI draft saved. It isn't live yet.");
+      fetchAll();
+    });
   const rollback = (v: AdminCourseVersion) =>
     run("rollback", async () => {
       if (!window.confirm(`Roll the whole course back to ${v.version} (${v.note})?`)) return;
@@ -164,6 +182,22 @@ export default function LessonEditorPage() {
 
         {id ? (
           <div className="admin-edit">
+            <Card>
+              <h2 className="card-title">Draft with AI</h2>
+              <p className="muted">
+                Describe the lesson for this slot ({load.course.units.find((u) => u.lessons.some((l) => l.id === id))?.title}). The language model writes it, the course checks run on it, and it is saved as this lesson&apos;s draft. Nothing goes live until you publish.
+              </p>
+              <div className="field">
+                <label htmlFor="ai-topic">Topic</label>
+                <textarea id="ai-topic" rows={3} maxLength={1000} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Knight forks on the king and queen, with two practice positions" />
+              </div>
+              <Segmented label="Level" value={level} options={LEVELS} onChange={setLevel} />
+              <div className="admin-actions">
+                <Button variant="secondary" onClick={draftWithAi} loading={busy === "ai"} disabled={!topic.trim() || Boolean(busy)}>
+                  Draft with AI
+                </Button>
+              </div>
+            </Card>
             <Card>
               <h2 className="card-title">
                 {live?.title ?? id} <span className="muted">({id})</span>

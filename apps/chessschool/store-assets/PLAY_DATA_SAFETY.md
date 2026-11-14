@@ -1,5 +1,7 @@
 # Play Data safety draft
 
+> Phase 2: AI explanations, the board scanner, "Say your move", crash reports and usage events change some answers below. Use `AI_DISCLOSURE.md` for the current form answers.
+
 Answers from what ChessSchool v2 actually does (`apps/chessschool` and the `/v1` API it calls). This is a form draft, not a legal policy.
 
 The app has no analytics SDK, no crash reporter, no ads, and no advertising ID. It does not use the microphone, camera, photos, contacts, or location. Sound is bundled playback only. Reminders are local notifications; the app does not register a push token.

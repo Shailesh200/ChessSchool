@@ -6,6 +6,7 @@ import { senderFromEnv } from "./weekly";
 import { openDb } from "./db";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
+import { anthropicLessonWriter } from "./lesson-draft";
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -33,6 +34,7 @@ async function boot() {
     reportError,
     weekly: senderFromEnv(process.env),
     cronSecret: process.env.CRON_SECRET,
+    lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
   });
   return handle(app);
 }

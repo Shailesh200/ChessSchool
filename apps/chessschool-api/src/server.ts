@@ -3,6 +3,7 @@ import { createApp } from "./app";
 import { openDb } from "./db";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
+import { anthropicLessonWriter } from "./lesson-draft";
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -18,6 +19,7 @@ const app = createApp({
   corsOrigins: list(process.env.CORS_ORIGINS ?? "http://localhost:3100"),
   adminEmails: list(process.env.ADMIN_EMAILS),
   certSecret: process.env.CERT_SECRET,
+  lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
 });
 
 const hostname = process.env.HOST ?? "0.0.0.0";

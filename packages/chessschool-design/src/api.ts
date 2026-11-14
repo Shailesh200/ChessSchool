@@ -145,13 +145,13 @@ export type ApiClientOptions = {
 };
 
 export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000 }: ApiClientOptions) {
-  async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  async function request<T>(method: string, path: string, body?: unknown, waitMs = timeoutMs): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const token = getToken ? await getToken() : null;
     if (token) headers.Authorization = `Bearer ${token}`;
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const timer = setTimeout(() => ctrl.abort(), waitMs);
     let res: Response;
     try {
       res = await fetchImpl(`${baseUrl}${path}`, {
@@ -236,6 +236,9 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       request<{ lesson: AdminLesson; draft: { lesson: AdminLesson; updatedBy: string; updatedAt: number } | null }>("GET", `/v1/admin/course/lessons/${encodeURIComponent(id)}`),
     validateLesson: (lesson: unknown) => request<{ ok: boolean; errors: string[] }>("POST", "/v1/admin/course/validate", { lesson }),
     saveLessonDraft: (id: string, lesson: unknown) => request<{ ok: true }>("PUT", `/v1/admin/course/drafts/${encodeURIComponent(id)}`, { lesson }),
+    /** Writes a new lesson for this slot with the language model and saves it as the draft (never live). */
+    draftLessonWithAi: (id: string, brief: { topic: string; level: "beginner" | "intermediate" | "advanced" }) =>
+      request<{ lesson: AdminLesson; errors: string[]; attempts: number }>("POST", `/v1/admin/course/lessons/${encodeURIComponent(id)}/ai-draft`, brief, 180_000),
     discardLessonDraft: (id: string) => request<{ ok: true }>("DELETE", `/v1/admin/course/drafts/${encodeURIComponent(id)}`),
     publishLesson: (lesson: unknown) => request<{ ok: true; version: string }>("POST", "/v1/admin/course/publish", { lesson }),
     courseVersions: () => request<{ versions: AdminCourseVersion[] }>("GET", "/v1/admin/course/versions"),
