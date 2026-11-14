@@ -173,6 +173,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     placement: () => request<{ items: { lesson: string; step: PracticeItem["step"] }[] }>("GET", `/v1/placement${lang("?")}`),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
     practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
+    /** A 7-day share link to the certificate of a finished unit (403 while unfinished). `path` is relative to the API. */
+    certificateLink: (unitId: string) => request<{ url: string; path: string; unit: string }>("POST", `/v1/certificates/${encodeURIComponent(unitId)}/link${lang("?")}`, {}),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
     adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),

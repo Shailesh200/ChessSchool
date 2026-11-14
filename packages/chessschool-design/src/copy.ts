@@ -535,6 +535,22 @@ export const copy = {
     locked: (n: number) => (n === 1 ? "Unlocks after 1 quest day" : `Unlocks after ${n} quest days`),
   },
 
+  certificate: {
+    action: "Certificate",
+    listTitle: "Certificates",
+    rowHint: "Share or print your certificate",
+    title: "Certificate of completion",
+    presented: "This certifies that",
+    finished: "has finished the unit",
+    date: (date: string) => `Finished on ${date}`,
+    learner: "A ChessSchool learner",
+    print: "Print",
+    share: (unit: string) => `My ChessSchool certificate for "${unit}"`,
+    notFinished: "Finish every lesson in this unit to get its certificate.",
+    failed: "Couldn't make the certificate. Try again in a moment.",
+    loading: "Making your certificate…",
+  },
+
   looks: {
     title: "Looks",
     theme: "App theme",

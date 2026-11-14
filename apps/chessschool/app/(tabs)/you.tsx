@@ -1,11 +1,12 @@
-import { BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
+import { BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, errorMessage, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Share, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
+import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
@@ -29,6 +30,18 @@ export default function You() {
     setProfile(patch);
     cue("tap");
     if (account) api.updateMe(patch).catch(() => {});
+  };
+  const course = useCourse();
+  // Certificates come from the server, so only signed-in learners have them.
+  const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
+  const shareCertificate = async (unitId: string) => {
+    cue("tap");
+    try {
+      const { url, unit } = await api.certificateLink(unitId);
+      await Share.share({ message: `${copy.certificate.share(unit)}\n${url}`, url });
+    } catch (err) {
+      toast((err as { status?: number }).status === 403 ? copy.certificate.notFinished : errorMessage(err));
+    }
   };
   const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
 
@@ -170,6 +183,19 @@ export default function You() {
           {ordered.slice(0, 8).map((b) => badge(b.id))}
         </ScrollView>
       </View>
+
+      {finishedUnits.length ? (
+        <View style={{ gap: 10 }}>
+          <T role="heading" header>
+            {copy.certificate.listTitle}
+          </T>
+          <Card style={{ padding: 6 }}>
+            {finishedUnits.map((u) => (
+              <Row key={u.id} icon="trophy" label={u.title} hint={copy.certificate.rowHint} chevron onPress={() => void shareCertificate(u.id)} />
+            ))}
+          </Card>
+        </View>
+      ) : null}
 
       <View style={{ gap: 10 }}>
         <T role="heading" header>

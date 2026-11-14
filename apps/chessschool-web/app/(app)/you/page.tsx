@@ -1,12 +1,13 @@
 "use client";
 
-import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, SaveBanner, Segmented, Sheet, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
+import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 
 export default function YouPage() {
@@ -16,6 +17,7 @@ export default function YouPage() {
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const nameForm = useRef<HTMLFormElement>(null);
+  const course = useCourse();
   useEffect(() => {
     if (sheet !== "name") return;
     const t = setTimeout(() => nameForm.current?.querySelector("input")?.focus(), 320);
@@ -27,6 +29,8 @@ export default function YouPage() {
   const rank = rankFor(progress.xp);
   const display = profile.name.trim() || copy.you.noName;
   const earned = earnedBadges(progress);
+  // Certificates come from the server, so only signed-in learners have them.
+  const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
   const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
   const toNext = rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank;
 
@@ -139,6 +143,26 @@ export default function YouPage() {
         </button>
       </div>
       <ul className="badge-strip">{ordered.slice(0, 8).map((b) => badge(b.id))}</ul>
+
+      {finishedUnits.length ? (
+        <>
+          <div className="section-head">
+            <h2>{copy.certificate.listTitle}</h2>
+          </div>
+          <Card className="list">
+            {finishedUnits.map((u) => (
+              <a key={u.id} href={`/certificate/${encodeURIComponent(u.id)}`} target="_blank" rel="noopener" className="row row-link">
+                <Icon name="trophy" />
+                <span className="row-text">
+                  <span className="row-label">{u.title}</span>
+                  <span className="row-hint">{copy.certificate.rowHint}</span>
+                </span>
+                <Icon name="chevron" />
+              </a>
+            ))}
+          </Card>
+        </>
+      ) : null}
 
       <div className="section-head">
         <h2>{copy.you.prefs}</h2>

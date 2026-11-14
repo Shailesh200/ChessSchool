@@ -19,6 +19,7 @@ import {
   type AuthResponse,
   type DailyMinutes,
   type GuestPayload,
+  type Lang,
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
@@ -28,6 +29,7 @@ import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
+import { certificateSvg, certToken, DEV_CERT_SECRET, readCertToken } from "./certificate";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
 import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { MAX_PRACTICE, pickPractice } from "./practice";
@@ -38,7 +40,7 @@ import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
 import type { GoogleVerifier } from "./google";
-import { blocks, classMembers, classes, feedback, leaderboardHidden, profiles, progress, reports, sessions, users } from "./schema";
+import { blocks, classMembers, classes, courseUnits, feedback, leaderboardHidden, profiles, progress, reports, sessions, users } from "./schema";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
 import {
   SESSION_COOKIE,
@@ -69,6 +71,8 @@ export type AppDeps = {
   tablebase?: TablebaseFetch;
   /** Crash reporting hook (Sentry in production). Gets the error only, never the request body. */
   reportError?: (err: unknown) => Promise<void> | void;
+  /** HMAC key for shareable certificate links (CERT_SECRET). Without it, a dev key is used unless cookies are secure (production). */
+  certSecret?: string;
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
@@ -99,8 +103,9 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, certSecret }: AppDeps) {
   const app = new Hono<Vars>();
+  const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
   const tablebaseLimiter = createRateLimiter(60, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
@@ -775,6 +780,56 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!answer) return fail(c, 503, "server");
     c.header("Cache-Control", "public, max-age=86400");
     return c.json(answer);
+  });
+
+  /**
+   * A unit the learner has finished, per their saved progress and the course path: its title in
+   * `lang` and the day its last lesson was done. 404 for an unknown unit, 403 while unfinished.
+   */
+  async function finishedUnit(c: Context, userId: string, unitId: string, lang: Lang) {
+    const path = await coursePath();
+    const lessons = path.filter((n) => n.unit === unitId);
+    if (!lessons.length) return fail(c, 404, "not_found");
+    const done = (await loadProgress(userId, path)).completed;
+    const days = lessons.map((n) => done[n.id]);
+    if (days.some((d) => !d)) return fail(c, 403, "forbidden");
+    const [row, text] = await Promise.all([db.select({ title: courseUnits.title }).from(courseUnits).where(eq(courseUnits.id, unitId)).get(), lang === "en" ? null : loadCourseText(db, lang)]);
+    return { title: text?.units[unitId]?.title || row?.title || unitId, day: days.sort().at(-1)! };
+  }
+  const certLang = (c: Context): Lang => {
+    const lang = c.req.query("lang");
+    return lang && isLang(lang) ? lang : "en";
+  };
+
+  /** A print-ready SVG certificate. Signed in, or with a share token from the link route. */
+  app.get("/v1/certificates/:unitId", async (c) => {
+    const unitId = c.req.param("unitId") ?? "";
+    const t = c.req.query("t");
+    let user: UserRow | null | undefined;
+    if (t) {
+      const id = certKey ? readCertToken(certKey, t, unitId, now().getTime()) : null;
+      if (!id) return fail(c, 403, "forbidden");
+      user = await db.query.users.findFirst({ where: eq(users.id, id) });
+    } else user = await userFromRequest(c);
+    if (!user) return fail(c, 401, "unauthorized");
+    const lang = certLang(c);
+    const unit = await finishedUnit(c, user.id, unitId, lang);
+    if (unit instanceof Response) return unit;
+    c.header("Content-Type", "image/svg+xml; charset=utf-8");
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'");
+    c.header("Cache-Control", "private, max-age=300");
+    return c.body(certificateSvg({ name: user.name, unit: unit.title, day: unit.day, lang }));
+  });
+
+  /** A link to the certificate that works without a session, for sharing. Valid CERT_LINK_DAYS. */
+  app.post("/v1/certificates/:unitId/link", requireUser, async (c) => {
+    if (!certKey) return fail(c, 503, "server", "CERT_SECRET is not set");
+    const unitId = c.req.param("unitId") ?? "";
+    const lang = certLang(c);
+    const unit = await finishedUnit(c, c.get("user").id, unitId, lang);
+    if (unit instanceof Response) return unit;
+    const path = `/v1/certificates/${encodeURIComponent(unitId)}?t=${certToken(certKey, c.get("user").id, unitId, now().getTime())}${lang === "en" ? "" : `&lang=${lang}`}`;
+    return c.json({ url: new URL(path, c.req.url).toString(), path, unit: unit.title });
   });
 
   app.get("/v1/home", requireUser, async (c) => {

@@ -436,6 +436,22 @@ export const hi: Translation = {
     locked: (n: number) => `${n} क्वेस्ट ${n === 1 ? "दिन" : "दिनों"} के बाद खुलेगा`,
   },
 
+  certificate: {
+    action: "प्रमाणपत्र",
+    listTitle: "प्रमाणपत्र",
+    rowHint: "अपना प्रमाणपत्र शेयर या प्रिंट करें",
+    title: "पूर्णता प्रमाणपत्र",
+    presented: "यह प्रमाणित किया जाता है कि",
+    finished: "ने यह यूनिट पूरी कर ली है",
+    date: (date: string) => `पूरा होने की तारीख़: ${date}`,
+    learner: "ChessSchool के एक विद्यार्थी",
+    print: "प्रिंट करें",
+    share: (unit: string) => `"${unit}" के लिए मेरा ChessSchool प्रमाणपत्र`,
+    notFinished: "प्रमाणपत्र पाने के लिए इस यूनिट के सारे पाठ पूरे करें।",
+    failed: "प्रमाणपत्र नहीं बन सका। थोड़ी देर में फिर कोशिश करें।",
+    loading: "आपका प्रमाणपत्र बन रहा है…",
+  },
+
   looks: {
     title: "रूप",
     theme: "ऐप थीम",
