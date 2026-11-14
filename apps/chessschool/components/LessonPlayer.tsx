@@ -99,16 +99,19 @@ type Props = {
   onClose: (step: number) => void;
   closeLabel?: string;
   onFinished: (misses: number) => void;
+  /** Called when a step is solved, with whether the learner missed on it first (practice uses it for review). */
+  onStep?: (index: number, missed: boolean) => void;
   done: React.ReactNode;
 };
 
-export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, onFinished, done }: Props) {
+export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, onFinished, onStep, done }: Props) {
   const { cue } = useApp();
   const { c } = useTheme();
   const { width: screen } = useWindowDimensions();
   const [s, setS] = useState(() => startRunner(steps));
   // Mirrors `s` for handlers and timers, so cues fire from one place.
   const ref = useRef(s);
+  const stepMisses = useRef(0);
   const finished = useRef(false);
   const step = currentStep(s);
   // Page padding, stage inset, card padding, Cody and the gap beside it.
@@ -120,6 +123,8 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     if (next === prev) return;
     ref.current = next;
     setS(next);
+    if (next.status === "ready" && prev.status === "working") onStep?.(next.index, next.misses > stepMisses.current);
+    if (next.index !== prev.index) stepMisses.current = next.misses;
     if (next.misses > prev.misses) cue("gentle-no");
     else if (next.status === "ready" && prev.status !== "ready") cue("success");
     else if (next.fen !== prev.fen) cue(positionCue(prev.fen, next.fen, next.lastMove));

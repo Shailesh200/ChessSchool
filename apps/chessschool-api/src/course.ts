@@ -1,5 +1,5 @@
 import type { Step } from "@chessschool/chess";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import type { CourseDoc } from "./course-check";
 import type { Db } from "./db";
 import { course, courseLessons, courseUnits } from "./schema";
@@ -49,6 +49,12 @@ export async function loadOutline(db: Db): Promise<CourseOutline | null> {
 export async function loadLessonsWithSteps(db: Db): Promise<(LessonOutline & { steps: Step[] })[]> {
   const rows = await db.select({ ...outlineColumns, steps: courseLessons.steps }).from(courseLessons).orderBy(asc(courseLessons.position));
   return rows.map((r) => ({ ...r, steps: JSON.parse(r.steps) as Step[] }));
+}
+
+export async function loadLessonSteps(db: Db, ids: string[]): Promise<{ id: string; steps: Step[] }[]> {
+  if (!ids.length) return [];
+  const rows = await db.select({ id: courseLessons.id, steps: courseLessons.steps }).from(courseLessons).where(inArray(courseLessons.id, ids));
+  return rows.map((r) => ({ id: r.id, steps: JSON.parse(r.steps) as Step[] }));
 }
 
 export async function loadLesson(db: Db, id: string): Promise<(LessonOutline & { steps: Step[] }) | null> {

@@ -1,14 +1,14 @@
 "use client";
 
-import { practiceSteps, type Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, visibleStreak } from "@chessschool/design";
+import type { Step } from "@chessschool/chess";
+import { copy, dayKey, goalMet, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
-import { useCourse, useLessonScripts } from "@/lib/course";
+import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 
 export default function PracticeSessionPage() {
@@ -18,30 +18,48 @@ export default function PracticeSessionPage() {
 }
 
 function Session() {
-  const { state, finishPractice, cue } = useApp();
-  const course = useCourse();
-  const ids = course ? course.lessons.filter((l) => state.progress.completed[l.id]).map((l) => l.id) : null;
-  const scripts = useLessonScripts(ids);
+  const { state, finishPractice, cue, answerReview, setPracticeNext } = useApp();
   const router = useRouter();
   const [round, setRound] = useState(0);
-  const [steps, setSteps] = useState<Step[] | null>(null);
+  const [items, setItems] = useState<PracticeItem[] | null>(null);
   const [before, setBefore] = useState<{ streak: number; goal: boolean } | null>(null);
 
+  // One request per round: due reviews first, then finished lessons. The spare half is kept for offline use.
   useEffect(() => {
-    if (!scripts || steps) return;
-    const next = practiceSteps(scripts as Step[]);
-    if (!next.length) router.replace("/practice");
-    else setSteps(next);
-  }, [scripts, steps, router]);
-  if (!steps) return <LessonSkeleton />;
+    let live = true;
+    api
+      .practice(practiceRequest(state.progress.completed, state.review, dayKey(new Date())))
+      .then(({ items: got }) => {
+        if (!live) return;
+        if (!got.length) return router.replace("/practice");
+        setItems(got.slice(0, PRACTICE_SET));
+        setPracticeNext(got.slice(PRACTICE_SET));
+      })
+      .catch(() => {
+        if (!live) return;
+        if (!state.practiceNext.length) return router.replace("/practice");
+        setItems(state.practiceNext);
+        setPracticeNext([]);
+      });
+    return () => {
+      live = false;
+    };
+    // Fetches once per round; the state read here is the state when the round starts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round]);
+  if (!items) return <LessonSkeleton />;
 
   const today = dayKey(new Date());
   const streak = visibleStreak(state.progress.streak, today);
   return (
     <LessonPlayer
       key={round}
-      steps={steps}
+      steps={items.map((i) => i.step) as unknown as Step[]}
       closeHref="/practice"
+      onStep={(index, missed) => {
+        const ref = items[index]?.ref;
+        if (ref) answerReview(ref, missed);
+      }}
       onFinished={() => {
         setBefore({ streak: visibleStreak(state.progress.streak, dayKey(new Date())), goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())) });
         finishPractice();
@@ -59,7 +77,7 @@ function Session() {
               block
               icon="refresh"
               onClick={() => {
-                setSteps(practiceSteps((scripts ?? []) as Step[]));
+                setItems(null);
                 setBefore(null);
                 setRound((r) => r + 1);
               }}

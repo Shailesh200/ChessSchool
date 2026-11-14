@@ -28,7 +28,7 @@ import {
   type LessonMeta,
 } from "@chessschool/design";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { createUsage, isGuestClassLimit, type UsageEventName } from "@chessschool/design";
+import { createUsage, dayKey, isGuestClassLimit, reviewAfter, type PracticeItem, type UsageEventName } from "@chessschool/design";
 import { version } from "../package.json";
 import { api } from "./api";
 import { playCue } from "./sound";
@@ -59,6 +59,10 @@ type Store = {
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
+  /** Records a practice answer for spaced review. */
+  answerReview: (ref: string, missed: boolean) => void;
+  /** Stores the next practice set for offline use. */
+  setPracticeNext: (items: PracticeItem[]) => void;
   /** Anonymous usage event (dropped when "Share anonymous usage" is off). */
   track: (name: UsageEventName, extra?: { lesson?: string; step?: number; value?: number }) => void;
   guestGateOpen: boolean;
@@ -161,6 +165,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       state,
       cue,
       track: usage.track,
+      answerReview: (ref, missed) => setState((s) => ({ ...s, review: reviewAfter(s.review, ref, missed, dayKey(new Date())) })),
+      setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),

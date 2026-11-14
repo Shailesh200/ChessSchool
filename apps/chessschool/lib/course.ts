@@ -61,27 +61,3 @@ export function useLesson(id: string | undefined) {
   return lesson;
 }
 
-/** Steps for the lessons practice needs, fetched only when that session starts. */
-export function useLessonScripts(ids: string[] | null) {
-  const key = ids === null ? null : ids.join(",");
-  const [steps, setSteps] = useState<unknown[] | null>(null);
-  useEffect(() => {
-    if (key === null || !ids) return;
-    if (!ids.length) {
-      setSteps([]);
-      return;
-    }
-    let live = true;
-    Promise.all(ids.map((id) => api.lesson(id)))
-      .then((lessons) => {
-        if (live) setSteps(lessons.flatMap((l) => l.steps ?? []));
-      })
-      .catch(() => {
-        if (live) setSteps([]);
-      });
-    return () => {
-      live = false;
-    };
-  }, [key]);
-  return ids ? steps : null;
-}

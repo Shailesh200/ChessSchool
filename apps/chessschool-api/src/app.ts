@@ -27,7 +27,8 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { deleteUserData } from "./account-delete";
 import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CODE, isGuestAccount, type CourseAccess } from "./access";
-import { loadLesson, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
+import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
+import { MAX_PRACTICE, pickPractice } from "./practice";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
 import type { Db } from "./db";
@@ -658,6 +659,21 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const refused = refuseLesson(c, access, id);
     if (refused) return refused;
     return c.json(lesson);
+  });
+
+  /**
+   * A practice set from lessons the learner has finished. Body: { lessons, review, count }.
+   * Lessons the caller can't open (a guest past the free lessons) are skipped, never an error.
+   */
+  app.post("/v1/practice", async (c) => {
+    const b = await body<{ lessons?: unknown; review?: unknown; count?: unknown }>(c);
+    const ids = (v: unknown, max: number) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.length <= 80).slice(0, max) : []);
+    const access = await accessFor(await userFromRequest(c));
+    const open = new Set(access.path.filter((n) => n.playable).map((n) => n.id));
+    const lessons = [...new Set(ids(b.lessons, 300))].filter((id) => open.has(id));
+    const count = typeof b.count === "number" && Number.isInteger(b.count) ? Math.min(MAX_PRACTICE, Math.max(1, b.count)) : 5;
+    const items = pickPractice(await loadLessonSteps(db, lessons), ids(b.review, 50), count);
+    return c.json({ items });
   });
 
   app.get("/v1/home", requireUser, async (c) => {

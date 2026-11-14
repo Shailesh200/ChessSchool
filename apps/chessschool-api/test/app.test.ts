@@ -573,3 +573,33 @@ describe("usage events and admin", () => {
     expect(row.status).toBe("resolved");
   });
 });
+
+describe("practice", () => {
+  const lessonOf = (ref: string) => ref.split(":")[0];
+
+  it("serves due reviews first, then steps only from lessons the caller can open", async () => {
+    const { token } = (await call("POST", "/v1/auth/register", { name: "P", email: "p@b.co", password: "pawnpawn" })).json as AuthResponse;
+    await call("PUT", "/v1/progress", { progress: progressThrough("moves") }, token);
+    const board = COURSE.lessons.find((l) => l.id === "board")!;
+    const reviewIdx = board.steps.findIndex((s) => s.kind !== "say");
+    const res = await call("POST", "/v1/practice", { lessons: ["board", "moves", "castling"], review: [`board:${reviewIdx}`, "board:0"], count: 6 }, token);
+    expect(res.status).toBe(200);
+    const items = res.json.items as { ref: string; step: { kind: string } }[];
+    expect(items[0].ref).toBe(`board:${reviewIdx}`);
+    expect(items.some((i) => i.ref === "board:0")).toBe(board.steps[0].kind !== "say");
+    expect(items.length).toBe(6);
+    expect(new Set(items.map((i) => i.ref)).size).toBe(6);
+    expect(items.every((i) => i.step.kind !== "say")).toBe(true);
+    expect(items.some((i) => lessonOf(i.ref) === "castling")).toBe(false);
+  });
+
+  it("gives a guest nothing from lessons past the free ones and caps the count", async () => {
+    const late = COURSE.lessons[10].id;
+    const guest = await call("POST", "/v1/practice", { lessons: [late] });
+    expect(guest.json.items).toEqual([]);
+    const free = await call("POST", "/v1/practice", { lessons: ["board", "moves"], count: 99 });
+    expect(free.json.items.length).toBeLessThanOrEqual(10);
+    expect(free.json.items.every((i: { ref: string }) => ["board", "moves"].includes(lessonOf(i.ref)))).toBe(true);
+    expect((await call("POST", "/v1/practice", { lessons: "nope" })).json.items).toEqual([]);
+  });
+});

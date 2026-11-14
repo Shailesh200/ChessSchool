@@ -19,6 +19,8 @@ export type UsageSummary = {
   games: number;
   platforms: { platform: string; installs: number }[];
 };
+/** One practice position; `step` is a lesson step as the lesson runner plays it. */
+export type PracticeItem = { ref: string; step: Record<string, unknown> & { kind: string } };
 export type AdminReport = { id: string; reason: ReportReason; note: string; status: "open" | "resolved"; createdAt: number; className: string | null; reported: string | null; reporter: string | null };
 export type ClassRoom = { id: string; name: string; code: string; role: ClassRole; members: ClassMember[] };
 export type AuthResponse = { user: Account; profile: ApiProfile; progress: Progress; token: string };
@@ -160,6 +162,7 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/report`, r),
     blockMember: (classId: string, memberId: string) => request<{ ok: true }>("POST", `/v1/classes/${classId}/members/${memberId}/block`, {}),
     removeMember: (classId: string, memberId: string) => request<{ ok: true }>("DELETE", `/v1/classes/${classId}/members/${memberId}`),
+    practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", "/v1/practice", input),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
     adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),

@@ -1,4 +1,6 @@
 import { isThemeId, type Appearance, type ThemeId } from "./tokens";
+import { isReview, type Review } from "./review";
+import type { PracticeItem } from "./api";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -133,6 +135,10 @@ export type LocalState = {
   placementDone: boolean;
   /** Random id for anonymous usage events only; never sent with an account or the guest id. */
   usageId: string;
+  /** Practice positions to review, keyed "<lessonId>:<stepIndex>" (this device only). */
+  review: Review;
+  /** The next practice set, kept so practice works offline. */
+  practiceNext: PracticeItem[];
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -171,6 +177,8 @@ export function createInitialState(guestId: string): LocalState {
     badgesSeen: [],
     placementDone: false,
     usageId: `u${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 12)}`,
+    review: {},
+    practiceNext: [],
   };
 }
 
@@ -203,6 +211,8 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     badgesSeen: Array.isArray(r.badgesSeen) ? r.badgesSeen.filter((b) => typeof b === "string") : [],
     placementDone: r.placementDone === true,
     usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
+    review: isReview(r.review) ? r.review : {},
+    practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
 

@@ -7,3 +7,4 @@ export * from "./course";
 export * from "./mascot";
 export * from "./session";
 export * from "./usage";
+export * from "./review";
