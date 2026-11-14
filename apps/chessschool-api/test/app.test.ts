@@ -623,6 +623,20 @@ describe("coach voice", () => {
   });
 });
 
+describe("Hindi coach voice", () => {
+  it("serves Meera's Hindi clips whichever coach is asked for", async () => {
+    const { applyVoice } = await import("../src/voice");
+    const { applyCourseText } = await import("../src/course-text");
+    const { voiceKey } = await import("@chessschool/design");
+    const board = COURSE.lessons.find((l) => l.id === "board")!;
+    await applyCourseText(db, { lang: "hi", units: {}, lessons: { board: { title: "बोर्ड", steps: [{ body: "यह बोर्ड है।" }] } } });
+    await applyVoice(db, [{ coach: "meera", clips: { [voiceKey("यह बोर्ड है।")]: "https://cdn/hi.mp3" } }]);
+    const res = await call("GET", "/v1/voice/tara/board?lang=hi");
+    expect(res.json).toEqual({ coach: "tara", clips: { [voiceKey("यह बोर्ड है।")]: "https://cdn/hi.mp3" } });
+    expect((await call("GET", "/v1/voice/tara/board")).json.clips).toEqual({});
+  });
+});
+
 describe("course translations", () => {
   it("serves translated words line by line with English fallback, and keeps the chess", async () => {
     const { applyCourseText } = await import("../src/course-text");

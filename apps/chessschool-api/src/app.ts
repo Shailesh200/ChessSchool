@@ -91,6 +91,8 @@ export type AppDeps = {
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
+/** Hindi lines are recorded in this one coach voice, used whichever coach the learner picked. */
+const HINDI_VOICE = "meera";
 /** Eight lessons of rising difficulty for the placement quiz (units 1, 2, 3, 5, 7, 12, 14, 18). */
 const PLACEMENT_LESSONS = ["check", "forks", "ladder", "skewer", "backRank", "squareOfPawn", "deflection", "calculation"] as const;
 
@@ -1140,7 +1142,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const [lesson, text] = await Promise.all([loadLesson(db, c.req.param("lesson") ?? ""), textFor(c)]);
     if (!lesson) return fail(c, 404, "not_found");
     c.header("Cache-Control", "public, max-age=300");
-    return c.json({ coach, clips: await lessonClips(db, coach, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps)) });
+    const voice = text ? HINDI_VOICE : coach;
+    return c.json({ coach, clips: await lessonClips(db, voice, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps)) });
   });
 
   /**
