@@ -3,6 +3,7 @@ import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coache
 import { isLang, type Lang } from "./i18n";
 import { isReview, type Review } from "./review";
 import type { PracticeItem } from "./api";
+import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -155,6 +156,8 @@ export type LocalState = {
   practiceNext: PracticeItem[];
   /** Endgame trainer wins per position id (mastered at ENDGAME_MASTERY). */
   endgames: Record<string, number>;
+  /** Today's quest counters and quest days earned (this device only; see quests.ts). */
+  quests: Quests;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -196,6 +199,7 @@ export function createInitialState(guestId: string): LocalState {
     review: {},
     practiceNext: [],
     endgames: {},
+    quests: emptyQuests(),
   };
 }
 
@@ -230,6 +234,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
     review: isReview(r.review) ? r.review : {},
     endgames: r.endgames && typeof r.endgames === "object" ? Object.fromEntries(Object.entries(r.endgames).filter(([, n]) => typeof n === "number")) : {},
+    quests: hydrateQuests(r.quests),
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
@@ -493,7 +498,7 @@ export function completeNode(state: LocalState, nodeId: string, now: Date, meta?
   const today = dayKey(now);
   const first = !state.progress.completed[nodeId];
   const prevMinutes = minutesToday(state.progress, today);
-  return {
+  return trackQuests({
     ...state,
     arrival: null,
     progress: {
@@ -503,7 +508,7 @@ export function completeNode(state: LocalState, nodeId: string, now: Date, meta?
       streak: streakAfterActivity(state.progress.streak, today),
       minutes: { day: today, value: Math.min(1440, prevMinutes + node.minutes) },
     },
-  };
+  }, today);
 }
 
 /** Practice and games count toward the streak and today's goal, but never add XP. */
@@ -522,7 +527,7 @@ function activity(state: LocalState, now: Date, minutes: number): LocalState {
 
 export function recordPractice(state: LocalState, now: Date, minutes = 3): LocalState {
   const s = activity(state, now, minutes);
-  return { ...s, progress: { ...s.progress, drills: s.progress.drills + 1 } };
+  return trackQuests({ ...s, progress: { ...s.progress, drills: s.progress.drills + 1 } }, dayKey(now), { practice: 1 });
 }
 
 /**
@@ -536,7 +541,7 @@ export function recordGame(state: LocalState, game: GameRecord, now: Date, minut
   const g = s.progress.games;
   const b = bot ? (s.progress.bots[bot] ?? { played: 0, won: 0 }) : null;
   const start = game.setup.startId;
-  return {
+  return trackQuests({
     ...s,
     activeGame: null,
     endgames: won && start ? { ...s.endgames, [start]: (s.endgames[start] ?? 0) + 1 } : s.endgames,
@@ -546,7 +551,7 @@ export function recordGame(state: LocalState, game: GameRecord, now: Date, minut
       games: { played: g.played + 1, won: g.won + (won ? 1 : 0) },
       bots: bot && b ? { ...s.progress.bots, [bot]: { played: b.played + 1, won: b.won + (won ? 1 : 0) } } : s.progress.bots,
     },
-  };
+  }, dayKey(now), { games: 1, wins: won ? 1 : 0 });
 }
 
 /** A puzzle attempt. Solving counts as a little practice; the new rating comes from the caller. */
@@ -561,7 +566,7 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
     p.daily && p.solved && pz.daily.lastDay !== today
       ? { lastDay: today, count: pz.daily.lastDay && daysBetween(pz.daily.lastDay, today) === 1 ? pz.daily.count + 1 : 1, seen, servedDay: today, servedId: p.id }
       : { ...pz.daily, seen, ...(p.daily && p.solved ? { servedDay: today, servedId: p.id } : {}) };
-  return {
+  return trackQuests({
     ...s,
     progress: {
       ...s.progress,
@@ -574,13 +579,13 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
         daily,
       },
     },
-  };
+  }, today, { puzzles: p.solved ? 1 : 0 });
 }
 
 export function recordSprint(state: LocalState, score: number, now: Date, minutes: number): LocalState {
   const s = activity(state, now, minutes);
   const pz = s.progress.puzzles;
-  return { ...s, progress: { ...s.progress, puzzles: { ...pz, sprintBest: Math.max(pz.sprintBest, score) } } };
+  return trackQuests({ ...s, progress: { ...s.progress, puzzles: { ...pz, sprintBest: Math.max(pz.sprintBest, score) } } }, dayKey(now), { puzzles: Math.max(0, Math.floor(score)) });
 }
 
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;

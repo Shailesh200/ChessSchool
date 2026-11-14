@@ -1,4 +1,4 @@
-import { copy, dayKey, focusCourse, greetingFor, minutesToday, rankFor, space, visibleStreak, type Course, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, minutesToday, nextReward, rankFor, space, todayQuests, visibleStreak, type Course, type LocalState, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useEffect, useState } from "react";
@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Cody, Fx } from "@/components/Lottie";
 import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
-import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
+import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, ProgressBar, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
@@ -219,6 +219,8 @@ export default function Today() {
         ) : null}
       </View>
 
+      <QuestsCard state={state} today={today} />
+
       {!state.placementDone && !progress.completed.board ? (
         <Card style={{ gap: 10 }}>
           <T role="heading" header>
@@ -335,5 +337,39 @@ export default function Today() {
         </View>
       ) : null}
     </SafeAreaView>
+  );
+}
+
+function QuestsCard({ state, today }: { state: LocalState; today: string }) {
+  const quests = todayQuests(state, today);
+  const reward = nextReward(state);
+  const allDone = quests.every((q) => q.done);
+  return (
+    <Card style={{ gap: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <T role="heading" header>
+          {copy.quests.title}
+        </T>
+        <Chip icon="star" tone="gold">
+          {copy.quests.days(state.quests.days)}
+        </Chip>
+      </View>
+      {quests.map((q) => (
+        <View key={q.id} style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <T role="body" style={{ flex: 1 }}>
+              {copy.quests.items[q.id]}
+            </T>
+            <T role="small" color={q.done ? "successText" : "textMuted"}>
+              {copy.quests.count(q.value, q.target)}
+            </T>
+          </View>
+          <ProgressBar value={q.value / q.target} tone={q.done ? "success" : "brand"} label={copy.quests.a11y(copy.quests.items[q.id], q.value, q.target)} />
+        </View>
+      ))}
+      <T role="small" color="textMuted">
+        {allDone ? copy.quests.allDone : reward ? copy.quests.next(reward.days) : copy.quests.allRewards}
+      </T>
+    </Card>
   );
 }

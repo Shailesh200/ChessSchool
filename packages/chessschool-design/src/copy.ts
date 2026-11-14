@@ -523,6 +523,18 @@ export const copy = {
     credit: "",
   },
 
+  quests: {
+    title: "Today's quests",
+    items: { lesson: "Finish 1 lesson", puzzles: "Solve 3 puzzles", practice: "Finish 1 practice", daily: "Solve the daily puzzle", goal: "Reach today's goal", game: "Play a game", win: "Win a game" },
+    count: (value: number, target: number) => `${value}/${target}`,
+    a11y: (quest: string, value: number, target: number) => `${quest}: ${value} of ${target}`,
+    allDone: "All quests done today. Come back tomorrow for new ones!",
+    days: (n: number) => (n === 1 ? "1 quest day" : `${n} quest days`),
+    next: (n: number) => (n === 1 ? "Next reward after 1 quest day" : `Next reward after ${n} quest days`),
+    allRewards: "Every reward unlocked.",
+    locked: (n: number) => (n === 1 ? "Unlocks after 1 quest day" : `Unlocks after ${n} quest days`),
+  },
+
   looks: {
     title: "Looks",
     theme: "App theme",

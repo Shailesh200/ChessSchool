@@ -425,6 +425,17 @@ export const hi: Translation = {
     back: "पहेलियों पर वापस",
   },
 
+  quests: {
+    title: "आज के क्वेस्ट",
+    items: { lesson: "1 पाठ पूरा करें", puzzles: "3 पहेलियाँ हल करें", practice: "1 अभ्यास पूरा करें", daily: "आज की पहेली हल करें", goal: "आज का लक्ष्य पूरा करें", game: "एक गेम खेलें", win: "एक गेम जीतें" },
+    a11y: (quest: string, value: number, target: number) => `${quest}: ${target} में से ${value}`,
+    allDone: "आज के सारे क्वेस्ट पूरे हुए। कल नए क्वेस्ट के लिए फिर आइए!",
+    days: (n: number) => `${n} क्वेस्ट दिन`,
+    next: (n: number) => `अगला इनाम ${n} क्वेस्ट ${n === 1 ? "दिन" : "दिनों"} के बाद`,
+    allRewards: "सारे इनाम खुल गए।",
+    locked: (n: number) => `${n} क्वेस्ट ${n === 1 ? "दिन" : "दिनों"} के बाद खुलेगा`,
+  },
+
   looks: {
     title: "रूप",
     theme: "ऐप थीम",

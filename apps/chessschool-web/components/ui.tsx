@@ -324,6 +324,16 @@ export function SaveBanner({ title, body }: { title: string; body?: string }) {
 
 /* ---------- Progress visuals ---------- */
 
+/** A determinate bar. `value` is 0..1; screen readers get the percentage. */
+export function ProgressBar({ value, label, tone = "brand" }: { value: number; label: string; tone?: "brand" | "success" }) {
+  const pct = Math.round((Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0) * 100);
+  return (
+    <div className={`rank-bar${tone === "success" ? " is-success" : ""}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+      <span style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
 export function GoalRing({ done, goal, size = 96 }: { done: number; goal: number; size?: number }) {
   const r = (size - 12) / 2;
   const c = 2 * Math.PI * r;

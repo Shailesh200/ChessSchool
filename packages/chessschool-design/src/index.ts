@@ -10,3 +10,4 @@ export * from "./usage";
 export * from "./review";
 export * from "./coaches";
 export * from "./i18n";
+export * from "./quests";
