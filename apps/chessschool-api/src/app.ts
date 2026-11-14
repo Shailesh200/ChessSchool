@@ -41,6 +41,7 @@ import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CO
 import { loadIdeas, loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { checkLessonEdit, deleteDraft, loadCourseDoc, loadDrafts, loadVersion, listVersions, publishCourse, saveDraft } from "./course-admin";
 import { checkCourse } from "./course-check";
+import { draftLesson, LEVELS, type LessonBrief, type LessonWriter } from "./lesson-draft";
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
@@ -88,6 +89,8 @@ export type AppDeps = {
   reportError?: (err: unknown) => Promise<void> | void;
   /** HMAC key for shareable certificate links (CERT_SECRET). Without it, a dev key is used unless cookies are secure (production). */
   certSecret?: string;
+  /** "Draft with AI" in the lesson editor (the language model in production; tests pass a fake). Off when null. */
+  lessonWriter?: LessonWriter | null;
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
@@ -120,7 +123,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -131,6 +134,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   /** Homework, challenges and tournaments; moves and resigns have their own, roomier limit. */
   const classWriteLimiter = createRateLimiter(30, 10 * 60_000, () => now().getTime());
   const moveLimiter = createRateLimiter(120, 60_000, () => now().getTime());
+  /** Each AI draft is one or two paid model calls. */
+  const lessonDraftLimiter = createRateLimiter(20, 24 * 60 * 60_000, () => now().getTime());
   const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
 
@@ -1000,6 +1005,27 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.delete("/v1/admin/course/drafts/:id", requireAdmin, async (c) => {
     await deleteDraft(db, c.req.param("id") ?? "");
     return c.json({ ok: true });
+  });
+
+  /**
+   * Writes a new lesson for this slot with the language model, checks it like the seed script (one
+   * retry with the errors) and saves it as the lesson's draft. Publishing stays a manual step.
+   */
+  app.post("/v1/admin/course/lessons/:id/ai-draft", requireAdmin, async (c) => {
+    if (!lessonWriter) return fail(c, 503, "server", "AI drafting is not configured");
+    const b = await body<{ topic?: unknown; level?: unknown }>(c);
+    const topic = typeof b.topic === "string" ? b.topic.trim() : "";
+    if (!topic || topic.length > 1000 || !LEVELS.has(b.level as LessonBrief["level"])) return fail(c, 400, "invalid_input");
+    const doc = await loadCourseDoc(db);
+    const lesson = doc?.lessons.find((l) => l.id === c.req.param("id"));
+    if (!doc || !lesson || lesson.id === "meet") return fail(c, 404, "not_found");
+    const user = c.get("user");
+    if (!lessonDraftLimiter(user.email.toLowerCase())) return fail(c, 429, "rate_limited");
+    const started = Date.now();
+    const result = await draftLesson(doc, lesson, { topic, level: b.level as LessonBrief["level"] }, lessonWriter);
+    console.log(`[ai-draft] ${lesson.id} attempts=${result.attempts} in=${result.inputTokens} out=${result.outputTokens} ok=${!result.errors.length} ms=${Date.now() - started}`);
+    await saveDraft(db, lesson.id, result.lesson, user.email, now().getTime());
+    return c.json({ lesson: result.lesson, errors: result.errors, attempts: result.attempts });
   });
 
   /** Makes the lesson live under a new course version, logs a snapshot and clears its draft. */

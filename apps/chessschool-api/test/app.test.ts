@@ -1097,6 +1097,61 @@ describe("lesson editor (admin)", () => {
   });
 });
 
+describe("lesson editor: draft with AI", () => {
+  const written = () => {
+    const { id: _id, unit: _unit, ...rest } = structuredClone(COURSE.lessons.find((l) => l.id === "pawns")!);
+    return { ...rest, title: "Pawns, rewritten" };
+  };
+  const withWriter = (outputs: unknown[]) => {
+    const prompts: string[] = [];
+    app = createApp({
+      db,
+      google: fakeGoogle,
+      secureCookies: false,
+      corsOrigins: [],
+      now: () => NOW,
+      adminEmails: ["admin@b.co"],
+      lessonWriter: async (prompt) => {
+        prompts.push(prompt);
+        return { lesson: outputs[prompts.length - 1], inputTokens: 10, outputTokens: 20 };
+      },
+    });
+    return prompts;
+  };
+  const admin = async () => ((await call("POST", "/v1/auth/register", { name: "Admin", email: "admin@b.co", password: "pawnpawn" })).json as AuthResponse).token;
+
+  it("saves a checked lesson as a draft, never live", async () => {
+    const prompts = withWriter([written()]);
+    const token = await admin();
+    const res = await call("POST", "/v1/admin/course/lessons/pawns/ai-draft", { topic: "How pawns move", level: "beginner" }, token);
+    expect(res.status).toBe(200);
+    expect(res.json).toMatchObject({ errors: [], attempts: 1, lesson: { id: "pawns", unit: "unit1", title: "Pawns, rewritten" } });
+    expect(prompts[0]).toContain("How pawns move");
+    const one = await call("GET", "/v1/admin/course/lessons/pawns", undefined, token);
+    expect(one.json.draft.lesson.title).toBe("Pawns, rewritten");
+    expect((await call("GET", "/v1/lessons/pawns")).json.title).not.toBe("Pawns, rewritten");
+  });
+
+  it("retries once with the validator's errors", async () => {
+    const prompts = withWriter([{ ...written(), minutes: 0 }, written()]);
+    const res = await call("POST", "/v1/admin/course/lessons/pawns/ai-draft", { topic: "Pawns", level: "beginner" }, await admin());
+    expect(res.json).toMatchObject({ errors: [], attempts: 2 });
+    expect(prompts[1]).toContain("lesson pawns: minutes 1–60 and xp 1–100");
+  });
+
+  it("is admin-only and off without a writer", async () => {
+    const prompts = withWriter([written()]);
+    const token = await admin();
+    const user = ((await call("POST", "/v1/auth/register", { name: "U", email: "u@b.co", password: "pawnpawn" })).json as AuthResponse).token;
+    const brief = { topic: "Pawns", level: "beginner" };
+    expect((await call("POST", "/v1/admin/course/lessons/pawns/ai-draft", brief)).status).toBe(401);
+    expect((await call("POST", "/v1/admin/course/lessons/pawns/ai-draft", brief, user)).status).toBe(403);
+    expect(prompts).toHaveLength(0);
+    app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => NOW, adminEmails: ["admin@b.co"] });
+    expect((await call("POST", "/v1/admin/course/lessons/pawns/ai-draft", brief, token)).status).toBe(503);
+  });
+});
+
 describe("lesson flashcards", () => {
   it("every lesson has a short key idea, in English and Hindi", async () => {
     const { readCourseTexts } = await import("../src/course-text");
