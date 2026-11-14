@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BotAvatar } from "@/components/BotAvatar";
 import { Cody } from "@/components/Lottie";
-import { Card, Page, T } from "@/components/ui";
+import { Button, Card, Page, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
@@ -13,13 +13,14 @@ export default function ReviewList() {
   const { c } = useTheme();
   return (
     <Page title={copy.gym.review.name} banner={false}>
+      <Button title={copy.gym.importCta} icon="history" variant="secondary" onPress={() => router.push("/import")} />
       {state.gameLog.length ? (
         state.gameLog.map((g) => {
           const setup = parseSetup(g.setup);
           if (!setup) return null;
           const bot = setup.opponent.kind === "bot" ? setup.opponent.bot : null;
           const result = g.winner === null ? copy.play.results.draw.title : setup.opponent.kind === "friend" ? copy.gym.friendWin(copy.play.sides[g.winner]) : g.winner === setup.you ? copy.play.results.win.title : copy.play.results.loss.title;
-          const title = setup.opponent.kind === "friend" ? copy.gym.vsFriend : copy.play.vs(opponentName(setup));
+          const title = setup.opponent.kind === "friend" ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup));
           const sub = `${result} · ${copy.gym.moveCount(Math.ceil(g.history.length / 2))} · ${new Date(g.endedAt).toLocaleDateString()}`;
           return (
             <Pressable
@@ -34,7 +35,7 @@ export default function ReviewList() {
               ) : (
                 <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
                   <T role="label" color="brandText">
-                    2P
+                    {setup.opponent.kind === "online" ? "@" : "2P"}
                   </T>
                 </View>
               )}

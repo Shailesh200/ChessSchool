@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
+import { providersFromEnv } from "./ai";
 import { openDb } from "./db";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
@@ -18,6 +19,7 @@ const app = createApp({
   corsOrigins: list(process.env.CORS_ORIGINS ?? "http://localhost:3100"),
   adminEmails: list(process.env.ADMIN_EMAILS),
   certSecret: process.env.CERT_SECRET,
+  coachAi: providersFromEnv(process.env),
 });
 
 const hostname = process.env.HOST ?? "0.0.0.0";

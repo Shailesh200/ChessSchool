@@ -425,6 +425,8 @@ export const copy = {
     first: "Start",
     last: "End",
     vsFriend: "Pass & play",
+    vsOnline: "Online game",
+    importCta: "Import games",
   },
 
   /** The one-minute daily review of lessons' key ideas, on Learn. */
@@ -707,6 +709,9 @@ export const copy = {
     doneBody: "Small and steady. That counts toward today's goal.",
     again: "Practise again",
     back: "Back to Gym",
+    mistakeTitle: "From your game",
+    mistakeBody: "You went wrong here in one of your games. Find the better move.",
+    mistakeHint: (better: string) => `Look for ${better}.`,
   },
 
   update: {
@@ -922,6 +927,9 @@ export const copy = {
     textSizeHint: "Text size follows your device settings.",
     shareUsage: "Share anonymous usage",
     shareUsageHint: "Helps us see which lessons are too hard. No name, email or account is sent.",
+    aiExplain: "AI explanations",
+    aiExplainHint: "Your coach explains your games in words. Only moves and positions are sent.",
+    aiExplainNeedsPin: "Off for children. Set a parent PIN in Learners to turn it on.",
     reminderTime: "Reminder time",
     reminderHour: (h: number) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? "am" : "pm"}`,
     account: "Account",
@@ -1010,6 +1018,53 @@ export const copy = {
   },
 
   /** Public account-deletion page (Play requires a URL that does not need a login). */
+  coachAi: {
+    button: "Explain my game",
+    title: "Coach notes",
+    loading: "Your coach is looking at your game…",
+    none: "No big mistakes to explain. Well played!",
+    failed: "Your coach couldn't explain this game right now. Try again later.",
+    limit: "That's all the explanations for today. Come back tomorrow!",
+    signIn: "Sign in to get your coach's explanations.",
+    off: "AI explanations are off. A parent can turn them on in Settings.",
+    moveLabel: (moveNo: number, san: string) => `Move ${moveNo}: ${san}`,
+    note: "Written by AI from what Cody's engine found. It can make mistakes.",
+    consentTitle: "Before your coach explains",
+    consentBody: "To write these notes, ChessSchool sends only the moves and positions of this game to an AI service (Cloudflare Workers AI, Groq or Anthropic). No name, email or anything you typed is sent.",
+    consentAgree: "OK, explain my game",
+    consentCancel: "Not now",
+  },
+
+  skills: {
+    title: "Skills",
+    empty: "Do puzzles, practice and review your games, and your strongest and weakest ideas show up here.",
+    strongest: "Strongest",
+    weakest: "Needs practice",
+    next: (name: string) => `Practise next: ${name}`,
+    practise: "Practise now",
+    score: (name: string, s: number) => `${name}: ${s} out of 100`,
+    names: { fork: "Forks", pin: "Pins", skewer: "Skewers", discovery: "Discovered attacks", hanging: "Keeping pieces safe", mate: "Checkmates", backRank: "Back-rank mates", endgame: "Endgames" },
+  },
+
+  importGames: {
+    title: "Import games",
+    body: "Review your games from Lichess or Chess.com, or paste a PGN.",
+    sources: { lichess: "Lichess", chesscom: "Chess.com", pgn: "Paste PGN" },
+    username: "Username",
+    find: "Find games",
+    pgnLabel: "PGN",
+    open: "Open game",
+    review: "Review",
+    empty: "No standard games found for that player.",
+    notFound: "We couldn't find that player.",
+    failed: "Couldn't load games. Check and try again.",
+    badPgn: "That PGN couldn't be read.",
+    signIn: "Sign in to import your games.",
+    privacy: "We don't keep the username. Only the game you open is saved, on this device.",
+    vs: (white: string, black: string) => `${white} vs ${black}`,
+    moves: (n: number) => `${Math.ceil(n / 2)} moves`,
+  },
+
   accountDelete: {
     title: "Delete your account",
     signedOut: "This page deletes a ChessSchool account. Sign in first. If you can't, email us and we will delete it.",

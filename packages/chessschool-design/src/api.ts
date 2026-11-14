@@ -28,6 +28,10 @@ export type UsageSummary = {
 };
 /** One practice position; `step` is a lesson step as the lesson runner plays it. */
 export type PracticeItem = { ref: string; step: Record<string, unknown> & { kind: string } };
+/** One explained moment from POST /v1/coach/explain (`tags` are @chessschool/chess mistake tags). */
+export type CoachNote = { ply: number; san: string; by: "w" | "b"; verdict: "inaccuracy" | "mistake" | "blunder"; better: string | null; tags: string[]; text: string };
+/** A game from Lichess, Chess.com or a pasted PGN, ready for the review screen. */
+export type ImportedGame = { id: string; white: string; black: string; result: string; endedAt: number; startFen: string; moves: string[]; you: "w" | "b" | null };
 export type AdminReport = { id: string; reason: ReportReason; note: string; status: "open" | "resolved"; createdAt: number; className: string | null; reported: string | null; reporter: string | null };
 /** A lesson as the admin lesson editor reads and writes it (steps as the lesson runner plays them). */
 export type AdminLesson = { id: string; unit: string; title: string; sub: string; minutes: number; xp: number; steps: Record<string, unknown>[] };
@@ -98,6 +102,7 @@ export type ApiErrorCode =
   | "conflict"
   | "offline"
   | "server"
+  | "consent_required"
   | "GUEST_CLASS_LIMIT";
 
 /** 403 `{ error: "GUEST_CLASS_LIMIT" }` from a lesson fetch or a progress save. */
@@ -145,13 +150,13 @@ export type ApiClientOptions = {
 };
 
 export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000 }: ApiClientOptions) {
-  async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  async function request<T>(method: string, path: string, body?: unknown, wait = timeoutMs): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const token = getToken ? await getToken() : null;
     if (token) headers.Authorization = `Bearer ${token}`;
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const timer = setTimeout(() => ctrl.abort(), wait);
     let res: Response;
     try {
       res = await fetchImpl(`${baseUrl}${path}`, {
@@ -224,7 +229,11 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     weekly: () => request<{ email: boolean; push: boolean }>("GET", "/v1/me/weekly"),
     setWeekly: (input: { email: boolean; pushToken?: string | null; lang: string }) => request<{ email: boolean; push: boolean }>("PUT", "/v1/me/weekly", input),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
-    practice: (input: { lessons: string[]; review: string[]; count: number }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
+    explainGame: (input: { startFen: string; moves: string[]; side: "w" | "b" | null; coach: string; consent: true }) =>
+      request<{ moments: CoachNote[]; provider: string | null; cached: boolean }>("POST", `/v1/coach/explain${lang("?")}`, input, 50_000),
+    importGames: (source: "lichess" | "chesscom", username: string) => request<{ games: ImportedGame[] }>("POST", "/v1/import/games", { source, username }, 25_000),
+    importPgn: (pgn: string) => request<{ games: ImportedGame[] }>("POST", "/v1/import/pgn", { pgn }),
+    practice: (input: { lessons: string[]; review: string[]; count: number; weak?: string[] }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
     /** A 7-day share link to the certificate of a finished unit (403 while unfinished). `path` is relative to the API. */
     certificateLink: (unitId: string) => request<{ url: string; path: string; unit: string }>("POST", `/v1/certificates/${encodeURIComponent(unitId)}/link${lang("?")}`, {}),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),

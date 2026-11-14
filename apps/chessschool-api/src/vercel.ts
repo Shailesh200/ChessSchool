@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { handle } from "@hono/node-server/vercel";
 import * as Sentry from "@sentry/node";
 import { createApp } from "./app";
+import { providersFromEnv } from "./ai";
 import { senderFromEnv } from "./weekly";
 import { openDb } from "./db";
 import { appleVerifierFromEnv } from "./apple";
@@ -30,6 +31,7 @@ async function boot() {
     corsOrigins: list(process.env.CORS_ORIGINS),
     adminEmails: list(process.env.ADMIN_EMAILS),
     certSecret: process.env.CERT_SECRET,
+    coachAi: providersFromEnv(process.env),
     reportError,
     weekly: senderFromEnv(process.env),
     cronSecret: process.env.CRON_SECRET,

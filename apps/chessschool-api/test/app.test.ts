@@ -2,10 +2,14 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { completeNode, createInitialState, PATH, type AuthResponse, type Progress } from "@chessschool/design";
 import { createApp } from "../src/app";
+import { pickPractice } from "../src/practice";
+import { factCheck, splitAnswer } from "../src/coach";
+import type { Step } from "@chessschool/chess";
 import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
-import { blocks, classes, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
+import type { ImportFetch } from "../src/game-import";
+import { blocks, classes, coachUsage, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -602,6 +606,13 @@ describe("practice", () => {
     expect(free.json.items.every((i: { ref: string }) => ["board", "moves"].includes(lessonOf(i.ref)))).toBe(true);
     expect((await call("POST", "/v1/practice", { lessons: "nope" })).json.items).toEqual([]);
   });
+  it("leans half of the fresh steps toward the learner's weak ideas", () => {
+    const step: Step = { kind: "tap", title: "", body: "", fen: "8/8/8/8/8/8/8/8 w - - 0 1", targets: [], hint: "" };
+    const lessons = ["board", "moves", "forks", "pins"].map((id) => ({ id, steps: Array.from({ length: 4 }, () => step) }));
+    const items = pickPractice(lessons, [], 6, () => 0.5, ["fork"]);
+    expect(items.slice(0, 3).every((i) => lessonOf(i.ref) === "forks")).toBe(true);
+    expect(items.filter((i) => lessonOf(i.ref) === "forks").length).toBe(3);
+  });
 });
 
 describe("coach voice", () => {
@@ -1157,5 +1168,94 @@ describe("board vision scores", () => {
     expect((await call("GET", `/v1/classes/${room.id}/vision`, undefined, (await reg("Zed", "vs3@b.co")).token)).status).toBe(404);
     await call("DELETE", "/v1/me", undefined, kid.token);
     expect(await db.select().from(visionScores).where(eq(visionScores.userId, kid.user.id))).toEqual([]);
+  });
+});
+
+describe("game coach", () => {
+  const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  const GAME = { startFen: START, moves: ["e4", "e5", "Qh5", "Nc6", "Qxe5+", "Nxe5"], side: "w", coach: "meera", consent: true };
+  const asked: string[] = [];
+  const provider = (name: string, answer: (prompt: string) => string | null) => ({ name, complete: async (_s: string, prompt: string) => (asked.push(name), answer(prompt)) });
+  const echo = (prompt: string) => prompt.split("\n").map((line) => `${line.match(/^\[\d+\]/)![0]} Careful with that queen, it was on e5 after ${line.match(/played (\S+),/)![1]}.`).join("\n");
+  const signIn = async (email: string) => ((await call("POST", "/v1/auth/register", { name: "A", email, password: "pawnpawn" })).json as AuthResponse).token;
+
+  beforeEach(() => {
+    asked.length = 0;
+    // The first provider invents a square, so the fact check sends the request on to the second.
+    app = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, coachAi: [provider("bad", (p) => p.replace(/\[(\d)\][^\n]*/g, "[$1] Move your knight to h7.")), provider("good", echo)] });
+  });
+
+  it("fact-checks squares, moves and pieces against the moment", () => {
+    const m = { ply: 3, moveNo: 2, by: "w" as const, san: "Nd4", verdict: "mistake" as const, loss: 200, better: "Bd6", threat: null, tags: [], squares: [], pieces: ["n" as const] };
+    expect(factCheck("Your knight went to d4; Bd6 was better, moving the bishop to d6.", m)).toBe(true);
+    expect(factCheck("Your knight went to d5.", m)).toBe(false);
+    expect(factCheck("Qh5 was better.", m)).toBe(false);
+    expect(factCheck("Watch your queen.", m)).toBe(false);
+    expect(splitAnswer("[1] one [2] two", 2)).toEqual(["one", "two"]);
+    expect(splitAnswer("[1] one", 2)).toBeNull();
+  });
+
+  it("needs a signed-in learner who agreed, and a legal game", async () => {
+    expect((await call("POST", "/v1/coach/explain", GAME)).status).toBe(401);
+    const token = await signIn("coach1@b.co");
+    expect((await call("POST", "/v1/coach/explain", { ...GAME, consent: false }, token)).json.error).toBe("consent_required");
+    expect((await call("POST", "/v1/coach/explain", { ...GAME, moves: ["e4", "Ke7", "Zz9"] }, token)).status).toBe(400);
+    expect((await call("POST", "/v1/coach/explain", { ...GAME, moves: Array(301).fill("e4") }, token)).status).toBe(400);
+    expect((await call("POST", "/v1/coach/explain", { ...GAME, coach: "nobody" }, token)).status).toBe(400);
+  });
+
+  it("explains from engine facts, falls through a provider that fails the fact check, and caches", async () => {
+    const token = await signIn("coach2@b.co");
+    const r = await call("POST", "/v1/coach/explain?lang=hi", GAME, token);
+    expect(r.status).toBe(200);
+    expect(r.json.provider).toBe("good");
+    expect(asked).toEqual(["bad", "good"]);
+    const queen = r.json.moments.find((m: { san: string }) => m.san === "Qxe5+");
+    expect(queen.tags).toContain("hanging");
+    expect(queen.text).toContain("e5");
+    asked.length = 0;
+    const again = await call("POST", "/v1/coach/explain?lang=hi", GAME, token);
+    expect(again.json.cached).toBe(true);
+    expect(asked).toEqual([]);
+  });
+
+  it("answers 503 when no provider passes, and caps each learner per day", async () => {
+    app = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, coachAi: [provider("silent", () => null)] });
+    const token = await signIn("coach3@b.co");
+    expect((await call("POST", "/v1/coach/explain", GAME, token)).status).toBe(503);
+    await db.insert(coachUsage).values({ userId: "x", day: "2026-11-03", count: 0 });
+    const me = await db.select().from(coachUsage);
+    await db.update(coachUsage).set({ count: 10 }).where(eq(coachUsage.userId, me.find((u) => u.userId !== "x")!.userId));
+    expect((await call("POST", "/v1/coach/explain", GAME, token)).status).toBe(429);
+    await call("DELETE", "/v1/me", undefined, token);
+    expect((await db.select().from(coachUsage)).map((u) => u.userId)).toEqual(["x"]);
+  });
+});
+
+describe("game import", () => {
+  const PGN = '[White "Asha"]\n[Black "Bo"]\n[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1';
+  const fake: ImportFetch = async (url) => {
+    if (url.startsWith("https://lichess.org/api/games/user/asha")) return [JSON.stringify({ id: "g1", variant: "standard", pgn: PGN, lastMoveAt: 1 }), JSON.stringify({ id: "g2", variant: "chess960", pgn: PGN }), "not json"].join("\n");
+    if (url === "https://api.chess.com/pub/player/bo/games/archives") return JSON.stringify({ archives: ["https://api.chess.com/pub/player/bo/games/2026/11", "https://evil.example/x"] });
+    if (url === "https://api.chess.com/pub/player/bo/games/2026/11") return JSON.stringify({ games: [{ pgn: PGN, rules: "chess", end_time: 5, uuid: "u1" }, { pgn: PGN, rules: "chess960" }] });
+    return null;
+  };
+  beforeEach(() => {
+    app = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, importFetch: fake });
+  });
+
+  it("lists recent standard games and finds the learner's side", async () => {
+    const token = ((await call("POST", "/v1/auth/register", { name: "A", email: "imp@b.co", password: "pawnpawn" })).json as AuthResponse).token;
+    expect((await call("POST", "/v1/import/games", { source: "lichess", username: "asha" })).status).toBe(401);
+    const li = await call("POST", "/v1/import/games", { source: "lichess", username: "asha" }, token);
+    expect(li.json.games).toHaveLength(1);
+    expect(li.json.games[0]).toMatchObject({ id: "lichess:g1", you: "w", moves: ["f3", "e5", "g4", "Qh4#"] });
+    const cc = await call("POST", "/v1/import/games", { source: "chesscom", username: "Bo" }, token);
+    expect(cc.json.games).toHaveLength(1);
+    expect(cc.json.games[0]).toMatchObject({ you: "b", endedAt: 5000 });
+    expect((await call("POST", "/v1/import/games", { source: "chesscom", username: "nobody" }, token)).status).toBe(404);
+    expect((await call("POST", "/v1/import/games", { source: "lichess", username: "a/../b" }, token)).status).toBe(400);
+    expect((await call("POST", "/v1/import/pgn", { pgn: PGN }, token)).json.games[0].you).toBeNull();
+    expect((await call("POST", "/v1/import/pgn", { pgn: "1. e4 Ke7 2. Zz9" }, token)).status).toBe(400);
   });
 });
