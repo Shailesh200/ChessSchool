@@ -148,6 +148,13 @@ export const events = sqliteTable("cs_events", {
   appVersion: text("app_version").notNull(),
 });
 
+/** Endgame tablebase answers, cached so each position is asked of Lichess once. */
+export const tablebase = sqliteTable("cs_tablebase", {
+  fen: text("fen").primaryKey(),
+  move: text("move"),
+  category: text("category").notNull(),
+});
+
 /** Learners who chose not to appear on class leaderboards. */
 export const leaderboardHidden = sqliteTable("cs_leaderboard_hidden", {
   userId: text("user_id").primaryKey(),
@@ -279,6 +286,11 @@ export const BOOTSTRAP_SQL = [
     app_version TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_events_at ON cs_events (at)`,
+  `CREATE TABLE IF NOT EXISTS cs_tablebase (
+    fen TEXT PRIMARY KEY,
+    move TEXT,
+    category TEXT NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS cs_leaderboard_hidden (
     user_id TEXT PRIMARY KEY
   )`,

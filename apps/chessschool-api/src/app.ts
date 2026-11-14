@@ -32,6 +32,7 @@ import { courseAccess, guestProgressOverreach, GUEST_CLASS_LIMIT, GUEST_LIMIT_CO
 import { loadLesson, loadLessonSteps, loadLessonsWithSteps, loadOutline, loadPath, type PathEntry } from "./course";
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import { lessonClips } from "./voice";
+import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
 import { loadCourseText, localizeNamed, localizeSteps, type CourseText } from "./course-text";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
@@ -64,6 +65,8 @@ export type AppDeps = {
   now?: () => Date;
   /** Lower-case emails allowed to read the usage dashboard and the report queue. */
   adminEmails?: string[];
+  /** Endgame tablebase lookup (Lichess by default; tests pass a fake). */
+  tablebase?: TablebaseFetch;
   /** Crash reporting hook (Sentry in production). Gets the error only, never the request body. */
   reportError?: (err: unknown) => Promise<void> | void;
 };
@@ -96,9 +99,10 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase }: AppDeps) {
   const app = new Hono<Vars>();
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
+  const tablebaseLimiter = createRateLimiter(60, 60_000, () => now().getTime());
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
   const eventsLimiter = createRateLimiter(30, 60_000, () => now().getTime());
   const reportLimiter = createRateLimiter(10, 60 * 60_000, () => now().getTime());
@@ -759,6 +763,18 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       return step ? [{ lesson, step }] : [];
     });
     return c.json({ items });
+  });
+
+  /** Perfect defence for the endgame trainer. 503 when the tablebase can't be reached (the app falls back to its bot). */
+  app.get("/v1/tablebase", async (c) => {
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "local";
+    if (!tablebaseLimiter(ip)) return fail(c, 429, "rate_limited");
+    const key = tablebaseKey(c.req.query("fen") ?? "");
+    if (!key) return fail(c, 400, "invalid_input");
+    const answer = await bestEndgameMove(db, key, tablebase);
+    if (!answer) return fail(c, 503, "server");
+    c.header("Cache-Control", "public, max-age=86400");
+    return c.json(answer);
   });
 
   app.get("/v1/home", requireUser, async (c) => {

@@ -29,7 +29,7 @@ import {
   type Square,
   type TimeControlId,
 } from "@chessschool/chess";
-import { canUseGym, copy, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
@@ -44,6 +44,7 @@ import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
 import { useGameAnalysis } from "@/lib/hooks";
+import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
@@ -104,6 +105,7 @@ export default function Play() {
       askPromotion: state.prefs.promotion === "ask",
       startFen: mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN,
       startName: mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
+      startId: mode === "position" || mode === "endgame" ? pos.id : undefined,
     };
   };
 
@@ -165,9 +167,18 @@ export default function Play() {
   useEffect(() => {
     if (!game?.botThinking || game.setup.opponent.kind !== "bot") return;
     const botId = game.setup.opponent.bot;
+    const fen = ref.current!.fen;
+    const play = (m: { from: string; to: string; promotion?: string } | null) => {
+      if (m && ref.current?.fen === fen) act({ type: "bot", move: { from: m.from as Square, to: m.to as Square, promotion: m.promotion as never }, now: Date.now() });
+    };
+    // The endgame trainer defends perfectly from the tablebase; anything else (or no connection) uses the bot.
+    const trainer = (ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "");
     const t = setTimeout(() => {
-      const m = chooseMove(ref.current!.fen, botId);
-      if (m) act({ type: "bot", move: { from: m.from as Square, to: m.to as Square, promotion: m.promotion }, now: Date.now() });
+      if (!trainer) return play(chooseMove(fen, botId));
+      api
+        .tablebase(fen)
+        .then((r) => play(r.move ? { from: r.move.slice(0, 2), to: r.move.slice(2, 4), promotion: r.move[4] } : chooseMove(fen, botId)))
+        .catch(() => play(chooseMove(fen, botId)));
     }, 450);
     return () => clearTimeout(t);
     // act reads the latest game through the ref.
@@ -265,7 +276,7 @@ export default function Play() {
             </View>
           </>
         )}
-        {mode === "position" || mode === "endgame" ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: p.blurb }))} /> : null}
+        {mode === "position" || mode === "endgame" ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: mode === "endgame" ? `${p.blurb} · ${(state.endgames[p.id] ?? 0) >= ENDGAME_MASTERY ? copy.gym.endgameMastered : copy.gym.endgameWins(state.endgames[p.id] ?? 0, ENDGAME_MASTERY)}` : p.blurb }))} /> : null}
         {mode !== "friend" ? <Options label={copy.play.side} value={side} onChange={setSide} options={(["w", "b", "random"] as const).map((v) => ({ value: v, title: copy.play.sides[v] }))} row /> : null}
         <Options label={copy.gym.clock} value={time} onChange={setTime} options={TIME_CONTROLS.map((t) => ({ value: t.id, title: t.label }))} row />
         <Card style={{ padding: 8 }}>

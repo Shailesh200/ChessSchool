@@ -17,13 +17,16 @@ export const TIME_CONTROLS: readonly { id: TimeControlId; label: string; base: n
 export const timeControl = (id: TimeControlId) => TIME_CONTROLS.find((t) => t.id === id) ?? TIME_CONTROLS[0];
 
 /** Practice positions you can start a game from. */
-export const ENDGAME_IDS = ["kq-k", "kr-k", "krr-k", "kp-k"] as const;
+/** The endgame trainer: won positions played against perfect defence until mastered. */
+export const ENDGAME_IDS = ["kq-k", "kr-k", "krr-k", "kp-k", "key-squares", "lucena"] as const;
 export const START_POSITIONS: readonly { id: string; name: string; blurb: string; fen: string }[] = [
   { id: "kq-k", name: "Queen vs king", blurb: "Practise the basic checkmate.", fen: "8/8/8/4k3/8/8/8/3QK3 w - - 0 1" },
   { id: "kr-k", name: "Rook vs king", blurb: "Push the king to the edge.", fen: "8/8/8/4k3/8/8/8/R3K3 w - - 0 1" },
   { id: "krr-k", name: "Two rooks", blurb: "The ladder mate.", fen: "4k3/8/8/8/8/8/8/R3K2R w - - 0 1" },
   { id: "pawn-race", name: "Pawn race", blurb: "Who promotes first?", fen: "4k3/pppp4/8/8/8/8/4PPPP/4K3 w - - 0 1" },
   { id: "kp-k", name: "King and pawn", blurb: "Walk your pawn home.", fen: "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1" },
+  { id: "key-squares", name: "Key squares", blurb: "King in front: walk the pawn home.", fen: "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1" },
+  { id: "lucena", name: "Lucena position", blurb: "Build a bridge with the rook.", fen: "1K6/1P1k4/8/8/8/8/r7/2R5 w - - 0 1" },
   { id: "italian", name: "Italian opening", blurb: "A classic start after four moves.", fen: "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4" },
 ];
 
@@ -56,6 +59,8 @@ export type PlaySetup = {
   time: TimeControlId;
   startFen: string;
   startName?: string;
+  /** START_POSITIONS id, when the game began from one. */
+  startId?: string;
   takebacks: boolean;
   askPromotion: boolean;
 };

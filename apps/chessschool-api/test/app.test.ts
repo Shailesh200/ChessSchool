@@ -710,3 +710,20 @@ describe("offline lessons", () => {
     expect((await call("GET", `/v1/lessons/${order[8]}?offline=1`)).status).toBe(403);
   });
 });
+
+describe("endgame tablebase", () => {
+  it("answers from the tablebase once, then from the cache; rejects big or bad positions", async () => {
+    const asked: string[] = [];
+    const local = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, tablebase: async (fen) => (asked.push(fen), { move: "e5e6", category: "loss" }) });
+    const get = (fen: string) => local.request(`/v1/tablebase?fen=${encodeURIComponent(fen)}`);
+    const fen = "8/8/3k4/8/4K3/8/8/3Q4 b - - 3 40";
+    const a = await (await get(fen)).json();
+    expect(a).toEqual({ move: "e5e6", category: "loss" });
+    await get("8/8/3k4/8/4K3/8/8/3Q4 b - - 0 1");
+    expect(asked).toEqual(["8/8/3k4/8/4K3/8/8/3Q4 b - - 0 1"]);
+    expect((await get("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")).status).toBe(400);
+    expect((await get("not a fen")).status).toBe(400);
+    const down = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, tablebase: async () => null });
+    expect((await down.request(`/v1/tablebase?fen=${encodeURIComponent("8/8/8/4k3/8/8/8/R3K3 b - - 0 1")}`)).status).toBe(503);
+  });
+});

@@ -21,3 +21,14 @@ describe("placement quiz", () => {
     expect(s.progress.puzzles.rating).toBeGreaterThan(600);
   });
 });
+
+describe("endgame trainer", () => {
+  it("counts wins per start position toward mastery", async () => {
+    const { recordGame } = await import("./progress");
+    const setup = { opponent: { kind: "bot" as const, bot: "cody" }, you: "w" as const, time: "none", startFen: "x", startId: "lucena", takebacks: false, askPromotion: true };
+    let s = createInitialState("g");
+    s = recordGame(s, { id: "1", endedAt: 1, setup, history: [], winner: "w", reason: "checkmate" }, new Date(), 3);
+    s = recordGame(s, { id: "2", endedAt: 2, setup, history: [], winner: "b", reason: "checkmate" }, new Date(), 3);
+    expect(s.endgames).toEqual({ lucena: 1 });
+  });
+});

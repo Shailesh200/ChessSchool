@@ -102,6 +102,7 @@ export type StoredSetup = {
   time: string;
   startFen: string;
   startName?: string;
+  startId?: string;
   takebacks: boolean;
   askPromotion: boolean;
 };
@@ -152,6 +153,8 @@ export type LocalState = {
   review: Review;
   /** The next practice set, kept so practice works offline. */
   practiceNext: PracticeItem[];
+  /** Endgame trainer wins per position id (mastered at ENDGAME_MASTERY). */
+  endgames: Record<string, number>;
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -192,6 +195,7 @@ export function createInitialState(guestId: string): LocalState {
     usageId: `u${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 12)}`,
     review: {},
     practiceNext: [],
+    endgames: {},
   };
 }
 
@@ -225,6 +229,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     placementDone: r.placementDone === true,
     usageId: typeof r.usageId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.usageId) ? r.usageId : base.usageId,
     review: isReview(r.review) ? r.review : {},
+    endgames: r.endgames && typeof r.endgames === "object" ? Object.fromEntries(Object.entries(r.endgames).filter(([, n]) => typeof n === "number")) : {},
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
@@ -530,9 +535,11 @@ export function recordGame(state: LocalState, game: GameRecord, now: Date, minut
   const won = Boolean(bot) && game.winner === game.setup.you;
   const g = s.progress.games;
   const b = bot ? (s.progress.bots[bot] ?? { played: 0, won: 0 }) : null;
+  const start = game.setup.startId;
   return {
     ...s,
     activeGame: null,
+    endgames: won && start ? { ...s.endgames, [start]: (s.endgames[start] ?? 0) + 1 } : s.endgames,
     gameLog: [game, ...s.gameLog.filter((x) => x.id !== game.id)].slice(0, GAME_LOG_MAX),
     progress: {
       ...s.progress,
@@ -978,3 +985,6 @@ export const BADGES: readonly { id: BadgeId; earned: (p: Progress) => boolean }[
 export const earnedBadges = (p: Progress): BadgeId[] => BADGES.filter((b) => b.earned(p)).map((b) => b.id);
 /** Earned but not yet celebrated. */
 export const newBadges = (s: LocalState): BadgeId[] => earnedBadges(s.progress).filter((id) => !s.badgesSeen.includes(id));
+
+/** Wins in the endgame trainer needed to call a position mastered. */
+export const ENDGAME_MASTERY = 3;
