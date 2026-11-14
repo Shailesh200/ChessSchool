@@ -35,14 +35,14 @@ export const isBotId = (v: unknown): v is BotId => BOTS.some((b) => b.id === v);
 /** Maps Phase 2 levels and unknown values onto the roster. */
 export const toBotId = (v: unknown): BotId => (isBotId(v) ? v : v === "steady" ? "rooky" : "cody");
 
-/** Search settings per bot, inside the old time budgets so phones stay quick. */
+/** Search settings per bot; Ivy and Atlas think longer (up to ~2 s) so their low-loss moves are really good. */
 const ENGINE: Record<BotId, { depth: number; quiescence: number; timeMs: number }> = {
   pip: { depth: 2, quiescence: 3, timeMs: 250 },
   cody: { depth: 2, quiescence: 3, timeMs: 350 },
   rooky: { depth: 3, quiescence: 4, timeMs: 500 },
   bishop: { depth: 3, quiescence: 4, timeMs: 700 },
-  ivy: { depth: 3, quiescence: 4, timeMs: 1100 },
-  atlas: { depth: 4, quiescence: 6, timeMs: 1600 },
+  ivy: { depth: 4, quiescence: 5, timeMs: 1500 },
+  atlas: { depth: 5, quiescence: 6, timeMs: 2000 },
 };
 
 const centre = (sq: string) => 6 - (Math.abs(3.5 - (sq.charCodeAt(0) - 97)) + Math.abs(3.5 - (Number(sq[1]) - 1)));
@@ -88,7 +88,7 @@ export function pickByLoss(ranked: readonly RankedMove[], target: number, like: 
  * loss distribution plays closer to the middle. Self-play (scripts/bot-ladder.ts) showed the roster's
  * spread squeezed to a fraction of its targets; stretching around 1100 widens it again.
  */
-export const modelRating = (rating: number) => 1100 + (rating - 1100) * 1.6;
+export const modelRating = (rating: number) => 1100 + (rating - 1100) * 2.5;
 
 const plyOf = (fen: string) => {
   const [, turn, , , , full] = fen.split(" ");
@@ -106,7 +106,7 @@ export function chooseMove(fen: string, bot: BotId | LegacyLevel, rand: () => nu
   if (moves.length <= 1) return moves[0] ?? null;
   const r = modelRating(rating ?? botInfo(id).rating);
   // Below the data's floor (400), mix in moves a brand-new player might make.
-  if (r < 400 && rand() < (400 - r) / 800) {
+  if (r < 400 && rand() < Math.min(0.9, (400 - r) / 700)) {
     const captures = moves.filter((m) => m.captured);
     return captures.length && rand() < 0.4 ? captures[Math.floor(rand() * captures.length)] : moves[Math.floor(rand() * moves.length)];
   }

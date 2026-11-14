@@ -49,7 +49,8 @@ export function applyMe(state: LocalState, me: MeResponse): LocalState {
 /** Sign out keeps this device's progress (it is the learner's) but forgets the account and its child profiles. */
 export function applySignOut(state: LocalState): LocalState {
   const main = state.activeChild ? switchProfile(state, null) : state;
-  return { ...main, account: null, pendingCeremony: null, activeChild: null, parked: {} };
+  // Unsent rated results belong to the account; another account must not receive them.
+  return { ...main, account: null, pendingCeremony: null, activeChild: null, parked: {}, ratingQueue: [] };
 }
 
 /** Visible name of how this account signs in. */

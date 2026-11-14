@@ -1,10 +1,11 @@
 import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
 import {
   STORAGE_KEY,
-  applyResult,
+  adoptRatings,
+  queueRating,
   ratedGame,
   ratedPuzzle,
-  sanitizeRatings,
+  ratingSent,
   type RateInput,
   type RatedResult,
   applyAuth,
@@ -158,7 +159,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       .then((me) => {
         setState((s) => applyMe(s, me));
         const child = latest.current.activeChild;
-        return api.rating(child).then((r) => setState((s) => (s.activeChild === child ? { ...s, ratings: sanitizeRatings(r.ratings) } : s)));
+        return api.rating(child).then((r) => setState((s) => adoptRatings(s, child, r.ratings)));
       })
       .catch((err) => {
         if (err?.status === 401) {
@@ -194,17 +195,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { sound, haptics } = state.prefs;
   const cue = useCallback((c: SoundCue) => feedback(c, { sound, haptics }), [sound, haptics]);
 
-  /** Counts a bot game or puzzle on the device now; signed in, the server's answer replaces it. */
+  /** Counts a bot game or puzzle on the device now and queues it for the server. */
   const rate = (rated: { input: RateInput; result: RatedResult } | null) => {
-    if (!rated) return;
-    setState((s) => ({ ...s, ratings: applyResult(s.ratings, rated.result) }));
-    if (!latest.current.account) return;
-    const child = latest.current.activeChild;
-    api
-      .rate(child ? { ...rated.input, child } : rated.input)
-      .then((r) => setState((s) => (s.activeChild === child ? { ...s, ratings: sanitizeRatings(r.ratings) } : s)))
-      .catch(() => {});
+    if (rated) setState((s) => queueRating(s, rated));
   };
+
+  // Signed in: send queued rated results oldest first. The server dedupes by event id, and its
+  // ratings replace the device's only once nothing for that learner is left unsent.
+  const flushing = useRef(false);
+  const queued = state.ratingQueue.length;
+  useEffect(() => {
+    if (!ready || !accountId || !queued || flushing.current) return;
+    flushing.current = true;
+    const next: RateInput = latest.current.ratingQueue[0];
+    api
+      .rate(next)
+      .then((r) => {
+        flushing.current = false;
+        setState((s) => ratingSent(s, next, r.ratings));
+      })
+      .catch((err) => {
+        flushing.current = false;
+        // A refused result (unknown child, bad input) will never count; offline or server errors wait for the next launch or result.
+        const status = Number(err?.status);
+        if (status === 400 || status === 404) setState((s) => ratingSent(s, next));
+      });
+  }, [ready, accountId, queued]);
 
   const store = useMemo<Store>(
     () => ({
@@ -217,7 +233,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const id = child?.id ?? null;
         api
           .rating(id)
-          .then((r) => setState((s) => (s.activeChild === id ? { ...s, ratings: sanitizeRatings(r.ratings) } : s)))
+          .then((r) => setState((s) => adoptRatings(s, id, r.ratings)))
           .catch(() => {});
         if (!child) return;
         // A child's progress may have been saved from another device.

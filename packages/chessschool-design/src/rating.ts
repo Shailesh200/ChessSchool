@@ -1,5 +1,5 @@
 import type { RateInput } from "./api";
-import type { GameRecord } from "./progress";
+import type { GameRecord, LocalState } from "./progress";
 
 /**
  * The learner's playing rating (Glicko-2, one result per rating period) and each bot's adaptive
@@ -115,4 +115,33 @@ export function ratedGame(game: GameRecord, target: number): { input: RateInput;
 /** A puzzle attempt as a rated result; `at` makes each attempt its own event. */
 export function ratedPuzzle(p: { id: string; solved: boolean; puzzleRating: number }, at: number): { input: RateInput; result: RatedResult } {
   return { input: { kind: "puzzle", event: `${p.id}-${at}`.slice(-80), puzzle: p.id, puzzleRating: p.puzzleRating, solved: p.solved }, result: { kind: "puzzle", puzzleRating: p.puzzleRating, solved: p.solved } };
+}
+
+/* ---------- results waiting to reach the server ---------- */
+
+const learnerOf = (q: RateInput) => q.child ?? null;
+
+/** Counts a result on the device now and queues it for the server (sent in order; the server dedupes by event). */
+export function queueRating(s: LocalState, rated: { input: RateInput; result: RatedResult }): LocalState {
+  const input = s.activeChild ? { ...rated.input, child: s.activeChild } : rated.input;
+  return { ...s, ratings: applyResult(s.ratings, rated.result), ratingQueue: [...s.ratingQueue, input].slice(-RATING_QUEUE_MAX) };
+}
+
+/** Server ratings for a learner replace the device's copy only when nothing of theirs is still unsent. */
+export function adoptRatings(s: LocalState, learner: string | null, ratings: unknown): LocalState {
+  if (s.activeChild !== learner || s.ratingQueue.some((q) => learnerOf(q) === learner)) return s;
+  return { ...s, ratings: sanitizeRatings(ratings) };
+}
+
+/** One queued result reached the server (or was refused for good, with no ratings to adopt). */
+export function ratingSent(s: LocalState, sent: RateInput, ratings?: unknown): LocalState {
+  const next = { ...s, ratingQueue: s.ratingQueue.filter((q) => !(q.event === sent.event && learnerOf(q) === learnerOf(sent))) };
+  return ratings === undefined ? next : adoptRatings(next, learnerOf(sent), ratings);
+}
+
+export const RATING_QUEUE_MAX = 100;
+
+export function sanitizeRatingQueue(raw: unknown): RateInput[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((q): q is RateInput => Boolean(q && typeof q === "object" && typeof q.event === "string" && (q.kind === "bot" || q.kind === "puzzle"))).slice(-RATING_QUEUE_MAX);
 }

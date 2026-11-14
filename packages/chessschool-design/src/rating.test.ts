@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADAPT_TARGET, applyResult, emptyRatings, glicko2, nudgeBot, sanitizeRatings } from "./rating";
+import { ADAPT_TARGET, adoptRatings, applyResult, emptyRatings, glicko2, nudgeBot, queueRating, ratingSent, sanitizeRatings } from "./rating";
 
 describe("Glicko-2", () => {
   it("matches Glickman's worked example", () => {
@@ -54,5 +54,25 @@ describe("adaptive bots", () => {
   it("sanitizes stored ratings", () => {
     expect(sanitizeRatings(null)).toEqual(emptyRatings());
     expect(sanitizeRatings({ player: { rating: 99999, rd: -1 }, bots: { cody: 750, "x y": 1 } })).toEqual({ player: { rating: 3000, rd: 30, vol: 0.06, games: 0 }, bots: { cody: 750 } });
+  });
+});
+
+describe("offline rated results", () => {
+  const rated = (event: string) => ({ input: { kind: "bot" as const, event, bot: "cody", result: "win" as const, moves: 30 }, result: { kind: "bot" as const, bot: "cody", target: 700, score: 1 as const } });
+
+  it("an offline event survives a sync and is only replaced once the server has it", async () => {
+    const { createInitialState } = await import("./progress");
+    let s = queueRating(createInitialState("g"), rated("g-1"));
+    const local = s.ratings;
+    expect(local.player.games).toBe(1);
+    // The server, not yet told about g-1, answers a sync with its older ratings: keep ours.
+    s = adoptRatings(s, null, emptyRatings());
+    expect(s.ratings).toEqual(local);
+    expect(s.ratingQueue.map((q) => q.event)).toEqual(["g-1"]);
+    // g-1 reaches the server; its answer now includes it and replaces the device copy.
+    const server = applyResult(emptyRatings(), rated("g-1").result);
+    s = ratingSent(s, s.ratingQueue[0], server);
+    expect(s.ratingQueue).toEqual([]);
+    expect(s.ratings).toEqual(server);
   });
 });

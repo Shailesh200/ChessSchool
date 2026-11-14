@@ -3,9 +3,9 @@ import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coache
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
 import { isReview, type Review, seedIdea } from "./review";
-import type { PracticeItem } from "./api";
+import type { PracticeItem, RateInput } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
-import { emptyRatings, sanitizeRatings, type Ratings } from "./rating";
+import { emptyRatings, sanitizeRatingQueue, sanitizeRatings, type Ratings } from "./rating";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -175,6 +175,8 @@ export type LocalState = {
   vision: Record<string, number>;
   /** Playing rating and each bot's adapted strength (the API's copy wins when signed in). */
   ratings: Ratings;
+  /** Rated results not yet accepted by the server, oldest first (each carries its child, if any). */
+  ratingQueue: RateInput[];
   /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
   ideas: Review;
 };
@@ -225,6 +227,7 @@ export function createInitialState(guestId: string): LocalState {
     vision: {},
     ideas: {},
     ratings: emptyRatings(),
+    ratingQueue: [],
   };
 }
 
@@ -266,6 +269,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     ideas: isReview(r.ideas) ? r.ideas : {},
     vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
     ratings: sanitizeRatings(r.ratings),
+    ratingQueue: sanitizeRatingQueue(r.ratingQueue),
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }
