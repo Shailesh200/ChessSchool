@@ -3,6 +3,7 @@ import { Baloo2_400Regular, Baloo2_500Medium, Baloo2_600SemiBold, Baloo2_700Bold
 import { Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, useFonts } from "@expo-google-fonts/fredoka";
 import { copy, newBadges } from "@chessschool/design";
 import { router, Stack } from "expo-router";
+import * as Sentry from "@sentry/react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -16,6 +17,10 @@ import { usePuzzlePackBoot } from "@/lib/puzzlePack";
 import { useReducedMotion } from "@/lib/hooks";
 import { AppStateProvider, useApp } from "@/lib/state";
 import { ThemeProvider, useTheme } from "@/lib/theme";
+
+// Crash reports only, no personal data. The DSN comes from the EAS production environment, so dev and QA builds without it send nothing.
+const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+if (sentryDsn) Sentry.init({ dsn: sentryDsn, sendDefaultPii: false, tracesSampleRate: 0, enabled: !__DEV__, initialScope: { tags: { service: "app" } } });
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
