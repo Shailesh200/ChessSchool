@@ -45,9 +45,19 @@ jobs:
           UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const ks=Object.keys(d).filter(k=>/iOS-26/.test(k)).sort().reverse();for(const k of ks)for(const x of d[k])if(x.name.startsWith("iPhone")){console.error("runtime",k,x.name);console.log(x.udid);process.exit()}process.exit(1)')
           xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
-          xcrun simctl spawn "$UDID" log stream --level debug --style compact --predicate 'process == "ChessSchool" OR eventMessage CONTAINS "ChessSchool"' > "$RUNNER_TEMP/log.txt" 2>&1 &
-          xcrun simctl launch "$UDID" com.chessschool.app || true
-          sleep 45
-          echo "== running? =="; xcrun simctl spawn "$UDID" launchctl list | grep -i chessschool || echo "NOT RUNNING"
-          echo "== log (errors) =="; grep -iE 'ReactNativeJS|javascript|exception|fatal|unhandled|TypeError|ReferenceError|RangeError|SyntaxError|ErrorRecovery|launchFailed|errorRecovery' "$RUNNER_TEMP/log.txt" | grep -v CFBundle | head -80
-          echo "== crash reports =="; for f in ~/Library/Logs/DiagnosticReports/ChessSchool*; do [ -f "$f" ] && head -c 12000 "$f"; done
+          for L in "en_IN en-IN" "hi_IN hi"; do
+            set -- $L
+            xcrun simctl terminate "$UDID" com.chessschool.app 2>/dev/null || true
+            xcrun simctl spawn "$UDID" defaults write -g AppleLocale "$1"
+            xcrun simctl spawn "$UDID" defaults write -g AppleLanguages -array "$2"
+            xcrun simctl shutdown "$UDID"; xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b >/dev/null
+            : > "$RUNNER_TEMP/log.txt"
+            xcrun simctl spawn "$UDID" log stream --level debug --style compact --predicate 'process == "ChessSchool"' > "$RUNNER_TEMP/log.txt" 2>&1 &
+            LP=$!
+            SIMCTL_CHILD_TZ=Asia/Kolkata xcrun simctl launch "$UDID" com.chessschool.app || true
+            sleep 30
+            echo "== $1: running? =="; xcrun simctl spawn "$UDID" launchctl list | grep -i chessschool || echo "NOT RUNNING"
+            echo "== $1: log =="; grep -iE 'ReactNativeJS|javascript|exception|fatal|unhandled|TypeError|ReferenceError|RangeError|SyntaxError|ErrorRecovery|launchFailed' "$RUNNER_TEMP/log.txt" | grep -vE 'CFBundle|registering method|protocol_copyPropertyList' | head -40
+            kill $LP || true
+          done
+          echo "== crash reports =="; for f in ~/Library/Logs/DiagnosticReports/ChessSchool*; do [ -f "$f" ] && head -c 15000 "$f"; done; true
