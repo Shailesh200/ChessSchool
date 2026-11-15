@@ -20,7 +20,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -28,7 +28,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 41,
+      "versionCode": 42,
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -70,8 +70,7 @@
         "expo-image-picker",
         {
           "photosPermission": "ChessSchool opens the photo you choose to read the chess position in it. The photo is not stored.",
-          "cameraPermission": "ChessSchool uses the camera to take a photo of a chess board so it can read the position.",
-          "microphonePermission": false
+          "cameraPermission": "ChessSchool uses the camera to take a photo of a chess board so it can read the position."
         }
       ],
       "expo-web-browser",

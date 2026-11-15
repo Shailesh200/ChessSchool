@@ -8,6 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
+import { Alert } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ReducedMotionConfig, ReduceMotion } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -23,6 +24,15 @@ const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 if (sentryDsn) Sentry.init({ dsn: sentryDsn, sendDefaultPii: false, tracesSampleRate: 0, enabled: !__DEV__, initialScope: { tags: { service: "app" } } });
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// A fatal JS error shows its message instead of closing the app, so a tester can report it.
+const defaultHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  if (!isFatal) return defaultHandler(error, isFatal);
+  Sentry.captureException(error);
+  void SplashScreen.hideAsync().catch(() => {});
+  Alert.alert("ChessSchool hit an error", `${error?.name ?? "Error"}: ${error?.message ?? String(error)}\n\n${String(error?.stack ?? "").split("\n").slice(0, 6).join("\n")}`);
+});
 
 function Root() {
   const { state, ready } = useApp();
