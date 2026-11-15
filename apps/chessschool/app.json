@@ -3,7 +3,7 @@
     "name": "ChessSchool",
     "slug": "chess-school",
     "owner": "shaileshjha200",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "A few calm minutes a day to get better at chess.",
     "orientation": "portrait",
     "scheme": "chessschool",
@@ -20,7 +20,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -28,7 +28,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 40,
+      "versionCode": 41,
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
