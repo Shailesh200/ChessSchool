@@ -9,6 +9,7 @@ import {
   moveCue,
   opponentName,
   parseSetup,
+  parseSpokenMove,
   playReduce,
   playResult,
   reviewPlies,
@@ -42,6 +43,7 @@ import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, Verdict
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
+import { SpeakMove } from "@/components/SpeakMove";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -81,6 +83,7 @@ export default function Play() {
   const [record, setRecord] = useState<GameRecord | null>(null);
   const [movesOpen, setMovesOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
 
@@ -191,7 +194,16 @@ export default function Play() {
 
   useEffect(() => {
     setGuide(null);
+    setVoiceNote(null);
   }, [game?.fen, watch]);
+
+  const heard = (texts: string[]) => {
+    const g = ref.current;
+    if (!g) return;
+    const r = parseSpokenMove(g.fen, texts);
+    if (r.kind === "move") return act({ type: "move", move: r.move, now: Date.now() });
+    setVoiceNote(r.kind === "ambiguous" ? copy.play.voice.which(texts[0], r.options.map((o) => o.san).join(", ")) : copy.play.voice.unclear(texts[0] ?? ""));
+  };
 
   const ticking = Boolean(game?.clock && !game.over);
   useEffect(() => {
@@ -406,6 +418,7 @@ export default function Play() {
         <View style={{ flex: 1 }} />
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
+        <SpeakMove disabled={!canMove} onHeard={heard} onNote={setVoiceNote} />
       </View>
       <View style={{ flex: 1, paddingHorizontal: 0, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
@@ -465,8 +478,8 @@ export default function Play() {
                   {statusTitle}
                 </T>
               ) : null}
-              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={1}>
-                {statusSub}
+              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={voiceNote ? 2 : 1}>
+                {voiceNote ?? statusSub}
               </T>
             </View>
             <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
