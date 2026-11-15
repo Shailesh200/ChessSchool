@@ -2,7 +2,7 @@ import { ApiError, cleanName, copy, guestPayload, validEmail, validPassword } fr
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
-import { appleAvailable, appleCredential, isAppleCancel } from "@/lib/apple";
+import { appleAvailable, appleCredential, appleModule, isAppleCancel } from "@/lib/apple";
 import { api, errorMessage } from "@/lib/api";
 import { googleAvailable, googleIdToken } from "@/lib/google";
 import { labelOn } from "@/lib/labelOn";
@@ -23,7 +23,8 @@ function authHref(mode: "login" | "signup", email: string) {
 
 export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "login" | "signup"; initialEmail?: string; topSpacing?: number }) {
   const { state, signedIn, cue } = useApp();
-  const { c } = useTheme();
+  const { c, scheme } = useTheme();
+  const AppleButton = appleModule();
   const signup = mode === "signup";
   const [appleOn, setAppleOn] = useState(false);
   const [name, setName] = useState(state.profile.name);
@@ -63,7 +64,9 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
       const firstRun = !state.seenWelcome;
       await signedIn(auth);
       cue("success");
-      router.replace(kind === "login" || !firstRun ? "/today" : "/welcome");
+      // An Apple or Google account that already has progress is a returning learner: skip the welcome steps.
+      const returning = kind === "login" || !firstRun || (kind !== "signup" && auth.progress.xp > 0);
+      router.replace(returning ? "/today" : "/welcome");
     } catch (err) {
       if (kind === "apple" && isAppleCancel(err)) return;
       const appleSdk = kind === "apple" && !(err instanceof ApiError);
@@ -239,29 +242,17 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
                   </T>
                 </Pressable>
               ) : null}
-              {showApple ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={copy.auth.providerApple}
-                  onPress={apple}
-                  disabled={busy}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    minHeight: 48,
-                    borderRadius: 24,
-                    borderWidth: 2,
-                    borderColor: c.line,
-                    backgroundColor: c.card,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingHorizontal: 8,
-                    opacity: busy ? 0.6 : pressed ? 0.85 : 1,
-                  })}
-                >
-                  <T role="label" center numberOfLines={1} style={{ textAlign: "center" }}>
-                    {copy.auth.providerApple}
-                  </T>
-                </Pressable>
+              {showApple && AppleButton ? (
+                // Apple's own button: the logo and wording App Review expects.
+                <AppleButton.AppleAuthenticationButton
+                  buttonType={AppleButton.AppleAuthenticationButtonType.CONTINUE}
+                  buttonStyle={scheme === "dark" ? AppleButton.AppleAuthenticationButtonStyle.WHITE : AppleButton.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={24}
+                  onPress={() => {
+                    if (!busy) apple();
+                  }}
+                  style={{ flex: 1, height: 48, opacity: busy ? 0.6 : 1 }}
+                />
               ) : null}
               {showGuest ? (
                 <Pressable
