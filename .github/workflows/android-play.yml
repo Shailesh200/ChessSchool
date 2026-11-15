@@ -67,9 +67,15 @@ jobs:
         working-directory: apps/chessschool
         run: eas build --platform android --profile production --local --non-interactive --output "$RUNNER_TEMP/ChessSchool.aab"
 
-      - name: Upload to Play Console as a draft
+      # Releases straight to internal testers. Play only accepts drafts until the app's
+      # first release has been rolled out by hand, so fall back to a draft then.
+      - name: Upload to Play Console internal testing
         working-directory: apps/chessschool
-        run: eas submit --platform android --profile production --path "$RUNNER_TEMP/ChessSchool.aab" --non-interactive --wait
+        run: |
+          eas submit --platform android --profile production --path "$RUNNER_TEMP/ChessSchool.aab" --non-interactive --wait || {
+            sed -i 's/"releaseStatus": "completed"/"releaseStatus": "draft"/' eas.json
+            eas submit --platform android --profile production --path "$RUNNER_TEMP/ChessSchool.aab" --non-interactive --wait
+          }
 
       - name: Remove the build
         if: always()
