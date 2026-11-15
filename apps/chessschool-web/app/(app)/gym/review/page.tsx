@@ -18,21 +18,26 @@ export default function ReviewList() {
       <Button variant="secondary" icon="history" href="/gym/import">
         {copy.gym.importCta}
       </Button>
+      <Button variant="secondary" icon="eye" href="/gym/scan">
+        {copy.scan.cta}
+      </Button>
       {games.length ? (
         <ul className="game-list">
           {games.map((g) => {
             const setup = parseSetup(g.setup);
             if (!setup) return null;
             const bot = setup.opponent.kind === "bot" ? setup.opponent.bot : null;
+            const scanned = g.reason === "scanned";
             const result = g.winner === null ? copy.play.results.draw.title : setup.opponent.kind === "friend" ? copy.gym.friendWin(copy.play.sides[g.winner]) : g.winner === setup.you ? copy.play.results.win.title : copy.play.results.loss.title;
             return (
               <li key={g.id}>
                 <Link href={`/gym/review/${encodeURIComponent(g.id)}`} className="game-row">
                   {bot && isBotId(bot) ? <BotAvatar bot={bot} /> : <span className="player-avatar">{setup.opponent.kind === "online" ? "@" : "2P"}</span>}
                   <span className="game-row-text">
-                    <strong>{setup.opponent.kind === "friend" ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup))}</strong>
+                    <strong>{scanned ? copy.scan.savedTitle : setup.opponent.kind === "friend" ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup))}</strong>
                     <span className="muted">
-                      {result} · {copy.gym.moveCount(Math.ceil(g.history.length / 2))} · {new Date(g.endedAt).toLocaleDateString()}
+                      {scanned ? "" : `${result} · ${copy.gym.moveCount(Math.ceil(g.history.length / 2))} · `}
+                      {new Date(g.endedAt).toLocaleDateString()}
                     </span>
                   </span>
                 </Link>

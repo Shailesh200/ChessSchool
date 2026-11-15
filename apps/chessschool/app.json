@@ -58,7 +58,22 @@
         }
       ],
       "expo-updates",
-    ["@sentry/react-native/expo", { "organization": "shailesh-jha", "project": "chessschool-mobile", "url": "https://sentry.io/" }],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "shailesh-jha",
+          "project": "chessschool-mobile",
+          "url": "https://sentry.io/"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ChessSchool opens the photo you choose to read the chess position in it. The photo is not stored.",
+          "cameraPermission": "ChessSchool uses the camera to take a photo of a chess board so it can read the position.",
+          "microphonePermission": false
+        }
+      ],
       "expo-web-browser",
       "expo-apple-authentication",
       [

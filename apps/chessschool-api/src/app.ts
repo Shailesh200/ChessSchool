@@ -46,6 +46,7 @@ import { draftLesson, LEVELS, type LessonBrief, type LessonWriter } from "./less
 import { MAX_PRACTICE, pickPractice } from "./practice";
 import type { AiProvider } from "./ai";
 import { explainGame, parseCoachInput } from "./coach";
+import { parseScanImage, scanBoard, type BoardReader } from "./scan";
 import { chesscomGames, gameFromPgn, isUsername, lichessGames, PGN_MAX_BYTES, webFetch, type ImportFetch } from "./game-import";
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
@@ -92,6 +93,8 @@ export type AppDeps = {
   tablebase?: TablebaseFetch;
   /** Language-model chain for the game coach (empty: the coach answers 503). Tests pass a fake. */
   coachAi?: AiProvider[];
+  /** Reads a board from a photo for the scanner (the language model in production; tests pass a fake). Off when null. */
+  boardReader?: BoardReader | null;
   /** Lichess / Chess.com fetches for game import (tests pass a fake). */
   importFetch?: ImportFetch;
   /** Crash reporting hook (Sentry in production). Gets the error only, never the request body. */
@@ -132,7 +135,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, coachAi = [], importFetch = webFetch }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -144,6 +147,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const classWriteLimiter = createRateLimiter(30, 10 * 60_000, () => now().getTime());
   const moveLimiter = createRateLimiter(120, 60_000, () => now().getTime());
   /** Each AI draft is one or two paid model calls. */
+  const scanLimiter = createRateLimiter(4, 60_000, () => now().getTime());
   const lessonDraftLimiter = createRateLimiter(20, 24 * 60 * 60_000, () => now().getTime());
   /** Each explanation runs the engine over the whole game, so even cache hits are limited. */
   const coachLimiter = createRateLimiter(6, 60_000, () => now().getTime());
@@ -1302,6 +1306,24 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const answer = await explainGame(db, coachAi, input, lang, user.id, dayKey(now()), now().getTime());
     if (answer === "limit") return fail(c, 429, "rate_limited");
     if (!answer) return fail(c, 503, "server");
+    return c.json(answer);
+  });
+
+  /**
+   * The board scanner. Body: { image (base64), mediaType, consent: true }. The image goes to the board reader
+   * and is dropped; only a per-day count is kept. Returns a position for the learner to check and fix.
+   */
+  app.post("/v1/scan", requireUser, async (c) => {
+    const user = c.get("user");
+    const b = await body<{ image: unknown; mediaType: unknown; consent: unknown }>(c);
+    if (b.consent !== true) return fail(c, 403, "consent_required");
+    const image = parseScanImage(b);
+    if (!image) return fail(c, 400, "invalid_input");
+    if (!boardReader) return fail(c, 503, "server");
+    if (!scanLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const answer = await scanBoard(db, boardReader, image, user.id, dayKey(now()));
+    if (answer === "limit") return fail(c, 429, "rate_limited");
+    if (!answer) return fail(c, 422, "not_found");
     return c.json(answer);
   });
 

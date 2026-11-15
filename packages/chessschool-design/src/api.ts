@@ -240,6 +240,9 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
     explainGame: (input: { startFen: string; moves: string[]; side: "w" | "b" | null; coach: string; consent: true }) =>
       request<{ moments: CoachNote[]; provider: string | null; cached: boolean }>("POST", `/v1/coach/explain${lang("?")}`, input, 50_000),
+    /** Reads a board from a downscaled photo (base64, no data: prefix). The server never stores the image. */
+    scanBoard: (input: { image: string; mediaType: "image/jpeg" | "image/png" | "image/webp"; consent: true }) =>
+      request<{ placement: string; fen: string; side: "w" | "b" | null; confidence: number; problem: "kings" | "pawns" | "check" | "invalid" | null }>("POST", "/v1/scan", input, 170_000),
     importGames: (source: "lichess" | "chesscom", username: string) => request<{ games: ImportedGame[] }>("POST", "/v1/import/games", { source, username }, 25_000),
     importPgn: (pgn: string) => request<{ games: ImportedGame[] }>("POST", "/v1/import/pgn", { pgn }),
     practice: (input: { lessons: string[]; review: string[]; count: number; weak?: string[] }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),

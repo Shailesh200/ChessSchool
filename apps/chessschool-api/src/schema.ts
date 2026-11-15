@@ -331,6 +331,17 @@ export const coachUsage = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
 );
 
+/** Board scans asked per learner per day, for the daily caps. The image itself is never stored. */
+export const scanUsage = sqliteTable(
+  "cs_scan_usage",
+  {
+    userId: text("user_id").notNull(),
+    day: text("day").notNull(),
+    count: integer("count").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
     id TEXT PRIMARY KEY,
@@ -480,6 +491,12 @@ export const BOOTSTRAP_SQL = [
     texts TEXT NOT NULL,
     provider TEXT NOT NULL,
     created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_scan_usage (
+    user_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY (user_id, day)
   )`,
   `CREATE TABLE IF NOT EXISTS cs_coach_usage (
     user_id TEXT NOT NULL,

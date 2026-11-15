@@ -9,7 +9,7 @@ import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
 import type { ImportFetch } from "../src/game-import";
-import { blocks, classes, coachUsage, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
+import { blocks, classes, coachUsage, scanUsage, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -1353,5 +1353,49 @@ describe("playing rating", () => {
     expect((await call("DELETE", "/v1/me", undefined, token)).status).toBe(200);
     expect(await db.select().from(ratings).where(eq(ratings.userId, user.id))).toEqual([]);
     expect(await db.select().from(ratingEvents).where(eq(ratingEvents.userId, user.id))).toEqual([]);
+  });
+});
+
+describe("board scanner", () => {
+  const START = ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"];
+  const IMG = { image: "aGVsbG8=", mediaType: "image/jpeg", consent: true };
+  const seen: string[] = [];
+  const signIn = async (email: string) => ((await call("POST", "/v1/auth/register", { name: "A", email, password: "pawnpawn" })).json as AuthResponse).token;
+  const withReader = (ranks: string[] | null, side: "w" | "b" | null = "b") => {
+    app = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW, boardReader: async (img) => (seen.push(img.data), ranks && { ranks, side, confidence: 0.9 }) });
+  };
+
+  it("needs a signed-in learner who agreed, and a small image of an allowed type", async () => {
+    withReader(START);
+    expect((await call("POST", "/v1/scan", IMG)).status).toBe(401);
+    const token = await signIn("scan1@b.co");
+    expect((await call("POST", "/v1/scan", { ...IMG, consent: false }, token)).json.error).toBe("consent_required");
+    expect((await call("POST", "/v1/scan", { ...IMG, mediaType: "image/gif" }, token)).status).toBe(400);
+    expect((await call("POST", "/v1/scan", { ...IMG, image: "not base64!" }, token)).status).toBe(400);
+    expect((await call("POST", "/v1/scan", { ...IMG, image: "A".repeat(1_500_001) }, token)).status).toBe(400);
+    expect(seen).toEqual([]);
+  });
+
+  it("returns a checked FEN, and a position chess.js rejects with the reason", async () => {
+    withReader(START);
+    const token = await signIn("scan2@b.co");
+    const r = await call("POST", "/v1/scan", IMG, token);
+    expect(r.status).toBe(200);
+    expect(r.json).toEqual({ placement: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR", fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", side: "b", confidence: 0.9, problem: null });
+    withReader(["........", ...START.slice(1)]);
+    expect((await call("POST", "/v1/scan", IMG, token)).json.problem).toBe("kings");
+  });
+
+  it("answers 422 for no board, 503 with no reader, and caps each learner per day", async () => {
+    const token = await signIn("scan3@b.co");
+    withReader(["x"]);
+    expect((await call("POST", "/v1/scan", IMG, token)).status).toBe(422);
+    app = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => NOW });
+    expect((await call("POST", "/v1/scan", IMG, token)).status).toBe(503);
+    withReader(START);
+    await db.update(scanUsage).set({ count: 10 });
+    expect((await call("POST", "/v1/scan", IMG, token)).status).toBe(429);
+    await call("DELETE", "/v1/me", undefined, token);
+    expect(await db.select().from(scanUsage)).toEqual([]);
   });
 });

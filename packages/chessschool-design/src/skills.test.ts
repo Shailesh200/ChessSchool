@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agreeAi, aiAgreed, aiExplainOn, answerPractice, createInitialState, completeNode, importGame, importedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, setAiExplain, type GameRecord } from "./progress";
+import { agreeAi, aiAgreed, aiExplainOn, answerPractice, createInitialState, completeNode, importGame, importedRecord, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, setAiExplain, type GameRecord } from "./progress";
 import { mistakeItems, practiceRequest } from "./review";
 import { lessonSkill, mergeSkills, rankedSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, weakSkills } from "./skills";
 import { switchProfile, freshSlice } from "./profiles";
@@ -76,5 +76,11 @@ describe("AI explanations setting", () => {
     st = setAiExplain(st, true);
     expect(aiExplainOn(st)).toBe(true);
     expect(aiExplainOn(switchProfile(st, null))).toBe(true);
+  });
+
+  it("keeps a scanned position in the review log, playing from its side to move", () => {
+    const rec = scannedRecord("4k3/8/8/8/8/8/8/4K3 b - - 0 1", 9);
+    expect(rec).toMatchObject({ id: "scan:9", history: [], reason: "scanned", setup: { you: "b", startFen: "4k3/8/8/8/8/8/8/4K3 b - - 0 1" } });
+    expect(importGame(createInitialState("g"), rec).gameLog[0].id).toBe("scan:9");
   });
 });

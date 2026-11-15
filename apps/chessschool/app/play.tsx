@@ -29,6 +29,7 @@ import {
   type PlayState,
   type Square,
   type TimeControlId,
+  setupProblem,
 } from "@chessschool/chess";
 import { botRatingOf, canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
@@ -64,13 +65,15 @@ const fmt = (ms: number) => {
 };
 
 export default function Play() {
-  const params = useLocalSearchParams<{ bot?: string; mode?: string; quick?: string; resume?: string }>();
+  const params = useLocalSearchParams<{ bot?: string; mode?: string; quick?: string; resume?: string; fen?: string }>();
   const { state, saveGame, finishGame, cue } = useApp();
   const { c } = useTheme();
   const saved = state.activeGame;
   const mode: Mode = params.mode === "friend" || params.mode === "shuffle" || params.mode === "position" || params.mode === "endgame" ? params.mode : "bot";
+  // A scanned position (from the board scanner) replaces the position list.
+  const scanFen = mode === "position" && params.fen && !setupProblem(params.fen) ? params.fen : null;
   const [bot, setBot] = useState<BotId>(isBotId(params.bot) ? params.bot : "cody");
-  const [side, setSide] = useState<Side>("w");
+  const [side, setSide] = useState<Side>(scanFen ? turnOf(scanFen) : "w");
   const [time, setTime] = useState<TimeControlId>("none");
   const [takebacks, setTakebacks] = useState(botInfo(isBotId(params.bot) ? params.bot : "cody").takebacks || mode === "friend");
   const [position, setPosition] = useState(START_POSITIONS[0].id);
@@ -106,9 +109,9 @@ export default function Play() {
       time,
       takebacks,
       askPromotion: state.prefs.promotion === "ask",
-      startFen: mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN,
-      startName: mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
-      startId: mode === "position" || mode === "endgame" ? pos.id : undefined,
+      startFen: scanFen ?? (mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN),
+      startName: scanFen ? copy.scan.savedTitle : mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
+      startId: scanFen ? undefined : mode === "position" || mode === "endgame" ? pos.id : undefined,
     };
   };
 
@@ -288,7 +291,7 @@ export default function Play() {
             </View>
           </>
         )}
-        {mode === "position" || mode === "endgame" ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: mode === "endgame" ? `${p.blurb} · ${(state.endgames[p.id] ?? 0) >= ENDGAME_MASTERY ? copy.gym.endgameMastered : copy.gym.endgameWins(state.endgames[p.id] ?? 0, ENDGAME_MASTERY)}` : p.blurb }))} /> : null}
+        {!scanFen && (mode === "position" || mode === "endgame") ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: mode === "endgame" ? `${p.blurb} · ${(state.endgames[p.id] ?? 0) >= ENDGAME_MASTERY ? copy.gym.endgameMastered : copy.gym.endgameWins(state.endgames[p.id] ?? 0, ENDGAME_MASTERY)}` : p.blurb }))} /> : null}
         {mode !== "friend" ? <Options label={copy.play.side} value={side} onChange={setSide} options={(["w", "b", "random"] as const).map((v) => ({ value: v, title: copy.play.sides[v] }))} row /> : null}
         <Options label={copy.gym.clock} value={time} onChange={setTime} options={TIME_CONTROLS.map((t) => ({ value: t.id, title: t.label }))} row />
         <Card style={{ padding: 8 }}>

@@ -5295,3 +5295,26 @@ button.game-row {
   background: var(--cs-brand);
   color: var(--cs-on-brand);
 }
+
+/* Board scanner: piece palette for fixing squares */
+.scan-palette {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.scan-palette button {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 2px solid var(--cs-line);
+  background: var(--cs-card);
+  color: var(--cs-text);
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.scan-palette button.on {
+  border-color: var(--cs-brand);
+  background: var(--cs-brand-soft);
+}
