@@ -3,9 +3,10 @@ import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coache
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
 import { isReview, reviewAfter, type Review, seedIdea } from "./review";
-import type { ImportedGame, PracticeItem } from "./api";
+import type { ImportedGame, PracticeItem, RateInput } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, type SkillId, type Skills } from "./skills";
+import { emptyRatings, sanitizeRatingQueue, sanitizeRatings, type Ratings } from "./rating";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -181,6 +182,10 @@ export type LocalState = {
   quests: Quests;
   /** Board-vision personal best per game id. */
   vision: Record<string, number>;
+  /** Playing rating and each bot's adapted strength (the API's copy wins when signed in). */
+  ratings: Ratings;
+  /** Rated results not yet accepted by the server, oldest first (each carries its child, if any). */
+  ratingQueue: RateInput[];
   /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
   ideas: Review;
   /** Positions from the learner's own games to practise ("mistake:<n>" refs in `review`). */
@@ -239,6 +244,8 @@ export function createInitialState(guestId: string): LocalState {
     mistakes: [],
     aiExplain: {},
     aiAgreed: [],
+    ratings: emptyRatings(),
+    ratingQueue: [],
   };
 }
 
@@ -282,6 +289,8 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     mistakes: Array.isArray(r.mistakes) ? r.mistakes.filter(isMistake).slice(0, MISTAKES_MAX) : [],
     aiExplain: r.aiExplain && typeof r.aiExplain === "object" ? Object.fromEntries(Object.entries(r.aiExplain).filter(([, v]) => typeof v === "boolean")) : {},
     aiAgreed: Array.isArray(r.aiAgreed) ? r.aiAgreed.filter((id) => typeof id === "string") : [],
+    ratings: sanitizeRatings(r.ratings),
+    ratingQueue: sanitizeRatingQueue(r.ratingQueue),
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
   };
 }

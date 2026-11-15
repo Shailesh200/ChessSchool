@@ -1,7 +1,15 @@
 "use client";
 
+import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
 import {
   STORAGE_KEY,
+  adoptRatings,
+  queueRating,
+  ratedGame,
+  ratedPuzzle,
+  ratingSent,
+  type RateInput,
+  type RatedResult,
   applyAuth,
   applyMe,
   applySignOut,
@@ -45,7 +53,8 @@ type Store = {
   completeLesson: (id: string, meta?: LessonMeta) => void;
   finishPractice: () => void;
   finishGame: (game: GameRecord, minutes: number) => void;
-  finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean; themes?: readonly string[] }) => void;
+  /** `puzzleRating` also counts the attempt toward the playing rating. */
+  finishPuzzle: (p: { id: string; solved: boolean; newRating: number; daily?: boolean; themes?: readonly string[]; puzzleRating?: number }) => void;
   /** Applies a pure state change from @chessschool/design (AI setting, imported games, reviewed-game skills). */
   update: (fn: (s: LocalState) => LocalState) => void;
   serveDailyPuzzle: (day: string, id: string, puzzle?: { id: string; fen: string; moves: string[]; rating: number; themes: readonly string[] } | null) => void;
@@ -151,7 +160,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (!ready || !accountId) return;
     api
       .me()
-      .then((me) => setState((s) => applyMe(s, me)))
+      .then((me) => {
+        setState((s) => applyMe(s, me));
+        const child = latest.current.activeChild;
+        return api.rating(child).then((r) => setState((s) => adoptRatings(s, child, r.ratings)));
+      })
       .catch((err) => {
         if (err?.status === 401) setState((s) => applySignOut(s));
       });
@@ -176,6 +189,33 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const cue = useCallback((c: SoundCue) => playCue(c, state.prefs.sound), [state.prefs.sound]);
 
+  /** Counts a bot game or puzzle on the device now and queues it for the server. */
+  const rate = (rated: { input: RateInput; result: RatedResult } | null) => {
+    if (rated) setState((s) => queueRating(s, rated));
+  };
+
+  // Signed in: send queued rated results oldest first. The server dedupes by event id, and its
+  // ratings replace the device's only once nothing for that learner is left unsent.
+  const flushing = useRef(false);
+  const queued = state.ratingQueue.length;
+  useEffect(() => {
+    if (!ready || !accountId || !queued || flushing.current) return;
+    flushing.current = true;
+    const next: RateInput = latest.current.ratingQueue[0];
+    api
+      .rate(next)
+      .then((r) => {
+        flushing.current = false;
+        setState((s) => ratingSent(s, next, r.ratings));
+      })
+      .catch((err) => {
+        flushing.current = false;
+        // A refused result (unknown child, bad input) will never count; offline or server errors wait for the next launch or result.
+        const status = Number(err?.status);
+        if (status === 400 || status === 404) setState((s) => ratingSent(s, next));
+      });
+  }, [ready, accountId, queued]);
+
   const store = useMemo<Store>(
     () => ({
       ready,
@@ -184,6 +224,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       track: usage.track,
       switchLearner: async (child) => {
         setState((s) => switchProfile(s, child?.id ?? null, child ? freshSlice(s, child.name, child.avatar) : undefined));
+        const id = child?.id ?? null;
+        api
+          .rating(id)
+          .then((r) => setState((s) => adoptRatings(s, id, r.ratings)))
+          .catch(() => {});
         if (!child) return;
         // A child's progress may have been saved from another device.
         const remote = await api.childProgress(child.id).catch(() => null);
@@ -211,10 +256,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       finishGame: (game, minutes) => {
         usage.track("game_finished");
         setState((s) => recordGame(s, game, new Date(), minutes));
+        // The endgame trainer defends from the tablebase, not the bot, so it is not rated.
+        const bot = game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : null;
+        if (bot && isBotId(bot) && !(ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "")) rate(ratedGame(game, botInfo(bot).rating));
       },
       finishPuzzle: (p) => {
         usage.track(p.solved ? "puzzle_solved" : "puzzle_failed");
         setState((s) => recordPuzzle(s, p, new Date()));
+        if (p.puzzleRating) rate(ratedPuzzle({ id: p.id, solved: p.solved, puzzleRating: p.puzzleRating }, Date.now()));
       },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),

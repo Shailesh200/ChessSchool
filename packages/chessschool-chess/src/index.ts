@@ -13,3 +13,5 @@ export * from "./puzzles";
 export * from "./review";
 export * from "./vision";
 export * from "./coach";
+export * from "./mistakes";
+export * from "./phase";
