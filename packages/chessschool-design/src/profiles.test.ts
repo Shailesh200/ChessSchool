@@ -24,4 +24,12 @@ describe("child profiles on one device", () => {
     expect(s.parked.kid1).toBeUndefined();
     expect(s.progress.xp).toBe(parentXp);
   });
+
+  it("fills fields a child slice parked by an older app version lacks", () => {
+    const s = createInitialState("g");
+    const { mistakes: _m, ratings: _r, ...old } = freshSlice(s, "Riya", "kira");
+    const next = switchProfile({ ...s, parked: { kid1: old as never } }, "kid1");
+    expect(next.ratings).toBeDefined();
+    expect(next.mistakes).toEqual([]);
+  });
 });

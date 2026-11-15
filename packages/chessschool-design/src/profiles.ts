@@ -57,7 +57,7 @@ export function switchProfile(s: LocalState, to: string | null, fresh?: ProfileS
   const slice = next ?? fresh;
   if (!slice) return s;
   const { coach, ...own } = slice;
-  return { ...s, ...own, mistakes: own.mistakes ?? [], prefs: { ...s.prefs, coach }, activeChild: to, parked: { ...rest, [from]: sliceOf(s) } };
+  return { ...s, ...own, mistakes: own.mistakes ?? [], ratings: own.ratings ?? emptyRatings(), prefs: { ...s.prefs, coach }, activeChild: to, parked: { ...rest, [from]: sliceOf(s) } };
 }
 
 /** Drops a removed child from this device (switching back to the account first if they're active). */
