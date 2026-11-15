@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
+import { anthropicBoardReader } from "./scan";
 import { providersFromEnv } from "./ai";
 import { openDb } from "./db";
 import { appleVerifierFromEnv } from "./apple";
@@ -21,6 +22,7 @@ const app = createApp({
   adminEmails: list(process.env.ADMIN_EMAILS),
   certSecret: process.env.CERT_SECRET,
   lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
+  boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
   coachAi: providersFromEnv(process.env),
 });
 

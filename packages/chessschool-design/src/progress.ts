@@ -1123,6 +1123,16 @@ export const importedRecord = (g: ImportedGame): GameRecord => ({
   reason: "imported",
 });
 
+/** A scanned position kept in the review log with no moves yet. */
+export const scannedRecord = (fen: string, at: number): GameRecord => ({
+  id: `scan:${at}`,
+  endedAt: at,
+  setup: { opponent: { kind: "friend" }, you: fen.split(" ")[1] === "b" ? "b" : "w", time: "none", startFen: fen, takebacks: false, askPromotion: true },
+  history: [],
+  winner: null,
+  reason: "scanned",
+});
+
 /** Adds an imported online game to the review log (it does not count as a game played). */
 export function importGame(state: LocalState, game: GameRecord): LocalState {
   return { ...state, gameLog: [game, ...state.gameLog.filter((x) => x.id !== game.id)].slice(0, GAME_LOG_MAX) };

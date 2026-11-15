@@ -14,14 +14,16 @@ export default function ReviewList() {
   return (
     <Page title={copy.gym.review.name} banner={false}>
       <Button title={copy.gym.importCta} icon="history" variant="secondary" onPress={() => router.push("/import")} />
+      <Button title={copy.scan.cta} icon="eye" variant="secondary" onPress={() => router.push("/scan")} />
       {state.gameLog.length ? (
         state.gameLog.map((g) => {
           const setup = parseSetup(g.setup);
           if (!setup) return null;
           const bot = setup.opponent.kind === "bot" ? setup.opponent.bot : null;
           const result = g.winner === null ? copy.play.results.draw.title : setup.opponent.kind === "friend" ? copy.gym.friendWin(copy.play.sides[g.winner]) : g.winner === setup.you ? copy.play.results.win.title : copy.play.results.loss.title;
-          const title = setup.opponent.kind === "friend" ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup));
-          const sub = `${result} · ${copy.gym.moveCount(Math.ceil(g.history.length / 2))} · ${new Date(g.endedAt).toLocaleDateString()}`;
+          const scanned = g.reason === "scanned";
+          const title = scanned ? copy.scan.savedTitle : setup.opponent.kind === "friend" ? copy.gym.vsFriend : setup.opponent.kind === "online" ? copy.gym.vsOnline : copy.play.vs(opponentName(setup));
+          const sub = `${scanned ? "" : `${result} · ${copy.gym.moveCount(Math.ceil(g.history.length / 2))} · `}${new Date(g.endedAt).toLocaleDateString()}`;
           return (
             <Pressable
               key={g.id}
