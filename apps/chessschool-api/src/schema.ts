@@ -290,6 +290,27 @@ export const voiceClips = sqliteTable(
   (t) => [primaryKey({ columns: [t.coach, t.key] })],
 );
 
+/** Glicko-2 playing rating and adapted bot strengths per learner (the account, or one of its children). */
+export const ratings = sqliteTable("cs_ratings", {
+  learnerId: text("learner_id").primaryKey(),
+  userId: text("user_id").notNull(),
+  /** `Ratings` from @chessschool/design, as JSON. */
+  data: text("data").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+/** Results already counted, so a retried game or puzzle attempt changes the rating once. */
+export const ratingEvents = sqliteTable(
+  "cs_rating_events",
+  {
+    learnerId: text("learner_id").notNull(),
+    event: text("event").notNull(),
+    userId: text("user_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.learnerId, t.event] })],
+);
+
 /** Idempotent bootstrap; this schema is new and owns only cs_* tables. */
 /** Coach explanations, keyed by a hash of the engine facts + coach + language. Holds no user data. */
 export const coachCache = sqliteTable("cs_coach_cache", {
@@ -486,6 +507,21 @@ export const BOOTSTRAP_SQL = [
     data TEXT NOT NULL,
     PRIMARY KEY (lang, id)
   )`,
+  `CREATE TABLE IF NOT EXISTS cs_ratings (
+    learner_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_ratings_user ON cs_ratings (user_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_rating_events (
+    learner_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (learner_id, event)
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_rating_events_user ON cs_rating_events (user_id)`,
   `CREATE TABLE IF NOT EXISTS cs_voice_clips (
     coach TEXT NOT NULL,
     key TEXT NOT NULL,

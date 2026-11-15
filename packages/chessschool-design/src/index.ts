@@ -14,3 +14,4 @@ export * from "./profiles";
 export * from "./quests";
 export * from "./a11y";
 export * from "./skills";
+export * from "./rating";

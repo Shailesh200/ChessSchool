@@ -1,9 +1,10 @@
 import type { CoachId } from "./coaches";
 import { emptyProgress, type AvatarId, type LocalState } from "./progress";
 import { emptyQuests } from "./quests";
+import { emptyRatings } from "./rating";
 
 /** What belongs to one learner on a shared device. Everything else (account, look, sounds) is shared. */
-export type ProfileSlice = Pick<LocalState, "profile" | "progress" | "review" | "practiceNext" | "endgames" | "placementDone" | "gameLog" | "activeGame" | "badgesSeen" | "quests" | "vision" | "ideas" | "mistakes"> & { coach: CoachId | null };
+export type ProfileSlice = Pick<LocalState, "profile" | "progress" | "review" | "practiceNext" | "endgames" | "placementDone" | "gameLog" | "activeGame" | "badgesSeen" | "quests" | "vision" | "ideas" | "mistakes" | "ratings"> & { coach: CoachId | null };
 
 export const MAIN_PROFILE = "main";
 
@@ -21,6 +22,7 @@ const sliceOf = (s: LocalState): ProfileSlice => ({
   vision: s.vision,
   ideas: s.ideas,
   mistakes: s.mistakes,
+  ratings: s.ratings,
   coach: s.prefs.coach,
 });
 
@@ -39,6 +41,7 @@ export const freshSlice = (s: LocalState, name: string, avatar: AvatarId): Profi
   vision: {},
   ideas: {},
   mistakes: [],
+  ratings: emptyRatings(),
   coach: null,
 });
 

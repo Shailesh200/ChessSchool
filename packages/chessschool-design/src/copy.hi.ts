@@ -303,6 +303,7 @@ export const hi: Translation = {
     live: "चल रहे खेल पर वापस",
     club: { name: "क्लब", body: "दोस्तों के साथ ऑनलाइन खेलें। बाद में खुलेगा।" },
     record: (played: number, won: number) => (played ? `${played} में ${won} जीते` : "नया"),
+    botRating: (n: number) => `रेटिंग ${n}`,
     setupTitle: "खेल की तैयारी",
     you: "आप खेलेंगे",
     clock: "घड़ी",
