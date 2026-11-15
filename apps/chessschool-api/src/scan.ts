@@ -7,7 +7,7 @@ import { scanUsage } from "./schema";
 export const SCAN_USER_DAILY = 10;
 // A photo can cost up to ~$0.33 at high effort (scanner trial), so the shared cap stays small.
 export const SCAN_GLOBAL_DAILY = 50;
-/** Base64 characters (about 1.1 MB of image). The apps downscale to 1280 px first. */
+/** Base64 characters (about 1.1 MB of image). The apps downscale to 1024 px first. */
 export const SCAN_MAX_BASE64 = 1_500_000;
 const MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export type ScanImage = { data: string; mediaType: (typeof MEDIA_TYPES)[number] };
