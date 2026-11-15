@@ -1,0 +1,53 @@
+name: iOS simulator boot check
+
+# Temporary: builds the release app for the simulator, launches it and prints any crash.
+on:
+  push:
+    branches: [diag-ios]
+
+permissions:
+  contents: read
+
+jobs:
+  sim:
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      EAS_BUILD_NO_EXPO_GO_WARNING: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g eas-cli@27.10.0
+      - run: echo "NODE_PATH=$(dirname "$(realpath apps/chessschool/node_modules/expo)"):$PWD/node_modules/.pnpm/node_modules" >> "$GITHUB_ENV"
+      - name: Add a simulator profile
+        working-directory: apps/chessschool
+        run: node -e 'const fs=require("fs");const j=JSON.parse(fs.readFileSync("eas.json","utf8"));j.build.sim={extends:"production",distribution:"internal",ios:{simulator:true}};fs.writeFileSync("eas.json",JSON.stringify(j,null,2));'
+      - name: Build for the simulator
+        working-directory: apps/chessschool
+        run: eas build --platform ios --profile sim --local --non-interactive --output "$RUNNER_TEMP/app.tar.gz"
+      - name: Launch and collect the crash
+        run: |
+          mkdir -p "$RUNNER_TEMP/app" && tar -xzf "$RUNNER_TEMP/app.tar.gz" -C "$RUNNER_TEMP/app"
+          APP=$(find "$RUNNER_TEMP/app" -name '*.app' -maxdepth 3 | head -1); echo "app: $APP"
+          UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;for(const k in d)for(const x of d[k])if(x.name.startsWith("iPhone")){console.log(x.udid);process.exit()}')
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl spawn "$UDID" log stream --level debug --style compact --predicate 'process == "ChessSchool"' > "$RUNNER_TEMP/log.txt" 2>&1 &
+          xcrun simctl launch "$UDID" com.chessschool.app || true
+          sleep 45
+          echo "== running? =="; xcrun simctl spawn "$UDID" launchctl list | grep -i chessschool || echo "NOT RUNNING"
+          echo "== log (errors) =="; grep -iE 'error|exception|fatal|abort|terminat|unhandled|hermes' "$RUNNER_TEMP/log.txt" | head -80
+          echo "== crash reports =="; for f in ~/Library/Logs/DiagnosticReports/ChessSchool*; do [ -f "$f" ] && head -c 12000 "$f"; done
