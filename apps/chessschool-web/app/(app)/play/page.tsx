@@ -10,6 +10,7 @@ import {
   moveCue,
   opponentName,
   parseSetup,
+  parseSpokenMove,
   playReduce,
   playResult,
   reviewPlies,
@@ -41,6 +42,7 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
+import { SpeakMove } from "@/components/SpeakMove";
 import { ActionDock, Button, Card, Sheet, Switch, TopBar } from "@/components/ui";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -90,6 +92,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const [movesOpen, setMovesOpen] = useState(false);
   const [watch, setWatch] = useState<number | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
 
@@ -224,6 +227,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
 
   useEffect(() => {
     setGuide(null);
+    setVoiceNote(null);
   }, [game?.fen, watch]);
 
   if (!canUseGym(state.account)) return <GymGuestCard backHref="/today" />;
@@ -345,6 +349,12 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const statusTitle = friend ? copy.gym.yourTurn(copy.play.sides[turn]) : game.botThinking ? copy.analysis.thinking(name) : game.check ? copy.play.check : copy.play.yourMove;
   const statusSub = !friend && !game.botThinking && lastSan && turn === game.setup.you ? copy.analysis.played(name, lastSan) : null;
 
+  const heard = (texts: string[]) => {
+    const r = parseSpokenMove(ref.current?.fen ?? game.fen, texts);
+    if (r.kind === "move") return act({ type: "move", move: r.move, now: Date.now() });
+    setVoiceNote(r.kind === "ambiguous" ? copy.play.voice.which(texts[0], r.options.map((o) => o.san).join(", ")) : copy.play.voice.unclear(texts[0] ?? ""));
+  };
+
   const bar = (color: Color) => {
     const isBot = !friend && color !== game.setup.you;
     const left = game.clock ? timeLeft(game, color, now) : 0;
@@ -408,6 +418,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             >
               <Icon name="bulb" />
             </button>
+            <SpeakMove disabled={!canMove} onHeard={heard} onNote={setVoiceNote} />
           </span>
         </div>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} className="play-stage">
@@ -452,7 +463,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                 <Cody animation={pose} size={48} />
                 <div className="play-status-text">
                   <strong>{statusTitle}</strong>
-                  <span className="muted">{statusSub ?? "\u00a0"}</span>
+                  <span className="muted">{voiceNote ?? statusSub ?? "\u00a0"}</span>
                 </div>
               </div>
               <div className="play-steps">

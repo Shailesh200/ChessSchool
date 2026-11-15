@@ -15,3 +15,4 @@ export * from "./vision";
 export * from "./coach";
 export * from "./mistakes";
 export * from "./phase";
+export * from "./speech";

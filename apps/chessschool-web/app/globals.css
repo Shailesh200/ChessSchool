@@ -5289,3 +5289,9 @@ button.game-row {
 .skills-card p {
   margin: 0;
 }
+
+/* "Say your move": the mic button while it listens. */
+.play-chrome .icon-btn.is-listening {
+  background: var(--cs-brand);
+  color: var(--cs-on-brand);
+}

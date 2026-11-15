@@ -692,6 +692,13 @@ export const copy = {
     again: "Play again",
     back: "Back to Gym",
     vs: (name: string) => `vs ${name}`,
+    voice: {
+      listen: "Say your move",
+      listening: "Listening… say a move like “knight f3”.",
+      unclear: (heard: string) => (heard ? `Heard “${heard}”. That isn't a move here.` : "Didn't catch that. Try again, or tap your move."),
+      which: (heard: string, moves: string) => `Heard “${heard}”. Which one: ${moves}?`,
+      off: "Voice moves aren't available here. Tap your move instead.",
+    },
   },
 
   practice: {
@@ -1008,7 +1015,7 @@ export const copy = {
       },
       {
         label: "“Say your move”",
-        text: "Speech recognition runs on your device. The audio never leaves it; only the move it hears is used, on your device.",
+        text: "In the app, speech recognition runs on your device and the audio never leaves it. On the website, your browser does the listening (some browsers use their maker's speech service). Either way the audio never reaches ChessSchool; only the move it hears is used, on your device.",
       },
       {
         label: "Board scanner",

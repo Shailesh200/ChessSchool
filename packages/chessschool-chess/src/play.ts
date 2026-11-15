@@ -94,6 +94,8 @@ export type PlayState = BoardView & {
 
 export type PlayAction =
   | { type: "tap"; square: Square; now: number }
+  /** A whole move from the learner (e.g. said out loud), checked like a tap. */
+  | { type: "move"; move: MoveRef & { promotion?: "q" | "r" | "b" | "n" }; now: number }
   | { type: "promote"; piece: "q" | "r" | "b" | "n"; now: number }
   | { type: "cancelPromotion" }
   | { type: "bot"; move: MoveRef & { promotion?: string }; now: number }
@@ -262,10 +264,15 @@ export function playReduce(s: PlayState, a: PlayAction): PlayState {
     return move ? afterMove(s, chess, move.san, moveRef(move), a.now) : { ...s, botThinking: false };
   }
 
-  // tap
+  // tap / move
   const side = humanSide(s);
   if (s.botThinking || !side || s.promotion) return s;
   if (isBot(s.setup) && turnOf(s.fen) !== s.setup.you) return s;
+  if (a.type === "move") {
+    const chess = replay(s.setup.startFen, s.history);
+    const move = tryMove(chess, a.move.from, a.move.to, a.move.promotion);
+    return move ? afterMove(s, chess, move.san, moveRef(move), a.now) : s;
+  }
   const p = pick(s.fen, s.selected, s.targets, a.square, side, s.setup.askPromotion);
   if (p.kind === "select") return { ...s, selected: p.selected, targets: p.targets };
   if (p.kind === "clear") return { ...s, selected: null, targets: [] };

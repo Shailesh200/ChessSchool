@@ -270,6 +270,14 @@ describe("Gym play", () => {
     expect(playResult(s)).toBe("loss");
   });
 
+  it("plays a whole spoken move on the learner's turn only", () => {
+    const s = startGame(defaultSetup("cody"), 0);
+    const next = playReduce(s, { type: "move", move: { from: "g1", to: "f3" }, now: 0 });
+    expect(next.history).toEqual(["Nf3"]);
+    expect(playReduce(next, { type: "move", move: { from: "b1", to: "c3" }, now: 0 })).toBe(next);
+    expect(playReduce(s, { type: "move", move: { from: "g1", to: "g3" }, now: 0 })).toBe(s);
+  });
+
   it("charges the running move's time when resigning", () => {
     let s = startGame({ ...defaultSetup("cody"), time: "5+3" }, 0);
     s = playReduce(s, { type: "resign", now: 20_000 });
