@@ -7,10 +7,17 @@ appId: com.chessschool.app
 - tapOn:
     text: "Wait"
     optional: true
+# A link prompt left over from an earlier flow (iOS).
+- tapOn:
+    text: "Cancel"
+    optional: true
+# Both the first lesson ("Step 1 of 9") and the welcome steps ("Step 1 of 3") show this.
 - extendedWaitUntil:
-    visible: "This is the board."
+    visible: "Step 1 of.*"
     timeout: 60000
-- tapOn: "Close lesson"
+- tapOn:
+    text: "Close lesson"
+    optional: true
 - tapOn: "Skip"
 - extendedWaitUntil:
     visible: "Puzzles"

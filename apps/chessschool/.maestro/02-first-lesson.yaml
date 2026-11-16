@@ -4,10 +4,7 @@ name: Finishes the first lesson
 # "The board" (course lesson `board`): two coach lines, five squares to tap, one question.
 - runFlow: common/guest.yaml
 - openLink: chessschool://lesson/board
-# iOS asks "Open in ChessSchool?" for a custom-scheme link.
-- tapOn:
-    text: "Open"
-    optional: true
+- runFlow: common/open-prompt.yaml
 - extendedWaitUntil:
     visible: "This is the board."
     timeout: 30000

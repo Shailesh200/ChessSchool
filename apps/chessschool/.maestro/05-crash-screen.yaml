@@ -4,10 +4,7 @@ name: A fatal error shows the Restart screen
 # chessschool://crash-test throws while rendering (device-test builds only).
 - runFlow: common/guest.yaml
 - openLink: chessschool://crash-test
-# iOS asks "Open in ChessSchool?" for a custom-scheme link.
-- tapOn:
-    text: "Open"
-    optional: true
+- runFlow: common/open-prompt.yaml
 - extendedWaitUntil:
     visible: "ChessSchool needs a restart."
     timeout: 15000

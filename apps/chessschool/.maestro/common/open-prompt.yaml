@@ -1,0 +1,11 @@
+appId: com.chessschool.app
+---
+# iOS asks "Open in ChessSchool?" for a custom-scheme link, sometimes a few seconds late.
+# Wait for it, so a late prompt never covers the next steps (or the next flow).
+- extendedWaitUntil:
+    visible: "Open"
+    timeout: 8000
+    optional: true
+- tapOn:
+    text: "Open"
+    optional: true

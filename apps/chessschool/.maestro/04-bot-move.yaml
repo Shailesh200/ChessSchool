@@ -12,20 +12,14 @@ env:
       true: ${EMAIL == ""}
     commands:
       - openLink: chessschool://play?bot=cody
-      # iOS asks "Open in ChessSchool?" for a custom-scheme link.
-      - tapOn:
-          text: "Open"
-          optional: true
+      - runFlow: common/open-prompt.yaml
       - assertNotVisible: "Game setup"
 - runFlow:
     when:
       true: ${EMAIL != ""}
     commands:
       - openLink: chessschool://login
-      # iOS asks "Open in ChessSchool?" for a custom-scheme link.
-      - tapOn:
-          text: "Open"
-          optional: true
+      - runFlow: common/open-prompt.yaml
       - tapOn:
           id: "email-input"
       - inputText: ${EMAIL}
@@ -38,10 +32,7 @@ env:
           visible: "Puzzles"
           timeout: 30000
       - openLink: chessschool://play?bot=cody
-      # iOS asks "Open in ChessSchool?" for a custom-scheme link.
-      - tapOn:
-          text: "Open"
-          optional: true
+      - runFlow: common/open-prompt.yaml
       - extendedWaitUntil:
           visible: "Game setup"
           timeout: 20000
