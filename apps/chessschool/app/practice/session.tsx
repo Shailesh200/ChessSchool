@@ -1,5 +1,5 @@
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, mistakeItems, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
+import { copy, dayKey, goalMet, mistakeItems, PRACTICE_SET, practiceRequest, recordCombo, visibleStreak, type PracticeItem } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
@@ -12,7 +12,7 @@ import { useApp } from "@/lib/state";
 const leave = () => (router.canGoBack() ? router.back() : router.replace("/practice"));
 
 export default function PracticeSession() {
-  const { state, ready, finishPractice, cue, answerReview, setPracticeNext } = useApp();
+  const { state, ready, finishPractice, cue, answerReview, setPracticeNext, update } = useApp();
   const [round, setRound] = useState(0);
   const [items, setItems] = useState<PracticeItem[] | null>(null);
   const [before, setBefore] = useState<{ streak: number; goal: boolean } | null>(null);
@@ -57,7 +57,8 @@ export default function PracticeSession() {
         const ref = items[index]?.ref;
         if (ref) answerReview(ref, missed);
       }}
-      onFinished={() => {
+      onFinished={(_, tally) => {
+        update((s) => recordCombo(s, tally.best, new Date()));
         setBefore({ streak: visibleStreak(state.progress.streak, dayKey(new Date())), goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())) });
         finishPractice();
         cue("level-up");

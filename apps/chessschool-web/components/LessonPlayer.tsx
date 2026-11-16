@@ -1,7 +1,7 @@
 "use client";
 
 import { chooseMove, currentStep, hintSquares, parseUci, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Step } from "@chessschool/chess";
-import { copy, phrase, type CodyAnimation } from "@chessschool/design";
+import { COMBO_MIN, copy, FLOW_CUES, isComboBeat, phrase, startTally, tallyAfter, type CodyAnimation, type Tally } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/state";
@@ -47,8 +47,8 @@ type Props = {
   closeLabel?: string;
   /** Called with the step the learner left on, before leaving. */
   onClose?: (step: number) => void;
-  /** Called once when the last step is passed. */
-  onFinished: (misses: number) => void;
+  /** Called once when the last step is passed, with the misses and the run tally (combo, clean steps, start time). */
+  onFinished: (misses: number, tally: Tally) => void;
   /** Called when a step is solved, with whether the learner missed on it first (practice uses it for review). */
   onStep?: (index: number, missed: boolean) => void;
   /** Speaks a line in the coach's voice (lessons pass it; it does nothing without a recording). */
@@ -63,6 +63,8 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
   // Mirrors `s` for event handlers and timers, so cues fire from one place.
   const ref = useRef(s);
   const stepMisses = useRef(0);
+  const tally = useRef<Tally>(startTally(Date.now()));
+  const [combo, setCombo] = useState(0);
   // The coach reads each step as it opens, then the praise or hint after a move.
   const stepText = s.steps[s.index]?.body;
   useEffect(() => {
@@ -87,13 +89,16 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
     ref.current = next;
     setS(next);
     if (next.status === "ready" && prev.status === "working") onStep?.(next.index, next.misses > stepMisses.current);
+    const t = tallyAfter(tally.current, prev, next, stepMisses.current);
+    tally.current = t;
+    setCombo(t.combo);
     if (next.index !== prev.index) stepMisses.current = next.misses;
     if (next.misses > prev.misses) cue("gentle-no");
-    else if (next.status === "ready" && prev.status !== "ready") cue("success");
+    else if (next.status === "ready" && prev.status !== "ready") cue(isComboBeat(t.combo) ? FLOW_CUES.combo : "success");
     else if (next.fen !== prev.fen) cue("tap");
     if (next.status === "finished" && !finished.current) {
       finished.current = true;
-      onFinished(next.misses);
+      onFinished(next.misses, t);
     }
   };
 
@@ -190,7 +195,14 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
           ))}
         </div>
         <span className="step-count">{copy.lesson.progress(s.index + 1, total)}</span>
-        <span className="icon-btn-spacer" />
+        {combo >= COMBO_MIN ? (
+          <span className={`combo-meter${combo >= 5 ? " is-hot" : ""}`} key={combo} role="status" aria-live="polite">
+            <Icon name="bolt" size={16} />
+            {copy.lesson.combo(combo)}
+          </span>
+        ) : (
+          <span className="icon-btn-spacer" />
+        )}
       </header>
 
       <div className="lesson-stage" data-kind={step.kind}>

@@ -1,7 +1,7 @@
 import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
-import { copy, phrase, space, type CodyAnimation } from "@chessschool/design";
+import { COMBO_MIN, copy, FLOW_CUES, isComboBeat, phrase, space, startTally, tallyAfter, type CodyAnimation, type Tally } from "@chessschool/design";
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
-import { AccessibilityInfo, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
+import { AccessibilityInfo, Animated, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -93,12 +93,33 @@ function CoachLine({ text, width }: { text: string; width: number }) {
   );
 }
 
+/** "3 in a row": pops in on each new run length unless motion is reduced. */
+function ComboMeter({ n }: { n: number }) {
+  const { c } = useTheme();
+  const reduced = useReducedMotion();
+  const [scale] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    if (reduced) return;
+    scale.setValue(0.7);
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 12 }).start();
+  }, [n, reduced, scale]);
+  const hot = n >= 5;
+  return (
+    <Animated.View accessibilityLiveRegion="polite" style={{ transform: [{ scale }], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: hot ? c.gold : c.goldSoft }}>
+      <T role="small" style={{ color: hot ? c.onGold : c.goldText }}>
+        {copy.lesson.combo(n)}
+      </T>
+    </Animated.View>
+  );
+}
+
 type Props = {
   steps: Step[];
   /** Called with the step the learner left on. */
   onClose: (step: number) => void;
   closeLabel?: string;
-  onFinished: (misses: number) => void;
+  /** Called once when the last step is passed, with the misses and the run tally (combo, clean steps, start time). */
+  onFinished: (misses: number, tally: Tally) => void;
   /** Called when a step is solved, with whether the learner missed on it first (practice uses it for review). */
   onStep?: (index: number, missed: boolean) => void;
   /** Speaks a line in the coach's voice (lessons pass it; it does nothing without a recording). */
@@ -116,6 +137,8 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
   // Mirrors `s` for handlers and timers, so cues fire from one place.
   const ref = useRef(s);
   const stepMisses = useRef(0);
+  const tally = useRef<Tally>(startTally(Date.now()));
+  const [combo, setCombo] = useState(0);
   // The coach reads each step as it opens, then the praise or hint after a move.
   const stepText = s.steps[s.index]?.body;
   useEffect(() => {
@@ -138,14 +161,17 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     ref.current = next;
     setS(next);
     if (next.status === "ready" && prev.status === "working") onStep?.(next.index, next.misses > stepMisses.current);
+    const t = tallyAfter(tally.current, prev, next, stepMisses.current);
+    tally.current = t;
+    setCombo(t.combo);
     if (next.index !== prev.index) stepMisses.current = next.misses;
     if (next.misses > prev.misses) cue("gentle-no");
-    else if (next.status === "ready" && prev.status !== "ready") cue("success");
+    else if (next.status === "ready" && prev.status !== "ready") cue(isComboBeat(t.combo) ? FLOW_CUES.combo : "success");
     else if (next.fen !== prev.fen) cue(positionCue(prev.fen, next.fen, next.lastMove));
     if (next.feedback && next.feedback !== prev.feedback) AccessibilityInfo.announceForAccessibility(phrase(next.feedback.text));
     if (next.status === "finished" && !finished.current) {
       finished.current = true;
-      onFinished(next.misses);
+      onFinished(next.misses, t);
     }
   };
 
@@ -168,7 +194,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, height: TOP_H }}>
       {s.status === "finished" ? <View style={{ width: 48 }} /> : <IconButton icon="close" label={closeLabel} onPress={() => onClose(s.index)} />}
       <Steps count={total} current={s.status === "finished" ? total - 1 : s.index} label={copy.lesson.progress(Math.min(s.index + 1, total), total)} />
-      <View style={{ width: 48 }} />
+      {combo >= COMBO_MIN && s.status !== "finished" ? <ComboMeter n={combo} /> : <View style={{ width: 48 }} />}
     </View>
   );
 

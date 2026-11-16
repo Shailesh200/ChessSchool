@@ -1,10 +1,10 @@
 import type { CoachId } from "./coaches";
-import { emptyProgress, type AvatarId, type LocalState } from "./progress";
+import { emptyHabit, emptyProgress, type AvatarId, type Habit, type LocalState } from "./progress";
 import { emptyQuests } from "./quests";
 import { emptyRatings } from "./rating";
 
 /** What belongs to one learner on a shared device. Everything else (account, look, sounds) is shared. */
-export type ProfileSlice = Pick<LocalState, "profile" | "progress" | "review" | "practiceNext" | "endgames" | "placementDone" | "gameLog" | "activeGame" | "badgesSeen" | "quests" | "vision" | "ideas" | "mistakes" | "ratings"> & { coach: CoachId | null };
+export type ProfileSlice = Pick<LocalState, "profile" | "progress" | "review" | "practiceNext" | "endgames" | "placementDone" | "gameLog" | "activeGame" | "badgesSeen" | "quests" | "vision" | "ideas" | "mistakes" | "ratings"> & { coach: CoachId | null; habit?: Habit };
 
 export const MAIN_PROFILE = "main";
 
@@ -24,6 +24,7 @@ const sliceOf = (s: LocalState): ProfileSlice => ({
   mistakes: s.mistakes,
   ratings: s.ratings,
   coach: s.prefs.coach,
+  habit: s.habit,
 });
 
 /** A new child's starting point: their own name and picture, the parent's daily goal. */
@@ -43,6 +44,7 @@ export const freshSlice = (s: LocalState, name: string, avatar: AvatarId): Profi
   mistakes: [],
   ratings: emptyRatings(),
   coach: null,
+  habit: emptyHabit(),
 });
 
 /**
@@ -57,7 +59,7 @@ export function switchProfile(s: LocalState, to: string | null, fresh?: ProfileS
   const slice = next ?? fresh;
   if (!slice) return s;
   const { coach, ...own } = slice;
-  return { ...s, ...own, mistakes: own.mistakes ?? [], ratings: own.ratings ?? emptyRatings(), prefs: { ...s.prefs, coach }, activeChild: to, parked: { ...rest, [from]: sliceOf(s) } };
+  return { ...s, ...own, mistakes: own.mistakes ?? [], ratings: own.ratings ?? emptyRatings(), habit: own.habit ?? emptyHabit(), prefs: { ...s.prefs, coach }, activeChild: to, parked: { ...rest, [from]: sliceOf(s) } };
 }
 
 /** Drops a removed child from this device (switching back to the account first if they're active). */

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, mistakeItems, PRACTICE_SET, practiceRequest, visibleStreak, type PracticeItem } from "@chessschool/design";
+import { copy, dayKey, goalMet, mistakeItems, PRACTICE_SET, practiceRequest, recordCombo, visibleStreak, type PracticeItem } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
@@ -18,7 +18,7 @@ export default function PracticeSessionPage() {
 }
 
 function Session() {
-  const { state, finishPractice, cue, answerReview, setPracticeNext } = useApp();
+  const { state, finishPractice, cue, answerReview, setPracticeNext, update } = useApp();
   const router = useRouter();
   const [round, setRound] = useState(0);
   const [items, setItems] = useState<PracticeItem[] | null>(null);
@@ -63,7 +63,8 @@ function Session() {
         const ref = items[index]?.ref;
         if (ref) answerReview(ref, missed);
       }}
-      onFinished={() => {
+      onFinished={(_, tally) => {
+        update((s) => recordCombo(s, tally.best, new Date()));
         setBefore({ streak: visibleStreak(state.progress.streak, dayKey(new Date())), goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())) });
         finishPractice();
         cue("level-up");

@@ -1,8 +1,8 @@
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, visibleStreak } from "@chessschool/design";
+import { accuracy, copy, dayKey, elapsedSeconds, FLOW_CUES, goalMet, isPerfect, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { LessonDone } from "@/components/LessonDone";
+import { LessonDone, type LessonSummary } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
@@ -10,7 +10,7 @@ import { useCourse, useLesson } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { useCoachVoice } from "@/lib/voice";
 
-type Before = { id: string; done: boolean; streak: number; goal: boolean };
+type Before = { id: string; done: boolean; streak: number; goal: boolean; xp: number; summary: Omit<LessonSummary, "xp"> };
 
 
 export default function LessonScreen() {
@@ -54,15 +54,19 @@ export default function LessonScreen() {
         track("lesson_quit", { lesson: id, step });
         close();
       }}
-      onFinished={() => {
+      onFinished={(_, tally) => {
+        const perfect = (lesson.steps as Step[]).some((st) => st.kind !== "say") && isPerfect(tally);
+        const bonus = perfect && !(state.progress.perfect ?? []).includes(id);
         setBefore({
           id,
           done: Boolean(state.progress.completed[id]),
           streak: visibleStreak(state.progress.streak, dayKey(new Date())),
           goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())),
+          xp: state.progress.xp,
+          summary: { accuracy: accuracy(tally), seconds: elapsedSeconds(tally, Date.now()), perfectBonus: bonus ? PERFECT_BONUS : undefined, best: tally.best },
         });
-        completeLesson(id, { xp: lesson.xp, minutes: lesson.minutes });
-        cue("level-up");
+        completeLesson(id, { xp: lesson.xp, minutes: lesson.minutes }, { perfect, best: tally.best });
+        cue(perfect ? FLOW_CUES.perfect : FLOW_CUES.summary);
       }}
       done={
         b ? (
@@ -73,6 +77,7 @@ export default function LessonScreen() {
             xp={b.done ? undefined : lesson.xp}
             streak={streak > b.streak ? streak : undefined}
             goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}
+            summary={{ ...b.summary, xp: Math.max(0, state.progress.xp - b.xp) }}
           >
             {firstRun ? (
               <Button title={copy.welcome.next} icon="arrowRight" onPress={() => router.replace("/welcome")} />

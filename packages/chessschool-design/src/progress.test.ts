@@ -33,6 +33,7 @@ import {
   streakAfterActivity,
   visibleStreak,
   emptyProgress,
+  PERFECT_BONUS,
 } from "./progress";
 import { copy } from "./copy";
 
@@ -477,5 +478,24 @@ describe("client-side progress cleaning", () => {
     expect(cleaned.completed).toEqual({ meet: "2026-11-01", practice01Mate: "2026-11-14" });
     expect(cleaned.xp).toBe(40);
     expect(sanitizeProgress(p, PATH).completed).toEqual({ meet: "2026-11-01" });
+  });
+});
+
+describe("perfect-lesson bonus", () => {
+  it("adds PERFECT_BONUS once per lesson, and the server checks accept it but nothing more", () => {
+    const now = new Date(2026, 10, 16, 10);
+    let s = completeNode(createInitialState("g"), "meet", now);
+    s = completeNode(s, "board", now, undefined, true);
+    expect(s.progress.xp).toBe(10 + 20 + PERFECT_BONUS);
+    s = completeNode(s, "board", now, undefined, true);
+    expect(s.progress.xp).toBe(10 + 20 + PERFECT_BONUS);
+    expect(s.progress.perfect).toEqual(["board"]);
+    const path = PATH.map((n) => ({ id: n.id, xp: n.xp }));
+    expect(sanitizeProgress(s.progress, path).xp).toBe(35);
+    expect(sanitizeProgress({ ...s.progress, xp: 99 }, path).xp).toBe(35);
+    expect(sanitizeProgress({ ...s.progress, perfect: ["board", "pins"] }, path).perfect).toEqual(["board"]);
+    const merged = mergeProgress(s.progress, { ...s.progress, perfect: ["meet"] });
+    expect(merged.perfect).toEqual(["board", "meet"]);
+    expect(sanitizeProgress(emptyProgress(), path)).not.toHaveProperty("perfect");
   });
 });

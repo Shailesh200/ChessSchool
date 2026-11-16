@@ -4,6 +4,7 @@ import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesTod
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Flashcards } from "@/components/Flashcards";
+import { LeagueCard, MateCard, MonthlyRow, StreakRepairCard } from "@/components/Habit";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
@@ -133,7 +134,10 @@ export default function TodayPage() {
         </div>
 
         <aside className="today-side">
+          <StreakRepairCard today={today} lessonHref={current && !gated ? href(current.id) : null} />
           <QuestsCard state={state} today={today} />
+          <MateCard state={state} />
+          <LeagueCard state={state} />
 
           <Card className="daily-mini" aria-labelledby="daily-title">
             <h2 id="daily-title" className="card-title">
@@ -204,6 +208,7 @@ function QuestsCard({ state, today }: { state: LocalState; today: string }) {
           </li>
         ))}
       </ul>
+      <MonthlyRow state={state} today={today} />
       <p className="muted">{quests.every((q) => q.done) ? copy.quests.allDone : reward ? copy.quests.next(reward.days) : copy.quests.allRewards}</p>
     </Card>
   );

@@ -4,8 +4,10 @@ import { copy } from "@chessschool/design";
 import { useEffect, useRef } from "react";
 import { Cody, Fx } from "./Lottie";
 
-/** The end-of-lesson moment: stamp, Cody, earned XP and streak, then what's next. */
-export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; hints?: number; children: React.ReactNode }) {
+export type LessonSummary = { xp: number; accuracy: number; seconds: number; perfectBonus?: number; best: number };
+
+/** The end-of-lesson moment: stamp, Cody, earned XP and streak, the lesson summary, then what's next. */
+export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, summary, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; hints?: number; summary?: LessonSummary; children: React.ReactNode }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
@@ -34,6 +36,26 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, chi
         {title}
       </h1>
       <p className="lead">{body}</p>
+      {summary ? (
+        <section className="lesson-summary" aria-label={copy.lesson.summaryTitle}>
+          <dl aria-label={copy.lesson.summaryA11y(summary.xp, summary.accuracy, copy.lesson.timeValue(summary.seconds))}>
+            <div>
+              <dt>{copy.lesson.summaryXp}</dt>
+              <dd>{summary.xp}</dd>
+            </div>
+            <div>
+              <dt>{copy.lesson.summaryAccuracy}</dt>
+              <dd>{copy.lesson.accuracyValue(summary.accuracy)}</dd>
+            </div>
+            <div>
+              <dt>{copy.lesson.summaryTime}</dt>
+              <dd>{copy.lesson.timeValue(summary.seconds)}</dd>
+            </div>
+          </dl>
+          {summary.perfectBonus ? <p className="beat-tag">{copy.lesson.perfect(summary.perfectBonus)}</p> : null}
+          {summary.best >= 3 ? <p className="hints-used">{copy.lesson.bestCombo(summary.best)}</p> : null}
+        </section>
+      ) : null}
       {recap ? <p>{recap}</p> : null}
       {goalMet ? <p className="beat-tag">{copy.lesson.goalMet}</p> : null}
       {hints != null && hints > 0 ? (

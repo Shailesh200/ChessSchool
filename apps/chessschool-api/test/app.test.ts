@@ -9,7 +9,8 @@ import { COURSE, seededDb } from "./course-fixture";
 import type { Db } from "../src/db";
 import { googleVerifierFromEnv, type GoogleVerifier } from "../src/google";
 import type { ImportFetch } from "../src/game-import";
-import { blocks, classes, coachUsage, scanUsage, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
+import { addLeagueXp, closeDueWeeks, currentLeague } from "../src/leagues";
+import { blocks, leagueMembers, leaguePlayers, classes, coachUsage, scanUsage, classGames, classMembers, events, feedback, homework, profiles, progress, reports, sessions, tournaments, users, visionScores } from "../src/schema";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 let app: ReturnType<typeof createApp>;
@@ -1421,5 +1422,124 @@ describe("board scanner", () => {
     expect((await call("POST", "/v1/scan", IMG, token)).status).toBe(429);
     await call("DELETE", "/v1/me", undefined, token);
     expect(await db.select().from(scanUsage)).toEqual([]);
+  });
+});
+
+describe("weekly leagues", () => {
+  // Week of Monday 2026-11-09 in India: from 2026-11-08T18:30Z to 2026-11-15T18:30Z.
+  const MON = Date.parse("2026-11-08T18:30:00Z");
+  const seedUsers = async (n: number, prefix = "u") => {
+    const rows = Array.from({ length: n }, (_, i) => ({ id: `${prefix}${String(i).padStart(3, "0")}`, email: `${prefix}${i}@b.co`, name: `Learner${i} Surname`, createdAt: i }));
+    for (let i = 0; i < rows.length; i += 50) await db.insert(users).values(rows.slice(i, i + 50));
+    return rows.map((r) => r.id);
+  };
+
+  it("promotes the top 7 and relegates the bottom 5 of every league in a 120-learner week", async () => {
+    const ids = await seedUsers(120);
+    // 60 start in Pawn (0), 60 in Bishop (2): two full leagues each.
+    for (const [i, id] of ids.entries()) await db.insert(leaguePlayers).values({ userId: id, tier: i < 60 ? 0 : 2, joinedAt: i });
+    for (const [i, id] of ids.entries()) await addLeagueXp(db, id, 10 + (i % 30) * 5, MON + 3_600_000 + i);
+    const rows = await db.select().from(leagueMembers);
+    expect(rows).toHaveLength(120);
+    expect(new Set(rows.map((r) => `${r.tier}:${r.grp}`))).toEqual(new Set(["0:1", "0:2", "2:1", "2:2"]));
+    expect(rows.every((r) => r.week === "2026-11-09")).toBe(true);
+
+    // Not closed before Monday 00:00 in India, then closed exactly once.
+    expect((await closeDueWeeks(db, MON + 7 * 86_400_000 - 1)).closed).toEqual([]);
+    const run = await closeDueWeeks(db, MON + 7 * 86_400_000 + 60_000);
+    expect(run.closed).toEqual(["2026-11-09"]);
+    expect(run.moved).toEqual({ up: 28, down: 10 });
+    expect((await closeDueWeeks(db, MON + 8 * 86_400_000)).closed).toEqual([]);
+
+    const tiers = new Map((await db.select().from(leaguePlayers)).map((p) => [p.userId, p.tier]));
+    const count = (t: number) => [...tiers.values()].filter((x) => x === t).length;
+    // Pawn: 14 up, none down. Bishop: 14 up to Rook, 10 down to Knight.
+    expect([count(0), count(1), count(2), count(3)]).toEqual([46, 24, 36, 14]);
+    // The highest XP in a league (i % 30 === 29) moved up; the lowest in Bishop moved down.
+    expect(tiers.get("u029")).toBe(1);
+    expect(tiers.get("u089")).toBe(3);
+    expect(tiers.get("u060")).toBe(1);
+    // Next week's leagues are formed from everyone active, at their new tier.
+    const next = await db.select().from(leagueMembers).where(eq(leagueMembers.week, "2026-11-16"));
+    expect(next).toHaveLength(120);
+    expect(next.find((r) => r.userId === "u089")?.tier).toBe(3);
+    expect(next.every((r) => r.xp === 0)).toBe(true);
+    const nextWeekNow = MON + 7 * 86_400_000 + 3_600_000;
+    expect((await currentLeague(db, "u089", nextWeekNow))?.promoted).toBe("rook");
+    expect((await currentLeague(db, "u060", nextWeekNow))?.promoted).toBeUndefined();
+  });
+
+  it("never promotes from King or relegates from Pawn, and needs XP to move up", async () => {
+    const ids = await seedUsers(12);
+    for (const [i, id] of ids.entries()) await db.insert(leaguePlayers).values({ userId: id, tier: i < 6 ? 5 : 0, joinedAt: i });
+    for (const [i, id] of ids.entries()) await addLeagueXp(db, id, 20 + i, MON + i);
+    await closeDueWeeks(db, MON + 7 * 86_400_000);
+    const tiers = new Map((await db.select().from(leaguePlayers)).map((p) => [p.userId, p.tier]));
+    // King league of 6: the bottom ones (places 8+) do not exist, so nobody moves; Pawn of 6: all 6 move up.
+    expect(ids.slice(0, 6).map((id) => tiers.get(id))).toEqual([5, 5, 5, 5, 5, 5]);
+    expect(ids.slice(6).map((id) => tiers.get(id))).toEqual([1, 1, 1, 1, 1, 1]);
+  });
+
+  it("uses India time for the week and the daily XP cap", async () => {
+    const [a] = await seedUsers(1);
+    // Sunday 23:59 India is still this week; Monday 00:00 India is the next.
+    await addLeagueXp(db, a, 30, MON + 7 * 86_400_000 - 60_000);
+    await addLeagueXp(db, a, 40, MON + 7 * 86_400_000);
+    const weeks = (await db.select().from(leagueMembers)).map((r) => [r.week, r.xp]);
+    expect(weeks).toEqual(expect.arrayContaining([["2026-11-09", 30], ["2026-11-16", 40]]));
+    // 400 a day by India date: 2026-11-17T18:29Z is 23:59 on the 17th in India, a minute later it is the 18th.
+    const day = Date.parse("2026-11-17T18:29:00Z");
+    await addLeagueXp(db, a, 500, day);
+    await addLeagueXp(db, a, 50, day + 60_000);
+    await addLeagueXp(db, a, 50, day + 120_000);
+    const row = (await db.select().from(leagueMembers)).find((r) => r.week === "2026-11-16")!;
+    expect(row.xp).toBe(40 + 400 + 100);
+  });
+
+  it("counts synced XP once, shows first names only, and keeps guests out", async () => {
+    let clock = new Date(MON + 86_400_000);
+    app = createApp({ db, google: fakeGoogle, secureCookies: false, corsOrigins: [], now: () => clock, cronSecret: "s3cret" });
+    const { token } = (await call("POST", "/v1/auth/register", { name: "Asha Gupta", email: "league@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("GET", "/v1/leagues/current", undefined, token)).json).toEqual({ status: "none" });
+    const p = progressThrough("moves");
+    await call("PUT", "/v1/progress", { progress: p }, token);
+    await call("PUT", "/v1/progress", { progress: p }, token);
+    const r = (await call("GET", "/v1/leagues/current", undefined, token)).json;
+    expect(r.status).toBe("joined");
+    expect(r.league).toMatchObject({ week: "2026-11-09", tier: "pawn", closesAt: MON + 7 * 86_400_000 });
+    expect(r.league.members).toEqual([{ place: 1, name: "Asha", avatar: "cody", xp: p.xp, you: true, zone: "up" }]);
+    expect(JSON.stringify(r)).not.toContain("league@b.co");
+
+    const other = (await call("POST", "/v1/auth/register", { name: "Guesty", email: "guesty@b.co", password: "pawnpawn" })).json as AuthResponse;
+    await db.update(users).set({ kind: "guest" }).where(eq(users.email, "guesty@b.co"));
+    expect((await call("GET", "/v1/leagues/current", undefined, other.token)).json).toEqual({ status: "guest" });
+
+    expect((await call("GET", "/v1/cron/leagues")).status).toBe(404);
+    clock = new Date(MON + 7 * 86_400_000 + 300_000);
+    const cron = await app.request("/v1/cron/leagues", { headers: { Authorization: "Bearer s3cret" } });
+    expect(((await cron.json()) as { closed: string[] }).closed).toEqual(["2026-11-09"]);
+
+    await call("DELETE", "/v1/me", { confirm: true }, token);
+    expect(await db.select().from(leagueMembers)).toHaveLength(0);
+    expect(await db.select().from(leaguePlayers)).toHaveLength(0);
+  });
+});
+
+describe("mate of the day", () => {
+  it("serves the same mate in two for a day, counts solves in aggregate, and refuses future days", async () => {
+    const { applyPuzzlePack } = await import("../src/puzzles");
+    const { readFileSync } = await import("node:fs");
+    await applyPuzzlePack(db, JSON.parse(readFileSync(new URL("../../../packages/chessschool-chess/data/own-puzzles-fallback.json", import.meta.url), "utf8")));
+    const a = await call("GET", "/v1/mate/2026-11-03");
+    expect(a.status).toBe(200);
+    expect(a.json.puzzle.moves).toHaveLength(4);
+    expect((await call("GET", "/v1/mate/2026-11-03")).json.puzzle.id).toBe(a.json.puzzle.id);
+    expect(a.json).toMatchObject({ played: 0, solved: 0, today: "2026-11-03" });
+    expect((await call("GET", "/v1/mate/2026-11-04")).status).toBe(404);
+    expect((await call("POST", "/v1/mate/2026-11-03", { solved: "yes" })).status).toBe(400);
+    await call("POST", "/v1/mate/2026-11-03", { solved: true });
+    expect((await call("POST", "/v1/mate/2026-11-03", { solved: false })).json).toEqual({ played: 2, solved: 1 });
+    expect((await call("POST", "/v1/mate/2026-10-01", { solved: true })).status).toBe(404);
+    expect((await call("GET", "/v1/features")).json.features).toMatchObject({ leagues: true, mateOfTheDay: true });
   });
 });

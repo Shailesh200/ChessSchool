@@ -5446,3 +5446,127 @@ button.game-row {
     animation: none;
   }
 }
+
+/* ---------- habit loop: combo meter, lesson summary, league, mate of the day ---------- */
+.combo-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--cs-gold-soft);
+  color: var(--cs-gold-text);
+  font-weight: 700;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  animation: pop-in 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.combo-meter.is-hot {
+  background: var(--cs-gold);
+  color: var(--cs-on-gold);
+}
+.lesson-summary {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  gap: 8px;
+}
+.lesson-summary dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.lesson-summary dl > div {
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: var(--cs-sunken);
+  text-align: center;
+}
+.lesson-summary dt {
+  color: var(--cs-text-muted);
+  font-size: 0.8125rem;
+}
+.lesson-summary dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.lesson-summary p {
+  margin: 0;
+  text-align: center;
+}
+.habit-card.is-repair {
+  border: 2px solid var(--cs-gold-edge);
+}
+.habit-card.is-milestone {
+  background: var(--cs-gold-soft);
+}
+.quest-month {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.league-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.league-table {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.league-table li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--cs-card);
+}
+.league-table li.zone-up {
+  box-shadow: inset 4px 0 0 var(--cs-success);
+}
+.league-table li.zone-down {
+  box-shadow: inset 4px 0 0 var(--cs-danger);
+}
+.league-table li.me {
+  background: var(--cs-brand-soft);
+}
+.league-place {
+  width: 2.2em;
+  color: var(--cs-text-muted);
+  font-weight: 600;
+}
+.league-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.league-zone {
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+}
+.league-table strong {
+  color: var(--cs-brand-text);
+}
+.mate-result {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.mate-grid {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-family: inherit;
+}

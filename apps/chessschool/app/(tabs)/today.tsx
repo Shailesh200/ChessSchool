@@ -6,6 +6,7 @@ import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Flashcards } from "@/components/Flashcards";
+import { LeagueCard, MateCard, MonthlyRow, StreakRepairCard } from "@/components/Habit";
 import { Cody, Fx } from "@/components/Lottie";
 import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
 import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, ProgressBar, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
@@ -222,7 +223,10 @@ export default function Today() {
         ) : null}
       </View>
 
+      <StreakRepairCard today={today} onStart={current && !currentLocked ? () => openLesson(current.id) : null} />
       <QuestsCard state={state} today={today} />
+      <MateCard state={state} />
+      <LeagueCard state={state} />
 
       {/* Optional: offered only while the learner is at the very start. */}
       {!state.placementDone && lessonsDone <= 2 ? (
@@ -373,6 +377,7 @@ function QuestsCard({ state, today }: { state: LocalState; today: string }) {
           <ProgressBar value={q.value / q.target} tone={q.done ? "success" : "brand"} label={copy.quests.a11y(copy.quests.items[q.id], q.value, q.target)} />
         </View>
       ))}
+      <MonthlyRow state={state} today={today} />
       <T role="small" color="textMuted">
         {allDone ? copy.quests.allDone : reward ? copy.quests.next(reward.days) : copy.quests.allRewards}
       </T>
