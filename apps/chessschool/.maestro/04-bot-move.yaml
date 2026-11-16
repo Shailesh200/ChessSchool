@@ -26,11 +26,21 @@ env:
       - tapOn:
           id: "password-input"
       - inputText: ${PASSWORD}
+      # iOS may submit on hideKeyboard (the password field's return key is "go"), so the button can be gone.
       - hideKeyboard
-      - tapOn: "Log in"
+      - tapOn:
+          text: "Log in"
+          optional: true
+      # iOS offers to save the password.
+      - tapOn:
+          text: "Not Now"
+          optional: true
       - extendedWaitUntil:
           visible: "Puzzles"
           timeout: 30000
+      - tapOn:
+          text: "Not Now"
+          optional: true
       - openLink: chessschool://play?bot=cody
       - runFlow: common/open-prompt.yaml
       - extendedWaitUntil:
