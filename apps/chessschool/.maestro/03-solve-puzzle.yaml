@@ -4,6 +4,10 @@ name: Solves a puzzle
 # Device-test builds show the expected move in a tiny label (id expected-move), so any puzzle can be solved.
 - runFlow: common/guest.yaml
 - openLink: chessschool://puzzle
+# iOS asks "Open in ChessSchool?" for a custom-scheme link.
+- tapOn:
+    text: "Open"
+    optional: true
 - extendedWaitUntil:
     visible:
       id: "expected-move"
