@@ -157,6 +157,12 @@ export type ApiClientOptions = {
   timeoutMs?: number;
 };
 
+/** GET /v1/leagues/current: guests get a sign-up card; "none" until the first XP of the week. */
+export type LeagueResponse =
+  | { status: "guest" | "none" }
+  | { status: "joined"; league: { week: string; closesAt: number; tier: import("./leagues").LeagueTier; members: { place: number; name: string; avatar: string | null; xp: number; you: boolean; zone: import("./leagues").Zone }[]; promoted?: import("./leagues").LeagueTier } };
+export type MateResponse = { day: string; today: string; puzzle: { id: string; fen: string; moves: string[] }; played: number; solved: number };
+
 export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000 }: ApiClientOptions) {
   async function request<T>(method: string, path: string, body?: unknown, waitMs = timeoutMs): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
@@ -201,6 +207,10 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     me: () => request<MeResponse>("GET", "/v1/me"),
     updateMe: (patch: Partial<ApiProfile>) => request<MeResponse>("PATCH", "/v1/me", patch),
     home: () => request<HomeResponse>("GET", "/v1/home"),
+    features: () => request<{ features: Record<string, boolean> }>("GET", "/v1/features"),
+    league: () => request<LeagueResponse>("GET", "/v1/leagues/current"),
+    mate: (day: string) => request<MateResponse>("GET", `/v1/mate/${day}`),
+    mateDone: (day: string, solved: boolean) => request<{ played: number; solved: number }>("POST", `/v1/mate/${day}`, { solved }),
     putProgress: (progress: Progress) => request<{ progress: Progress }>("PUT", "/v1/progress", { progress }),
     deleteMe: () => request<{ ok: true }>("DELETE", "/v1/me"),
     feedback: (f: { mood: "love" | "ok" | "stuck"; message: string; guestId: string; context: Record<string, unknown> }) => request<{ ok: true }>("POST", "/v1/feedback", f),

@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -126,6 +126,7 @@ export default function SettingsPage() {
           <div className="row-block">
             <Segmented label={s.reminderTime} value={prefs.reminderHour} onChange={(h) => setPrefs({ reminderHour: h })} options={REMINDER_HOURS.map((h) => ({ value: h, label: s.reminderHour(h) }))} />
             <p className="row-hint">{s.notificationsWeb}</p>
+            {usualHour(state) != null ? <p className="row-hint">{copy.streaks.reminderUsual(s.reminderHour(usualHour(state)!))}</p> : null}
           </div>
         ) : null}
       </Card>

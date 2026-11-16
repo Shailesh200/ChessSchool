@@ -2,7 +2,7 @@ import { isBoardColors, isThemeId, type Appearance, type BoardColorsId, type The
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
-import { isReview, PRACTICE_KEEP, reviewAfter, type Review, seedIdea } from "./review";
+import { ideaRef, isReview, PRACTICE_KEEP, reviewAfter, type Review, seedIdea } from "./review";
 import type { ImportedGame, PracticeItem, RateInput } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, type SkillId, type Skills } from "./skills";
@@ -45,7 +45,12 @@ export type Progress = {
   placed: string[];
   /** Score per chess idea (skills.ts); steers practice, never XP. Absent until the first result. */
   skills?: Skills;
+  /** Lessons finished once with no miss and no hint; each adds PERFECT_BONUS XP once. Absent until the first. */
+  perfect?: string[];
 };
+
+/** Extra XP for a lesson finished with no miss and no hint (once per lesson; the server allows for it). */
+export const PERFECT_BONUS = 5;
 
 export type DailyPuzzleSnapshot = { id: string; fen: string; moves: string[]; rating: number; themes: string[] };
 
@@ -202,7 +207,25 @@ export type LocalState = {
   pendingCelebrations: Celebration[];
   /** Celebration ids already shown, so each shows once. */
   celebrated: string[];
+  /** Usual play time, streak repair and the mate of the day (this learner, this device). */
+  habit: Habit;
 };
+
+/** A streak broken by one missed day, waiting for REPAIR_LESSONS lessons before the window closes. */
+export type StreakRepair = { missed: string; prev: number; lessons: number };
+export const REPAIR_LESSONS = 2;
+/** The repair stays open for 48 hours after the missed day ends: the next two local days. */
+export const REPAIR_DAYS = 2;
+/** Mate of the day on this device: each try is a row of moves (true = right, false = wrong). */
+export type MateRecord = { day: string; tries: boolean[][]; solved: boolean; done: boolean };
+export type Habit = {
+  /** Local hour of the first activity on each recent day (newest PLAY_HOURS_MAX days). */
+  playHours: Record<string, number>;
+  streakRepair: StreakRepair | null;
+  mate: MateRecord | null;
+};
+export const PLAY_HOURS_MAX = 14;
+export const emptyHabit = (): Habit => ({ playHours: {}, streakRepair: null, mate: null });
 
 export type RoomId = "play" | "practice" | "club";
 export const ROOMS: readonly RoomId[] = ["play", "practice", "club"];
@@ -257,6 +280,7 @@ export function createInitialState(guestId: string): LocalState {
     writeQueue: [],
     pendingCelebrations: [],
     celebrated: [],
+    habit: emptyHabit(),
   };
 }
 
@@ -305,7 +329,30 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     writeQueue: sanitizeWriteQueue(r.writeQueue),
     pendingCelebrations: sanitizeCelebrations(r.pendingCelebrations),
     celebrated: sanitizeCelebrated(r.celebrated),
+    habit: hydrateHabit(r.habit),
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, PRACTICE_KEEP) : [],
+  };
+}
+
+const isDayKey = (d: unknown): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
+
+/** Reads stored habit state; anything malformed is dropped. */
+export function hydrateHabit(raw: unknown): Habit {
+  const base = emptyHabit();
+  if (!raw || typeof raw !== "object") return base;
+  const h = raw as Partial<Habit>;
+  const hours = Object.entries(h.playHours && typeof h.playHours === "object" ? h.playHours : {})
+    .filter(([d, n]) => isDayKey(d) && Number.isInteger(n) && n >= 0 && n < 24)
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .slice(0, PLAY_HOURS_MAX);
+  const r = h.streakRepair;
+  const repair = r && isDayKey(r.missed) && Number.isInteger(r.prev) && r.prev > 0 && Number.isInteger(r.lessons) ? { missed: r.missed, prev: Math.min(10_000, r.prev), lessons: Math.max(0, Math.min(REPAIR_LESSONS, r.lessons)) } : null;
+  const m = h.mate;
+  const tries = m && Array.isArray(m.tries) ? m.tries.filter((t) => Array.isArray(t) && t.length <= 2 && t.every((x) => typeof x === "boolean")).slice(0, 3) : [];
+  return {
+    playHours: Object.fromEntries(hours),
+    streakRepair: repair,
+    mate: m && isDayKey(m.day) ? { day: m.day, tries, solved: m.solved === true, done: m.done === true } : null,
   };
 }
 
@@ -455,6 +502,52 @@ export function visibleStreak(streak: Streak, today: string): number {
   return gap - 1 <= (streak.freezes ?? 0) ? streak.count : 0;
 }
 
+/** The day `n` days after (or before, for negative `n`) a day key. */
+export function shiftDay(day: string, n: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** A streak that today's first activity would break, when exactly one day was missed with no freeze to cover it. */
+function breakingStreak(streak: Streak, today: string): StreakRepair | null {
+  if (!streak.lastDay || streak.count < 2 || (streak.freezes ?? 0) > 0 || daysBetween(streak.lastDay, today) !== 2) return null;
+  return { missed: shiftDay(streak.lastDay, 1), prev: streak.count, lessons: 0 };
+}
+
+/** The streak repair on offer today: finish REPAIR_LESSONS lessons to bring the old streak back. */
+export function repairOffer(state: LocalState, today: string): StreakRepair | null {
+  const r = state.habit.streakRepair;
+  if (r) {
+    const age = daysBetween(r.missed, today);
+    if (age >= 1 && age <= REPAIR_DAYS) return r;
+  }
+  return breakingStreak(state.progress.streak, today);
+}
+
+/** Median local hour of the recent active days (at least 3), or null to keep the chosen reminder hour. */
+export function usualHour(state: LocalState): number | null {
+  const hours = Object.values(state.habit.playHours).sort((a, b) => a - b);
+  return hours.length >= 3 ? hours[Math.floor((hours.length - 1) / 2)] : null;
+}
+
+/**
+ * One activity's effect on the streak: extends it, opens or completes a repair, records the play
+ * hour, and queues a milestone celebration the first time the streak reaches one.
+ */
+function streakStep(state: LocalState, now: Date, lesson: boolean): { streak: Streak; habit: Habit } {
+  const today = dayKey(now);
+  let repair = repairOffer(state, today);
+  let streak = streakAfterActivity(state.progress.streak, today);
+  if (repair && lesson) repair = { ...repair, lessons: repair.lessons + 1 };
+  if (repair && repair.lessons >= REPAIR_LESSONS) {
+    streak = withFreezes({ count: repair.prev + 1 + streak.count, lastDay: streak.lastDay }, streak.freezes ?? 0);
+    repair = null;
+  }
+  const h = state.habit;
+  const playHours = today in h.playHours ? h.playHours : Object.fromEntries([[today, now.getHours()] as const, ...Object.entries(h.playHours)].sort(([a], [b]) => (a < b ? 1 : -1)).slice(0, PLAY_HOURS_MAX));
+  return { streak, habit: { ...h, playHours, streakRepair: repair } };
+}
+
 export function minutesToday(progress: Progress, today: string): number {
   return progress.minutes.day === today ? progress.minutes.value : 0;
 }
@@ -569,26 +662,34 @@ export type LessonMeta = { xp: number; minutes: number };
 
 const clampInt = (n: number, max: number) => (Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0);
 
-/** Marks a lesson done. Lessons this build does not ship use `meta` from the served course (the server re-checks XP). */
-export function completeNode(state: LocalState, nodeId: string, now: Date, meta?: LessonMeta): LocalState {
+/**
+ * Marks a lesson done. Lessons this build does not ship use `meta` from the served course (the server re-checks XP).
+ * `perfect` (no miss, no hint) adds PERFECT_BONUS XP the first time for that lesson.
+ */
+export function completeNode(state: LocalState, nodeId: string, now: Date, meta?: LessonMeta, perfect = false): LocalState {
   const node = PATH.find((n) => n.id === nodeId) ?? (meta ? { xp: clampInt(meta.xp, 100), minutes: clampInt(meta.minutes, 60) } : null);
   if (!node) return state;
   const today = dayKey(now);
   const first = !state.progress.completed[nodeId];
   const prevMinutes = minutesToday(state.progress, today);
+  const prevPerfect = state.progress.perfect ?? [];
+  const bonus = perfect && !prevPerfect.includes(nodeId);
+  const { streak, habit } = streakStep(state, now, true);
   return trackQuests({
     ...state,
     arrival: null,
+    habit,
     ideas: first ? seedIdea(state.ideas, nodeId, today) : state.ideas,
     progress: {
       ...state.progress,
       completed: first ? { ...state.progress.completed, [nodeId]: today } : state.progress.completed,
-      xp: state.progress.xp + (first ? node.xp : 0),
+      xp: state.progress.xp + (first ? node.xp : 0) + (bonus ? PERFECT_BONUS : 0),
+      ...(bonus ? { perfect: [...prevPerfect, nodeId] } : {}),
       ...withSkills(first ? skillsAfter(state.progress.skills ?? {}, skillOf(nodeId), true) : state.progress.skills),
-      streak: streakAfterActivity(state.progress.streak, today),
+      streak,
       minutes: { day: today, value: Math.min(1440, prevMinutes + node.minutes) },
     },
-  }, today);
+  }, today, { lessons: 1, early: now.getHours() < 9 ? 1 : 0, perfect: perfect ? 1 : 0 });
 }
 
 const skillOf = (lessonId: string): SkillId[] => {
@@ -601,12 +702,14 @@ const withSkills = (skills: Skills | undefined): { skills?: Skills } => (skills 
 /** Practice and games count toward the streak and today's goal, but never add XP. */
 function activity(state: LocalState, now: Date, minutes: number): LocalState {
   const today = dayKey(now);
+  const { streak, habit } = streakStep(state, now, false);
   return {
     ...state,
     arrival: null,
+    habit,
     progress: {
       ...state.progress,
-      streak: streakAfterActivity(state.progress.streak, today),
+      streak,
       minutes: { day: today, value: Math.min(1440, minutesToday(state.progress, today) + Math.max(1, Math.round(minutes))) },
     },
   };
@@ -638,7 +741,13 @@ export function recordGame(state: LocalState, game: GameRecord, now: Date, minut
       games: { played: g.played + 1, won: g.won + (won ? 1 : 0) },
       bots: bot && b ? { ...s.progress.bots, [bot]: { played: b.played + 1, won: b.won + (won ? 1 : 0) } } : s.progress.bots,
     },
-  }, dayKey(now), { games: 1, wins: won ? 1 : 0 });
+  }, dayKey(now), { games: 1, wins: won ? 1 : 0, winBlack: won && game.setup.you === "b" ? 1 : 0, cleanWin: won && !opponentCaptured(game) ? 1 : 0, endgame: won && start ? 1 : 0 });
+}
+
+/** Whether the other side took anything during the game (SAN captures contain "x"). */
+function opponentCaptured(game: GameRecord): boolean {
+  const firstIsYou = (game.setup.startFen.split(" ")[1] ?? "w") === game.setup.you;
+  return game.history.some((san, i) => (i % 2 === 0) !== firstIsYou && san.includes("x"));
 }
 
 /** A puzzle attempt. Solving counts as a little practice; the new rating comes from the caller. */
@@ -667,18 +776,42 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
         daily,
       },
     },
-  }, today, { puzzles: p.solved ? 1 : 0 });
+  }, today, { puzzles: p.solved ? 1 : 0, ...(p.solved ? Object.fromEntries((p.themes ?? []).map((t) => [`t_${t}`, 1])) : {}) });
 }
 
 export function recordSprint(state: LocalState, score: number, now: Date, minutes: number): LocalState {
   const s = activity(state, now, minutes);
   const pz = s.progress.puzzles;
-  return trackQuests({ ...s, progress: { ...s.progress, puzzles: { ...pz, sprintBest: Math.max(pz.sprintBest, score) } } }, dayKey(now), { puzzles: Math.max(0, Math.floor(score)) });
+  return trackQuests({ ...s, progress: { ...s.progress, puzzles: { ...pz, sprintBest: Math.max(pz.sprintBest, score) } } }, dayKey(now), { puzzles: Math.max(0, Math.floor(score)), sprint: Math.max(0, Math.floor(score)) });
 }
 
-/** Keeps the best board-vision score per game. */
-export const recordVision = (state: LocalState, game: string, score: number): LocalState =>
-  score > (state.vision[game] ?? 0) ? { ...state, vision: { ...state.vision, [game]: score } } : state;
+/** Best "in a row" from a lesson or practice run, for the combo quests. */
+export const recordCombo = (state: LocalState, best: number, now: Date): LocalState => trackQuests(state, dayKey(now), { combo: Math.max(0, Math.floor(best)) });
+
+/** Keeps the best board-vision score per game and counts the round (and its seconds) for today's quests. */
+export function recordVision(state: LocalState, game: string, score: number, now: Date = new Date(), seconds = 30): LocalState {
+  const s = score > (state.vision[game] ?? 0) ? { ...state, vision: { ...state.vision, [game]: score } } : state;
+  return trackQuests(s, dayKey(now), { vision: 1, visionSec: Math.max(0, Math.round(seconds)) });
+}
+
+/** A flashcard answer: schedules the card and counts it for today's quests. */
+export const answerIdeaCard = (state: LocalState, lessonId: string, remembered: boolean, now: Date): LocalState =>
+  trackQuests({ ...state, ideas: reviewAfter(state.ideas, ideaRef(lessonId), !remembered, dayKey(now)) }, dayKey(now), { cards: 1 });
+
+/* ---------- mate of the day ---------- */
+
+/** Tries allowed for the mate of the day; each try is a row in the share grid. */
+export const MATE_TRIES = 3;
+/** The mate-of-the-day result on this device, once per day. A solve also counts as a little practice. */
+export function recordMateTry(state: LocalState, day: string, moves: boolean[], now: Date): LocalState {
+  const prev = state.habit.mate?.day === day ? state.habit.mate : { day, tries: [], solved: false, done: false };
+  if (prev.done) return state;
+  const tries = [...prev.tries, moves.slice(0, 2)];
+  const solved = moves.length === 2 && moves.every(Boolean);
+  const done = solved || tries.length >= MATE_TRIES;
+  const s: LocalState = { ...state, habit: { ...state.habit, mate: { day, tries, solved, done } } };
+  return solved ? trackQuests(activity(s, now, 1), dayKey(now), { mate: 1 }) : s;
+}
 
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;
 
@@ -777,9 +910,11 @@ export function goalMet(progress: Progress, dailyMinutes: number, today: string)
  */
 export function reminderPlan(state: LocalState, now: Date, days = 7): Date[] {
   const out: Date[] = [];
+  // The learner's usual play time once there are a few active days; the chosen hour until then.
+  const hour = usualHour(state) ?? state.prefs.reminderHour;
   const today = dayKey(now);
   for (let i = 0; i < days + 1 && out.length < days; i++) {
-    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, state.prefs.reminderHour, 0, 0, 0);
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hour, 0, 0, 0);
     if (i === 0 && (at <= now || goalMet(state.progress, state.profile.dailyMinutes, today))) continue;
     out.push(at);
   }
@@ -885,8 +1020,12 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
     bots,
     placed: [...new Set([...(a.placed ?? []), ...(b.placed ?? [])])],
     ...withSkills(mergeSkills(a.skills, b.skills)),
+    ...withPerfect([...new Set([...(a.perfect ?? []), ...(b.perfect ?? [])])]),
   };
 }
+
+/** Leaves `perfect` out until there is one, so stored progress keeps its old shape. */
+const withPerfect = (ids: string[]): { perfect?: string[] } => (ids.length ? { perfect: ids } : {});
 
 export function isProgress(value: unknown): value is Progress {
   if (!value || typeof value !== "object") return false;
@@ -937,6 +1076,9 @@ export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null):
   const day = (d: unknown) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
   const count = (n: unknown, max = 100_000) => (typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0);
   const played = count(p.games?.played);
+  // A perfect lesson must be a finished one; each adds its bonus to what the XP may reach.
+  const perfect = Array.isArray(p.perfect) ? [...new Set(p.perfect.filter((id) => typeof id === "string" && completed[id]))] : [];
+  if (path) xpCap += perfect.length * PERFECT_BONUS;
   return {
     completed,
     xp: Math.min(Math.max(0, Math.floor(p.xp)), xpCap),
@@ -960,6 +1102,7 @@ export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null):
     ),
     placed: Array.isArray(p.placed) ? p.placed.filter((id) => typeof id === "string" && completed[id]) : [],
     ...withSkills(sanitizeSkills(p.skills)),
+    ...withPerfect(perfect),
   };
 }
 
@@ -1103,7 +1246,7 @@ export const ENDGAME_MASTERY = 3;
 export function answerPractice(state: LocalState, ref: string, missed: boolean, today: string): LocalState {
   const mistake = state.mistakes.find((m) => m.ref === ref);
   const ids = mistake ? (mistake.skill ? [mistake.skill] : []) : skillOf(ref.split(":")[0] ?? "");
-  return { ...state, review: reviewAfter(state.review, ref, missed, today), progress: { ...state.progress, ...withSkills(skillsAfter(state.progress.skills ?? {}, ids, !missed)) } };
+  return trackQuests({ ...state, review: reviewAfter(state.review, ref, missed, today), progress: { ...state.progress, ...withSkills(skillsAfter(state.progress.skills ?? {}, ids, !missed)) } }, today, { reviews: 1 });
 }
 
 /**
@@ -1127,13 +1270,13 @@ export function recordReviewedGame(state: LocalState, gameId: string, mistakes: 
   const kept = [...added, ...state.mistakes].slice(0, MISTAKES_MAX);
   const keptRefs = new Set(kept.map((m) => m.ref));
   const dropped = new Set([...added, ...state.mistakes].filter((m) => !keptRefs.has(m.ref)).map((m) => m.ref));
-  return {
+  return trackQuests({
     ...state,
     gameLog: state.gameLog.map((g) => (g.id === gameId ? { ...g, reviewed: true } : g)),
     mistakes: kept,
     review: Object.fromEntries(Object.entries(review).filter(([ref]) => !dropped.has(ref))),
     progress: { ...state.progress, ...withSkills(skills) },
-  };
+  }, today, { reviewed: 1 });
 }
 
 /** An imported game as a review-log entry. Player names are left out; a game without the learner's side reviews both sides. */

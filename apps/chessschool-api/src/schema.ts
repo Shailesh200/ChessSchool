@@ -356,6 +356,44 @@ export const scanUsage = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
 );
 
+/* ---------- habit loop (Phase 3) ---------- */
+
+/** A league player's tier (0 Pawn … 5 King) and when they first joined, for forming leagues in join order. */
+export const leaguePlayers = sqliteTable("cs_league_players", {
+  userId: text("user_id").primaryKey(),
+  tier: integer("tier").notNull().default(0),
+  joinedAt: integer("joined_at").notNull(),
+});
+
+/** One row per learner per league week (the Monday in India): their group, XP that week, and today's XP for the daily cap. */
+export const leagueMembers = sqliteTable(
+  "cs_league_members",
+  {
+    week: text("week").notNull(),
+    userId: text("user_id").notNull(),
+    tier: integer("tier").notNull(),
+    grp: integer("grp").notNull(),
+    xp: integer("xp").notNull().default(0),
+    day: text("day"),
+    dayXp: integer("day_xp").notNull().default(0),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.week, t.userId] })],
+);
+
+/** Weeks already closed by the league cron. */
+export const leagueWeeks = sqliteTable("cs_league_weeks", {
+  week: text("week").primaryKey(),
+  closedAt: integer("closed_at").notNull(),
+});
+
+/** Mate of the day: how many tried and solved it (aggregate only, no per-learner rows). */
+export const mateDays = sqliteTable("cs_mate_days", {
+  day: text("day").primaryKey(),
+  played: integer("played").notNull().default(0),
+  solved: integer("solved").notNull().default(0),
+});
+
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
     id TEXT PRIMARY KEY,
@@ -618,4 +656,31 @@ export const BOOTSTRAP_SQL = [
   `CREATE INDEX IF NOT EXISTS cs_class_games_black ON cs_class_games (black_id)`,
   // Over-the-air updates (packages/ota-server owns this table).
   ...OTA_SCHEMA_SQL,
+  `CREATE TABLE IF NOT EXISTS cs_league_players (
+    user_id TEXT PRIMARY KEY,
+    tier INTEGER NOT NULL DEFAULT 0,
+    joined_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_league_members (
+    week TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    tier INTEGER NOT NULL,
+    grp INTEGER NOT NULL,
+    xp INTEGER NOT NULL DEFAULT 0,
+    day TEXT,
+    day_xp INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (week, user_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_league_members_group ON cs_league_members (week, tier, grp)`,
+  `CREATE INDEX IF NOT EXISTS cs_league_members_user ON cs_league_members (user_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_league_weeks (
+    week TEXT PRIMARY KEY,
+    closed_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_mate_days (
+    day TEXT PRIMARY KEY,
+    played INTEGER NOT NULL DEFAULT 0,
+    solved INTEGER NOT NULL DEFAULT 0
+  )`,
 ];

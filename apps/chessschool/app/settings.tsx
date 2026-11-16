@@ -1,4 +1,4 @@
-import { aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -70,6 +70,11 @@ export default function Settings() {
           <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
             <T role="label">{s.reminderTime}</T>
             <Segmented label={s.reminderTime} value={prefs.reminderHour} onChange={(h) => setPrefs({ reminderHour: h })} options={REMINDER_HOURS.map((h) => ({ value: h, label: s.reminderHour(h) }))} />
+            {usualHour(state) != null ? (
+              <T role="small" color="textMuted">
+                {copy.streaks.reminderUsual(s.reminderHour(usualHour(state)!))}
+              </T>
+            ) : null}
           </View>
         ) : null}
       </Card>

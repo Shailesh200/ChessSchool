@@ -1,6 +1,7 @@
 import {
   cleanName,
   dayKey,
+  indiaDay,
   emptyProgress,
   isAvatarId,
   isCoachId,
@@ -51,6 +52,9 @@ import { chesscomGames, gameFromPgn, isUsername, lichessGames, PGN_MAX_BYTES, we
 import { lessonClips } from "./voice";
 import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } from "./tablebase";
 import { EMAIL_RUN_CAP, summarize, summaryMessage, type Sender } from "./weekly";
+import { addLeagueXp, closeDueWeeks, currentLeague } from "./leagues";
+import { countMate, mateCounts, mateOfDay } from "./mate";
+import { FEATURES } from "./features";
 import { loadCourseText, localizeNamed, localizeSteps, type CourseText } from "./course-text";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
@@ -145,6 +149,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const feedbackLimiter = createRateLimiter(5, 10 * 60_000, () => now().getTime());
   const eventsLimiter = createRateLimiter(30, 60_000, () => now().getTime());
   const reportLimiter = createRateLimiter(10, 60 * 60_000, () => now().getTime());
+  const mateLimiter = createRateLimiter(10, 60 * 60_000, () => now().getTime());
   /** Homework, challenges and tournaments; moves and resigns have their own, roomier limit. */
   const classWriteLimiter = createRateLimiter(30, 10 * 60_000, () => now().getTime());
   const moveLimiter = createRateLimiter(120, 60_000, () => now().getTime());
@@ -1521,13 +1526,62 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!isProgress(b.progress)) return fail(c, 400, "invalid_input");
     const path = await coursePath();
     if (!path.length) return fail(c, 503, "server", "course not seeded");
-    const merged = sanitizeProgress(mergeProgress(await loadProgress(user.id, path), sanitizeProgress(b.progress, path)), path);
+    const before = await loadProgress(user.id, path);
+    const merged = sanitizeProgress(mergeProgress(before, sanitizeProgress(b.progress, path)), path);
     if (isGuestAccount(user) && (guestProgressOverreach(b.progress.completed, path) || guestProgressOverreach(merged.completed, path))) {
       return c.json({ error: GUEST_LIMIT_CODE }, 403);
     }
     await saveProgress(user.id, merged);
+    // League XP comes from this sync: only the rise the server has not seen yet, so a replay adds nothing.
+    if (FEATURES.leagues && !isGuestAccount(user)) await addLeagueXp(db, user.id, merged.xp - before.xp, now().getTime()).catch((err) => reportError?.(err));
     const access = courseAccess(merged.completed, isGuestAccount(user), path);
     return c.json({ progress: merged, path: access.path });
+  });
+
+  /* ---------- habit loop: features, leagues, mate of the day ---------- */
+
+  app.get("/v1/features", (c) => c.json({ features: FEATURES }));
+
+  /** This week's league table. Guests get a sign-up card; child profiles never sync here, so never appear. */
+  app.get("/v1/leagues/current", requireUser, async (c) => {
+    if (!FEATURES.leagues) return fail(c, 404, "not_found");
+    const user = c.get("user");
+    if (isGuestAccount(user)) return c.json({ status: "guest" });
+    const league = await currentLeague(db, user.id, now().getTime());
+    return c.json(league ? { status: "joined", league } : { status: "none" });
+  });
+
+  /** Daily cron (a few minutes after Monday 00:00 India time it closes the week); safe to run any day. */
+  app.get("/v1/cron/leagues", async (c) => {
+    if (!cronSecret || c.req.header("authorization") !== `Bearer ${cronSecret}`) return fail(c, 404, "not_found");
+    return c.json(await closeDueWeeks(db, now().getTime()));
+  });
+
+  const mateDay = (c: Context) => {
+    const day = c.req.param("day") ?? "";
+    // India date: today, or any earlier day (shared links), never a future one.
+    return /^\d{4}-\d{2}-\d{2}$/.test(day) && day <= indiaDay(now().getTime()) && day >= "2026-01-01" ? day : null;
+  };
+
+  app.get("/v1/mate/:day", async (c) => {
+    if (!FEATURES.mateOfTheDay) return fail(c, 404, "not_found");
+    const day = mateDay(c);
+    const puzzle = day ? await mateOfDay(db, day) : null;
+    if (!day || !puzzle) return fail(c, 404, "not_found");
+    return c.json({ day, today: indiaDay(now().getTime()), puzzle, ...(await mateCounts(db, day)) });
+  });
+
+  /** One finished mate of the day: { solved: boolean }. Aggregate counter only, for today and yesterday. */
+  app.post("/v1/mate/:day", async (c) => {
+    if (!FEATURES.mateOfTheDay) return fail(c, 404, "not_found");
+    const day = mateDay(c);
+    if (!day || day < indiaDay(now().getTime() - 86_400_000)) return fail(c, 404, "not_found");
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "local";
+    if (!mateLimiter(ip)) return fail(c, 429, "rate_limited");
+    const b = await body<{ solved?: unknown }>(c);
+    if (typeof b.solved !== "boolean") return fail(c, 400, "invalid_input");
+    await countMate(db, day, b.solved);
+    return c.json(await mateCounts(db, day));
   });
 
   return app;

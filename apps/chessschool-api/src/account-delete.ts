@@ -1,11 +1,11 @@
 import { eq, inArray, or } from "drizzle-orm";
 import type { Db } from "./db";
-import { blocks, childProgress, children, coachUsage, classes, classGames, classMembers, feedback, homework, leaderboardHidden, profiles, progress, ratingEvents, ratingHistory, ratings, reports, scanUsage, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
+import { blocks, childProgress, children, coachUsage, classes, classGames, classMembers, feedback, homework, leaderboardHidden, profiles, progress, leagueMembers, leaguePlayers, ratingEvents, ratingHistory, ratings, reports, scanUsage, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
 
 /**
  * Removes one user's rows: sessions, progress, profile, classes (with their homework, games and tournaments),
  * every class game they played (so opponents keep no half-game with a missing player), feedback,
- * ratings (theirs and their children's), then the user.
+ * ratings (theirs and their children's), league rows, then the user.
  * Runs as one batch, which libsql applies atomically on a local file and over HTTP; a BEGIN/COMMIT
  * pair over HTTP lands in separate requests, so each delete committed alone and COMMIT then failed.
  */
@@ -43,6 +43,8 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
     db.delete(ratingEvents).where(eq(ratingEvents.userId, userId)),
     db.delete(ratingHistory).where(eq(ratingHistory.userId, userId)),
     db.delete(blocks).where(or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId))),
+    db.delete(leagueMembers).where(eq(leagueMembers.userId, userId)),
+    db.delete(leaguePlayers).where(eq(leaguePlayers.userId, userId)),
     db.delete(users).where(eq(users.id, userId)),
   ]);
 }

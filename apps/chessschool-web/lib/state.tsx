@@ -18,6 +18,8 @@ import {
   applySignOut,
   arrive,
   completeNode,
+  recordCombo,
+  answerIdeaCard,
   placeAt,
   recordGame,
   recordPractice,
@@ -53,7 +55,8 @@ type Store = {
   setPrefs: (p: Partial<Prefs>) => void;
   setSeenWelcome: () => void;
   completeOrientation: () => void;
-  completeLesson: (id: string, meta?: LessonMeta) => void;
+  /** `flow` is the lesson's run: perfect (no miss, no hint) adds the bonus once; `best` counts for the combo quests. */
+  completeLesson: (id: string, meta?: LessonMeta, flow?: { perfect: boolean; best: number }) => void;
   finishPractice: () => void;
   finishGame: (game: GameRecord, minutes: number) => void;
   /** `puzzleRating` also counts the attempt toward the playing rating. */
@@ -205,7 +208,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }, 800);
   }, [ready, accountId, progressJson, showGuestGate, netTick]);
 
-  const cue = useCallback((c: SoundCue) => playCue(c, state.prefs.sound), [state.prefs.sound]);
+  const cue = useCallback((c: SoundCue) => playCue(c, state.prefs.sound, state.prefs.haptics), [state.prefs.sound, state.prefs.haptics]);
 
   /** A change the learner earned something by (lesson, game, puzzle): queues any celebration it unlocks. */
   const earn = (fn: (s: LocalState) => LocalState) => setState((s) => withCelebrations(s, fn(s), new Date()));
@@ -253,15 +256,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       placeBefore: (order, startAt) => setState((s) => placeBefore(s, order, startAt, new Date())),
       answerReview: (ref, missed) => setState((s) => answerPractice(s, ref, missed, dayKey(new Date()))),
       update: (fn) => setState(fn),
-      answerIdea: (lessonId, remembered) => setState((s) => ({ ...s, ideas: reviewAfter(s.ideas, ideaRef(lessonId), !remembered, dayKey(new Date())) })),
+      answerIdea: (lessonId, remembered) => setState((s) => answerIdeaCard(s, lessonId, remembered, new Date())),
       setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),
       completeOrientation: () => earn((s) => completeNode(s, "meet", new Date())),
-      completeLesson: (id, meta) => {
+      completeLesson: (id, meta, flow) => {
         usage.track("lesson_finish", { lesson: id });
-        earn((s) => completeNode(s, id, new Date(), meta));
+        const now = new Date();
+        earn((s) => recordCombo(completeNode(s, id, now, meta, flow?.perfect), flow?.best ?? 0, now));
       },
       finishPractice: () => {
         usage.track("practice_finished");
@@ -282,7 +286,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
       finishSprint: (score, minutes) => earn((s) => recordSprint(s, score, new Date(), minutes)),
       finishVision: (game, score) => {
-        setState((s) => recordVision(s, game, score));
+        setState((s) => recordVision(s, game, score, new Date()));
         // Queued, so a score made offline still reaches the class board.
         if (latest.current.account && score > 0) setState((st) => queueVisionScore(st, game, score, dayKey(new Date())));
       },

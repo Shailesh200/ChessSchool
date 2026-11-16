@@ -1,10 +1,10 @@
 "use client";
 
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, firstLessonId, goalMet, isGuestLockedLesson, lessonAccess, nextOpenLesson, visibleStreak } from "@chessschool/design";
+import { accuracy, copy, dayKey, elapsedSeconds, firstLessonId, FLOW_CUES, goalMet, isGuestLockedLesson, isPerfect, lessonAccess, nextOpenLesson, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LessonDone } from "@/components/LessonDone";
+import { LessonDone, type LessonSummary } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
@@ -12,7 +12,7 @@ import { useCourse, useLesson } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { useCoachVoice } from "@/lib/voice";
 
-type Before = { id: string; done: boolean; streak: number; goal: boolean; firstLessonToday: boolean };
+type Before = { id: string; done: boolean; streak: number; goal: boolean; firstLessonToday: boolean; xp: number; summary: Omit<LessonSummary, "xp"> };
 
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
@@ -107,8 +107,10 @@ export default function LessonPage() {
       say={say}
       closeHref={firstRun ? "/welcome" : "/today"}
       onClose={(step) => track("lesson_quit", { lesson: id, step })}
-      onFinished={(n) => {
+      onFinished={(n, tally) => {
         const firstLessonToday = !Object.values(state.progress.completed).some((day) => day === today);
+        const perfect = interactive && isPerfect(tally);
+        const bonus = perfect && !(state.progress.perfect ?? []).includes(id);
         setMisses(n);
         setBefore({
           id,
@@ -116,9 +118,11 @@ export default function LessonPage() {
           streak: visibleStreak(state.progress.streak, dayKey(new Date())),
           goal: goalMet(state.progress, state.profile.dailyMinutes, dayKey(new Date())),
           firstLessonToday,
+          xp: state.progress.xp,
+          summary: { accuracy: accuracy(tally), seconds: elapsedSeconds(tally, Date.now()), perfectBonus: bonus ? PERFECT_BONUS : undefined, best: tally.best },
         });
-        completeLesson(id, { xp: lesson.xp, minutes: lesson.minutes });
-        cue("level-up");
+        completeLesson(id, { xp: lesson.xp, minutes: lesson.minutes }, { perfect, best: tally.best });
+        cue(perfect ? FLOW_CUES.perfect : FLOW_CUES.summary);
       }}
       done={
         b ? (
@@ -130,6 +134,7 @@ export default function LessonPage() {
             streak={b.firstLessonToday && !b.done && streak > 0 ? streak : undefined}
             goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}
             hints={interactive ? misses : undefined}
+            summary={{ ...b.summary, xp: Math.max(0, state.progress.xp - b.xp) }}
           >
             {firstRun ? (
               <Button block href="/welcome" icon="arrowRight">
