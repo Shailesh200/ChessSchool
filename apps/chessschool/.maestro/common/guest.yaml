@@ -3,6 +3,10 @@ appId: com.chessschool.app
 # A fresh install opens straight into the first lesson; closing it leads to the welcome steps, Skip lands on Learn.
 - launchApp:
     clearState: true
+# A slow emulator can still show a system "isn't responding" popup; let it wait.
+- tapOn:
+    text: "Wait"
+    optional: true
 - extendedWaitUntil:
     visible: "This is the board."
     timeout: 60000

@@ -159,6 +159,8 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
+            # Slow CI emulators show "isn't responding" popups for system apps over ours; hide them.
+            adb shell settings put global hide_error_dialogs 1
             adb install "$RUNNER_TEMP/ChessSchool.apk"
             maestro test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" --format junit --output "$RUNNER_TEMP/maestro-android.xml" apps/chessschool/.maestro
       - uses: actions/upload-artifact@v4
