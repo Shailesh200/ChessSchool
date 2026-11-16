@@ -1,6 +1,6 @@
 "use client";
 
-import { AVATARS, copy, type AvatarId, type CodyAnimation, type DailyMinutes } from "@chessschool/design";
+import { copy, LANG_NAMES, LANGS, language } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Cody } from "@/components/Lottie";
@@ -9,28 +9,31 @@ import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
-const POSES: CodyAnimation[] = ["wave", "happy", "proud", "reading", "celebrate"];
-const STEPS = 5;
-
+/**
+ * After the first lesson: language, coach, then the account offer (guests only).
+ * Language is the first step because changing it remounts the page at step 0.
+ */
 export default function Welcome() {
-  const { state, setProfile, setPrefs, setSeenWelcome, cue } = useApp();
+  const { state, setPrefs, setSeenWelcome, cue } = useApp();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const w = copy.welcome.steps;
+  const steps = state.account ? 2 : 3;
 
   useEffect(() => {
     headingRef.current?.focus();
   }, [step]);
 
-  const finish = (to: "/today" | "/login") => {
+  const finish = (to: "/today" | "/signup") => {
     setSeenWelcome();
     if (to === "/today") cue("success");
     router.push(to);
   };
   const next = () => {
     cue("tap");
-    setStep((s) => Math.min(STEPS - 1, s + 1));
+    if (step + 1 >= steps) finish("/today");
+    else setStep(step + 1);
   };
 
   return (
@@ -43,8 +46,8 @@ export default function Welcome() {
         ) : (
           <span className="icon-btn-spacer" />
         )}
-        <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step + 1} aria-label={copy.orientation.progress(step + 1, STEPS)}>
-          {Array.from({ length: STEPS }, (_, i) => (
+        <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={steps} aria-valuenow={step + 1} aria-label={copy.orientation.progress(step + 1, steps)}>
+          {Array.from({ length: steps }, (_, i) => (
             <span key={i} className={i <= step ? "on" : ""} />
           ))}
         </div>
@@ -54,56 +57,26 @@ export default function Welcome() {
       </header>
 
       <div className="flow-body" key={step}>
-        {step === 1 || step === 3 ? null : <Cody animation={POSES[step]} size={step === 0 ? 200 : 150} label={copy.a11y.mascot} />}
         {step === 0 ? (
           <>
+            <Cody animation="wave" size={150} label={copy.a11y.mascot} />
             <h1 ref={headingRef} tabIndex={-1}>
-              {w.intro.title}
+              {w.lang.title}
             </h1>
-            <p className="lead">{w.intro.body}</p>
+            <p className="lead">{w.lang.body}</p>
+            <div className="choices" role="radiogroup" aria-label={w.lang.title}>
+              {LANGS.map((l) => (
+                <button key={l} type="button" role="radio" aria-checked={language() === l} className="choice" onClick={() => (setPrefs({ lang: l }), cue("tap"))}>
+                  <span>
+                    <strong>{LANG_NAMES[l]}</strong>
+                  </span>
+                  {language() === l ? <Icon name="check" /> : null}
+                </button>
+              ))}
+            </div>
           </>
         ) : null}
         {step === 1 ? (
-          <>
-            <h1 ref={headingRef} tabIndex={-1}>
-              {copy.you.avatar}
-            </h1>
-            <p className="lead">{copy.you.avatarHint}</p>
-            <div className="avatar-grid" role="radiogroup" aria-label={copy.you.avatar}>
-              {AVATARS.map((id) => (
-                <button key={id} type="button" role="radio" aria-checked={state.profile.avatar === id} className={`avatar-pick${state.profile.avatar === id ? " is-on" : ""}`} onClick={() => (setProfile({ avatar: id as AvatarId }), cue("tap"))}>
-                  {id === "cody" ? <Cody animation="idle" size={64} /> : <img src={`/coaches/${id}.png`} alt="" width={72} height={72} />}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
-        {step === 2 ? (
-          <>
-            <h1 ref={headingRef} tabIndex={-1}>
-              {w.minutes.title}
-            </h1>
-            <p className="lead">{w.minutes.body}</p>
-            <div className="choices" role="radiogroup" aria-label={w.minutes.title}>
-              {([5, 10, 15] as DailyMinutes[]).map((m, i) => (
-                <button
-                  key={m}
-                  type="button"
-                  role="radio"
-                  aria-checked={state.profile.dailyMinutes === m}
-                  className="choice"
-                  onClick={() => (setProfile({ dailyMinutes: m }), cue("tap"))}
-                >
-                  <span>
-                    <strong>{m} min</strong> · {w.minutes.options[m]}
-                  </span>
-                  {state.profile.dailyMinutes === m ? <Icon name="check" /> : null}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
-        {step === 3 ? (
           <>
             <h1 ref={headingRef} tabIndex={-1}>
               {w.coach.title}
@@ -112,8 +85,9 @@ export default function Welcome() {
             <CoachPicker value={state.prefs.coach} onChange={(id) => (setPrefs({ coach: id }), cue("tap"))} />
           </>
         ) : null}
-        {step === 4 ? (
+        {step === 2 ? (
           <>
+            <Cody animation="celebrate" size={170} label={copy.a11y.mascot} />
             <h1 ref={headingRef} tabIndex={-1}>
               {w.start.title}
             </h1>
@@ -123,17 +97,17 @@ export default function Welcome() {
       </div>
 
       <footer className="flow-actions">
-        {step < STEPS - 1 ? (
-          <Button block onClick={next} style={{ color: "var(--cs-on-brand)", background: "var(--cs-brand)", justifyContent: "center", textAlign: "center" }}>
+        {step < 2 ? (
+          <Button block onClick={next}>
             {copy.welcome.next}
           </Button>
         ) : (
           <>
-            <Button block onClick={() => finish("/today")}>
-              {w.start.guest}
-            </Button>
-            <Button block variant="ghost" onClick={() => finish("/login")}>
+            <Button block icon="shield" onClick={() => finish("/signup")}>
               {w.start.account}
+            </Button>
+            <Button block variant="ghost" onClick={() => finish("/today")}>
+              {w.start.guest}
             </Button>
           </>
         )}

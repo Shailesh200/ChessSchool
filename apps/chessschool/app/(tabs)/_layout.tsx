@@ -1,7 +1,9 @@
 import { copy, type IconName } from "@chessschool/design";
-import { Tabs } from "expo-router";
+import { Tabs, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CelebrationHost } from "@/components/Celebration";
 import { Icon } from "@/components/Icon";
 import { T } from "@/components/ui";
 import { useApp } from "@/lib/state";
@@ -15,7 +17,16 @@ export default function TabsLayout() {
   const { c } = useTheme();
   const { cue } = useApp();
   const insets = useSafeAreaInsets();
+  // Celebrations wait until the tabs are in front again (not over a lesson or a game).
+  const [front, setFront] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFront(true);
+      return () => setFront(false);
+    }, []),
+  );
   return (
+    <>
     <Tabs
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.bg } }}
       tabBar={({ state, navigation }) => (
@@ -57,5 +68,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="gym" />
       <Tabs.Screen name="you" />
     </Tabs>
+    <CelebrationHost active={front} />
+    </>
   );
 }

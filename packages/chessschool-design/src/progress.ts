@@ -8,6 +8,7 @@ import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, type SkillId, type Skills } from "./skills";
 import { emptyRatings, sanitizeRatingQueue, sanitizeRatings, type Ratings } from "./rating";
 import { sanitizeWriteQueue, type QueuedWrite } from "./offline";
+import { sanitizeCelebrated, sanitizeCelebrations, type Celebration } from "./celebrate";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -197,6 +198,10 @@ export type LocalState = {
   aiExplain: Record<string, boolean>;
   /** Profiles that have seen and accepted the AI explanations notice. */
   aiAgreed: string[];
+  /** Full-screen celebrations waiting to be shown, oldest first (celebrate.ts). */
+  pendingCelebrations: Celebration[];
+  /** Celebration ids already shown, so each shows once. */
+  celebrated: string[];
 };
 
 export type RoomId = "play" | "practice" | "club";
@@ -250,6 +255,8 @@ export function createInitialState(guestId: string): LocalState {
     ratings: emptyRatings(),
     ratingQueue: [],
     writeQueue: [],
+    pendingCelebrations: [],
+    celebrated: [],
   };
 }
 
@@ -296,6 +303,8 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     ratings: sanitizeRatings(r.ratings),
     ratingQueue: sanitizeRatingQueue(r.ratingQueue),
     writeQueue: sanitizeWriteQueue(r.writeQueue),
+    pendingCelebrations: sanitizeCelebrations(r.pendingCelebrations),
+    celebrated: sanitizeCelebrated(r.celebrated),
     practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, PRACTICE_KEEP) : [],
   };
 }
@@ -1036,11 +1045,18 @@ export type BadgeId =
   | "puzzles50"
   | "rating1000"
   | "daily5"
-  | "practice5";
+  | "practice5"
+  | "bestWin"
+  | "highWin";
 
 const unitDone = (p: Progress, unit: UnitId) => PATH.filter((n) => n.unit === unit).every((n) => p.completed[n.id]);
 
-export const BADGES: readonly { id: BadgeId; earned: (p: Progress) => boolean }[] = [
+/** Beat a bot rated this much above you for "Best win", and one rated at least HIGH_WIN for "Highest-rated victory". */
+export const BEST_WIN_GAP = 100;
+export const HIGH_WIN = 1000;
+
+/** `r` (the playing rating) is optional so progress-only callers keep working; rating badges need it. */
+export const BADGES: readonly { id: BadgeId; earned: (p: Progress, r?: Ratings) => boolean }[] = [
   { id: "firstLesson", earned: (p) => PATH.some((n) => n.id !== "meet" && p.completed[n.id] && !p.placed.includes(n.id)) },
   { id: "unit1", earned: (p) => unitDone(p, "unit1") },
   { id: "unit2", earned: (p) => unitDone(p, "unit2") },
@@ -1070,11 +1086,13 @@ export const BADGES: readonly { id: BadgeId; earned: (p: Progress) => boolean }[
   { id: "rating1000", earned: (p) => p.puzzles.rating >= 1000 && p.puzzles.attempts >= 10 },
   { id: "daily5", earned: (p) => p.puzzles.daily.count >= 5 },
   { id: "practice5", earned: (p) => p.drills >= 5 },
+  { id: "bestWin", earned: (_, r) => (r?.upset ?? 0) >= BEST_WIN_GAP },
+  { id: "highWin", earned: (_, r) => (r?.bestWin ?? 0) >= HIGH_WIN },
 ];
 
-export const earnedBadges = (p: Progress): BadgeId[] => BADGES.filter((b) => b.earned(p)).map((b) => b.id);
+export const earnedBadges = (p: Progress, r?: Ratings): BadgeId[] => BADGES.filter((b) => b.earned(p, r)).map((b) => b.id);
 /** Earned but not yet celebrated. */
-export const newBadges = (s: LocalState): BadgeId[] => earnedBadges(s.progress).filter((id) => !s.badgesSeen.includes(id));
+export const newBadges = (s: LocalState): BadgeId[] => earnedBadges(s.progress, s.ratings).filter((id) => !s.badgesSeen.includes(id));
 
 /** Wins in the endgame trainer needed to call a position mastered. */
 export const ENDGAME_MASTERY = 3;

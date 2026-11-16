@@ -6,8 +6,9 @@ import { buildDrills, LESSONS, MATE_DRILLS, type Step } from "./lessons";
 import { currentStep, runnerReduce, startRunner, type RunnerState } from "./runner";
 import { defaultSetup, playReduce, playResult, shuffleFen, startGame, timeLeft, START_POSITIONS, type PlaySetup } from "./play";
 import { allPuzzles, armPuzzleBeat, dailyPuzzle, getPuzzlePackVersion, nextPuzzle, puzzleReduce, startPuzzle, themesForCompletedLessons, updateRating, type PuzzleState } from "./puzzles";
-import { assessMove, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce } from "./review";
+import { assessMove, decisiveMoment, formatEval, materialEdge, moveCue, positionCue, reviewPlies, startTry, summarise, tryReduce, type MoveNote } from "./review";
 import { BOTS } from "./bot";
+import { keyMomentCard } from "./coach";
 import { PIECE_SETS, isRemovedPieceSet, migratePieceSet, pieceArtwork } from "./pieceSets";
 
 afterEach(() => {
@@ -506,6 +507,23 @@ describe("game review", () => {
     expect(black.moments.at(-1)).toEqual({ ply: 4, kind: "mate" });
     expect(black.accuracy).toBeGreaterThan(white.accuracy);
     expect(summarise(plies, {}, null).accuracy).toBe(0);
+  });
+
+  it("picks the decisive ply: the learner's biggest swing, else their best move", () => {
+    const plies = reviewPlies(START_FEN, ["e4", "e5", "Qh5", "Nc6", "Qxe5+", "Nxe5"]);
+    const notes = Object.fromEntries(plies.map((p) => [p.ply, assessMove(p)]));
+    expect(decisiveMoment(plies, notes, "w")).toEqual({ ply: 5, kind: "mistake" });
+    const note = (loss: number, evalAfter: number): MoveNote => ({ verdict: loss >= 90 ? "inaccuracy" : "good", loss, better: null, betterMove: null, evalAfter });
+    // Two equal swings: the earlier one wins. Black's moves are ignored for White.
+    expect(decisiveMoment(plies, { 1: note(120, 0), 2: note(900, 0), 3: note(120, 0) }, "w")).toEqual({ ply: 1, kind: "mistake" });
+    expect(decisiveMoment(plies, { 1: note(0, 20), 3: note(0, 400) }, "w")).toEqual({ ply: 3, kind: "great" });
+    expect(decisiveMoment(plies, { 1: note(0, 20) }, "w")).toBeNull();
+    // The card carries the move, the better move and the detector's reason.
+    const card = keyMomentCard(plies, notes, "w")!;
+    expect(card).toMatchObject({ ply: 5, kind: "mistake", san: "Qxe5+", move: "3. Qxe5+", by: "w" });
+    expect(card.better).toBeTruthy();
+    expect(card.tags).toContain("hanging");
+    expect(keyMomentCard(plies, {}, "w")).toBeNull();
   });
 
   it("names move sounds and counts material", () => {

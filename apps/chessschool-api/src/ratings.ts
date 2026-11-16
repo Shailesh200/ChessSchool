@@ -1,8 +1,8 @@
 import { botInfo, isBotId } from "@chessschool/chess";
 import { applyResult, emptyRatings, sanitizeRatings, type RatedResult, type Ratings } from "@chessschool/design";
-import { eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import type { Db } from "./db";
-import { ratingEvents, ratings } from "./schema";
+import { ratingEvents, ratingHistory, ratings } from "./schema";
 
 const EVENT_ID = /^[\w:.-]{1,80}$/;
 const MAX_MOVES = 600;
@@ -40,6 +40,17 @@ export async function rateResult(db: Db, userId: string, learnerId: string, even
   if (!fresh.rowsAffected) return { ratings: await loadRatings(db, learnerId), counted: false };
   const next = applyResult(await loadRatings(db, learnerId), result);
   const data = JSON.stringify(next);
-  await db.insert(ratings).values({ learnerId, userId, data, updatedAt: at }).onConflictDoUpdate({ target: ratings.learnerId, set: { data, updatedAt: at } });
+  await db.batch([
+    db.insert(ratings).values({ learnerId, userId, data, updatedAt: at }).onConflictDoUpdate({ target: ratings.learnerId, set: { data, updatedAt: at } }),
+    db.insert(ratingHistory).values({ learnerId, event, userId, rating: next.player.rating, createdAt: at }).onConflictDoNothing(),
+  ]);
   return { ratings: next, counted: true };
+}
+
+export const HISTORY_MAX = 500;
+
+/** The rating after each counted result, oldest first (the newest HISTORY_MAX). */
+export async function loadRatingHistory(db: Db, learnerId: string): Promise<{ at: number; rating: number }[]> {
+  // rowid breaks ties in insert order (results counted in the same millisecond).
+  return db.select({ at: ratingHistory.createdAt, rating: ratingHistory.rating }).from(ratingHistory).where(eq(ratingHistory.learnerId, learnerId)).orderBy(asc(ratingHistory.createdAt), asc(sql`rowid`)).then((rows) => rows.slice(-HISTORY_MAX));
 }

@@ -40,7 +40,7 @@ async function mobileFlow(scheme) {
   await page.waitForURL("**/login", { timeout: 8000 });
   await expectText(page, "Log in to pick up where you left off.");
   await shot(page, `${p}-01-login`);
-  await page.getByRole("link", { name: "Keep going as a guest" }).click();
+  await page.getByRole("link", { name: "Continue as guest" }).click();
   await page.waitForURL("**/today");
   await expectText(page, "friend");
   await expectText(page, "Meet the school");

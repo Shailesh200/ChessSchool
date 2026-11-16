@@ -25,7 +25,7 @@ d tap "Continue"
 d tap "15 min"
 d tap "Continue"
 d has "Your seat is ready."
-d tap "Start as a guest"
+d tap "Maybe later"
 d has "Meet the school"
 d has "friend"
 sleep 1

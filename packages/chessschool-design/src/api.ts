@@ -4,6 +4,8 @@ import type { UsageBatch } from "./usage";
 import type { Ratings } from "./rating";
 import { language } from "./i18n";
 
+export type RatingPoint = { at: number; rating: number };
+
 /** `&lang=` for course words in the app language; nothing for English. */
 const lang = (sep: "?" | "&") => (language() === "en" ? "" : `${sep}lang=${language()}`);
 import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Streak, Who } from "./progress";
@@ -233,6 +235,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     childProgress: (id: string) => request<{ progress: Progress }>("GET", `/v1/children/${id}/progress`),
     putChildProgress: (id: string, progress: Progress) => request<{ progress: Progress }>("PUT", `/v1/children/${id}/progress`, { progress }),
     rating: (child?: string | null) => request<{ ratings: Ratings }>("GET", `/v1/me/rating${child ? `?child=${encodeURIComponent(child)}` : ""}`),
+    /** The rating after each counted result, oldest first (Profile chart). */
+    ratingHistory: (child?: string | null) => request<{ points: RatingPoint[] }>("GET", `/v1/me/rating/history${child ? `?child=${encodeURIComponent(child)}` : ""}`),
     /** One finished bot game or puzzle; `event` is its id, so a retry is not counted twice. */
     rate: (input: RateInput) => request<{ ratings: Ratings; counted: boolean }>("POST", "/v1/me/rating", input),
     weekly: () => request<{ email: boolean; push: boolean }>("GET", "/v1/me/weekly"),

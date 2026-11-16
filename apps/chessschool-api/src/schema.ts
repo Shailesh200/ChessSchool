@@ -312,6 +312,19 @@ export const ratingEvents = sqliteTable(
   (t) => [primaryKey({ columns: [t.learnerId, t.event] })],
 );
 
+/** The rating after each counted result, for the Profile chart (one row per cs_rating_events row). */
+export const ratingHistory = sqliteTable(
+  "cs_rating_history",
+  {
+    learnerId: text("learner_id").notNull(),
+    event: text("event").notNull(),
+    userId: text("user_id").notNull(),
+    rating: integer("rating").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.learnerId, t.event] })],
+);
+
 /** Idempotent bootstrap; this schema is new and owns only cs_* tables. */
 /** Coach explanations, keyed by a hash of the engine facts + coach + language. Holds no user data. */
 export const coachCache = sqliteTable("cs_coach_cache", {
@@ -540,6 +553,15 @@ export const BOOTSTRAP_SQL = [
     PRIMARY KEY (learner_id, event)
   )`,
   `CREATE INDEX IF NOT EXISTS cs_rating_events_user ON cs_rating_events (user_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_rating_history (
+    learner_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (learner_id, event)
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_rating_history_user ON cs_rating_history (user_id)`,
   `CREATE TABLE IF NOT EXISTS cs_voice_clips (
     coach TEXT NOT NULL,
     key TEXT NOT NULL,

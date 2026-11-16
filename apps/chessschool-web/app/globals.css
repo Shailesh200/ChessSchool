@@ -5318,3 +5318,131 @@ button.game-row {
   border-color: var(--cs-brand);
   background: var(--cs-brand-soft);
 }
+
+/* ---------- Phase 3 track C: celebrations, rating chart, key-moment card ---------- */
+.celebration {
+  border: 0;
+  margin: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: calc(24px + env(safe-area-inset-top)) 24px calc(20px + env(safe-area-inset-bottom));
+  background: var(--cs-bg);
+  color: var(--cs-text);
+  text-align: center;
+}
+.celebration[open] {
+  display: grid;
+  grid-template-rows: 1fr auto auto auto;
+  justify-items: center;
+  align-items: end;
+  gap: 12px;
+  animation: page-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.celebration-art {
+  position: relative;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 260px;
+  height: 230px;
+  border-radius: 130px;
+  background: var(--cs-gold-soft);
+}
+.celebration-fx {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.celebration .lead {
+  max-width: 340px;
+  color: var(--cs-text-muted);
+}
+.celebration-actions {
+  display: grid;
+  gap: 8px;
+  width: min(520px, 100%);
+  margin-top: 12px;
+}
+.rating-chart {
+  display: grid;
+  gap: 8px;
+}
+.rating-chart-head,
+.rating-chart-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rating-chart-head strong {
+  font-size: 1.25rem;
+}
+.rating-chart svg {
+  width: 100%;
+  height: auto;
+}
+.rating-chart-grid {
+  stroke: var(--cs-line);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.rating-chart-tick {
+  font-size: 10px;
+  fill: var(--cs-text-muted);
+}
+.rating-chart-line {
+  fill: none;
+  stroke: var(--cs-brand);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.rating-chart-dot {
+  fill: var(--cs-brand);
+}
+.key-moment {
+  justify-self: stretch;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+  text-align: left;
+}
+.key-moment.is-great {
+  border-color: var(--cs-gold);
+  background: var(--cs-gold-soft);
+}
+.key-moment h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.key-moment-body {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.key-moment-text {
+  display: grid;
+  gap: 4px;
+}
+.key-moment-text p {
+  margin: 0;
+}
+.key-moment .key-moment-played,
+.key-moment .key-moment-better {
+  font-weight: 600;
+  color: var(--cs-text);
+}
+.key-moment .key-moment-better {
+  color: var(--cs-success-text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration[open] {
+    animation: none;
+  }
+}

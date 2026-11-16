@@ -2,6 +2,8 @@ import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
 import {
   STORAGE_KEY,
   adoptRatings,
+  dismissCelebration,
+  withCelebrations,
   queueRating,
   ratedGame,
   ratedPuzzle,
@@ -92,6 +94,8 @@ type Store = {
   signOut: () => Promise<void>;
   resetThisDevice: () => Promise<void>;
   clearCeremony: () => void;
+  /** The learner closed the full-screen celebration `id`; it never shows again. */
+  dismissCelebration: (id: string) => void;
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
@@ -212,9 +216,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { sound, haptics } = state.prefs;
   const cue = useCallback((c: SoundCue) => feedback(c, { sound, haptics }), [sound, haptics]);
 
+  /** A change the learner earned something by (lesson, game, puzzle): queues any celebration it unlocks. */
+  const earn = (fn: (s: LocalState) => LocalState) => setState((s) => withCelebrations(s, fn(s), new Date()));
+
   /** Counts a bot game or puzzle on the device now and queues it for the server. */
   const rate = (rated: { input: RateInput; result: RatedResult } | null) => {
-    if (rated) setState((s) => queueRating(s, rated));
+    if (rated) earn((s) => queueRating(s, rated));
   };
 
   // Signed in: send what was queued offline, oldest first (rated results, then other writes). The server
@@ -260,29 +267,29 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
       setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),
-      completeOrientation: () => setState((s) => completeNode(s, "meet", new Date())),
+      completeOrientation: () => earn((s) => completeNode(s, "meet", new Date())),
       completeLesson: (id, meta) => {
         usage.track("lesson_finish", { lesson: id });
-        setState((s) => completeNode(s, id, new Date(), meta));
+        earn((s) => completeNode(s, id, new Date(), meta));
       },
       finishPractice: () => {
         usage.track("practice_finished");
-        setState((s) => recordPractice(s, new Date()));
+        earn((s) => recordPractice(s, new Date()));
       },
       finishGame: (game, minutes) => {
         usage.track("game_finished");
-        setState((s) => recordGame(s, game, new Date(), minutes));
+        earn((s) => recordGame(s, game, new Date(), minutes));
         // The endgame trainer defends from the tablebase, not the bot, so it is not rated.
         const bot = game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : null;
         if (bot && isBotId(bot) && !(ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "")) rate(ratedGame(game, botInfo(bot).rating));
       },
       finishPuzzle: (p) => {
         usage.track(p.solved ? "puzzle_solved" : "puzzle_failed");
-        setState((s) => recordPuzzle(s, p, new Date()));
+        earn((s) => recordPuzzle(s, p, new Date()));
         if (p.puzzleRating) rate(ratedPuzzle({ id: p.id, solved: p.solved, puzzleRating: p.puzzleRating }, Date.now()));
       },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),
-      finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
+      finishSprint: (score, minutes) => earn((s) => recordSprint(s, score, new Date(), minutes)),
       finishVision: (game, score) => {
         setState((s) => recordVision(s, game, score));
         // Queued, so a score made offline still reaches the class board.
@@ -314,6 +321,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         setState(resetDevice(randomUUID()));
       },
       clearCeremony: () => setState((s) => ({ ...s, pendingCeremony: null })),
+      dismissCelebration: (id) => setState((s) => dismissCelebration(s, id)),
       toggleRoomReminder: (id) =>
         setState((s) => ({
           ...s,

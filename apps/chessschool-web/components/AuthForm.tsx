@@ -1,6 +1,6 @@
 "use client";
 
-import { cleanName, copy, guestPayload, validEmail, validPassword } from "@chessschool/design";
+import { afterAuthRoute, cleanName, copy, guestPayload, startRoute, validEmail, validPassword } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type CSSProperties, type ChangeEvent, type FormEvent } from "react";
 import { api, errorMessage } from "@/lib/api";
@@ -64,9 +64,8 @@ export function AuthForm({ mode, initialEmail = "" }: { mode: Mode; initialEmail
     return e;
   };
 
-  const goNext = (kind: "login" | "signup" | "google") => {
-    const firstRun = !state.seenWelcome;
-    router.replace(kind === "login" || !firstRun ? "/today" : "/welcome");
+  const goNext = (kind: "login" | "signup" | "google", xp: number) => {
+    router.replace(afterAuthRoute(kind, !state.seenWelcome, xp));
   };
 
   const submit = async (ev: FormEvent) => {
@@ -85,7 +84,7 @@ export function AuthForm({ mode, initialEmail = "" }: { mode: Mode; initialEmail
         : await api.login({ email: email.trim(), password, guest });
       signedIn(auth);
       cue("success");
-      goNext(signup ? "signup" : "login");
+      goNext(signup ? "signup" : "login", auth.progress.xp);
     } catch (err) {
       setErrors({ form: errorMessage(err) });
       cue("gentle-no");
@@ -101,7 +100,7 @@ export function AuthForm({ mode, initialEmail = "" }: { mode: Mode; initialEmail
   };
 
   const goGuest = () => {
-    router.push(state.seenWelcome ? "/today" : "/welcome");
+    router.push(startRoute(state));
   };
 
   const continueLabel = copy.auth.continueAs.trim();
@@ -192,9 +191,10 @@ export function AuthForm({ mode, initialEmail = "" }: { mode: Mode; initialEmail
                 onToken={async (idToken) => {
                   setBusy(true);
                   try {
-                    signedIn(await api.google({ idToken, guest: guestPayload(state) }));
+                    const auth = await api.google({ idToken, guest: guestPayload(state) });
+                    signedIn(auth);
                     cue("success");
-                    goNext("google");
+                    goNext("google", auth.progress.xp);
                   } catch (err) {
                     setErrors({ form: errorMessage(err) });
                     cue("gentle-no");

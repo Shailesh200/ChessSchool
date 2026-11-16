@@ -1,4 +1,4 @@
-import { ApiError, cleanName, copy, guestPayload, validEmail, validPassword } from "@chessschool/design";
+import { afterAuthRoute, ApiError, cleanName, copy, guestPayload, startRoute, validEmail, validPassword } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
@@ -65,8 +65,7 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
       await signedIn(auth);
       cue("success");
       // An Apple or Google account that already has progress is a returning learner: skip the welcome steps.
-      const returning = kind === "login" || !firstRun || (kind !== "signup" && auth.progress.xp > 0);
-      router.replace(returning ? "/today" : "/welcome");
+      router.replace(afterAuthRoute(kind, firstRun, auth.progress.xp));
     } catch (err) {
       if (kind === "apple" && isAppleCancel(err)) return;
       const appleSdk = kind === "apple" && !(err instanceof ApiError);
@@ -111,7 +110,7 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
   };
 
   const goGuest = () => {
-    router.replace(state.seenWelcome ? "/today" : "/welcome");
+    router.replace(startRoute(state) as "/today");
   };
 
   const continueLabel = copy.auth.continueAs.trim();

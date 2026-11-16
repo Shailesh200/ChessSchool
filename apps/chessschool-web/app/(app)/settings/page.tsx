@@ -288,7 +288,7 @@ export default function SettingsPage() {
             if (account) await signOut();
             resetThisDevice();
             setSheet(null);
-            router.replace("/welcome");
+            router.replace("/");
           }}
         >
           {s.resetConfirm}

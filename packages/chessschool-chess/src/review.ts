@@ -91,6 +91,25 @@ export function summarise(plies: ReviewPly[], notes: Record<number, MoveNote>, s
   return { accuracy: n ? Math.round(score / n) : 0, counts, moments, best };
 }
 
+/**
+ * The single decisive moment of a game, for the key-moment card: the learner's move that gave away
+ * the most (the biggest evaluation swing, at least an inaccuracy; earliest on a tie). With no such
+ * move, the learner's best move (`summarise().best`). `side` null: either player (pass & play).
+ */
+export function decisiveMoment(plies: ReviewPly[], notes: Record<number, MoveNote>, side: Color | null): { ply: number; kind: "mistake" | "great" } | null {
+  let pick: number | null = null;
+  let most = 89;
+  for (const p of plies) {
+    const n = notes[p.ply];
+    if (!n || (side && p.by !== side) || n.loss <= most) continue;
+    most = n.loss;
+    pick = p.ply;
+  }
+  if (pick) return { ply: pick, kind: "mistake" };
+  const best = summarise(plies, notes, side).best;
+  return best ? { ply: best, kind: "great" } : null;
+}
+
 export type MoveCue = "move" | "capture" | "check" | "mate" | "castle" | "promote";
 /** Which sound a move makes. */
 export function moveCue(san: string): MoveCue {

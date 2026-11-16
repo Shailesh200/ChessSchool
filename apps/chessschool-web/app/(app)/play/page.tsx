@@ -42,6 +42,7 @@ import { BoardStage } from "@/components/BoardStage";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
+import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { SpeakMove } from "@/components/SpeakMove";
 import { ActionDock, Button, Card, Sheet, Switch, TopBar } from "@/components/ui";
@@ -560,6 +561,7 @@ function ResultSheet(props: {
             <Icon name="sparkles" size={20} />
             <span>{!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(`${Math.ceil(best.ply / 2)}${best.by === "w" ? "." : "…"} ${best.san}`) : copy.analysis.cody(sum.accuracy)}</span>
           </p>
+          <KeyMomentCard plies={plies} notes={notes} done={done} side={props.side} orientation={props.side ?? "w"} />
         </>
       ) : null}
       <div className="sheet-actions">
