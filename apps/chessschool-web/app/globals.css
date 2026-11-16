@@ -5446,3 +5446,60 @@ button.game-row {
     animation: none;
   }
 }
+
+/* ---------- Phase 3 track D: share, challenge and invite pages, growth table ---------- */
+.landing {
+  min-height: 100dvh;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.landing h1 {
+  font-size: 1.5rem;
+}
+.landing .lead {
+  color: var(--cs-text-muted);
+}
+.landing-card {
+  width: min(270px, 70vw);
+  height: auto;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+}
+.challenge-who {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.challenge-board {
+  width: 100%;
+  max-width: 480px;
+}
+.invite-card {
+  display: grid;
+  gap: 8px;
+}
+.growth-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9375rem;
+}
+.growth-table th,
+.growth-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--cs-line);
+  vertical-align: middle;
+}
+.sparkline path {
+  fill: none;
+  stroke: var(--cs-brand);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}

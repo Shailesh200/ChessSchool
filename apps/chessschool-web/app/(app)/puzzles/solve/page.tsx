@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
+import { ChallengeButton } from "@/components/Growth";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
@@ -76,6 +77,7 @@ function SolvePlay({ daily, theme, rating, recent, title, initial }: { daily: bo
                   {copy.puzzles.rating} {state.progress.puzzles.rating} ({copy.puzzles.ratingChange(delta)})
                 </p>
               ) : null}
+              {delta !== null ? <ChallengeButton block puzzleId={puzzle.id} solved={delta >= 0} /> : null}
               {daily ? (
                 <Button block href="/puzzles" icon="back">
                   {copy.puzzles.back}

@@ -4,6 +4,7 @@ import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, focusCo
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { InviteCard } from "@/components/Growth";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Cody } from "@/components/Lottie";
@@ -140,6 +141,8 @@ export default function YouPage() {
       <RatingChart />
 
       <SkillsCard skills={progress.skills} />
+
+      <InviteCard />
 
       <div className="section-head">
         <h2>{copy.badges.title}</h2>

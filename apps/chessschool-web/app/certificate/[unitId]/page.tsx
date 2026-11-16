@@ -3,6 +3,7 @@
 import { ApiError, copy } from "@chessschool/design";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ShareCardButton } from "@/components/ShareCard";
 import { Button } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -38,6 +39,7 @@ export default function CertificatePage() {
             <Button icon="doc" onClick={() => window.print()}>
               {copy.certificate.print}
             </Button>
+            <ShareCardButton kind="certificate" data={{ unit: cert.unit.replace(/[^\p{L}\p{M}\p{N} '’&:,.()-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60) }} />
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element -- server-made SVG */}
           <img className="certificate-sheet" src={cert.path} alt={`${copy.certificate.title}: ${cert.unit}`} />

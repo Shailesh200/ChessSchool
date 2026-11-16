@@ -302,7 +302,7 @@ function WeekBoard({ roomId, refresh, onHidden }: { roomId: string; refresh: num
               {e.me ? `${e.name} (${t.you})` : e.name}
             </T>
             <T role="label" color="brandText">
-              {t.weekLessons(e.lessons)}
+              {e.xp === undefined ? t.weekLessons(e.lessons) : copy.classXp.value(e.xp)}
             </T>
           </View>
         ))

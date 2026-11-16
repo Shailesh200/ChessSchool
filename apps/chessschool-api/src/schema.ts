@@ -325,6 +325,62 @@ export const ratingHistory = sqliteTable(
   (t) => [primaryKey({ columns: [t.learnerId, t.event] })],
 );
 
+/* ---------- Phase 3 track D: share cards, challenges, invites ---------- */
+
+/** A share card's content (numbers and short words only). `name` is a first name the learner chose to show, never a child's. */
+export const shares = sqliteTable("cs_shares", {
+  id: text("id").primaryKey(),
+  kind: text("kind").notNull(),
+  lang: text("lang").notNull(),
+  data: text("data").notNull(),
+  avatar: text("avatar").notNull(),
+  name: text("name"),
+  /** The account that made it (null for a guest), so account deletion removes it. */
+  userId: text("user_id"),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** Challenge-a-friend links. `blackSeat` is the hash of the friend's seat token (the friend needs no account). */
+export const challenges = sqliteTable("cs_challenges", {
+  code: text("code").primaryKey(),
+  creatorId: text("creator_id").notNull(),
+  kind: text("kind").notNull(),
+  puzzleId: text("puzzle_id"),
+  name: text("name"),
+  avatar: text("avatar").notNull(),
+  creatorResult: text("creator_result"),
+  friendResult: text("friend_result"),
+  blackSeat: text("black_seat"),
+  moves: text("moves").notNull().default(""),
+  status: text("status").notNull(),
+  result: text("result"),
+  createdAt: integer("created_at").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
+
+/** One invite code per account. */
+export const invites = sqliteTable("cs_invites", {
+  code: text("code").primaryKey(),
+  userId: text("user_id").notNull().unique(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** Who accepted whose invite (one per invited account) and when it paid out. */
+export const inviteAccepts = sqliteTable("cs_invite_accepts", {
+  invitedId: text("invited_id").primaryKey(),
+  inviterId: text("inviter_id").notNull(),
+  createdAt: integer("created_at").notNull(),
+  rewardedAt: integer("rewarded_at"),
+  /** False when the inviter was over the monthly cap, so only the friend was paid. */
+  inviterRewarded: integer("inviter_rewarded", { mode: "boolean" }).notNull().default(false),
+});
+
+/** Streak freezes earned from invites and not yet moved into the learner's streak. */
+export const freezeBank = sqliteTable("cs_freeze_bank", {
+  userId: text("user_id").primaryKey(),
+  banked: integer("banked").notNull().default(0),
+});
+
 /** Idempotent bootstrap; this schema is new and owns only cs_* tables. */
 /** Coach explanations, keyed by a hash of the engine facts + coach + language. Holds no user data. */
 export const coachCache = sqliteTable("cs_coach_cache", {
@@ -616,6 +672,51 @@ export const BOOTSTRAP_SQL = [
   `CREATE INDEX IF NOT EXISTS cs_class_games_class ON cs_class_games (class_id)`,
   `CREATE INDEX IF NOT EXISTS cs_class_games_white ON cs_class_games (white_id)`,
   `CREATE INDEX IF NOT EXISTS cs_class_games_black ON cs_class_games (black_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_shares (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    lang TEXT NOT NULL,
+    data TEXT NOT NULL,
+    avatar TEXT NOT NULL,
+    name TEXT,
+    user_id TEXT,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_shares_user ON cs_shares (user_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_challenges (
+    code TEXT PRIMARY KEY,
+    creator_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    puzzle_id TEXT,
+    name TEXT,
+    avatar TEXT NOT NULL,
+    creator_result TEXT,
+    friend_result TEXT,
+    black_seat TEXT,
+    moves TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    result TEXT,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_challenges_creator ON cs_challenges (creator_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS cs_invites (
+    code TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_invite_accepts (
+    invited_id TEXT PRIMARY KEY,
+    inviter_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    rewarded_at INTEGER,
+    inviter_rewarded INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_invite_accepts_inviter ON cs_invite_accepts (inviter_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_freeze_bank (
+    user_id TEXT PRIMARY KEY,
+    banked INTEGER NOT NULL DEFAULT 0
+  )`,
   // Over-the-air updates (packages/ota-server owns this table).
   ...OTA_SCHEMA_SQL,
 ];

@@ -4,6 +4,8 @@ import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
 import {
   STORAGE_KEY,
   adoptRatings,
+  addFreezes,
+  FREEZE_MAX,
   dismissCelebration,
   withCelebrations,
   queueRating,
@@ -42,6 +44,7 @@ import {
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { type AvatarId, createUsage, dayKey, forgetProfile, freshSlice, ideaRef, isGuestClassLimit, langFor, language, mergeProgress, placeBefore, type PracticeItem, answerPractice, reviewAfter, sanitizeProgress, setLanguage, switchProfile, type UsageEventName } from "@chessschool/design";
 import { version } from "../package.json";
+import { INVITE_KEY } from "./share";
 import { api } from "./api";
 import { playCue } from "./sound";
 import { applyAccess, applyAppearance, applyFavicon, applyTheme } from "./theme";
@@ -167,6 +170,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       .me()
       .then((me) => {
         setState((s) => applyMe(s, me));
+        void settleInvites();
         const child = latest.current.activeChild;
         return api.rating(child).then((r) => setState((s) => adoptRatings(s, child, r.ratings)));
       })
@@ -189,6 +193,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Signed in: debounce-push progress; the server merges, never overwrites.
+  /** Signed in on the account's own profile: accept an invite link opened earlier, then move any banked reward freezes into the streak. */
+  const settleInvites = async () => {
+    if (latest.current.activeChild) return;
+    let code: string | null = null;
+    try {
+      code = localStorage.getItem(INVITE_KEY);
+      if (code) localStorage.removeItem(INVITE_KEY);
+    } catch {}
+    if (code) await api.acceptInvite(code).catch(() => {});
+    const have = latest.current.progress.streak.freezes ?? 0;
+    const got = await api.claimFreezes(Math.min(have, FREEZE_MAX)).catch(() => null);
+    if (got?.freezes) setState((s) => (s.activeChild ? s : addFreezes(s, got.freezes)));
+  };
+
   const progressJson = JSON.stringify(state.progress);
   useEffect(() => {
     if (!ready || !accountId || progressJson === lastPushed.current) return;

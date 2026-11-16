@@ -20,3 +20,4 @@ export * from "./celebrate";
 export * from "./firstRun";
 export * from "./keyMoment";
 export * from "./ratingChart";
+export * from "./growth";

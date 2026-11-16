@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
+import { ChallengeButton } from "@/components/Growth";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, T, TopBar } from "@/components/ui";
 import { usePuzzlePackReady } from "@/lib/puzzlePack";
@@ -87,6 +88,7 @@ function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleTh
                   {`${copy.puzzles.rating} ${state.progress.puzzles.rating} (${copy.puzzles.ratingChange(delta)})`}
                 </T>
               ) : null}
+              {delta !== null ? <ChallengeButton puzzleId={puzzle.id} solved={delta >= 0} /> : null}
               {daily ? (
                 <Button title={copy.puzzles.back} icon="back" onPress={() => router.back()} />
               ) : (

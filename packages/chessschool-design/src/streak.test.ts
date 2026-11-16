@@ -20,9 +20,10 @@ describe("streak freeze", () => {
     expect(visibleStreak(run(week), "2026-11-10")).toBe(0);
   });
 
-  it("caps freezes on the server at one per 7 streak days", () => {
+  it("caps freezes at FREEZE_MAX whatever the streak length (invite rewards add freezes to short streaks)", () => {
     const p = { ...emptyProgress(), streak: { count: 3, lastDay: "2026-11-03", freezes: 5 } };
-    expect(sanitizeProgress(p, null).streak.freezes).toBeUndefined();
+    expect(sanitizeProgress(p, null).streak.freezes).toBe(2);
+    expect(sanitizeProgress({ ...p, streak: { ...p.streak, freezes: 0 } }, null).streak.freezes).toBeUndefined();
     expect(sanitizeProgress({ ...p, streak: { count: 30, lastDay: "2026-11-03", freezes: 9 } }, null).streak.freezes).toBe(2);
   });
 });

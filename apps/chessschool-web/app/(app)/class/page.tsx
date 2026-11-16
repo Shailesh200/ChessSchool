@@ -280,7 +280,7 @@ function WeekBoard({ roomId, refresh, onHidden }: { roomId: string; refresh: num
             <li key={e.id} className={e.me ? "me" : undefined}>
               <MemberFace id={e.avatar} size={28} />
               <span className="week-name">{e.me ? `${e.name} (${t.you})` : e.name}</span>
-              <strong>{t.weekLessons(e.lessons)}</strong>
+              <strong>{e.xp === undefined ? t.weekLessons(e.lessons) : copy.classXp.value(e.xp)}</strong>
             </li>
           ))}
         </ol>

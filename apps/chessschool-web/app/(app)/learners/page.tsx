@@ -1,9 +1,10 @@
 "use client";
 
-import { AVATARS, copy, type AvatarId } from "@chessschool/design";
+import { AVATARS, copy, weekCard, type AvatarId } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
+import { ShareCardButton } from "@/components/ShareCard";
 import { Button, Card, Sheet, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -111,6 +112,9 @@ export default function LearnersPage() {
           </button>
         ) : null}
       </Card>
+
+      {/* This week's progress of the learner who is active now, as a card a parent can forward. */}
+      <ShareCardButton block kind="weekly" data={weekCard(state.progress, new Date())} label={copy.share.weeklyAction} />
 
       <Card className="list">
         <button type="button" className="row" onClick={() => (setPin(""), setSheet("pin"))}>

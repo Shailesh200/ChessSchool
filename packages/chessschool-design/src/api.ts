@@ -17,9 +17,44 @@ export type ClassRole = "monitor" | "student";
 /** A classmate as the class screen shows them. Stats come from their saved progress (zero for a new account). */
 export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; joinedAt: number; lessons: number; xp: number; streak: Streak };
 export type ReportReason = "name" | "behaviour" | "other";
-export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; me: boolean }[] };
+export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; /** XP from lessons finished this week (absent from older servers). */ xp?: number; me: boolean }[] };
 /** Today's best board-vision score per game in one class (games nobody played are left out). */
 export type ClassVision = { day: string; best: { game: string; score: number; id: string; name: string; avatar: AvatarId; me: boolean }[] };
+/* ---------- sharing and growth (Phase 3) ---------- */
+export type ShareCardKind = "game_won" | "puzzle_streak" | "rating_milestone" | "certificate" | "league_promotion" | "mate_of_the_day" | "weekly";
+/** What a card may show: numbers and short course words only. */
+export type ShareCardData = { fen?: string; moves?: number; streak?: number; rating?: number; unit?: string; league?: string; mate?: number; lessons?: number; puzzles?: number };
+export type ShareLink = { id: string; url: string; image: string };
+export type Challenge = {
+  code: string;
+  kind: "puzzle" | "game";
+  url: string;
+  /** `name` is a first name, or null for a child profile (avatar only). */
+  creator: { name: string | null; avatar: AvatarId };
+  expired: boolean;
+  expiresAt: number;
+  status: "open" | "waiting" | "active" | "over";
+  you: "w" | "b" | null;
+  yourTurn: boolean;
+  moves: string[];
+  result: string | null;
+  creatorResult: "solved" | "missed" | null;
+  friendResult: "solved" | "missed" | null;
+  puzzle: { id: string; fen: string; moves: string[]; rating: number; themes: string[] } | null;
+};
+export type InviteInfo = { code: string; url: string; rewards: number; cap: number; banked: number };
+export type GrowthStats = {
+  day: string;
+  retention: { d1: number | null; d7: number | null; d30: number | null; cohort: { d1: number; d7: number; d30: number } };
+  stickiness: number | null;
+  mau: number;
+  daily: { day: string; installs: number }[];
+  shares: number;
+  sharesPerActive: number | null;
+  invites: { accepted: number; rewarded: number; conversion: number | null };
+  crashFree: number | null;
+};
+
 export type UsageSummary = {
   days: number;
   installs: number;
@@ -252,6 +287,20 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     practice: (input: { lessons: string[]; review: string[]; count: number; weak?: string[] }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
     /** A 7-day share link to the certificate of a finished unit (403 while unfinished). `path` is relative to the API. */
     certificateLink: (unitId: string) => request<{ url: string; path: string; unit: string }>("POST", `/v1/certificates/${encodeURIComponent(unitId)}/link${lang("?")}`, {}),
+    /** Saves a share card's content; `image` is the PNG path on this API. */
+    createShare: (input: { kind: ShareCardKind; data: ShareCardData; lang: string; showName?: boolean; child?: string | null; avatar?: string }) => request<ShareLink>("POST", "/v1/shares", input),
+    share: (id: string) => request<{ id: string; kind: ShareCardKind; lang: string; image: string }>("GET", `/v1/shares/${encodeURIComponent(id)}`),
+    createChallenge: (input: { kind: "puzzle"; puzzleId: string; solved?: boolean; child?: string | null } | { kind: "game"; child?: string | null }) => request<{ challenge: Challenge }>("POST", "/v1/challenges", input),
+    friendChallenge: (code: string, seat?: string | null) => request<{ challenge: Challenge }>("GET", `/v1/challenges/${encodeURIComponent(code)}${seat ? `?seat=${encodeURIComponent(seat)}` : ""}`),
+    acceptChallenge: (code: string) => request<{ seat: string; challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/accept`, {}),
+    challengeMove: (code: string, move: { from: string; to: string; promotion?: string; seat?: string | null }) => request<{ challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/moves`, move),
+    challengeResult: (code: string, solved: boolean) => request<{ challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/result`, { solved }),
+    myInvite: () => request<InviteInfo>("GET", "/v1/invites/mine"),
+    invite: (code: string) => request<{ code: string; name: string | null }>("GET", `/v1/invites/${encodeURIComponent(code)}`),
+    acceptInvite: (code: string) => request<{ ok: true; accepted: boolean }>("POST", "/v1/invites/accept", { code }),
+    /** Moves banked invite freezes into the streak; `have` is how many the streak holds now. */
+    claimFreezes: (have: number) => request<{ freezes: number; banked: number }>("POST", "/v1/invites/claim", { have }),
+    adminGrowth: () => request<GrowthStats>("GET", "/v1/admin/growth"),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
     adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),

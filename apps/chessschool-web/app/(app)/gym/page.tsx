@@ -7,6 +7,7 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
+import { ChallengeButton } from "@/components/Growth";
 import { Button, Card, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
@@ -38,6 +39,7 @@ export default function GymPage() {
         </div>
         <Cody animation="wave" size={120} className="gym-hero-cody" />
       </Card>
+      <ChallengeButton block />
 
       <section aria-labelledby="bots-title" className="gym-section">
         <h2 id="bots-title" className="card-title">

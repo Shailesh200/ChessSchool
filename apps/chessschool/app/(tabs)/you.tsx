@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Share, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
+import { InviteCard, ShareCardButton } from "@/components/Growth";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
@@ -11,6 +12,9 @@ import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
+
+/** Card words: letters, digits and light punctuation only (the server refuses anything else). */
+const cardWord = (s: string) => s.replace(/[^\p{L}\p{M}\p{N} '’&:,.()-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
 
 export default function You() {
   const { state, setProfile, cue } = useApp();
@@ -173,6 +177,8 @@ export default function You() {
 
       <SkillsCard skills={progress.skills} />
 
+      <InviteCard />
+
       <View style={{ gap: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <T role="heading" header style={{ flex: 1 }}>
@@ -200,6 +206,7 @@ export default function You() {
               <Row key={u.id} icon="trophy" label={u.title} hint={copy.certificate.rowHint} chevron onPress={() => void shareCertificate(u.id)} />
             ))}
           </Card>
+          <ShareCardButton kind="certificate" data={{ unit: cardWord(finishedUnits[finishedUnits.length - 1].title) }} />
         </View>
       ) : null}
 
