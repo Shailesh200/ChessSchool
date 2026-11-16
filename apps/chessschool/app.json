@@ -15,7 +15,12 @@
     "updates": {
       "url": "https://api.chess-school.in/ota/manifest",
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "codeSigningCertificate": "./certs/ota-signing.crt",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      }
     },
     "icon": "./assets/icon.png",
     "ios": {
