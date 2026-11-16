@@ -89,6 +89,8 @@ export type AppDeps = {
   weekly?: Sender;
   /** Vercel Cron's bearer secret; without it the cron route is off. */
   cronSecret?: string;
+  /** The over-the-air update server (see ota.ts), mounted at /ota/*. Left out, /ota answers 404. */
+  ota?: (req: Request) => Promise<Response>;
   /** Endgame tablebase lookup (Lichess by default; tests pass a fake). */
   tablebase?: TablebaseFetch;
   /** Language-model chain for the game coach (empty: the coach answers 503). Tests pass a fake. */
@@ -135,7 +137,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -299,6 +301,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const health = (c: Context) => c.json({ ok: true, version: API_VERSION, app: LATEST_APP, time: now().toISOString() });
   app.get("/health", health);
   app.get("/v1/health", health);
+
+  // Expo Updates protocol: update checks from the app, plus token-protected rollout controls.
+  if (ota) app.all("/ota/*", (c) => ota(c.req.raw));
 
   app.post("/v1/auth/register", limitAuth, async (c) => {
     const b = await body<{ name: string; email: string; password: string; guest: GuestPayload }>(c);

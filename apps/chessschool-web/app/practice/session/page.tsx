@@ -41,7 +41,8 @@ function Session() {
         if (!live) return;
         if (!state.practiceNext.length && !own.length) return router.replace("/practice");
         setItems([...own, ...state.practiceNext].slice(0, PRACTICE_SET));
-        setPracticeNext([]);
+        // Offline: use one set and keep the rest for the next days.
+        setPracticeNext(state.practiceNext.slice(Math.max(0, PRACTICE_SET - own.length)));
       });
     return () => {
       live = false;

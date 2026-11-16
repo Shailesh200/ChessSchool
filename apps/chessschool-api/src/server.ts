@@ -3,6 +3,7 @@ import { createApp } from "./app";
 import { anthropicBoardReader } from "./scan";
 import { providersFromEnv } from "./ai";
 import { openDb } from "./db";
+import { otaFromEnv } from "./ota";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
 import { anthropicLessonWriter } from "./lesson-draft";
@@ -24,6 +25,7 @@ const app = createApp({
   lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
   boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
   coachAi: providersFromEnv(process.env),
+  ota: otaFromEnv(db, process.env),
 });
 
 const hostname = process.env.HOST ?? "0.0.0.0";

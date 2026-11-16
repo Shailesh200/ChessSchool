@@ -15,7 +15,8 @@
     "seed:course": "tsx scripts/seed-course.ts",
     "build:practice": "node scripts/build-practice-lessons.mjs",
     "voice:build": "tsx scripts/voice-build.ts",
-    "voice:migrate": "tsx scripts/voice-migrate.ts"
+    "voice:migrate": "tsx scripts/voice-migrate.ts",
+    "db:restore-check": "tsx scripts/db-restore-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
@@ -28,7 +29,8 @@
     "chess.js": "^1.4.0",
     "drizzle-orm": "^0.45.2",
     "google-auth-library": "^10.9.0",
-    "hono": "^4.10.4"
+    "hono": "^4.10.4",
+    "ota-server": "workspace:*"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1169.0",

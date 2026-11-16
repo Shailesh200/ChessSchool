@@ -5,7 +5,8 @@ name: iOS TestFlight
 # (no Expo build credits) and uploads it to TestFlight. It never submits for App Review
 # and never publishes an over-the-air update. Bump `ios.buildNumber` in
 # apps/chessschool/app.json before each run; the job stops early if that number is
-# already in App Store Connect.
+# already in App Store Connect. The device tests (device-tests.yml) run first; a failure there
+# stops the upload.
 #
 # Repo secrets: EXPO_TOKEN, SENTRY_AUTH_TOKEN, ASC_API_KEY_ID, ASC_API_ISSUER_ID,
 # ASC_API_KEY_P8_BASE64 (the AuthKey .p8 file, base64 on one line).
@@ -24,7 +25,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The upload only happens when the app opens and the core flows pass on a simulator for this commit.
+  device-tests:
+    uses: ./.github/workflows/device-tests.yml
+    with:
+      platform: ios
+    secrets: inherit
+
   testflight:
+    needs: device-tests
     runs-on: macos-15
     timeout-minutes: 120
     env:

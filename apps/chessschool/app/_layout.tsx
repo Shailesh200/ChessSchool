@@ -3,40 +3,28 @@ import { Baloo2_400Regular, Baloo2_500Medium, Baloo2_600SemiBold, Baloo2_700Bold
 import { Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, useFonts } from "@expo-google-fonts/fredoka";
 import { copy, newBadges } from "@chessschool/design";
 import { router, Stack } from "expo-router";
-import * as Sentry from "@sentry/react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
-import { Alert } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ReducedMotionConfig, ReduceMotion } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { FatalBoundary } from "@/lib/crash";
 import { ToastProvider, useToast } from "@/components/ui";
+import { useOfflineStock } from "@/lib/course";
 import { usePuzzlePackBoot } from "@/lib/puzzlePack";
 import { useReducedMotion } from "@/lib/hooks";
 import { AppStateProvider, useApp } from "@/lib/state";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
-// Crash reports only, no personal data. The DSN comes from the EAS production environment, so dev and QA builds without it send nothing.
-const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
-if (sentryDsn) Sentry.init({ dsn: sentryDsn, sendDefaultPii: false, tracesSampleRate: 0, enabled: !__DEV__, initialScope: { tags: { service: "app" } } });
-
 void SplashScreen.preventAutoHideAsync().catch(() => {});
-
-// A fatal JS error shows its message instead of closing the app, so a tester can report it.
-const defaultHandler = ErrorUtils.getGlobalHandler();
-ErrorUtils.setGlobalHandler((error, isFatal) => {
-  if (!isFatal) return defaultHandler(error, isFatal);
-  Sentry.captureException(error);
-  void SplashScreen.hideAsync().catch(() => {});
-  Alert.alert("ChessSchool hit an error", `${error?.name ?? "Error"}: ${error?.message ?? String(error)}\n\n${String(error?.stack ?? "").split("\n").slice(0, 6).join("\n")}`);
-});
 
 function Root() {
   const { state, ready } = useApp();
   usePuzzlePackBoot();
+  useOfflineStock();
   const [fontsLoaded, fontError] = useFonts({ Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, Baloo2_400Regular, Baloo2_500Medium, Baloo2_600SemiBold, Baloo2_700Bold, AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold });
   const loaded = ready && (fontsLoaded || Boolean(fontError));
 
@@ -130,12 +118,14 @@ function Routes() {
 
 export default function Layout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AppStateProvider>
-          <Root />
-        </AppStateProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <FatalBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <AppStateProvider>
+            <Root />
+          </AppStateProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </FatalBoundary>
   );
 }

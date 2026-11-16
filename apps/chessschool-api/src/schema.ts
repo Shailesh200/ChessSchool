@@ -1,4 +1,5 @@
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { OTA_SCHEMA_SQL } from "ota-server";
 
 export const users = sqliteTable("cs_users", {
   id: text("id").primaryKey(),
@@ -593,4 +594,6 @@ export const BOOTSTRAP_SQL = [
   `CREATE INDEX IF NOT EXISTS cs_class_games_class ON cs_class_games (class_id)`,
   `CREATE INDEX IF NOT EXISTS cs_class_games_white ON cs_class_games (white_id)`,
   `CREATE INDEX IF NOT EXISTS cs_class_games_black ON cs_class_games (black_id)`,
+  // Over-the-air updates (packages/ota-server owns this table).
+  ...OTA_SCHEMA_SQL,
 ];

@@ -50,7 +50,7 @@ export function applyMe(state: LocalState, me: MeResponse): LocalState {
 export function applySignOut(state: LocalState): LocalState {
   const main = state.activeChild ? switchProfile(state, null) : state;
   // Unsent rated results belong to the account; another account must not receive them.
-  return { ...main, account: null, pendingCeremony: null, activeChild: null, parked: {}, ratingQueue: [] };
+  return { ...main, account: null, pendingCeremony: null, activeChild: null, parked: {}, ratingQueue: [], writeQueue: [] };
 }
 
 /** Visible name of how this account signs in. */

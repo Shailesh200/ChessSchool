@@ -1,0 +1,48 @@
+{
+  "name": "ota-server",
+  "version": "0.1.0",
+  "description": "A small self-hosted server for Expo Updates (protocol v1): staged rollouts, pause, roll back to embedded, code signing.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "ota": "./bin/ota.mjs"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "tsx": "^4.20.6"
+  },
+  "peerDependencies": {
+    "@libsql/client": ">=0.14"
+  },
+  "peerDependenciesMeta": {
+    "@libsql/client": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@libsql/client": "^0.17.4",
+    "@smithy/signature-v4": "5.7.5",
+    "@types/node": "^22",
+    "hono": "^4.10.4",
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.9"
+  }
+}

@@ -1,0 +1,34 @@
+appId: com.chessschool.app
+name: Finishes the first lesson
+---
+# "The board" (course lesson `board`): two coach lines, five squares to tap, one question.
+- runFlow: common/guest.yaml
+- openLink: chessschool://lesson/board
+- extendedWaitUntil:
+    visible: "This is the board."
+    timeout: 30000
+- tapOn: "Continue"
+- assertVisible: "Files and ranks."
+- tapOn: "Continue"
+- tapOn:
+    id: "square-e4"
+- tapOn: "Continue"
+- tapOn:
+    id: "square-d5"
+- tapOn: "Continue"
+- tapOn:
+    id: "square-h1"
+- tapOn: "Continue"
+- assertVisible: "Here's how a game starts."
+- tapOn: "Continue"
+- tapOn:
+    id: "square-e1"
+- tapOn: "Continue"
+- tapOn:
+    id: "square-d1"
+- tapOn: "Continue"
+- tapOn: "64"
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Lesson complete!"
+    timeout: 15000

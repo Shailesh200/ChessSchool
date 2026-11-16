@@ -2,11 +2,12 @@ import { isBoardColors, isThemeId, type Appearance, type BoardColorsId, type The
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
-import { isReview, reviewAfter, type Review, seedIdea } from "./review";
+import { isReview, PRACTICE_KEEP, reviewAfter, type Review, seedIdea } from "./review";
 import type { ImportedGame, PracticeItem, RateInput } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, type SkillId, type Skills } from "./skills";
 import { emptyRatings, sanitizeRatingQueue, sanitizeRatings, type Ratings } from "./rating";
+import { sanitizeWriteQueue, type QueuedWrite } from "./offline";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -186,6 +187,8 @@ export type LocalState = {
   ratings: Ratings;
   /** Rated results not yet accepted by the server, oldest first (each carries its child, if any). */
   ratingQueue: RateInput[];
+  /** Other writes made offline, oldest first (see offline.ts). */
+  writeQueue: QueuedWrite[];
   /** Flashcard schedule for finished lessons' key ideas ("idea:<lessonId>"). */
   ideas: Review;
   /** Positions from the learner's own games to practise ("mistake:<n>" refs in `review`). */
@@ -246,6 +249,7 @@ export function createInitialState(guestId: string): LocalState {
     aiAgreed: [],
     ratings: emptyRatings(),
     ratingQueue: [],
+    writeQueue: [],
   };
 }
 
@@ -291,7 +295,8 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     aiAgreed: Array.isArray(r.aiAgreed) ? r.aiAgreed.filter((id) => typeof id === "string") : [],
     ratings: sanitizeRatings(r.ratings),
     ratingQueue: sanitizeRatingQueue(r.ratingQueue),
-    practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, 10) : [],
+    writeQueue: sanitizeWriteQueue(r.writeQueue),
+    practiceNext: Array.isArray(r.practiceNext) ? r.practiceNext.filter((i) => i && typeof i.ref === "string" && i.step && typeof i.step === "object").slice(0, PRACTICE_KEEP) : [],
   };
 }
 

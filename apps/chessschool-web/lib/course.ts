@@ -1,6 +1,6 @@
 "use client";
 
-import { courseKey, isGuestClassLimit, language, parseCourse, type Course, type CourseLesson } from "@chessschool/design";
+import { courseKey, dayKey, isGuestClassLimit, language, lessonsForDays, parseCourse, PRACTICE_KEEP, practiceStockRequest, type Course, type CourseLesson } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import { useApp } from "./state";
@@ -158,4 +158,31 @@ export async function saveLessonsOffline(ids: string[]): Promise<number> {
     } catch {}
   }
   return saved;
+}
+
+/**
+ * Keeps the next three days ready on the device: lesson steps and practice positions (puzzles ship in the
+ * puzzle pack). Quiet: a failure is tried again on the next launch or after the next lesson.
+ */
+export function useOfflineStock() {
+  const { state, ready, setPracticeNext } = useApp();
+  const course = useCourse();
+  const done = Object.keys(state.progress.completed).length;
+  useEffect(() => {
+    if (!ready || !course) return;
+    let live = true;
+    void (async () => {
+      const missing: string[] = [];
+      for (const id of lessonsForDays(course, state.progress.completed, state.profile.dailyMinutes)) if (!readLesson(id)) missing.push(id);
+      if (missing.length) await saveLessonsOffline(missing);
+      if (!live || !done || state.practiceNext.length >= PRACTICE_KEEP) return;
+      const { items } = await api.practice(practiceStockRequest(state.progress.completed, state.review, dayKey(new Date()), state.progress.skills));
+      if (live && items.length > state.practiceNext.length) setPracticeNext(items);
+    })().catch(() => {});
+    return () => {
+      live = false;
+    };
+    // Runs when the course arrives and after each finished lesson, with the state at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, course, done, state.account?.id]);
 }

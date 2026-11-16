@@ -367,6 +367,7 @@ export function Board({
                 return (
                   <View
                     key={s}
+                    testID={`square-${s}`}
                     accessible
                     accessibilityRole="button"
                     accessibilityLabel={parts.join(", ")}

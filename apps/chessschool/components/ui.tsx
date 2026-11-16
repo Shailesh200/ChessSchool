@@ -23,7 +23,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path, Text as SvgText } from "react-native-svg";
 import { fonts, useTheme } from "@/lib/theme";
-import { useConnectivity, useReducedMotion } from "@/lib/hooks";
+import { isDeviceOnline, useConnectivity, useReducedMotion } from "@/lib/hooks";
 import { useKeyboardScroll } from "@/lib/keyboard";
 import { Icon } from "./Icon";
 
@@ -458,7 +458,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const t = setTimeout(() => Animated.timing(y, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setMsg(null)), 3000);
     return () => clearTimeout(t);
   }, [msg, y]);
-  const show = useCallback((m: string) => setMsg(m), []);
+  // Offline, the calm banner already says so: the "can't reach ChessSchool" error toast is not shown on top of it.
+  const show = useCallback((m: string) => (!isDeviceOnline() && m === copy.auth.errors.offline ? undefined : setMsg(m)), []);
   return (
     <ToastCtx.Provider value={show}>
       {children}

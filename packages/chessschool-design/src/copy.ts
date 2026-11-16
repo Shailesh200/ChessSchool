@@ -1033,6 +1033,10 @@ export const copy = {
     notFoundCta: "Go to Learn",
     errorTitle: "Something went wrong.",
     errorBody: "Cody tripped over a pawn. Try again, and if it keeps happening, restart the app.",
+    // Phase 3 reliability: fatal error screen.
+    crashTitle: "ChessSchool needs a restart.",
+    crashBody: "Something went wrong. We've noted it so we can fix it. Your progress is saved.",
+    restart: "Restart",
   },
 
   a11y: {

@@ -1,0 +1,56 @@
+name: OTA rollout guard
+
+# Daily: reads the crash-free session rate of the newest app release from the crash-report API and pauses
+# our over-the-air rollout (POST /ota/channels/production/pause) when it is below 99.5% with at least
+# 50 sessions. The run fails when it pauses, so the repo owner gets an email. Resume from the CLI
+# (docs/OTA.md). Run by hand with "dry run" to see the numbers without pausing.
+#
+# Repo secrets: SENTRY_READ_TOKEN (org:read, project:read) and OTA_ADMIN_TOKEN (the API's rollout token).
+# Without them the job reports that it was skipped.
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 08:30 India time
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only report, never pause"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SENTRY_READ_TOKEN: ${{ secrets.SENTRY_READ_TOKEN }}
+      OTA_ADMIN_TOKEN: ${{ secrets.OTA_ADMIN_TOKEN }}
+    steps:
+      - name: Check the secrets are set
+        id: secrets
+        run: |
+          if [ -n "$SENTRY_READ_TOKEN" ] && [ -n "$OTA_ADMIN_TOKEN" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "::warning::SENTRY_READ_TOKEN or OTA_ADMIN_TOKEN is not set; rollout guard skipped"; fi
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v4.2.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter ota-server...
+        if: steps.secrets.outputs.ready == 'true'
+      - name: Check crash-free sessions
+        if: steps.secrets.outputs.ready == 'true'
+        run: >
+          node packages/ota-server/bin/ota.mjs guard
+          --server https://api.chess-school.in/ota --channel production
+          --sentry-org shailesh-jha --sentry-project chessschool-mobile
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}

@@ -1,0 +1,12 @@
+# Device tests for the simulator / emulator build (EXPO_PUBLIC_DEVICE_TEST=1). Run: maestro test apps/chessschool/.maestro
+# Texts are the English copy (packages/chessschool-design/src/copy.ts); the test device runs in English.
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - 01-open-as-guest
+    - 02-first-lesson
+    - 03-solve-puzzle
+    - 04-bot-move
+    - 05-crash-screen

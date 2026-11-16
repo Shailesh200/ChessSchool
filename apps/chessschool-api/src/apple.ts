@@ -29,7 +29,8 @@ type AppleClaims = {
 };
 
 async function fetchAppleJwks(): Promise<{ keys: AppleJwk[] }> {
-  const res = await fetch(APPLE_KEYS);
+  // A slow key server must not hold a sign-in open until the function times out.
+  const res = await fetch(APPLE_KEYS, { signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error("apple jwks unavailable");
   return (await res.json()) as { keys: AppleJwk[] };
 }

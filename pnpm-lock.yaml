@@ -204,6 +204,9 @@ importers:
       hono:
         specifier: ^4.10.4
         version: 4.13.16
+      ota-server:
+        specifier: workspace:*
+        version: link:../../packages/ota-server
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1169.0
@@ -606,6 +609,31 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
     devDependencies:
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.1.0(@types/node@22.20.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  packages/ota-server:
+    dependencies:
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+    devDependencies:
+      '@libsql/client':
+        specifier: ^0.17.4
+        version: 0.17.4
+      '@smithy/signature-v4':
+        specifier: 5.7.5
+        version: 5.7.5
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      hono:
+        specifier: ^4.10.4
+        version: 4.13.16
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
       vitest:
         specifier: ^4.1.9
         version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.1.0(@types/node@22.20.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))

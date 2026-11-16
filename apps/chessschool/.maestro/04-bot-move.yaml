@@ -1,0 +1,59 @@
+appId: com.chessschool.app
+name: Makes a move against a bot
+env:
+  # Bots need an account. CI passes a test account (repo secrets DEVICE_TEST_EMAIL / DEVICE_TEST_PASSWORD).
+  EMAIL: ${EMAIL || ""}
+  PASSWORD: ${PASSWORD || ""}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "guest-button"
+    timeout: 60000
+# Without a test account: a guest is asked to sign up before playing a bot.
+- runFlow:
+    when:
+      true: ${EMAIL == ""}
+    commands:
+      - tapOn:
+          id: "guest-button"
+      - tapOn:
+          text: "Skip"
+          optional: true
+      - openLink: chessschool://play?bot=cody
+      - assertNotVisible: "Game setup"
+- runFlow:
+    when:
+      true: ${EMAIL != ""}
+    commands:
+      - tapOn: "Email"
+      - inputText: ${EMAIL}
+      - tapOn: "Password"
+      - inputText: ${PASSWORD}
+      - hideKeyboard
+      - tapOn: "Log in"
+      - extendedWaitUntil:
+          visible: "Puzzles"
+          timeout: 30000
+      - openLink: chessschool://play?bot=cody
+      - extendedWaitUntil:
+          visible: "Game setup"
+          timeout: 20000
+      - tapOn: "Start game"
+      - extendedWaitUntil:
+          visible: "vs Cody"
+          timeout: 15000
+      - tapOn:
+          id: "square-e2"
+      - tapOn:
+          id: "square-e4"
+      # The pawn stands on e4 and Cody answers.
+      - extendedWaitUntil:
+          visible:
+            id: "square-e4"
+            text: ".*pawn.*"
+          timeout: 10000
+      - extendedWaitUntil:
+          visible: "Your move"
+          timeout: 30000

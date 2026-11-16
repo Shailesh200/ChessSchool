@@ -14,6 +14,7 @@ on:
       - "apps/chessschool-api/**"
       - "packages/chessschool-chess/**"
       - "packages/chessschool-design/**"
+      - "packages/ota-server/**"
       - ".github/workflows/v2-pwa-ci.yml"
       - ".github/workflows/v2-identity-guard.sh"
       - "pnpm-lock.yaml"
@@ -47,11 +48,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api --filter chessschool-web --filter chessschool typecheck
+        run: pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api --filter chessschool-web --filter chessschool --filter ota-server typecheck
 
       # chessschool and chessschool-web have no unit-test script.
       - name: Test
-        run: pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api test
+        run: pnpm --filter @chessschool/design --filter @chessschool/chess --filter chessschool-api --filter ota-server test
 
   identity-guard:
     name: identity guard

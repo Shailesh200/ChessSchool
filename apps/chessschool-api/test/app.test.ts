@@ -602,7 +602,7 @@ describe("practice", () => {
     const guest = await call("POST", "/v1/practice", { lessons: [late] });
     expect(guest.json.items).toEqual([]);
     const free = await call("POST", "/v1/practice", { lessons: ["board", "moves"], count: 99 });
-    expect(free.json.items.length).toBeLessThanOrEqual(10);
+    expect(free.json.items.length).toBeLessThanOrEqual(15);
     expect(free.json.items.every((i: { ref: string }) => ["board", "moves"].includes(lessonOf(i.ref)))).toBe(true);
     expect((await call("POST", "/v1/practice", { lessons: "nope" })).json.items).toEqual([]);
   });

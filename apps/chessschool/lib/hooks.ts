@@ -17,6 +17,13 @@ export function useReducedMotion() {
   return reduced || state.prefs.reduceMotion;
 }
 
+/** Whether the device has a connection right now (for code outside React). */
+let deviceOnline = true;
+NetInfo.addEventListener((s) => {
+  deviceOnline = s.isConnected !== false;
+});
+export const isDeviceOnline = () => deviceOnline;
+
 export type Connectivity = "online" | "offline" | "api-down";
 
 /** Device offline, or API unreachable (including no API configured). */
