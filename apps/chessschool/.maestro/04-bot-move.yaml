@@ -5,28 +5,19 @@ env:
   EMAIL: ${EMAIL || ""}
   PASSWORD: ${PASSWORD || ""}
 ---
-- launchApp:
-    clearState: true
-- extendedWaitUntil:
-    visible:
-      id: "guest-button"
-    timeout: 60000
+- runFlow: common/guest.yaml
 # Without a test account: a guest is asked to sign up before playing a bot.
 - runFlow:
     when:
       true: ${EMAIL == ""}
     commands:
-      - tapOn:
-          id: "guest-button"
-      - tapOn:
-          text: "Skip"
-          optional: true
       - openLink: chessschool://play?bot=cody
       - assertNotVisible: "Game setup"
 - runFlow:
     when:
       true: ${EMAIL != ""}
     commands:
+      - openLink: chessschool://login
       - tapOn: "Email"
       - inputText: ${EMAIL}
       - tapOn: "Password"
