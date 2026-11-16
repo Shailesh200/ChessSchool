@@ -31,7 +31,11 @@ env:
       - tapOn:
           text: "Log in"
           optional: true
-      # iOS offers to save the password.
+      # iOS offers to save the password a few seconds after login; the alert hides the app until answered.
+      - extendedWaitUntil:
+          visible: "Not Now"
+          timeout: 15000
+          optional: true
       - tapOn:
           text: "Not Now"
           optional: true
