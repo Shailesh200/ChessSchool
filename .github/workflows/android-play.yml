@@ -6,7 +6,7 @@ name: Android Play draft
 # Console as a DRAFT on the internal track (eas.json submit profile). Nothing rolls out
 # to testers until someone starts the rollout in Play Console. Bump
 # `android.versionCode` in apps/chessschool/app.json before each run; Play refuses a
-# code it has seen.
+# code it has seen. The device tests (device-tests.yml) run first; a failure there stops the upload.
 #
 # Repo secrets: EXPO_TOKEN, SENTRY_AUTH_TOKEN. The upload keystore and the Play
 # service account key are read from EAS with EXPO_TOKEN.
@@ -25,7 +25,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The upload only happens when the app opens and the core flows pass on an emulator for this commit.
+  device-tests:
+    uses: ./.github/workflows/device-tests.yml
+    with:
+      platform: android
+    secrets: inherit
+
   play:
+    needs: device-tests
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:

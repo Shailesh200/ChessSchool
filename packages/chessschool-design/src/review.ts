@@ -58,6 +58,8 @@ export const seedIdea = (ideas: Review, lessonId: string, today: string): Review
 
 /** Practice serves 5 positions and keeps 5 more for offline use. */
 export const PRACTICE_SET = 5;
+/** Practice positions kept on the device: three sets, one for each offline day. */
+export const PRACTICE_KEEP = PRACTICE_SET * 3;
 
 /** The body for POST /v1/practice: every finished lesson, today's due reviews, and the weakest ideas to lean toward. */
 export const practiceRequest = (completed: Record<string, string>, review: Review, today: string, skills?: Skills) => ({
@@ -66,6 +68,9 @@ export const practiceRequest = (completed: Record<string, string>, review: Revie
   count: PRACTICE_SET * 2,
   weak: weakSkills(skills),
 });
+
+/** The same request sized to refill the offline store (see PRACTICE_KEEP). */
+export const practiceStockRequest = (...args: Parameters<typeof practiceRequest>) => ({ ...practiceRequest(...args), count: PRACTICE_KEEP });
 
 /** Due positions from the learner's own games (at most two a round), as "find the better move" steps. */
 export function mistakeItems(mistakes: readonly MistakePosition[], review: Review, today: string, max = 2): PracticeItem[] {

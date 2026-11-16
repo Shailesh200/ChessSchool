@@ -3,3 +3,5 @@ qa.local.db*
 node_modules
 .env
 .vercel
+ota-assets
+restore-check.db*

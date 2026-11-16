@@ -64,6 +64,8 @@ export function senderFromEnv(env: NodeJS.ProcessEnv): Sender {
         method: "POST",
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ from: "ChessSchool <hello@chess-school.in>", reply_to: "support@chess-school.in", to: [to], subject, html, text }),
+        // One slow send must not use up the whole cron run.
+        signal: AbortSignal.timeout(10_000),
       });
       return res.ok;
     },
@@ -72,6 +74,7 @@ export function senderFromEnv(env: NodeJS.ProcessEnv): Sender {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ to: token, title, body, sound: "default" }),
+        signal: AbortSignal.timeout(10_000),
       });
       return res.ok;
     },

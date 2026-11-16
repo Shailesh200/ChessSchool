@@ -1,7 +1,7 @@
 import { armPuzzleBeat, positionCue, puzzleHint, puzzleReduce, startPuzzle, type Puzzle, type PuzzleAction, type PuzzleBeat } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, View } from "react-native";
+import { AccessibilityInfo, Text, View } from "react-native";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 import { Board } from "./Board";
@@ -108,6 +108,12 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
           />
         )}
       </BoardStage>
+      {/* Device-test builds only: the move the puzzle expects, so a test can solve any puzzle the pack serves. */}
+      {process.env.EXPO_PUBLIC_DEVICE_TEST === "1" && s.status === "solving" ? (
+        <Text testID="expected-move" style={{ fontSize: 6, lineHeight: 8, opacity: 0.05 }}>
+          {s.puzzle.moves[s.step] ?? ""}
+        </Text>
+      ) : null}
       <View style={{ gap: 6, paddingBottom: 12 }}>
         {!sprint && s.status === "solving" && !s.hint ? <Button title={copy.puzzles.hint} icon="bulb" variant="ghost" onPress={() => act({ type: "hint" })} /> : null}
         {!sprint && s.status === "failed" ? (

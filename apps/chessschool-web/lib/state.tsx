@@ -7,7 +7,8 @@ import {
   queueRating,
   ratedGame,
   ratedPuzzle,
-  ratingSent,
+  drainQueues,
+  queueVisionScore,
   type RateInput,
   type RatedResult,
   applyAuth,
@@ -170,6 +171,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       });
   }, [ready, accountId]);
 
+  // Back online, or back on this tab: try again.
+  const [netTick, setNetTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setNetTick((n) => n + 1);
+    const seen = () => document.visibilityState === "visible" && bump();
+    window.addEventListener("online", bump);
+    document.addEventListener("visibilitychange", seen);
+    return () => {
+      window.removeEventListener("online", bump);
+      document.removeEventListener("visibilitychange", seen);
+    };
+  }, []);
+
   // Signed in: debounce-push progress; the server merges, never overwrites.
   const progressJson = JSON.stringify(state.progress);
   useEffect(() => {
@@ -185,7 +199,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           if (isGuestClassLimit(err)) showGuestGate();
         });
     }, 800);
-  }, [ready, accountId, progressJson, showGuestGate]);
+  }, [ready, accountId, progressJson, showGuestGate, netTick]);
 
   const cue = useCallback((c: SoundCue) => playCue(c, state.prefs.sound), [state.prefs.sound]);
 
@@ -194,27 +208,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (rated) setState((s) => queueRating(s, rated));
   };
 
-  // Signed in: send queued rated results oldest first. The server dedupes by event id, and its
-  // ratings replace the device's only once nothing for that learner is left unsent.
+  // Signed in: send what was queued offline, oldest first (rated results, then other writes). The server
+  // dedupes, and its ratings replace the device's only once nothing for that learner is left unsent.
+  // A failed send keeps its place and waits for the connection to come back.
   const flushing = useRef(false);
-  const queued = state.ratingQueue.length;
+  const queued = state.ratingQueue.length + state.writeQueue.length;
   useEffect(() => {
     if (!ready || !accountId || !queued || flushing.current) return;
     flushing.current = true;
-    const next: RateInput = latest.current.ratingQueue[0];
-    api
-      .rate(next)
-      .then((r) => {
-        flushing.current = false;
-        setState((s) => ratingSent(s, next, r.ratings));
-      })
-      .catch((err) => {
-        flushing.current = false;
-        // A refused result (unknown child, bad input) will never count; offline or server errors wait for the next launch or result.
-        const status = Number(err?.status);
-        if (status === 400 || status === 404) setState((s) => ratingSent(s, next));
-      });
-  }, [ready, accountId, queued]);
+    void drainQueues(() => latest.current, setState, api).then((sent) => {
+      flushing.current = false;
+      // Anything queued while this ran goes out next.
+      if (sent) setNetTick((n) => n + 1);
+    });
+  }, [ready, accountId, queued, netTick]);
 
   const store = useMemo<Store>(
     () => ({
@@ -269,7 +276,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       finishSprint: (score, minutes) => setState((s) => recordSprint(s, score, new Date(), minutes)),
       finishVision: (game, score) => {
         setState((s) => recordVision(s, game, score));
-        if (latest.current.account && score > 0) api.sendVisionScore(game, score, dayKey(new Date())).catch(() => {});
+        // Queued, so a score made offline still reaches the class board.
+        if (latest.current.account && score > 0) setState((st) => queueVisionScore(st, game, score, dayKey(new Date())));
       },
       place: (level) => setState((s) => placeAt(s, level, new Date())),
       markBadgesSeen: (ids) => setState((s) => ({ ...s, badgesSeen: [...new Set([...s.badgesSeen, ...ids])] })),

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy, type IconName } from "@chessschool/design";
+import { useOfflineStock } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { Icon } from "./Icon";
 import { ConnectivityBanner } from "./ConnectivityBanner";
@@ -19,6 +20,7 @@ const TABS: { href: string; label: keyof typeof copy.tabs; icon: IconName; also?
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { state, ready } = useApp();
+  useOfflineStock();
   const active = (href: string) => {
     const t = TABS.find((x) => x.href === href)!;
     return [href, ...(t.also ?? [])].some((h) => path === h || path.startsWith(h + "/"));

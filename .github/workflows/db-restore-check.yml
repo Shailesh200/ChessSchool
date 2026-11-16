@@ -1,0 +1,48 @@
+name: Database restore check
+
+# Weekly backup drill: reads every table of the production database with a READ-ONLY token, copies it into
+# a sqlite file on the runner, and checks row counts and the schema against BOOTSTRAP_SQL
+# (apps/chessschool-api/src/restore-check.ts). It never writes to production: the token cannot write, and
+# the script refuses to send anything but SELECT / PRAGMA reads. The copy is deleted with the runner and
+# is never uploaded (this repo is public).
+#
+# Repo secrets: PROD_DB_URL (the libsql:// URL) and PROD_DB_READ_TOKEN (a read-only database token).
+# Without them the job reports that it was skipped.
+
+on:
+  schedule:
+    - cron: "30 22 * * 6" # Sundays 04:00 India time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_DB_URL: ${{ secrets.PROD_DB_URL }}
+      SOURCE_DB_TOKEN: ${{ secrets.PROD_DB_READ_TOKEN }}
+    steps:
+      - name: Check the secrets are set
+        id: secrets
+        run: |
+          if [ -n "$SOURCE_DB_URL" ] && [ -n "$SOURCE_DB_TOKEN" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "::warning::PROD_DB_URL or PROD_DB_READ_TOKEN is not set; restore check skipped"; fi
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v4.2.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter chessschool-api...
+        if: steps.secrets.outputs.ready == 'true'
+      - name: Copy every table and check it
+        if: steps.secrets.outputs.ready == 'true'
+        run: RESTORE_FILE="$RUNNER_TEMP/restore-check.db" pnpm --filter chessschool-api run db:restore-check

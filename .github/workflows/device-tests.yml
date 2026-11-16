@@ -1,0 +1,171 @@
+name: Device tests
+
+# Builds the app for the iOS simulator (and an Android emulator) and runs the Maestro flows in
+# apps/chessschool/.maestro: open the app, continue as a guest, finish the first lesson, solve a puzzle,
+# make a move against a bot, and show the Restart screen after a forced fatal error.
+# A build that does not open fails the first flow, so the job fails.
+#
+# Also called by the iOS TestFlight and Android Play workflows, which only upload when this passes.
+# It never deploys, uploads or publishes anything. The test build talks to the production API as a guest.
+#
+# Repo secrets: EXPO_TOKEN, SENTRY_AUTH_TOKEN (as the store builds). Optional: DEVICE_TEST_EMAIL and
+# DEVICE_TEST_PASSWORD, an existing test account for the bot flow; without them that flow only checks
+# that a guest is asked to sign up.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase-3, stable]
+  workflow_call:
+    inputs:
+      platform:
+        description: "ios, android or all"
+        type: string
+        default: all
+    secrets:
+      EXPO_TOKEN:
+        required: true
+      SENTRY_AUTH_TOKEN:
+        required: false
+      DEVICE_TEST_EMAIL:
+        required: false
+      DEVICE_TEST_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+  SENTRY_DISABLE_AUTO_UPLOAD: "true"
+  EAS_BUILD_NO_EXPO_GO_WARNING: "true"
+  MAESTRO_CLI_NO_ANALYTICS: "1"
+  MAESTRO_VERSION: "2.6.1"
+
+jobs:
+  ios:
+    if: ${{ inputs.platform != 'android' }}
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g eas-cli@27.10.0
+      # pnpm hides Expo's own dependencies from config plugins that eas-cli loads directly.
+      - run: echo "NODE_PATH=$(dirname "$(realpath apps/chessschool/node_modules/expo)"):$PWD/node_modules/.pnpm/node_modules" >> "$GITHUB_ENV"
+      - name: Add the device-test build profile
+        working-directory: apps/chessschool
+        run: node scripts/device-test-profile.mjs
+      - name: Build for the simulator
+        working-directory: apps/chessschool
+        run: eas build --platform ios --profile device-test --local --non-interactive --output "$RUNNER_TEMP/app.tar.gz"
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Boot an iOS 26 simulator and install the app
+        run: |
+          mkdir -p "$RUNNER_TEMP/app" && tar -xzf "$RUNNER_TEMP/app.tar.gz" -C "$RUNNER_TEMP/app"
+          APP=$(find "$RUNNER_TEMP/app" -name '*.app' -maxdepth 3 | head -1); echo "app: $APP"
+          [ -n "$APP" ] || { echo "::error::The build produced no .app"; exit 1; }
+          UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const ks=Object.keys(d).filter(k=>/iOS-26/.test(k)).sort().reverse();for(const k of ks)for(const x of d[k])if(x.name.startsWith("iPhone")){console.error("runtime",k,x.name);console.log(x.udid);process.exit()}process.exit(1)')
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+      - name: Run the flows
+        env:
+          EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
+          PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
+        run: maestro --device "$UDID" test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" --format junit --output "$RUNNER_TEMP/maestro-ios.xml" apps/chessschool/.maestro
+      - name: Print crash reports
+        if: failure()
+        run: |
+          for f in ~/Library/Logs/DiagnosticReports/ChessSchool*; do [ -f "$f" ] && head -c 15000 "$f"; done; true
+      # Screenshots of the failing step. No account details are shown on screen (the password field is masked).
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-ios
+          path: |
+            ~/.maestro/tests
+            ${{ runner.temp }}/maestro-ios.xml
+          retention-days: 7
+
+  android:
+    if: ${{ inputs.platform != 'ios' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g eas-cli@27.10.0
+      - run: echo "NODE_PATH=$(dirname "$(realpath apps/chessschool/node_modules/expo)"):$PWD/node_modules/.pnpm/node_modules" >> "$GITHUB_ENV"
+      # Only the emulator's architecture is built, which keeps this job near 45 minutes.
+      - name: Give Gradle enough memory
+        run: |
+          mkdir -p ~/.gradle
+          cat >> ~/.gradle/gradle.properties <<'PROPS'
+          org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
+          reactNativeArchitectures=x86_64
+          PROPS
+      - name: Add the device-test build profile
+        working-directory: apps/chessschool
+        run: node scripts/device-test-profile.mjs
+      - name: Build the test APK
+        working-directory: apps/chessschool
+        run: eas build --platform android --profile device-test --local --non-interactive --output "$RUNNER_TEMP/ChessSchool.apk"
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Let the runner use hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run the flows on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
+          PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: |
+            adb install "$RUNNER_TEMP/ChessSchool.apk"
+            maestro test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" --format junit --output "$RUNNER_TEMP/maestro-android.xml" apps/chessschool/.maestro
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-android
+          path: |
+            ~/.maestro/tests
+            ${{ runner.temp }}/maestro-android.xml
+          retention-days: 7

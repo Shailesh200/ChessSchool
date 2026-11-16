@@ -1,0 +1,18 @@
+appId: com.chessschool.app
+---
+# A fresh install: open, continue as a guest, skip the welcome steps, land on Learn.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "guest-button"
+    timeout: 60000
+- tapOn:
+    id: "guest-button"
+# The welcome steps may be gone or shorter in later builds.
+- tapOn:
+    text: "Skip"
+    optional: true
+- extendedWaitUntil:
+    visible: "Puzzles"
+    timeout: 20000

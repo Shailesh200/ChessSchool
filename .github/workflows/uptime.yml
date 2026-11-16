@@ -1,0 +1,30 @@
+name: Uptime
+
+# Every 5 minutes: is the API answering? Two attempts 30 seconds apart; the run fails (and GitHub emails
+# the repo owner) only when both fail. Read-only: one GET of the public health route.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check https://api.chess-school.in/v1/health
+        run: |
+          check() { curl --silent --show-error --fail --max-time 15 https://api.chess-school.in/v1/health | grep -q '"ok":true'; }
+          if check; then echo "API is up"; exit 0; fi
+          echo "First attempt failed, trying again in 30 seconds"
+          sleep 30
+          if check; then echo "API is up (second attempt)"; exit 0; fi
+          echo "::error::The API health check failed twice, 30 seconds apart"
+          exit 1

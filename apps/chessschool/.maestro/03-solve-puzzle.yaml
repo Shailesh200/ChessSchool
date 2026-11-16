@@ -1,0 +1,34 @@
+appId: com.chessschool.app
+name: Solves a puzzle
+---
+# Device-test builds show the expected move in a tiny label (id expected-move), so any puzzle can be solved.
+- runFlow: common/guest.yaml
+- openLink: chessschool://puzzle
+- extendedWaitUntil:
+    visible:
+      id: "expected-move"
+    timeout: 60000
+- repeat:
+    while:
+      notVisible: "Solved!"
+    times: 8
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "expected-move"
+          timeout: 15000
+      - copyTextFrom:
+          id: "expected-move"
+      - evalScript: ${output.from = maestro.copiedText.slice(0, 2); output.to = maestro.copiedText.slice(2, 4); output.promo = maestro.copiedText.slice(4, 5)}
+      - tapOn:
+          id: "square-${output.from}"
+      - tapOn:
+          id: "square-${output.to}"
+      # A promotion asks which piece; the queen is always offered.
+      - tapOn:
+          text: "Queen"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "Solved!"
+- assertVisible: "Next puzzle"

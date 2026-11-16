@@ -4,7 +4,8 @@ import { lessonSkill, type SkillId } from "@chessschool/design";
 /** A practice item: one playable step, addressed as "<lessonId>:<stepIndex>" so the app can schedule reviews. */
 export type PracticeItem = { ref: string; step: Step };
 
-export const MAX_PRACTICE = 10;
+/** 15 = three sets of five: what the apps keep for three offline days. */
+export const MAX_PRACTICE = 15;
 const playable = (s: Step) => s.kind === "tap" || s.kind === "move" || s.kind === "stars" || s.kind === "choice" || s.kind === "line";
 
 /**

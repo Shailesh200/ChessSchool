@@ -1,0 +1,7 @@
+appId: com.chessschool.app
+name: Opens and continues as a guest
+---
+# A build that crashes on start never shows the guest button, so this flow fails.
+- runFlow: common/guest.yaml
+- assertVisible: "Learn"
+- assertVisible: "Profile"

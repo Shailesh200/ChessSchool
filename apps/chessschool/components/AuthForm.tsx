@@ -257,6 +257,7 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
               {showGuest ? (
                 <Pressable
                   accessibilityRole="button"
+                  testID="guest-button"
                   accessibilityLabel={copy.auth.guest}
                   onPress={goGuest}
                   disabled={busy}

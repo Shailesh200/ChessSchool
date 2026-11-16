@@ -5,6 +5,7 @@ import { createApp } from "./app";
 import { providersFromEnv } from "./ai";
 import { senderFromEnv } from "./weekly";
 import { openDb } from "./db";
+import { otaFromEnv } from "./ota";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
 import { anthropicLessonWriter } from "./lesson-draft";
@@ -39,6 +40,7 @@ async function boot() {
     cronSecret: process.env.CRON_SECRET,
     lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
     boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
+    ota: otaFromEnv(db, process.env),
   });
   return handle(app);
 }

@@ -13,7 +13,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/af6d1946-9dd2-42ef-b2a3-ad71bfbb7854",
+      "url": "https://api.chess-school.in/ota/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     },

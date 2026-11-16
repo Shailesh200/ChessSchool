@@ -219,7 +219,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const t = setTimeout(() => setMsg(null), 3200);
     return () => clearTimeout(t);
   }, [msg]);
-  const show = useCallback((text: string) => setMsg({ text, id: Date.now() }), []);
+  // Offline, the calm banner already says so: the "can't reach ChessSchool" error toast is not shown on top of it.
+  const show = useCallback((text: string) => (!navigator.onLine && text === copy.auth.errors.offline ? undefined : setMsg({ text, id: Date.now() })), []);
   return (
     <ToastCtx.Provider value={show}>
       {children}
