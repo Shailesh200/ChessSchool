@@ -1,8 +1,9 @@
-import { copy, type AvatarId } from "@chessschool/design";
+import { copy, weekCard, type AvatarId } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
+import { ShareCardButton } from "@/components/Growth";
 import { Button, Card, Page, Row, Sheet, T, TextField, useToast } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -101,6 +102,9 @@ export default function Learners() {
         })}
         {kids.length < 5 ? <Row icon="profile" label={t.add} chevron onPress={() => setSheet("add")} /> : null}
       </Card>
+
+      {/* This week's progress of the learner who is active now, as a card a parent can forward. */}
+      <ShareCardButton kind="weekly" data={weekCard(state.progress, new Date())} label={copy.share.weeklyAction} />
 
       <Card style={{ padding: 6 }}>
         <Row icon="lock" label={t.pin} hint={t.pinHint} chevron onPress={() => (setPin(""), setSheet("pin"))} />

@@ -42,6 +42,7 @@ import { GymGuestCard } from "@/components/GymGuestCard";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
+import { ShareCardButton } from "@/components/Growth";
 import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
@@ -505,6 +506,7 @@ export default function Play() {
           startFen={game.setup.startFen}
           history={game.history}
           side={friend ? null : game.setup.you}
+          share={!friend && winnerOf(game) === game.setup.you ? { fen: game.fen, moves: Math.ceil(game.history.length / 2) } : null}
           onAnalysis={
             reviewPath
               ? () => {
@@ -553,6 +555,8 @@ function ResultSheet(props: {
   startFen: string;
   history: string[];
   side: Color | null;
+  /** The learner won: what the "game won" share card shows. */
+  share: { fen: string; moves: number } | null;
   onAnalysis: (() => void) | null;
   onAgain: () => void;
   onBack: () => void;
@@ -600,6 +604,7 @@ function ResultSheet(props: {
           <Button title={copy.play.again} icon="refresh" variant="secondary" onPress={props.onAgain} />
         </View>
       </View>
+      {props.share ? <ShareCardButton kind="game_won" data={props.share} /> : null}
       <Button title={copy.play.back} variant="ghost" onPress={props.onBack} />
     </Sheet>
   );

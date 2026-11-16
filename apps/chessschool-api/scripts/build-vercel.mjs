@@ -1,7 +1,8 @@
 // Bundles the API into one Node function and writes Vercel's Build Output
 // (.vercel/output). Deploy with `vercel deploy --prebuilt`.
 import { build } from "esbuild";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,6 +25,18 @@ await build({
   legalComments: "none",
   logLevel: "warning",
 });
+
+// Share cards: the font, art and the two wasm files sit next to the bundle (share-card.ts reads card-assets/).
+const require = createRequire(import.meta.url);
+const cardAssets = {
+  "Baloo2_700Bold.ttf": join(root, "assets/cards/Baloo2_700Bold.ttf"),
+  "cody.svg": join(root, "../../packages/chessschool-design/assets/svg/cody.svg"),
+  ...Object.fromEntries(["ash", "kira", "otto", "rex", "skye"].map((c) => [`${c}.png`, join(root, `../chessschool/assets/coaches/${c}.png`)])),
+  "resvg.wasm": require.resolve("@resvg/resvg-wasm/index_bg.wasm"),
+  "hb.wasm": require.resolve("harfbuzzjs/hb.wasm"),
+};
+mkdirSync(join(fn, "card-assets"), { recursive: true });
+for (const [name, from] of Object.entries(cardAssets)) copyFileSync(from, join(fn, "card-assets", name));
 
 // 180 s: an AI lesson draft is up to two language-model calls of ~85 s each, and a coach explanation can try three providers.
 writeFileSync(

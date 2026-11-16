@@ -24,7 +24,11 @@
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "associatedDomains": [
+        "applinks:chess-school.in",
+        "applinks:www.chess-school.in"
+      ]
     },
     "android": {
       "package": "com.chessschool.app",
@@ -37,6 +41,58 @@
       "permissions": [
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "chess-school.in",
+              "pathPrefix": "/c/"
+            },
+            {
+              "scheme": "https",
+              "host": "chess-school.in",
+              "pathPrefix": "/s/"
+            },
+            {
+              "scheme": "https",
+              "host": "chess-school.in",
+              "pathPrefix": "/mate/"
+            },
+            {
+              "scheme": "https",
+              "host": "chess-school.in",
+              "pathPrefix": "/i/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.chess-school.in",
+              "pathPrefix": "/c/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.chess-school.in",
+              "pathPrefix": "/s/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.chess-school.in",
+              "pathPrefix": "/mate/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.chess-school.in",
+              "pathPrefix": "/i/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ]
     },
     "plugins": [

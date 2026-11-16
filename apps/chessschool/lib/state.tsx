@@ -2,6 +2,8 @@ import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
 import {
   STORAGE_KEY,
   adoptRatings,
+  addFreezes,
+  FREEZE_MAX,
   dismissCelebration,
   withCelebrations,
   queueRating,
@@ -64,6 +66,7 @@ import { randomUUID } from "expo-crypto";
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 import { api, token } from "./api";
+import { INVITE_KEY } from "./share";
 import { feedback } from "./feedback";
 import { setFontsFor } from "./theme";
 import { googleSignOut } from "./google";
@@ -170,6 +173,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       .me()
       .then((me) => {
         setState((s) => applyMe(s, me));
+        void settleInvites();
         const child = latest.current.activeChild;
         return api.rating(child).then((r) => setState((s) => adoptRatings(s, child, r.ratings)));
       })
@@ -192,6 +196,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       app.remove();
     };
   }, []);
+
+  /** Signed in on the account's own profile: accept an invite link opened earlier, then move any banked reward freezes into the streak. */
+  const settleInvites = async () => {
+    if (latest.current.activeChild) return;
+    const code = await AsyncStorage.getItem(INVITE_KEY).catch(() => null);
+    if (code) void AsyncStorage.removeItem(INVITE_KEY).catch(() => {});
+    if (code) await api.acceptInvite(code).catch(() => {});
+    const have = latest.current.progress.streak.freezes ?? 0;
+    const got = await api.claimFreezes(Math.min(have, FREEZE_MAX)).catch(() => null);
+    if (got?.freezes) setState((s) => (s.activeChild ? s : addFreezes(s, got.freezes)));
+  };
 
   const progressJson = JSON.stringify(state.progress);
   useEffect(() => {

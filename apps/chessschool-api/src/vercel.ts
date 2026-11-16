@@ -10,6 +10,9 @@ import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
 import { anthropicLessonWriter } from "./lesson-draft";
 import { anthropicBoardReader } from "./scan";
+import { cardStoreFromEnv } from "./share-card";
+import { cached } from "./growth-stats";
+import { sentryReleaseHealth } from "ota-server";
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -41,6 +44,14 @@ async function boot() {
     lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
     boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
     ota: otaFromEnv(db, process.env),
+    cardStore: await cardStoreFromEnv(process.env),
+    // Optional: with SENTRY_READ_TOKEN the growth dashboard shows crash-free sessions (asked at most hourly).
+    crashFree: process.env.SENTRY_READ_TOKEN
+      ? cached(async () => {
+          const h = await sentryReleaseHealth({ token: process.env.SENTRY_READ_TOKEN!, org: process.env.SENTRY_ORG ?? "shailesh-jha", project: process.env.SENTRY_PROJECT ?? "chessschool-mobile" });
+          return h?.crashFreeRate != null ? Math.round(h.crashFreeRate * 1000) / 10 : null;
+        }, 60 * 60_000)
+      : undefined,
   });
   return handle(app);
 }

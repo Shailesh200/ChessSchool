@@ -1085,7 +1085,8 @@ export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null):
     // Freezes are earned one per 7 days of streak, so a client can't claim more than that.
     streak: withFreezes(
       { count: Math.max(0, Math.min(10_000, Math.floor(p.streak.count))), lastDay: day(p.streak.lastDay) },
-      Math.min(FREEZE_MAX, Math.floor(Math.max(0, p.streak.count) / 7), count(p.streak.freezes)),
+      // No tie to the streak length: freezes are also earned from invites (still never more than FREEZE_MAX).
+      Math.min(FREEZE_MAX, count(p.streak.freezes)),
     ),
     minutes: { day: day(p.minutes.day), value: Math.max(0, Math.min(1440, Math.floor(p.minutes.value))) },
     games: { played, won: Math.min(played, count(p.games?.won)) },

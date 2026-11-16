@@ -22,3 +22,4 @@ export * from "./keyMoment";
 export * from "./ratingChart";
 export * from "./leagues";
 export * from "./flow";
+export * from "./growth";

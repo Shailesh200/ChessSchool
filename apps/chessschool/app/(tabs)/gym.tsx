@@ -6,6 +6,7 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
+import { ChallengeButton } from "@/components/Growth";
 import { Button, Card, Page, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
@@ -50,6 +51,7 @@ export default function Gym() {
         </View>
         <Cody animation="wave" size={104} />
       </Card>
+      <ChallengeButton />
 
       <T role="heading" header>
         {copy.gym.bots}

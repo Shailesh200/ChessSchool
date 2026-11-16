@@ -43,6 +43,7 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
 import { KeyMomentCard } from "@/components/KeyMoment";
+import { ShareCardButton } from "@/components/ShareCard";
 import { Cody } from "@/components/Lottie";
 import { SpeakMove } from "@/components/SpeakMove";
 import { ActionDock, Button, Card, Sheet, Switch, TopBar } from "@/components/ui";
@@ -496,6 +497,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
           startFen={game.setup.startFen}
           history={game.history}
           side={friend ? null : game.setup.you}
+          share={!friend && winner === game.setup.you ? { fen: game.fen, moves: Math.ceil(game.history.length / 2) } : null}
           reviewHref={reviewHref}
           onAgain={again}
           onBack={() => router.push("/gym")}
@@ -534,6 +536,8 @@ function ResultSheet(props: {
   startFen: string;
   history: string[];
   side: Color | null;
+  /** The learner won: what the "game won" share card shows. */
+  share: { fen: string; moves: number } | null;
   reviewHref: string | null;
   onAgain: () => void;
   onBack: () => void;
@@ -574,6 +578,7 @@ function ResultSheet(props: {
           {copy.play.again}
         </Button>
       </div>
+      {props.share ? <ShareCardButton block kind="game_won" data={props.share} /> : null}
       <Button block variant="ghost" onClick={props.onBack}>
         {copy.play.back}
       </Button>

@@ -1,5 +1,5 @@
 /** The only usage events the apps send. Nothing here carries a name, email or account id. */
-export const USAGE_EVENTS = ["app_open", "lesson_start", "lesson_finish", "lesson_quit", "puzzle_solved", "puzzle_failed", "game_finished", "practice_finished"] as const;
+export const USAGE_EVENTS = ["app_open", "lesson_start", "lesson_finish", "lesson_quit", "puzzle_solved", "puzzle_failed", "game_finished", "practice_finished", "share"] as const;
 export type UsageEventName = (typeof USAGE_EVENTS)[number];
 export type UsageEvent = { name: UsageEventName; at: number; lesson?: string; step?: number; value?: number };
 export type UsageBatch = { install: string; platform: "ios" | "android" | "web"; appVersion: string; events: UsageEvent[] };

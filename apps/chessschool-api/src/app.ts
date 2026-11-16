@@ -64,6 +64,9 @@ import { blocks, childProgress, children, classes, classGames, classMembers, cou
 import { loadRatingHistory, loadRatings, parseRateInput, rateResult } from "./ratings";
 import { playMove, roundRobin, splitMoves, standings } from "./class-play";
 import { parseEvents, recordEvents, usageSummary } from "./usage";
+import { mountGrowth, payInvite } from "./growth";
+import { growthStats } from "./growth-stats";
+import type { CardStore } from "./share-card";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
@@ -93,6 +96,10 @@ export type AppDeps = {
   weekly?: Sender;
   /** Vercel Cron's bearer secret; without it the cron route is off. */
   cronSecret?: string;
+  /** Rendered share cards (R2 in production; tests pass an in-memory store). Without one, cards render on every request. */
+  cardStore?: CardStore | null;
+  /** Crash-free session rate in percent for the growth dashboard (the crash reporter's API in production). */
+  crashFree?: () => Promise<number | null>;
   /** The over-the-air update server (see ota.ts), mounted at /ota/*. Left out, /ota answers 404. */
   ota?: (req: Request) => Promise<Response>;
   /** Endgame tablebase lookup (Lichess by default; tests pass a fake). */
@@ -141,7 +148,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota, cardStore = null, crashFree }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -610,17 +617,20 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const monday = new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86_400_000).toISOString().slice(0, 10);
     const sunday = new Date(new Date(`${monday}T12:00:00Z`).getTime() + 6 * 86_400_000).toISOString().slice(0, 10);
     const rows = await db.select({ id: progress.userId, data: progress.data }).from(progress).where(inArray(progress.userId, room.members.map((m) => m.id)));
+    const xpOf = new Map((await coursePath()).map((n) => [n.id, n.xp]));
     const week = new Map(
       rows.map((r) => {
         const p = memberProgress(r.data);
         const placed = new Set(p.placed);
-        return [r.id, Object.entries(p.completed).filter(([id, day]) => !placed.has(id) && day >= monday && day <= sunday).length];
+        const done = Object.entries(p.completed).filter(([id, day]) => !placed.has(id) && day >= monday && day <= sunday);
+        // Weekly XP: the XP of the lessons finished this week (practice and games earn none).
+        return [r.id, { lessons: done.length, xp: done.reduce((n, [id]) => n + (xpOf.get(id) ?? 0), 0) }];
       }),
     );
     const entries = room.members
       .filter((m) => !hidden.has(m.id))
-      .map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, lessons: week.get(m.id) ?? 0, me: m.id === user.id }))
-      .sort((a, b) => b.lessons - a.lessons || a.name.localeCompare(b.name));
+      .map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, lessons: week.get(m.id)?.lessons ?? 0, xp: week.get(m.id)?.xp ?? 0, me: m.id === user.id }))
+      .sort((a, b) => b.xp - a.xp || b.lessons - a.lessons || a.name.localeCompare(b.name));
     return c.json({ week: { from: monday, to: sunday }, hidden: Boolean(mine), entries });
   });
 
@@ -965,6 +975,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const days = Math.min(180, Math.max(1, Number.parseInt(c.req.query("days") ?? "30", 10) || 30));
     return c.json(await usageSummary(db, now().getTime(), days));
   });
+
+  /** Growth dashboard: return rates, daily over monthly users, shares, invite conversion, crash-free sessions. */
+  app.get("/v1/admin/growth", requireAdmin, async (c) => c.json(await growthStats(db, now().getTime(), crashFree ? await crashFree().catch(() => null) : null)));
 
   app.get("/v1/admin/reports", requireAdmin, async (c) => {
     const reporter = alias(users, "reporter");
@@ -1534,6 +1547,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     await saveProgress(user.id, merged);
     // League XP comes from this sync: only the rise the server has not seen yet, so a replay adds nothing.
     if (FEATURES.leagues && !isGuestAccount(user)) await addLeagueXp(db, user.id, merged.xp - before.xp, now().getTime()).catch((err) => reportError?.(err));
+    // An invited friend who has now finished enough lessons pays out the invite, once.
+    await payInvite(db, user.id, merged, now().getTime());
     const access = courseAccess(merged.completed, isGuestAccount(user), path);
     return c.json({ progress: merged, path: access.path });
   });
@@ -1583,6 +1598,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     await countMate(db, day, b.solved);
     return c.json(await mateCounts(db, day));
   });
+  const growthLimiter = createRateLimiter(60, 10 * 60_000, () => now().getTime());
+  mountGrowth(app, { db, now, requireUser, userFromRequest, limiter: growthLimiter, cardStore });
 
   return app;
 }

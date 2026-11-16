@@ -1,5 +1,6 @@
 import { eq, inArray, or } from "drizzle-orm";
 import type { Db } from "./db";
+import { growthDeletes } from "./growth";
 import { blocks, childProgress, children, coachUsage, classes, classGames, classMembers, feedback, homework, leaderboardHidden, profiles, progress, leagueMembers, leaguePlayers, ratingEvents, ratingHistory, ratings, reports, scanUsage, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
 
 /**
@@ -45,6 +46,7 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
     db.delete(blocks).where(or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId))),
     db.delete(leagueMembers).where(eq(leagueMembers.userId, userId)),
     db.delete(leaguePlayers).where(eq(leaguePlayers.userId, userId)),
+    ...growthDeletes(db, userId),
     db.delete(users).where(eq(users.id, userId)),
   ]);
 }
