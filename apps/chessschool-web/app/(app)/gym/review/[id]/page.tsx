@@ -1,12 +1,13 @@
 "use client";
 
-import { formatEval, opponentName, parseSetup, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type KeyMoment, type TryState } from "@chessschool/chess";
+import { formatEval, keyMomentCard, opponentName, parseSetup, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type KeyMoment, type TryState } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
+import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Button, Sheet, TopBar } from "@/components/ui";
 import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
@@ -17,16 +18,23 @@ export default function ReviewGame() {
   const { id } = useParams<{ id: string }>();
   const { state, ready, cue } = useApp();
   const game = state.gameLog.find((g) => g.id === decodeURIComponent(id));
-  const setup = useMemo(() => (game ? parseSetup(game.setup) : null), [game]);
-  const plies = useMemo(() => (game && setup ? reviewPlies(setup.startFen, game.history) : []), [game, setup]);
+  // Keyed on the setup and moves, not the record: marking a game reviewed must not restart the analysis.
+  const gameSetup = game?.setup;
+  const history = game?.history;
+  const setup = useMemo(() => (gameSetup ? parseSetup(gameSetup) : null), [gameSetup]);
+  const plies = useMemo(() => (history && setup ? reviewPlies(setup.startFen, history) : []), [history, setup]);
   const { notes, done } = useGameAnalysis(plies);
   const [ply, setPly] = useState(0);
   const [trying, setTrying] = useState<TryState | null>(null);
   const [shake, setShake] = useState(0);
+  const [keyOpen, setKeyOpen] = useState(true);
   const friend = setup?.opponent.kind === "friend";
   const side = !setup || friend ? null : setup.you;
   const coach = useCoachNotes(game, setup?.startFen ?? "", side);
   useReviewedSkills(game, plies, notes, done, side);
+  // Imported games land here, so their card opens here; bot and friend games showed it on the result sheet.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const hasKey = useMemo(() => game?.reason === "imported" && done && keyMomentCard(plies, notes, side) !== null, [game?.reason, done, plies, side]);
   const firstNote = coach.notes[0]?.ply;
   useEffect(() => {
     if (firstNote) {
@@ -213,6 +221,23 @@ export default function ReviewGame() {
               </>
             ) : null}
           </section>
+          <Sheet open={keyOpen && hasKey && coach.status !== "consent"} onClose={() => setKeyOpen(false)} labelledBy="key-moment-title">
+            <KeyMomentCard
+              plies={plies}
+              notes={notes}
+              done={done}
+              side={side}
+              orientation={orientation}
+              coachNoteFor={(p) => coach.noteFor(p)?.text ?? null}
+              onShow={(p) => {
+                setKeyOpen(false);
+                go(p);
+              }}
+            />
+            <Button block variant="ghost" onClick={() => setKeyOpen(false)}>
+              {copy.analysis.close}
+            </Button>
+          </Sheet>
           <Sheet open={coach.status === "consent"} onClose={coach.cancel} labelledBy="coach-consent-title">
             <h2 id="coach-consent-title">{copy.coachAi.consentTitle}</h2>
             <p>{copy.coachAi.consentBody}</p>

@@ -41,6 +41,8 @@ export default function TodayPage() {
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
+  const lessonsDone = Object.keys(progress.completed).length;
+  const started = lessonsDone > 0;
   const focus = course ? focusCourse(course, progress.completed) : null;
   const current = focus?.current ?? null;
   const gated = isGuestLockedLesson(current);
@@ -94,7 +96,7 @@ export default function TodayPage() {
 
       <div className="today-grid">
         <div className="today-main">
-          {course && !state.placementDone && !progress.completed.board ? (
+          {course && !state.placementDone && lessonsDone <= 2 ? (
             <Card className="placement" aria-labelledby="place-title">
               <h2 id="place-title" className="card-title">
                 {copy.placement.title}
@@ -164,11 +166,11 @@ export default function TodayPage() {
         <div className="today-start">
           {gated ? (
             <Button block icon="play" onClick={showGuestGate}>
-              {copy.today.focus.start}
+              {started ? copy.today.continue : copy.today.focus.start}
             </Button>
           ) : (
             <Button block href={href(current.id)} icon="play">
-              {copy.today.focus.start}
+              {started ? copy.today.continue : copy.today.focus.start}
             </Button>
           )}
         </div>

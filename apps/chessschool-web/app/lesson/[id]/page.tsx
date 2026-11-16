@@ -1,7 +1,7 @@
 "use client";
 
 import type { Step } from "@chessschool/chess";
-import { copy, dayKey, goalMet, isGuestLockedLesson, lessonAccess, nextOpenLesson, visibleStreak } from "@chessschool/design";
+import { copy, dayKey, firstLessonId, goalMet, isGuestLockedLesson, lessonAccess, nextOpenLesson, visibleStreak } from "@chessschool/design";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LessonDone } from "@/components/LessonDone";
@@ -38,6 +38,14 @@ export default function LessonPage() {
 
   const hasSteps = Boolean(lesson?.steps);
   const say = useCoachVoice(id);
+  // First run: no account and no welcome yet. The lesson leads on to welcome.
+  const firstRun = ready && !state.account && !state.seenWelcome;
+  // A new visitor with no connection cannot load the lesson: move on rather than wait forever.
+  useEffect(() => {
+    if (!firstRun || hasSteps) return;
+    const t = setTimeout(() => router.replace("/welcome"), 8000);
+    return () => clearTimeout(t);
+  }, [firstRun, hasSteps, router]);
   useEffect(() => {
     if (ready && hasSteps && !guestLocked && id !== "meet") track("lesson_start", { lesson: id });
   }, [ready, id, hasSteps, guestLocked, track]);
@@ -72,7 +80,8 @@ export default function LessonPage() {
   const steps = lesson.steps as Step[];
   const interactive = steps.some((step) => step.kind !== "say");
   const next = course ? nextOpenLesson(course, state.progress.completed, id) : null;
-  const access = course ? lessonAccess(course, state.progress.completed, id) : "current";
+  // The first lesson is open on a first run, before the tour.
+  const access = course && !(firstRun && id === firstLessonId(course)) ? lessonAccess(course, state.progress.completed, id) : "current";
   const prev = course ? course.lessons[course.lessons.findIndex((l) => l.id === id) - 1] : undefined;
 
   if (access === "locked") {
@@ -96,7 +105,7 @@ export default function LessonPage() {
       key={id}
       steps={steps}
       say={say}
-      closeHref="/today"
+      closeHref={firstRun ? "/welcome" : "/today"}
       onClose={(step) => track("lesson_quit", { lesson: id, step })}
       onFinished={(n) => {
         const firstLessonToday = !Object.values(state.progress.completed).some((day) => day === today);
@@ -122,20 +131,27 @@ export default function LessonPage() {
             goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}
             hints={interactive ? misses : undefined}
           >
-            {next && !b.done ? (
+            {firstRun ? (
+              <Button block href="/welcome" icon="arrowRight">
+                {copy.welcome.next}
+              </Button>
+            ) : null}
+            {next && !b.done && !firstRun ? (
               <Button block href={`/lesson/${next.id}`} icon="arrowRight">
                 {copy.lesson.nextLesson}
               </Button>
             ) : null}
-            {!next && !b.done ? (
+            {!next && !b.done && !firstRun ? (
               <Button block href="/play" icon="play">
                 {copy.today.heroAllCta}
               </Button>
             ) : null}
-            <Button block variant={!b.done ? "secondary" : "primary"} href="/today" icon="learn">
-              {copy.lesson.back}
-            </Button>
-            {!state.account ? (
+            {firstRun ? null : (
+              <Button block variant={!b.done ? "secondary" : "primary"} href="/today" icon="learn">
+                {copy.lesson.back}
+              </Button>
+            )}
+            {!state.account && !firstRun ? (
               <Button block variant="ghost" href="/signup" icon="shield">
                 {copy.lesson.save}
               </Button>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Share, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
+import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -26,7 +27,7 @@ export default function You() {
   }, [sheet]);
   const { profile, progress, account } = state;
   const rank = rankFor(progress.xp);
-  const earned = earnedBadges(progress);
+  const earned = earnedBadges(progress, state.ratings);
   const saveLook = (patch: { avatar?: AvatarId; flair?: FlairId | null }) => {
     setProfile(patch);
     cue("tap");
@@ -167,6 +168,8 @@ export default function You() {
           ))}
         </View>
       </Card>
+
+      <RatingChart />
 
       <SkillsCard skills={progress.skills} />
 

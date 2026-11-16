@@ -142,7 +142,7 @@ async function playLesson(page, id, name) {
 async function guestStart(page) {
   await page.goto(BASE + "/welcome");
   await page.getByRole("button", { name: "Skip" }).click().catch(() => {});
-  const guest = page.getByRole("button", { name: "Start as a guest" });
+  const guest = page.getByRole("button", { name: "Maybe later" });
   if (await guest.isVisible().catch(() => false)) await guest.click();
   await page.waitForURL("**/today");
 }

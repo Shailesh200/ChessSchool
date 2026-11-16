@@ -1354,6 +1354,30 @@ describe("playing rating", () => {
     expect(await db.select().from(ratings).where(eq(ratings.userId, user.id))).toEqual([]);
     expect(await db.select().from(ratingEvents).where(eq(ratingEvents.userId, user.id))).toEqual([]);
   });
+
+  it("serves the rating history the chart draws, per learner, and deletes it with the account", async () => {
+    const { token, user } = (await call("POST", "/v1/auth/register", { name: "Chart", email: "chart@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("GET", "/v1/me/rating/history", undefined, token)).json).toEqual({ points: [] });
+    const seen: number[] = [];
+    for (const [i, result] of (["win", "win", "loss", "win"] as const).entries()) seen.push((await call("POST", "/v1/me/rating", game(`h-${i}`, { result }), token)).json.ratings.player.rating);
+    await call("POST", "/v1/me/rating", game("h-0", { result: "loss" }), token); // a repeat adds no point
+    const history = (await call("GET", "/v1/me/rating/history", undefined, token)).json.points as { at: number; rating: number }[];
+    expect(history.map((p) => p.rating)).toEqual(seen);
+    expect(history.at(-1)!.rating).toBe((await call("GET", "/v1/me/rating", undefined, token)).json.ratings.player.rating);
+    expect((await call("GET", "/v1/me/rating/history")).status).toBe(401);
+
+    const kid = (await call("POST", "/v1/children", { name: "Riya" }, token)).json.child.id;
+    await call("POST", "/v1/me/rating", { ...game("k-1"), child: kid }, token);
+    expect((await call("GET", `/v1/me/rating/history?child=${kid}`, undefined, token)).json.points).toHaveLength(1);
+    const other = (await call("POST", "/v1/auth/register", { name: "Other", email: "chart2@b.co", password: "pawnpawn" })).json as AuthResponse;
+    expect((await call("GET", `/v1/me/rating/history?child=${kid}`, undefined, other.token)).status).toBe(404);
+
+    const { ratingHistory } = await import("../src/schema");
+    expect((await call("DELETE", `/v1/children/${kid}`, undefined, token)).status).toBe(200);
+    expect(await db.select().from(ratingHistory).where(eq(ratingHistory.learnerId, kid))).toEqual([]);
+    expect((await call("DELETE", "/v1/me", undefined, token)).status).toBe(200);
+    expect(await db.select().from(ratingHistory).where(eq(ratingHistory.userId, user.id))).toEqual([]);
+  });
 });
 
 describe("board scanner", () => {

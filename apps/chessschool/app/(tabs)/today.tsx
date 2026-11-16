@@ -29,6 +29,8 @@ export default function Today() {
   const streak = visibleStreak(progress.streak, today);
   const minutes = minutesToday(progress, today);
   const done = Boolean(progress.completed.meet);
+  const lessonsDone = Object.keys(progress.completed).length;
+  const started = lessonsDone > 0;
   const [goalSeen, setGoalSeen] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
@@ -222,7 +224,8 @@ export default function Today() {
 
       <QuestsCard state={state} today={today} />
 
-      {!state.placementDone && !progress.completed.board ? (
+      {/* Optional: offered only while the learner is at the very start. */}
+      {!state.placementDone && lessonsDone <= 2 ? (
         <Card style={{ gap: 10 }}>
           <T role="heading" header>
             {copy.placement.title}
@@ -332,7 +335,7 @@ export default function Today() {
               {current.title}
             </T>
             <Button
-              title={currentLocked ? copy.today.guestGate.signup : current.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson}
+              title={currentLocked ? copy.today.guestGate.signup : started ? copy.today.continue : current.id === "meet" ? copy.today.heroCta : copy.today.heroCtaLesson}
               icon={currentLocked ? "lock" : "play"}
               onPress={() => (currentLocked ? setGate(true) : openLesson(current.id))}
             />

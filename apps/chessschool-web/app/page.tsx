@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, motion } from "@chessschool/design";
+import { copy, motion, startRoute } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Cody, Fx } from "@/components/Lottie";
@@ -13,12 +13,14 @@ export default function Splash() {
 
   useEffect(() => {
     if (!ready) return;
-    // Signed-out first launch opens Log in. Welcome runs after signup or guest.
-    const dest = state.account || state.seenWelcome ? "/today" : "/login";
+    // A new visitor goes straight into the first lesson; welcome and the account offer come after it.
+    const dest = startRoute(state);
     router.prefetch(dest);
-    const t = setTimeout(() => router.replace(dest), motion.duration.splash);
+    const t = setTimeout(() => router.replace(dest), dest === "/today" ? motion.duration.splash : 300);
     return () => clearTimeout(t);
-  }, [ready, state.account, state.seenWelcome, router]);
+    // Decided once, when the saved state has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, router]);
 
   return (
     <div className="splash" aria-busy="true" aria-label={copy.splash.loading}>

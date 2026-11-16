@@ -146,7 +146,7 @@ async function solvePuzzle(page, wrong = false) {
 async function guest(page) {
   await page.goto(BASE + "/welcome");
   await page.getByRole("button", { name: "Skip" }).click().catch(() => {});
-  await page.getByRole("button", { name: "Start as a guest" }).click().catch(() => {});
+  await page.getByRole("button", { name: "Maybe later" }).click().catch(() => {});
   await page.waitForURL("**/today");
   await page.evaluate(() => {
     const k = "chessschool.v2.state";
@@ -262,7 +262,7 @@ async function mobile() {
   await page.locator(".moment", { hasText: "3 · Big mistake" }).click();
   await expectText(page, "3. Qxe5+ · Big mistake");
   if ((await page.locator(".board-arrows .arrow").count()) !== 2) fail("expected a played and a better arrow");
-  await page.getByRole("button", { name: "Try the better move" }).click();
+  await page.getByRole("button", { name: "Try it" }).click();
   await expectText(page, "Find the better move for White.");
   await page.getByRole("button", { name: "Show me" }).click();
   await expectText(page, "Here it is");

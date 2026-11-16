@@ -2,7 +2,9 @@
   "name": "@chessschool/design",
   "version": "0.4.0",
   "private": true,
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -13,10 +15,13 @@
   "scripts": {
     "generate": "node scripts/generate-assets.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "hindi:review": "tsx scripts/hindi-review.ts"
   },
   "devDependencies": {
+    "@types/node": "^22",
     "typescript": "~5.9.2",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "tsx": "^4.20.6"
   }
 }

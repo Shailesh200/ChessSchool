@@ -42,6 +42,7 @@ import { GymGuestCard } from "@/components/GymGuestCard";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
+import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
 import { SpeakMove } from "@/components/SpeakMove";
@@ -562,7 +563,7 @@ function ResultSheet(props: {
   const sum = summarise(plies, notes, props.side);
   const best = sum.best ? plies[sum.best - 1] : null;
   return (
-    <Sheet visible={props.visible} onClose={props.onClose}>
+    <Sheet visible={props.visible} onClose={props.onClose} scroll>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, alignSelf: "stretch" }}>
         <Cody animation={props.cody} size={84} label={copy.a11y.mascot} />
         <View style={{ flex: 1 }}>
@@ -586,6 +587,7 @@ function ResultSheet(props: {
               {!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(`${Math.ceil(best.ply / 2)}${best.by === "w" ? "." : "…"} ${best.san}`) : copy.analysis.cody(sum.accuracy)}
             </T>
           </View>
+          <KeyMomentCard plies={plies} notes={notes} done={done} side={props.side} orientation={props.side ?? "w"} />
         </>
       ) : null}
       <View style={{ flexDirection: "row", gap: 8, alignSelf: "stretch" }}>

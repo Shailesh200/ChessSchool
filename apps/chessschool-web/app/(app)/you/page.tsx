@@ -4,6 +4,7 @@ import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, focusCo
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, SaveBanner, Segmented, Sheet, TextField, TopBar, useToast } from "@/components/ui";
@@ -29,7 +30,7 @@ export default function YouPage() {
   const { profile, progress, account } = state;
   const rank = rankFor(progress.xp);
   const display = profile.name.trim() || copy.you.noName;
-  const earned = earnedBadges(progress);
+  const earned = earnedBadges(progress, state.ratings);
   // Certificates come from the server, so only signed-in learners have them.
   const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
   const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
@@ -135,6 +136,8 @@ export default function YouPage() {
           ))}
         </ul>
       </Card>
+
+      <RatingChart />
 
       <SkillsCard skills={progress.skills} />
 

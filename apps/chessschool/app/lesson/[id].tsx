@@ -12,7 +12,6 @@ import { useCoachVoice } from "@/lib/voice";
 
 type Before = { id: string; done: boolean; streak: number; goal: boolean };
 
-const close = () => (router.canGoBack() ? router.back() : router.replace("/today"));
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +22,15 @@ export default function LessonScreen() {
   const lesson = loaded ?? course?.lessons.find((l) => l.id === id);
   const hasSteps = Boolean(lesson?.steps);
   const say = useCoachVoice(id);
+  // First run: no account and no welcome yet. The lesson leads on to welcome, never back to an empty stack.
+  const firstRun = !state.account && !state.seenWelcome;
+  const close = () => (firstRun ? router.replace("/welcome") : router.canGoBack() ? router.back() : router.replace("/today"));
+  // A new install with no connection cannot load the lesson: move on rather than wait forever.
+  useEffect(() => {
+    if (!firstRun || hasSteps) return;
+    const t = setTimeout(() => router.replace("/welcome"), 8000);
+    return () => clearTimeout(t);
+  }, [firstRun, hasSteps]);
   useEffect(() => {
     if (hasSteps && id !== "meet") track("lesson_start", { lesson: id });
   }, [id, hasSteps, track]);
@@ -66,9 +74,15 @@ export default function LessonScreen() {
             streak={streak > b.streak ? streak : undefined}
             goalMet={!b.goal && goalMet(state.progress, state.profile.dailyMinutes, today)}
           >
-            {next && !b.done ? <Button title={copy.lesson.nextLesson} icon="arrowRight" onPress={() => router.replace(`/lesson/${next.id}`)} /> : null}
-            <Button title={copy.lesson.back} icon="learn" variant={!b.done && next ? "secondary" : "primary"} onPress={() => router.replace("/today")} />
-            {!state.account ? <Button title={copy.lesson.save} icon="shield" variant="ghost" onPress={() => router.replace("/signup")} /> : null}
+            {firstRun ? (
+              <Button title={copy.welcome.next} icon="arrowRight" onPress={() => router.replace("/welcome")} />
+            ) : (
+              <>
+                {next && !b.done ? <Button title={copy.lesson.nextLesson} icon="arrowRight" onPress={() => router.replace(`/lesson/${next.id}`)} /> : null}
+                <Button title={copy.lesson.back} icon="learn" variant={!b.done && next ? "secondary" : "primary"} onPress={() => router.replace("/today")} />
+                {!state.account ? <Button title={copy.lesson.save} icon="shield" variant="ghost" onPress={() => router.replace("/signup")} /> : null}
+              </>
+            )}
           </LessonDone>
         ) : null
       }

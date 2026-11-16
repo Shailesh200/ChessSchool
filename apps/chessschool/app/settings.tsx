@@ -230,7 +230,7 @@ export default function Settings() {
             if (account) await signOut();
             await resetThisDevice();
             setSheet(null);
-            router.replace("/welcome");
+            router.replace("/");
           }}
         />
         <Button title={s.resetCancel} variant="ghost" onPress={() => setSheet(null)} />

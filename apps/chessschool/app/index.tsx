@@ -1,4 +1,4 @@
-import { copy, motion } from "@chessschool/design";
+import { copy, motion, startRoute } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { Image, View } from "react-native";
@@ -14,11 +14,13 @@ export default function Splash() {
 
   useEffect(() => {
     if (!ready) return;
-    // Signed-out first launch opens Log in. Welcome runs after signup or guest.
-    const dest = state.account || state.seenWelcome ? "/today" : "/login";
-    const t = setTimeout(() => router.replace(dest), motion.duration.splash);
+    // A new install goes straight into the first lesson; welcome and the account offer come after it.
+    const dest = startRoute(state);
+    const t = setTimeout(() => router.replace(dest as "/today"), dest === "/today" ? motion.duration.splash : 300);
     return () => clearTimeout(t);
-  }, [ready, state.account, state.seenWelcome]);
+    // Decided once, when the saved state has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }} accessibilityLabel={copy.splash.loading}>

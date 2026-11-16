@@ -6,7 +6,11 @@ import type { GameRecord, LocalState } from "./progress";
  * strength. Shared by the apps (offline mirror) and the API (the source of truth for accounts).
  */
 export type Glicko = { rating: number; rd: number; vol: number };
-export type Ratings = { player: Glicko & { games: number }; bots: Record<string, number> };
+/**
+ * `best`: the highest rating reached. `bestWin`: the strongest bot beaten (its rating then).
+ * `upset`: the biggest gap won against a stronger bot. All three are absent until they happen.
+ */
+export type Ratings = { player: Glicko & { games: number }; bots: Record<string, number>; best?: number; bestWin?: number; upset?: number };
 
 export const emptyRatings = (): Ratings => ({ player: { rating: 800, rd: 350, vol: 0.06, games: 0 }, bots: {} });
 
@@ -85,7 +89,15 @@ export function applyResult(r: Ratings, e: RatedResult): Ratings {
   const opp = e.kind === "bot" ? { rating: botRatingOf(r, e.bot, e.target), rd: BOT_RD, score: e.score } : { rating: e.puzzleRating, rd: PUZZLE_RD, score: e.solved ? 1 : 0 };
   const next = glicko2(r.player, [opp]);
   const player = { rating: Math.round(Math.max(100, Math.min(3000, next.rating))), rd: Math.round(Math.max(30, Math.min(350, next.rd)) * 10) / 10, vol: Math.min(0.2, next.vol), games: r.player.games + 1 };
-  return { player, bots: e.kind === "bot" ? { ...r.bots, [e.bot]: nudgeBot(opp.rating, e.target, e.score) } : r.bots };
+  const won = e.kind === "bot" && e.score === 1;
+  const gap = Math.round(opp.rating - r.player.rating);
+  return {
+    player,
+    bots: e.kind === "bot" ? { ...r.bots, [e.bot]: nudgeBot(opp.rating, e.target, e.score) } : r.bots,
+    best: Math.max(r.best ?? r.player.rating, player.rating),
+    ...(won || r.bestWin !== undefined ? { bestWin: Math.max(r.bestWin ?? 0, won ? Math.round(opp.rating) : 0) } : {}),
+    ...(won && gap > 0 ? { upset: Math.max(r.upset ?? 0, gap) } : r.upset !== undefined ? { upset: r.upset } : {}),
+  };
 }
 
 /** Accepts anything (storage, API) and returns valid ratings. */
@@ -97,9 +109,16 @@ export function sanitizeRatings(raw: unknown): Ratings {
   const p = (r.player ?? {}) as Partial<Ratings["player"]>;
   const bots: Record<string, number> = {};
   for (const [id, v] of Object.entries(r.bots && typeof r.bots === "object" ? r.bots : {})) if (/^[a-z]{1,16}$/.test(id) && typeof v === "number" && Number.isFinite(v)) bots[id] = Math.round(Math.max(100, Math.min(3000, v)));
+  const peak = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? { v: Math.round(Math.max(0, Math.min(3000, v))) } : null);
+  const best = peak(r.best);
+  const bestWin = peak(r.bestWin);
+  const upset = peak(r.upset);
   return {
     player: { rating: Math.round(num(p.rating, 100, 3000, base.player.rating)), rd: num(p.rd, 30, 350, base.player.rd), vol: num(p.vol, 0.01, 0.2, base.player.vol), games: Math.floor(num(p.games, 0, 1e7, 0)) },
     bots,
+    ...(best ? { best: best.v } : {}),
+    ...(bestWin ? { bestWin: bestWin.v } : {}),
+    ...(upset ? { upset: upset.v } : {}),
   };
 }
 
@@ -130,7 +149,13 @@ export function queueRating(s: LocalState, rated: { input: RateInput; result: Ra
 /** Server ratings for a learner replace the device's copy only when nothing of theirs is still unsent. */
 export function adoptRatings(s: LocalState, learner: string | null, ratings: unknown): LocalState {
   if (s.activeChild !== learner || s.ratingQueue.some((q) => learnerOf(q) === learner)) return s;
-  return { ...s, ratings: sanitizeRatings(ratings) };
+  const next = sanitizeRatings(ratings);
+  // Older server rows have no peaks: keep the higher of the device's and the server's.
+  const peak = (k: "best" | "bestWin" | "upset") => {
+    const v = Math.max(next[k] ?? -1, s.ratings[k] ?? -1);
+    return v >= 0 ? { [k]: v } : {};
+  };
+  return { ...s, ratings: { ...next, ...peak("best"), ...peak("bestWin"), ...peak("upset") } };
 }
 
 /** One queued result reached the server (or was refused for good, with no ratings to adopt). */

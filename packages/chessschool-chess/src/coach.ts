@@ -2,7 +2,7 @@ import type { Chess, Move } from "chess.js";
 import { readFen, squareAt, fileIndex, rankIndex, type Color, type PieceType, type Square } from "./board";
 import { quickEval } from "./engine";
 import { load, withTurn } from "./game";
-import { assessMove, EVAL_CAP, reviewPlies, type MoveVerdict, type ReviewPly } from "./review";
+import { assessMove, decisiveMoment, EVAL_CAP, reviewPlies, type MoveNote, type MoveVerdict, type ReviewPly } from "./review";
 
 /**
  * Mistake detectors for the AI coach and the skills tracker. Each one is a plain board check
@@ -214,4 +214,31 @@ export function coachMoments(startFen: string, history: string[], side: Color | 
     })
     .filter((m): m is CoachMoment => m !== null)
     .sort((a, b) => a.ply - b.ply);
+}
+
+/** Everything the key-moment card shows: the decisive move, what was better, and why (detector tags). */
+export type KeyMomentCard = { ply: number; kind: "mistake" | "great"; by: Color; san: string; move: string; verdict: MoveVerdict; better: string | null; betterMove: MoveNote["betterMove"]; tags: MistakeTag[]; fenBefore: string; fen: string; lastMove: ReviewPly["lastMove"] };
+
+/** The card for a reviewed game, or null when nothing stands out (or the analysis is not there yet). */
+export function keyMomentCard(plies: ReviewPly[], notes: Record<number, MoveNote>, side: Color | null): KeyMomentCard | null {
+  const pick = decisiveMoment(plies, notes, side);
+  const p = pick ? plies[pick.ply - 1] : undefined;
+  const n = p ? notes[p.ply] : undefined;
+  if (!pick || !p || !n) return null;
+  const mistake = pick.kind === "mistake";
+  const facts = mistake ? detectMistakes(p, n.better) : null;
+  return {
+    ply: p.ply,
+    kind: pick.kind,
+    by: p.by,
+    san: p.san,
+    move: `${Math.ceil(p.ply / 2)}${p.by === "w" ? "." : "…"} ${p.san}`,
+    verdict: n.verdict,
+    better: mistake ? (facts?.better ?? n.better) : null,
+    betterMove: mistake ? n.betterMove : null,
+    tags: facts?.tags ?? [],
+    fenBefore: p.fenBefore,
+    fen: p.fen,
+    lastMove: p.lastMove,
+  };
 }
