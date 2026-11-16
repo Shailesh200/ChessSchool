@@ -27,7 +27,7 @@ export function AvatarPicker({ value, onChange }: { value: AvatarId; onChange: (
       {AVATARS.map((id) => {
         const on = id === value;
         return (
-          <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={id === "cody" ? "Cody" : id[0].toUpperCase() + id.slice(1)} onPress={() => onChange(id)} style={{ alignItems: "center", gap: 4, width: 84 }}>
+          <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={id === "cody" ? "Chaukor" : id[0].toUpperCase() + id.slice(1)} onPress={() => onChange(id)} style={{ alignItems: "center", gap: 4, width: 84 }}>
             <View style={{ borderRadius: 40, borderWidth: 3, borderColor: on ? c.brand : "transparent" }}>
               <AvatarFace id={id} size={72} />
             </View>

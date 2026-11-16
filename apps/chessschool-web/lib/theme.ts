@@ -3,8 +3,8 @@ import type { Appearance, BoardColorsId, ThemeId } from "@chessschool/design";
 export const APPEARANCE_KEY = "chessschool.v2.appearance";
 export const THEME_KEY = "chessschool.v2.theme";
 
-/** Runs before first paint (inlined in <head>) so the page never flashes the wrong theme. */
-export const themeBootScript = `(function(){try{var d=document.documentElement;var a=localStorage.getItem("${APPEARANCE_KEY}");if(a==="light"||a==="dark"){d.dataset.theme=a}var t=localStorage.getItem("${THEME_KEY}");if(t&&t!=="classroom"){d.dataset.csTheme=t}}catch(e){}})();`;
+/** Runs before first paint (inlined in <head>) so the page never flashes the wrong theme. A fresh visitor gets Sunset. */
+export const themeBootScript = `(function(){try{var d=document.documentElement;var a=localStorage.getItem("${APPEARANCE_KEY}");if(a==="light"||a==="dark"){d.dataset.theme=a}var t=localStorage.getItem("${THEME_KEY}")||"sunset";if(t==="classroom"){delete d.dataset.csTheme}else{d.dataset.csTheme=t}}catch(e){}})();`;
 
 export function applyAppearance(appearance: Appearance) {
   const el = document.documentElement;

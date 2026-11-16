@@ -216,7 +216,7 @@ async function mobile(scheme) {
   await page.goto(`${BASE}/rooms`);
   await page.waitForURL("**/gym");
   await shot(page, `${p}-14-gym`);
-  await page.getByRole("link", { name: /^Cody\./ }).click();
+  await page.getByRole("link", { name: /^Chaukor\./ }).click();
   await page.waitForURL("**/play?bot=cody");
   await shot(page, `${p}-15-play-setup`);
   await page.getByRole("button", { name: "Start game" }).click();

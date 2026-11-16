@@ -2,9 +2,10 @@ import type { Step } from "@chessschool/chess";
 import { accuracy, copy, dayKey, elapsedSeconds, FLOW_CUES, goalMet, isPerfect, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
+import { Pressable } from "react-native";
 import { LessonDone, type LessonSummary } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
-import { Button } from "@/components/ui";
+import { Button, T } from "@/components/ui";
 import { LessonSkeleton } from "@/components/Skeleton";
 import { useCourse, useLesson } from "@/lib/course";
 import { useApp } from "@/lib/state";
@@ -50,6 +51,15 @@ export default function LessonScreen() {
       key={id}
       steps={lesson.steps as Step[]}
       say={say}
+      topAction={
+        firstRun ? (
+          <Pressable accessibilityRole="link" onPress={() => router.push("/login")} hitSlop={8} style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: 4 }}>
+            <T role="label" color="brandText" numberOfLines={1}>
+              {copy.lesson.haveAccount}
+            </T>
+          </Pressable>
+        ) : null
+      }
       onClose={(step) => {
         track("lesson_quit", { lesson: id, step });
         close();

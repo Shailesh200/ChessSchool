@@ -11,13 +11,13 @@ pnpm --filter @chessschool/design generate   # rebuild everything in assets/
 
 | Path | Source script | What |
 |------|---------------|------|
-| `assets/lottie/cody/*.json` + `manifest.json` | `scripts/cody.mjs` | Cody (Storybook × Clay), 13 animations (bodymovin 5.7, 60 fps, 512²) |
-| `assets/svg/cody.svg` | `scripts/cody.mjs` | Static rest pose (fallback, OG image) |
+| `assets/lottie/cody/*.json` + `manifest.json` | delivered artwork | Chaukor, the mascot: 10 animations (60 fps, 512², shape layers only). Old pose names alias to these in `src/mascot.ts` |
+| `assets/svg/cody.svg` | delivered artwork | Chaukor's rest pose (fallback, share cards, web icons, OG image) |
 | `assets/lottie/fx/*.json` | `scripts/fx.mjs` | `xp-pop`, `streak-spark`, `stamp`, `error-shake`, `splash-mark` (256², no baked text) |
 | `assets/sound/*.wav` | `scripts/sounds.mjs` | Synthesised cues: `tap`, `success`, `stamp`, `gentle-no`, `level-up` |
-| `assets/raster/*` | `scripts/raster.mjs` | Store icons (copied from the published app), PWA icons, maskable, apple-touch, OG image |
+| `assets/raster/*` | `scripts/raster.mjs` | Store icons (copied from the published app), Chaukor favicon, PWA icons, maskable, apple-touch, OG image |
 
-`scripts/lottie-kit.mjs` holds the shared shape/keyframe helpers. All artwork is original and generated from code; nothing is hand-edited.
+`scripts/lottie-kit.mjs` holds the shared shape/keyframe helpers. FX, sounds and rasters are generated from code; the Chaukor files are delivered artwork, copied in as they are.
 
 Preview every animation (with a reduced-motion toggle and a size ladder):
 
@@ -27,26 +27,4 @@ python3 -m http.server 3200   # from the repo root
 # frame strips: ...preview.html?strip=wave:0,18,30;celebrate:0,36,58
 ```
 
-Reduced motion: never autoplay; show `codyPoster[name]` (frame) instead.
-
-## Rig (for a Rive rebuild)
-
-Layer tree, pivots in the 512×512 artboard:
-
-```
-root (256,474) scale 88%       — whole character, headroom for jumps
-├─ shadow (256,474)
-├─ rig (256,472)               — squash & stretch, jump
-│  ├─ armL (180,324)  rest 16°   armR (332,324)  rest −16°
-│  ├─ body (256,472)           — base, bell, collar
-│  └─ head (256,306)           — tilt
-│     ├─ eyes (256,212)        — blink = scaleY 8%; look = translate
-│     ├─ eyesClosed / hearts   — alternate eye sets
-│     ├─ mouth variants        — smile · open · wow · frown · side · tiny
-│     └─ cap (256,96)
-│        ├─ tasselCord
-│        └─ tassel (382,100)   — secondary motion, always lags the head
-└─ extras                      — stars, ?, Zzz, sweat, tears, floating hearts
-```
-
-Rive state machine to build: one `Idle` base state with a random blink, plus triggers `wave`, `celebrate`, `wow` (return to Idle) and booleans `thinking`, `sad`, `sleepy`, `happy`. Eyes and mouth as a nested artboard with one input `expression` (0 smile, 1 open, 2 wow, 3 frown, 4 side, 5 tiny) so any body motion can combine with any face. Drop the exported `cody.riv` in `assets/rive/`; the apps should prefer it when present and fall back to Lottie.
+Reduced motion: never autoplay; show `codyPoster[name]` (frame) instead. One-shot clips settle back to `idle` when they finish.

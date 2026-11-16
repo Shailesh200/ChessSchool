@@ -2,6 +2,7 @@ import { copy, indiaDay, language, monthlyStatus, REPAIR_LESSONS, repairOffer, t
 import { router } from "expo-router";
 import { View } from "react-native";
 import { useApp } from "@/lib/state";
+import { Cody } from "./Lottie";
 import { Button, Card, ProgressBar, T } from "./ui";
 
 /** A streak broken by one missed day: two lessons by tomorrow bring it back. */
@@ -11,9 +12,12 @@ export function StreakRepairCard({ today, onStart }: { today: string; onStart: (
   if (!offer) return null;
   return (
     <Card style={{ gap: 10 }}>
-      <T role="heading" header>
-        {copy.streaks.repairTitle}
-      </T>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Cody animation="streak-danger" size={48} />
+        <T role="heading" header style={{ flex: 1 }}>
+          {copy.streaks.repairTitle}
+        </T>
+      </View>
       <T role="body" color="textMuted">
         {copy.streaks.repairBody(offer.prev, REPAIR_LESSONS - offer.lessons)}
       </T>

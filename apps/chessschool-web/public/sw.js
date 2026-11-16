@@ -1,5 +1,5 @@
 // ChessSchool service worker: offline app shell. API calls are never cached.
-const VERSION = "cs-v0.4.0-5";
+const VERSION = "cs-v0.4.0-6"; // -6: Chaukor art reuses the cody asset paths, so cached copies must go.
 const LESSONS = ["board", "moves", "pawns", "check", "firstGame", "castling", "special", "values", "forks", "pins", "ladder", "queenMate"].map((id) => `/lesson/${id}`);
 const SOUNDS = ["move", "capture", "check", "mate", "castle", "promote", "low-time"].map((id) => `/assets/sound/${id}.wav`);
 const SHELL = ["/", "/welcome", "/today", "/rooms", "/you", "/settings", "/login", "/signup", "/offline", "/orientation", "/play", "/gym", "/gym/review", "/puzzles", "/puzzles/solve", "/puzzles/sprint", "/settings/looks", "/practice", "/practice/session", ...LESSONS, ...SOUNDS, "/manifest.webmanifest"];

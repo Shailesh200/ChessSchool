@@ -258,7 +258,7 @@ async function mobile() {
     return g.id;
   });
   await page.goto(`${BASE}/gym/review/${blunderId}`);
-  await page.waitForFunction(() => !document.body.textContent.includes("Cody is looking"), null, { timeout: 30000 });
+  await page.waitForFunction(() => !document.body.textContent.includes("Chaukor is looking"), null, { timeout: 30000 });
   await page.locator(".moment", { hasText: "3 · Big mistake" }).click();
   await expectText(page, "3. Qxe5+ · Big mistake");
   if ((await page.locator(".board-arrows .arrow").count()) !== 2) fail("expected a played and a better arrow");

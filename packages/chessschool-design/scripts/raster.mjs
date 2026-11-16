@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Store icons (copied from the published app identity) + generated PWA icons and OG image.
+// Store icons (copied from the published app identity) + Chaukor web icons and OG image.
 import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,20 +13,22 @@ mkdirSync(OUT, { recursive: true });
 
 for (const f of ["icon.png", "adaptive-icon.png", "splash-icon.png", "favicon.png"]) copyFileSync(join(SRC, f), join(OUT, f));
 
-const icon = join(OUT, "icon.png");
-await sharp(icon).resize(192, 192).toFile(join(OUT, "pwa-192.png"));
-await sharp(icon).resize(512, 512).toFile(join(OUT, "pwa-512.png"));
-await sharp(icon).resize(180, 180).flatten({ background: "#5B5BD6" }).toFile(join(OUT, "apple-touch-icon.png"));
-await sharp(icon).resize(48, 48).toFile(join(OUT, "favicon-48.png"));
+// Web favicon, PWA and apple-touch icons: Chaukor (assets/svg/cody.svg) on a warm cream square.
+// The native store icons above stay as published.
+const chaukor = readFileSync(join(PKG, "assets/svg/cody.svg"), "utf8").replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+const BG = `<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6EE"/><stop offset="1" stop-color="#FFDCCB"/></linearGradient></defs>`;
+/** Chaukor framed on the cream square; `pad` is the share of the side kept clear around him. */
+const tile = (size, pad) => {
+  const box = 340 / (1 - 2 * pad);
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${256 - box / 2} ${290 - box / 2} ${box} ${box}">${BG}<rect x="-2000" y="-2000" width="5000" height="5000" fill="url(#bg)"/>${chaukor}</svg>`);
+};
+await sharp(tile(192, 0.02)).png().toFile(join(OUT, "pwa-192.png"));
+await sharp(tile(512, 0.02)).png().toFile(join(OUT, "pwa-512.png"));
+await sharp(tile(180, 0.04)).png().toFile(join(OUT, "apple-touch-icon.png"));
+await sharp(tile(48, 0)).png().toFile(join(OUT, "favicon-48.png"));
+// Maskable: Chaukor inside the 80% safe zone.
+await sharp(tile(512, 0.12)).png().toFile(join(OUT, "pwa-maskable-512.png"));
 
-// Maskable: full-bleed brand square with the mark inside the 80% safe zone.
-const mark = await sharp(icon).resize(400, 400).toBuffer();
-await sharp({ create: { width: 512, height: 512, channels: 4, background: "#5B5BD6" } })
-  .composite([{ input: mark, gravity: "center" }])
-  .png()
-  .toFile(join(OUT, "pwa-maskable-512.png"));
-
-// Splash for the native app: Cody on the app background is drawn at runtime; this is the OS splash.
 const cody = readFileSync(join(PKG, "assets/svg/cody.svg"));
 const codyPng = await sharp(cody, { density: 144 }).resize(520, 520).png().toBuffer();
 const og = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
@@ -44,4 +46,4 @@ await sharp(og)
   .png()
   .toFile(join(OUT, "og.png"));
 
-console.log("raster: store icons, pwa icons, og image");
+console.log("raster: store icons, Chaukor web icons, og image");

@@ -1525,6 +1525,19 @@ a.path-inner:hover {
   color: var(--cs-text-muted);
   white-space: nowrap;
 }
+/* First-run lesson: "I have an account" opens log in. */
+.lesson-account {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--cs-brand-text);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .steps {
   flex: 1;
   display: flex;

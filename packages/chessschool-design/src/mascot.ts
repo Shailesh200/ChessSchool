@@ -1,53 +1,52 @@
-/** Cody (Storybook × Clay) animation names (files in assets/lottie/cody/<name>.json). */
-export const codyAnimations = [
-  "idle",
-  "wave",
-  "happy",
-  "giggle",
-  "celebrate",
-  "thinking",
-  "proud",
-  "wow",
-  "oops",
-  "sad-soft",
-  "love",
-  "sleepy",
-  "reading",
-] as const;
-export type CodyAnimation = (typeof codyAnimations)[number];
+/** Chaukor, the mascot (files in assets/lottie/cody/<name>.json; the component keeps the name Cody). */
+export const codyAnimations = ["idle", "correct", "wrong", "lesson-complete", "streak-danger", "streak-saved", "thinking", "celebrate", "sleepy", "wave"] as const;
+export type CodyClip = (typeof codyAnimations)[number];
 
-/** Frame shown instead of playing when reduced motion is on. */
-export const codyPoster: Record<CodyAnimation, number> = {
+/** Older pose names, kept so existing call sites play the closest new clip. */
+export const codyAliases = {
+  happy: "correct",
+  giggle: "correct",
+  love: "correct",
+  oops: "wrong",
+  "sad-soft": "streak-danger",
+  proud: "lesson-complete",
+  wow: "celebrate",
+  reading: "thinking",
+} as const satisfies Record<string, CodyClip>;
+export type CodyAnimation = CodyClip | keyof typeof codyAliases;
+
+export const codyClip = (name: CodyAnimation): CodyClip => (name in codyAliases ? codyAliases[name as keyof typeof codyAliases] : (name as CodyClip));
+
+/** Frame shown instead of playing when reduced motion is on (eyes open, readable pose). */
+export const codyPoster: Record<CodyClip, number> = {
   idle: 0,
-  wave: 32,
-  happy: 22,
-  giggle: 0,
-  celebrate: 40,
+  correct: 62,
+  wrong: 30,
+  "lesson-complete": 10,
+  "streak-danger": 40,
+  "streak-saved": 112,
   thinking: 40,
-  proud: 30,
-  wow: 20,
-  oops: 30,
-  "sad-soft": 40,
-  love: 10,
-  sleepy: 60,
-  reading: 40,
+  celebrate: 114,
+  sleepy: 0,
+  wave: 50,
 };
 
-export const codyLoops: Record<CodyAnimation, boolean> = {
+/** Looping clips; the rest play once and then settle back to idle. */
+export const codyLoops: Record<CodyClip, boolean> = {
   idle: true,
-  wave: false,
-  happy: true,
-  giggle: true,
-  celebrate: false,
+  correct: false,
+  wrong: false,
+  "lesson-complete": false,
+  "streak-danger": true,
+  "streak-saved": false,
   thinking: true,
-  proud: true,
-  wow: false,
-  oops: true,
-  "sad-soft": true,
-  love: true,
+  celebrate: false,
   sleepy: true,
-  reading: true,
+  wave: false,
 };
+
+/** Evening (18:00 local or later) with today's goal not met yet: the streak card shows streak-danger. */
+export const streakAtRisk = (doneToday: boolean, streak: number, now: Date = new Date()) => !doneToday && streak > 0 && now.getHours() >= 18;
 
 /** One-shot effects (assets/lottie/fx/<name>.json). */
 export const fxAnimations = ["xp-pop", "streak-spark", "stamp", "error-shake", "splash-mark"] as const;

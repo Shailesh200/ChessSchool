@@ -353,6 +353,15 @@ describe("Phase 3 progress", () => {
     expect(newBadges({ ...s, badgesSeen: ["firstLesson"] })).toEqual([]);
   });
 
+  it("starts new installs on Sunset and keeps a saved theme", () => {
+    expect(createInitialState("g").prefs.theme).toBe("sunset");
+    expect(hydrateState(null, () => "n").prefs.theme).toBe("sunset");
+    const saved = createInitialState("old");
+    expect(hydrateState({ ...saved, prefs: { ...saved.prefs, theme: "classroom" } }, () => "n").prefs.theme).toBe("classroom");
+    expect(hydrateState({ ...saved, prefs: { ...saved.prefs, theme: "garden" } }, () => "n").prefs.theme).toBe("garden");
+    expect(hydrateState({ ...saved, prefs: { sound: false } }, () => "n").prefs.theme).toBe("classroom");
+  });
+
   it("migrates a Phase 2 saved game and keeps prefs valid", () => {
     const h = hydrateState({ ...createInitialState("old"), activeGame: { history: ["e4"], you: "b", level: "steady", startedAt: 5 }, prefs: { theme: "nope", pieceSet: "pixel" } }, () => "n");
     expect(h.activeGame?.setup.opponent).toEqual({ kind: "bot", bot: "rooky" });

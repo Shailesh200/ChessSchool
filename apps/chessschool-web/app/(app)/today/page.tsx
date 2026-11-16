@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, nextReward, rankFor, todayQuests, visibleStreak, type LocalState, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, nextReward, rankFor, streakAtRisk, todayQuests, visibleStreak, type LocalState, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Flashcards } from "@/components/Flashcards";
@@ -53,7 +53,7 @@ export default function TodayPage() {
       <SavedCeremony />
       <ArrivalCeremony streak={streak} />
       <header className="today-head">
-        <Cody animation={done ? "happy" : "idle"} size={72} className="today-cody" />
+        <Cody animation={streakAtRisk(progress.streak.lastDay === today, streak, now) ? "streak-danger" : "idle"} size={72} className="today-cody" />
         <div className="today-hello">
           <h1>
             {greetingFor(now)}, {name}

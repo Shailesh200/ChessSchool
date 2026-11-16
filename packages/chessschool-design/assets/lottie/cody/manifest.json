@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "fps": 60,
   "size": [
     512,
@@ -9,93 +8,112 @@
     {
       "name": "idle",
       "file": "idle.json",
-      "frames": 180,
+      "frames": 150,
+      "seconds": 2.5,
       "loop": true,
+      "bytes": 25495,
+      "layers": 19,
+      "use": "Default state on the lesson screen and home",
+      "poster": 0
+    },
+    {
+      "name": "correct",
+      "file": "correct.json",
+      "frames": 66,
+      "seconds": 1.1,
+      "loop": false,
+      "bytes": 30611,
+      "layers": 24,
+      "use": "Right answer / good move",
+      "poster": 62
+    },
+    {
+      "name": "wrong",
+      "file": "wrong.json",
+      "frames": 62,
+      "seconds": 1.03,
+      "loop": false,
+      "bytes": 30862,
+      "layers": 20,
+      "use": "Wrong answer / blunder",
+      "poster": 30
+    },
+    {
+      "name": "lesson-complete",
+      "file": "lesson-complete.json",
+      "frames": 170,
+      "seconds": 2.83,
+      "loop": false,
+      "bytes": 64080,
+      "layers": 44,
+      "use": "Lesson finished (hero moment)",
+      "poster": 10
+    },
+    {
+      "name": "streak-danger",
+      "file": "streak-danger.json",
+      "frames": 180,
+      "seconds": 3,
+      "loop": true,
+      "bytes": 36613,
+      "layers": 21,
+      "use": "Streak about to break (home card, reminder)",
+      "poster": 40
+    },
+    {
+      "name": "streak-saved",
+      "file": "streak-saved.json",
+      "frames": 126,
+      "seconds": 2.1,
+      "loop": false,
+      "bytes": 76393,
+      "layers": 26,
+      "use": "Streak kept after a late lesson",
+      "poster": 112
+    },
+    {
+      "name": "thinking",
+      "file": "thinking.json",
+      "frames": 180,
+      "seconds": 3,
+      "loop": true,
+      "bytes": 35747,
+      "layers": 19,
+      "use": "Hint loading / coach analysing a move",
+      "poster": 40
+    },
+    {
+      "name": "celebrate",
+      "file": "celebrate.json",
+      "frames": 126,
+      "seconds": 2.1,
+      "loop": false,
+      "bytes": 58945,
+      "layers": 21,
+      "use": "Badge, level-up, puzzle streak",
+      "poster": 114
+    },
+    {
+      "name": "sleepy",
+      "file": "sleepy.json",
+      "frames": 240,
+      "seconds": 4,
+      "loop": true,
+      "bytes": 41052,
+      "layers": 22,
+      "use": "Night-time, long inactivity, empty states",
       "poster": 0
     },
     {
       "name": "wave",
       "file": "wave.json",
-      "frames": 120,
-      "loop": false,
-      "poster": 32
-    },
-    {
-      "name": "happy",
-      "file": "happy.json",
-      "frames": 72,
-      "loop": true,
-      "poster": 22
-    },
-    {
-      "name": "giggle",
-      "file": "giggle.json",
-      "frames": 96,
-      "loop": true,
-      "poster": 0
-    },
-    {
-      "name": "celebrate",
-      "file": "celebrate.json",
-      "frames": 120,
-      "loop": false,
-      "poster": 40
-    },
-    {
-      "name": "thinking",
-      "file": "thinking.json",
-      "frames": 150,
-      "loop": true,
-      "poster": 40
-    },
-    {
-      "name": "proud",
-      "file": "proud.json",
-      "frames": 120,
-      "loop": true,
-      "poster": 30
-    },
-    {
-      "name": "wow",
-      "file": "wow.json",
       "frames": 90,
+      "seconds": 1.5,
       "loop": false,
-      "poster": 20
-    },
-    {
-      "name": "oops",
-      "file": "oops.json",
-      "frames": 120,
-      "loop": true,
-      "poster": 30
-    },
-    {
-      "name": "sad-soft",
-      "file": "sad-soft.json",
-      "frames": 150,
-      "loop": true,
-      "poster": 40
-    },
-    {
-      "name": "love",
-      "file": "love.json",
-      "frames": 120,
-      "loop": true,
-      "poster": 10
-    },
-    {
-      "name": "sleepy",
-      "file": "sleepy.json",
-      "frames": 180,
-      "loop": true,
-      "poster": 60
-    },
-    {
-      "name": "reading",
-      "file": "reading.json",
-      "frames": 180,
-      "loop": true,
-      "poster": 40
+      "bytes": 27664,
+      "layers": 19,
+      "use": "Greeting, onboarding, coach hello",
+      "poster": 50
     }
   ]
 }

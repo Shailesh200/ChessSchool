@@ -44,7 +44,7 @@ function MateBoard({ puzzle, onTry }: { puzzle: MateResponse["puzzle"]; onTry: (
     <BoardStage
       top={
         <>
-          <Cody animation={s.status === "solved" ? "happy" : s.status === "failed" ? "oops" : "thinking"} size={48} />
+          <Cody animation={s.status === "solved" ? "correct" : s.status === "failed" ? "wrong" : "thinking"} size={48} />
           <T role="label" style={{ flex: 1 }}>
             {copy.mate.yourMove}
           </T>

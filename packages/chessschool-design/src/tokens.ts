@@ -197,11 +197,11 @@ export const motion = {
 export type ThemeId = "classroom" | "garden" | "sunset" | "ocean" | "midnight" | "library" | "contrast";
 export type ThemeInfo = { id: ThemeId; name: string; blurb: string; scheme: Scheme | "auto" };
 
-/** Classroom follows the Appearance setting (light/dark); every other theme is one committed look. */
+/** Sunset is the default for new installs. Classroom follows the Appearance setting (light/dark); every other theme is one committed look. */
 export const THEMES: readonly ThemeInfo[] = [
-  { id: "classroom", name: "Classroom", blurb: "Indigo, light or dark", scheme: "auto" },
-  { id: "garden", name: "Garden", blurb: "Sage and cream", scheme: "light" },
   { id: "sunset", name: "Sunset", blurb: "Warm peach and coral", scheme: "light" },
+  { id: "garden", name: "Garden", blurb: "Sage and cream", scheme: "light" },
+  { id: "classroom", name: "Classroom", blurb: "Indigo, light or dark", scheme: "auto" },
   { id: "ocean", name: "Ocean", blurb: "Deep teal", scheme: "dark" },
   { id: "midnight", name: "Midnight", blurb: "True black and gold", scheme: "dark" },
   { id: "library", name: "Library", blurb: "Wood and paper", scheme: "light" },

@@ -43,8 +43,8 @@ function withTaughtRecap(node: ReactNode, steps: Step[]): ReactNode {
 function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
   if (s.botThinking) return "thinking";
   if (s.gameOver?.kind === "checkmate") return s.gameOver.winner === "w" ? "celebrate" : "proud";
-  if (s.feedback?.tone === "good") return "happy";
-  if (s.feedback?.tone === "hint") return "oops";
+  if (s.feedback?.tone === "good") return "correct";
+  if (s.feedback?.tone === "hint") return "wrong";
   return step?.pose ?? "idle";
 }
 
@@ -118,6 +118,8 @@ type Props = {
   /** Called with the step the learner left on. */
   onClose: (step: number) => void;
   closeLabel?: string;
+  /** Shown at the top right, e.g. "I have an account" on the first-run lesson. */
+  topAction?: React.ReactNode;
   /** Called once when the last step is passed, with the misses and the run tally (combo, clean steps, start time). */
   onFinished: (misses: number, tally: Tally) => void;
   /** Called when a step is solved, with whether the learner missed on it first (practice uses it for review). */
@@ -127,7 +129,7 @@ type Props = {
   done: React.ReactNode;
 };
 
-export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, onFinished, onStep, say, done }: Props) {
+export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, topAction, onFinished, onStep, say, done }: Props) {
   const { cue } = useApp();
   const { c } = useTheme();
   const { width: screen, fontScale } = useWindowDimensions();
@@ -194,7 +196,8 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, o
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, height: TOP_H }}>
       {s.status === "finished" ? <View style={{ width: 48 }} /> : <IconButton icon="close" label={closeLabel} onPress={() => onClose(s.index)} />}
       <Steps count={total} current={s.status === "finished" ? total - 1 : s.index} label={copy.lesson.progress(Math.min(s.index + 1, total), total)} />
-      {combo >= COMBO_MIN && s.status !== "finished" ? <ComboMeter n={combo} /> : <View style={{ width: 48 }} />}
+      {combo >= COMBO_MIN && s.status !== "finished" ? <ComboMeter n={combo} /> : topAction ? null : <View style={{ width: 48 }} />}
+      {topAction}
     </View>
   );
 

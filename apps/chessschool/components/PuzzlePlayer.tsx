@@ -68,7 +68,7 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
         top={
           top ?? (
             <>
-              <Cody animation={s.status === "solved" ? "happy" : s.status === "failed" ? "oops" : "thinking"} size={48} />
+              <Cody animation={s.status === "solved" ? "correct" : s.status === "failed" ? "wrong" : "thinking"} size={48} />
               <T role="label" style={{ flex: 1 }}>
                 {copy.puzzles.title}
               </T>

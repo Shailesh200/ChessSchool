@@ -68,7 +68,7 @@ export function PuzzlePlayer({ puzzle, onResult, sprint, top, actions }: Props) 
         top={
           top ?? (
             <div className="player">
-              <Cody animation={s.status === "solved" ? "happy" : s.status === "failed" ? "oops" : "thinking"} size={48} />
+              <Cody animation={s.status === "solved" ? "correct" : s.status === "failed" ? "wrong" : "thinking"} size={48} />
               <p className="player-name">{copy.puzzles.title}</p>
               <span className="chip chip-gold" aria-label={`${copy.puzzles.rating} ${puzzle.rating}`}>
                 {puzzle.rating}
