@@ -152,6 +152,7 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
         ) : null}
         <TextField
           ref={emailRef}
+          testID="email-input"
           label={copy.auth.email}
           placeholder={copy.auth.emailPlaceholder}
           value={email}
@@ -167,6 +168,7 @@ export function AuthForm({ mode, initialEmail = "", topSpacing = 8 }: { mode: "l
         />
         <TextField
           ref={pwRef}
+          testID="password-input"
           label={copy.auth.password}
           placeholder={signup ? copy.auth.passwordPlaceholder : undefined}
           password

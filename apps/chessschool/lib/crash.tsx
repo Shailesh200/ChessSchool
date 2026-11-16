@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import { Component, useSyncExternalStore, type ReactNode } from "react";
-import { Alert, Pressable, ScrollView, Text, useColorScheme, View } from "react-native";
+import { Alert, DevSettings, Pressable, ScrollView, Text, useColorScheme, View } from "react-native";
 
 /**
  * Fatal JS errors show a friendly "Restart" screen instead of closing the app, and reach Sentry even when the app
@@ -26,7 +26,8 @@ const asError = (e: unknown) => (e instanceof Error ? e : new Error(String(e)));
 const detail = (e: Error) => `${e.name}: ${e.message}\n\n${String(e.stack ?? "").split("\n").slice(0, 8).join("\n")}`;
 
 export function restart() {
-  Updates.reloadAsync().catch(() => {});
+  // reloadAsync rejects when expo-updates is off (simulator and test builds); RN can still reload the bundle.
+  Updates.reloadAsync().catch(() => DevSettings.reload());
 }
 
 export function installFatalHandler() {

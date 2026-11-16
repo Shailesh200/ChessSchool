@@ -26,9 +26,11 @@ env:
       - tapOn:
           text: "Open"
           optional: true
-      - tapOn: "Email"
+      - tapOn:
+          id: "email-input"
       - inputText: ${EMAIL}
-      - tapOn: "Password"
+      - tapOn:
+          id: "password-input"
       - inputText: ${PASSWORD}
       - hideKeyboard
       - tapOn: "Log in"
