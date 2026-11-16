@@ -9,7 +9,9 @@ eas.build["device-test"] = {
   extends: "production",
   distribution: "internal",
   channel: "device-test",
-  env: { ...eas.build.production.env, EXPO_PUBLIC_DEVICE_TEST: "1", EXPO_PUBLIC_SENTRY_DSN: "" },
+  // The DSN lives only in the EAS "production" environment; EAS refuses an empty env value.
+  environment: "preview",
+  env: { ...eas.build.production.env, EXPO_PUBLIC_DEVICE_TEST: "1" },
   ios: { ...eas.build.production.ios, simulator: true },
   android: { ...eas.build.production.android, buildType: "apk" },
 };
