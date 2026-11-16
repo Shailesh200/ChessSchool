@@ -19,7 +19,7 @@ You review the Hindi translation of ChessSchool, a chess school app for children
 - Address the learner as "आप" with matching verbs ("खेलें", "चुनें", "आप जीत गए"). Never तुम/तू.
 - Use the glossary at the top of `copy.hi.ts` for chess terms: राजा, रानी, हाथी, ऊँट, घोड़ा, प्यादा, शह, शह-मात, कैसलिंग, ड्रॉ. Inflected forms are fine (प्यादे, घोड़े). Bot names (Professor Bishop → प्रोफ़ेसर बिशप) are names, not pieces.
 - Keep it short and warm: buttons of 3 words or fewer, sentences of 15 words or fewer, same meaning as the English.
-- Keep these in Latin letters: ChessSchool, Google, Apple, Lichess, Chess.com, PGN, XP, AI, square names (e4), font names. Cody is कोडी in sentences.
+- Keep these in Latin letters: ChessSchool, Google, Apple, Lichess, Chess.com, PGN, XP, AI, square names (e4), font names. The mascot Chaukor is चौकोर in sentences.
 - Function lines must use every argument the English uses (`${n}`, `${name}`), in a grammatical place; Hindi plurals usually do not need the English `n === 1` split, but keep it when the noun changes (चाल/चालें).
 
 ## Output
