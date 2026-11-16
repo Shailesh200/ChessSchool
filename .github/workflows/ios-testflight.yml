@@ -97,6 +97,13 @@ jobs:
 
       - name: Build the iOS app
         working-directory: apps/chessschool
+        # The API key lets EAS sync capabilities (e.g. Associated Domains) and renew the profile without an Apple login.
+        env:
+          EXPO_ASC_API_KEY_PATH: ${{ env.ASC_KEY_PATH }}
+          EXPO_ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          EXPO_APPLE_TEAM_ID: ARDSWV5GD2
+          EXPO_APPLE_TEAM_TYPE: INDIVIDUAL
         run: eas build --platform ios --profile production --local --non-interactive --output "$RUNNER_TEMP/ChessSchool.ipa"
 
       - name: Upload to TestFlight
