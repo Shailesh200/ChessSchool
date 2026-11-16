@@ -33,7 +33,7 @@ env:
           timeout: 20000
       - tapOn: "Start game"
       - extendedWaitUntil:
-          visible: "vs Cody"
+          visible: "vs Chaukor"
           timeout: 15000
       - tapOn:
           id: "square-e2"

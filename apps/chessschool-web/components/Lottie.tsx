@@ -1,8 +1,8 @@
 "use client";
 
-import { codyLoops, codyPoster, type CodyAnimation, type FxAnimation } from "@chessschool/design";
+import { codyClip, codyLoops, codyPoster, type CodyAnimation, type CodyClip, type FxAnimation } from "@chessschool/design";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LottieRefCurrentProps } from "lottie-react";
 import { useReducedMotion } from "@/lib/hooks";
 
@@ -80,6 +80,7 @@ function Player({ src, loop, poster, size, label, fallback, onComplete, classNam
   );
 }
 
+/** Chaukor. One-shot clips settle back to idle when they finish; reduced motion shows the clip's poster frame. */
 export function Cody({
   animation = "idle",
   size = 120,
@@ -93,15 +94,27 @@ export function Cody({
   onComplete?: () => void;
   className?: string;
 }) {
+  const clip = codyClip(animation);
+  return <CodyClipPlayer key={clip} clip={clip} size={size} label={label} onComplete={onComplete} className={className} />;
+}
+
+function CodyClipPlayer({ clip, size, label, onComplete, className }: { clip: CodyClip; size: number; label?: string; onComplete?: () => void; className?: string }) {
+  const reduced = useReducedMotion();
+  const [settled, setSettled] = useState(false);
+  const now = settled ? "idle" : clip;
+  const finish = useCallback(() => {
+    onComplete?.();
+    if (!reduced && !codyLoops[clip]) setSettled(true);
+  }, [onComplete, reduced, clip]);
   return (
     <Player
-      key={animation}
-      src={`/assets/lottie/cody/${animation}.json`}
-      loop={codyLoops[animation]}
-      poster={codyPoster[animation]}
+      key={now}
+      src={`/assets/lottie/cody/${now}.json`}
+      loop={codyLoops[now]}
+      poster={codyPoster[now]}
       size={size}
       label={label}
-      onComplete={onComplete}
+      onComplete={settled ? undefined : finish}
       className={className}
       fallback={<img src="/assets/svg/cody.svg" alt="" width={size} height={size} />}
     />

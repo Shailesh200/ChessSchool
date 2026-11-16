@@ -1,4 +1,4 @@
-import { copy, dayKey, focusCourse, greetingFor, minutesToday, nextReward, rankFor, space, todayQuests, visibleStreak, type Course, type LocalState, type Placement } from "@chessschool/design";
+import { copy, dayKey, focusCourse, greetingFor, minutesToday, nextReward, rankFor, space, streakAtRisk, todayQuests, visibleStreak, type Course, type LocalState, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useEffect, useState } from "react";
@@ -199,7 +199,7 @@ export default function Today() {
       ) : null}
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Cody animation={done ? "happy" : "idle"} size={68} />
+        <Cody animation={streakAtRisk(progress.streak.lastDay === today, streak, now) ? "streak-danger" : "idle"} size={68} />
         <View style={{ flex: 1 }}>
           <T role="title" header>
             {`${greetingFor(now)}, ${name}`}

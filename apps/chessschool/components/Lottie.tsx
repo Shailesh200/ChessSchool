@@ -1,7 +1,7 @@
-import { codyLoops, codyPoster, type CodyAnimation, type FxAnimation } from "@chessschool/design";
+import { codyClip, codyLoops, codyPoster, type CodyAnimation, type CodyClip, type FxAnimation } from "@chessschool/design";
 import { useNavigation } from "expo-router";
 import LottieView, { type AnimationObject } from "lottie-react-native";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import { codySources, fxSources } from "@/lib/assets";
 import { useReducedMotion } from "@/lib/hooks";
@@ -42,7 +42,7 @@ function Player({ source, loop, poster, size, label, onFinish, style }: { source
         autoPlay={!still}
         loop={still ? false : loop}
         progress={still ? poster / frames(source) : undefined}
-        onAnimationFinish={still ? undefined : onFinish}
+        onAnimationFinish={still ? undefined : (cancelled) => !cancelled && onFinish?.()}
         style={{ width: size, height: size }}
         resizeMode="contain"
       />
@@ -50,8 +50,20 @@ function Player({ source, loop, poster, size, label, onFinish, style }: { source
   );
 }
 
+/** Chaukor. One-shot clips settle back to idle when they finish; reduced motion shows the clip's poster frame. */
 export function Cody({ animation = "idle", size = 120, label, onFinish, style }: { animation?: CodyAnimation; size?: number; label?: string; onFinish?: () => void; style?: StyleProp<ViewStyle> }) {
-  return <Player key={animation} source={codySources[animation]} loop={codyLoops[animation]} poster={codyPoster[animation]} size={size} label={label} onFinish={onFinish} style={style} />;
+  const clip = codyClip(animation);
+  return <CodyClipPlayer key={clip} clip={clip} size={size} label={label} onFinish={onFinish} style={style} />;
+}
+
+function CodyClipPlayer({ clip, size, label, onFinish, style }: { clip: CodyClip; size: number; label?: string; onFinish?: () => void; style?: StyleProp<ViewStyle> }) {
+  const [settled, setSettled] = useState(false);
+  const now = settled ? "idle" : clip;
+  const finish = () => {
+    onFinish?.();
+    if (!codyLoops[clip]) setSettled(true);
+  };
+  return <Player key={now} source={codySources[now]} loop={codyLoops[now]} poster={codyPoster[now]} size={size} label={label} onFinish={settled ? undefined : finish} style={style} />;
 }
 
 const fxPoster: Record<FxAnimation, number> = { "xp-pop": 26, "streak-spark": 30, stamp: 28, "error-shake": 36, "splash-mark": 60 };

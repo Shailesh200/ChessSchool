@@ -250,7 +250,7 @@ export function createInitialState(guestId: string): LocalState {
     guestId,
     seenWelcome: false,
     profile: { name: "", who: null, dailyMinutes: 10, avatar: "cody", flair: null },
-    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "classroom", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null, boardColors: "theme", easyFont: false, reduceMotion: false },
+    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "sunset", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null, boardColors: "theme", easyFont: false, reduceMotion: false },
     progress: emptyProgress(),
     account: null,
     pendingCeremony: null,
@@ -363,7 +363,8 @@ function hydratePrefs(base: Prefs, raw: unknown): Prefs {
   const p = { ...base, ...((raw as Partial<Prefs>) ?? {}) };
   return {
     ...p,
-    theme: isThemeId(p.theme) ? p.theme : "classroom",
+    // A saved state predates the Sunset default, so a missing or unknown theme stays Classroom.
+    theme: isThemeId((raw as Partial<Prefs> | undefined)?.theme) ? p.theme : "classroom",
     pieceSet: typeof p.pieceSet === "string" && KEPT_PIECE_SETS.has(p.pieceSet) ? p.pieceSet : "toy",
     coords: p.coords !== false,
     legalDots: p.legalDots !== false,

@@ -15,8 +15,8 @@ import { Button } from "./ui";
 function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
   if (s.botThinking) return "thinking";
   if (s.gameOver?.kind === "checkmate") return s.gameOver.winner === "w" ? "celebrate" : "proud";
-  if (s.feedback?.tone === "good") return "happy";
-  if (s.feedback?.tone === "hint") return "oops";
+  if (s.feedback?.tone === "good") return "correct";
+  if (s.feedback?.tone === "hint") return "wrong";
   return step?.pose ?? "idle";
 }
 
@@ -45,6 +45,8 @@ type Props = {
   steps: Step[];
   closeHref: string;
   closeLabel?: string;
+  /** Shown at the top right, e.g. "I have an account" on the first-run lesson. */
+  topAction?: React.ReactNode;
   /** Called with the step the learner left on, before leaving. */
   onClose?: (step: number) => void;
   /** Called once when the last step is passed, with the misses and the run tally (combo, clean steps, start time). */
@@ -56,7 +58,7 @@ type Props = {
   done: React.ReactNode;
 };
 
-export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close, onClose, onFinished, onStep, say, done }: Props) {
+export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close, topAction, onClose, onFinished, onStep, say, done }: Props) {
   const { cue } = useApp();
   const router = useRouter();
   const [s, setS] = useState(() => startRunner(steps));
@@ -200,9 +202,10 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
             <Icon name="bolt" size={16} />
             {copy.lesson.combo(combo)}
           </span>
-        ) : (
+        ) : topAction ? null : (
           <span className="icon-btn-spacer" />
         )}
+        {topAction}
       </header>
 
       <div className="lesson-stage" data-kind={step.kind}>

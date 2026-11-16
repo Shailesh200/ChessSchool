@@ -23,11 +23,11 @@ export type BotInfo = {
 
 export const BOTS: readonly BotInfo[] = [
   { id: "pip", name: "Pip", level: 1, blurb: "Just learned the moves. Loves shiny captures.", strength: "First games", rating: 400, takebacks: true },
-  { id: "cody", name: "Cody", level: 2, blurb: "Plays gently and makes friendly mistakes.", strength: "Beginner", rating: 700, takebacks: true },
+  { id: "cody", name: "Chaukor", level: 2, blurb: "Plays gently and makes friendly mistakes.", strength: "Beginner", rating: 700, takebacks: true },
   { id: "rooky", name: "Rooky", level: 3, blurb: "Never leaves a piece hanging if it can help it.", strength: "Improving", rating: 1000, takebacks: true },
   { id: "bishop", name: "Professor Bishop", level: 4, blurb: "Thinks two moves ahead and loves tricky diagonals.", strength: "Club beginner", rating: 1250, takebacks: false },
   { id: "ivy", name: "Queen Ivy", level: 5, blurb: "Sharp tactics. Punishes loose pieces.", strength: "Club player", rating: 1500, takebacks: false },
-  { id: "atlas", name: "King Atlas", level: 6, blurb: "Cody's toughest friend. Calculates deeply.", strength: "Strong club", rating: 1800, takebacks: false },
+  { id: "atlas", name: "King Atlas", level: 6, blurb: "Chaukor's toughest friend. Calculates deeply.", strength: "Strong club", rating: 1800, takebacks: false },
 ];
 export const BOT_LEVELS: readonly BotId[] = BOTS.map((b) => b.id);
 export const botInfo = (id: BotId) => BOTS.find((b) => b.id === id)!;

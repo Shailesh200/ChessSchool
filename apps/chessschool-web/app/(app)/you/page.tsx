@@ -253,7 +253,7 @@ export default function YouPage() {
           {AVATARS.map((id) => (
             <button key={id} type="button" role="radio" aria-checked={profile.avatar === id} className={`avatar-pick${profile.avatar === id ? " is-on" : ""}`} onClick={() => saveLook({ avatar: id })}>
               {id === "cody" ? <Cody animation="idle" size={64} /> : <img src={`/coaches/${id}.png`} alt="" width={72} height={72} />}
-              <span>{id === "cody" ? "Cody" : id[0].toUpperCase() + id.slice(1)}</span>
+              <span>{id === "cody" ? "Chaukor" : id[0].toUpperCase() + id.slice(1)}</span>
             </button>
           ))}
         </div>

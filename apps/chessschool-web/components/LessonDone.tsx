@@ -1,7 +1,7 @@
 "use client";
 
-import { copy } from "@chessschool/design";
-import { useEffect, useRef } from "react";
+import { copy, type CodyAnimation } from "@chessschool/design";
+import { useEffect, useRef, useState } from "react";
 import { Cody, Fx } from "./Lottie";
 
 export type LessonSummary = { xp: number; accuracy: number; seconds: number; perfectBonus?: number; best: number };
@@ -9,6 +9,8 @@ export type LessonSummary = { xp: number; accuracy: number; seconds: number; per
 /** The end-of-lesson moment: stamp, Cody, earned XP and streak, the lesson summary, then what's next. */
 export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, summary, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; hints?: number; summary?: LessonSummary; children: React.ReactNode }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // Lesson finished, then (when today's streak or goal just landed) the streak-saved beat.
+  const [pose, setPose] = useState<CodyAnimation>("lesson-complete");
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
@@ -16,7 +18,7 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, sum
     <>
       <div className="seal">
         <Fx name="stamp" size={180} className="seal-stamp" />
-        <Cody animation="celebrate" size={150} className="seal-cody" label={copy.a11y.mascot} />
+        <Cody animation={pose} onComplete={() => (streak || goalMet) && setPose("streak-saved")} size={150} className="seal-cody" label={copy.a11y.mascot} />
       </div>
       <div className="done-chips">
         {xp ? (

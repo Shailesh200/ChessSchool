@@ -134,7 +134,7 @@ export default function LearnersPage() {
           {AVATARS.map((id) => (
             <button key={id} type="button" role="radio" aria-checked={avatar === id} className="choice" onClick={() => setAvatar(id)}>
               <Face id={id} size={40} />
-              <span>{id === "cody" ? "Cody" : id[0].toUpperCase() + id.slice(1)}</span>
+              <span>{id === "cody" ? "Chaukor" : id[0].toUpperCase() + id.slice(1)}</span>
               {avatar === id ? <Icon name="check" /> : null}
             </button>
           ))}

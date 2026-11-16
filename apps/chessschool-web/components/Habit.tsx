@@ -3,6 +3,7 @@
 import { copy, indiaDay, language, monthlyStatus, REPAIR_LESSONS, repairOffer, type LocalState } from "@chessschool/design";
 import { useApp } from "@/lib/state";
 import { Icon } from "./Icon";
+import { Cody } from "./Lottie";
 import { Button, Card, ProgressBar } from "./ui";
 
 /** A streak broken by one missed day: two lessons by tomorrow bring it back. */
@@ -13,7 +14,7 @@ export function StreakRepairCard({ today, lessonHref }: { today: string; lessonH
   return (
     <Card className="habit-card is-repair" aria-labelledby="repair-title">
       <h2 id="repair-title" className="card-title">
-        <Icon name="bolt" /> {copy.streaks.repairTitle}
+        <Cody animation="streak-danger" size={40} /> {copy.streaks.repairTitle}
       </h2>
       <p className="muted">{copy.streaks.repairBody(offer.prev, REPAIR_LESSONS - offer.lessons)}</p>
       <ProgressBar value={offer.lessons / REPAIR_LESSONS} label={copy.quests.a11y(copy.streaks.repairTitle, offer.lessons, REPAIR_LESSONS)} />

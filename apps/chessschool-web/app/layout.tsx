@@ -53,7 +53,7 @@ ${boardCss}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${baloo.variable} ${atkinson.variable}`} suppressHydrationWarning>
+    <html lang="en" data-cs-theme="sunset" className={`${fredoka.variable} ${baloo.variable} ${atkinson.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <style dangerouslySetInnerHTML={{ __html: tokenCss }} />
