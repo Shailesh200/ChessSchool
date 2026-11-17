@@ -41,7 +41,7 @@
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#5B5BD6"
+        "backgroundColor": "#FFE9DC"
       },
       "permissions": [
         "android.permission.VIBRATE",
@@ -147,7 +147,7 @@
         {
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
-          "backgroundColor": "#FBFAFF",
+          "backgroundColor": "#FFF6EE",
           "dark": {
             "image": "./assets/splash-icon.png",
             "backgroundColor": "#14152B"

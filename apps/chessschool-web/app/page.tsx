@@ -3,7 +3,7 @@
 import { copy, motion, startRoute } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Cody, Fx } from "@/components/Lottie";
+import { Cody } from "@/components/Lottie";
 import { Wordmark } from "@/components/Wordmark";
 import { useApp } from "@/lib/state";
 
@@ -25,7 +25,6 @@ export default function Splash() {
   return (
     <div className="splash" aria-busy="true" aria-label={copy.splash.loading}>
       <div className="splash-stage">
-        <Fx name="splash-mark" size={132} className="splash-mark" />
         <Cody animation="wave" size={150} label={copy.a11y.mascot} />
       </div>
       <Wordmark size="lg" />

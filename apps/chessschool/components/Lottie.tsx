@@ -24,7 +24,10 @@ function useScreenFocused(): boolean {
   );
 }
 
-function Player({ source, loop, poster, size, label, onFinish, style }: { source: object; loop: boolean; poster: number; size: number; label?: string; onFinish?: () => void; style?: StyleProp<ViewStyle> }) {
+/** Chaukor fills about half of his 512 canvas (room for jumps); drawn this much larger so he reads at every size. */
+const CODY_ZOOM = 1.4;
+
+function Player({ source, loop, poster, size, label, onFinish, style, zoom = 1 }: { source: object; loop: boolean; poster: number; size: number; label?: string; onFinish?: () => void; style?: StyleProp<ViewStyle>; zoom?: number }) {
   const reduced = useReducedMotion();
   const focused = useScreenFocused();
   const still = reduced || !focused;
@@ -43,7 +46,8 @@ function Player({ source, loop, poster, size, label, onFinish, style }: { source
         loop={still ? false : loop}
         progress={still ? poster / frames(source) : undefined}
         onAnimationFinish={still ? undefined : (cancelled) => !cancelled && onFinish?.()}
-        style={{ width: size, height: size }}
+        // Zoomed around his body (a little below the canvas centre); the overflow is only empty canvas or a jump.
+        style={{ width: size * zoom, height: size * zoom, marginLeft: (size - size * zoom) / 2, marginTop: (size - size * zoom) / 2 - size * zoom * 0.06 }}
         resizeMode="contain"
       />
     </View>
@@ -63,7 +67,7 @@ function CodyClipPlayer({ clip, size, label, onFinish, style }: { clip: CodyClip
     onFinish?.();
     if (!codyLoops[clip]) setSettled(true);
   };
-  return <Player key={now} source={codySources[now]} loop={codyLoops[now]} poster={codyPoster[now]} size={size} label={label} onFinish={settled ? undefined : finish} style={style} />;
+  return <Player key={now} source={codySources[now]} loop={codyLoops[now]} poster={codyPoster[now]} size={size} label={label} onFinish={settled ? undefined : finish} style={style} zoom={CODY_ZOOM} />;
 }
 
 const fxPoster: Record<FxAnimation, number> = { "xp-pop": 26, "streak-spark": 30, stamp: 28, "error-shake": 36, "splash-mark": 60 };

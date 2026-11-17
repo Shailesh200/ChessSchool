@@ -32,7 +32,13 @@ type PlayerProps = {
   className?: string;
 };
 
-function Player({ src, loop, poster, size, label, fallback, onComplete, className }: PlayerProps) {
+/** Chaukor fills about half of his 512 canvas (room for jumps); drawn this much larger so he reads at every size. */
+const CODY_ZOOM = 1.4;
+/** Zoomed around his body (a little below the canvas centre); the overflow is only empty canvas or a jump. */
+const zoomed = (size: number, zoom: number): React.CSSProperties =>
+  zoom === 1 ? { width: size, height: size } : { width: size * zoom, height: size * zoom, margin: `${(size - size * zoom) / 2 - size * zoom * 0.06}px 0 0 ${(size - size * zoom) / 2}px` };
+
+function Player({ src, loop, poster, size, label, fallback, onComplete, className, zoom = 1 }: PlayerProps & { zoom?: number }) {
   const reduced = useReducedMotion();
   const [data, setData] = useState<object | null>(null);
   const ref = useRef<LottieRefCurrentProps | null>(null);
@@ -70,7 +76,7 @@ function Player({ src, loop, poster, size, label, fallback, onComplete, classNam
           loop={reduced ? false : loop}
           autoplay={!reduced}
           onComplete={reduced ? undefined : onComplete}
-          style={{ width: size, height: size }}
+          style={zoomed(size, zoom)}
           rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }}
         />
       ) : (
@@ -116,7 +122,8 @@ function CodyClipPlayer({ clip, size, label, onComplete, className }: { clip: Co
       label={label}
       onComplete={settled ? undefined : finish}
       className={className}
-      fallback={<img src="/assets/svg/cody.svg" alt="" width={size} height={size} />}
+      fallback={<img src="/assets/svg/cody.svg" alt="" style={zoomed(size, CODY_ZOOM)} />}
+      zoom={CODY_ZOOM}
     />
   );
 }

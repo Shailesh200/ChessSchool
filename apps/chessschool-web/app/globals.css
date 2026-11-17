@@ -3502,9 +3502,6 @@ button.mode-tile {
   display: flex;
   align-items: flex-end;
 }
-.splash-mark {
-  margin-right: -26px;
-}
 .splash-tag {
   color: var(--cs-text-muted);
   max-width: 28ch;
@@ -5655,4 +5652,11 @@ button.game-row {
 }
 .coach-line {
   color: var(--cs-brand-text);
+}
+.start-langs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  max-width: 34rem;
 }

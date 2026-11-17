@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generates the switchable app icons from Cody's vector rig (assets/svg/cody.svg).
+// Generates the switchable app icons from Chaukor's vector rig (assets/svg/cody.svg).
 //   node scripts/app-icons.mjs   (from packages/chessschool-design)
 // Outputs assets/raster/app-icons/<id>.png (1024, opaque: iOS + web),
 // <id>-fg.png (Android adaptive foreground) and <id>-preview.png (192, for pickers).
@@ -46,22 +46,25 @@ function pixels() {
   return s;
 }
 
-/** Cody placed in the icon's safe area. Pixel icon gets crisp, blocky Cody. */
+/** Chaukor's own box inside the 512 canvas (gem to shadow), so `scale` is the share of the icon he fills. */
+export const CHAUKOR_BOX = "86 120 340 340";
+
+/** Chaukor placed in the icon's safe area. Pixel icon gets a crisp, blocky Chaukor. */
 function codyLayer(id, scale) {
   const size = 1024 * scale;
   const off = (1024 - size) / 2;
-  return `<svg x="${off}" y="${off + 24 * scale}" width="${size}" height="${size}" viewBox="0 0 512 512" ${id === "pixel" ? 'shape-rendering="crispEdges"' : ""}>${codyInner}</svg>`;
+  return `<svg x="${off}" y="${off}" width="${size}" height="${size}" viewBox="${CHAUKOR_BOX}" ${id === "pixel" ? 'shape-rendering="crispEdges"' : ""}>${codyInner}</svg>`;
 }
 
 for (const [id, { bg }] of Object.entries(ICONS)) {
-  const full = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">${bg}${codyLayer(id, 0.86)}</svg>`;
+  const full = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">${bg}${codyLayer(id, 0.74)}</svg>`;
   let img = sharp(Buffer.from(full)).flatten({ background: "#000" });
   if (id === "pixel") img = sharp(await img.resize(96, 96, { kernel: "nearest" }).png().toBuffer()).resize(1024, 1024, { kernel: "nearest" });
   const buf = await img.png().toBuffer();
   await sharp(buf).toFile(join(OUT, `${id}.png`));
   await sharp(buf).resize(192, 192).png().toFile(join(OUT, `${id}-preview.png`));
-  // Android adaptive foreground: Cody only, inside the 66% safe zone.
-  const fg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">${codyLayer(id, 0.6)}</svg>`;
+  // Android adaptive foreground: Chaukor only, inside the 66% safe zone.
+  const fg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">${codyLayer(id, 0.54)}</svg>`;
   await sharp(Buffer.from(fg)).png().toFile(join(OUT, `${id}-fg.png`));
 }
 console.log(`app icons: ${Object.keys(ICONS).length}`);

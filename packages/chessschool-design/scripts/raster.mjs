@@ -1,20 +1,18 @@
 #!/usr/bin/env node
-// Store icons (copied from the published app identity) + Chaukor web icons and OG image.
+// Store icon (Chaukor on cream), splash and web icons, OG image. Run after app-icons.mjs.
 import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ROOT = join(PKG, "..", "..");
-const SRC = join(ROOT, "apps/mobile/assets");
 const OUT = join(PKG, "assets/raster");
 mkdirSync(OUT, { recursive: true });
 
-for (const f of ["icon.png", "adaptive-icon.png", "splash-icon.png", "favicon.png"]) copyFileSync(join(SRC, f), join(OUT, f));
+// Android's adaptive foreground is the switchable icons' Chaukor; app.json sets the cream behind him.
+copyFileSync(join(OUT, "app-icons/sunset-fg.png"), join(OUT, "adaptive-icon.png"));
 
 // Web favicon, PWA and apple-touch icons: Chaukor (assets/svg/cody.svg) on a warm cream square.
-// The native store icons above stay as published.
 const chaukor = readFileSync(join(PKG, "assets/svg/cody.svg"), "utf8").replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 const BG = `<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6EE"/><stop offset="1" stop-color="#FFDCCB"/></linearGradient></defs>`;
 /** Chaukor framed on the cream square; `pad` is the share of the side kept clear around him. */
@@ -28,6 +26,11 @@ await sharp(tile(180, 0.04)).png().toFile(join(OUT, "apple-touch-icon.png"));
 await sharp(tile(48, 0)).png().toFile(join(OUT, "favicon-48.png"));
 // Maskable: Chaukor inside the 80% safe zone.
 await sharp(tile(512, 0.12)).png().toFile(join(OUT, "pwa-maskable-512.png"));
+await sharp(tile(48, 0)).png().toFile(join(OUT, "favicon.png"));
+// Main store icon: Chaukor on the cream square (coral on coral would lose him), opaque for iOS.
+await sharp(tile(1024, 0.13)).flatten({ background: "#FFF6EE" }).png().toFile(join(OUT, "icon.png"));
+// Launch screen: Chaukor alone on a transparent square (app.json sets the colour behind him).
+await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="86 120 340 340">${chaukor}</svg>`)).png().toFile(join(OUT, "splash-icon.png"));
 
 const cody = readFileSync(join(PKG, "assets/svg/cody.svg"));
 const codyPng = await sharp(cody, { density: 144 }).resize(520, 520).png().toBuffer();

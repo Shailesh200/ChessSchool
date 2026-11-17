@@ -1,6 +1,6 @@
 "use client";
 
-import { agreeTerms, copy, PRIVACY_URL, startRoute } from "@chessschool/design";
+import { agreeTerms, copy, LANG_NAMES, LANGS, language, PRIVACY_URL, startRoute } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -8,9 +8,9 @@ import { Cody } from "@/components/Lottie";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
-/** Once per browser, before anything else: the terms in short. Agreeing covers the AI features, so nothing asks again later. */
+/** Once per browser, before anything else: the app language, then the terms in short. Agreeing covers the AI features. */
 function Start() {
-  const { state, update, cue } = useApp();
+  const { state, update, setPrefs, cue } = useApp();
   const router = useRouter();
   const next = useSearchParams().get("next");
   const s = copy.start;
@@ -25,6 +25,15 @@ function Start() {
     <div className="flow">
       <div className="flow-body">
         <Cody animation="wave" size={130} label={copy.a11y.mascot} />
+        <div className="choices start-langs" role="radiogroup" aria-label={copy.welcome.steps.lang.title}>
+          {LANGS.map((l) => (
+            <button key={l} type="button" role="radio" aria-checked={language() === l} className="choice" onClick={() => (setPrefs({ lang: l }), cue("tap"))}>
+              <span>
+                <strong>{LANG_NAMES[l]}</strong>
+              </span>
+            </button>
+          ))}
+        </div>
         <h1>{s.title}</h1>
         <ul className="start-points">
           {s.points.map((p) => (

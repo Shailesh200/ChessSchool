@@ -1,14 +1,17 @@
-import { agreeTerms, copy, PRIVACY_URL, startRoute } from "@chessschool/design";
+import { agreeTerms, copy, LANG_NAMES, LANGS, language, PRIVACY_URL, startRoute } from "@chessschool/design";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { View } from "react-native";
 import { Cody } from "@/components/Lottie";
-import { Button, Flow, T } from "@/components/ui";
+import { Button, Choice, Flow, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
-/** Once per device, before anything else: the terms in short. Agreeing covers the AI features, so nothing asks again later. */
+/**
+ * Once per device, before anything else: the app language, then the terms in short. Agreeing covers the
+ * AI features, so nothing asks again later. Changing the language re-renders everything in it, lessons included.
+ */
 export default function Start() {
-  const { state, update, cue } = useApp();
+  const { state, update, setPrefs, cue } = useApp();
   const s = copy.start;
   const agree = () => {
     const at = new Date().toISOString();
@@ -30,6 +33,13 @@ export default function Start() {
       }
     >
       <Cody animation="wave" size={130} label={copy.a11y.mascot} />
+      <View accessibilityRole="radiogroup" accessibilityLabel={copy.welcome.steps.lang.title} style={{ flexDirection: "row", gap: 10, alignSelf: "stretch" }}>
+        {LANGS.map((l) => (
+          <View key={l} style={{ flex: 1 }}>
+            <Choice label={LANG_NAMES[l]} selected={language() === l} onPress={() => (setPrefs({ lang: l }), cue("tap"))} />
+          </View>
+        ))}
+      </View>
       <T role="title" header center>
         {s.title}
       </T>

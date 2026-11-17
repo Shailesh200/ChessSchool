@@ -1,19 +1,16 @@
-import { copy, LANG_NAMES, LANGS, language } from "@chessschool/design";
+import { copy } from "@chessschool/design";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { CoachPicker } from "@/components/CoachPicker";
 import { Cody } from "@/components/Lottie";
-import { Button, Choice, Flow, IconButton, Steps, T } from "@/components/ui";
+import { Button, Flow, IconButton, Steps, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
-/**
- * After the first lesson: language, coach, then the account offer (guests only).
- * Language is the first step because changing it remounts the screen at step 0.
- */
+/** After the first lesson: coach, then the account offer (guests only). The language is chosen on the start screen. */
 export default function Welcome() {
   const { state, setPrefs, setSeenWelcome, cue } = useApp();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const w = copy.welcome.steps;
   const steps = state.account ? 2 : 3;
 
@@ -32,8 +29,8 @@ export default function Welcome() {
     <Flow
       top={
         <>
-          {step > 0 ? <IconButton icon="back" label={copy.welcome.back} onPress={() => setStep(step - 1)} /> : <View style={{ width: 48 }} />}
-          <Steps count={steps} current={step} label={copy.orientation.progress(step + 1, steps)} />
+          {step > 1 ? <IconButton icon="back" label={copy.welcome.back} onPress={() => setStep(step - 1)} /> : <View style={{ width: 48 }} />}
+          <Steps count={steps - 1} current={step - 1} label={copy.orientation.progress(step, steps - 1)} />
           <Pressable accessibilityRole="button" onPress={() => finish("/today")} hitSlop={10} style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: 8 }}>
             <T role="label" color="brandText">
               {copy.welcome.skip}
@@ -52,22 +49,6 @@ export default function Welcome() {
         )
       }
     >
-      {step === 0 ? (
-        <>
-          <Cody animation="wave" size={150} label={copy.a11y.mascot} />
-          <T role="title" header center>
-            {w.lang.title}
-          </T>
-          <T role="body" color="textMuted" center>
-            {w.lang.body}
-          </T>
-          <View accessibilityRole="radiogroup" style={{ gap: 10, alignSelf: "stretch" }}>
-            {LANGS.map((l) => (
-              <Choice key={l} label={LANG_NAMES[l]} selected={language() === l} onPress={() => (setPrefs({ lang: l }), cue("tap"))} />
-            ))}
-          </View>
-        </>
-      ) : null}
       {step === 1 ? (
         <>
           <T role="title" header center>
