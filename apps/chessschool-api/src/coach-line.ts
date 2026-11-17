@@ -18,6 +18,9 @@ export const LINE_GLOBAL_DAILY = 20_000;
 export const BOT_USER_DAILY = 800;
 export const BOT_GLOBAL_DAILY = 100_000;
 export const BOT_MAX_OPTIONS = 5;
+/** Hints use the paid model (Haiku) first, up to these caps; past them, the free providers. */
+export const HINT_PAID_USER_DAILY = 30;
+export const HINT_PAID_GLOBAL_DAILY = 400;
 
 export type LineInput =
   | { kind: "hint" | "comment"; fen: string; move: string; coach: CoachId }
@@ -112,6 +115,7 @@ const oneLine = (raw: string) => raw.replace(/[*_#"]/g, "").replace(/\s+/g, " ")
 /** One coach line for a hint or a learner's mistake; `text: null` when the move needs no comment. Cached by facts. */
 async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInput, { coach: CoachId }>, lang: CoachLang, userId: string, day: string, now: number): Promise<LineAnswer | "limit" | null> {
   const side = turnOf(input.fen);
+  const free = providers.filter((p) => p.name !== "anthropic");
   let fact: CoachMoment;
   let ask: () => Promise<{ text: string; provider: string } | null>;
   if (input.kind === "comment") {
@@ -120,7 +124,7 @@ async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInp
     if (!moment || moment.verdict === "inaccuracy") return { text: null };
     fact = { ...moment, moveNo: moveNoOf(input.fen) };
     ask = async () => {
-      const got = await askChain(providers, [fact], input.coach, lang, side);
+      const got = await askChain(free, [fact], input.coach, lang, side);
       // Mid-game the line must stay short: what happened and the better move.
       return got ? { text: got.texts[0]!.split(/(?<=[.!?।])\s+/).slice(0, 2).join(" "), provider: got.provider } : null;
     };
@@ -129,7 +133,9 @@ async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInp
     fact = hintFacts(input.fen, m);
     const { system, prompt } = hintPrompt(fact, m, input.coach, lang);
     ask = async () => {
-      for (const p of providers) {
+      const paid = providers.find((p) => p.name === "anthropic");
+      const chain = paid && (await countUse(db, userId, `${day}/hint-paid`, HINT_PAID_USER_DAILY, HINT_PAID_GLOBAL_DAILY)) ? [paid, ...free] : free;
+      for (const p of chain) {
         const raw = await p.complete(system, prompt).catch(() => null);
         const text = raw ? oneLine(raw) : "";
         if (text && factCheck(text, fact)) return { text, provider: p.name };
@@ -178,7 +184,7 @@ async function botPick(db: Db, providers: AiProvider[], input: Extract<LineInput
     "If your move captures or gives check, you may add a short, kind, playful remark after a | (at most 10 words, no other moves or squares).",
     lang === "hi" ? "Write any remark in simple Hindi (Devanagari)." : "Write any remark in simple English.",
   ].join(" ");
-  for (const p of providers) {
+  for (const p of providers.filter((x) => x.name !== "anthropic")) {
     const raw = await p.complete(system, options.join("\n")).catch(() => null);
     const got = raw ? parseBotAnswer(raw, input.options) : null;
     // A remark only fits a capture or a check (models add one anyway).

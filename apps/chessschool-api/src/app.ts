@@ -168,7 +168,6 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const coachLimiter = createRateLimiter(6, 60_000, () => now().getTime());
   // A bot move every couple of seconds plus hints and comments.
   const lineLimiter = createRateLimiter(60, 60_000, () => now().getTime());
-  const lineAi = coachAi.filter((p) => p.name !== "anthropic");
   const importLimiter = createRateLimiter(10, 10 * 60_000, () => now().getTime());
   const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
@@ -1346,7 +1345,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   /**
    * Short AI lines in a bot game. Body: { kind: "hint" | "comment", fen, move, coach } or { kind: "bot", fen, bot, options }.
    * Agreeing to the terms at the start covers these; only moves and positions go to the providers.
-   * Only the free-tier providers are used here, so in-game AI never spends the paid budget.
+   * Hints try the paid model first within a small daily cap; comments and bot moves use only the free providers.
    */
   app.post("/v1/coach/line", requireUser, async (c) => {
     const user = c.get("user");
@@ -1354,7 +1353,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!input) return fail(c, 400, "invalid_input");
     if (!lineLimiter(user.id)) return fail(c, 429, "rate_limited");
     const lang = c.req.query("lang") === "hi" ? "hi" : "en";
-    const answer = await answerLine(db, lineAi, input, lang, user.id, dayKey(now()), now().getTime());
+    const answer = await answerLine(db, coachAi, input, lang, user.id, dayKey(now()), now().getTime());
     if (answer === "limit") return fail(c, 429, "rate_limited");
     if (!answer) return fail(c, 503, "server");
     return c.json(answer);
