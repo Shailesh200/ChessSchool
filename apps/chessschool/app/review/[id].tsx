@@ -32,7 +32,7 @@ export default function ReviewGame() {
   const [keyOpen, setKeyOpen] = useState(true);
   const friend = setup?.opponent.kind === "friend";
   const side = !setup || friend ? null : setup.you;
-  const coach = useCoachNotes(game, setup?.startFen ?? "", side);
+  const coach = useCoachNotes(game?.history, setup?.startFen ?? "", side);
   useReviewedSkills(game, plies, notes, done, side);
   // Imported games land here, so their card opens here; bot and friend games showed it on the result sheet.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,7 +230,7 @@ export default function ReviewGame() {
         ) : coach.status === "idle" ? (
           <Button title={copy.coachAi.button} icon="spark" variant="secondary" disabled={!done} onPress={coach.ask} />
         ) : null}
-        <Sheet visible={keyOpen && hasKey && coach.status !== "consent"} onClose={() => setKeyOpen(false)}>
+        <Sheet visible={keyOpen && hasKey} onClose={() => setKeyOpen(false)}>
           <KeyMomentCard
             plies={plies}
             notes={notes}
@@ -244,14 +244,6 @@ export default function ReviewGame() {
             }}
           />
           <Button title={copy.analysis.close} variant="ghost" onPress={() => setKeyOpen(false)} />
-        </Sheet>
-        <Sheet visible={coach.status === "consent"} onClose={coach.cancel}>
-          <View style={{ gap: 12 }}>
-            <T role="heading">{copy.coachAi.consentTitle}</T>
-            <T role="body">{copy.coachAi.consentBody}</T>
-            <Button title={copy.coachAi.consentAgree} icon="spark" onPress={coach.agree} />
-            <Button title={copy.coachAi.consentCancel} variant="secondary" onPress={coach.cancel} />
-          </View>
         </Sheet>
 
         <View style={{ flexDirection: "row", gap: 8 }}>

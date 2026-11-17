@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agreeAi, aiAgreed, aiExplainOn, answerPractice, createInitialState, completeNode, importGame, importedRecord, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, setAiExplain, type GameRecord } from "./progress";
+import { agreeTerms, aiExplainOn, answerPractice, createInitialState, completeNode, importGame, importedRecord, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, setAiExplain, type GameRecord } from "./progress";
 import { mistakeItems, practiceRequest } from "./review";
 import { lessonSkill, mergeSkills, rankedSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, weakSkills } from "./skills";
 import { switchProfile, freshSlice } from "./profiles";
@@ -65,14 +65,15 @@ describe("skills", () => {
 });
 
 describe("AI explanations setting", () => {
-  it("is on for adults, off for a child until turned on, and consent is per profile", () => {
+  it("is on for adults, off for a child until turned on; the terms are agreed once per device", () => {
     let st = createInitialState("g");
     expect(aiExplainOn(st)).toBe(true);
-    st = agreeAi(st);
-    expect(aiAgreed(st)).toBe(true);
+    expect(st.termsAt).toBeNull();
+    st = agreeTerms(st, "2026-11-17T10:00:00.000Z");
+    expect(agreeTerms(st, "2026-12-01T00:00:00.000Z").termsAt).toBe("2026-11-17T10:00:00.000Z");
     st = switchProfile(st, "kid1", freshSlice(st, "Kid", "cody"));
     expect(aiExplainOn(st)).toBe(false);
-    expect(aiAgreed(st)).toBe(false);
+    expect(st.termsAt).toBe("2026-11-17T10:00:00.000Z");
     st = setAiExplain(st, true);
     expect(aiExplainOn(st)).toBe(true);
     expect(aiExplainOn(switchProfile(st, null))).toBe(true);

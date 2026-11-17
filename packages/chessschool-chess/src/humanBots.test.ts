@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOTS, chooseMove, pickByLoss } from "./bot";
+import { BOTS, botOptions, chooseMove, pickByLoss } from "./bot";
 import { rankMoves, type RankedMove } from "./engine";
 import { load } from "./game";
 import { MISTAKES, sampleLoss } from "./mistakes";
@@ -98,5 +98,17 @@ describe("bots that err like people", () => {
     const fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
     expect(chooseMove(fen, "pip", seq(3), 150)?.san).toBe(chooseMove(fen, "pip", seq(3), 150)?.san);
     expect(load(fen).moves().includes(chooseMove(fen, "atlas", seq(3), 2100)!.san)).toBe(true);
+  });
+});
+
+describe("botOptions (the AI bot's choices)", () => {
+  it("offers up to n legal moves, the first being chooseMove's pick", () => {
+    const fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
+    const opts = botOptions(fen, "rooky", seq(7), undefined, 4);
+    expect(opts.length).toBeGreaterThan(1);
+    expect(opts.length).toBeLessThanOrEqual(4);
+    const legal = load(fen).moves();
+    expect(opts.every((m) => legal.includes(m.san))).toBe(true);
+    expect(opts[0]!.san).toBe(chooseMove(fen, "rooky", seq(7))!.san);
   });
 });

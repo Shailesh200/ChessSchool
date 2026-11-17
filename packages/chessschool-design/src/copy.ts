@@ -1089,8 +1089,8 @@ export const copy = {
     textSizeHint: "Text size follows your device settings.",
     shareUsage: "Share anonymous usage",
     shareUsageHint: "Helps us see which lessons are too hard. No name, email or account is sent.",
-    aiExplain: "AI explanations",
-    aiExplainHint: "Your coach explains your games in words. Only moves and positions are sent.",
+    aiExplain: "AI coach",
+    aiExplainHint: "Explains your games, gives hint reasons and comments, and plays some bots. Only moves and positions are used.",
     aiExplainNeedsPin: "Off for children. Set a parent PIN in Learners to turn it on.",
     reminderTime: "Reminder time",
     reminderHour: (h: number) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? "am" : "pm"}`,
@@ -1137,8 +1137,23 @@ export const copy = {
     body: [
       "ChessSchool is provided as-is while it is being built. Lessons are for learning and fun.",
       "Be kind in Club rooms. Accounts that harass others may be removed.",
+      "Your coach uses AI to explain games, give hints, comment on moves, play as some bots and read board photos. For this it only gets chess moves, board positions or the board photo, never your name, email or anything you type. AI can be wrong, so treat its notes as tips.",
+      "On a child's profile the AI features stay off until a parent turns them on in Settings. Adults can turn them off there at any time.",
       "Your data is handled as described in our privacy policy.",
     ],
+  },
+
+  /** The one-time start screen: agreeing here covers the terms, privacy and the AI features. */
+  start: {
+    title: "Before we start",
+    points: [
+      "Lessons, puzzles and games are here for learning and fun.",
+      "Your coach uses AI to explain games, give hints and play as some bots. It only sees chess moves and positions, never who you are.",
+      "On a child's profile, AI stays off until a parent turns it on.",
+      "Be kind to other players.",
+    ],
+    note: "By tapping Agree, you accept our Terms of use and Privacy policy.",
+    agree: "Agree and continue",
   },
 
   /** The "AI features" section of the privacy policy (web /privacy). */
@@ -1231,10 +1246,6 @@ export const copy = {
     off: "AI explanations are off. A parent can turn them on in Settings.",
     moveLabel: (moveNo: number, san: string) => `Move ${moveNo}: ${san}`,
     note: "Written by AI from what Chaukor's engine found. It can make mistakes.",
-    consentTitle: "Before your coach explains",
-    consentBody: "To write these notes, ChessSchool sends only the moves and positions of this game to an AI service (Cloudflare Workers AI, Groq or Anthropic). No name, email or anything you typed is sent.",
-    consentAgree: "OK, explain",
-    consentCancel: "Not now",
   },
 
   skills: {
@@ -1255,7 +1266,7 @@ export const copy = {
     takePhoto: "Take a photo",
     choosePhoto: "Choose a photo",
     tips: "Fit the whole board in the picture, straight on, in good light.",
-    privacy: "The photo goes to an AI service (Anthropic) only to read the board, and is not stored. Up to 10 scans a day.",
+    privacy: "The photo is used only to read the board and is not kept. Up to 10 scans a day.",
     reading: "Reading the board… this can take a minute.",
     failed: "Couldn't read a board in that photo. Try a clearer one.",
     error: "Scanning isn't working right now. Try again later.",
@@ -1281,9 +1292,6 @@ export const copy = {
       check: "The side not to move can't be in check. Change the side to move.",
       invalid: "This position can't be played yet.",
     },
-    consentTitle: "Before Chaukor reads your photo",
-    consentBody: "To read the board, ChessSchool sends this photo to an AI service (Anthropic). It isn't stored, and nothing else about you is sent. Check that no faces or names are in the picture.",
-    consentAgree: "OK, read it",
   },
 
   importGames: {

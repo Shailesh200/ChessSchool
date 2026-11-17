@@ -11,7 +11,7 @@ import { Button, T } from "./ui";
  * why. `coachNote` is the Phase 2 coach note for that move when the learner already asked for it;
  * otherwise the detector's tag text. Renders nothing until the analysis is done or when no move stands out.
  */
-export function KeyMomentCard({ plies, notes, done, side, orientation, coachNoteFor, onShow }: { plies: ReviewPly[]; notes: Record<number, MoveNote>; done: boolean; side: Color | null; orientation: Color; coachNoteFor?: (ply: number) => string | null; onShow?: (ply: number) => void }) {
+export function KeyMomentCard({ plies, notes, done, side, orientation, coachNoteFor, onShow, shareable = true }: { plies: ReviewPly[]; notes: Record<number, MoveNote>; done: boolean; side: Color | null; orientation: Color; coachNoteFor?: (ply: number) => string | null; onShow?: (ply: number) => void; shareable?: boolean }) {
   const { c } = useTheme();
   // The analysis fills `notes` a move at a time; the card is built once, when it is complete.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,9 +53,11 @@ export function KeyMomentCard({ plies, notes, done, side, orientation, coachNote
             <Button title={copy.keyMoment.show} icon="eye" variant="secondary" onPress={() => onShow(m.ply)} />
           </View>
         ) : null}
-        <View style={{ flex: 1 }}>
-          <Button title={copy.keyMoment.share} variant="secondary" onPress={() => void Share.share({ message: copy.keyMoment.shareText(m.move, m.better) }).catch(() => {})} />
-        </View>
+        {shareable ? (
+          <View style={{ flex: 1 }}>
+            <Button title={copy.keyMoment.share} variant="secondary" onPress={() => void Share.share({ message: copy.keyMoment.shareText(m.move, m.better) }).catch(() => {})} />
+          </View>
+        ) : null}
       </View>
     </View>
   );

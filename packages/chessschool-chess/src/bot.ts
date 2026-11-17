@@ -70,17 +70,17 @@ const capped = (x: number) => Math.max(-CAP, Math.min(CAP, x));
 
 /** The candidate whose loss against the best move is closest to `target` (ties go to what the bot likes). */
 export function pickByLoss(ranked: readonly RankedMove[], target: number, like: (m: Move) => number, rand: () => number): Move {
+  return nearestByLoss(ranked, target, like, rand, 1)[0]!;
+}
+
+/** The `n` candidates whose loss is closest to `target`, closest first. */
+function nearestByLoss(ranked: readonly RankedMove[], target: number, like: (m: Move) => number, rand: () => number, n: number): Move[] {
   const best = capped(ranked[0].score);
-  let pick = ranked[0].move;
-  let closest = Infinity;
-  for (const r of ranked) {
-    const d = Math.abs(best - capped(r.score) - target) - like(r.move) + rand() * 6;
-    if (d < closest) {
-      closest = d;
-      pick = r.move;
-    }
-  }
-  return pick;
+  return ranked
+    .map((r) => ({ move: r.move, d: Math.abs(best - capped(r.score) - target) - like(r.move) + rand() * 6 }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, n)
+    .map((x) => x.move);
 }
 
 /**
@@ -101,18 +101,26 @@ const plyOf = (fen: string) => {
  * and the move nearest that loss is played. Phase 2 "gentle"/"steady" still work.
  */
 export function chooseMove(fen: string, bot: BotId | LegacyLevel, rand: () => number = Math.random, rating?: number): Move | null {
+  return botOptions(fen, bot, rand, rating, 1)[0] ?? null;
+}
+
+/**
+ * The `n` moves nearest the drawn loss, best fit first (the first is `chooseMove`'s pick). The AI bot
+ * chooses among these in its own style, so it still plays at its rating.
+ */
+export function botOptions(fen: string, bot: BotId | LegacyLevel, rand: () => number = Math.random, rating?: number, n = 4): Move[] {
   const id = toBotId(bot);
   const moves = load(fen).moves({ verbose: true });
-  if (moves.length <= 1) return moves[0] ?? null;
+  if (moves.length <= 1) return moves;
   const r = modelRating(rating ?? botInfo(id).rating);
   // Below the data's floor (400), mix in moves a brand-new player might make.
   if (r < 400 && rand() < Math.min(0.9, (400 - r) / 700)) {
     const captures = moves.filter((m) => m.captured);
-    return captures.length && rand() < 0.4 ? captures[Math.floor(rand() * captures.length)] : moves[Math.floor(rand() * moves.length)];
+    return [captures.length && rand() < 0.4 ? captures[Math.floor(rand() * captures.length)] : moves[Math.floor(rand() * moves.length)]];
   }
   const ranked = rankMoves(fen, ENGINE[id]);
   const tactical = moves.some((m) => m.captured || /[+#]$/.test(m.san));
   const phase = phaseOf(fen.split(" ")[0], plyOf(fen));
   const target = sampleLoss(r, phase, tactical, rand);
-  return pickByLoss(ranked, target, (m) => liking(id, m, phase === "opening"), rand);
+  return nearestByLoss(ranked, target, (m) => liking(id, m, phase === "opening"), rand, n);
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { editPlacement, setupFen, setupProblem, type Color, type PieceType } from "@chessschool/chess";
-import { agreeAi, aiAgreed, aiExplainOn, copy, importGame, scannedRecord } from "@chessschool/design";
+import { aiExplainOn, copy, importGame, scannedRecord } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Board, PieceArt } from "@/components/Board";
-import { Button, Segmented, Sheet, TopBar, useToast } from "@/components/ui";
+import { Button, Segmented, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 
@@ -36,7 +36,6 @@ export default function ScanBoard() {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [consent, setConsent] = useState(false);
   const [board, setBoard] = useState<Scanned | null>(null);
   const [tool, setTool] = useState<string | null>("P");
 
@@ -57,7 +56,7 @@ export default function ScanBoard() {
       if (input.current) input.current.value = "";
     }
   };
-  const pick = () => (aiAgreed(state) ? input.current?.click() : setConsent(true));
+  const pick = () => input.current?.click();
 
   const fen = board ? setupFen(board.placement, board.side) : "";
   const problem = board ? setupProblem(fen) : null;
@@ -129,23 +128,6 @@ export default function ScanBoard() {
           </Button>
         </>
       )}
-      <Sheet open={consent} onClose={() => setConsent(false)} labelledBy="scan-consent-title">
-        <h2 id="scan-consent-title">{t.consentTitle}</h2>
-        <p>{t.consentBody}</p>
-        <Button
-          icon="spark"
-          onClick={() => {
-            update(agreeAi);
-            setConsent(false);
-            input.current?.click();
-          }}
-        >
-          {t.consentAgree}
-        </Button>
-        <Button variant="secondary" onClick={() => setConsent(false)}>
-          {copy.coachAi.consentCancel}
-        </Button>
-      </Sheet>
     </div>
   );
 }

@@ -289,6 +289,12 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
     explainGame: (input: { startFen: string; moves: string[]; side: "w" | "b" | null; coach: string; consent: true }) =>
       request<{ moments: CoachNote[]; provider: string | null; cached: boolean }>("POST", `/v1/coach/explain${lang("?")}`, input, 50_000),
+    /** One AI coach line in a bot game (hint reason or mistake comment); text is null when there is nothing to say. */
+    coachLine: (input: { kind: "hint" | "comment"; fen: string; move: string; coach: string }, timeoutMs = 8_000) =>
+      request<{ text: string | null }>("POST", `/v1/coach/line${lang("?")}`, input, timeoutMs),
+    /** The AI bot picks one of `options` (moves its rating model offered), maybe with a short remark. */
+    botPick: (input: { fen: string; bot: string; options: string[] }, timeoutMs = 2_500) =>
+      request<{ pick: number; say: string | null }>("POST", `/v1/coach/line${lang("?")}`, { kind: "bot", ...input }, timeoutMs),
     /** Reads a board from a downscaled photo (base64, no data: prefix). The server never stores the image. */
     scanBoard: (input: { image: string; mediaType: "image/jpeg" | "image/png" | "image/webp"; consent: true }) =>
       request<{ placement: string; fen: string; side: "w" | "b" | null; confidence: number; problem: "kings" | "pawns" | "check" | "invalid" | null }>("POST", "/v1/scan", input, 170_000),

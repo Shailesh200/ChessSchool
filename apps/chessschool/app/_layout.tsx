@@ -2,7 +2,7 @@ import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from "@
 import { Baloo2_400Regular, Baloo2_500Medium, Baloo2_600SemiBold, Baloo2_700Bold } from "@expo-google-fonts/baloo-2";
 import { Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, useFonts } from "@expo-google-fonts/fredoka";
 import { copy, newBadges } from "@chessschool/design";
-import { router, Stack } from "expo-router";
+import { router, Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -93,6 +93,11 @@ function Routes() {
   const reduced = useReducedMotion();
   useReminderTaps(state.prefs.notifications === "granted");
   useBadgeToasts();
+  // Every screen needs the terms agreed once (a shared link can open the app straight onto one).
+  const path = usePathname();
+  useEffect(() => {
+    if (!state.termsAt && !["/", "/start", "/terms"].includes(path)) router.replace("/start");
+  }, [state.termsAt, path]);
   // Reduce motion: screens cross-fade instead of sliding, and every Reanimated animation jumps to its end.
   const slide = reduced ? "fade" : "slide_from_bottom";
   return (
@@ -100,6 +105,7 @@ function Routes() {
       <ReducedMotionConfig mode={reduced ? ReduceMotion.Always : ReduceMotion.System} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: reduced ? "fade" : "slide_from_right" }}>
         <Stack.Screen name="index" options={{ animation: "fade" }} />
+        <Stack.Screen name="start" options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="welcome" options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="orientation" options={{ animation: slide, presentation: "fullScreenModal" }} />

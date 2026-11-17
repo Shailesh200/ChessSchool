@@ -201,8 +201,8 @@ export type LocalState = {
   mistakes: MistakePosition[];
   /** "AI explanations" per profile (MAIN_PROFILE or a child id); missing means the default (on for adults, off for children). */
   aiExplain: Record<string, boolean>;
-  /** Profiles that have seen and accepted the AI explanations notice. */
-  aiAgreed: string[];
+  /** When this device agreed to the terms (the start screen); null until then. Covers the AI features too. */
+  termsAt: string | null;
   /** Full-screen celebrations waiting to be shown, oldest first (celebrate.ts). */
   pendingCelebrations: Celebration[];
   /** Celebration ids already shown, so each shows once. */
@@ -274,7 +274,7 @@ export function createInitialState(guestId: string): LocalState {
     ideas: {},
     mistakes: [],
     aiExplain: {},
-    aiAgreed: [],
+    termsAt: null,
     ratings: emptyRatings(),
     ratingQueue: [],
     writeQueue: [],
@@ -323,7 +323,7 @@ export function hydrateState(raw: unknown, newGuestId: () => string): LocalState
     vision: r.vision && typeof r.vision === "object" ? Object.fromEntries(Object.entries(r.vision).filter(([, n]) => typeof n === "number")) : {},
     mistakes: Array.isArray(r.mistakes) ? r.mistakes.filter(isMistake).slice(0, MISTAKES_MAX) : [],
     aiExplain: r.aiExplain && typeof r.aiExplain === "object" ? Object.fromEntries(Object.entries(r.aiExplain).filter(([, v]) => typeof v === "boolean")) : {},
-    aiAgreed: Array.isArray(r.aiAgreed) ? r.aiAgreed.filter((id) => typeof id === "string") : [],
+    termsAt: typeof r.termsAt === "string" ? r.termsAt : null,
     ratings: sanitizeRatings(r.ratings),
     ratingQueue: sanitizeRatingQueue(r.ratingQueue),
     writeQueue: sanitizeWriteQueue(r.writeQueue),
@@ -1313,5 +1313,4 @@ const profileKey = (s: LocalState) => s.activeChild ?? "main";
 export const isChildProfile = (s: LocalState) => s.activeChild !== null || s.profile.who === "child";
 export const aiExplainOn = (s: LocalState) => s.aiExplain[profileKey(s)] ?? !isChildProfile(s);
 export const setAiExplain = (s: LocalState, on: boolean): LocalState => ({ ...s, aiExplain: { ...s.aiExplain, [profileKey(s)]: on } });
-export const aiAgreed = (s: LocalState) => s.aiAgreed.includes(profileKey(s));
-export const agreeAi = (s: LocalState): LocalState => (aiAgreed(s) ? s : { ...s, aiAgreed: [...s.aiAgreed, profileKey(s)] });
+export const agreeTerms = (s: LocalState, at: string): LocalState => (s.termsAt ? s : { ...s, termsAt: at });
