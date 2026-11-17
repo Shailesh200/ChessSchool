@@ -42,6 +42,8 @@ env:
   EAS_BUILD_NO_EXPO_GO_WARNING: "true"
   MAESTRO_CLI_NO_ANALYTICS: "1"
   MAESTRO_VERSION: "2.6.1"
+  # The iOS test driver sometimes needs more than the default 2 minutes to start on a busy runner.
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
 
 jobs:
   ios:
@@ -81,6 +83,29 @@ jobs:
           [ -n "$APP" ] || { echo "::error::The build produced no .app"; exit 1; }
           UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const ks=Object.keys(d).filter(k=>/iOS-26/.test(k)).sort().reverse();for(const k of ks)for(const x of d[k])if(x.name.startsWith("iPhone")){console.error("runtime",k,x.name);console.log(x.udid);process.exit()}process.exit(1)')
           xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          # iOS 26 offers "Save Password?" after the bot flow logs in. That sheet belongs to a system
+          # process, so Maestro can neither see nor dismiss it and it hides the app. Turn password AutoFill
+          # off with the simulator's restriction settings (as a device-management profile would), then reboot.
+          xcrun simctl shutdown "$UDID"
+          python3 -I - "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data" <<'PY'
+          import os, plistlib, sys
+          base = sys.argv[1]
+          for rel in ("Containers/Shared/SystemGroup/systemgroup.com.apple.configurationprofiles/Library/ConfigurationProfiles/UserSettings.plist",
+                      "Library/UserConfigurationProfiles/EffectiveUserSettings.plist",
+                      "Library/UserConfigurationProfiles/PublicInfo/PublicEffectiveUserSettings.plist"):
+              path = os.path.join(base, rel)
+              data = {}
+              if os.path.exists(path):
+                  with open(path, "rb") as f:
+                      data = plistlib.load(f)
+              data.setdefault("restrictedBool", {})["allowPasswordAutoFill"] = {"value": False}
+              os.makedirs(os.path.dirname(path), exist_ok=True)
+              with open(path, "wb") as f:
+                  plistlib.dump(data, f, fmt=plistlib.FMT_BINARY)
+              print("password AutoFill off:", rel, "(file existed)" if data.keys() - {"restrictedBool"} else "(new file)")
+          PY
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          plutil -extract restrictedBool.allowPasswordAutoFill.value raw "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Library/UserConfigurationProfiles/EffectiveUserSettings.plist" || true
           xcrun simctl install "$UDID" "$APP"
           echo "UDID=$UDID" >> "$GITHUB_ENV"
       - name: Run the flows
@@ -92,6 +117,15 @@ jobs:
         if: failure()
         run: |
           for f in ~/Library/Logs/DiagnosticReports/ChessSchool*; do [ -f "$f" ] && head -c 15000 "$f"; done; true
+      # The logs and command files hold the test account's email and password as typed; mask them before upload.
+      - name: Mask the test account in the logs
+        if: failure()
+        env:
+          EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
+          PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
+        run: |
+          [ -d ~/.maestro/tests ] || exit 0
+          find ~/.maestro/tests -type f \( -name '*.json' -o -name '*.log' \) -exec perl -pi -e 's/\Q$ENV{PASSWORD}\E/***/g if length $ENV{PASSWORD}; s/\Q$ENV{EMAIL}\E/***/g if length $ENV{EMAIL}' {} +
       # Screenshots of the failing step. No account details are shown on screen (the password field is masked).
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -163,6 +197,15 @@ jobs:
             adb shell settings put global hide_error_dialogs 1
             adb install "$RUNNER_TEMP/ChessSchool.apk"
             maestro test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" --format junit --output "$RUNNER_TEMP/maestro-android.xml" apps/chessschool/.maestro
+      # The logs and command files hold the test account's email and password as typed; mask them before upload.
+      - name: Mask the test account in the logs
+        if: failure()
+        env:
+          EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
+          PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
+        run: |
+          [ -d ~/.maestro/tests ] || exit 0
+          find ~/.maestro/tests -type f \( -name '*.json' -o -name '*.log' \) -exec perl -pi -e 's/\Q$ENV{PASSWORD}\E/***/g if length $ENV{PASSWORD}; s/\Q$ENV{EMAIL}\E/***/g if length $ENV{EMAIL}' {} +
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

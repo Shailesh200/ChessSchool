@@ -4,9 +4,10 @@ flows:
   - "*.yaml"
 executionOrder:
   continueOnFailure: false
+  # Maestro matches these against each flow's `name`, not its file name.
   flowsOrder:
-    - 01-open-as-guest
-    - 02-first-lesson
-    - 03-solve-puzzle
-    - 04-bot-move
-    - 05-crash-screen
+    - Opens and continues as a guest
+    - Finishes the first lesson
+    - Solves a puzzle
+    - Makes a move against a bot
+    - A fatal error shows the Restart screen

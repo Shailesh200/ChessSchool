@@ -39,20 +39,22 @@ env:
       - tapOn:
           text: "Log in"
           optional: true
-      # iOS offers to save the password a few seconds after login; the alert hides the app until answered.
-      - extendedWaitUntil:
-          visible: "Not Now"
-          timeout: 15000
-          optional: true
-      - tapOn:
-          text: "Not Now"
-          optional: true
+      # The CI simulator has password AutoFill turned off, so iOS should not offer "Save Password?".
+      # If it does, the sheet belongs to a system process that Maestro cannot see, and it hides the app:
+      # tap its "Not Now" button by position (centred sheet, left button), only while the tabs are hidden.
       - extendedWaitUntil:
           visible: "Puzzles"
           timeout: 30000
-      - tapOn:
-          text: "Not Now"
           optional: true
+      - runFlow:
+          when:
+            notVisible: "Puzzles"
+          commands:
+            - tapOn:
+                point: "31%,63%"
+      - extendedWaitUntil:
+          visible: "Puzzles"
+          timeout: 30000
       - retry:
           maxRetries: 2
           commands:
