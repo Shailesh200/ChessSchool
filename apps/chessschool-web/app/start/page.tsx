@@ -22,7 +22,7 @@ function Start() {
     router.replace(next?.startsWith("/") && !next.startsWith("//") ? next : startRoute(agreeTerms(state, at)));
   };
   return (
-    <div className="flow">
+    <div className="flow flow-start">
       <div className="flow-body">
         <Cody animation="wave" size={130} label={copy.a11y.mascot} />
         <div className="choices start-langs" role="radiogroup" aria-label={copy.welcome.steps.lang.title}>

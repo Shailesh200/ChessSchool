@@ -9,7 +9,7 @@ import { useTheme } from "@/lib/theme";
 import { Cody, Fx } from "./Lottie";
 import { Button, T } from "./ui";
 
-const FX: Record<string, FxAnimation> = { unit: "stamp", streak: "streak-spark", rank: "xp-pop", rating: "xp-pop", league: "xp-pop" };
+const FX: Record<string, FxAnimation> = { unit: "xp-pop", streak: "streak-spark", rank: "xp-pop", rating: "xp-pop", league: "xp-pop" };
 
 /**
  * Shows the first queued celebration full screen, once. `active` is false while a lesson or game

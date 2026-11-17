@@ -52,8 +52,7 @@ export default function Orientation() {
       {done ? (
         <>
           <View style={{ width: 260, height: 220, alignItems: "center", justifyContent: "center", borderRadius: 130, backgroundColor: c.brandSoft }}>
-            <Fx name="stamp" size={170} style={{ position: "absolute", left: 0, top: 0 }} />
-            <Cody animation="celebrate" size={150} label={copy.a11y.mascot} style={{ position: "absolute", right: 0, bottom: 0 }} />
+            <Cody animation="celebrate" size={180} label={copy.a11y.mascot} />
           </View>
           <View accessible accessibilityLabel={copy.a11y.xp(PATH[0].xp)} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 6, paddingRight: 16, paddingVertical: 4, borderRadius: 999, backgroundColor: c.goldSoft }}>
             <Fx name="xp-pop" size={40} />

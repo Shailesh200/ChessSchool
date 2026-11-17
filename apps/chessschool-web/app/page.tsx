@@ -13,8 +13,9 @@ export default function Splash() {
 
   useEffect(() => {
     if (!ready) return;
-    // A new visitor goes straight into the first lesson; welcome and the account offer come after it.
-    const dest = startRoute(state);
+    // A new visitor goes straight into the first lesson (no AI there); welcome and the account offer come
+    // after it. On the web the terms page shows when they first enter the app pages (AppShell), not here.
+    const dest = startRoute({ ...state, termsAt: state.termsAt ?? "web-later" });
     router.prefetch(dest);
     const t = setTimeout(() => router.replace(dest), dest === "/today" ? motion.duration.splash : 300);
     return () => clearTimeout(t);

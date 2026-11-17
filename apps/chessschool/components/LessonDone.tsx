@@ -7,7 +7,7 @@ import { T } from "./ui";
 
 export type LessonSummary = { xp: number; accuracy: number; seconds: number; perfectBonus?: number; best: number };
 
-/** The end-of-lesson moment: stamp, Cody, earned XP and streak, the lesson summary, then what's next. */
+/** The end-of-lesson moment: Chaukor, earned XP and streak, the lesson summary, then what's next. */
 export function LessonDone({ title, body, recap, xp, streak, goalMet, summary, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; summary?: LessonSummary; children: React.ReactNode }) {
   const { c } = useTheme();
   // Lesson finished, then (when today's streak or goal just landed) the streak-saved beat.
@@ -15,8 +15,7 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, summary, c
   return (
     <>
       <View style={{ width: 260, height: 220, alignItems: "center", justifyContent: "center", borderRadius: 130, backgroundColor: c.brandSoft }}>
-        <Fx name="stamp" size={170} style={{ position: "absolute", left: 0, top: 0 }} />
-        <Cody animation={pose} onFinish={() => (streak || goalMet) && setPose("streak-saved")} size={150} label={copy.a11y.mascot} style={{ position: "absolute", right: 0, bottom: 0 }} />
+        <Cody animation={pose} onFinish={() => (streak || goalMet) && setPose("streak-saved")} size={180} label={copy.a11y.mascot} />
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
         {xp ? (

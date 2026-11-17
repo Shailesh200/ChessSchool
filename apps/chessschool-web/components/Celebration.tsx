@@ -8,7 +8,7 @@ import { useApp } from "@/lib/state";
 import { Cody, Fx } from "./Lottie";
 import { Button, useToast } from "./ui";
 
-const FX: Record<string, FxAnimation> = { unit: "stamp", streak: "streak-spark", rank: "xp-pop", rating: "xp-pop", league: "xp-pop" };
+const FX: Record<string, FxAnimation> = { unit: "xp-pop", streak: "streak-spark", rank: "xp-pop", rating: "xp-pop", league: "xp-pop" };
 /** Shown on the main tabs only, never over a lesson, puzzle or game. */
 const HOME = ["/today", "/puzzles", "/gym", "/you"];
 

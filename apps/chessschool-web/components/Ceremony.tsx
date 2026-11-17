@@ -24,7 +24,6 @@ export function SavedCeremony() {
   return (
     <div className="ceremony" role="status" aria-live="polite">
       <div className="ceremony-art" aria-hidden>
-        <Fx name="stamp" size={84} />
         <Cody animation="celebrate" size={88} />
       </div>
       <div>

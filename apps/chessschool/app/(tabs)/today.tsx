@@ -1,7 +1,7 @@
 import { copy, dayKey, focusCourse, greetingFor, minutesToday, nextReward, rankFor, space, streakAtRisk, todayQuests, visibleStreak, type Course, type LocalState, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
@@ -89,29 +89,6 @@ export default function Today() {
   const course = freshCourse ?? cachedCourse;
   const current = course ? focusCourse(course, progress.completed).current : null;
   const currentLocked = Boolean(course && current && guestClassLocked(course, current, Boolean(state.account), progress));
-  const currentId = current?.id ?? null;
-  const scroller = useRef<ScrollView>(null);
-  const content = useRef<View>(null);
-  const currentAnchor = useRef<View>(null);
-  const viewH = useRef(0);
-  const scrollToCurrent = useCallback(() => {
-    const anchor = currentAnchor.current;
-    const host = content.current;
-    const visible = viewH.current;
-    if (!anchor || !host || !visible) return;
-    anchor.measureLayout(
-      host,
-      (_x, y, _w, height) => scroller.current?.scrollTo({ y: Math.max(0, y - (visible - height) / 2), animated: true }),
-      () => {},
-    );
-  }, []);
-  useFocusEffect(
-    useCallback(() => {
-      if (!currentId) return;
-      const t = setTimeout(scrollToCurrent, 80);
-      return () => clearTimeout(t);
-    }, [currentId, scrollToCurrent]),
-  );
   useFocusEffect(
     useCallback(() => {
       let live = true;
@@ -130,12 +107,11 @@ export default function Today() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
       <Banner />
-      <ScrollView ref={scroller} onLayout={(e) => { viewH.current = e.nativeEvent.layout.height; }} contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
-        <View ref={content} collapsable={false} style={{ gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
+        <View style={{ gap: 16 }}>
       {saved ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: c.successSoft }}>
           <View style={{ width: 80, height: 80 }}>
-            <Fx name="stamp" size={80} style={{ position: "absolute" }} />
             <Cody animation="celebrate" size={80} style={{ position: "absolute" }} />
           </View>
           <View style={{ flex: 1 }}>
@@ -256,7 +232,7 @@ export default function Today() {
         <T role="heading" header style={{ marginBottom: 8 }}>
           {copy.today.pathTitle}
         </T>
-        <PathList progress={progress} currentAnchor={currentAnchor} course={course} onGuestLock={() => setGate(true)} />
+        <PathList progress={progress} course={course} onGuestLock={() => setGate(true)} />
       </Card>
 
       <Card style={{ gap: 8 }}>

@@ -6,7 +6,7 @@ import { Cody, Fx } from "./Lottie";
 
 export type LessonSummary = { xp: number; accuracy: number; seconds: number; perfectBonus?: number; best: number };
 
-/** The end-of-lesson moment: stamp, Cody, earned XP and streak, the lesson summary, then what's next. */
+/** The end-of-lesson moment: Chaukor, earned XP and streak, the lesson summary, then what's next. */
 export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, summary, children }: { title: string; body: string; recap?: string; xp?: number; streak?: number; goalMet?: boolean; hints?: number; summary?: LessonSummary; children: React.ReactNode }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   // Lesson finished, then (when today's streak or goal just landed) the streak-saved beat.
@@ -17,8 +17,7 @@ export function LessonDone({ title, body, recap, xp, streak, goalMet, hints, sum
   return (
     <>
       <div className="seal">
-        <Fx name="stamp" size={180} className="seal-stamp" />
-        <Cody animation={pose} onComplete={() => (streak || goalMet) && setPose("streak-saved")} size={150} className="seal-cody" label={copy.a11y.mascot} />
+        <Cody animation={pose} onComplete={() => (streak || goalMet) && setPose("streak-saved")} size={180} label={copy.a11y.mascot} />
       </div>
       <div className="done-chips">
         {xp ? (

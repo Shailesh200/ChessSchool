@@ -51,8 +51,7 @@ export default function Orientation() {
       {done ? (
         <div className="flow-body done" key="done">
           <div className="seal">
-            <Fx name="stamp" size={180} className="seal-stamp" />
-            <Cody animation="celebrate" size={150} className="seal-cody" label={copy.a11y.mascot} />
+            <Cody animation="celebrate" size={180} label={copy.a11y.mascot} />
           </div>
           <div className="xp-pill" role="img" aria-label={copy.a11y.xp(PATH[0].xp)}>
             <Fx name="xp-pop" size={40} />

@@ -1633,16 +1633,6 @@ a.path-inner:hover {
   border-radius: 50%;
   background: radial-gradient(circle, var(--cs-brand-soft), transparent 70%);
 }
-.seal-stamp {
-  position: absolute !important;
-  left: 6px;
-  top: 6px;
-}
-.seal-cody {
-  position: absolute !important;
-  right: 10px;
-  bottom: 0;
-}
 .xp-pill {
   display: inline-flex;
   align-items: center;
@@ -1699,6 +1689,10 @@ a.path-inner:hover {
 }
 .flow-doc {
   grid-template-rows: auto 1fr;
+}
+/* The start page has no top bar: body, then actions. */
+.flow-start {
+  grid-template-rows: 1fr auto;
 }
 .doc {
   display: grid;
