@@ -3,6 +3,7 @@
 import {
   bestMove,
   botInfo,
+  botOptions,
   BOTS,
   chooseMove,
   defaultSetup,
@@ -47,6 +48,7 @@ import { ShareCardButton } from "@/components/ShareCard";
 import { Cody } from "@/components/Lottie";
 import { SpeakMove } from "@/components/SpeakMove";
 import { ActionDock, Button, Card, Sheet, Switch, TopBar } from "@/components/ui";
+import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -99,6 +101,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const [watch, setWatch] = useState<number | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
+  const ai = usePlayAi(game?.setup.opponent.kind === "bot");
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
 
@@ -178,8 +181,14 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
       cue(next.setup.opponent.kind === "friend" ? "success" : result === "win" ? "level-up" : result === "draw" ? "success" : "tap");
     } else if (!next.over) {
       saveGame({ setup: next.setup as StoredSetup, history: next.history, startedAt, clock: next.clock ? { w: timeLeft(next, "w", Date.now()), b: timeLeft(next, "b", Date.now()) } : null });
-      if (next.history.length > prev.history.length) cue(moveCue(next.history.at(-1)!));
-      else if (next.history.length < prev.history.length) cue("tap");
+      if (next.history.length > prev.history.length) {
+        cue(moveCue(next.history.at(-1)!));
+        // The learner's own move against a bot: the coach may comment on a mistake.
+        if (next.setup.opponent.kind === "bot" && turnOf(prev.fen) === next.setup.you) {
+          ai.clearLine();
+          ai.comment(prev.fen, next.history.at(-1)!);
+        }
+      } else if (next.history.length < prev.history.length) cue("tap");
       const side = turnOf(next.fen);
       const human = next.setup.opponent.kind === "friend" || side === next.setup.you;
       if (a.type === "tick" && next.clock && human && !lowWarned.current[side] && timeLeft(next, side, a.now) < 10_000) {
@@ -201,7 +210,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
     // The endgame trainer defends perfectly from the tablebase; anything else (or no connection) uses the bot.
     const trainer = (ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "");
     const t = setTimeout(() => {
-      if (!trainer) return play(chooseMove(fen, botId, Math.random, strength));
+      if (!trainer) return void ai.botMove(fen, botId, botOptions(fen, botId, Math.random, strength)).then(play);
       api
         .tablebase(fen)
         .then((r) => play(r.move ? { from: r.move.slice(0, 2), to: r.move.slice(2, 4), promotion: r.move[4] } : chooseMove(fen, botId, Math.random, strength)))
@@ -420,6 +429,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                 const m = bestMove(game.fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
                 if (!m) return;
                 setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
+                if (!friend) ai.hint(game.fen, m.san);
               }}
             >
               <Icon name="bulb" />
@@ -469,7 +479,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                 <Cody animation={pose} size={48} />
                 <div className="play-status-text">
                   <strong>{statusTitle}</strong>
-                  <span className="muted">{voiceNote ?? statusSub ?? "\u00a0"}</span>
+                  <span className={!voiceNote && ai.line ? "coach-line" : "muted"}>{voiceNote ?? ai.line ?? (!game.botThinking && ai.botSay ? `${name}: ${ai.botSay}` : (statusSub ?? "\u00a0"))}</span>
                 </div>
               </div>
               <div className="play-steps">
@@ -544,6 +554,13 @@ function ResultSheet(props: {
 }) {
   const plies = useMemo(() => reviewPlies(props.startFen, props.history), [props.startFen, props.history]);
   const { notes, done } = useGameAnalysis(plies);
+  // Against a bot, the coach's AI note for the key moment arrives on its own (no extra click).
+  const coach = useCoachNotes(props.history, props.startFen, props.side);
+  useEffect(() => {
+    if (props.open && done && props.side && plies.length >= 2 && coach.signedIn && coach.allowed && coach.status === "idle") coach.ask();
+    // Asked once per game, when the sheet opens with the analysis done.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.open, done]);
   const sum = summarise(plies, notes, props.side);
   const best = sum.best ? plies[sum.best - 1] : null;
   return (
@@ -565,7 +582,7 @@ function ResultSheet(props: {
             <Icon name="sparkles" size={20} />
             <span>{!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(`${Math.ceil(best.ply / 2)}${best.by === "w" ? "." : "…"} ${best.san}`) : copy.analysis.cody(sum.accuracy)}</span>
           </p>
-          <KeyMomentCard plies={plies} notes={notes} done={done} side={props.side} orientation={props.side ?? "w"} />
+          <KeyMomentCard plies={plies} notes={notes} done={done} side={props.side} orientation={props.side ?? "w"} shareable={!props.share} coachNoteFor={(p) => coach.noteFor(p)?.text ?? null} />
         </>
       ) : null}
       <div className="sheet-actions">

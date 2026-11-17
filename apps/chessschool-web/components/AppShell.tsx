@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { copy, type IconName } from "@chessschool/design";
 import { useOfflineStock } from "@/lib/course";
 import { useApp } from "@/lib/state";
@@ -20,7 +21,12 @@ const TABS: { href: string; label: keyof typeof copy.tabs; icon: IconName; also?
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { state, ready } = useApp();
+  const router = useRouter();
   useOfflineStock();
+  // Every route in the app needs the terms agreed once (a shared link can land here first).
+  useEffect(() => {
+    if (ready && !state.termsAt) router.replace(`/start?next=${encodeURIComponent(path)}`);
+  }, [ready, state.termsAt, path, router]);
   const active = (href: string) => {
     const t = TABS.find((x) => x.href === href)!;
     return [href, ...(t.also ?? [])].some((h) => path === h || path.startsWith(h + "/"));

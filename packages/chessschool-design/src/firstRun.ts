@@ -23,8 +23,12 @@ export function afterAuthRoute(kind: AuthKind, firstRun: boolean, xp: number): "
   return returning ? "/today" : "/welcome";
 }
 
-/** Where the app opens: Today for anyone who has been here, else the first lesson, else (lesson done) welcome. */
-export function startRoute(s: Pick<LocalState, "account" | "seenWelcome" | "progress">, course?: { lessons: readonly { id: string }[] } | null): string {
+/**
+ * Where the app opens: the terms (once per device, everyone), then Today for anyone who has been here,
+ * else the first lesson, else (lesson done) welcome.
+ */
+export function startRoute(s: Pick<LocalState, "account" | "seenWelcome" | "progress" | "termsAt">, course?: { lessons: readonly { id: string }[] } | null): string {
+  if (!s.termsAt) return "/start";
   if (s.account || s.seenWelcome) return "/today";
   return Object.keys(s.progress.completed).some((id) => id !== "meet") ? "/welcome" : firstLessonHref(course);
 }

@@ -31,6 +31,7 @@ import {
   type HomeResponse,
   type Progress,
 } from "@chessschool/design";
+import { answerLine, parseLineInput } from "./coach-line";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { isVisionGame, isVisionScore, VISION_GAMES } from "@chessschool/chess";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -165,6 +166,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const lessonDraftLimiter = createRateLimiter(20, 24 * 60 * 60_000, () => now().getTime());
   /** Each explanation runs the engine over the whole game, so even cache hits are limited. */
   const coachLimiter = createRateLimiter(6, 60_000, () => now().getTime());
+  // A bot move every couple of seconds plus hints and comments.
+  const lineLimiter = createRateLimiter(60, 60_000, () => now().getTime());
+  const lineAi = coachAi.filter((p) => p.name !== "anthropic");
   const importLimiter = createRateLimiter(10, 10 * 60_000, () => now().getTime());
   const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
@@ -1334,6 +1338,23 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!coachLimiter(user.id)) return fail(c, 429, "rate_limited");
     const lang = c.req.query("lang") === "hi" ? "hi" : "en";
     const answer = await explainGame(db, coachAi, input, lang, user.id, dayKey(now()), now().getTime());
+    if (answer === "limit") return fail(c, 429, "rate_limited");
+    if (!answer) return fail(c, 503, "server");
+    return c.json(answer);
+  });
+
+  /**
+   * Short AI lines in a bot game. Body: { kind: "hint" | "comment", fen, move, coach } or { kind: "bot", fen, bot, options }.
+   * Agreeing to the terms at the start covers these; only moves and positions go to the providers.
+   * Only the free-tier providers are used here, so in-game AI never spends the paid budget.
+   */
+  app.post("/v1/coach/line", requireUser, async (c) => {
+    const user = c.get("user");
+    const input = parseLineInput(await body<Record<string, unknown>>(c), isCoachId);
+    if (!input) return fail(c, 400, "invalid_input");
+    if (!lineLimiter(user.id)) return fail(c, 429, "rate_limited");
+    const lang = c.req.query("lang") === "hi" ? "hi" : "en";
+    const answer = await answerLine(db, lineAi, input, lang, user.id, dayKey(now()), now().getTime());
     if (answer === "limit") return fail(c, 429, "rate_limited");
     if (!answer) return fail(c, 503, "server");
     return c.json(answer);

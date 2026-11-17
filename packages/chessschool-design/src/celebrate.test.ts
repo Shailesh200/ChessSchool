@@ -98,7 +98,12 @@ describe("rating peaks and badges", () => {
 });
 
 describe("first run", () => {
-  const fresh = createInitialState("g");
+  const fresh = { ...createInitialState("g"), termsAt: "2026-11-17T10:00:00.000Z" };
+  it("every device agrees to the terms first, even a signed-in one", () => {
+    expect(startRoute(createInitialState("g"))).toBe("/start");
+    expect(startRoute({ ...createInitialState("g"), seenWelcome: true })).toBe("/start");
+  });
+
   it("a new install opens the first lesson, then welcome, then Today", () => {
     expect(startRoute(fresh)).toBe("/lesson/board?first=1");
     expect(startRoute(fresh, { lessons: [{ id: "meet" }, { id: "intro" }] })).toBe(firstLessonHref({ lessons: [{ id: "meet" }, { id: "intro" }] }));

@@ -1,10 +1,10 @@
 import { editPlacement, setupFen, setupProblem, type Color, type PieceType } from "@chessschool/chess";
-import { agreeAi, aiAgreed, aiExplainOn, copy, importGame, scannedRecord } from "@chessschool/design";
+import { aiExplainOn, copy, importGame, scannedRecord } from "@chessschool/design";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { Board, PieceArt } from "@/components/Board";
-import { Button, Page, Segmented, Sheet, T, useToast } from "@/components/ui";
+import { Button, Page, Segmented, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
@@ -53,7 +53,6 @@ export default function ScanBoard() {
   const t = copy.scan;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [consent, setConsent] = useState<Source | null>(null);
   const [board, setBoard] = useState<Scanned | null>(null);
   const [tool, setTool] = useState<string | null>("P");
 
@@ -74,7 +73,6 @@ export default function ScanBoard() {
       setBusy(false);
     }
   };
-  const ask = (source: Source) => (aiAgreed(state) ? void read(source) : setConsent(source));
 
   if (!state.account || !aiExplainOn(state)) {
     return (
@@ -90,8 +88,8 @@ export default function ScanBoard() {
         <T role="body" color="textMuted">
           {t.body}
         </T>
-        <Button title={t.takePhoto} icon="eye" loading={busy} disabled={busy} onPress={() => ask("camera")} />
-        <Button title={t.choosePhoto} icon="doc" variant="secondary" disabled={busy} onPress={() => ask("library")} />
+        <Button title={t.takePhoto} icon="eye" loading={busy} disabled={busy} onPress={() => void read("camera")} />
+        <Button title={t.choosePhoto} icon="doc" variant="secondary" disabled={busy} onPress={() => void read("library")} />
         <View accessibilityLiveRegion="polite">
           <T role="small" color={busy ? "brandText" : "textMuted"}>
             {busy ? t.reading : t.tips}
@@ -105,23 +103,6 @@ export default function ScanBoard() {
         <T role="micro" color="textSubtle">
           {t.privacy}
         </T>
-        <Sheet visible={consent !== null} onClose={() => setConsent(null)}>
-          <View style={{ gap: 12, alignSelf: "stretch" }}>
-            <T role="heading">{t.consentTitle}</T>
-            <T role="body">{t.consentBody}</T>
-            <Button
-              title={t.consentAgree}
-              icon="spark"
-              onPress={() => {
-                const source = consent!;
-                update(agreeAi);
-                setConsent(null);
-                void read(source);
-              }}
-            />
-            <Button title={copy.coachAi.consentCancel} variant="secondary" onPress={() => setConsent(null)} />
-          </View>
-        </Sheet>
       </Page>
     );
   }

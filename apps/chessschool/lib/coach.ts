@@ -1,21 +1,21 @@
 import { detectMistakes, type Color, type MoveNote, type ReviewPly } from "@chessschool/chess";
-import { agreeAi, aiAgreed, aiExplainOn, dayKey, recordReviewedGame, type CoachNote, type GameRecord } from "@chessschool/design";
+import { aiExplainOn, dayKey, recordReviewedGame, type CoachNote, type GameRecord } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 
-export type CoachStatus = "idle" | "consent" | "loading" | "done" | "error" | "limit";
+export type CoachStatus = "idle" | "loading" | "done" | "error" | "limit";
 
-/** "Explain my game": the consent notice once per profile, then the coach's notes per move. */
-export function useCoachNotes(game: GameRecord | undefined, startFen: string, side: Color | null) {
+/** "Explain my game": the coach's notes per move (agreeing to the terms at the start covers sending the moves). */
+export function useCoachNotes(moves: string[] | undefined, startFen: string, side: Color | null) {
   const { state, update } = useApp();
   const [status, setStatus] = useState<CoachStatus>("idle");
   const [notes, setNotes] = useState<CoachNote[]>([]);
   const run = () => {
-    if (!game) return;
+    if (!moves) return;
     setStatus("loading");
     api
-      .explainGame({ startFen, moves: game.history, side, coach: state.prefs.coach ?? "meera", consent: true })
+      .explainGame({ startFen, moves, side, coach: state.prefs.coach ?? "meera", consent: true })
       .then((r) => {
         setNotes(r.moments);
         setStatus("done");
@@ -27,12 +27,7 @@ export function useCoachNotes(game: GameRecord | undefined, startFen: string, si
     notes,
     signedIn: Boolean(state.account),
     allowed: aiExplainOn(state),
-    ask: () => (aiAgreed(state) ? run() : setStatus("consent")),
-    agree: () => {
-      update(agreeAi);
-      run();
-    },
-    cancel: () => setStatus("idle"),
+    ask: run,
     noteFor: (ply: number) => notes.find((n) => n.ply === ply) ?? null,
   };
 }
@@ -52,4 +47,43 @@ export function useReviewedSkills(game: GameRecord | undefined, plies: ReviewPly
     // Runs once when the analysis finishes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, done]);
+}
+
+/**
+ * In-game AI for a bot game, when signed in with AI on: the bot picks among its own candidate moves in its
+ * style (sometimes with a remark), the hint gets a one-line reason, and the learner's mistakes get a comment.
+ * Any failure or slow answer falls back quietly: the bot plays its model's pick and no line shows.
+ */
+export function usePlayAi(botGame: boolean) {
+  const { state } = useApp();
+  const coach = state.prefs.coach ?? "meera";
+  const on = botGame && Boolean(state.account) && aiExplainOn(state);
+  const [line, setLine] = useState<string | null>(null);
+  const [botSay, setBotSay] = useState<string | null>(null);
+  const say = (kind: "hint" | "comment", fen: string, move: string) => {
+    if (!on) return;
+    api
+      .coachLine({ kind, fen, move, coach })
+      .then((r) => r.text && setLine(r.text))
+      .catch(() => {});
+  };
+  return {
+    line,
+    botSay,
+    clearLine: () => setLine(null),
+    hint: (fen: string, san: string) => say("hint", fen, san),
+    comment: (fenBefore: string, san: string) => say("comment", fenBefore, san),
+    /** The bot's move: options[0] is its model's own pick, used when AI is off, slow or fails. */
+    botMove: async <M extends { san: string }>(fen: string, bot: string, options: M[]): Promise<M | null> => {
+      setBotSay(null);
+      if (!on || options.length < 2) return options[0] ?? null;
+      try {
+        const r = await api.botPick({ fen, bot, options: options.map((o) => o.san) });
+        setBotSay(r.say);
+        return options[r.pick] ?? options[0]!;
+      } catch {
+        return options[0]!;
+      }
+    },
+  };
 }

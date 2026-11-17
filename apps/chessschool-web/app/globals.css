@@ -5639,3 +5639,20 @@ button.game-row {
   stroke-linejoin: round;
   stroke-linecap: round;
 }
+
+/* Start screen (terms in short) */
+.start-points {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 1.2em;
+  text-align: left;
+  max-width: 34rem;
+}
+.start-links {
+  text-align: center;
+  margin: 0;
+}
+.coach-line {
+  color: var(--cs-brand-text);
+}

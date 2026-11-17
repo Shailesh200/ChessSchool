@@ -12,7 +12,7 @@ import { Button, useToast } from "./ui";
  * why. `coachNoteFor` gives the Phase 2 coach note for that move when the learner already asked
  * for it; otherwise the detector's tag text. Renders nothing until the analysis is done.
  */
-export function KeyMomentCard({ plies, notes, done, side, orientation, coachNoteFor, onShow }: { plies: ReviewPly[]; notes: Record<number, MoveNote>; done: boolean; side: Color | null; orientation: Color; coachNoteFor?: (ply: number) => string | null; onShow?: (ply: number) => void }) {
+export function KeyMomentCard({ plies, notes, done, side, orientation, coachNoteFor, onShow, shareable = true }: { plies: ReviewPly[]; notes: Record<number, MoveNote>; done: boolean; side: Color | null; orientation: Color; coachNoteFor?: (ply: number) => string | null; onShow?: (ply: number) => void; shareable?: boolean }) {
   const toast = useToast();
   // The analysis fills `notes` a move at a time; the card is built once, when it is complete.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,9 +46,11 @@ export function KeyMomentCard({ plies, notes, done, side, orientation, coachNote
             {copy.keyMoment.show}
           </Button>
         ) : null}
-        <Button variant="secondary" onClick={() => void shareText(copy.keyMoment.shareText(m.move, m.better)).then((copied) => copied && toast(copy.celebrate.copied))}>
-          {copy.keyMoment.share}
-        </Button>
+        {shareable ? (
+          <Button variant="secondary" onClick={() => void shareText(copy.keyMoment.shareText(m.move, m.better)).then((copied) => copied && toast(copy.celebrate.copied))}>
+            {copy.keyMoment.share}
+          </Button>
+        ) : null}
       </div>
     </section>
   );
