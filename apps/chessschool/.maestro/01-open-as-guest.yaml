@@ -5,3 +5,21 @@ name: Opens and continues as a guest
 - runFlow: common/guest.yaml
 - assertVisible: "Learn"
 - assertVisible: "Profile"
+# iOS asks "Open in ChessSchool?" only for the first link after the simulator boots, and a link answered
+# there sometimes never reaches the app. Open a harmless link here (this flow runs first), so the later
+# flows' links go straight to the app.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - openLink: chessschool://today
+      - extendedWaitUntil:
+          visible: "Open"
+          timeout: 15000
+          optional: true
+      - tapOn:
+          text: "Open"
+          optional: true
+      - extendedWaitUntil:
+          visible: "Learn"
+          timeout: 15000
