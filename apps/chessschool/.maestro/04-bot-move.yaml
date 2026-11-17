@@ -18,8 +18,16 @@ env:
     when:
       true: ${EMAIL != ""}
     commands:
-      - openLink: chessschool://login
-      - runFlow: common/open-prompt.yaml
+      # Simulator deep links sometimes don't land; open again until the form shows.
+      - retry:
+          maxRetries: 2
+          commands:
+            - openLink: chessschool://login
+            - runFlow: common/open-prompt.yaml
+            - extendedWaitUntil:
+                visible:
+                  id: "email-input"
+                timeout: 10000
       - tapOn:
           id: "email-input"
       - inputText: ${EMAIL}
@@ -45,11 +53,14 @@ env:
       - tapOn:
           text: "Not Now"
           optional: true
-      - openLink: chessschool://play?bot=cody
-      - runFlow: common/open-prompt.yaml
-      - extendedWaitUntil:
-          visible: "Game setup"
-          timeout: 20000
+      - retry:
+          maxRetries: 2
+          commands:
+            - openLink: chessschool://play?bot=cody
+            - runFlow: common/open-prompt.yaml
+            - extendedWaitUntil:
+                visible: "Game setup"
+                timeout: 15000
       - tapOn: "Start game"
       - extendedWaitUntil:
           visible: "vs Chaukor"
