@@ -23,10 +23,13 @@ const tile = (size, pad) => {
 await sharp(tile(192, 0.02)).png().toFile(join(OUT, "pwa-192.png"));
 await sharp(tile(512, 0.02)).png().toFile(join(OUT, "pwa-512.png"));
 await sharp(tile(180, 0.04)).png().toFile(join(OUT, "apple-touch-icon.png"));
-await sharp(tile(48, 0)).png().toFile(join(OUT, "favicon-48.png"));
+// Browser-tab favicons: Chaukor alone on a transparent square (no cream tile).
+const bare = (size) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="86 120 340 340">${chaukor}</svg>`);
+await sharp(bare(48)).png().toFile(join(OUT, "favicon-48.png"));
+await sharp(bare(192)).png().toFile(join(OUT, "favicon-192.png"));
 // Maskable: Chaukor inside the 80% safe zone.
 await sharp(tile(512, 0.12)).png().toFile(join(OUT, "pwa-maskable-512.png"));
-await sharp(tile(48, 0)).png().toFile(join(OUT, "favicon.png"));
+await sharp(bare(48)).png().toFile(join(OUT, "favicon.png"));
 // Main store icon: Chaukor on the cream square (coral on coral would lose him), opaque for iOS.
 await sharp(tile(1024, 0.13)).flatten({ background: "#FFF6EE" }).png().toFile(join(OUT, "icon.png"));
 // Launch screen: Chaukor alone on a transparent square (app.json sets the colour behind him).

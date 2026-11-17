@@ -20,7 +20,10 @@ export const metadata: Metadata = {
   applicationName: copy.brand,
   appleWebApp: { capable: true, title: copy.brand, statusBarStyle: "default" },
   icons: {
-    icon: [{ url: "/assets/raster/favicon-48.png", sizes: "48x48" }],
+    icon: [
+      { url: "/assets/raster/favicon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/assets/raster/favicon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/assets/raster/apple-touch-icon.png",
   },
   openGraph: { title: copy.brand, description: copy.tagline, images: ["/assets/raster/og.png"], type: "website" },
