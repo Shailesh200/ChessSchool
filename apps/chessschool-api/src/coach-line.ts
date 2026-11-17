@@ -92,9 +92,9 @@ function hintPrompt(f: CoachMoment, m: Legal, coach: CoachId, lang: CoachLang) {
   ].filter(Boolean);
   const system = [
     `You are ${c.name}, a chess coach for children aged 7 to 12. Your style: ${c.blurb.toLowerCase()}.`,
-    "Give a hint in ONE short, warm sentence (at most 20 words) about why this move is good. Do not just repeat the move.",
+    "Give a hint in ONE short, warm sentence (at most 20 words) that names the concrete idea from the facts: checkmate, check, a capture, or which piece it attacks. Do not just say it is good.",
     "Use only the facts given. Never mention a square, piece or move that is not in the facts.",
-    lang === "hi" ? "Write in simple Hindi (Devanagari), address the learner as आप, keep moves and squares in English letters." : "Write in simple English.",
+    lang === "hi" ? "Write in simple, natural Hindi (Devanagari) with आप-form verbs; do not start with आप. Chess words: राजा, रानी, हाथी, ऊँट, घोड़ा, प्यादा, शह, शह-मात. Keep moves and squares in English letters." : "Write in simple English.",
   ].join(" ");
   return { system, prompt: facts.join(" ") };
 }
@@ -121,7 +121,8 @@ async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInp
     fact = { ...moment, moveNo: moveNoOf(input.fen) };
     ask = async () => {
       const got = await askChain(providers, [fact], input.coach, lang, side);
-      return got ? { text: got.texts[0]!, provider: got.provider } : null;
+      // Mid-game the line must stay short: what happened and the better move.
+      return got ? { text: got.texts[0]!.split(/(?<=[.!?।])\s+/).slice(0, 2).join(" "), provider: got.provider } : null;
     };
   } else {
     const m = legalMove(input.fen, input.move)!;
@@ -180,7 +181,8 @@ async function botPick(db: Db, providers: AiProvider[], input: Extract<LineInput
   for (const p of providers) {
     const raw = await p.complete(system, options.join("\n")).catch(() => null);
     const got = raw ? parseBotAnswer(raw, input.options) : null;
-    if (got) return got;
+    // A remark only fits a capture or a check (models add one anyway).
+    if (got) return /x|[+#]/.test(input.options[got.pick]!) ? got : { pick: got.pick, say: null };
   }
   return null;
 }
