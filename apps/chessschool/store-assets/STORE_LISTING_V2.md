@@ -4,7 +4,7 @@ Draft text for release 0.7.0. It leads with "learn chess in Hindi", which no lar
 Character limits are next to each field; the count after each line is the length of that text.
 Lengths are counted in Unicode code points; the stores count Hindi the same way, but check the counter in the console when pasting.
 The description and What's New mention offline lessons, leagues, quests and mate of the day: keep those lines only if those features ship in 0.7.0.
-Nothing here is submitted by a script: the lead pastes it into App Store Connect and Play Console.
+The App Store text was pushed to App Store Connect (version 0.7.0, en-US and hi) on 2026-11-17. Play Console needs pasting by hand.
 
 ## App Store (iOS)
 
@@ -33,6 +33,7 @@ PLAY AND PRACTISE
 • Friendly bots that grow with you, and a playing rating you can watch climb.
 • Puzzles matched to your level, a daily puzzle and a 3-minute sprint.
 • After each game, one key moment: what you played and what was better.
+• An AI coach explains your games, gives hints and plays as some of the bots.
 
 MADE FOR FAMILIES AND CLASSES
 • Up to 5 child profiles under one parent account, with a parent PIN.
@@ -83,6 +84,7 @@ ChessSchool भारत के बच्चों, परिवारों औ
 • दोस्ताना बॉट जो आपके साथ बढ़ते हैं, और रेटिंग जिसे आप बढ़ते देख सकते हैं।
 • आपके स्तर की पहेलियाँ, रोज़ की पहेली और 3 मिनट की दौड़।
 • हर खेल के बाद एक खास पल: आपने क्या खेला और क्या बेहतर था।
+• AI कोच आपके खेल समझाता है, संकेत देता है और कुछ बॉट बनकर खेलता है।
 
 परिवारों और क्लासों के लिए
 • एक माता-पिता खाते में 5 बच्चों तक की प्रोफ़ाइल, पैरेंट PIN के साथ।
@@ -125,6 +127,6 @@ Six screenshots per language (iPhone 6.9" 1320x2868, iPad 13" 2064x2752, Android
 | 3 | Game vs a bot with the key-moment card | See your key moment after every game | हर खेल के बाद अपना खास पल देखें |
 | 4 | Puzzles tab with the daily puzzle and rating | Puzzles at your level, every day | हर दिन, आपके स्तर की पहेलियाँ |
 | 5 | Learners screen with child profiles and "Share this week" | One account for the whole family | पूरे परिवार के लिए एक खाता |
-| 6 | Unit-complete celebration with Cody | Small wins, every day | रोज़ छोटी-छोटी जीत |
+| 6 | Unit-complete celebration with Chaukor | Small wins, every day | रोज़ छोटी-छोटी जीत |
 
-Notes for whoever takes them: use a profile with no real child's name, show Cody (not a coach photo) in shot 1, and keep the status bar clean (9:41, full battery).
+Notes for whoever takes them: use a profile with no real child's name, show Chaukor (not a coach photo) in shot 1, and keep the status bar clean (9:41, full battery).
