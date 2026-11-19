@@ -33,7 +33,7 @@ export default function GymPage() {
         <div>
           <h2 className="card-title">{state.activeGame ? copy.play.resume : copy.gym.quick}</h2>
           <p className="muted">{state.activeGame ? copy.play.resumeBody(Math.ceil(state.activeGame.history.length / 2)) : copy.gym.quickBody}</p>
-          <Button href={state.activeGame ? "/play?resume=1" : "/play?bot=cody&quick=1"} icon="play">
+          <Button href={state.activeGame ? "/play?resume=1" : "/play?bot=pip&quick=1"} icon="play">
             {state.activeGame ? copy.play.resume : copy.play.start}
           </Button>
         </div>
@@ -48,14 +48,14 @@ export default function GymPage() {
         <ul className="bots">
           {BOTS.map((b) => (
             <li key={b.id}>
-              <Link href={`/play?bot=${b.id}`} className="bot-card" aria-label={`${b.name}. ${b.strength}. ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}. ${b.blurb}`}>
+              <Link href={`/play?bot=${b.id}`} className="bot-card" aria-label={`${b.name}. ${b.label}. ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}. ${b.blurb}`}>
                 <BotAvatar bot={b.id} size={56} />
                 <span className="bot-name">{b.name}</span>
                 <span className="bot-level">
                   {"★".repeat(b.level)}
                   <span className="sr-only">{b.level}</span>
                 </span>
-                <span className="bot-strength">{b.strength}</span>
+                <span className="bot-strength">{b.label}</span>
                 <span className="bot-record">{copy.gym.record(bots[b.id]?.played ?? 0, bots[b.id]?.won ?? 0)}</span>
                 <span className="bot-record">{copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}</span>
               </Link>

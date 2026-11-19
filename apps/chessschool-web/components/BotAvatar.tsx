@@ -4,8 +4,8 @@ import type { BotId, PieceType } from "@chessschool/chess";
 import { Cody } from "./Lottie";
 import { PieceArt } from "./Board";
 
-const PIECE: Record<BotId, PieceType | null> = { pip: "p", cody: null, rooky: "r", bishop: "b", ivy: "q", atlas: "k" };
-const TINT: Record<BotId, string> = { pip: "tint-success", cody: "tint-brand", rooky: "tint-accent", bishop: "tint-gold", ivy: "tint-brand", atlas: "tint-accent" };
+const PIECE: Record<BotId, PieceType | null> = { pip: "p", cody: null, rooky: "r", bishop: "b", ivy: "q", atlas: "k", raja: "n" };
+const TINT: Record<BotId, string> = { pip: "tint-success", cody: "tint-brand", rooky: "tint-accent", bishop: "tint-gold", ivy: "tint-brand", atlas: "tint-accent", raja: "tint-gold" };
 
 /** Each bot is a Toy piece; Cody is Cody. */
 export function BotAvatar({ bot, size = 44 }: { bot: BotId; size?: number }) {

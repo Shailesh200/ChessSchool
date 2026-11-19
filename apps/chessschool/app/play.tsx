@@ -76,10 +76,10 @@ export default function Play() {
   const mode: Mode = params.mode === "friend" || params.mode === "shuffle" || params.mode === "position" || params.mode === "endgame" ? params.mode : "bot";
   // A scanned position (from the board scanner) replaces the position list.
   const scanFen = mode === "position" && params.fen && !setupProblem(params.fen) ? params.fen : null;
-  const [bot, setBot] = useState<BotId>(isBotId(params.bot) ? params.bot : "cody");
+  const [bot, setBot] = useState<BotId>(isBotId(params.bot) ? params.bot : "pip");
   const [side, setSide] = useState<Side>(scanFen ? turnOf(scanFen) : "w");
   const [time, setTime] = useState<TimeControlId>("none");
-  const [takebacks, setTakebacks] = useState(botInfo(isBotId(params.bot) ? params.bot : "cody").takebacks || mode === "friend");
+  const [takebacks, setTakebacks] = useState(botInfo(isBotId(params.bot) ? params.bot : "pip").takebacks || mode === "friend");
   const [position, setPosition] = useState(START_POSITIONS[0].id);
   const [watch, setWatch] = useState<number | null>(null);
   const [guide, setGuide] = useState<{ from: Square; to: Square; piece: Piece } | null>(null);
@@ -277,7 +277,7 @@ export default function Play() {
                   key={b.id}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: bot === b.id }}
-                  accessibilityLabel={`${b.name}, ${b.strength}`}
+                  accessibilityLabel={`${b.name}, ${b.label}`}
                   onPress={() => {
                     setBot(b.id);
                     setTakebacks(b.takebacks);
@@ -290,7 +290,7 @@ export default function Play() {
                       {b.name}
                     </T>
                     <T role="micro" color="textMuted" numberOfLines={1}>
-                      {b.strength} · {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
+                      {b.label} · {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
                     </T>
                   </View>
                   <T role="micro" style={{ color: c.goldText, fontFamily: fonts.bold }}>

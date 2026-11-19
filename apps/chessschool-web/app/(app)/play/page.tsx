@@ -86,7 +86,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   // A scanned position (from /gym/scan) replaces the position list.
   const askedFen = params.get("fen");
   const scanFen = mode === "position" && askedFen && !setupProblem(askedFen) ? askedFen : null;
-  const [bot, setBot] = useState<BotId>(isBotId(firstBot) ? firstBot : "cody");
+  const [bot, setBot] = useState<BotId>(isBotId(firstBot) ? firstBot : "pip");
   const [side, setSide] = useState<Side>(scanFen ? turnOf(scanFen) : "w");
   const [time, setTime] = useState<TimeControlId>("none");
   const [takebacks, setTakebacks] = useState(botInfo(bot).takebacks || mode === "friend");
@@ -286,7 +286,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                     type="button"
                     role="radio"
                     aria-checked={bot === b.id}
-                    aria-label={`${b.name}, ${b.strength}`}
+                    aria-label={`${b.name}, ${b.label}`}
                     className="bot-chip"
                     onClick={() => {
                       setBot(b.id);
@@ -297,7 +297,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                     <span className="bot-chip-text">
                       <span>{b.name}</span>
                       <span className="muted">
-                        {b.strength} · {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
+                        {b.label} · {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
                       </span>
                     </span>
                     <span className="bot-level" aria-hidden>

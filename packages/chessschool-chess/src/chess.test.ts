@@ -255,7 +255,7 @@ describe("Gym play", () => {
   const tap = (st: ReturnType<typeof startGame>, a: Square, b: Square, now = 0) => playReduce(playReduce(st, { type: "tap", square: a, now }), { type: "tap", square: b, now });
 
   it("plays vs a bot, takes back, resigns", () => {
-    let s = startGame(defaultSetup("cody"), 0);
+    let s = startGame(defaultSetup("pip"), 0);
     s = tap(s, "e2", "e4");
     expect(s.history).toEqual(["e4"]);
     expect(s.botThinking).toBe(true);

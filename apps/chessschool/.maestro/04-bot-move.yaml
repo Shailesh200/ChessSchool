@@ -11,7 +11,7 @@ env:
     when:
       true: ${EMAIL == ""}
     commands:
-      - openLink: chessschool://play?bot=cody
+      - openLink: chessschool://play?bot=pip
       - runFlow: common/open-prompt.yaml
       - assertNotVisible: "Game setup"
 - runFlow:
@@ -58,14 +58,14 @@ env:
       - retry:
           maxRetries: 2
           commands:
-            - openLink: chessschool://play?bot=cody
+            - openLink: chessschool://play?bot=pip
             - runFlow: common/open-prompt.yaml
             - extendedWaitUntil:
                 visible: "Game setup"
                 timeout: 15000
       - tapOn: "Start game"
       - extendedWaitUntil:
-          visible: "vs Chaukor"
+          visible: "vs Pip"
           timeout: 15000
       - tapOn:
           id: "square-e2"

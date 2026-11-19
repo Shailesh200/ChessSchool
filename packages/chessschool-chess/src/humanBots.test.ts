@@ -87,12 +87,13 @@ describe("bots that err like people", () => {
     expect(mid).toBeGreaterThan(high);
   }, 30_000);
 
-  it("every bot has a target rating, spaced from Pip to King Atlas", () => {
-    const ratings = BOTS.map((b) => b.rating);
-    // 0.7: every Gym bot moved up two levels (the 1-star bot plays like the old 3-star one).
-    expect(ratings[0]).toBe(1000);
-    expect(ratings.at(-1)).toBe(2300);
-    expect([...ratings].sort((a, b) => a - b)).toEqual(ratings);
+  it("seven bots rated 300 to 2100 on the chess.com scale, each playing harder than the last", () => {
+    expect(BOTS.map((b) => b.rating)).toEqual([300, 600, 900, 1200, 1500, 1800, 2100]);
+    expect(BOTS.map((b) => b.level)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    const strengths = BOTS.map((b) => b.strength);
+    expect([...strengths].sort((a, b) => a - b)).toEqual(strengths);
+    // The 2-star bot plays like Professor Bishop did in 0.6 (strength 1250).
+    expect(BOTS[1].strength).toBe(1250);
   });
 
   it("is deterministic under a seeded rand and accepts an adapted rating", () => {

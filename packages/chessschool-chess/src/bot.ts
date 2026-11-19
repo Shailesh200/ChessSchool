@@ -4,7 +4,7 @@ import { load } from "./game";
 import { sampleLoss } from "./mistakes";
 import { phaseOf } from "./phase";
 
-export type BotId = "pip" | "cody" | "rooky" | "bishop" | "ivy" | "atlas";
+export type BotId = "pip" | "rooky" | "bishop" | "ivy" | "atlas" | "raja" | "cody";
 /** @deprecated Phase 2 names, kept so saved games still load. */
 export type LegacyLevel = "gentle" | "steady";
 export type BotLevel = BotId;
@@ -14,35 +14,40 @@ export type BotInfo = {
   name: string;
   level: number;
   blurb: string;
-  /** Rough strength for players. */
-  strength: string;
-  /** Target playing rating (Lichess scale); each learner's copy adapts around it. */
+  /** Rough level, in words, for players. */
+  label: string;
+  /** Rating on the chess.com scale: shown to players and used for their rating. Each learner's copy adapts around it. */
   rating: number;
+  /** How hard it plays: the rating fed to the move model (our engine's own scale, higher than chess.com's). */
+  strength: number;
   takebacks: boolean;
 };
 
 export const BOTS: readonly BotInfo[] = [
-  { id: "pip", name: "Pip", level: 1, blurb: "Loves shiny captures, but rarely leaves a piece hanging.", strength: "Improving", rating: 1000, takebacks: true },
-  { id: "cody", name: "Chaukor", level: 2, blurb: "Friendly, but thinks two moves ahead.", strength: "Club beginner", rating: 1250, takebacks: true },
-  { id: "rooky", name: "Rooky", level: 3, blurb: "Sharp tactics. Punishes loose pieces.", strength: "Club player", rating: 1500, takebacks: true },
-  { id: "bishop", name: "Professor Bishop", level: 4, blurb: "Calculates deeply and loves tricky diagonals.", strength: "Strong club", rating: 1800, takebacks: false },
-  { id: "ivy", name: "Queen Ivy", level: 5, blurb: "Tournament-strong. Very few mistakes.", strength: "Expert", rating: 2050, takebacks: false },
-  { id: "atlas", name: "King Atlas", level: 6, blurb: "Chaukor's toughest friend. Plays like a master.", strength: "Master", rating: 2300, takebacks: false },
+  // 0.7 roster: 7 bots, 300 to 2100 on the chess.com scale. The 2-star bot plays like Professor Bishop did in 0.6.
+  { id: "pip", name: "Pip", level: 1, blurb: "Loves shiny captures, but rarely leaves a piece hanging.", label: "Beginner", rating: 300, strength: 1000, takebacks: true },
+  { id: "rooky", name: "Rooky", level: 2, blurb: "Thinks two moves ahead and guards his pieces.", label: "Novice", rating: 600, strength: 1250, takebacks: true },
+  { id: "bishop", name: "Professor Bishop", level: 3, blurb: "Loves tricky diagonals and punishes loose pieces.", label: "Intermediate", rating: 900, strength: 1500, takebacks: true },
+  { id: "ivy", name: "Queen Ivy", level: 4, blurb: "Sharp tactics. Calculates deeply.", label: "Club player", rating: 1200, strength: 1800, takebacks: false },
+  { id: "atlas", name: "King Atlas", level: 5, blurb: "Tournament-strong. Very few mistakes.", label: "Strong club", rating: 1500, strength: 2050, takebacks: false },
+  { id: "raja", name: "Raja", level: 6, blurb: "A royal strategist who almost never slips.", label: "Expert", rating: 1800, strength: 2300, takebacks: false },
+  { id: "cody", name: "Chaukor", level: 7, blurb: "The school's champion. Plays like a master.", label: "Master", rating: 2100, strength: 2500, takebacks: false },
 ];
 export const BOT_LEVELS: readonly BotId[] = BOTS.map((b) => b.id);
 export const botInfo = (id: BotId) => BOTS.find((b) => b.id === id)!;
 export const isBotId = (v: unknown): v is BotId => BOTS.some((b) => b.id === v);
 /** Maps Phase 2 levels and unknown values onto the roster. */
-export const toBotId = (v: unknown): BotId => (isBotId(v) ? v : v === "steady" ? "rooky" : "cody");
+export const toBotId = (v: unknown): BotId => (isBotId(v) ? v : v === "steady" ? "rooky" : "pip");
 
 /** Search settings per bot; Ivy and Atlas think longer (up to ~2 s) so their low-loss moves are really good. */
 const ENGINE: Record<BotId, { depth: number; quiescence: number; timeMs: number }> = {
   pip: { depth: 3, quiescence: 4, timeMs: 500 },
-  cody: { depth: 3, quiescence: 4, timeMs: 700 },
-  rooky: { depth: 4, quiescence: 5, timeMs: 1200 },
-  bishop: { depth: 5, quiescence: 6, timeMs: 1500 },
-  ivy: { depth: 5, quiescence: 7, timeMs: 1800 },
-  atlas: { depth: 6, quiescence: 8, timeMs: 2000 },
+  rooky: { depth: 3, quiescence: 4, timeMs: 700 },
+  bishop: { depth: 4, quiescence: 5, timeMs: 1200 },
+  ivy: { depth: 5, quiescence: 6, timeMs: 1500 },
+  atlas: { depth: 5, quiescence: 7, timeMs: 1800 },
+  raja: { depth: 6, quiescence: 8, timeMs: 2000 },
+  cody: { depth: 6, quiescence: 9, timeMs: 2200 },
 };
 
 /**
@@ -122,7 +127,9 @@ export function botOptions(fen: string, bot: BotId | LegacyLevel, rand: () => nu
   const id = lesson?.like ?? toBotId(bot);
   const moves = load(fen).moves({ verbose: true });
   if (moves.length <= 1) return moves;
-  const r = modelRating(rating ?? lesson?.rating ?? botInfo(id).rating);
+  // `rating` is the learner's adapted copy on the chess.com scale: move the bot's strength by the same amount.
+  const info = botInfo(id);
+  const r = modelRating(lesson ? lesson.rating : info.strength + (rating === undefined ? 0 : rating - info.rating));
   // Below the data's floor (400), mix in moves a brand-new player might make.
   if (r < 400 && rand() < Math.min(0.9, (400 - r) / 700)) {
     const captures = moves.filter((m) => m.captured);

@@ -66,7 +66,7 @@ export type PlaySetup = {
   askPromotion: boolean;
 };
 
-export const defaultSetup = (bot: BotId = "cody"): PlaySetup => ({
+export const defaultSetup = (bot: BotId = "pip"): PlaySetup => ({
   opponent: { kind: "bot", bot },
   you: "w",
   time: "none",

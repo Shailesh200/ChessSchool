@@ -1228,7 +1228,7 @@ export const BADGES: readonly { id: BadgeId; earned: (p: Progress, r?: Ratings) 
   { id: "streak7", earned: (p) => p.streak.count >= 7 },
   { id: "firstGame", earned: (p) => p.games.played >= 1 },
   { id: "firstWin", earned: (p) => p.games.won >= 1 },
-  { id: "beatBishop", earned: (p) => ["bishop", "ivy", "atlas"].some((b) => (p.bots[b]?.won ?? 0) > 0) },
+  { id: "beatBishop", earned: (p) => ["bishop", "ivy", "atlas", "raja", "cody"].some((b) => (p.bots[b]?.won ?? 0) > 0) },
   { id: "puzzles10", earned: (p) => p.puzzles.solved >= 10 },
   { id: "puzzles50", earned: (p) => p.puzzles.solved >= 50 },
   { id: "rating1000", earned: (p) => p.puzzles.rating >= 1000 && p.puzzles.attempts >= 10 },
