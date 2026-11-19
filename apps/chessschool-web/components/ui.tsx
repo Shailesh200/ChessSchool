@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
-import { copy, rankFor, RANKS, type IconName } from "@chessschool/design";
+import { copy, type IconName } from "@chessschool/design";
 import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
 
@@ -361,52 +361,4 @@ export function GoalRing({ done, goal, size = 96 }: { done: number; goal: number
   );
 }
 
-// U+FE0E forces text (not emoji) presentation so the glyphs take the fill colour everywhere.
-const PIECE_GLYPH: Record<string, string> = { pawn: "♟\uFE0E", knight: "♞\uFE0E", bishop: "♝\uFE0E", rook: "♜\uFE0E", queen: "♛\uFE0E", king: "♚\uFE0E" };
 
-/** The learning curve: six ranks on a rising line, current rank lit. */
-export function RankCurve({ xp }: { xp: number }) {
-  const r = rankFor(xp);
-  const W = 320;
-  const H = 130;
-  const pts = RANKS.map((_, i) => {
-    const t = i / (RANKS.length - 1);
-    return [28 + t * (W - 56), H - 30 - Math.pow(t, 1.35) * (H - 62)] as const;
-  });
-  const d = pts.map(([x, y], i) => (i === 0 ? `M${x} ${y}` : `L${x} ${y}`)).join(" ");
-  return (
-    <figure className="rank-curve" aria-label={copy.a11y.rank(copy.ranks[r.rank], r.toNext, r.next ? copy.ranks[r.next] : null)} role="img">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" aria-hidden>
-        <path d={d} fill="none" stroke="var(--cs-line)" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
-        {r.index < RANKS.length - 1 ? (
-          <line
-            x1={pts[r.index][0]}
-            y1={pts[r.index][1]}
-            x2={pts[r.index][0] + (pts[r.index + 1][0] - pts[r.index][0]) * r.fraction}
-            y2={pts[r.index][1] + (pts[r.index + 1][1] - pts[r.index][1]) * r.fraction}
-            stroke="var(--cs-brand)"
-            strokeWidth={6}
-            strokeLinecap="round"
-          />
-        ) : null}
-        {pts.map(([x, y], i) => {
-          const reached = i <= r.index;
-          const current = i === r.index;
-          return (
-            <g key={RANKS[i].id}>
-              {current ? <circle cx={x} cy={y} r={27} fill="var(--cs-brand)" opacity={0.18} className="rank-glow" /> : null}
-              <circle cx={x} cy={y} r={20} fill={reached ? "var(--cs-brand)" : "var(--cs-card)"} stroke={reached ? "var(--cs-brand)" : "var(--cs-line)"} strokeWidth={3} />
-              <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={24} fill={reached ? "var(--cs-on-brand)" : "var(--cs-text-muted)"}>
-                {PIECE_GLYPH[RANKS[i].id]}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <figcaption className="rank-caption">
-        <strong>{copy.ranks[r.rank]}</strong>
-        <span>{r.next ? copy.today.rankToNext(r.toNext, copy.ranks[r.next]) : copy.a11y.rank(copy.ranks[r.rank], 0, null)}</span>
-      </figcaption>
-    </figure>
-  );
-}

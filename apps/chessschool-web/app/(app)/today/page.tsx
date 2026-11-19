@@ -11,7 +11,8 @@ import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
 import { PathList } from "@/components/PathList";
 import { Icon } from "@/components/Icon";
 import { CourseSkeleton } from "@/components/Skeleton";
-import { Button, Card, Chip, GoalRing, ProgressBar, RankCurve, SaveBanner } from "@/components/ui";
+import { Button, Card, Chip, GoalRing, ProgressBar, SaveBanner } from "@/components/ui";
+import { RankCard } from "@/components/RankCard";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { useEffect, useState } from "react";
@@ -125,15 +126,11 @@ export default function TodayPage() {
             </Card>
           ) : null}
 
-          <Card aria-labelledby="path-title">
-            <h2 id="path-title" className="card-title">
-              {copy.today.pathTitle}
-            </h2>
-            <PathList progress={progress} />
-          </Card>
+          <PathList progress={progress} />
         </div>
 
         <aside className="today-side">
+          <RankCard xp={progress.xp} streak={streak} rating={state.ratings.player.rating} puzzleRating={progress.puzzles.rating} />
           <StreakRepairCard today={today} lessonHref={current && !gated ? href(current.id) : null} />
           <QuestsCard state={state} today={today} />
           <MateCard state={state} />
@@ -153,12 +150,6 @@ export default function TodayPage() {
 
           <Flashcards />
 
-          <Card aria-labelledby="rank-title">
-            <h2 id="rank-title" className="card-title">
-              {copy.today.rankTitle}
-            </h2>
-            <RankCurve xp={progress.xp} />
-          </Card>
 
           {!state.account && done ? (
             <SaveBanner title={copy.today.saveCard.title} body={copy.today.saveCard.body} />

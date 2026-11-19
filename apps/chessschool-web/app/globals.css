@@ -284,10 +284,22 @@ main:focus {
 /* ---------- surfaces ---------- */
 .card {
   background: var(--cs-card);
-  border: 1px solid var(--cs-line);
-  border-radius: 20px;
+  /* A faint hairline (needed on dark themes) under a soft, brand-tinted shadow. */
+  border: 1px solid color-mix(in srgb, var(--cs-line) 55%, transparent);
+  border-radius: 24px;
   padding: 20px;
-  box-shadow: 0 1px 2px rgb(28 27 46 / 0.04), 0 6px 16px -10px rgb(28 27 46 / 0.18);
+  box-shadow: 0 1px 0 var(--cs-line), 0 12px 32px -14px color-mix(in srgb, var(--cs-brand) 28%, transparent);
+}
+/* Section labels ("YOUR RANK"). */
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-fredoka), inherit;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-text-muted);
 }
 .card-title {
   font-size: 1.125rem;
@@ -1189,28 +1201,6 @@ main:focus {
 }
 .ring-progress {
   transition: stroke-dasharray 600ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.rank-curve {
-  margin: 0;
-}
-.rank-curve svg {
-  display: block;
-  max-height: 150px;
-}
-.rank-caption {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 4px;
-  color: var(--cs-text-muted);
-}
-.rank-caption strong {
-  color: var(--cs-brand-text);
-}
-.rank-glow {
-  animation: pulse 2.4s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
 }
 .save-card {
   display: grid;
@@ -5653,4 +5643,263 @@ button.game-row {
   gap: 10px;
   width: 100%;
   max-width: 34rem;
+}
+
+/* ---------- Learn: Your rank (medal + ladder) ---------- */
+.rank-card {
+  display: grid;
+  gap: 18px;
+}
+.rank-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rank-card-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.rank-medal {
+  width: 92px;
+  height: 92px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #ffe7a8, var(--cs-gold) 60%, var(--cs-gold-edge));
+  box-shadow: inset 0 -6px 0 rgb(122 75 8 / 0.35), 0 8px 18px rgb(165 107 16 / 0.35);
+}
+.rank-medal > span {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cs-gold-soft);
+}
+.rank-card-name {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.rank-card-name strong {
+  font-size: 1.875rem;
+  line-height: 1;
+  font-weight: 700;
+}
+.rank-next {
+  justify-self: start;
+  background: var(--cs-brand-soft);
+  color: var(--cs-brand-text);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.rank-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--cs-sunken);
+  overflow: hidden;
+}
+.rank-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cs-brand), var(--cs-accent));
+  transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rank-ladder {
+  list-style: none;
+  margin: -6px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--cs-text-muted);
+}
+.rank-ladder li {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.rank-ladder li > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--cs-sunken);
+  opacity: 0.6;
+}
+.rank-ladder li.is-done > span {
+  background: var(--cs-success-soft);
+  opacity: 1;
+}
+.rank-ladder li.is-now {
+  color: var(--cs-text);
+  font-weight: 700;
+}
+.rank-ladder li.is-now > span {
+  background: var(--cs-gold-soft);
+  box-shadow: 0 0 0 2px var(--cs-gold);
+  opacity: 1;
+}
+.rank-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.rank-stats > div {
+  background: var(--cs-bg);
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+}
+.rank-stats strong {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.rank-stats span {
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+}
+
+/* ---------- Learn: Your course (unit hero) ---------- */
+.course-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.course-through {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--cs-brand-text);
+}
+.course-hero {
+  padding: 0;
+  overflow: hidden;
+}
+.course-hero-art {
+  position: relative;
+  min-height: 150px;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+  background:
+    linear-gradient(45deg, color-mix(in srgb, var(--cs-brand) 6%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cs-brand) 6%, transparent) 75%) 0 0 / 36px 36px,
+    linear-gradient(45deg, color-mix(in srgb, var(--cs-brand) 6%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cs-brand) 6%, transparent) 75%) 18px 18px / 36px 36px,
+    linear-gradient(160deg, var(--cs-hero-from), var(--cs-hero-to));
+}
+.course-hero-cody {
+  position: absolute;
+  right: 10px;
+  bottom: -6px;
+}
+.course-hero-art > div {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  max-width: 62%;
+}
+.course-hero-unit {
+  justify-self: start;
+  background: var(--cs-brand);
+  color: var(--cs-on-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.course-hero-art strong {
+  font-size: 1.625rem;
+  line-height: 1.05;
+  font-weight: 700;
+}
+.course-hero-body {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+.course-dots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.course-dots li {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.course-dots li:last-child {
+  flex: none;
+}
+.course-dots li:not(:last-child)::after {
+  content: "";
+  flex: 1;
+  height: 4px;
+  margin: 0 4px;
+  border-radius: 2px;
+  background: var(--cs-sunken);
+}
+.course-dots li.is-done:not(:last-child)::after {
+  background: var(--cs-success);
+}
+.course-dots li > span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cs-sunken);
+  color: #fff;
+  flex: none;
+}
+.course-dots li.is-done > span {
+  background: var(--cs-success);
+}
+.course-dots li.is-now > span {
+  width: 36px;
+  height: 36px;
+  background: var(--cs-gold);
+  color: var(--cs-on-gold);
+  box-shadow: 0 0 0 4px var(--cs-gold-soft);
+}
+.course-next {
+  display: grid;
+  gap: 2px;
+}
+.course-next strong {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.course-label {
+  font-weight: 700;
+}
+.course-next-units {
+  display: grid;
+  gap: 10px;
+}
+.course-next-units ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.course-next-units li {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 18px;
+}
+.course-next-units li strong {
+  font-size: 0.875rem;
 }

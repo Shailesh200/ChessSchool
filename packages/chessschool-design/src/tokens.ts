@@ -151,7 +151,7 @@ export const palettes: Record<Scheme, Palette> = {
   },
 };
 
-export const radius = { sm: 8, md: 14, lg: 20, xl: 28, pill: 999 } as const;
+export const radius = { sm: 8, md: 14, lg: 24, xl: 28, pill: 999 } as const;
 
 export const space = { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 10: 40, 12: 48, 16: 64 } as const;
 
@@ -172,11 +172,14 @@ export const type = {
   label: { size: 16, line: 20, weight: "semibold" },
   small: { size: 14, line: 20, weight: "regular" },
   micro: { size: 12, line: 16, weight: "medium" },
+  /** Section labels ("YOUR RANK"): uppercase with 0.08em tracking (T and .eyebrow add those). */
+  eyebrow: { size: 13, line: 16, weight: "semibold" },
 } as const satisfies Record<string, { size: number; line: number; weight: FontWeight }>;
 export type TypeRole = keyof typeof type;
 
 export const shadow = {
-  card: { color: "#1C1B2E", opacity: 0.1, radius: 16, y: 6 },
+  /** Cards float on a soft, brand-tinted shadow (no outline in light themes). */
+  card: { opacity: 0.12, radius: 16, y: 12 },
   pop: { color: "#5B5BD6", opacity: 0.35, radius: 28, y: 14 },
   /** Tactile button edge height in px */
   edge: 4,

@@ -1,4 +1,4 @@
-import { copy, minTarget, radius, rankFor, RANKS, space, type IconName, type TypeRole, type, type Palette } from "@chessschool/design";
+import { copy, minTarget, radius, shadow, space, type IconName, type TypeRole, type, type Palette } from "@chessschool/design";
 import { router } from "expo-router";
 import { Cody } from "./Lottie";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -21,7 +21,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, G, Path, Text as SvgText } from "react-native-svg";
+import Svg, { Circle } from "react-native-svg";
 import { fonts, useTheme } from "@/lib/theme";
 import { isDeviceOnline, useConnectivity, useReducedMotion } from "@/lib/hooks";
 import { useKeyboardScroll } from "@/lib/keyboard";
@@ -48,7 +48,7 @@ export function T({ role = "body", color = "text", center, style, children, head
       accessibilityRole={header ? "header" : undefined}
       maxFontSizeMultiplier={big ? 1.4 : 1.8}
       numberOfLines={numberOfLines}
-      style={[{ fontFamily: fonts[t.weight], fontSize: t.size, lineHeight: t.line, color: c[color], textAlign: center ? "center" : undefined }, style]}
+      style={[{ fontFamily: fonts[t.weight], fontSize: t.size, lineHeight: t.line, color: c[color], textAlign: center ? "center" : undefined }, role === "eyebrow" && { textTransform: "uppercase", letterSpacing: 1 }, style]}
     >
       {children}
     </Text>
@@ -144,14 +144,15 @@ export function Card({ children, style, tone }: { children: React.ReactNode; sty
         {
           backgroundColor: bg,
           borderRadius: radius.lg,
-          borderWidth: tone ? 0 : 1,
+          // Light themes: no outline, a soft brand-tinted shadow. Dark themes keep the hairline instead.
+          borderWidth: tone || scheme !== "dark" ? 0 : 1,
           borderColor: c.line,
           padding: 20,
-          shadowColor: "#1C1B2E",
-          shadowOpacity: scheme === "dark" ? 0 : 0.08,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: scheme === "dark" ? 0 : 2,
+          shadowColor: c.brand,
+          shadowOpacity: scheme === "dark" ? 0 : shadow.card.opacity,
+          shadowRadius: shadow.card.radius,
+          shadowOffset: { width: 0, height: shadow.card.y },
+          elevation: scheme === "dark" ? 0 : 3,
         },
         style,
       ]}
@@ -725,73 +726,6 @@ export function GoalRing({ done, goal, size = 92 }: { done: number; goal: number
       </Svg>
       <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
         <T role="label">{`${Math.round(frac * 100)}%`}</T>
-      </View>
-    </View>
-  );
-}
-
-const GLYPH: Record<string, string> = { pawn: "♟\uFE0E", knight: "♞\uFE0E", bishop: "♝\uFE0E", rook: "♜\uFE0E", queen: "♛\uFE0E", king: "♚\uFE0E" };
-
-const RANK_BADGE = 56;
-
-/** Current rank, progress to the next one, and the whole ladder. */
-export function RankCurve({ xp }: { xp: number }) {
-  const { c } = useTheme();
-  const r = rankFor(xp);
-  const W = 320;
-  const H = 150;
-  const pts = RANKS.map((_, i) => {
-    const t = i / (RANKS.length - 1);
-    return [28 + t * (W - 56), H - 48 - Math.pow(t, 1.35) * (H - 88)] as const;
-  });
-  const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
-  const reached = pts.slice(0, r.index + 1);
-  const next = pts[r.index + 1];
-  const tip = next ? ([pts[r.index][0] + (next[0] - pts[r.index][0]) * r.fraction, pts[r.index][1] + (next[1] - pts[r.index][1]) * r.fraction] as const) : null;
-  const done = [...reached, ...(tip ? [tip] : [])].map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
-  const rankName = copy.ranks[r.rank];
-  const toNext = r.next ? copy.today.rankToNext(r.toNext, copy.ranks[r.next]) : copy.you.topRank;
-  return (
-    <View style={{ gap: space[4] }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-        <View importantForAccessibility="no-hide-descendants" style={{ width: RANK_BADGE, height: RANK_BADGE, borderRadius: RANK_BADGE / 2, backgroundColor: c.brand, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 30, lineHeight: 36, color: c.onBrand }}>{GLYPH[RANKS[r.index].id]}</Text>
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <T role="heading">{rankName}</T>
-          <T role="small" color="textMuted">
-            {copy.today.levelOnly(r.level)}
-          </T>
-        </View>
-      </View>
-      <View style={{ gap: space[2] }}>
-        <ProgressBar value={r.fraction} label={copy.a11y.rank(rankName, r.toNext, r.next ? copy.ranks[r.next] : null)} />
-        <T role="small" color="textMuted">
-          {toNext}
-        </T>
-      </View>
-      <View importantForAccessibility="no-hide-descendants">
-        <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-          <Path d={d} stroke={c.line} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          <Path d={done} stroke={c.brand} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          {pts.map(([x, y], i) => {
-            const current = i === r.index;
-            const isReached = i <= r.index;
-            const badge = current ? 24 : 18;
-            return (
-              <G key={RANKS[i].id}>
-                {current ? <Circle cx={x} cy={y} r={32} fill={c.brand} opacity={0.16} /> : null}
-                <Circle cx={x} cy={y} r={badge} fill={isReached ? c.brand : c.card} stroke={isReached ? c.brand : c.line} strokeWidth={3} />
-                <SvgText x={x} y={y + (current ? 9 : 7)} fontSize={current ? 24 : 19} textAnchor="middle" fill={isReached ? c.onBrand : c.textMuted}>
-                  {GLYPH[RANKS[i].id]}
-                </SvgText>
-                <SvgText x={x} y={y + badge + 15} fontSize={12} fontWeight={current ? "700" : "400"} textAnchor="middle" fill={current ? c.brandText : c.textMuted}>
-                  {String(RANKS[i].xp)}
-                </SvgText>
-              </G>
-            );
-          })}
-        </Svg>
       </View>
     </View>
   );

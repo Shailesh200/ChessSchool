@@ -9,7 +9,8 @@ import { Flashcards } from "@/components/Flashcards";
 import { LeagueCard, MateCard, MonthlyRow, StreakRepairCard } from "@/components/Habit";
 import { Cody, Fx } from "@/components/Lottie";
 import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
-import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, ProgressBar, RankCurve, SaveBanner, Sheet, T } from "@/components/ui";
+import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, ProgressBar, SaveBanner, Sheet, T } from "@/components/ui";
+import { RankCard } from "@/components/RankCard";
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
@@ -199,6 +200,8 @@ export default function Today() {
         ) : null}
       </View>
 
+      <RankCard xp={progress.xp} streak={streak} rating={state.ratings.player.rating} puzzleRating={progress.puzzles.rating} />
+
       <StreakRepairCard today={today} onStart={current && !currentLocked ? () => openLesson(current.id) : null} />
       <QuestsCard state={state} today={today} />
       <MateCard state={state} />
@@ -228,12 +231,7 @@ export default function Today() {
         </Card>
       ) : null}
 
-      <Card>
-        <T role="heading" header style={{ marginBottom: 8 }}>
-          {copy.today.pathTitle}
-        </T>
-        <PathList progress={progress} course={course} onGuestLock={() => setGate(true)} />
-      </Card>
+      <PathList progress={progress} course={course} onGuestLock={() => setGate(true)} />
 
       <Card style={{ gap: 8 }}>
         <T role="heading" header>
@@ -247,12 +245,6 @@ export default function Today() {
 
       <Flashcards />
 
-      <Card>
-        <T role="heading" header style={{ marginBottom: 8 }}>
-          {copy.today.rankTitle}
-        </T>
-        <RankCurve xp={progress.xp} />
-      </Card>
 
       {!state.account && done ? (
         <SaveBanner title={copy.today.saveCard.title} body={copy.today.saveCard.body} />
