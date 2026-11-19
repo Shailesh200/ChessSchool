@@ -5601,6 +5601,8 @@ button.game-row {
 .challenge-board {
   width: 100%;
   max-width: 480px;
+  display: grid;
+  gap: 10px;
 }
 .invite-card {
   display: grid;
@@ -6418,4 +6420,71 @@ button.game-row {
 .tc-rules svg {
   flex: none;
   color: var(--cs-brand-text);
+}
+
+/* ---------- Challenge game: clocks and waiting ---------- */
+.pvp-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+}
+.pvp-player strong {
+  flex: 1;
+}
+.pvp-player.is-me {
+  background: var(--cs-text);
+  color: var(--cs-bg);
+  border-color: transparent;
+}
+.pvp-clock {
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--cs-sunken);
+  color: var(--cs-text-muted);
+  font-weight: 700;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.pvp-clock.is-running {
+  background: var(--cs-accent);
+  color: var(--cs-on-accent);
+}
+.pvp-clock.is-low {
+  background: var(--cs-danger);
+}
+.pvp-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.pvp-wait {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.pvp-wait h2,
+.pvp-wait p {
+  margin: 0;
+}
+.pvp-ring {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 14px solid var(--cs-brand);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+}
+.pvp-ring strong {
+  font-size: 2.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.pvp-ring span {
+  font-size: 0.8125rem;
+  color: var(--cs-text-muted);
 }
