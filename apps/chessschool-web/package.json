@@ -20,7 +20,7 @@
     "@chessschool/design": "workspace:*",
     "@sentry/nextjs": "10.66.0",
     "lottie-react": "^2.4.1",
-    "next": "16.4.3",
+    "next": "16.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
