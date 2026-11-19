@@ -3,6 +3,7 @@ export * from "./icons";
 export * from "./mascotArt";
 export * from "./trophies";
 export * from "./countries";
+export * from "./pvpClock";
 export * from "./copy";
 export * from "./progress";
 export * from "./api";

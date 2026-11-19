@@ -1,5 +1,5 @@
 import { defaultSetup, playReduce, startGame, type PlayAction, type PlayState, type Puzzle, type Square } from "@chessschool/chess";
-import { copy, type Challenge } from "@chessschool/design";
+import { clockSince, copy, formatClock, isLive, JOIN_MS, type Challenge, type TimeControl } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
@@ -12,9 +12,25 @@ import { Button, T, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { seat, shareLink } from "@/lib/share";
 import { useApp } from "@/lib/state";
-import { useTheme } from "@/lib/theme";
+import { fonts, useTheme } from "@/lib/theme";
 
 const POLL_MS = 5000;
+/** Live games check twice as often as there is time on the clock to lose. */
+const POLL_LIVE_MS = 2000;
+
+/** Seconds-accurate clocks between polls: the running side's time counts down from what the server last said. */
+function useClocks(ch: Challenge | null, receivedAt: number) {
+  const [now, setNow] = useState(Date.now());
+  const ticking = Boolean(ch?.clock?.running) || ch?.status === "waiting";
+  useEffect(() => {
+    if (!ticking) return;
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, [ticking]);
+  const clock = ch?.clock ?? null;
+  const shown = clock ? clockSince(clock, now - receivedAt) : { white: null, black: null };
+  return { ...shown, running: clock?.running ?? null, now };
+}
 
 /**
  * A challenge link (chess-school.in/c/<code>): a puzzle to try, or a slow game with the friend who sent it.
@@ -33,9 +49,13 @@ export default function ChallengeScreen() {
   const [mine, setMine] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const mySeat = useRef<string | null>(null);
+  const [receivedAt, setReceivedAt] = useState(Date.now());
+  const [confirmResign, setConfirmResign] = useState(false);
+  const clocks = useClocks(ch, receivedAt);
 
   const show = useCallback((next: Challenge) => {
     setCh(next);
+    setReceivedAt(Date.now());
     if (next.kind === "game") setPlay(startGame({ ...defaultSetup(), opponent: { kind: "friend" }, you: next.you ?? "b", takebacks: false, askPromotion: false }, Date.now(), next.moves));
   }, []);
   const load = useCallback(async () => {
@@ -47,12 +67,14 @@ export default function ChallengeScreen() {
   }, [code, show]);
   useEffect(() => void load(), [load]);
 
-  const polling = Boolean(ch && ch.kind === "game" && !ch.expired && ch.status !== "over" && !ch.yourTurn);
+  // Running games poll on both turns too: a resign, a draw offer or a timeout can come at any time.
+  const polling = Boolean(ch && ch.kind === "game" && !ch.expired && ch.status !== "over");
+  const pollMs = ch?.tc && isLive(ch.tc) ? POLL_LIVE_MS : POLL_MS;
   useEffect(() => {
     if (!polling) return;
-    const timer = setInterval(() => void load(), POLL_MS);
+    const timer = setInterval(() => void load(), pollMs);
     return () => clearInterval(timer);
-  }, [polling, load]);
+  }, [polling, pollMs, load]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/today"));
   if (missing || !ch) {
@@ -91,8 +113,53 @@ export default function ChallengeScreen() {
       .catch(() => (toast(t.taken), void load()))
       .finally(() => setBusy(false));
   };
+  const endGame = (fn: typeof api.challengeResign) => {
+    setBusy(true);
+    fn(code, mySeat.current)
+      .then((r) => show(r.challenge))
+      .catch(() => void load())
+      .finally(() => setBusy(false));
+  };
   const friendLine = ch.friendResult === "solved" ? t.friendSolved : ch.friendResult === "missed" ? t.friendMissed : t.friendPending;
-  const gameLine = ch.status === "over" ? (ch.result === "1/2-1/2" ? copy.play.results.draw.title : copy.gym.friendWin(copy.play.sides[ch.result === "1-0" ? "w" : "b"])) : ch.status === "waiting" ? (creator ? t.yours : t.bodyGame) : ch.yourTurn ? copy.lesson.yourMove : t.waiting;
+  const loser = ch.result === "1-0" ? "b" : "w";
+  const sideName = (side: "w" | "b") => (side === ch.you ? t.you : creator ? t.friend : name || t.friend);
+  const ended =
+    ch.endReason === "aborted"
+      ? t.ended.aborted
+      : ch.endReason === "agreed"
+        ? t.ended.agreed
+        : ch.endReason === "time"
+          ? t.ended.time(sideName(loser))
+          : ch.endReason === "resign"
+            ? t.ended.resign(sideName(loser))
+            : ch.result === "1/2-1/2"
+              ? copy.play.results.draw.title
+              : copy.gym.friendWin(copy.play.sides[ch.result === "1-0" ? "w" : "b"]);
+  const gameLine = ch.status === "over" ? ended : ch.status === "waiting" ? (creator ? t.yours : t.bodyGame) : ch.drawOffer && ch.drawOffer !== ch.you ? t.friendOffersDraw : ch.yourTurn ? copy.lesson.yourMove : t.waiting;
+  const joinLeft = ch.joinBy ? Math.max(0, ch.joinBy - clocks.now) : 0;
+  const tcName = t.tc[(ch.tc ?? "none") as TimeControl];
+  const clockPill = (side: "w" | "b") => {
+    const ms = side === "w" ? clocks.white : clocks.black;
+    if (ms === null || !ch.tc) return null;
+    const running = clocks.running === side;
+    return (
+      <View accessibilityRole="timer" accessibilityLabel={t.clockOf(sideName(side), formatClock(ms, ch.tc))} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: running ? (ms < 20_000 ? c.danger : c.accent) : c.sunken }}>
+        <T role="heading" style={{ fontFamily: fonts.bold, color: running ? c.onAccent : c.textMuted, fontVariant: ["tabular-nums"] }}>
+          {formatClock(ms, ch.tc)}
+        </T>
+      </View>
+    );
+  };
+  const playerRow = (side: "w" | "b") => (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, padding: 10, borderRadius: 18, backgroundColor: side === ch.you ? c.text : c.card, borderWidth: side === ch.you ? 0 : 1, borderColor: c.line }}>
+      {/* White is always the creator; the friend has no account avatar. */}
+      <AvatarFace id={side === "w" ? ch.creator.avatar : "cody"} size={36} />
+      <T role="label" style={{ flex: 1, color: side === ch.you ? c.bg : c.text }}>
+        {sideName(side)}
+      </T>
+      {clockPill(side)}
+    </View>
+  );
   const puzzleOn = ch.kind === "puzzle" && ch.puzzle && !ch.expired && !creator && started;
 
   if (puzzleOn && ch.puzzle) {
@@ -126,23 +193,59 @@ export default function ChallengeScreen() {
           </T>
           <View accessibilityLiveRegion="polite">
             <T role="body" color="textMuted" center>
-              {ch.expired ? t.expired : ch.kind === "puzzle" ? (creator ? friendLine : t.bodyPuzzle) : gameLine}
+              {ch.expired ? (ch.status === "waiting" && creator ? t.joinGone : t.expired) : ch.kind === "puzzle" ? (creator ? friendLine : t.bodyPuzzle) : gameLine}
             </T>
           </View>
         </View>
-        {ch.kind === "game" && play && (ch.status !== "waiting" || creator) ? (
-          <BoardStage top={null}>
-            {(size, radius) => (
-              <Board size={size} radius={radius} fen={play.fen} orientation={ch.you ?? "w"} selected={play.selected} targets={play.targets} lastMove={play.lastMove} check={play.check} onTap={(sq: Square) => act({ type: "tap", square: sq, now: Date.now() })} disabled={!ch.yourTurn || busy} />
-            )}
-          </BoardStage>
+        {ch.kind === "game" && ch.status === "waiting" && creator && !ch.expired ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 16 }}>
+            <View accessibilityRole="timer" accessibilityLabel={`${formatClock(joinLeft, "10m")} ${t.joinLeft}`} style={{ width: 200, height: 200, borderRadius: 100, borderWidth: 14, borderColor: joinLeft > JOIN_MS / 5 ? c.brand : c.danger, alignItems: "center", justifyContent: "center" }}>
+              <T role="hero" style={{ fontVariant: ["tabular-nums"] }}>
+                {formatClock(joinLeft, "10m")}
+              </T>
+              <T role="small" color="textMuted">
+                {t.joinLeft}
+              </T>
+            </View>
+            <T role="title" center>
+              {t.waitingFriend}
+            </T>
+            <T role="small" color="textMuted" center style={{ maxWidth: 300 }}>
+              {t.joinBody(tcName)}
+            </T>
+          </View>
+        ) : ch.kind === "game" && play && ch.status !== "waiting" ? (
+          <>
+            {playerRow(ch.you === "w" ? "b" : "w")}
+            <BoardStage top={null}>
+              {(size, radius) => (
+                <Board size={size} radius={radius} fen={play.fen} orientation={ch.you ?? "w"} selected={play.selected} targets={play.targets} lastMove={play.lastMove} check={play.check} onTap={(sq: Square) => act({ type: "tap", square: sq, now: Date.now() })} disabled={!ch.yourTurn || busy || ch.status !== "active"} />
+              )}
+            </BoardStage>
+            {playerRow(ch.you ?? "w")}
+          </>
         ) : (
           <View style={{ flex: 1 }} />
         )}
         <View style={{ paddingHorizontal: 16, gap: 8 }}>
           {!creator && !ch.expired && ch.kind === "puzzle" ? <Button title={t.start} onPress={() => setStarted(true)} /> : null}
           {!creator && !ch.expired && ch.kind === "game" && ch.status === "waiting" ? <Button title={t.start} loading={busy} onPress={accept} /> : null}
-          {creator && !ch.expired ? <Button title={copy.share.button} variant="secondary" onPress={() => void shareLink(t.shareText, ch.url)} /> : null}
+          {creator && !ch.expired && ch.status !== "active" && ch.status !== "over" ? <Button title={t.sendAgain} variant="secondary" onPress={() => void shareLink(t.shareText, ch.url)} /> : null}
+          {ch.kind === "game" && ch.status === "active" && ch.you ? (
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title={ch.drawOffer && ch.drawOffer !== ch.you ? t.acceptDraw : ch.drawOffer === ch.you ? t.drawSent : t.offerDraw}
+                  variant={ch.drawOffer && ch.drawOffer !== ch.you ? "primary" : "secondary"}
+                  disabled={busy || ch.drawOffer === ch.you}
+                  onPress={() => endGame(api.challengeDraw)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button title={confirmResign ? t.resignSure : t.resign} variant={confirmResign ? "danger" : "secondary"} disabled={busy} onPress={() => (confirmResign ? (setConfirmResign(false), endGame(api.challengeResign)) : setConfirmResign(true))} />
+              </View>
+            </View>
+          ) : null}
         </View>
       </View>
     </SafeAreaView>

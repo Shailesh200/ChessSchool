@@ -1,4 +1,5 @@
 import type { Course, CourseLesson } from "./course";
+import type { ClockView, TimeControl } from "./pvpClock";
 import { copy } from "./copy";
 import type { UsageBatch } from "./usage";
 import type { Ratings } from "./rating";
@@ -48,6 +49,13 @@ export type Challenge = {
   creatorResult: "solved" | "missed" | null;
   friendResult: "solved" | "missed" | null;
   puzzle: { id: string; fen: string; moves: string[]; rating: number; themes: string[] } | null;
+  /** Games (absent from older servers): the clock, the join deadline, a pending draw offer and how it ended off the board. */
+  tc?: TimeControl;
+  joinBy?: number | null;
+  drawOffer?: "w" | "b" | null;
+  endReason?: "time" | "aborted" | "resign" | "agreed" | null;
+  /** The clocks as the server saw them at `at` (its own time), while the game runs. */
+  clock?: (ClockView & { at: number }) | null;
 };
 export type InviteInfo = { code: string; url: string; rewards: number; cap: number; banked: number };
 export type GrowthStats = {
@@ -316,10 +324,13 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     /** Saves a share card's content; `image` is the PNG path on this API. */
     createShare: (input: { kind: ShareCardKind; data: ShareCardData; lang: string; showName?: boolean; child?: string | null; avatar?: string }) => request<ShareLink>("POST", "/v1/shares", input),
     share: (id: string) => request<{ id: string; kind: ShareCardKind; lang: string; image: string }>("GET", `/v1/shares/${encodeURIComponent(id)}`),
-    createChallenge: (input: { kind: "puzzle"; puzzleId: string; solved?: boolean; child?: string | null } | { kind: "game"; child?: string | null }) => request<{ challenge: Challenge }>("POST", "/v1/challenges", input),
+    createChallenge: (input: { kind: "puzzle"; puzzleId: string; solved?: boolean; child?: string | null } | { kind: "game"; tc?: TimeControl; child?: string | null }) => request<{ challenge: Challenge }>("POST", "/v1/challenges", input),
     friendChallenge: (code: string, seat?: string | null) => request<{ challenge: Challenge }>("GET", `/v1/challenges/${encodeURIComponent(code)}${seat ? `?seat=${encodeURIComponent(seat)}` : ""}`),
     acceptChallenge: (code: string) => request<{ seat: string; challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/accept`, {}),
     challengeMove: (code: string, move: { from: string; to: string; promotion?: string; seat?: string | null }) => request<{ challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/moves`, move),
+    challengeResign: (code: string, seat?: string | null) => request<{ challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/resign`, { seat }),
+    /** Offers a draw, or accepts the other side's offer. */
+    challengeDraw: (code: string, seat?: string | null) => request<{ challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/draw`, { seat }),
     challengeResult: (code: string, solved: boolean) => request<{ challenge: Challenge }>("POST", `/v1/challenges/${encodeURIComponent(code)}/result`, { solved }),
     myInvite: () => request<InviteInfo>("GET", "/v1/invites/mine"),
     invite: (code: string) => request<{ code: string; name: string | null }>("GET", `/v1/invites/${encodeURIComponent(code)}`),

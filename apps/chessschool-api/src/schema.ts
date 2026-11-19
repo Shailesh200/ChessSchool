@@ -369,6 +369,19 @@ export const challenges = sqliteTable("cs_challenges", {
   result: text("result"),
   createdAt: integer("created_at").notNull(),
   expiresAt: integer("expires_at").notNull(),
+  /** Games: "10m" | "30m" | "1h" | "1d" | "none" (pvpClock.ts). */
+  tc: text("tc").notNull().default("none"),
+  /** Live games: time left for each side before the current turn. */
+  whiteMs: integer("white_ms"),
+  blackMs: integer("black_ms"),
+  /** When the side to move's clock started (set when the friend joins, then on every move). */
+  turnStartedAt: integer("turn_started_at"),
+  /** The friend must join before this. */
+  joinBy: integer("join_by"),
+  /** The side offering a draw, until the other accepts or a move is made. */
+  drawOffer: text("draw_offer"),
+  /** How a finished game ended when it was not on the board: "time" | "aborted" | "resign" | "agreed". */
+  endReason: text("end_reason"),
 });
 
 /** One invite code per account. */
@@ -759,6 +772,13 @@ export const BOOTSTRAP_SQL = [
     expires_at INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS cs_challenges_creator ON cs_challenges (creator_id, created_at)`,
+  `ALTER TABLE cs_challenges ADD COLUMN tc TEXT NOT NULL DEFAULT 'none'`,
+  `ALTER TABLE cs_challenges ADD COLUMN white_ms INTEGER`,
+  `ALTER TABLE cs_challenges ADD COLUMN black_ms INTEGER`,
+  `ALTER TABLE cs_challenges ADD COLUMN turn_started_at INTEGER`,
+  `ALTER TABLE cs_challenges ADD COLUMN join_by INTEGER`,
+  `ALTER TABLE cs_challenges ADD COLUMN draw_offer TEXT`,
+  `ALTER TABLE cs_challenges ADD COLUMN end_reason TEXT`,
   `CREATE TABLE IF NOT EXISTS cs_invites (
     code TEXT PRIMARY KEY,
     user_id TEXT NOT NULL UNIQUE,

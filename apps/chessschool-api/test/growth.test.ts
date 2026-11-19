@@ -158,6 +158,48 @@ describe("challenge a friend", () => {
     expect((await db.select().from(challenges))[0]!.blackSeat).not.toBe(joined.seat); // stored hashed
   });
 
+  it("timed games: 5 minutes to join, clocks that run on your turn, loss on time, resign and draws", async () => {
+    const { token } = await register("Kabir", "t1@b.co");
+    const tick = (ms: number) => (NOW = new Date(NOW.getTime() + ms));
+    const late = (await call("POST", "/v1/challenges", { kind: "game", tc: "10m" }, token)).json.challenge;
+    expect(late).toMatchObject({ tc: "10m", status: "waiting", clock: null });
+    tick(5 * 60_000 + 1);
+    expect((await call("POST", `/v1/challenges/${late.code}/accept`)).status).toBe(410);
+    expect((await call("GET", `/v1/challenges/${late.code}`, undefined, token)).json.challenge.expired).toBe(true);
+
+    const made = (await call("POST", "/v1/challenges", { kind: "game", tc: "10m" }, token)).json.challenge;
+    const joined = (await call("POST", `/v1/challenges/${made.code}/accept`)).json;
+    expect(joined.challenge.clock).toMatchObject({ white: 600_000, black: 600_000, running: "w" });
+    const move = (from: string, to: string, who: { seat?: string; token?: string }) => call("POST", `/v1/challenges/${made.code}/moves`, { from, to, seat: who.seat }, who.token);
+    tick(20_000);
+    expect((await move("e2", "e4", { token })).json.challenge.clock).toMatchObject({ white: 580_000, black: 600_000, running: "b" });
+    tick(30_000);
+    await move("e7", "e5", { seat: joined.seat });
+    // Draw: offered by White, accepted by Black.
+    expect((await call("POST", `/v1/challenges/${made.code}/draw`, {}, token)).json.challenge.drawOffer).toBe("w");
+    expect((await call("POST", `/v1/challenges/${made.code}/draw`, { seat: joined.seat })).json.challenge).toMatchObject({ status: "over", result: "1/2-1/2", endReason: "agreed" });
+
+    // Loss on time: White sits on a move past the clock.
+    const g2 = (await call("POST", "/v1/challenges", { kind: "game", tc: "10m" }, token)).json.challenge;
+    const j2 = (await call("POST", `/v1/challenges/${g2.code}/accept`)).json;
+    const m2 = (from: string, to: string, who: { seat?: string; token?: string }) => call("POST", `/v1/challenges/${g2.code}/moves`, { from, to, seat: who.seat }, who.token);
+    await m2("e2", "e4", { token });
+    await m2("e7", "e5", { seat: j2.seat });
+    tick(10 * 60_000 + 1);
+    expect((await call("GET", `/v1/challenges/${g2.code}`, undefined, token)).json.challenge).toMatchObject({ status: "over", result: "0-1", endReason: "time" });
+    expect((await m2("g1", "f3", { token })).status).toBe(409);
+
+    // Called off: no first move within a minute. Resign ends a game at once.
+    const g3 = (await call("POST", "/v1/challenges", { kind: "game", tc: "30m" }, token)).json.challenge;
+    await call("POST", `/v1/challenges/${g3.code}/accept`);
+    tick(61_000);
+    expect((await call("GET", `/v1/challenges/${g3.code}`, undefined, token)).json.challenge).toMatchObject({ status: "over", result: null, endReason: "aborted" });
+    const g4 = (await call("POST", "/v1/challenges", { kind: "game", tc: "none" }, token)).json.challenge;
+    const j4 = (await call("POST", `/v1/challenges/${g4.code}/accept`)).json;
+    expect((await call("POST", `/v1/challenges/${g4.code}/resign`, { seat: j4.seat })).json.challenge).toMatchObject({ status: "over", result: "1-0", endReason: "resign" });
+    expect((await call("POST", `/v1/challenges/${g4.code}/resign`, {})).status).toBe(403);
+  });
+
   it("caps a creator at 20 a day, and a child's challenge shows the avatar only", async () => {
     const { token, user } = await register("Asha Rao", "c3@b.co");
     const kid = (await call("POST", "/v1/children", { name: "Riya" }, token)).json.child.id;

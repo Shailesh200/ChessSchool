@@ -1,4 +1,4 @@
-import { isAvatarId, isLang, FREEZE_MAX, type AvatarId, type Progress } from "@chessschool/design";
+import { baseMs, clockAfterMove, clockAt, isAvatarId, isLang, isTimeControl, FREEZE_MAX, JOIN_MS, type AvatarId, type ClockData, type Progress, type TimeControl } from "@chessschool/design";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { Context, Hono } from "hono";
 import { randomBytes } from "node:crypto";
@@ -155,9 +155,25 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
 
   const findChallenge = async (code: string) => (CODE.test(code) ? ((await db.query.challenges.findFirst({ where: eq(challenges.code, code) })) ?? null) : null);
 
+  const clockData = (row: ChallengeRow): ClockData | null =>
+    row.turnStartedAt === null ? null : { tc: row.tc as TimeControl, whiteMs: row.whiteMs, blackMs: row.blackMs, turnStartedAt: row.turnStartedAt, plies: splitMoves(row.moves).length };
+
+  /** Ends a running game that ran out of time or was called off, and saves that (any read or move settles it first). */
+  async function settle(row: ChallengeRow): Promise<ChallengeRow> {
+    const data = row.kind === "game" && row.status === "active" ? clockData(row) : null;
+    if (!data) return row;
+    const v = clockAt(data, now().getTime());
+    if (!v.flagged && !v.aborted) return row;
+    const next = { status: "over", result: v.flagged ? (v.flagged === "w" ? "0-1" : "1-0") : null, endReason: v.flagged ? "time" : "aborted", drawOffer: null };
+    await db.update(challenges).set(next).where(and(eq(challenges.code, row.code), eq(challenges.moves, row.moves), eq(challenges.status, "active")));
+    return { ...row, ...next };
+  }
+
   async function view(row: ChallengeRow, you: "w" | "b" | null) {
-    const expired = row.expiresAt <= now().getTime();
+    const at = now().getTime();
+    const expired = row.expiresAt <= at || (row.status === "waiting" && row.joinBy !== null && row.joinBy <= at);
     const moves = splitMoves(row.moves);
+    const data = row.status === "active" ? clockData(row) : null;
     const puzzle = row.kind === "puzzle" && row.puzzleId ? await loadPuzzle(db, row.puzzleId) : null;
     return {
       code: row.code,
@@ -174,6 +190,12 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
       creatorResult: row.creatorResult,
       friendResult: row.friendResult,
       puzzle: puzzle ? { id: puzzle.id, fen: puzzle.fen, moves: puzzle.moves, rating: puzzle.rating, themes: puzzle.themes } : null,
+      tc: row.tc as TimeControl,
+      joinBy: row.joinBy,
+      drawOffer: row.drawOffer as "w" | "b" | null,
+      endReason: row.endReason,
+      // `at` is the server's clock, so the app can count down from it without trusting the phone's time.
+      clock: data ? { ...clockAt(data, at), at } : null,
     };
   }
 
@@ -209,6 +231,13 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
       result: null,
       createdAt: at,
       expiresAt: at + CHALLENGE_DAYS * DAY,
+      tc: kind === "game" && isTimeControl(b.tc) ? b.tc : "none",
+      whiteMs: null,
+      blackMs: null,
+      turnStartedAt: null,
+      joinBy: kind === "game" ? at + JOIN_MS : null,
+      drawOffer: null,
+      endReason: null,
     };
     await db.insert(challenges).values(row);
     return c.json({ challenge: await view(row, "w") }, 201);
@@ -217,7 +246,7 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
   app.get("/v1/challenges/:code", on("challenges"), async (c) => {
     const row = await findChallenge(c.req.param("code") ?? "");
     if (!row) return fail(c, 404, "not_found");
-    return c.json({ challenge: await view(row, await seatOf(c, row, c.req.query("seat"))) });
+    return c.json({ challenge: await view(await settle(row), await seatOf(c, row, c.req.query("seat"))) });
   });
 
   /** A friend takes the black seat of a game. No account needed; the seat token is their key. */
@@ -225,17 +254,22 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
     if (!limiter(`accept:${ipOf(c)}`)) return fail(c, 429, "rate_limited");
     const row = await findChallenge(c.req.param("code") ?? "");
     if (!row || row.kind !== "game") return fail(c, 404, "not_found");
-    if (row.expiresAt <= now().getTime()) return fail(c, 410, "expired");
+    const at = now().getTime();
+    if (row.expiresAt <= at || (row.joinBy !== null && row.joinBy <= at)) return fail(c, 410, "expired");
     if ((await userFromRequest(c))?.id === row.creatorId) return fail(c, 409, "conflict");
     const seat = newToken();
-    const taken = await db.update(challenges).set({ blackSeat: hashToken(seat), status: "active" }).where(and(eq(challenges.code, row.code), sql`${challenges.blackSeat} is null`));
+    const base = baseMs(row.tc as TimeControl);
+    // The clocks start when the friend sits down; a game may then run for weeks on the day clock.
+    const started = { blackSeat: hashToken(seat), status: "active", turnStartedAt: at, whiteMs: base, blackMs: base, expiresAt: at + 90 * DAY };
+    const taken = await db.update(challenges).set(started).where(and(eq(challenges.code, row.code), sql`${challenges.blackSeat} is null`));
     if (!taken.rowsAffected) return fail(c, 409, "conflict");
-    return c.json({ seat, challenge: await view({ ...row, blackSeat: hashToken(seat), status: "active" }, "b") });
+    return c.json({ seat, challenge: await view({ ...row, ...started }, "b") });
   });
 
   app.post("/v1/challenges/:code/moves", on("challenges"), async (c) => {
-    const row = await findChallenge(c.req.param("code") ?? "");
-    if (!row || row.kind !== "game") return fail(c, 404, "not_found");
+    const found = await findChallenge(c.req.param("code") ?? "");
+    if (!found || found.kind !== "game") return fail(c, 404, "not_found");
+    const row = await settle(found);
     const b = await json(c);
     const you = await seatOf(c, row, b.seat);
     if (!you) return fail(c, 403, "forbidden");
@@ -244,8 +278,32 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
     if (row.status !== "active" || you !== (splitMoves(row.moves).length % 2 ? "b" : "w")) return fail(c, 409, "conflict");
     const played = playMove(row.moves, String(b.from ?? ""), String(b.to ?? ""), typeof b.promotion === "string" ? b.promotion : undefined);
     if (!played) return fail(c, 400, "invalid_input");
-    const next = { moves: played.moves, status: played.over ? "over" : "active", result: played.over?.result ?? null };
+    const data = clockData(row);
+    const clock = data ? clockAfterMove(data, now().getTime()) : null;
+    const next = { moves: played.moves, status: played.over ? "over" : "active", result: played.over?.result ?? null, whiteMs: clock?.whiteMs ?? row.whiteMs, blackMs: clock?.blackMs ?? row.blackMs, turnStartedAt: clock?.turnStartedAt ?? row.turnStartedAt, drawOffer: null };
     // Only lands on the position we checked (same guard as class games).
+    const res = await db.update(challenges).set(next).where(and(eq(challenges.code, row.code), eq(challenges.moves, row.moves), eq(challenges.status, "active")));
+    if (!res.rowsAffected) return fail(c, 409, "conflict");
+    return c.json({ challenge: await view({ ...row, ...next }, you) });
+  });
+
+  /** Resign (either player) or offer a draw; offering when the other side already offered agrees to it. */
+  app.post("/v1/challenges/:code/:action{resign|draw}", on("challenges"), async (c) => {
+    const found = await findChallenge(c.req.param("code") ?? "");
+    if (!found || found.kind !== "game") return fail(c, 404, "not_found");
+    const row = await settle(found);
+    const b = await json(c);
+    const you = await seatOf(c, row, b.seat);
+    if (!you) return fail(c, 403, "forbidden");
+    if (!limiter(`end:${row.code}:${you}`)) return fail(c, 429, "rate_limited");
+    if (row.status !== "active") return fail(c, 409, "conflict");
+    const other = you === "w" ? "b" : "w";
+    const next =
+      c.req.param("action") === "resign"
+        ? { status: "over", result: you === "w" ? "0-1" : "1-0", endReason: "resign", drawOffer: null }
+        : row.drawOffer === other
+          ? { status: "over", result: "1/2-1/2", endReason: "agreed", drawOffer: null }
+          : { drawOffer: you };
     const res = await db.update(challenges).set(next).where(and(eq(challenges.code, row.code), eq(challenges.moves, row.moves), eq(challenges.status, "active")));
     if (!res.rowsAffected) return fail(c, 409, "conflict");
     return c.json({ challenge: await view({ ...row, ...next }, you) });
