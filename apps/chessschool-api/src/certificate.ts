@@ -1,4 +1,4 @@
-import { copy, palettes, setLanguage, type Lang } from "@chessschool/design";
+import { copy, MASCOT_SVG_INNER, palettes, setLanguage, type Lang } from "@chessschool/design";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Used only when CERT_SECRET is unset outside production (local dev and tests). */
@@ -48,22 +48,36 @@ export function certificateSvg(input: { name: string; unit: string; day: string;
   const p = palettes.light;
   const name = input.name.trim() || t.learner;
   const font = `'Fredoka', 'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', 'Noto Sans Devanagari', 'Mukta', system-ui, sans-serif`;
+  const serif = `'Playfair Display', Georgia, 'Times New Roman', 'Noto Serif Devanagari', serif`;
+  const gold = "#EDB443";
+  const goldDeep = "#A56B10";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="210mm" viewBox="0 0 1188 840" role="img" aria-label="${xml(`${t.title}: ${name}, ${input.unit}`)}">
-  <rect width="1188" height="840" fill="${p.bg}"/>
-  <rect x="36" y="36" width="1116" height="768" rx="40" fill="${p.card}" stroke="${p.brand}" stroke-width="8"/>
-  <rect x="60" y="60" width="1068" height="720" rx="28" fill="none" stroke="${p.brandSoft}" stroke-width="4"/>
-  <g font-family="${font}" text-anchor="middle" fill="${p.text}">
-    <circle cx="594" cy="150" r="54" fill="${p.brand}"/>
-    <text x="594" y="174" font-size="64" fill="${p.onBrand}">♞</text>
-    <text x="594" y="262" font-size="26" font-weight="600" fill="${p.brandText}" letter-spacing="4">CHESSSCHOOL</text>
-    <text x="594" y="330" font-size="52" font-weight="700">${xml(t.title)}</text>
-    <text x="594" y="398" font-size="26" fill="${p.textMuted}">${xml(t.presented)}</text>
-    <text x="594" y="484" font-size="${fit(name, 76, 1700)}" font-weight="700" fill="${p.brandEdge}">${xml(name)}</text>
-    <line x1="344" y1="510" x2="844" y2="510" stroke="${p.accent}" stroke-width="4" stroke-linecap="round"/>
-    <text x="594" y="562" font-size="26" fill="${p.textMuted}">${xml(t.finished)}</text>
-    <text x="594" y="626" font-size="${fit(input.unit, 44, 1500)}" font-weight="600">${xml(input.unit)}</text>
-    <text x="594" y="712" font-size="22" fill="${p.textMuted}">${xml(t.date(formatDay(input.day, input.lang)))}</text>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#FDF1D6"/><stop offset="1" stop-color="#FFFDF7" stop-opacity="0"/></radialGradient>
+    <radialGradient id="seal" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#FFE7A8"/><stop offset=".6" stop-color="${gold}"/><stop offset="1" stop-color="${goldDeep}"/></radialGradient>
+  </defs>
+  <rect width="1188" height="840" fill="#FFFDF7"/>
+  <rect width="1188" height="420" fill="url(#glow)"/>
+  <rect x="30" y="30" width="1128" height="780" rx="14" fill="none" stroke="${gold}" stroke-width="6"/>
+  <rect x="50" y="50" width="1088" height="740" rx="8" fill="none" stroke="${gold}" stroke-width="1.5" opacity=".7"/>
+  <svg x="524" y="70" width="140" height="140" viewBox="86 120 340 340">${MASCOT_SVG_INNER}</svg>
+  <g text-anchor="middle" fill="${p.text}">
+    <text x="594" y="250" font-family="${font}" font-size="22" font-weight="700" fill="${goldDeep}" letter-spacing="6">${xml(t.title.toUpperCase())}</text>
+    <text x="594" y="306" font-family="${serif}" font-style="italic" font-size="28" fill="${p.textMuted}">${xml(t.presented)}</text>
+    <text x="594" y="396" font-family="${serif}" font-size="${fit(name, 78, 1500)}" font-weight="700">${xml(name)}</text>
+    <line x1="394" y1="428" x2="794" y2="428" stroke="${gold}" stroke-width="2"/>
+    <text x="594" y="482" font-family="${font}" font-size="26" fill="${p.textMuted}">${xml(t.finished)}</text>
+    <text x="594" y="548" font-family="${font}" font-size="${fit(input.unit, 46, 1400)}" font-weight="700" fill="#A8392C">${xml(input.unit)}</text>
+  </g>
+  <g font-family="${font}" fill="${p.text}">
+    <text x="190" y="686" font-size="24" font-weight="700">${xml(formatDay(input.day, input.lang))}</text>
+    <text x="190" y="716" font-size="18" fill="${p.textMuted}">${xml(t.dateLabel)}</text>
+    <circle cx="594" cy="688" r="58" fill="url(#seal)"/>
+    <circle cx="594" cy="688" r="46" fill="none" stroke="#FFF6E0" stroke-width="2" opacity=".8"/>
+    <text x="594" y="712" text-anchor="middle" font-size="64" fill="#3A2800">♛</text>
+    <text x="998" y="686" text-anchor="end" font-size="24" font-weight="700">chess-school.in</text>
+    <text x="998" y="716" text-anchor="end" font-size="18" fill="${p.textMuted}">${xml(t.verify)}</text>
   </g>
 </svg>
 `;

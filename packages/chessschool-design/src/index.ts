@@ -1,5 +1,6 @@
 export * from "./tokens";
 export * from "./icons";
+export * from "./mascotArt";
 export * from "./copy";
 export * from "./progress";
 export * from "./api";
