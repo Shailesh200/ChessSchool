@@ -43,7 +43,7 @@ export function SkillsCard({ skills }: { skills: Skills | undefined }) {
                 <strong>{t.next(t.names[next])}</strong>
               </p>
               <Button variant="secondary" icon="practice" href="/practice">
-                {t.practise}
+                {t.practice}
               </Button>
             </>
           ) : null}

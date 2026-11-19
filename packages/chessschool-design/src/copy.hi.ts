@@ -1290,7 +1290,7 @@ export const hi: Translation = {
     strongest: "सबसे मज़बूत",
     weakest: "अभ्यास चाहिए",
     next: (name: string) => `आगे अभ्यास करें: ${name}`,
-    practise: "अभी अभ्यास करें",
+    practice: "अभी अभ्यास करें",
     score: (name: string, s: number) => `${name}: 100 में से ${s}`,
     names: { fork: "फ़ोर्क", pin: "पिन", skewer: "स्क्यूअर", discovery: "खुला हमला", hanging: "मोहरे सुरक्षित रखना", mate: "शह-मात", backRank: "पिछली पंक्ति की मात", endgame: "एंडगेम" },
   },

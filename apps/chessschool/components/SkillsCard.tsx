@@ -46,7 +46,7 @@ export function SkillsCard({ skills }: { skills: Skills | undefined }) {
           {next ? (
             <>
               <T role="label">{t.next(t.names[next])}</T>
-              <Button title={t.practise} icon="practice" variant="secondary" onPress={() => router.push("/practice")} />
+              <Button title={t.practice} icon="practice" variant="secondary" onPress={() => router.push("/practice")} />
             </>
           ) : null}
         </>

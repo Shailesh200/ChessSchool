@@ -20,7 +20,7 @@ export const timeControl = (id: TimeControlId) => TIME_CONTROLS.find((t) => t.id
 /** The endgame trainer: won positions played against perfect defence until mastered. */
 export const ENDGAME_IDS = ["kq-k", "kr-k", "krr-k", "kp-k", "key-squares", "lucena"] as const;
 export const START_POSITIONS: readonly { id: string; name: string; blurb: string; fen: string }[] = [
-  { id: "kq-k", name: "Queen vs king", blurb: "Practise the basic checkmate.", fen: "8/8/8/4k3/8/8/8/3QK3 w - - 0 1" },
+  { id: "kq-k", name: "Queen vs king", blurb: "Practice the basic checkmate.", fen: "8/8/8/4k3/8/8/8/3QK3 w - - 0 1" },
   { id: "kr-k", name: "Rook vs king", blurb: "Push the king to the edge.", fen: "8/8/8/4k3/8/8/8/R3K3 w - - 0 1" },
   { id: "krr-k", name: "Two rooks", blurb: "The ladder mate.", fen: "4k3/8/8/8/8/8/8/R3K2R w - - 0 1" },
   { id: "pawn-race", name: "Pawn race", blurb: "Who promotes first?", fen: "4k3/pppp4/8/8/8/8/4PPPP/4K3 w - - 0 1" },
