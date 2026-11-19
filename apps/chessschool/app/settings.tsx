@@ -1,4 +1,4 @@
-import { aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { aiBlocked, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -188,9 +188,9 @@ export default function Settings() {
         <SwitchRow
           icon="spark"
           label={s.aiExplain}
-          hint={isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
+          hint={aiBlocked(state) ? s.aiOff : isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
           value={aiExplainOn(state)}
-          disabled={isChildProfile(state) && !state.parentPin}
+          disabled={aiBlocked(state) || (isChildProfile(state) && !state.parentPin)}
           onChange={(v) => update((st) => setAiExplain(st, v))}
         />
         <Row icon="shield" label={s.privacy} chevron onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL))} />

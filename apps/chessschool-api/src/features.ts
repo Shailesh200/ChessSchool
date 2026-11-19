@@ -11,5 +11,13 @@ export const FEATURES = {
   invites: true,
   leagues: true,
   mateOfTheDay: true,
+  /** Every AI feature: coach explanations and lines, hint reasons, AI bot moves, the board scanner. */
+  ai: true,
 };
+
+/**
+ * Whether one account may use the AI features. For now the global switch decides for everyone;
+ * shortcut: no per-account override yet, add a users column (or table) here when some accounts need it on or off.
+ */
+export const aiEnabledFor = (_user: { id: string }) => FEATURES.ai;
 export type FeatureId = keyof typeof FEATURES;

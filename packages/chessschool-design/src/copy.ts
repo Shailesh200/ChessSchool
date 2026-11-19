@@ -1092,6 +1092,7 @@ export const copy = {
     aiExplain: "AI coach",
     aiExplainHint: "Explains your games, gives hint reasons and comments, and plays some bots. Only moves and positions are used.",
     aiExplainNeedsPin: "Off for children. Set a parent PIN in Learners to turn it on.",
+    aiOff: "AI features are not available on this account yet.",
     reminderTime: "Reminder time",
     reminderHour: (h: number) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? "am" : "pm"}`,
     account: "Account",

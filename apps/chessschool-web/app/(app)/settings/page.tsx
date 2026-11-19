@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, aiBlocked, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -235,9 +235,9 @@ export default function SettingsPage() {
         <Switch
           icon="spark"
           label={s.aiExplain}
-          hint={isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
+          hint={aiBlocked(state) ? s.aiOff : isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
           checked={aiExplainOn(state)}
-          disabled={isChildProfile(state) && !state.parentPin}
+          disabled={aiBlocked(state) || (isChildProfile(state) && !state.parentPin)}
           onChange={(v) => update((st) => setAiExplain(st, v))}
         />
         <a className="row" href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">

@@ -77,6 +77,10 @@ describe("AI explanations setting", () => {
     st = setAiExplain(st, true);
     expect(aiExplainOn(st)).toBe(true);
     expect(aiExplainOn(switchProfile(st, null))).toBe(true);
+    // The server's per-account switch wins over the Settings one.
+    const blocked = { ...switchProfile(st, null), account: { id: "u", email: "a@b.c", name: "A", provider: "password" as const, ai: false } };
+    expect(aiExplainOn(blocked)).toBe(false);
+    expect(aiExplainOn({ ...blocked, account: { ...blocked.account, ai: true } })).toBe(true);
   });
 
   it("keeps a scanned position in the review log, playing from its side to move", () => {

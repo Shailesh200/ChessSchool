@@ -147,7 +147,8 @@ export const MISTAKES_MAX = 20;
 export const GAME_LOG_MAX = 30;
 export type Arrival = "kept" | "fresh";
 
-export type Account = { id: string; email: string; name: string; provider: "password" | "google" | "apple" };
+/** `ai`: the server's switch for this account's AI features (coach, hints, AI bots, scanner); missing means allowed. */
+export type Account = { id: string; email: string; name: string; provider: "password" | "google" | "apple"; ai?: boolean };
 
 export type LocalState = {
   version: typeof STATE_VERSION;
@@ -1314,6 +1315,9 @@ export function importGame(state: LocalState, game: GameRecord): LocalState {
 const profileKey = (s: LocalState) => s.activeChild ?? "main";
 /** Child profiles start with AI explanations off; a parent turns them on (Settings, behind the PIN). */
 export const isChildProfile = (s: LocalState) => s.activeChild !== null || s.profile.who === "child";
-export const aiExplainOn = (s: LocalState) => s.aiExplain[profileKey(s)] ?? !isChildProfile(s);
+/** Whether this profile uses the AI features: the server allows them for the account and the Settings switch is on. */
+export const aiExplainOn = (s: LocalState) => s.account?.ai !== false && (s.aiExplain[profileKey(s)] ?? !isChildProfile(s));
+/** The server switched AI off for this account (the Settings switch then has no effect). */
+export const aiBlocked = (s: LocalState) => s.account?.ai === false;
 export const setAiExplain = (s: LocalState, on: boolean): LocalState => ({ ...s, aiExplain: { ...s.aiExplain, [profileKey(s)]: on } });
 export const agreeTerms = (s: LocalState, at: string): LocalState => (s.termsAt ? s : { ...s, termsAt: at });

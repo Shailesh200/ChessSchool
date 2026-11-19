@@ -55,7 +55,7 @@ import { bestEndgameMove, lichessTablebase, tablebaseKey, type TablebaseFetch } 
 import { EMAIL_RUN_CAP, summarize, summaryMessage, type Sender } from "./weekly";
 import { addLeagueXp, closeDueWeeks, currentLeague } from "./leagues";
 import { countMate, mateCounts, mateOfDay } from "./mate";
-import { FEATURES } from "./features";
+import { aiEnabledFor, FEATURES } from "./features";
 import { loadCourseText, localizeNamed, localizeSteps, type CourseText } from "./course-text";
 import { loadPuzzle, loadPuzzlePack, PUZZLE_CACHE } from "./puzzles";
 import type { AppleVerifier } from "./apple";
@@ -188,6 +188,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     email: u.email,
     name: u.name,
     provider: (u.passwordHash ? "password" : u.appleSub && !u.googleSub ? "apple" : "google") as Account["provider"],
+    ai: aiEnabledFor(u),
   });
 
   async function loadProfile(userId: string): Promise<ApiProfile> {
@@ -1330,6 +1331,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
    */
   app.post("/v1/coach/explain", requireUser, async (c) => {
     const user = c.get("user");
+    if (!aiEnabledFor(user)) return fail(c, 403, "forbidden");
     const b = await body<{ startFen: unknown; moves: unknown; side: unknown; coach: unknown; consent: unknown }>(c);
     if (b.consent !== true) return fail(c, 403, "consent_required");
     const input = parseCoachInput(b, isCoachId);
@@ -1349,6 +1351,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
    */
   app.post("/v1/coach/line", requireUser, async (c) => {
     const user = c.get("user");
+    if (!aiEnabledFor(user)) return fail(c, 403, "forbidden");
     const input = parseLineInput(await body<Record<string, unknown>>(c), isCoachId);
     if (!input) return fail(c, 400, "invalid_input");
     if (!lineLimiter(user.id)) return fail(c, 429, "rate_limited");
@@ -1365,6 +1368,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
    */
   app.post("/v1/scan", requireUser, async (c) => {
     const user = c.get("user");
+    if (!aiEnabledFor(user)) return fail(c, 403, "forbidden");
     const b = await body<{ image: unknown; mediaType: unknown; consent: unknown }>(c);
     if (b.consent !== true) return fail(c, 403, "consent_required");
     const image = parseScanImage(b);
