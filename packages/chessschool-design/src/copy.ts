@@ -791,6 +791,19 @@ export const copy = {
     tooShort: "Write a few words so we know what you mean.",
   },
 
+  trophies: {
+    title: "Trophy room",
+    summary: (earned: number, total: number, certs: number) => `${earned} of ${total} earned · ${certs} ${certs === 1 ? "certificate" : "certificates"}`,
+    all: "All",
+    certificates: "Certificates",
+    badges: "Badges",
+    certKicker: "Certificate",
+    hint: "Tap a badge or certificate to see it big.",
+    signIn: "Sign in to get a certificate for each unit you finish.",
+    noCerts: "Finish a unit to get your first certificate.",
+    open: "Open the trophy room",
+  },
+
   badges: {
     title: "Achievements",
     earned: "New achievement!",

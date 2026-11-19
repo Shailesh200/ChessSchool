@@ -1,11 +1,10 @@
-import { BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, errorMessage, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
+import { BADGES, FLAIRS, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, TextInput, View } from "react-native";
-import { shareLink } from "@/lib/share";
+import { Pressable, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
-import { InviteCard, ShareCardButton } from "@/components/Growth";
+import { InviteCard } from "@/components/Growth";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
@@ -14,14 +13,11 @@ import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
-/** Card words: letters, digits and light punctuation only (the server refuses anything else). */
-const cardWord = (s: string) => s.replace(/[^\p{L}\p{M}\p{N} '’&:,.()-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
-
 export default function You() {
   const { state, setProfile, cue } = useApp();
   const { c } = useTheme();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "name" | "goal" | "badges" | "picture">(null);
+  const [sheet, setSheet] = useState<null | "name" | "goal" | "picture">(null);
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const nameRef = useRef<TextInput>(null);
@@ -41,16 +37,6 @@ export default function You() {
   const course = useCourse();
   // Certificates come from the server, so only signed-in learners have them.
   const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
-  const shareCertificate = async (unitId: string) => {
-    cue("tap");
-    try {
-      const { url, unit } = await api.certificateLink(unitId);
-      await shareLink(copy.certificate.share(unit), url);
-    } catch (err) {
-      toast((err as { status?: number }).status === 403 ? copy.certificate.notFinished : errorMessage(err));
-    }
-  };
-  const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
 
   const saveName = () => {
     const clean = cleanName(draft);
@@ -79,31 +65,6 @@ export default function You() {
     { value: progress.games.played, label: copy.you.stats.games, icon: "gym" as const, tint: c.brandText },
     { value: progress.games.won, label: copy.you.stats.won, icon: "trophy" as const, tint: c.goldText },
   ];
-
-  const badge = (id: (typeof BADGES)[number]["id"], wide?: boolean) => {
-    const on = earned.includes(id);
-    const bc = copy.badges.list[id];
-    return (
-      <View
-        key={id}
-        accessible
-        accessibilityLabel={`${bc.name}. ${bc.body}${on ? "" : ` (${copy.you.badgeLocked})`}`}
-        style={{ width: wide ? undefined : 112, flexGrow: wide ? 1 : 0, flexBasis: wide ? "45%" : undefined, alignItems: "center", gap: 4, paddingVertical: 12, paddingHorizontal: 8, borderRadius: 18, backgroundColor: on ? c.goldSoft : c.card, borderWidth: 1, borderColor: on ? c.gold : c.line, borderBottomWidth: 4 }}
-      >
-        <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: c.card, opacity: on ? 1 : 0.7 }}>
-          <Icon name={on ? "trophy" : "lock"} color={on ? c.goldText : c.textMuted} size={22} />
-        </View>
-        <T role="small" center numberOfLines={2} style={{ alignSelf: "stretch", fontFamily: fonts.semibold, color: on ? c.text : c.textMuted }}>
-          {bc.name}
-        </T>
-        {wide ? (
-          <T role="micro" color="textMuted" center style={{ alignSelf: "stretch" }}>
-            {bc.body}
-          </T>
-        ) : null}
-      </View>
-    );
-  };
 
   return (
     <Page title={copy.you.title} large action={<IconButton icon="settings" label={copy.you.settings} onPress={() => router.push("/settings")} />}>
@@ -180,36 +141,32 @@ export default function You() {
 
       <InviteCard />
 
-      <View style={{ gap: 10 }}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <T role="heading" header style={{ flex: 1 }}>
-            {copy.badges.title}
-          </T>
-          <Pressable accessibilityRole="button" onPress={() => setSheet("badges")} hitSlop={10} style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-            <T role="small" color="brandText" style={{ fontFamily: fonts.semibold }}>
-              {`${copy.badges.count(earned.length, BADGES.length)} · ${copy.you.seeAll}`}
+      <Pressable accessibilityRole="button" accessibilityLabel={copy.trophies.open} onPress={() => router.push("/trophies")}>
+        <Card style={{ gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <T role="eyebrow" color="textMuted" header>
+              {copy.trophies.title}
             </T>
-            <Icon name="chevron" size={18} color={c.brandText} />
-          </Pressable>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 16 }} style={{ marginRight: -16 }}>
-          {ordered.slice(0, 8).map((b) => badge(b.id))}
-        </ScrollView>
-      </View>
-
-      {finishedUnits.length ? (
-        <View style={{ gap: 10 }}>
-          <T role="heading" header>
-            {copy.certificate.listTitle}
+            <Icon name="chevron" size={20} color={c.brandText} />
+          </View>
+          <T role="small" color="textMuted">
+            {copy.trophies.summary(earned.filter((id) => !isUnitBadge(id)).length, BADGES.filter((b) => !isUnitBadge(b.id)).length, finishedUnits.length)}
           </T>
-          <Card style={{ padding: 6 }}>
-            {finishedUnits.map((u) => (
-              <Row key={u.id} icon="trophy" label={u.title} hint={copy.certificate.rowHint} chevron onPress={() => void shareCertificate(u.id)} />
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {earned.filter((id) => !isUnitBadge(id)).slice(-5).reverse().map((id) => (
+              <View key={id} style={{ width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.gold }}>
+                <Icon name="trophy" size={20} color={c.goldText} />
+              </View>
             ))}
-          </Card>
-          <ShareCardButton kind="certificate" data={{ unit: cardWord(finishedUnits[finishedUnits.length - 1].title) }} />
-        </View>
-      ) : null}
+            {finishedUnits.length ? (
+              <View style={{ height: 44, paddingHorizontal: 12, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.brandSoft }}>
+                <Icon name="doc" size={18} color={c.brandText} />
+                <T role="small" style={{ color: c.brandText, fontFamily: fonts.bold }}>{String(finishedUnits.length)}</T>
+              </View>
+            ) : null}
+          </View>
+        </Card>
+      </Pressable>
 
       <View style={{ gap: 10 }}>
         <T role="heading" header>
@@ -273,14 +230,6 @@ export default function You() {
         <Button title={copy.analysis.close} variant="secondary" onPress={() => setSheet(null)} />
       </Sheet>
 
-      <Sheet visible={sheet === "badges"} onClose={() => setSheet(null)} scroll>
-        <T role="heading" header center>
-          {`${copy.badges.title} · ${copy.badges.count(earned.length, BADGES.length)}`}
-        </T>
-        <View accessibilityRole="list" style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, alignSelf: "stretch" }}>
-          {ordered.map((b) => badge(b.id, true))}
-        </View>
-      </Sheet>
     </Page>
   );
 }

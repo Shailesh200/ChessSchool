@@ -831,6 +831,19 @@ export const hi: Translation = {
     tooShort: "कुछ शब्द लिखें ताकि हम समझ सकें।",
   },
 
+  trophies: {
+    title: "ट्रॉफ़ी रूम",
+    summary: (earned: number, total: number, certs: number) => `${total} में से ${earned} मिले · ${certs} प्रमाणपत्र`,
+    all: "सब",
+    certificates: "प्रमाणपत्र",
+    badges: "बैज",
+    certKicker: "प्रमाणपत्र",
+    hint: "बैज या प्रमाणपत्र को बड़ा देखने के लिए टैप करें।",
+    signIn: "हर पूरी की गई यूनिट का प्रमाणपत्र पाने के लिए साइन इन करें।",
+    noCerts: "पहला प्रमाणपत्र पाने के लिए एक यूनिट पूरी करें।",
+    open: "ट्रॉफ़ी रूम खोलें",
+  },
+
   badges: {
     title: "उपलब्धियाँ",
     earned: "नई उपलब्धि!",

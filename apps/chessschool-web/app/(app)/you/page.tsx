@@ -1,6 +1,6 @@
 "use client";
 
-import { AVATARS, BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, FLAIRS, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -16,7 +16,7 @@ import { useApp } from "@/lib/state";
 export default function YouPage() {
   const { state, ready, setProfile, cue } = useApp();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "name" | "goal" | "badges" | "picture">(null);
+  const [sheet, setSheet] = useState<null | "name" | "goal" | "picture">(null);
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const nameForm = useRef<HTMLFormElement>(null);
@@ -34,7 +34,6 @@ export default function YouPage() {
   const earned = earnedBadges(progress, state.ratings);
   // Certificates come from the server, so only signed-in learners have them.
   const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
-  const ordered = [...BADGES].sort((a, b) => Number(earned.includes(b.id)) - Number(earned.includes(a.id)));
   const toNext = rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank;
 
   const saveLook = (patch: { avatar?: AvatarId; flair?: FlairId | null }) => {
@@ -75,20 +74,6 @@ export default function YouPage() {
     { value: progress.games.played, label: copy.you.stats.games, icon: "gym" },
     { value: progress.games.won, label: copy.you.stats.won, icon: "trophy" },
   ];
-
-  const badge = (id: (typeof BADGES)[number]["id"], full?: boolean) => {
-    const on = earned.includes(id);
-    const c = copy.badges.list[id];
-    return (
-      <li key={id} className={`badge${on ? " is-on" : ""}`} aria-label={`${c.name}. ${c.body}${on ? "" : ` (${copy.you.badgeLocked})`}`}>
-        <span className="badge-icon" aria-hidden>
-          <Icon name={on ? "trophy" : "lock"} />
-        </span>
-        <strong>{c.name}</strong>
-        {full ? <span>{c.body}</span> : null}
-      </li>
-    );
-  };
 
   return (
     <div className="page page-narrow">
@@ -144,34 +129,29 @@ export default function YouPage() {
 
       <InviteCard />
 
-      <div className="section-head">
-        <h2>{copy.badges.title}</h2>
-        <button type="button" className="link-more" onClick={() => setSheet("badges")}>
-          {copy.badges.count(earned.length, BADGES.length)} · {copy.you.seeAll}
-          <Icon name="chevron" size={18} />
-        </button>
-      </div>
-      <ul className="badge-strip">{ordered.slice(0, 8).map((b) => badge(b.id))}</ul>
-
-      {finishedUnits.length ? (
-        <>
-          <div className="section-head">
-            <h2>{copy.certificate.listTitle}</h2>
-          </div>
-          <Card className="list">
-            {finishedUnits.map((u) => (
-              <a key={u.id} href={`/certificate/${encodeURIComponent(u.id)}`} target="_blank" rel="noopener" className="row row-link">
-                <Icon name="trophy" />
-                <span className="row-text">
-                  <span className="row-label">{u.title}</span>
-                  <span className="row-hint">{copy.certificate.rowHint}</span>
-                </span>
-                <Icon name="chevron" />
-              </a>
+      <Link href="/trophies" className="card trophy-link" aria-label={copy.trophies.open}>
+        <span className="trophy-link-top">
+          <span className="eyebrow">{copy.trophies.title}</span>
+          <Icon name="chevron" size={20} />
+        </span>
+        <span className="muted small">{copy.trophies.summary(earned.filter((id) => !isUnitBadge(id)).length, BADGES.filter((b) => !isUnitBadge(b.id)).length, finishedUnits.length)}</span>
+        <span className="trophy-link-row">
+          {earned
+            .filter((id) => !isUnitBadge(id))
+            .slice(-5)
+            .reverse()
+            .map((id) => (
+              <span key={id} aria-hidden>
+                <Icon name="trophy" size={20} />
+              </span>
             ))}
-          </Card>
-        </>
-      ) : null}
+          {finishedUnits.length ? (
+            <span aria-hidden>
+              <Icon name="doc" size={18} /> {finishedUnits.length}
+            </span>
+          ) : null}
+        </span>
+      </Link>
 
       <div className="section-head">
         <h2>{copy.you.prefs}</h2>
@@ -278,12 +258,6 @@ export default function YouPage() {
         </Button>
       </Sheet>
 
-      <Sheet open={sheet === "badges"} onClose={() => setSheet(null)} labelledBy="badges-title">
-        <h2 id="badges-title">
-          {copy.badges.title} · {copy.badges.count(earned.length, BADGES.length)}
-        </h2>
-        <ul className="badge-grid">{ordered.map((b) => badge(b.id, true))}</ul>
-      </Sheet>
     </div>
   );
 }
