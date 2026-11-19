@@ -1,4 +1,4 @@
-import { BADGES, FLAIRS, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
+import { BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
@@ -177,6 +177,8 @@ export default function You() {
           <Row icon="clock" label={copy.you.goal} hint={copy.you.goalOption(profile.dailyMinutes)} chevron onPress={() => setSheet("goal")} />
           <Row icon="profile" label={copy.you.avatar} hint={copy.you.avatarHint} chevron onPress={() => setSheet("picture")} />
           <Row icon="palette" label={copy.settings.looks} hint={copy.you.looksHint} chevron onPress={() => router.push("/looks")} />
+          <Row icon="flag" label={copy.country.title} hint={profile.country ? `${flagOf(profile.country)} ${countryName(profile.country)}` : copy.country.none} chevron onPress={() => router.push("/country")} />
+          <Row icon="trophy" label={copy.board.open} hint={copy.board.global} chevron onPress={() => router.push("/leaderboard")} />
           <Row icon="history" label={copy.you.review} hint={copy.gym.review.body} chevron onPress={() => router.push("/review")} />
           <Row icon="club" label={copy.you.class} hint={copy.you.classHint} chevron onPress={() => router.push("/class")} />
           <Row icon="profile" label={copy.learners.title} hint={copy.learners.hint} chevron onPress={() => router.push("/learners")} />

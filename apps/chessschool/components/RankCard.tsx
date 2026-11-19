@@ -1,8 +1,10 @@
 import { copy, rankFor, RANKS, type RankId } from "@chessschool/design";
 import type { PieceType } from "@chessschool/chess";
-import { View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, View } from "react-native";
 import { fonts, useTheme } from "@/lib/theme";
 import { PieceArt } from "./Board";
+import { Icon } from "./Icon";
 import { Card, T } from "./ui";
 
 const PIECE: Record<RankId, PieceType> = { pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k" };
@@ -83,6 +85,13 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
           </View>
         ))}
       </View>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/leaderboard")} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>
+        <Icon name="trophy" size={20} color={c.goldText} />
+        <T role="label" style={{ flex: 1 }}>
+          {copy.board.open}
+        </T>
+        <Icon name="chevron" size={20} color={c.brandText} />
+      </Pressable>
     </Card>
   );
 }

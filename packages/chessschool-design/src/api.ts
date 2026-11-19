@@ -12,7 +12,8 @@ import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Streak,
 
 /* ---------- wire types (shared by API, web, native) ---------- */
 
-export type ApiProfile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; appearance: Prefs["appearance"]; sound: boolean; avatar: AvatarId; flair: FlairId | null };
+/** `country`: ISO code for the leaderboard flag (absent from older servers). */
+export type ApiProfile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; appearance: Prefs["appearance"]; sound: boolean; avatar: AvatarId; flair: FlairId | null; country?: string | null };
 export type ClassRole = "monitor" | "student";
 /** A classmate as the class screen shows them. Stats come from their saved progress (zero for a new account). */
 export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; joinedAt: number; lessons: number; xp: number; streak: Streak };
@@ -20,6 +21,12 @@ export type ReportReason = "name" | "behaviour" | "other";
 export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; /** XP from lessons finished this week (absent from older servers). */ xp?: number; me: boolean }[] };
 /** Today's best board-vision score per game in one class (games nobody played are left out). */
 export type ClassVision = { day: string; best: { game: string; score: number; id: string; name: string; avatar: AvatarId; me: boolean }[] };
+/** The global, country and friends boards (Leaderboard screen). */
+export type BoardScope = "global" | "country" | "friends";
+export type BoardMetric = "xp" | "rating" | "wins";
+/** `value`: XP this league week, playing rating, or the rating of the strongest bot beaten. Names are first names only. */
+export type BoardRow = { id: string; rank: number; name: string; avatar: AvatarId; country: string | null; value: number; friend: boolean; me: boolean };
+export type BoardResponse = { scope: BoardScope; metric: BoardMetric; rows: BoardRow[]; me: { rank: number | null; value: number }; needsCountry: boolean };
 /* ---------- sharing and growth (Phase 3) ---------- */
 export type ShareCardKind = "game_won" | "puzzle_streak" | "rating_milestone" | "certificate" | "league_promotion" | "mate_of_the_day" | "weekly";
 /** What a card may show: numbers and short course words only. */
@@ -240,6 +247,9 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     apple: (input: AppleSignInBody) => request<AuthResponse>("POST", "/v1/auth/apple", input),
     logout: () => request<{ ok: true }>("POST", "/v1/auth/logout"),
     me: () => request<MeResponse>("GET", "/v1/me"),
+    board: (scope: BoardScope, metric: BoardMetric) => request<BoardResponse>("GET", `/v1/leaderboard?scope=${scope}&metric=${metric}`),
+    addFriend: (id: string) => request<{ ok: true }>("POST", `/v1/friends/${encodeURIComponent(id)}`, {}),
+    removeFriend: (id: string) => request<{ ok: true }>("DELETE", `/v1/friends/${encodeURIComponent(id)}`),
     updateMe: (patch: Partial<ApiProfile>) => request<MeResponse>("PATCH", "/v1/me", patch),
     home: () => request<HomeResponse>("GET", "/v1/home"),
     features: () => request<{ features: Record<string, boolean> }>("GET", "/v1/features"),

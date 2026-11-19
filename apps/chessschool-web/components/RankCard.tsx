@@ -2,7 +2,9 @@
 
 import type { PieceType } from "@chessschool/chess";
 import { copy, rankFor, RANKS, type RankId } from "@chessschool/design";
+import Link from "next/link";
 import { PieceArt } from "./Board";
+import { Icon } from "./Icon";
 
 const PIECE: Record<RankId, PieceType> = { pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k" };
 
@@ -56,6 +58,11 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
           </div>
         ))}
       </div>
+      <Link href="/leaderboard" className="rank-board-link">
+        <Icon name="trophy" size={20} />
+        <span>{copy.board.open}</span>
+        <Icon name="chevron" size={20} />
+      </Link>
     </section>
   );
 }

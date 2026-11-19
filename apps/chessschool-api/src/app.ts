@@ -7,6 +7,7 @@ import {
   isCoachId,
   isLang,
   isSkillId,
+  isCountry,
   isFlairId,
   isProgress,
   mergeProgress,
@@ -32,6 +33,7 @@ import {
   type Progress,
 } from "@chessschool/design";
 import { answerLine, parseLineInput } from "./coach-line";
+import { mountLeaderboard } from "./leaderboard";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { isVisionGame, isVisionScore, VISION_GAMES } from "@chessschool/chess";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -201,6 +203,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       sound: row?.sound ?? true,
       avatar: isAvatarId(row?.avatar) ? row.avatar : "cody",
       flair: isFlairId(row?.flair) ? row.flair : null,
+      country: isCountry(row?.country) ? row.country : null,
     };
   }
 
@@ -308,6 +311,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       sound: typeof gp.sound === "boolean" ? gp.sound : (existing?.sound ?? true),
       avatar: isAvatarId(gp.avatar) ? gp.avatar : isAvatarId(existing?.avatar) ? existing.avatar : "cody",
       flair: gp.flair === null ? null : isFlairId(gp.flair) ? gp.flair : isFlairId(existing?.flair) ? existing.flair : null,
+      country: gp.country === null ? null : isCountry(gp.country) ? gp.country : isCountry(existing?.country) ? existing.country : null,
     };
     await db.insert(profiles).values(values).onConflictDoUpdate({ target: profiles.userId, set: values });
   }
@@ -462,6 +466,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (b.sound !== undefined && typeof b.sound !== "boolean") return fail(c, 400, "invalid_input");
     if (b.avatar !== undefined && !isAvatarId(b.avatar)) return fail(c, 400, "invalid_input");
     if (b.flair !== undefined && b.flair !== null && !isFlairId(b.flair)) return fail(c, 400, "invalid_input");
+    if (b.country !== undefined && b.country !== null && !isCountry(b.country)) return fail(c, 400, "invalid_input");
     await applyGuestProfile(user.id, { guestId: "patch", profile: b }, true);
     return c.json({ user: toAccount(user), profile: { ...(await loadProfile(user.id)), name: user.name } });
   });
@@ -1624,6 +1629,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   });
   const growthLimiter = createRateLimiter(60, 10 * 60_000, () => now().getTime());
   mountGrowth(app, { db, now, requireUser, userFromRequest, limiter: growthLimiter, cardStore });
+  mountLeaderboard(app, { db, now, requireUser, limiter: growthLimiter });
 
   return app;
 }

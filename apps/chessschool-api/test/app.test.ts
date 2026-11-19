@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { completeNode, createInitialState, PATH, type AuthResponse, type Progress } from "@chessschool/design";
+import { completeNode, createInitialState, PATH, type AuthResponse, type BoardResponse, type Progress } from "@chessschool/design";
 import { createApp } from "../src/app";
 import { pickPractice } from "../src/practice";
 import { factCheck, splitAnswer } from "../src/coach";
@@ -1542,5 +1542,46 @@ describe("mate of the day", () => {
     expect((await call("POST", "/v1/mate/2026-11-03", { solved: false })).json).toEqual({ played: 2, solved: 1 });
     expect((await call("POST", "/v1/mate/2026-10-01", { solved: true })).status).toBe(404);
     expect((await call("GET", "/v1/features")).json.features).toMatchObject({ leagues: true, mateOfTheDay: true });
+  });
+});
+
+describe("leaderboard and friends", () => {
+  const win = (event: string) => ({ kind: "bot", event, bot: "pip", result: "win", moves: 40 });
+  it("ranks accounts by rating globally, by country and among friends, with first names only", async () => {
+    const reg = async (name: string, email: string) => (await call("POST", "/v1/auth/register", { name, email, password: "pawnpawn" })).json as AuthResponse;
+    const a = await reg("Asha Rao", "lb1@b.co");
+    const b = await reg("Bilal", "lb2@b.co");
+    const c = await reg("Chen", "lb3@b.co");
+    await call("POST", "/v1/me/rating", win("a-1"), a.token);
+    await call("POST", "/v1/me/rating", win("a-2"), a.token);
+    await call("POST", "/v1/me/rating", win("b-1"), b.token);
+    await call("POST", "/v1/me/rating", { ...win("c-1"), result: "loss" }, c.token);
+    expect((await call("PATCH", "/v1/me", { country: "IN" }, a.token)).json.profile.country).toBe("IN");
+    await call("PATCH", "/v1/me", { country: "IN" }, b.token);
+    expect((await call("PATCH", "/v1/me", { country: "XX" }, c.token)).status).toBe(400);
+
+    const global = (await call("GET", "/v1/leaderboard?scope=global&metric=rating", undefined, a.token)).json as BoardResponse;
+    const mine = global.rows.filter((r) => [a.user.id, b.user.id, c.user.id].includes(r.id));
+    expect(mine.map((r) => r.name)).toEqual(["Asha", "Bilal", "Chen"]);
+    expect(mine[0]!.me).toBe(true);
+    expect(mine[0]!.country).toBe("IN");
+    expect(global.me.rank).toBe(mine[0]!.rank);
+
+    const country = (await call("GET", "/v1/leaderboard?scope=country&metric=rating", undefined, c.token)).json as BoardResponse;
+    expect(country.needsCountry).toBe(true);
+    const india = (await call("GET", "/v1/leaderboard?scope=country&metric=rating", undefined, b.token)).json as BoardResponse;
+    expect(india.rows.map((r) => r.id)).toEqual([a.user.id, b.user.id]);
+
+    expect((await call("POST", `/v1/friends/${a.user.id}`, {}, a.token)).status).toBe(400);
+    expect((await call("POST", "/v1/friends/nobody", {}, a.token)).status).toBe(404);
+    expect((await call("POST", `/v1/friends/${c.user.id}`, {}, a.token)).status).toBe(200);
+    const friends = (await call("GET", "/v1/leaderboard?scope=friends&metric=rating", undefined, a.token)).json as BoardResponse;
+    expect(friends.rows.map((r) => r.id)).toEqual([a.user.id, c.user.id]);
+    expect(friends.rows[1]!.friend).toBe(true);
+    await call("DELETE", `/v1/friends/${c.user.id}`, undefined, a.token);
+    expect(((await call("GET", "/v1/leaderboard?scope=friends&metric=rating", undefined, a.token)).json as BoardResponse).rows.map((r) => r.id)).toEqual([a.user.id]);
+
+    expect((await call("GET", "/v1/leaderboard?scope=everyone&metric=rating", undefined, a.token)).status).toBe(400);
+    expect((await call("GET", "/v1/leaderboard?scope=global&metric=rating")).status).toBe(401);
   });
 });

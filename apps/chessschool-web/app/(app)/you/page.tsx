@@ -1,6 +1,6 @@
 "use client";
 
-import { AVATARS, BADGES, FLAIRS, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -186,6 +186,22 @@ export default function YouPage() {
           <span className="row-text">
             <span className="row-label">{copy.settings.looks}</span>
             <span className="row-hint">{copy.you.looksHint}</span>
+          </span>
+          <Icon name="chevron" />
+        </Link>
+        <Link href="/country" className="row row-link">
+          <Icon name="flag" />
+          <span className="row-text">
+            <span className="row-label">{copy.country.title}</span>
+            <span className="row-hint">{profile.country ? `${flagOf(profile.country)} ${countryName(profile.country)}` : copy.country.none}</span>
+          </span>
+          <Icon name="chevron" />
+        </Link>
+        <Link href="/leaderboard" className="row row-link">
+          <Icon name="trophy" />
+          <span className="row-text">
+            <span className="row-label">{copy.board.open}</span>
+            <span className="row-hint">{copy.board.global}</span>
           </span>
           <Icon name="chevron" />
         </Link>

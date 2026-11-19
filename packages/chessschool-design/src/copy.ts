@@ -791,6 +791,37 @@ export const copy = {
     tooShort: "Write a few words so we know what you mean.",
   },
 
+  board: {
+    title: "Leaderboard",
+    global: "Global",
+    country: "Country",
+    friends: "Friends",
+    xp: "XP this week",
+    rating: "Rating",
+    wins: "Bot wins",
+    value: (metric: "xp" | "rating" | "wins", n: number) => (metric === "xp" ? `${n} XP` : metric === "rating" ? String(n) : `beat ${n}`),
+    you: "You",
+    friend: "Friend",
+    add: (name: string) => `Add ${name} as a friend`,
+    added: (name: string) => `${name} is now your friend.`,
+    remove: (name: string) => `Remove ${name} from friends`,
+    unranked: "Play a rated game to get on the board.",
+    empty: "Nobody here yet. Be the first!",
+    friendsEmpty: "Add friends from the Global board with the + button.",
+    needsCountry: "Pick your country to see the board for it.",
+    pickCountry: "Pick your country",
+    signIn: "Sign in to see the leaderboard.",
+    open: "Leaderboard",
+  },
+
+  country: {
+    title: "Your country",
+    body: "Shown as a flag on the leaderboard. You can change it any time.",
+    search: "Search",
+    placeholder: "Type a country",
+    none: "Not set",
+  },
+
   trophies: {
     title: "Trophy room",
     summary: (earned: number, total: number, certs: number) => `${earned} of ${total} earned · ${certs} ${certs === 1 ? "certificate" : "certificates"}`,

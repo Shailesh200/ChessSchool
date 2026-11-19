@@ -6102,3 +6102,191 @@ button.game-row {
   color: var(--cs-gold-text);
   font-weight: 700;
 }
+.rank-board-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--cs-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+.rank-board-link span {
+  flex: 1;
+}
+.rank-board-link svg:first-child {
+  color: var(--cs-gold-text);
+}
+.rank-board-link svg:last-child {
+  color: var(--cs-brand-text);
+}
+
+/* ---------- Leaderboard ---------- */
+.board-page {
+  display: grid;
+  gap: 14px;
+}
+.board-scopes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--cs-sunken);
+}
+.board-scopes button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cs-text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.board-scopes button.is-on {
+  background: var(--cs-card);
+  color: var(--cs-brand-text);
+  box-shadow: 0 2px 6px rgb(42 26 20 / 0.12);
+}
+.board-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.board-metrics button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+  color: var(--cs-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.board-metrics button.is-on {
+  background: var(--cs-text);
+  color: var(--cs-bg);
+  border-color: transparent;
+}
+.board-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.board-rows li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+.board-rows li.is-top {
+  background: var(--cs-card);
+  box-shadow: 0 1px 0 var(--cs-line);
+}
+.board-rows li.is-me {
+  background: var(--cs-brand-soft);
+}
+.board-rank {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--cs-text-muted);
+}
+.rank-1 .board-rank {
+  background: var(--cs-gold);
+  color: var(--cs-text);
+}
+.rank-2 .board-rank {
+  background: var(--cs-line);
+  color: var(--cs-text);
+}
+.rank-3 .board-rank {
+  background: var(--cs-accent);
+  color: var(--cs-text);
+}
+.board-name {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.board-value {
+  font-weight: 700;
+}
+.board-add {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--cs-brand);
+  background: var(--cs-card);
+  color: var(--cs-brand);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.board-me {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--cs-text);
+  color: var(--cs-bg);
+}
+.board-me span {
+  flex: 1;
+}
+.board-note {
+  display: grid;
+  gap: 10px;
+}
+
+/* ---------- Country picker ---------- */
+.country-page {
+  display: grid;
+  gap: 14px;
+}
+.country-list {
+  display: grid;
+  gap: 6px;
+}
+.country-list button {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+  color: var(--cs-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.country-list button > span:first-child {
+  font-size: 1.375rem;
+}
+.country-list button > span:nth-child(2) {
+  flex: 1;
+}
+.country-list button.is-on {
+  border: 2px solid var(--cs-brand);
+  background: var(--cs-brand-soft);
+  font-weight: 700;
+}
+.country-list button.is-on svg {
+  color: var(--cs-brand);
+}

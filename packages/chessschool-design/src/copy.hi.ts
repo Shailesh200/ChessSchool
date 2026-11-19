@@ -831,6 +831,37 @@ export const hi: Translation = {
     tooShort: "कुछ शब्द लिखें ताकि हम समझ सकें।",
   },
 
+  board: {
+    title: "लीडरबोर्ड",
+    global: "दुनिया",
+    country: "देश",
+    friends: "दोस्त",
+    xp: "इस हफ़्ते XP",
+    rating: "रेटिंग",
+    wins: "बॉट जीत",
+    value: (metric: "xp" | "rating" | "wins", n: number) => (metric === "xp" ? `${n} XP` : metric === "rating" ? String(n) : `${n} को हराया`),
+    you: "आप",
+    friend: "दोस्त",
+    add: (name: string) => `${name} को दोस्त बनाएँ`,
+    added: (name: string) => `${name} अब आपके दोस्त हैं।`,
+    remove: (name: string) => `${name} को दोस्तों से हटाएँ`,
+    unranked: "बोर्ड पर आने के लिए एक रेटेड खेल खेलें।",
+    empty: "अभी यहाँ कोई नहीं है। पहले आप बनिए!",
+    friendsEmpty: "दुनिया वाले बोर्ड पर + बटन से दोस्त जोड़ें।",
+    needsCountry: "इसका बोर्ड देखने के लिए अपना देश चुनें।",
+    pickCountry: "अपना देश चुनें",
+    signIn: "लीडरबोर्ड देखने के लिए साइन इन करें।",
+    open: "लीडरबोर्ड",
+  },
+
+  country: {
+    title: "आपका देश",
+    body: "लीडरबोर्ड पर झंडे के रूप में दिखता है। इसे कभी भी बदल सकते हैं।",
+    search: "खोजें",
+    placeholder: "देश का नाम लिखें",
+    none: "चुना नहीं",
+  },
+
   trophies: {
     title: "ट्रॉफ़ी रूम",
     summary: (earned: number, total: number, certs: number) => `${total} में से ${earned} मिले · ${certs} प्रमाणपत्र`,

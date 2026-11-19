@@ -33,7 +33,20 @@ export const profiles = sqliteTable("cs_profiles", {
   sound: integer("sound", { mode: "boolean" }).notNull().default(true),
   avatar: text("avatar"),
   flair: text("flair"),
+  /** ISO 3166-1 alpha-2 code shown as a flag on leaderboards; null until the learner picks one. */
+  country: text("country"),
 });
+
+/** One-way friends ("follows"): `userId` added `friendId`. Friends see each other on the Friends board. */
+export const follows = sqliteTable(
+  "cs_follows",
+  {
+    userId: text("user_id").notNull(),
+    friendId: text("friend_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.friendId] })],
+);
 
 export const classes = sqliteTable("cs_classes", {
   id: text("id").primaryKey(),
@@ -483,6 +496,14 @@ export const BOOTSTRAP_SQL = [
   )`,
   `ALTER TABLE cs_profiles ADD COLUMN avatar TEXT`,
   `ALTER TABLE cs_profiles ADD COLUMN flair TEXT`,
+  `ALTER TABLE cs_profiles ADD COLUMN country TEXT`,
+  `CREATE TABLE IF NOT EXISTS cs_follows (
+    user_id TEXT NOT NULL REFERENCES cs_users(id) ON DELETE CASCADE,
+    friend_id TEXT NOT NULL REFERENCES cs_users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, friend_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_follows_friend ON cs_follows(friend_id)`,
   `CREATE TABLE IF NOT EXISTS cs_classes (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

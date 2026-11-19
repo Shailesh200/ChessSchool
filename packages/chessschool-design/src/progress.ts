@@ -1,4 +1,5 @@
 import { isBoardColors, isThemeId, type Appearance, type BoardColorsId, type ThemeId } from "./tokens";
+import { isCountry } from "./countries";
 import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coaches";
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
@@ -80,7 +81,8 @@ export type PuzzleProgress = {
 /** Newest-first cap so a device cannot store an unbounded seen list. */
 export const DAILY_SEEN_MAX = 365;
 
-export type Profile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; avatar: AvatarId; flair: FlairId | null };
+/** `country`: ISO code shown as a flag on leaderboards (null until picked). */
+export type Profile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; avatar: AvatarId; flair: FlairId | null; country?: string | null };
 
 export type Prefs = {
   appearance: Appearance;
@@ -290,7 +292,7 @@ export function createInitialState(guestId: string): LocalState {
 
 function cleanProfile(base: Profile, raw: Partial<Profile> | undefined): Profile {
   const next = { ...base, ...(raw ?? {}) };
-  return { ...next, avatar: isAvatarId(next.avatar) ? next.avatar : base.avatar, flair: isFlairId(next.flair) ? next.flair : null };
+  return { ...next, avatar: isAvatarId(next.avatar) ? next.avatar : base.avatar, flair: isFlairId(next.flair) ? next.flair : null, country: isCountry(next.country) ? next.country : null };
 }
 
 /** Accepts anything read from storage and returns a valid state (never throws). */
