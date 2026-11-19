@@ -91,7 +91,7 @@ describe("rating peaks and badges", () => {
     const r = applyResult(emptyRatings(), botWin("rex", 1200).result);
     expect(r.best).toBe(r.player.rating);
     expect(r.bestWin).toBe(1200);
-    expect(r.upset).toBe(400);
+    expect(r.upset).toBe(800);
     expect(earnedBadges(createInitialState("g").progress, r)).toEqual(expect.arrayContaining(["bestWin", "highWin"]));
     expect(earnedBadges(createInitialState("g").progress)).not.toContain("bestWin");
   });

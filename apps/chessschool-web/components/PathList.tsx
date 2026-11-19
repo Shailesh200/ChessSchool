@@ -37,7 +37,6 @@ export function PathList({ progress }: { progress: Progress }) {
   return (
     <div className="focus">
       <div className="focus-head">
-        <p className="focus-meta">{copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}</p>
         {f.currentUnit ? <span className="focus-chip">{copy.today.focus.active(f.currentUnit.title)}</span> : null}
       </div>
       <CourseMap course={course} progress={progress} onGate={showGuestGate} />

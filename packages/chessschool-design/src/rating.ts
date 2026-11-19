@@ -12,7 +12,8 @@ export type Glicko = { rating: number; rd: number; vol: number };
  */
 export type Ratings = { player: Glicko & { games: number }; bots: Record<string, number>; best?: number; bestWin?: number; upset?: number };
 
-export const emptyRatings = (): Ratings => ({ player: { rating: 800, rd: 350, vol: 0.06, games: 0 }, bots: {} });
+/** A new player starts where chess.com starts someone new to chess (400), with a wide (provisional) RD. */
+export const emptyRatings = (): Ratings => ({ player: { rating: 400, rd: 350, vol: 0.06, games: 0 }, bots: {} });
 
 const SCALE = 173.7178;
 const TAU = 0.5;
@@ -76,24 +77,27 @@ export function nudgeBot(current: number, target: number, score: number): number
   return Math.round(Math.max(Math.max(100, target - ADAPT_RANGE), Math.min(target + ADAPT_RANGE, next)));
 }
 
-/** The bot's current (adapted) rating for this learner. */
-export const botRatingOf = (r: Ratings, bot: string, target: number) => r.bots[bot] ?? target;
+/** The bot's current (adapted) rating for this learner, kept within range of its rating (bots got stronger in 0.7). */
+export const botRatingOf = (r: Ratings, bot: string, target: number) => Math.max(target - ADAPT_RANGE, Math.min(target + ADAPT_RANGE, r.bots[bot] ?? target));
 
 export type RatedResult = { kind: "bot"; bot: string; target: number; score: 0 | 0.5 | 1 } | { kind: "puzzle"; puzzleRating: number; solved: boolean };
 
 const BOT_RD = 50;
-const PUZZLE_RD = 80;
 
-/** One bot game or puzzle: updates the learner's rating and, for a bot, that bot's strength. */
+/**
+ * One bot game: updates the learner's playing rating and that bot's strength. As on chess.com, only games
+ * move the playing rating; a puzzle result (still sent by older apps) leaves it as it is.
+ */
 export function applyResult(r: Ratings, e: RatedResult): Ratings {
-  const opp = e.kind === "bot" ? { rating: botRatingOf(r, e.bot, e.target), rd: BOT_RD, score: e.score } : { rating: e.puzzleRating, rd: PUZZLE_RD, score: e.solved ? 1 : 0 };
+  if (e.kind === "puzzle") return r;
+  const opp = { rating: botRatingOf(r, e.bot, e.target), rd: BOT_RD, score: e.score };
   const next = glicko2(r.player, [opp]);
   const player = { rating: Math.round(Math.max(100, Math.min(3000, next.rating))), rd: Math.round(Math.max(30, Math.min(350, next.rd)) * 10) / 10, vol: Math.min(0.2, next.vol), games: r.player.games + 1 };
-  const won = e.kind === "bot" && e.score === 1;
+  const won = e.score === 1;
   const gap = Math.round(opp.rating - r.player.rating);
   return {
     player,
-    bots: e.kind === "bot" ? { ...r.bots, [e.bot]: nudgeBot(opp.rating, e.target, e.score) } : r.bots,
+    bots: { ...r.bots, [e.bot]: nudgeBot(opp.rating, e.target, e.score) },
     best: Math.max(r.best ?? r.player.rating, player.rating),
     ...(won || r.bestWin !== undefined ? { bestWin: Math.max(r.bestWin ?? 0, won ? Math.round(opp.rating) : 0) } : {}),
     ...(won && gap > 0 ? { upset: Math.max(r.upset ?? 0, gap) } : r.upset !== undefined ? { upset: r.upset } : {}),

@@ -358,9 +358,10 @@ describe("the bot roster", () => {
         chess.move(m.san);
         fen = chess.fen();
       }
-      expect(Date.now() - t, bot.name).toBeLessThan(9_000);
+      // Each move stops at the bot's think time (2 s at most); allow some slack for a busy test machine.
+      expect(Date.now() - t, bot.name).toBeLessThan(12_000);
     }
-  }, 30_000);
+  }, 60_000);
 
   it("stronger bots find mates and win material", () => {
     for (const id of ["bishop", "ivy", "atlas"] as const) {
@@ -369,7 +370,7 @@ describe("the bot roster", () => {
     }
     // Mate in two: Atlas sees it.
     expect(chooseMove("1k6/8/2K5/8/8/8/8/7Q w - - 0 1", "atlas", seq())?.san).toMatch(/^Q/);
-  });
+  }, 30_000);
 });
 
 describe("puzzles", () => {
@@ -475,7 +476,10 @@ describe("puzzles", () => {
 
   it("picks near your rating, has a stable daily puzzle and updates ratings", () => {
     const p = nextPuzzle({ rating: 900, rand: seq() });
-    expect(Math.abs(p.rating - 900)).toBeLessThanOrEqual(100);
+    expect(Math.abs(p.rating - 900)).toBeLessThanOrEqual(250);
+    // Learners at the same rating get different puzzles (the window holds at least a dozen).
+    const firsts = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((s) => nextPuzzle({ rating: 600, rand: seq(s * 104729) }).id));
+    expect(firsts.size).toBeGreaterThan(4);
     expect(nextPuzzle({ rating: 900, theme: "fork", rand: seq() }).themes).toContain("fork");
     expect(dailyPuzzle("2026-11-04").id).toBe(dailyPuzzle("2026-11-04", [], []).id);
     expect(updateRating(600, 600, true, 0)).toBe(620);

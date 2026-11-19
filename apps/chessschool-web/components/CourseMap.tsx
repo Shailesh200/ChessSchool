@@ -59,7 +59,7 @@ export function CourseMap({ course, progress, onGate }: { course: Course; progre
                 <span className={`cmap-label ${x >= 50 ? "left" : "right"} ${s.state}`} aria-hidden>
                   {s.state === "current" ? <span className="focus-kicker">{copy.today.focus.current}</span> : null}
                   <strong>{short(s.unit.title)}</strong>
-                  <span>{s.state === "current" && s.lesson ? s.lesson.title : `${s.done}/${s.total}`}</span>
+                  <span>{s.state === "current" && s.lesson ? s.lesson.title : stateText(s)}</span>
                 </span>
               </li>
             );

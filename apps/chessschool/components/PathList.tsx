@@ -55,9 +55,6 @@ export function PathList({
           <T role="label" style={{ color: c.brandText }}>{`${Math.round(share * 100)}%`}</T>
         </View>
         <ProgressBar value={share} label={copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)} />
-        <T role="small" color="textMuted">
-          {copy.today.focus.progress(f.unitsDone.length, f.unitCount, f.doneCount)}
-        </T>
       </View>
       <CourseMap
         course={course}

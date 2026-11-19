@@ -58,7 +58,7 @@ export type PuzzleProgress = {
   rating: number;
   attempts: number;
   solved: number;
-  /** Most recent puzzle ids, newest first (so the same one isn't served twice). */
+  /** Most recent puzzle ids, newest first (so the same one isn't served again soon; PUZZLE_RECENT kept). */
   recent: string[];
   sprintBest: number;
   /**
@@ -241,6 +241,9 @@ export const emptyProgress = (): Progress => ({
   bots: {},
   placed: [],
 });
+
+/** Puzzles remembered as recently seen (about a quarter of the full pack). */
+export const PUZZLE_RECENT = 150;
 
 export const REMINDER_HOURS = [8, 12, 18, 20] as const;
 
@@ -773,7 +776,7 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
         rating: Math.round(Math.max(100, Math.min(3000, p.newRating))),
         attempts: pz.attempts + 1,
         solved: pz.solved + (p.solved ? 1 : 0),
-        recent: [p.id, ...pz.recent.filter((id) => id !== p.id)].slice(0, 50),
+        recent: [p.id, ...pz.recent.filter((id) => id !== p.id)].slice(0, PUZZLE_RECENT),
         daily,
       },
     },
@@ -1146,7 +1149,7 @@ function sanitizePuzzles(raw: unknown): PuzzleProgress {
     rating: typeof p.rating === "number" && Number.isFinite(p.rating) ? Math.max(100, Math.min(3000, Math.round(p.rating))) : base.rating,
     attempts,
     solved: Math.min(attempts, n(p.solved, 1_000_000)),
-    recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && SEEN_ID.test(id)).slice(0, 50) : [],
+    recent: Array.isArray(p.recent) ? p.recent.filter((id) => typeof id === "string" && SEEN_ID.test(id)).slice(0, PUZZLE_RECENT) : [],
     sprintBest: n(p.sprintBest, 500),
     daily: {
       lastDay: day(p.daily?.lastDay),

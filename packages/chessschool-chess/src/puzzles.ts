@@ -79,17 +79,20 @@ export function allPuzzles(): Puzzle[] {
 export const puzzleById = (id: string) => allPuzzles().find((p) => p.id === id) ?? null;
 export const themeCount = (theme: PuzzleThemeId) => allPuzzles().filter((p) => p.themes.includes(theme)).length;
 
-/** A puzzle near `rating` (optionally of one theme), avoiding recently seen ids. */
+/** How many unseen puzzles to pick among before settling, so learners at the same rating see different ones. */
+const MIN_CHOICES = 12;
+
+/** A random puzzle near `rating` (optionally of one theme), avoiding recently seen ids; the window widens until there is variety. */
 export function nextPuzzle(opts: { rating: number; theme?: PuzzleThemeId | null; exclude?: Iterable<string>; rand?: () => number }): Puzzle {
   const rand = opts.rand ?? Math.random;
   const skip = new Set(opts.exclude ?? []);
   const pool = allPuzzles().filter((p) => (!opts.theme || p.themes.includes(opts.theme)) && !skip.has(p.id));
   const list = pool.length ? pool : allPuzzles();
-  for (const width of [100, 200, 400, 2000]) {
+  for (const width of [150, 250, 400, 2000]) {
     const near = list.filter((p) => Math.abs(p.rating - opts.rating) <= width);
-    if (near.length) return near[Math.floor(rand() * near.length)];
+    if (near.length >= MIN_CHOICES || (width === 2000 && near.length)) return near[Math.floor(rand() * near.length)];
   }
-  return list[0];
+  return list[Math.floor(rand() * list.length)];
 }
 
 /**

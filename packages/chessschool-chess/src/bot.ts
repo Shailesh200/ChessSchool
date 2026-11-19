@@ -22,12 +22,12 @@ export type BotInfo = {
 };
 
 export const BOTS: readonly BotInfo[] = [
-  { id: "pip", name: "Pip", level: 1, blurb: "Just learned the moves. Loves shiny captures.", strength: "First games", rating: 400, takebacks: true },
-  { id: "cody", name: "Chaukor", level: 2, blurb: "Plays gently and makes friendly mistakes.", strength: "Beginner", rating: 700, takebacks: true },
-  { id: "rooky", name: "Rooky", level: 3, blurb: "Never leaves a piece hanging if it can help it.", strength: "Improving", rating: 1000, takebacks: true },
-  { id: "bishop", name: "Professor Bishop", level: 4, blurb: "Thinks two moves ahead and loves tricky diagonals.", strength: "Club beginner", rating: 1250, takebacks: false },
-  { id: "ivy", name: "Queen Ivy", level: 5, blurb: "Sharp tactics. Punishes loose pieces.", strength: "Club player", rating: 1500, takebacks: false },
-  { id: "atlas", name: "King Atlas", level: 6, blurb: "Chaukor's toughest friend. Calculates deeply.", strength: "Strong club", rating: 1800, takebacks: false },
+  { id: "pip", name: "Pip", level: 1, blurb: "Loves shiny captures, but rarely leaves a piece hanging.", strength: "Improving", rating: 1000, takebacks: true },
+  { id: "cody", name: "Chaukor", level: 2, blurb: "Friendly, but thinks two moves ahead.", strength: "Club beginner", rating: 1250, takebacks: true },
+  { id: "rooky", name: "Rooky", level: 3, blurb: "Sharp tactics. Punishes loose pieces.", strength: "Club player", rating: 1500, takebacks: true },
+  { id: "bishop", name: "Professor Bishop", level: 4, blurb: "Calculates deeply and loves tricky diagonals.", strength: "Strong club", rating: 1800, takebacks: false },
+  { id: "ivy", name: "Queen Ivy", level: 5, blurb: "Tournament-strong. Very few mistakes.", strength: "Expert", rating: 2050, takebacks: false },
+  { id: "atlas", name: "King Atlas", level: 6, blurb: "Chaukor's toughest friend. Plays like a master.", strength: "Master", rating: 2300, takebacks: false },
 ];
 export const BOT_LEVELS: readonly BotId[] = BOTS.map((b) => b.id);
 export const botInfo = (id: BotId) => BOTS.find((b) => b.id === id)!;
@@ -37,12 +37,21 @@ export const toBotId = (v: unknown): BotId => (isBotId(v) ? v : v === "steady" ?
 
 /** Search settings per bot; Ivy and Atlas think longer (up to ~2 s) so their low-loss moves are really good. */
 const ENGINE: Record<BotId, { depth: number; quiescence: number; timeMs: number }> = {
-  pip: { depth: 2, quiescence: 3, timeMs: 250 },
-  cody: { depth: 2, quiescence: 3, timeMs: 350 },
-  rooky: { depth: 3, quiescence: 4, timeMs: 500 },
-  bishop: { depth: 3, quiescence: 4, timeMs: 700 },
-  ivy: { depth: 4, quiescence: 5, timeMs: 1500 },
-  atlas: { depth: 5, quiescence: 6, timeMs: 2000 },
+  pip: { depth: 3, quiescence: 4, timeMs: 500 },
+  cody: { depth: 3, quiescence: 4, timeMs: 700 },
+  rooky: { depth: 4, quiescence: 5, timeMs: 1200 },
+  bishop: { depth: 5, quiescence: 6, timeMs: 1500 },
+  ivy: { depth: 5, quiescence: 7, timeMs: 1800 },
+  atlas: { depth: 6, quiescence: 8, timeMs: 2000 },
+};
+
+/**
+ * Lesson games ask for "gentle" or "steady": they keep the easy strengths the Gym bots had before 0.7
+ * (when the Gym bots each moved up two levels), so a child's first in-lesson games stay friendly.
+ */
+const LESSON: Record<LegacyLevel, { like: BotId; rating: number; engine: { depth: number; quiescence: number; timeMs: number } }> = {
+  gentle: { like: "cody", rating: 700, engine: { depth: 2, quiescence: 3, timeMs: 350 } },
+  steady: { like: "rooky", rating: 1000, engine: { depth: 3, quiescence: 4, timeMs: 500 } },
 };
 
 const centre = (sq: string) => 6 - (Math.abs(3.5 - (sq.charCodeAt(0) - 97)) + Math.abs(3.5 - (Number(sq[1]) - 1)));
@@ -109,16 +118,17 @@ export function chooseMove(fen: string, bot: BotId | LegacyLevel, rand: () => nu
  * chooses among these in its own style, so it still plays at its rating.
  */
 export function botOptions(fen: string, bot: BotId | LegacyLevel, rand: () => number = Math.random, rating?: number, n = 4): Move[] {
-  const id = toBotId(bot);
+  const lesson = bot === "gentle" || bot === "steady" ? LESSON[bot] : null;
+  const id = lesson?.like ?? toBotId(bot);
   const moves = load(fen).moves({ verbose: true });
   if (moves.length <= 1) return moves;
-  const r = modelRating(rating ?? botInfo(id).rating);
+  const r = modelRating(rating ?? lesson?.rating ?? botInfo(id).rating);
   // Below the data's floor (400), mix in moves a brand-new player might make.
   if (r < 400 && rand() < Math.min(0.9, (400 - r) / 700)) {
     const captures = moves.filter((m) => m.captured);
     return [captures.length && rand() < 0.4 ? captures[Math.floor(rand() * captures.length)] : moves[Math.floor(rand() * moves.length)]];
   }
-  const ranked = rankMoves(fen, ENGINE[id]);
+  const ranked = rankMoves(fen, lesson?.engine ?? ENGINE[id]);
   const tactical = moves.some((m) => m.captured || /[+#]$/.test(m.san));
   const phase = phaseOf(fen.split(" ")[0], plyOf(fen));
   const target = sampleLoss(r, phase, tactical, rand);

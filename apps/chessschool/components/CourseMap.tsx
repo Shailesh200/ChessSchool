@@ -84,7 +84,7 @@ export function CourseMap({ course, progress, onOpen }: { course: Course; progre
                       {short(s.unit.title)}
                     </T>
                     <T role="small" color="textMuted" numberOfLines={1} style={{ textAlign: left ? "right" : "left" }}>
-                      {s.state === "current" && lesson ? lesson.title : `${s.done}/${s.total}`}
+                      {s.state === "current" && lesson ? lesson.title : stateText(s)}
                     </T>
                   </View>
                 </View>

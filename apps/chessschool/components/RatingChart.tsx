@@ -1,7 +1,7 @@
 import { copy, nextRatingMilestone, ratingChart, type RatingPoint } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import Svg, { Circle, Line, Path, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
@@ -9,6 +9,8 @@ import { Card, T } from "./ui";
 
 const W = 320;
 const H = 140;
+/** Room on the left for the rating labels, so the line never runs over them. */
+const GUTTER = 38;
 /** The screen reader hears the latest results as rows; the picture itself is hidden from it. */
 const ROWS = 10;
 
@@ -34,7 +36,7 @@ export function RatingChart() {
 
   const rating = state.ratings.player.rating;
   const best = state.ratings.best ?? rating;
-  const chart = points?.length ? ratingChart(points, W, H, 12) : null;
+  const chart = points?.length ? ratingChart(points, W - GUTTER, H, 12) : null;
   return (
     <Card style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
@@ -48,15 +50,17 @@ export function RatingChart() {
           <View accessible accessibilityRole="image" accessibilityLabel={copy.ratingChart.label(points[0].rating, points[points.length - 1].rating, points.length)}>
             <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
               {chart.lines.map((l) => (
-                <Line key={l.value} x1={0} x2={W} y1={l.y} y2={l.y} stroke={c.line} strokeWidth={1} strokeDasharray="4 4" />
+                <Line key={l.value} x1={GUTTER} x2={W} y1={l.y} y2={l.y} stroke={c.line} strokeWidth={1} strokeDasharray="4 4" />
               ))}
               {chart.lines.map((l) => (
-                <SvgText key={`t${l.value}`} x={2} y={l.y - 3} fontSize={10} fill={c.textMuted}>
+                <SvgText key={`t${l.value}`} x={GUTTER - 6} y={l.y + 3} fontSize={10} fill={c.textMuted} textAnchor="end">
                   {l.value}
                 </SvgText>
               ))}
-              <Path d={chart.path} stroke={c.brand} strokeWidth={3} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-              <Circle cx={chart.dots[chart.dots.length - 1].x} cy={chart.dots[chart.dots.length - 1].y} r={5} fill={c.brand} />
+              <G x={GUTTER}>
+                <Path d={chart.path} stroke={c.brand} strokeWidth={3} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+                <Circle cx={chart.dots[chart.dots.length - 1].x} cy={chart.dots[chart.dots.length - 1].y} r={5} fill={c.brand} />
+              </G>
             </Svg>
           </View>
           {/* The same numbers as a table for screen readers (latest results). */}

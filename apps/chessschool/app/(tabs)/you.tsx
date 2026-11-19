@@ -1,7 +1,8 @@
 import { BADGES, FLAIRS, cleanName, copy, dayKey, earnedBadges, errorMessage, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Share, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { shareLink } from "@/lib/share";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
 import { InviteCard, ShareCardButton } from "@/components/Growth";
@@ -44,7 +45,7 @@ export default function You() {
     cue("tap");
     try {
       const { url, unit } = await api.certificateLink(unitId);
-      await Share.share({ message: `${copy.certificate.share(unit)}\n${url}`, url });
+      await shareLink(copy.certificate.share(unit), url);
     } catch (err) {
       toast((err as { status?: number }).status === 403 ? copy.certificate.notFinished : errorMessage(err));
     }

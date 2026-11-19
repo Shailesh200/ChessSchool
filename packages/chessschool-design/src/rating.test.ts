@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADAPT_TARGET, adoptRatings, applyResult, emptyRatings, glicko2, nudgeBot, queueRating, ratingSent, sanitizeRatings } from "./rating";
+import { ADAPT_TARGET, adoptRatings, applyResult, botRatingOf, emptyRatings, glicko2, nudgeBot, queueRating, ratingSent, sanitizeRatings } from "./rating";
 
 describe("Glicko-2", () => {
   it("matches Glickman's worked example", () => {
@@ -13,18 +13,23 @@ describe("Glicko-2", () => {
     expect(next.vol).toBeCloseTo(0.05999, 4);
   });
 
-  it("a bot win raises the learner and the bot; a puzzle miss lowers the learner only", () => {
+  it("a bot win raises the learner and the bot; puzzles never move the playing rating (as on chess.com)", () => {
+    expect(emptyRatings().player.rating).toBe(400);
     const won = applyResult(emptyRatings(), { kind: "bot", bot: "cody", target: 700, score: 1 });
-    expect(won.player.rating).toBeGreaterThan(800);
+    expect(won.player.rating).toBeGreaterThan(400);
     expect(won.player.games).toBe(1);
     expect(won.bots.cody).toBeGreaterThan(700);
-    const missed = applyResult(won, { kind: "puzzle", puzzleRating: 600, solved: false });
-    expect(missed.player.rating).toBeLessThan(won.player.rating);
-    expect(missed.bots).toEqual(won.bots);
+    expect(applyResult(won, { kind: "puzzle", puzzleRating: 600, solved: false })).toBe(won);
+    expect(applyResult(won, { kind: "puzzle", puzzleRating: 2000, solved: true })).toBe(won);
   });
 });
 
 describe("adaptive bots", () => {
+  it("an adapted strength saved before the bots got stronger is pulled into range", () => {
+    expect(botRatingOf({ ...emptyRatings(), bots: { pip: 400 } }, "pip", 1000)).toBe(700);
+    expect(botRatingOf(emptyRatings(), "pip", 1000)).toBe(1000);
+  });
+
   it("nudges up after a win, down after a loss, within range", () => {
     expect(nudgeBot(700, 700, 1)).toBeGreaterThan(700);
     expect(nudgeBot(700, 700, 0)).toBeLessThan(700);

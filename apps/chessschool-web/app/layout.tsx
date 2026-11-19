@@ -14,7 +14,8 @@ const atkinson = Atkinson_Hyperlegible({ subsets: ["latin"], weight: ["400", "70
 const baloo = Baloo_2({ subsets: ["devanagari", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-baloo", display: "swap", preload: false });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3100"),
+  // Link previews need an absolute, public image URL; the live site has no NEXT_PUBLIC_APP_URL set.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://www.chess-school.in"),
   title: { default: copy.brand, template: `%s · ${copy.brand}` },
   description: copy.tagline,
   applicationName: copy.brand,

@@ -89,8 +89,9 @@ describe("bots that err like people", () => {
 
   it("every bot has a target rating, spaced from Pip to King Atlas", () => {
     const ratings = BOTS.map((b) => b.rating);
-    expect(ratings[0]).toBe(400);
-    expect(ratings.at(-1)).toBe(1800);
+    // 0.7: every Gym bot moved up two levels (the 1-star bot plays like the old 3-star one).
+    expect(ratings[0]).toBe(1000);
+    expect(ratings.at(-1)).toBe(2300);
     expect([...ratings].sort((a, b) => a - b)).toEqual(ratings);
   });
 

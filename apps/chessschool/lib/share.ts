@@ -1,6 +1,6 @@
 import { copy, language, type ShareCardData, type ShareCardKind } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Share } from "react-native";
+import { Platform, Share } from "react-native";
 import { api } from "./api";
 
 export const INVITE_KEY = "chessschool.v2.invite";
@@ -14,7 +14,8 @@ export const seat = {
 /** Opens the share sheet with a line of text and a link. True when the learner shared it. */
 export async function shareLink(text: string, url: string): Promise<boolean> {
   try {
-    const r = await Share.share({ message: `${text}\n${url}`, url });
+    // iOS shows `message` and `url` both, so the link would appear twice; Android only reads `message`.
+    const r = await Share.share(Platform.OS === "ios" ? { message: text, url } : { message: `${text}\n${url}` });
     return r.action !== Share.dismissedAction;
   } catch {
     return false;

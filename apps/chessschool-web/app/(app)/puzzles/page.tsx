@@ -1,6 +1,6 @@
 "use client";
 
-import { allPuzzles, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
+import { PUZZLE_THEMES } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import Link from "next/link";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
@@ -19,7 +19,7 @@ export default function PuzzlesPage() {
   return (
     <div className="page">
       <TopBar title={copy.puzzles.title} large back={false} />
-      <p className="page-lead">{`${copy.puzzles.body} ${copy.puzzles.themeCount(allPuzzles().length)}`}</p>
+      <p className="page-lead">{copy.puzzles.body}</p>
 
       <div className="puzzle-hub">
         <Card className="gym-hero">
@@ -70,7 +70,6 @@ export default function PuzzlesPage() {
               <Link href={`/puzzles/solve?theme=${t.id}`} className="mode-tile">
                 <span className="mode-name">{t.name}</span>
                 <span className="mode-body">{t.blurb}</span>
-                <span className="mode-body">{copy.puzzles.themeCount(themeCount(t.id))}</span>
               </Link>
             </li>
           ))}

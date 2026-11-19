@@ -8,6 +8,8 @@ import { Card } from "./ui";
 
 const W = 320;
 const H = 140;
+/** Room on the left for the rating labels, so the line never runs over them. */
+const GUTTER = 38;
 
 /** Profile: the playing rating after each counted result, from the server's history. */
 export function RatingChart() {
@@ -30,7 +32,7 @@ export function RatingChart() {
 
   const rating = state.ratings.player.rating;
   const best = state.ratings.best ?? rating;
-  const chart = points?.length ? ratingChart(points, W, H, 12) : null;
+  const chart = points?.length ? ratingChart(points, W - GUTTER, H, 12) : null;
   return (
     <Card className="rating-chart" aria-labelledby="rating-chart-title">
       <div className="rating-chart-head">
@@ -44,14 +46,16 @@ export function RatingChart() {
           <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={copy.ratingChart.label(points[0].rating, points[points.length - 1].rating, points.length)} data-points={points.length}>
             {chart.lines.map((l) => (
               <g key={l.value}>
-                <line x1={0} x2={W} y1={l.y} y2={l.y} className="rating-chart-grid" />
-                <text x={2} y={l.y - 3} className="rating-chart-tick">
+                <line x1={GUTTER} x2={W} y1={l.y} y2={l.y} className="rating-chart-grid" />
+                <text x={GUTTER - 6} y={l.y + 3} textAnchor="end" className="rating-chart-tick">
                   {l.value}
                 </text>
               </g>
             ))}
-            <path d={chart.path} className="rating-chart-line" />
-            <circle cx={chart.dots[chart.dots.length - 1].x} cy={chart.dots[chart.dots.length - 1].y} r={5} className="rating-chart-dot" />
+            <g transform={`translate(${GUTTER} 0)`}>
+              <path d={chart.path} className="rating-chart-line" />
+              <circle cx={chart.dots[chart.dots.length - 1].x} cy={chart.dots[chart.dots.length - 1].y} r={5} className="rating-chart-dot" />
+            </g>
           </svg>
           {/* The same numbers for screen readers. */}
           <table className="sr-only">

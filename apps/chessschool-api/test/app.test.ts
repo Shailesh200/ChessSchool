@@ -1321,18 +1321,19 @@ describe("playing rating", () => {
 
   it("rates a bot game once per game id, adapts the bot and checks the input", async () => {
     const { token, user } = (await call("POST", "/v1/auth/register", { name: "Rater", email: "rate@b.co", password: "pawnpawn" })).json as AuthResponse;
-    expect((await call("GET", "/v1/me/rating", undefined, token)).json.ratings.player).toMatchObject({ rating: 800, games: 0 });
+    expect((await call("GET", "/v1/me/rating", undefined, token)).json.ratings.player).toMatchObject({ rating: 400, games: 0 });
     const first = await call("POST", "/v1/me/rating", game("g-1"), token);
     expect(first.status).toBe(200);
     expect(first.json.counted).toBe(true);
-    expect(first.json.ratings.player.rating).toBeGreaterThan(800);
+    expect(first.json.ratings.player.rating).toBeGreaterThan(400);
     expect(first.json.ratings.bots.cody).toBeGreaterThan(700);
     const again = await call("POST", "/v1/me/rating", game("g-1", { result: "loss" }), token);
     expect(again.json).toEqual({ ratings: first.json.ratings, counted: false });
     const lost = await call("POST", "/v1/me/rating", game("g-2", { result: "loss" }), token);
     expect(lost.json.ratings.bots.cody).toBeLessThan(first.json.ratings.bots.cody);
     const puzzle = await call("POST", "/v1/me/rating", { kind: "puzzle", event: "p1-1", puzzle: "p1", puzzleRating: 900, solved: true }, token);
-    expect(puzzle.json.ratings.player.games).toBe(3);
+    // Puzzles are accepted (older apps send them) but never move the playing rating.
+    expect(puzzle.json.ratings).toEqual(lost.json.ratings);
     expect((await call("GET", "/v1/me/rating", undefined, token)).json.ratings).toEqual(puzzle.json.ratings);
 
     for (const bad of [game("g-3", { bot: "magnus" }), game("g-3", { result: "won" }), game("g-3", { moves: 0 }), game("g-3", { moves: 5000 }), game("g-3", { moves: 2.5 }), game("bad id!"), { kind: "puzzle", event: "x", puzzle: "p", puzzleRating: 99999, solved: true }, {}])

@@ -1,4 +1,4 @@
-import { allPuzzles, PUZZLE_THEMES, themeCount } from "@chessschool/chess";
+import { PUZZLE_THEMES } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, View } from "react-native";
@@ -26,7 +26,7 @@ export default function Puzzles() {
   return (
     <Page title={copy.puzzles.title} large>
       <T role="bodyLg" color="textMuted" style={{ marginTop: -8 }}>
-        {`${copy.puzzles.body} ${copy.puzzles.themeCount(allPuzzles().length)}`}
+        {copy.puzzles.body}
       </T>
 
       <Card tone="hero" style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.line }}>
@@ -104,9 +104,6 @@ export default function Puzzles() {
             <T role="label">{t.name}</T>
             <T role="small" color="textMuted">
               {t.blurb}
-            </T>
-            <T role="micro" color="textMuted">
-              {copy.puzzles.themeCount(themeCount(t.id))}
             </T>
           </Pressable>
         ))}
