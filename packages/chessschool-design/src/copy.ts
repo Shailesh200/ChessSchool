@@ -791,6 +791,15 @@ export const copy = {
     tooShort: "Write a few words so we know what you mean.",
   },
 
+  ai: {
+    badge: "AI",
+    coach: "AI coach",
+    hint: "AI coach · hint",
+    onTitle: "AI coach is on.",
+    onBody: "Hints explain why, bots play in their own style, and the coach comments on mistakes.",
+    botLabel: (name: string) => `${name}, plays with AI`,
+  },
+
   board: {
     title: "Leaderboard",
     global: "Global",

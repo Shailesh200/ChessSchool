@@ -5639,9 +5639,6 @@ button.game-row {
   text-align: center;
   margin: 0;
 }
-.coach-line {
-  color: var(--cs-brand-text);
-}
 .start-langs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -6289,4 +6286,76 @@ button.game-row {
 }
 .country-list button.is-on svg {
   color: var(--cs-brand);
+}
+
+/* ---------- AI accents (violet, apart from every theme's brand colour) ---------- */
+.ai-avatar {
+  position: relative;
+  display: inline-flex;
+}
+.ai-badge {
+  display: inline-grid;
+  place-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #6e5bff;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.ai-badge-corner {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  border: 2px solid var(--cs-card);
+}
+.ai-coach {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 2px solid #6e5bff;
+  background: var(--cs-card);
+}
+.ai-coach p {
+  margin: 4px 0 0;
+}
+.ai-coach-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5b4bd6;
+}
+.bot-say {
+  justify-self: start;
+  margin: 4px 0;
+  padding: 6px 10px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--cs-sunken);
+  font-size: 0.875rem;
+}
+.ai-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgb(110 91 255 / 0.14);
+  font-size: 0.875rem;
+}
+.ai-banner > span:first-child {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #6e5bff;
+  color: #fff;
 }

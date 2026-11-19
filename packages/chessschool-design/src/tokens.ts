@@ -185,6 +185,9 @@ export const shadow = {
   edge: 4,
 } as const;
 
+/** The AI's own accent (badges, the coach card's frame): violet, apart from every theme's brand colour; works on light and dark. */
+export const aiTint = { ink: "#6E5BFF", soft: "rgba(110, 91, 255, 0.14)", text: "#5B4BD6" } as const;
+
 export const motion = {
   duration: { tap: 140, base: 240, slow: 420, ceremony: 1100, splash: 1500 },
   easing: {

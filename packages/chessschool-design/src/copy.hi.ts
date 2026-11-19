@@ -831,6 +831,15 @@ export const hi: Translation = {
     tooShort: "कुछ शब्द लिखें ताकि हम समझ सकें।",
   },
 
+  ai: {
+    badge: "AI",
+    coach: "AI कोच",
+    hint: "AI कोच · संकेत",
+    onTitle: "AI कोच चालू है।",
+    onBody: "संकेत कारण बताते हैं, बॉट अपने अंदाज़ में खेलते हैं, और कोच गलतियों पर बात करता है।",
+    botLabel: (name: string) => `${name}, AI से खेलता है`,
+  },
+
   board: {
     title: "लीडरबोर्ड",
     global: "दुनिया",

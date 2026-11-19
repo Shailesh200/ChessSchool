@@ -49,6 +49,7 @@ import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
 import { SpeakMove } from "@/components/SpeakMove";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
+import { AiBadge, AiCoachCard } from "@/components/AiCoach";
 import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -376,12 +377,26 @@ export default function Play() {
     const isBot = !friend && color !== game.setup.you && game.setup.opponent.kind === "bot";
     if (isBot && game.setup.opponent.kind === "bot") {
       return (
-        <CoachCard avatar={<BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} />} title={name} trailing={clock(color)}>
+        <CoachCard
+          avatar={
+            <View>
+              <BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} />
+              {ai.active ? <AiBadge style={{ position: "absolute", right: -6, bottom: -6 }} /> : null}
+            </View>
+          }
+          title={name}
+          trailing={clock(color)}
+        >
           {game.over ? null : (
-            <T role="bodyLg" numberOfLines={2}>
-              {(!game.botThinking && ai.botSay) || statusTitle}
+            <T role="bodyLg" numberOfLines={1}>
+              {statusTitle}
             </T>
           )}
+          {!game.over && !game.botThinking && ai.botSay ? (
+            <View style={{ alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderTopLeftRadius: 4, backgroundColor: c.sunken }}>
+              <T role="small">{ai.botSay}</T>
+            </View>
+          ) : null}
           <CapturedTray startFen={game.setup.startFen} fen={shownFen} color={color} />
         </CoachCard>
       );
@@ -484,6 +499,8 @@ export default function Play() {
             </View>
           </View>
         ) : (
+          <>
+          {ai.line ? <AiCoachCard kind={ai.line.kind} text={ai.line.text} /> : null}
           <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             {friend ? <Cody animation={pose} size={40} /> : null}
             <View style={{ flex: 1 }}>
@@ -492,13 +509,14 @@ export default function Play() {
                   {statusTitle}
                 </T>
               ) : null}
-              <T role={friend ? "small" : "label"} color={!voiceNote && ai.line ? "brandText" : "textMuted"} numberOfLines={voiceNote || ai.line ? 3 : 1}>
-                {voiceNote ?? ai.line ?? statusSub}
+              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={voiceNote ? 2 : 1}>
+                {voiceNote ?? statusSub}
               </T>
             </View>
             <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
             <Button title="" label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} icon="redo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onPress={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))} />
           </View>
+          </>
         )}
         </View>
       </View>

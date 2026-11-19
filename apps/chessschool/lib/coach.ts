@@ -58,16 +58,18 @@ export function usePlayAi(botGame: boolean) {
   const { state } = useApp();
   const coach = state.prefs.coach ?? "meera";
   const on = botGame && Boolean(state.account) && aiExplainOn(state);
-  const [line, setLine] = useState<string | null>(null);
+  const [line, setLine] = useState<{ kind: "hint" | "comment"; text: string } | null>(null);
   const [botSay, setBotSay] = useState<string | null>(null);
   const say = (kind: "hint" | "comment", fen: string, move: string) => {
     if (!on) return;
     api
       .coachLine({ kind, fen, move, coach })
-      .then((r) => r.text && setLine(r.text))
+      .then((r) => r.text && setLine({ kind, text: r.text }))
       .catch(() => {});
   };
   return {
+    /** AI is on for this game (signed in, allowed for the account, Settings switch on). */
+    active: on,
     line,
     botSay,
     clearLine: () => setLine(null),

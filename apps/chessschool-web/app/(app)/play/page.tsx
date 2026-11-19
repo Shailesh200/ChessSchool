@@ -40,6 +40,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "@/components/Board";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { BoardStage } from "@/components/BoardStage";
+import { AiBadge, AiCoachCard } from "@/components/AiCoach";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
@@ -376,7 +377,10 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
     return (
       <div className="player">
         {isBot && game.setup.opponent.kind === "bot" ? (
-          <BotAvatar bot={game.setup.opponent.bot} />
+          <span className="ai-avatar">
+            <BotAvatar bot={game.setup.opponent.bot} />
+            {ai.active ? <AiBadge className="ai-badge-corner" /> : null}
+          </span>
         ) : (
           <span className="player-avatar" aria-hidden>
             {friend ? copy.play.sides[color][0] : <Icon name="profile" size={22} />}
@@ -387,6 +391,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             {isBot ? name : friend ? copy.play.sides[color] : "You"}
             {live && turn === color && !game.over ? <i className="turn-pip" aria-label={copy.gym.yourTurn(copy.play.sides[color])} /> : null}
           </div>
+          {isBot && !game.over && !game.botThinking && ai.botSay ? <p className="bot-say">{ai.botSay}</p> : null}
           <CapturedTray startFen={game.setup.startFen} fen={game.fen} color={color} />
         </div>
         {game.clock ? (
@@ -475,11 +480,12 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             </div>
           ) : (
             <>
+              {ai.line ? <AiCoachCard kind={ai.line.kind} text={ai.line.text} /> : null}
               <div className="play-status" role="status" aria-live="polite">
                 <Cody animation={pose} size={48} />
                 <div className="play-status-text">
                   <strong>{statusTitle}</strong>
-                  <span className={!voiceNote && ai.line ? "coach-line" : "muted"}>{voiceNote ?? ai.line ?? (!game.botThinking && ai.botSay ? `${name}: ${ai.botSay}` : (statusSub ?? "\u00a0"))}</span>
+                  <span className="muted">{voiceNote ?? statusSub ?? "\u00a0"}</span>
                 </div>
               </div>
               <div className="play-steps">
