@@ -1,0 +1,112 @@
+name: Database backup
+
+# Daily encrypted backup of the production database to R2, kept for 30 days.
+#
+# 1. Copies every table through the READ-ONLY token (the same copy the weekly restore drill makes and checks,
+#    apps/chessschool-api/src/restore-check.ts), so a backup that does not read back in full fails here.
+# 2. Compresses the sqlite file and encrypts it with AES-256 (openssl, PBKDF2) using BACKUP_PASSPHRASE.
+#    Nothing unencrypted leaves the runner, and the plain copy is deleted with it (this repo is public).
+# 3. Uploads it to R2 under backups/db/ and deletes backups older than 30 days.
+# On failure it opens (or comments on) a GitHub issue labelled "ops-alert".
+#
+# Repo secrets: PROD_DB_URL, PROD_DB_READ_TOKEN (already used by the restore drill), BACKUP_PASSPHRASE
+# (a long random string; keep a copy outside GitHub, a backup cannot be opened without it), and R2_ACCOUNT_ID,
+# R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET (the API's R2 settings). R2_BACKUP_BUCKET, if set, is used
+# instead of R2_BUCKET: a private bucket is better, since the API's bucket serves public files.
+#
+# Restore: aws s3 cp s3://<bucket>/backups/db/<file> . --endpoint-url https://<account>.r2.cloudflarestorage.com
+#          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in <file> -pass env:BACKUP_PASSPHRASE | gunzip > restore.db
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 02:30 India time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_DB_URL: ${{ secrets.PROD_DB_URL }}
+      SOURCE_DB_TOKEN: ${{ secrets.PROD_DB_READ_TOKEN }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      BUCKET: ${{ secrets.R2_BACKUP_BUCKET || secrets.R2_BUCKET }}
+    steps:
+      - name: Check the secrets are set
+        id: secrets
+        run: |
+          missing=""
+          for v in SOURCE_DB_URL SOURCE_DB_TOKEN BACKUP_PASSPHRASE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID BUCKET; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -z "$missing" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "::warning::Backup skipped, secrets not set:$missing"; fi
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v4.2.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter chessschool-api...
+        if: steps.secrets.outputs.ready == 'true'
+      - name: Copy every table (read-only) and check the copy
+        if: steps.secrets.outputs.ready == 'true'
+        run: RESTORE_FILE="$RUNNER_TEMP/backup.db" KEEP_RESTORE=1 ROWS_ONLY=1 pnpm --filter chessschool-api run db:restore-check
+      - name: Compress, encrypt and upload
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          name="chessschool-$(date -u +%Y-%m-%dT%H%M%SZ).db.gz.enc"
+          gzip -9 -c "$RUNNER_TEMP/backup.db" | openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -out "$RUNNER_TEMP/$name"
+          rm -f "$RUNNER_TEMP/backup.db"
+          # Prove the file opens before trusting it.
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -in "$RUNNER_TEMP/$name" | gunzip | head -c 16 | grep -q "SQLite format 3"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$RUNNER_TEMP/$name" "s3://$BUCKET/backups/db/$name" --endpoint-url "$endpoint" --only-show-errors
+          echo "Uploaded backups/db/$name ($(stat -c %s "$RUNNER_TEMP/$name") bytes)"
+          rm -f "$RUNNER_TEMP/$name"
+      - name: Delete backups older than 30 days
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          cutoff=$(date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%S)
+          aws s3api list-objects-v2 --bucket "$BUCKET" --prefix backups/db/ --endpoint-url "$endpoint" \
+            --query "Contents[?LastModified<'$cutoff'].Key" --output text | tr '\t' '\n' | grep -v '^None$' | grep . | while read -r key; do
+            aws s3 rm "s3://$BUCKET/$key" --endpoint-url "$endpoint" --only-show-errors && echo "deleted $key"
+          done || true
+
+  alert:
+    needs: backup
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the ops alert issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Database backup failed"
+          gh label create ops-alert --color B60205 --description "Automated ops alert" 2>/dev/null || true
+          num=$(gh issue list --label ops-alert --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$num" ]; then gh issue comment "$num" --body "Failed again: $RUN_URL"; else gh issue create --title "$title" --label ops-alert --body "The daily backup failed: $RUN_URL"; fi
