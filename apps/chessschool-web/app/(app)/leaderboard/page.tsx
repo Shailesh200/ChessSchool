@@ -1,6 +1,7 @@
 "use client";
 
 import { copy, flagOf, type BoardMetric, type BoardResponse, type BoardRow, type BoardScope } from "@chessschool/design";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { MemberFace } from "@/components/ClassPlay";
 import { Icon } from "@/components/Icon";
@@ -94,14 +95,14 @@ export default function LeaderboardPage() {
               {board.rows.map((r) => (
                 <li key={r.id} className={`${r.me ? "is-me" : ""}${r.rank <= 3 ? ` is-top rank-${r.rank}` : ""}`}>
                   <span className="board-rank">{r.rank}</span>
-                  <MemberFace id={r.avatar} size={40} />
-                  <span className="board-name">
+                  <MemberFace id={r.avatar} photo={r.photo} size={40} />
+                  <Link className="board-name" href={`/player?id=${encodeURIComponent(r.id)}`} aria-label={copy.social.viewProfile(r.me ? t.you : r.name)}>
                     <strong>
                       {r.me ? t.you : r.name}
                       {r.country ? <span aria-label={r.country}> {flagOf(r.country)}</span> : null}
                     </strong>
                     {r.friend ? <span className="muted small">{t.friend}</span> : null}
-                  </span>
+                  </Link>
                   <span className="board-value">{t.value(metric, r.value)}</span>
                   {!r.me && !r.friend ? (
                     <button type="button" className="board-add" aria-label={t.add(r.name)} onClick={() => addFriend(r)}>

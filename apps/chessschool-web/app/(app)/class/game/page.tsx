@@ -107,7 +107,7 @@ function ClassGamePlay() {
     const p = color === "w" ? game.white : game.black;
     return (
       <div className="player">
-        <MemberFace id={p.avatar} size={40} />
+        <MemberFace id={p.avatar} photo={p.photo} size={40} />
         <div className="player-text">
           <div className="player-name">
             {p.id === state.account?.id ? `${p.name} (${copy.classroom.you})` : p.name}
