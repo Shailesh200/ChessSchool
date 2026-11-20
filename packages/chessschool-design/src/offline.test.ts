@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RateInput } from "./api";
 import { ApiError } from "./api";
-import { drainQueues, isOfflineError, lessonsForDays, queueVisionScore, sanitizeWriteQueue, writeSent } from "./offline";
+import { drainQueues, isOfflineError, lessonsForDays, queueDailySolve, queueGameSave, queueVisionScore, sanitizeWriteQueue, writeSent } from "./offline";
 import { completeNode, createInitialState, dayKey, hydrateState, mergeProgress, PATH, type LocalState, type Progress } from "./progress";
 import { emptyRatings, queueRating, ratedPuzzle } from "./rating";
 
@@ -30,7 +30,7 @@ describe("write queue", () => {
     s = queueVisionScore(s, "name-square", 5, "2026-11-03");
     s = queueVisionScore(s, "name-square", 9, "2026-11-03");
     s = queueVisionScore(s, "name-square", 4, "2026-11-04");
-    expect(s.writeQueue.map((w) => [w.day, w.score])).toEqual([["2026-11-03", 9], ["2026-11-04", 4]]);
+    expect(s.writeQueue.map((w) => (w.kind === "vision" ? [w.day, w.score] : null))).toEqual([["2026-11-03", 9], ["2026-11-04", 4]]);
     expect(hydrateState(JSON.parse(JSON.stringify(s)), () => "x").writeQueue).toEqual(s.writeQueue);
     expect(sanitizeWriteQueue([{ id: 1 }, null, "x", s.writeQueue[0]])).toEqual([s.writeQueue[0]]);
   });
@@ -146,5 +146,49 @@ describe("three days offline", () => {
     expect(await drainQueues(() => state, apply, flaky)).toBe(false);
     expect(server.rated.map((r) => (r as { puzzle: string }).puzzle)).toEqual(["b"]);
     expect(state.ratingQueue.map((q) => (q as { puzzle: string }).puzzle)).toEqual(["c"]);
+  });
+});
+
+describe("games and daily solves made offline", () => {
+  const game = { id: "g1", endedAt: Date.UTC(2026, 10, 4), setup: { opponent: { kind: "bot" as const, bot: "pip" }, you: "w" as const, time: "none", startFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", takebacks: true, askPromotion: true }, history: ["e4", "e5"], winner: "w" as const, reason: "resigned" };
+
+  it("queues each game and day once, survives storage, and sends them when back online", async () => {
+    let state = queueGameSave(queueGameSave(signedIn(), game), game);
+    state = queueDailySolve(queueDailySolve(state, "2026-11-04", "p001"), "2026-11-04", "p001");
+    expect(state.writeQueue.map((w) => w.kind)).toEqual(["game", "daily"]);
+    expect(hydrateState(JSON.parse(JSON.stringify(state)), () => "x").writeQueue).toEqual(state.writeQueue);
+
+    const saved: string[] = [];
+    const solved: string[] = [];
+    let online = false;
+    const api = {
+      rate: async () => ({ ratings: emptyRatings() }),
+      sendVisionScore: async () => {},
+      saveGame: async (g: { id: string }) => {
+        if (!online) throw new ApiError(0, "offline");
+        saved.push(g.id);
+      },
+      dailySolved: async (day: string, puzzle: string) => {
+        if (!online) throw new ApiError(0, "offline");
+        solved.push(`${day}:${puzzle}`);
+      },
+    };
+    const apply = (fn: (s: LocalState) => LocalState) => void (state = fn(state));
+    expect(await drainQueues(() => state, apply, api)).toBe(false);
+    expect(state.writeQueue).toHaveLength(2);
+    online = true;
+    expect(await drainQueues(() => state, apply, api)).toBe(true);
+    expect(saved).toEqual(["g1"]);
+    expect(solved).toEqual(["2026-11-04:p001"]);
+    expect(state.writeQueue).toEqual([]);
+  });
+
+  it("signed out, sends only the daily solve, as the device's guest id", async () => {
+    let state = queueDailySolve(queueGameSave(createInitialState("guest-9"), game), "2026-11-04", "p001");
+    const who: (string | null)[] = [];
+    const api = { rate: async () => ({ ratings: emptyRatings() }), sendVisionScore: async () => {}, saveGame: async () => {}, dailySolved: async (_d: string, _p: string, solver: string | null) => void who.push(solver) };
+    expect(await drainQueues(() => state, (fn) => void (state = fn(state)), api, { signedIn: false })).toBe(true);
+    expect(who).toEqual(["guest-9"]);
+    expect(state.writeQueue.map((w) => w.kind)).toEqual(["game"]);
   });
 });

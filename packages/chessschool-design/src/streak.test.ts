@@ -1,6 +1,6 @@
 import { dismissCelebration, withCelebrations } from "./celebrate";
 import { afterEach, describe, expect, it } from "vitest";
-import { completeNode, createInitialState, emptyProgress, hydrateState, recordPractice, reminderPlan, repairOffer, sanitizeProgress, streakAfterActivity, usualHour, visibleStreak, type LocalState, type Streak } from "./progress";
+import { completeNode, createInitialState, emptyProgress, hydrateState, mergeProgress, recordPractice, recordPuzzle, reminderPlan, repairOffer, sanitizeProgress, streakAfterActivity, usualHour, visibleDailyStreak, visibleStreak, type LocalState, type Streak } from "./progress";
 
 const run = (days: string[], from: Streak = { count: 0, lastDay: null }) => days.reduce((s, d) => streakAfterActivity(s, d), from);
 const week = Array.from({ length: 7 }, (_, i) => `2026-11-${String(i + 1).padStart(2, "0")}`);
@@ -122,5 +122,32 @@ describe("streaks 2.0", () => {
     expect(usualHour(s)).toBe(8);
     expect(reminderPlan(s, now, 1)[0]?.getHours()).toBe(8);
     expect(Object.keys(hydrateState(JSON.parse(JSON.stringify(s)), () => "x").habit.playHours)).toHaveLength(5);
+  });
+});
+
+describe("daily puzzle streak", () => {
+  const solve = (s: LocalState, day: string, id = `d${day.slice(-2)}x`) => recordPuzzle(s, { id, solved: true, newRating: 600, daily: true }, new Date(`${day}T10:00:00`));
+  it("earns a freeze every 7 days, spends it on a missed day, and survives sync", () => {
+    let s = createInitialState("g");
+    for (let d = 1; d <= 7; d++) s = solve(s, `2026-11-${String(d).padStart(2, "0")}`);
+    expect(s.progress.puzzles.daily).toMatchObject({ count: 7, freezes: 1 });
+    // 8 November missed: still alive on the 9th, the freeze covers it.
+    expect(visibleDailyStreak(s.progress, "2026-11-09")).toBe(7);
+    s = solve(s, "2026-11-09");
+    expect(s.progress.puzzles.daily.count).toBe(8);
+    expect(s.progress.puzzles.daily.freezes).toBeUndefined();
+    expect(sanitizeProgress(s.progress, null).puzzles.daily.count).toBe(8);
+    // Two missed days with no freeze: it starts again.
+    s = solve(s, "2026-11-12");
+    expect(s.progress.puzzles.daily.count).toBe(1);
+  });
+
+  it("keeps the freezes through storage and a merge", () => {
+    let s = createInitialState("g");
+    for (let d = 1; d <= 14; d++) s = solve(s, `2026-11-${String(d).padStart(2, "0")}`);
+    expect(s.progress.puzzles.daily.freezes).toBe(2);
+    expect(sanitizeProgress(s.progress, null).puzzles.daily.freezes).toBe(2);
+    expect(mergeProgress(s.progress, createInitialState("h").progress).puzzles.daily.freezes).toBe(2);
+    expect(sanitizeProgress({ ...s.progress, puzzles: { ...s.progress.puzzles, daily: { ...s.progress.puzzles.daily, freezes: 99 } } }, null).puzzles.daily.freezes).toBe(2);
   });
 });
