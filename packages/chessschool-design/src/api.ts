@@ -9,7 +9,7 @@ export type RatingPoint = { at: number; rating: number };
 
 /** `&lang=` for course words in the app language; nothing for English. */
 const lang = (sep: "?" | "&") => (language() === "en" ? "" : `${sep}lang=${language()}`);
-import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Streak, Who } from "./progress";
+import type { Account, AvatarId, DailyMinutes, FlairId, GameRecord, Prefs, Progress, Streak, Who } from "./progress";
 
 /* ---------- wire types (shared by API, web, native) ---------- */
 
@@ -211,6 +211,8 @@ export type ApiClientOptions = {
 export type LeagueResponse =
   | { status: "guest" | "none" }
   | { status: "joined"; league: { week: string; closesAt: number; tier: import("./leagues").LeagueTier; members: { place: number; name: string; avatar: string | null; xp: number; you: boolean; zone: import("./leagues").Zone }[]; promoted?: import("./leagues").LeagueTier } };
+/** GET /v1/daily/:day: the shared daily puzzle for that local day and how many learners solved it. */
+export type DailyResponse = { day: string; puzzle: { id: string; fen: string; moves: string[]; rating: number; themes: string[] }; solved: number };
 export type MateResponse = { day: string; today: string; puzzle: { id: string; fen: string; moves: string[] }; played: number; solved: number };
 
 export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000 }: ApiClientOptions) {
@@ -354,6 +356,12 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     publishLesson: (lesson: unknown) => request<{ ok: true; version: string }>("POST", "/v1/admin/course/publish", { lesson }),
     courseVersions: () => request<{ versions: AdminCourseVersion[] }>("GET", "/v1/admin/course/versions"),
     rollbackCourse: (id: string) => request<{ ok: true; version: string }>("POST", `/v1/admin/course/versions/${encodeURIComponent(id)}/rollback`),
+    /* ---------- games, daily puzzle (Phase 4) ---------- */
+    games: (child?: string | null) => request<{ games: GameRecord[] }>("GET", `/v1/games${child ? `?child=${encodeURIComponent(child)}` : ""}`),
+    saveGame: (game: GameRecord, child?: string | null) => request<{ ok: true }>("PUT", `/v1/games/${encodeURIComponent(game.id)}`, { game, child: child ?? undefined }),
+    deleteGame: (id: string, child?: string | null) => request<{ ok: true }>("DELETE", `/v1/games/${encodeURIComponent(id)}${child ? `?child=${encodeURIComponent(child)}` : ""}`),
+    daily: (day: string) => request<DailyResponse>("GET", `/v1/daily/${day}`, undefined, 6_000),
+    dailySolved: (day: string, puzzle: string, solver?: string | null) => request<{ solved: number }>("POST", `/v1/daily/${day}`, { puzzle, solver: solver ?? undefined }),
   };
 }
 export type ApiClient = ReturnType<typeof createApiClient>;

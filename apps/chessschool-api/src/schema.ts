@@ -476,6 +476,32 @@ export const mateDays = sqliteTable("cs_mate_days", {
   solved: integer("solved").notNull().default(0),
 });
 
+/** "My games": each learner's finished games (the account's own, or a child's under `learner_id`), as the app's GameRecord JSON. */
+export const savedGames = sqliteTable(
+  "cs_saved_games",
+  {
+    learnerId: text("learner_id").notNull(),
+    id: text("id").notNull(),
+    userId: text("user_id").notNull(),
+    endedAt: integer("ended_at").notNull(),
+    data: text("data").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.learnerId, t.id] })],
+);
+
+/** One row per learner (or device, for guests) that solved the shared daily puzzle on a day. Counted, never listed. */
+export const dailySolves = sqliteTable(
+  "cs_daily_solves",
+  {
+    day: text("day").notNull(),
+    solver: text("solver").notNull(),
+    puzzleId: text("puzzle_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.solver] })],
+);
+
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
     id TEXT PRIMARY KEY,
@@ -824,5 +850,23 @@ export const BOOTSTRAP_SQL = [
     day TEXT PRIMARY KEY,
     played INTEGER NOT NULL DEFAULT 0,
     solved INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_saved_games (
+    learner_id TEXT NOT NULL,
+    id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    ended_at INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (learner_id, id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_saved_games_learner ON cs_saved_games (learner_id, ended_at)`,
+  `CREATE INDEX IF NOT EXISTS cs_saved_games_user ON cs_saved_games (user_id)`,
+  `CREATE TABLE IF NOT EXISTS cs_daily_solves (
+    day TEXT NOT NULL,
+    solver TEXT NOT NULL,
+    puzzle_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (day, solver)
   )`,
 ];
