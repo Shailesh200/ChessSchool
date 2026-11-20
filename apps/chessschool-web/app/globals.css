@@ -6488,3 +6488,205 @@ button.game-row {
   font-size: 0.8125rem;
   color: var(--cs-text-muted);
 }
+
+/* ---------- Phase 4: profiles, friend codes, safety ---------- */
+.board-name {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 10px;
+}
+.board-name:hover strong {
+  text-decoration: underline;
+}
+.board-name:focus-visible {
+  outline: 3px solid var(--cs-brand);
+  outline-offset: 2px;
+}
+.player-page {
+  display: grid;
+  gap: 16px;
+}
+.player-card {
+  padding: 0;
+  overflow: hidden;
+}
+.player-banner {
+  height: 76px;
+}
+.player-head {
+  display: grid;
+  gap: 6px;
+  padding: 0 20px 20px;
+  margin-top: -44px;
+}
+.player-face {
+  justify-self: start;
+  border-radius: 50%;
+  border: 4px solid var(--cs-card);
+  display: inline-flex;
+}
+.player-name {
+  margin: 0;
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.player-bio {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.player-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.player-stats li {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.player-stats li + li {
+  border-left: 1px solid var(--cs-line);
+}
+.player-stats strong {
+  font-size: 1.375rem;
+}
+.player-stats span {
+  color: var(--cs-text-muted);
+  font-size: 0.8125rem;
+}
+.player-facts {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.player-facts dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.player-actions,
+.profile-edit {
+  display: grid;
+  gap: 12px;
+}
+.profile-photo {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.profile-photo-actions,
+.friend-code-actions,
+.safety-actions,
+.admin-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.avatar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.avatar-pick {
+  border: 3px solid transparent;
+  border-radius: 50%;
+  padding: 2px;
+  background: none;
+  cursor: pointer;
+}
+.avatar-pick.is-on,
+.avatar-pick[aria-checked="true"] {
+  border-color: var(--cs-brand);
+}
+.profile-fields {
+  display: grid;
+  gap: 16px;
+}
+.banner-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.banner-pick {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  color: var(--cs-on-brand);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.banner-pick.is-on {
+  border-color: var(--cs-text);
+}
+.banner-pick:focus-visible,
+.avatar-pick:focus-visible {
+  outline: 3px solid var(--cs-focus);
+  outline-offset: 2px;
+}
+.friend-code {
+  display: grid;
+  gap: 10px;
+}
+.friend-code-value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.friend-code-actions {
+  justify-content: flex-start;
+}
+.friend-code-form {
+  display: grid;
+  gap: 10px;
+}
+.blocked-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.blocked-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.blocked-list strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.challenge-report {
+  color: var(--cs-text-muted);
+  font-size: 0.875rem;
+}
+.safety-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.safety-who p {
+  margin: 0;
+}
+.safety-photo {
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.safety-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.safety-actions {
+  justify-content: flex-start;
+}
