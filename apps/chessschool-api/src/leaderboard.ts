@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { Context, Hono } from "hono";
 import type { Db } from "./db";
 import { follows, leaderboardHidden, leagueMembers, profiles, ratings, users } from "./schema";
+import { blockedWith, isBlockedBetween, isSuspended, photosFor, suspendedIds } from "./social";
 
 type UserRow = typeof users.$inferSelect;
 type Guard = (c: Context<{ Variables: { user: UserRow } }>, next: () => Promise<void>) => Promise<unknown>;
@@ -54,6 +55,8 @@ export function mountLeaderboard(app: Hono<{ Variables: { user: UserRow } }>, { 
     const myCountry = isCountry(myProfile?.country) ? myProfile.country : null;
     const friendIds = new Set((await db.select({ id: follows.friendId }).from(follows).where(eq(follows.userId, me.id))).map((r) => r.id));
     const hidden = new Set((await db.select().from(leaderboardHidden)).map((h) => h.userId));
+    // Blocked either way and suspended accounts leave the viewer's boards too.
+    for (const id of [...(await blockedWith(db, me.id)), ...(await suspendedIds(db))]) if (id !== me.id) hidden.add(id);
     if (scope === "country" && !myCountry) return c.json({ scope, metric, rows: [], me: { rank: null, value: values.get(me.id) ?? 0 }, needsCountry: true } satisfies BoardResponse);
 
     let ids = [...values.keys()].filter((id) => id === me.id || !hidden.has(id));
@@ -61,11 +64,13 @@ export function mountLeaderboard(app: Hono<{ Variables: { user: UserRow } }>, { 
     const people = ids.length ? await db.select({ id: users.id, name: users.name, kind: users.kind, avatar: profiles.avatar, country: profiles.country }).from(users).leftJoin(profiles, eq(profiles.userId, users.id)).where(inArray(users.id, ids)) : [];
     const pool = people.filter((p) => p.kind === "member" || p.id === me.id).filter((p) => scope !== "country" || p.country === myCountry);
     const ranked = rankRows(pool.map((p) => ({ ...p, value: values.get(p.id) ?? 0 })));
+    const photos = await photosFor(db, ranked.slice(0, BOARD_SIZE).map((p) => p.id));
     const toRow = (p: (typeof ranked)[number]): BoardRow => ({
       id: p.id,
       rank: p.rank,
       name: firstName(p.name) || "Player",
       avatar: isAvatarId(p.avatar) ? p.avatar : "cody",
+      photo: photos.get(p.id) ?? null,
       country: isCountry(p.country) ? p.country : null,
       value: p.value,
       friend: friendIds.has(p.id),
@@ -82,7 +87,7 @@ export function mountLeaderboard(app: Hono<{ Variables: { user: UserRow } }>, { 
     if (!limiter(`friend:${me.id}`)) return fail(c, "rate_limited");
     if (!id || id === me.id) return fail(c, "invalid_input");
     const other = await db.query.users.findFirst({ where: eq(users.id, id) });
-    if (!other || other.kind !== "member") return fail(c, "not_found");
+    if (!other || other.kind !== "member" || (await isBlockedBetween(db, me.id, id)) || (await isSuspended(db, id))) return fail(c, "not_found");
     await db.insert(follows).values({ userId: me.id, friendId: id, createdAt: now().getTime() }).onConflictDoNothing();
     return c.json({ ok: true });
   });

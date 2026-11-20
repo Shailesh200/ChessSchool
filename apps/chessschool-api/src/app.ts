@@ -10,6 +10,10 @@ import {
   isCountry,
   isFlairId,
   isProgress,
+  hasContact,
+  isRude,
+  nameProblem,
+  providerName,
   mergeProgress,
   sanitizeProgress,
   validEmail,
@@ -34,6 +38,7 @@ import {
 } from "@chessschool/design";
 import { answerLine, parseLineInput } from "./coach-line";
 import { mountLeaderboard } from "./leaderboard";
+import { isSuspended, mountSocial, photosFor, type PhotoStore } from "./social";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { isVisionGame, isVisionScore, VISION_GAMES } from "@chessschool/chess";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -119,6 +124,8 @@ export type AppDeps = {
   certSecret?: string;
   /** "Draft with AI" in the lesson editor (the language model in production; tests pass a fake). Off when null. */
   lessonWriter?: LessonWriter | null;
+  /** Uploaded profile photos (R2 in production; tests pass an in-memory store). Without one, uploads answer 503. */
+  photoStore?: PhotoStore | null;
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
@@ -151,7 +158,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota, cardStore = null, crashFree }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota, cardStore = null, crashFree, photoStore = null }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -331,6 +338,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const email = String(b.email ?? "").trim().toLowerCase();
     const password = String(b.password ?? "");
     if (!name || !validEmail(email) || !validPassword(password)) return fail(c, 400, "invalid_input");
+    const problem = nameProblem(String(b.name), { staff: admins.has(email) });
+    if (problem) return fail(c, 400, "name_not_allowed", problem);
     const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
     if (existing) return fail(c, 409, "email_taken");
     const guest = guestOf(b);
@@ -348,6 +357,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const user = await db.query.users.findFirst({ where: eq(users.email, email) });
     if (user && !user.passwordHash) return fail(c, 401, "google_only");
     if (!user || !(await checkPassword(password, user.passwordHash!))) return fail(c, 401, "invalid_credentials");
+    if (await isSuspended(db, user.id)) return fail(c, 403, "suspended");
     await applyGuestProfile(user.id, guestOf(b), false);
     return c.json(await authResponse(c, user, guestOf(b)));
   });
@@ -362,11 +372,13 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!user) {
       const byEmail = await db.query.users.findFirst({ where: eq(users.email, identity.email) });
       if (byEmail) return c.json({ error: "email_in_use" }, 409);
-      const guestName = cleanName(String(guest?.profile?.name ?? ""));
-      user = { id: newId(), email: identity.email, name: guestName || cleanName(identity.name) || "", passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+      const staff = { staff: admins.has(identity.email.toLowerCase()) };
+      const guestName = providerName(String(guest?.profile?.name ?? ""), staff);
+      user = { id: newId(), email: identity.email, name: guestName || providerName(identity.name ?? "", staff), passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
       await db.insert(users).values(user);
       await applyGuestProfile(user.id, guest, true);
     }
+    if (await isSuspended(db, user.id)) return fail(c, 403, "suspended");
     return c.json(await authResponse(c, user, guest));
   });
 
@@ -375,7 +387,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const name = fullName as { givenName?: unknown; familyName?: unknown };
     const given = typeof name.givenName === "string" ? name.givenName : "";
     const family = typeof name.familyName === "string" ? name.familyName : "";
-    return cleanName(`${given} ${family}`);
+    return providerName(`${given} ${family}`);
   };
 
   app.post("/v1/auth/apple", limitAuth, async (c) => {
@@ -391,7 +403,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       const byEmail = await db.query.users.findFirst({ where: eq(users.email, identity.email) });
       if (byEmail) return c.json({ error: "email_in_use" }, 409);
       {
-        const guestName = cleanName(String(guest?.profile?.name ?? ""));
+        const guestName = providerName(String(guest?.profile?.name ?? ""), { staff: admins.has(identity.email.toLowerCase()) });
         user = {
           id: newId(),
           email: identity.email,
@@ -407,6 +419,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
         await applyGuestProfile(user.id, guest, true);
       }
     }
+    if (await isSuspended(db, user.id)) return fail(c, 403, "suspended");
     return c.json(await authResponse(c, user, guest));
   });
 
@@ -457,6 +470,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (b.name !== undefined) {
       const name = cleanName(String(b.name));
       if (!name) return fail(c, 400, "invalid_input");
+      const problem = nameProblem(String(b.name), { staff: admins.has(user.email.toLowerCase()) });
+      if (problem) return fail(c, 400, "name_not_allowed", problem);
       await db.update(users).set({ name }).where(eq(users.id, user.id));
       user.name = name;
     }
@@ -491,6 +506,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const me = members.find((m) => m.id === viewerId);
     if (!me) return null;
     const hidden = new Set((await db.select({ id: blocks.blockedId }).from(blocks).where(eq(blocks.blockerId, viewerId))).map((b) => b.id));
+    const photos = await photosFor(db, members.map((m) => m.id));
     return {
       id: row.id,
       name: row.name,
@@ -506,6 +522,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
             name: m.name || "Friend",
             role: m.role === "monitor" ? "monitor" : "student",
             avatar: isAvatarId(m.avatar) ? m.avatar : "cody",
+            photo: photos.get(m.id) ?? null,
             joinedAt: m.joinedAt,
             lessons: Object.keys(p.completed).filter((id) => !placed.has(id)).length,
             xp: p.xp,
@@ -553,6 +570,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const b = await body<{ name?: string; origin?: string }>(c);
     const name = cleanName(String(b.name ?? ""));
     if (!name) return fail(c, 400, "invalid_input");
+    if (isRude(name) || hasContact(name)) return fail(c, 400, "name_not_allowed", isRude(name) ? "rude" : "link");
     const origin = b.origin === "web" ? "web" : "app";
     let code = classCode();
     for (let i = 0; i < 4; i++) {
@@ -733,7 +751,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       .from(users)
       .leftJoin(profiles, eq(profiles.userId, users.id))
       .where(inArray(users.id, [...new Set(ids)]));
-    return new Map(rows.map((r) => [r.id, { id: r.id, name: r.name || "Friend", avatar: isAvatarId(r.avatar) ? r.avatar : "cody" }]));
+    const photos = await photosFor(db, ids);
+    return new Map(rows.map((r) => [r.id, { id: r.id, name: r.name || "Friend", avatar: isAvatarId(r.avatar) ? r.avatar : "cody", photo: photos.get(r.id) ?? null }]));
   }
 
   type GameRow = typeof classGames.$inferSelect;
@@ -1007,6 +1026,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     await db.update(reports).set({ status: b.status }).where(eq(reports.id, c.req.param("id") ?? ""));
     return c.json({ ok: true });
   });
+
+  mountSocial(app, { db, now, requireUser, requireAdmin, userFromRequest, photoStore, sender: weekly, adminEmails: [...admins] });
 
   /* ---------- lesson editor (/admin/lessons) ---------- */
 
@@ -1521,6 +1542,8 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const b = await body<{ name?: unknown; avatar?: unknown }>(c);
     const name = cleanName(String(b.name ?? ""));
     if (!name) return fail(c, 400, "invalid_input");
+    const childProblem = nameProblem(String(b.name));
+    if (childProblem) return fail(c, 400, "name_not_allowed", childProblem);
     const count = (await db.select({ id: children.id }).from(children).where(eq(children.userId, user.id))).length;
     if (count >= MAX_CHILDREN) return fail(c, 409, "invalid_input", "profile limit");
     const child = { id: newId(), userId: user.id, name, avatar: isAvatarId(b.avatar) ? b.avatar : "cody", createdAt: now().getTime() };
