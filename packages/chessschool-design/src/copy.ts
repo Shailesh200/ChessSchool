@@ -1536,6 +1536,70 @@ export const copy = {
     doneBody: "You're signed out. The account is gone from our servers.",
     home: "Back to Learn",
   },
+  /** Phase 4 platform: lifecycle emails, their settings and unsubscribe page, board highlight shapes. */
+  platform: {
+    email: {
+      welcomeSubject: "Welcome to ChessSchool",
+      welcomeHeading: (name: string) => (name ? `Welcome, ${name}!` : "Welcome to ChessSchool!"),
+      welcomeLines: [
+        "Chaukor will guide you one short lesson at a time.",
+        "Ten calm minutes a day is plenty. Your streak starts with your first lesson.",
+        "Puzzles and friendly bots are waiting whenever you want more.",
+      ],
+      welcomeCta: "Start a lesson",
+      winbackSubject: "Chaukor saved your place",
+      winbackHeading: "Your next lesson is waiting",
+      winbackLines: (next: string | null, streak: number) => [
+        next ? `Next up: ${next}.` : "A short puzzle is a nice way back in.",
+        streak > 1 ? `Your last streak was ${streak} days. One lesson starts a new one.` : "One short lesson starts a new streak.",
+        "Five minutes is enough to pick it up again.",
+      ],
+      winbackCta: "Pick up where you left off",
+      weeklyCta: "Open ChessSchool",
+      why: {
+        welcome: "You get this because you made a ChessSchool account.",
+        winback: "You get this because come-back reminders are on in ChessSchool Settings. We send at most one a month.",
+        weekly: "You get this because the weekly summary is on in ChessSchool Settings.",
+      },
+      unsubscribe: "Unsubscribe",
+      unsubscribeAll: "Stop all ChessSchool emails",
+    },
+    weekly: {
+      subject: (name: string) => `${name || "Your learner"}'s week on ChessSchool`,
+      lessons: (n: number) => `${n} ${n === 1 ? "lesson" : "lessons"} finished`,
+      puzzles: (n: number) => `${n} ${n === 1 ? "puzzle" : "puzzles"} solved`,
+      streak: (n: number) => `${n}-day streak`,
+      noStreak: "No streak right now. One short lesson starts a new one.",
+      next: (unit: string) => `Next up: ${unit}`,
+      allDone: "Every unit so far is finished. Practice and puzzles keep it fresh.",
+      push: (lessons: number, puzzles: number, streak: number) => `${lessons} lessons, ${puzzles} puzzles this week${streak ? `, ${streak}-day streak` : ""}.`,
+      footer: "You get this because the weekly summary is on in ChessSchool Settings. Turn it off there any time.",
+    },
+    unsubscribe: {
+      title: "Stop these emails?",
+      body: {
+        weekly: "You won't get the weekly summary any more.",
+        winback: "You won't get come-back reminders any more.",
+        all: "You won't get any more emails from ChessSchool, apart from ones you ask for, like a password reset.",
+      },
+      confirm: "Unsubscribe",
+      doneTitle: "You're unsubscribed",
+      doneBody: "You can turn emails back on any time in ChessSchool Settings.",
+      invalid: "This link isn't valid any more. You can change emails in ChessSchool Settings.",
+    },
+    emailSettings: {
+      title: "Emails",
+      winback: "Come-back reminders",
+      winbackHint: "One email after a week away, at most once a month.",
+      error: "Couldn't save. Check your connection and try again.",
+    },
+    marks: {
+      label: "Shapes on highlights",
+      hint: "Adds outlines and stripes to the last move, hints and lesson squares, so they don't depend on colour.",
+      lastMove: "last move",
+      hintSquare: "hint",
+    },
+  },
 } as const;
 
 /** A runner line ("Nice!") in the app language. */

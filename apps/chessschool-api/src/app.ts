@@ -70,6 +70,8 @@ import { parseEvents, recordEvents, usageSummary } from "./usage";
 import { mountGrowth, payInvite } from "./growth";
 import { growthStats } from "./growth-stats";
 import type { CardStore } from "./share-card";
+import { mountLifecycle } from "./lifecycle";
+import { rateLimits, type RateStore } from "./rate-limit";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
@@ -119,6 +121,12 @@ export type AppDeps = {
   certSecret?: string;
   /** "Draft with AI" in the lesson editor (the language model in production; tests pass a fake). Off when null. */
   lessonWriter?: LessonWriter | null;
+  /** Shared request counters for the per-route budgets in rate-limit.ts (the database in production). Off when null. */
+  rateStore?: RateStore | null;
+  /** HMAC key for email unsubscribe links (EMAIL_SECRET). Without it, welcome and come-back emails are off. */
+  emailSecret?: string | null;
+  /** Public origin of this API, for links in emails. */
+  apiOrigin?: string;
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
@@ -151,7 +159,7 @@ const WHO = new Set(["me", "child", "class"]);
 const MINUTES = new Set([5, 10, 15]);
 const APPEARANCE = new Set(["system", "light", "dark"]);
 
-export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota, cardStore = null, crashFree }: AppDeps) {
+export function createApp({ db, google, apple = null, secureCookies, corsOrigins, now = () => new Date(), adminEmails = [], reportError, tablebase = lichessTablebase, weekly, cronSecret, certSecret, lessonWriter = null, boardReader = null, coachAi = [], importFetch = webFetch, ota, cardStore = null, crashFree, rateStore = null, emailSecret = null, apiOrigin = "https://api.chess-school.in" }: AppDeps) {
   const app = new Hono<Vars>();
   const certKey = certSecret || (secureCookies ? null : DEV_CERT_SECRET);
   const authLimiter = createRateLimiter(12, 60_000, () => now().getTime());
@@ -315,6 +323,15 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     };
     await db.insert(profiles).values(values).onConflictDoUpdate({ target: profiles.userId, set: values });
   }
+
+  /* ---------- platform: rate limits and lifecycle email (before every route, so both see them all) ---------- */
+  if (rateStore) app.use("*", rateLimits({ store: rateStore, now: () => now().getTime(), onError: (err) => void reportError?.(err) }));
+  const lifecycle = mountLifecycle(app, { db, now, requireUser, sender: weekly, cronSecret, secret: emailSecret, apiOrigin, nextUp: async (userId, lang) => {
+    const [outline, p, texts] = await Promise.all([loadOutline(db), loadProgress(userId), lang === "hi" ? loadCourseText(db, "hi") : null]);
+    const lesson = outline?.lessons.find((l) => !p.completed[l.id]);
+    const unit = lesson ? outline?.units.find((u) => u.id === lesson.unit) : null;
+    return { next: unit ? texts?.units[unit.id]?.title || unit.title : null, streak: p.streak.count };
+  } });
 
   /* ---------- routes ---------- */
 
@@ -1315,9 +1332,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       const nextLesson = outline?.lessons.find((l) => !p.completed[l.id]);
       const unit = nextLesson ? outline?.units.find((u) => u.id === nextLesson.unit) : null;
       const unitTitle = unit ? (r.lang === "hi" ? texts.hi?.units[unit.id]?.title || unit.title : unit.title) : null;
-      const msg = summaryMessage(summarize(user.name, p, r.lastPuzzles, today, unitTitle), r.lang);
+      const msg = summaryMessage(summarize(user.name, p, r.lastPuzzles, today, unitTitle), r.lang, lifecycle.unsubUrl(user.id, "weekly"));
       let ok = false;
-      if (r.email && (await weekly.email(user.email, msg.subject, msg.html, msg.text).catch(() => false))) {
+      if (r.email && (await lifecycle.takeSlot()) && (await weekly.email(user.email, msg.subject, msg.html, msg.text, msg.headers).catch(() => false))) {
         emails++;
         ok = true;
       }
@@ -1327,7 +1344,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       }
       if (ok) await db.update(weeklySummary).set({ lastSent: today, lastPuzzles: p.puzzles.solved }).where(eq(weeklySummary.userId, r.userId));
     }
-    return c.json({ due: due.length, emails, pushes });
+    // Welcome catch-up and come-back emails ride on this daily cron (no extra cron job needed).
+    const life = await lifecycle.runLifecycle();
+    return c.json({ due: due.length, emails, pushes, ...life });
   });
 
   /**

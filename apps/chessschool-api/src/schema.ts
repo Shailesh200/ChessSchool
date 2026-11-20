@@ -825,4 +825,23 @@ export const BOOTSTRAP_SQL = [
     played INTEGER NOT NULL DEFAULT 0,
     solved INTEGER NOT NULL DEFAULT 0
   )`,
+  // Phase 4 platform: shared request counters (rate-limit.ts) and lifecycle email state (cs_email_prefs, cs_email_days: lifecycle.ts holds their table objects).
+  `CREATE TABLE IF NOT EXISTS cs_rate_limits (
+    key TEXT PRIMARY KEY,
+    count INTEGER NOT NULL,
+    reset_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_rate_limits_reset ON cs_rate_limits (reset_at)`,
+  `CREATE TABLE IF NOT EXISTS cs_email_prefs (
+    user_id TEXT PRIMARY KEY,
+    winback INTEGER NOT NULL DEFAULT 1,
+    all_off INTEGER NOT NULL DEFAULT 0,
+    lang TEXT,
+    welcome_at INTEGER,
+    winback_at INTEGER
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_email_days (
+    day TEXT PRIMARY KEY,
+    sent INTEGER NOT NULL DEFAULT 0
+  )`,
 ];
