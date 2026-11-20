@@ -114,7 +114,19 @@ jobs:
         env:
           EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
           PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
-        run: maestro --device "$UDID" test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" --format junit --output "$RUNNER_TEMP/maestro-ios.xml" apps/chessschool/.maestro
+        # One flow at a time, in config.yaml's order: Maestro's clear-state reinstall sometimes stalls on the
+        # simulator, so each flow gets 10 minutes and one retry instead of hanging the job.
+        run: |
+          set -u
+          for f in 01-open-as-guest 02-first-lesson 03-solve-puzzle 04-bot-move 05-crash-screen; do
+            ok=
+            for try in 1 2; do
+              if perl -e 'alarm shift; exec @ARGV' 600 maestro --device "$UDID" test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" --format junit --output "$RUNNER_TEMP/maestro-ios-$f.xml" "apps/chessschool/.maestro/$f.yaml"; then ok=1; break; fi
+              echo "::warning::$f failed or stalled (try $try)"
+              pkill -f simctl || true
+            done
+            [ -n "$ok" ] || exit 1
+          done
       - name: Print crash reports
         if: failure()
         run: |
@@ -135,7 +147,7 @@ jobs:
           name: maestro-ios
           path: |
             ~/.maestro/tests
-            ${{ runner.temp }}/maestro-ios.xml
+            ${{ runner.temp }}/maestro-ios*.xml
           retention-days: 7
 
   android:
