@@ -109,6 +109,8 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
           echo "UDID=$UDID" >> "$GITHUB_ENV"
       - name: Run the flows
+        # A stuck simulator otherwise eats the whole job; failing here keeps the screenshots for the upload below.
+        timeout-minutes: 35
         env:
           EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
           PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
