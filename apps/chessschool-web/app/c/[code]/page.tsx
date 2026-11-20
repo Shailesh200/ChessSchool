@@ -2,6 +2,7 @@
 
 import { defaultSetup, playReduce, startGame, type PlayAction, type PlayState, type Puzzle } from "@chessschool/chess";
 import { clockSince, copy, formatClock, isLive, type Challenge, type TimeControl } from "@chessschool/design";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Board } from "@/components/Board";
@@ -23,7 +24,7 @@ const POLL_LIVE_MS = 2000;
  */
 export default function ChallengePage() {
   const { code } = useParams<{ code: string }>();
-  const { cue } = useApp();
+  const { cue, state } = useApp();
   const toast = useToast();
   const t = copy.challenge;
   const [ch, setCh] = useState<Challenge | null>(null);
@@ -150,6 +151,11 @@ export default function ChallengePage() {
       <div className="challenge-who">
         <MemberFace id={ch.creator.avatar} size={48} />
         <h1>{creator ? t.yours : ch.kind === "puzzle" ? t.titlePuzzle(name) : t.titleGame(name)}</h1>
+        {!creator && state.account ? (
+          <Link className="challenge-report" href={`/class/report?challenge=${encodeURIComponent(code)}&name=${encodeURIComponent(ch.creator.name ?? copy.you.noName)}`}>
+            {copy.social.report}
+          </Link>
+        ) : null}
       </div>
       {ch.expired ? <p role="alert">{ch.status === "waiting" && creator ? t.joinGone : t.expired}</p> : null}
 

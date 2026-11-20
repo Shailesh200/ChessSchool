@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { CoachPicker } from "@/components/CoachPicker";
 import { Icon } from "@/components/Icon";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
+import { downloadMyData, SupportSheet } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Segmented, Sheet, Switch, TextField, TopBar, useToast, SaveBanner } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -26,7 +27,8 @@ export default function SettingsPage() {
     if (state.account) api.weekly().then((w) => setWeekly(w.email || w.push)).catch(() => {});
   }, [state.account]);
   const course = useCourse();
-  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
+  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach" | "support">(null);
+  const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
 
@@ -173,6 +175,35 @@ export default function SettingsPage() {
                 <span className="row-label">{s.signOut}</span>
               </span>
             </button>
+            <Link className="row" href="/settings/blocked">
+              <Icon name="block" />
+              <span className="row-text">
+                <span className="row-label">{copy.social.blockedTitle}</span>
+                <span className="row-hint">{copy.social.blockedHint}</span>
+              </span>
+              <Icon name="chevron" />
+            </Link>
+            <button
+              className="row"
+              disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await downloadMyData();
+                  toast(copy.dataExport.ready);
+                } catch {
+                  toast(copy.dataExport.failed);
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              <Icon name="doc" />
+              <span className="row-text">
+                <span className="row-label">{exporting ? copy.dataExport.working : copy.dataExport.open}</span>
+                <span className="row-hint">{copy.dataExport.hint}</span>
+              </span>
+            </button>
             <button className="row row-danger" onClick={() => setSheet("delete")}>
               <Icon name="trash" />
               <span className="row-text">
@@ -196,6 +227,13 @@ export default function SettingsPage() {
           <Icon name="chat" />
           <span className="row-text">
             <span className="row-label">{s.feedback}</span>
+          </span>
+          <Icon name="chevron" />
+        </button>
+        <button className="row" onClick={() => setSheet("support")}>
+          <Icon name="mail" />
+          <span className="row-text">
+            <span className="row-label">{copy.support.open}</span>
           </span>
           <Icon name="chevron" />
         </button>
@@ -342,6 +380,7 @@ export default function SettingsPage() {
         </Button>
       </Sheet>
       <FeedbackSheet open={sheet === "feedback"} onClose={() => setSheet(null)} />
+      <SupportSheet open={sheet === "support"} onClose={() => setSheet(null)} />
     </div>
   );
 }
