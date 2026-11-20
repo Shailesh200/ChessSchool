@@ -130,8 +130,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ChessSchool opens the photo you choose to read the chess position in it. The photo is not stored.",
-          "cameraPermission": "ChessSchool uses the camera to take a photo of a chess board so it can read the position."
+          "photosPermission": "ChessSchool opens the photo you choose to read a chess position in it (that photo is not stored), or to use it as your profile picture.",
+          "cameraPermission": "ChessSchool uses the camera to photograph a chess board so it can read the position, or to take your profile picture."
         }
       ],
       "expo-web-browser",

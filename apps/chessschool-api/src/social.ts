@@ -284,6 +284,21 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
     return c.json({ ok: true });
   });
 
+  /** Report (and by default block) whoever sent a challenge link; the link itself never shows their account id. */
+  app.post("/v1/challenges/:code/report", requireUser, async (c) => {
+    const me = c.get("user");
+    if (!reportLimiter(me.id)) return fail(c, 429, "rate_limited");
+    const row = await db.query.challenges.findFirst({ where: eq(challenges.code, (c.req.param("code") ?? "").toLowerCase()) });
+    if (!row) return fail(c, 404, "not_found");
+    const b = await json(c);
+    const reason = PLAYER_REPORT_REASONS.includes(b.reason as PlayerReportReason) ? (b.reason as PlayerReportReason) : null;
+    if (!reason || row.creatorId === me.id) return fail(c, 400, "invalid_input");
+    const at = clock();
+    await db.insert(reports).values({ id: newId(), classId: "", reporterId: me.id, reportedId: row.creatorId, reason, note: `[challenge ${row.code}] ${String(b.note ?? "").trim()}`.slice(0, 500), status: "open", createdAt: at });
+    if (b.block !== false) await block(me.id, row.creatorId, at);
+    return c.json({ ok: true });
+  });
+
   app.post("/v1/players/:id/block", requireUser, async (c) => {
     const me = c.get("user");
     if (!blockLimiter(me.id)) return fail(c, 429, "rate_limited");

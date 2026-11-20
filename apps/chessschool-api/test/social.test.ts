@@ -86,6 +86,9 @@ describe("report and block", () => {
     expect(await boardIds(a.token)).toContain(b.user.id);
     expect((await call("POST", `/v1/challenges/${game.code}/accept`, {}, b.token)).status).toBe(200);
 
+    expect((await call("POST", `/v1/challenges/${game.code}/report`, { reason: "behaviour", block: false }, b.token)).status).toBe(200);
+    expect((await db.select().from(reports)).filter((r) => r.reportedId === a.user.id)).toHaveLength(1);
+    expect((await call("POST", `/v1/challenges/${game.code}/report`, { reason: "behaviour" }, a.token)).status).toBe(400);
     expect((await call("POST", `/v1/players/${b.user.id}/report`, { reason: "spam" }, a.token)).status).toBe(400);
     expect((await call("POST", `/v1/players/${a.user.id}/block`, {}, a.token)).status).toBe(400);
   });

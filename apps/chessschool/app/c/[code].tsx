@@ -38,7 +38,7 @@ function useClocks(ch: Challenge | null, receivedAt: number) {
  */
 export default function ChallengeScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
-  const { cue } = useApp();
+  const { cue, state } = useApp();
   const { c } = useTheme();
   const toast = useToast();
   const t = copy.challenge;
@@ -196,6 +196,9 @@ export default function ChallengeScreen() {
               {ch.expired ? (ch.status === "waiting" && creator ? t.joinGone : t.expired) : ch.kind === "puzzle" ? (creator ? friendLine : t.bodyPuzzle) : gameLine}
             </T>
           </View>
+          {!creator && state.account ? (
+            <Button title={copy.social.report} icon="flag" variant="ghost" block={false} onPress={() => router.push({ pathname: "/report", params: { challenge: code, name: ch.creator.name ?? copy.you.noName } })} />
+          ) : null}
         </View>
         {ch.kind === "game" && ch.status === "waiting" && creator && !ch.expired ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 16 }}>

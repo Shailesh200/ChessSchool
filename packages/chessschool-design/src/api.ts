@@ -367,6 +367,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     /* ---------- Phase 4: social safety, profile and support ---------- */
     player: (id: string) => request<{ player: PlayerProfile }>("GET", `/v1/players/${encodeURIComponent(id)}`),
     reportPlayer: (id: string, r: { reason: PlayerReportReason; note?: string; block: boolean }) => request<{ ok: true }>("POST", `/v1/players/${encodeURIComponent(id)}/report`, r),
+    /** Reports whoever sent a challenge link (their account id is never on the link). */
+    reportChallenge: (code: string, r: { reason: PlayerReportReason; note?: string; block: boolean }) => request<{ ok: true }>("POST", `/v1/challenges/${encodeURIComponent(code)}/report`, r),
     blockPlayer: (id: string) => request<{ ok: true }>("POST", `/v1/players/${encodeURIComponent(id)}/block`, {}),
     unblockPlayer: (id: string) => request<{ ok: true }>("DELETE", `/v1/players/${encodeURIComponent(id)}/block`),
     blocks: () => request<{ blocked: BlockedPlayer[] }>("GET", "/v1/me/blocks"),

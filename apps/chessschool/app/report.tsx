@@ -1,4 +1,4 @@
-import { copy, type ReportReason } from "@chessschool/design";
+import { copy, PLAYER_REPORT_REASONS, type PlayerReportReason } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -8,16 +8,22 @@ import { api, errorMessage } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
 
-const REASONS: ReportReason[] = ["name", "behaviour", "other"];
+const CLASS_REASONS = ["name", "behaviour", "other"] as const;
 
-/** Report a classmate (class screen → member card → Report). */
+/**
+ * Report a classmate (class screen → member card → Report), any player (`playerId`: leaderboard, friends, profiles)
+ * or whoever sent a challenge link (`challenge`: its code).
+ */
 export default function ReportScreen() {
-  const { classId = "", memberId = "", name = "" } = useLocalSearchParams<{ classId?: string; memberId?: string; name?: string }>();
+  const { classId = "", memberId = "", playerId = "", challenge = "", name = "" } = useLocalSearchParams<{ classId?: string; memberId?: string; playerId?: string; challenge?: string; name?: string }>();
+  const social = !memberId;
+  const reasons: readonly PlayerReportReason[] = social ? PLAYER_REPORT_REASONS : CLASS_REASONS;
+  const label = (r: PlayerReportReason) => (social ? copy.social.reasons[r] : copy.classroom.reasons[r as (typeof CLASS_REASONS)[number]]);
   const { cue } = useApp();
   const { c } = useTheme();
   const toast = useToast();
   const t = copy.classroom;
-  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [reason, setReason] = useState<PlayerReportReason | null>(null);
   const [note, setNote] = useState("");
   const [block, setBlock] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -26,9 +32,12 @@ export default function ReportScreen() {
     if (!reason) return;
     setBusy(true);
     try {
-      await api.reportMember(classId, memberId, { reason, note: note.trim(), block });
+      const r = { reason, note: note.trim(), block };
+      if (!social) await api.reportMember(classId, memberId, { ...r, reason: reason as (typeof CLASS_REASONS)[number] });
+      else if (challenge) await api.reportChallenge(challenge, r);
+      else await api.reportPlayer(playerId, r);
       cue("success");
-      toast(t.reported);
+      toast(social ? copy.social.reported : t.reported);
       router.back();
     } catch (err) {
       cue("gentle-no");
@@ -41,18 +50,18 @@ export default function ReportScreen() {
   return (
     <Page title={t.reportTitle(name)} banner={false} footer={<Button title={t.sendReport} disabled={!reason} loading={busy} onPress={() => void send()} />}>
       <T role="body" color="textMuted">
-        {t.reportSub}
+        {social ? copy.social.reportBody : t.reportSub}
       </T>
       <T role="label">{t.reportWhat}</T>
       <View accessibilityRole="radiogroup" accessibilityLabel={t.reportWhat} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {REASONS.map((r) => {
+        {reasons.map((r) => {
           const on = reason === r;
           return (
             <Pressable
               key={r}
               accessibilityRole="radio"
               accessibilityState={{ checked: on }}
-              accessibilityLabel={t.reasons[r]}
+              accessibilityLabel={label(r)}
               onPress={() => setReason(r)}
               style={({ pressed }) => ({
                 minHeight: 44,
@@ -69,14 +78,14 @@ export default function ReportScreen() {
             >
               {on ? <Icon name="check" size={18} color={c.brandText} /> : null}
               <T role="label" style={{ color: on ? c.brandText : c.text }}>
-                {t.reasons[r]}
+                {label(r)}
               </T>
             </Pressable>
           );
         })}
       </View>
       <TextField label={t.reportMore} placeholder={t.reportPlaceholder} value={note} onChangeText={setNote} maxLength={500} multiline style={{ minHeight: 96, textAlignVertical: "top" }} />
-      <SwitchRow icon="block" label={t.alsoBlock(name)} hint={t.alsoBlockHint} value={block} onChange={setBlock} />
+      <SwitchRow icon="block" label={t.alsoBlock(name)} hint={social ? copy.social.alsoBlockHint : t.alsoBlockHint} value={block} onChange={setBlock} />
     </Page>
   );
 }

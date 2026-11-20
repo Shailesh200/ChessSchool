@@ -188,7 +188,7 @@ export function GamesSection({ room, refresh }: { room: ClassRoom; refresh: numb
               onPress={() => router.push({ pathname: "/class-game", params: { classId: room.id, id: g.id } })}
               style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderRadius: 14, opacity: pressed ? 0.7 : 1 })}
             >
-              <AvatarFace id={them.avatar} size={40} />
+              <AvatarFace id={them.avatar} photo={them.photo} size={40} />
               <View style={{ flex: 1 }}>
                 <T role="label" numberOfLines={1}>
                   {t.vs(them.name)}

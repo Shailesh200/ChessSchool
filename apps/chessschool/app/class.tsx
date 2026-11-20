@@ -100,7 +100,7 @@ export default function ClassScreen() {
                   onPress={() => setOpen({ room, member: m })}
                   style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderRadius: 14, opacity: pressed ? 0.7 : 1 })}
                 >
-                  <AvatarFace id={m.avatar} size={40} />
+                  <AvatarFace id={m.avatar} photo={m.photo} size={40} />
                   <View style={{ flex: 1 }}>
                     <T role="label">{m.name || copy.you.noName}</T>
                     <T role="small" color="textMuted">
@@ -230,7 +230,7 @@ function MemberCard({ room, member, confirm, busy, onConfirm, onReport, onBlock,
   ];
   return (
     <View style={{ gap: 16, alignItems: "center" }}>
-      <AvatarFace id={member.avatar} size={84} />
+      <AvatarFace id={member.avatar} photo={member.photo} size={84} />
       <View style={{ alignItems: "center", gap: 2 }}>
         <T role="title">{name}</T>
         <T role="small" color="textMuted">

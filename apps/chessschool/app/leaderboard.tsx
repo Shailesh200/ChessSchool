@@ -105,13 +105,13 @@ export default function Leaderboard() {
       ) : (
         <View accessibilityRole="list" style={{ gap: 8 }}>
           {board.rows.map((r) => (
-            <View key={r.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: r.me ? c.brandSoft : r.rank <= 3 ? c.card : "transparent" }}>
+            <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={copy.social.viewProfile(r.me ? t.you : r.name)} onPress={() => router.push({ pathname: "/player", params: { id: r.id } })} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: r.me ? c.brandSoft : r.rank <= 3 ? c.card : "transparent", opacity: pressed ? 0.75 : 1 })}>
               <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: r.rank <= 3 ? medal[r.rank - 1] : "transparent" }}>
                 <T role="small" style={{ fontFamily: fonts.bold, color: r.rank <= 3 ? c.text : c.textMuted }}>
                   {String(r.rank)}
                 </T>
               </View>
-              <AvatarFace id={r.avatar} size={40} />
+              <AvatarFace id={r.avatar} photo={r.photo} size={40} />
               <View style={{ flex: 1, gap: 2 }}>
                 <T role="label" numberOfLines={1}>
                   {`${r.me ? t.you : r.name}${r.country ? ` ${flagOf(r.country)}` : ""}`}
@@ -130,7 +130,7 @@ export default function Leaderboard() {
                   <Icon name="profile" size={16} color={c.brand} />
                 </Pressable>
               ) : null}
-            </View>
+            </Pressable>
           ))}
         </View>
       )}

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
 import { CoachPicker } from "@/components/CoachPicker";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
+import { shareMyData, SupportSheet } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, TextField, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -16,7 +17,8 @@ import { useApp } from "@/lib/state";
 export default function Settings() {
   const { state, setPrefs, signOut, resetThisDevice, deleteAccount, cue, update } = useApp();
   const toast = useToast();
-  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach">(null);
+  const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach" | "support">(null);
+  const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [weekly, setWeekly] = useState<boolean | null>(null);
@@ -147,6 +149,26 @@ export default function Settings() {
                 router.replace("/today");
               }}
             />
+            <Row icon="block" label={copy.social.blockedTitle} hint={copy.social.blockedHint} chevron onPress={() => router.push("/blocked")} />
+            <Row
+              icon="doc"
+              label={exporting ? copy.dataExport.working : copy.dataExport.open}
+              hint={copy.dataExport.hint}
+              onPress={
+                exporting
+                  ? undefined
+                  : async () => {
+                      setExporting(true);
+                      try {
+                        await shareMyData();
+                      } catch {
+                        toast(copy.dataExport.failed);
+                      } finally {
+                        setExporting(false);
+                      }
+                    }
+              }
+            />
             <Row icon="trash" label={s.deleteAccount} danger chevron onPress={() => setSheet("delete")} />
           </>
         ) : (
@@ -161,6 +183,7 @@ export default function Settings() {
           {s.about}
         </T>
         <Row icon="chat" label={s.feedback} chevron onPress={() => setSheet("feedback")} />
+        <Row icon="mail" label={copy.support.open} chevron onPress={() => setSheet("support")} />
         <Row icon="sparkles" label={s.whatsNew} chevron onPress={() => setSheet("news")} />
         <Row
           icon="wifiOff"
@@ -286,6 +309,7 @@ export default function Settings() {
         <Button title={copy.lesson.next} onPress={() => setSheet(null)} />
       </Sheet>
       <FeedbackSheet visible={sheet === "feedback"} onClose={() => setSheet(null)} />
+      <SupportSheet visible={sheet === "support"} onClose={() => setSheet(null)} />
     </Page>
   );
 }
