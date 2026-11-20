@@ -4,7 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { DailyCard, RecapCard } from "@/components/Daily";
 import { Flashcards } from "@/components/Flashcards";
 import { LeagueCard, MateCard, MonthlyRow, StreakRepairCard } from "@/components/Habit";
 import { Cody, Fx } from "@/components/Lottie";
@@ -24,7 +24,6 @@ export default function Today() {
   const { c } = useTheme();
   const now = new Date();
   const today = dayKey(now);
-  const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle();
   const { progress, profile } = state;
   const name = profile.name.trim() || copy.today.friend;
   const rank = rankFor(progress.xp);
@@ -202,6 +201,7 @@ export default function Today() {
 
       <RankCard xp={progress.xp} streak={streak} rating={state.ratings.player.rating} puzzleRating={progress.puzzles.rating} />
 
+      <RecapCard today={today} />
       <StreakRepairCard today={today} onStart={current && !currentLocked ? () => openLesson(current.id) : null} />
       <QuestsCard state={state} today={today} />
       <MateCard state={state} />
@@ -233,15 +233,7 @@ export default function Today() {
 
       <PathList progress={progress} course={course} onGuestLock={() => setGate(true)} />
 
-      <Card style={{ gap: 8 }}>
-        <T role="heading" header>
-          {copy.puzzles.daily}
-        </T>
-        <T role="body" color="textMuted">
-          {dailyIsDone ? copy.puzzles.dailyDone : dailyPick ? `${copy.puzzles.dailyBody} · ${dailyPick.rating}` : copy.puzzles.dailyBody}
-        </T>
-        {dailyIsDone ? <DailyCountdown /> : <Button title={copy.puzzles.daily} icon="puzzle" variant="secondary" onPress={() => router.push("/puzzle?daily=1")} />}
-      </Card>
+      <DailyCard today={today} />
 
       <Flashcards />
 
