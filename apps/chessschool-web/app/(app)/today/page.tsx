@@ -2,7 +2,7 @@
 
 import { copy, dayKey, focusCourse, greetingFor, isGuestLockedLesson, minutesToday, nextReward, rankFor, streakAtRisk, todayQuests, visibleStreak, type LocalState, type Placement } from "@chessschool/design";
 import { ArrivalCeremony, SavedCeremony } from "@/components/Ceremony";
-import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { DailyCard, RecapCard } from "@/components/Daily";
 import { Flashcards } from "@/components/Flashcards";
 import { LeagueCard, MateCard, MonthlyRow, StreakRepairCard } from "@/components/Habit";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
@@ -23,7 +23,6 @@ const href = (id: string) => (id === "meet" ? "/orientation" : `/lesson/${id}`);
 export default function TodayPage() {
   const { state, ready, place, cue, showGuestGate } = useApp();
   const packReady = usePuzzlePackReady();
-  const { puzzle: dailyPick, done: dailyIsDone } = useDailyPuzzle(ready && packReady);
   const course = useCourse();
   const [showGoal, setShowGoal] = useState(false);
   const now = new Date();
@@ -131,22 +130,13 @@ export default function TodayPage() {
 
         <aside className="today-side">
           <RankCard xp={progress.xp} streak={streak} rating={state.ratings.player.rating} puzzleRating={progress.puzzles.rating} />
+          <RecapCard today={today} />
           <StreakRepairCard today={today} lessonHref={current && !gated ? href(current.id) : null} />
           <QuestsCard state={state} today={today} />
           <MateCard state={state} />
           <LeagueCard state={state} />
 
-          <Card className="daily-mini" aria-labelledby="daily-title">
-            <h2 id="daily-title" className="card-title">
-              <Icon name="puzzle" /> {copy.puzzles.daily}
-            </h2>
-            <p className="muted">{dailyIsDone ? copy.puzzles.dailyDone : dailyPick ? `${copy.puzzles.dailyBody} · ${dailyPick.rating}` : copy.puzzles.dailyBody}</p>
-            {dailyIsDone ? <DailyCountdown /> : (
-              <Button href="/puzzles/solve?daily=1" variant="secondary" icon="puzzle" block>
-                {copy.puzzles.daily}
-              </Button>
-            )}
-          </Card>
+          <DailyCard today={today} enabled={ready && packReady} className="daily-mini" />
 
           <Flashcards />
 

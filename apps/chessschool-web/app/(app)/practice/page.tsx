@@ -32,6 +32,9 @@ export default function PracticePage() {
           ))}
         </Card>
       ) : null}
+      <Button block variant="secondary" icon="bulb" href="/gym/analysis">
+        {copy.analysisBoard.title}
+      </Button>
       <ActionDock>
         {learned ? (
           <Button block href="/practice/session" icon="practice">

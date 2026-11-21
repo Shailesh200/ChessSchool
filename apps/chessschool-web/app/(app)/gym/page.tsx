@@ -117,6 +117,15 @@ export default function GymPage() {
               <span className="mode-body">{copy.vision.tile}</span>
             </Link>
           </li>
+          <li>
+            <Link href="/gym/analysis" className="mode-tile">
+              <span className="mode-icon">
+                <Icon name="bulb" />
+              </span>
+              <span className="mode-name">{copy.analysisBoard.title}</span>
+              <span className="mode-body">{copy.analysisBoard.body}</span>
+            </Link>
+          </li>
         </ul>
       </section>
     </div>

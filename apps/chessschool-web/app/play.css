@@ -142,7 +142,7 @@
   font-size: 0.75rem;
   color: var(--cs-text-muted);
 }
-.daily-card,
+.daily-panel,
 .recap-card {
   display: grid;
   gap: 10px;
