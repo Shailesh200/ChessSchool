@@ -476,6 +476,40 @@ export const mateDays = sqliteTable("cs_mate_days", {
   solved: integer("solved").notNull().default(0),
 });
 
+/* ---------- Phase 4: social safety, profile and support ---------- */
+
+/** Public profile extras (bio, favourite piece, links… as ProfileDetails JSON) and the uploaded photo. */
+export const profileDetails = sqliteTable("cs_profile_details", {
+  userId: text("user_id").primaryKey(),
+  data: text("data").notNull().default("{}"),
+  /** Public URL of the uploaded photo (R2), or null for the preset avatar. */
+  photo: text("photo"),
+  /** Set when reports or an admin hide the photo; everyone else then sees the preset avatar. */
+  photoHidden: integer("photo_hidden", { mode: "boolean" }).notNull().default(false),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+/** Accounts an admin paused after reports: they can't sign in and leave every board. */
+export const suspensions = sqliteTable("cs_suspensions", {
+  userId: text("user_id").primaryKey(),
+  reportId: text("report_id"),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** "Contact us" messages, also emailed to the admins. */
+export const supportMessages = sqliteTable("cs_support", {
+  id: text("id").primaryKey(),
+  userId: text("user_id"),
+  guestId: text("guest_id"),
+  email: text("email"),
+  topic: text("topic").notNull(),
+  message: text("message").notNull(),
+  platform: text("platform").notNull(),
+  version: text("version").notNull(),
+  emailed: integer("emailed", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at").notNull(),
+});
+
 export const BOOTSTRAP_SQL = [
   `CREATE TABLE IF NOT EXISTS cs_users (
     id TEXT PRIMARY KEY,
@@ -825,4 +859,31 @@ export const BOOTSTRAP_SQL = [
     played INTEGER NOT NULL DEFAULT 0,
     solved INTEGER NOT NULL DEFAULT 0
   )`,
+  // Phase 4: social safety, profile and support. Player reports reuse cs_reports with class_id ''.
+  `CREATE TABLE IF NOT EXISTS cs_profile_details (
+    user_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL DEFAULT '{}',
+    photo TEXT,
+    photo_hidden INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_suspensions (
+    user_id TEXT PRIMARY KEY,
+    report_id TEXT,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cs_support (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    guest_id TEXT,
+    email TEXT,
+    topic TEXT NOT NULL,
+    message TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    version TEXT NOT NULL,
+    emailed INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS cs_reports_reported ON cs_reports (reported_id)`,
+  `CREATE INDEX IF NOT EXISTS cs_blocks_blocked ON cs_blocks (blocked_id)`,
 ];

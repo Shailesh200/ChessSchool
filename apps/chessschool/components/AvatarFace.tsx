@@ -1,4 +1,5 @@
 import { AVATARS, copy, type AvatarId } from "@chessschool/design";
+import { useState } from "react";
 import { Image, Pressable, View } from "react-native";
 import { Cody } from "@/components/Lottie";
 import { useTheme } from "@/lib/theme";
@@ -11,11 +12,15 @@ const ART: Record<Exclude<AvatarId, "cody">, number> = {
   rex: require("../assets/coaches/rex.png"),
 };
 
-export function AvatarFace({ id, size = 68 }: { id: AvatarId; size?: number }) {
+/** A learner's face: their uploaded photo when there is one (and it loads), else the preset avatar. */
+export function AvatarFace({ id, size = 68, photo }: { id: AvatarId; size?: number; photo?: string | null }) {
   const { c } = useTheme();
+  const [broken, setBroken] = useState<string | null>(null);
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden", backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
-      {id === "cody" ? <Cody animation="idle" size={size - 6} /> : <Image source={ART[id]} style={{ width: size, height: size }} accessibilityIgnoresInvertColors />}
+      {photo && broken !== photo ? (
+        <Image source={{ uri: photo }} style={{ width: size, height: size }} onError={() => setBroken(photo)} accessibilityIgnoresInvertColors />
+      ) : id === "cody" ? <Cody animation="idle" size={size - 6} /> : <Image source={ART[id]} style={{ width: size, height: size }} accessibilityIgnoresInvertColors />}
     </View>
   );
 }

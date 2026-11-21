@@ -15,10 +15,15 @@ const dueLabel = (due: string) => new Date(`${due}T12:00:00`).toLocaleDateString
 const pointsLabel = (p: number) => (p % 1 ? `${Math.floor(p) || ""}½` : String(p));
 export const gameHref = (classId: string, id: string) => `/class/game?class=${encodeURIComponent(classId)}&id=${encodeURIComponent(id)}`;
 
-export function MemberFace({ id, size }: { id: AvatarId; size: number }) {
+/** A learner's face: their uploaded photo when there is one (and it loads), else the preset avatar. */
+export function MemberFace({ id, size, photo }: { id: AvatarId; size: number; photo?: string | null }) {
+  const [broken, setBroken] = useState<string | null>(null);
   return (
     <span className="member-face" style={{ width: size, height: size }} aria-hidden>
-      {id === "cody" ? <Cody animation="idle" size={size - 6} /> : <img src={`/coaches/${id}.png`} alt="" width={size} height={size} />}
+      {photo && broken !== photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" width={size} height={size} onError={() => setBroken(photo)} />
+      ) : id === "cody" ? <Cody animation="idle" size={size - 6} /> : <img src={`/coaches/${id}.png`} alt="" width={size} height={size} />}
     </span>
   );
 }
@@ -185,7 +190,7 @@ export function GamesSection({ room, refresh }: { room: ClassRoom; refresh: numb
             return (
               <li key={g.id}>
                 <Link href={gameHref(room.id, g.id)} className="member-row">
-                  <MemberFace id={them.avatar} size={40} />
+                  <MemberFace id={them.avatar} photo={them.photo} size={40} />
                   <span className="row-text">
                     <span className="row-label">{t.vs(them.name)}</span>
                     <span className="row-hint">

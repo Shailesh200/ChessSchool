@@ -112,7 +112,7 @@ export default function ClassGameScreen() {
     const p = color === "w" ? game.white : game.black;
     return (
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <AvatarFace id={p.avatar} size={36} />
+        <AvatarFace id={p.avatar} photo={p.photo} size={36} />
         <View style={{ flex: 1, gap: 2 }}>
           <T role="label" numberOfLines={1}>
             {p.id === state.account?.id ? `${p.name} (${copy.classroom.you})` : p.name}

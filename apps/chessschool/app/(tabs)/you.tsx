@@ -1,10 +1,11 @@
-import { BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
+import { BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
 import { InviteCard } from "@/components/Growth";
+import { FriendCodeCard, useMyDetails } from "@/components/Social";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
@@ -27,6 +28,7 @@ export default function You() {
     return () => clearTimeout(t);
   }, [sheet]);
   const { profile, progress, account } = state;
+  const { mine } = useMyDetails();
   const rank = rankFor(progress.xp);
   const earned = earnedBadges(progress, state.ratings);
   const saveLook = (patch: { avatar?: AvatarId; flair?: FlairId | null }) => {
@@ -38,17 +40,32 @@ export default function You() {
   // Certificates come from the server, so only signed-in learners have them.
   const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
 
-  const saveName = () => {
+  const saveName = async () => {
     const clean = cleanName(draft);
     if (!clean) {
       setNameError(copy.auth.errors.nameRequired);
       return cue("gentle-no");
     }
+    // Reserved names are left to the server: staff accounts may use them.
+    const problem = nameProblem(draft);
+    if (problem && problem !== "reserved") {
+      setNameError(copy.social.nameProblems[problem]);
+      return cue("gentle-no");
+    }
+    if (account) {
+      try {
+        await api.updateMe({ name: clean });
+      } catch (err) {
+        if ((err as { code?: string }).code === "name_not_allowed") {
+          setNameError(errorMessage(err));
+          return cue("gentle-no");
+        }
+      }
+    }
     setProfile({ name: clean });
     setSheet(null);
     cue("success");
     toast(copy.you.nameSaved(clean));
-    if (account) api.updateMe({ name: clean }).catch(() => {});
   };
 
   const setGoal = (m: DailyMinutes) => {
@@ -68,10 +85,10 @@ export default function You() {
 
   return (
     <Page title={copy.you.title} large action={<IconButton icon="settings" label={copy.you.settings} onPress={() => router.push("/settings")} />}>
-      <Card tone="hero" style={{ gap: 14, borderWidth: 1, borderColor: c.line }}>
+      <Card tone="hero" style={[{ gap: 14, borderWidth: 1, borderColor: c.line }, mine?.details.banner ? { borderTopWidth: 6, borderTopColor: c[mine.details.banner] } : null]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <Pressable accessibilityRole="button" accessibilityLabel={copy.you.avatar} onPress={() => setSheet("picture")}>
-            <AvatarFace id={profile.avatar} size={72} />
+            <AvatarFace id={profile.avatar} photo={mine?.photo} size={72} />
           </Pressable>
           <View style={{ flex: 1, gap: 2 }}>
             <Pressable
@@ -141,6 +158,8 @@ export default function You() {
 
       <InviteCard />
 
+      <FriendCodeCard />
+
       <Pressable accessibilityRole="button" accessibilityLabel={copy.trophies.open} onPress={() => router.push("/trophies")}>
         <Card style={{ gap: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -173,6 +192,7 @@ export default function You() {
           {copy.you.prefs}
         </T>
         <Card style={{ padding: 6 }}>
+          {account ? <Row icon="edit" label={copy.profileEdit.open} hint={copy.profileEdit.openHint} chevron onPress={() => router.push("/profile-edit")} /> : null}
           <Row icon="profile" label={copy.you.name} hint={profile.name.trim() || copy.you.noName} chevron onPress={() => (setDraft(profile.name), setNameError(null), setSheet("name"))} />
           <Row icon="clock" label={copy.you.goal} hint={copy.you.goalOption(profile.dailyMinutes)} chevron onPress={() => setSheet("goal")} />
           <Row icon="profile" label={copy.you.avatar} hint={copy.you.avatarHint} chevron onPress={() => setSheet("picture")} />

@@ -88,7 +88,7 @@ export default function ClassPage() {
                   {room.members.map((m) => (
                     <li key={m.id}>
                       <button type="button" className="member-row" disabled={m.id === state.account?.id} onClick={() => setOpen({ room, member: m })}>
-                        <MemberFace id={m.avatar} size={40} />
+                        <MemberFace id={m.avatar} photo={m.photo} size={40} />
                         <span className="row-text">
                           <span className="row-label">{m.name || copy.you.noName}</span>
                           <span className="row-hint">{m.role === "monitor" ? t.monitor : t.student}</span>
@@ -218,7 +218,7 @@ function MemberCard({ room, member, confirm, busy, onConfirm, onBlock, onRemove,
   const report = `/class/report?class=${encodeURIComponent(room.id)}&member=${encodeURIComponent(member.id)}&name=${encodeURIComponent(name)}`;
   return (
     <>
-      <MemberFace id={member.avatar} size={84} />
+      <MemberFace id={member.avatar} photo={member.photo} size={84} />
       <h2 id="member-title">{name}</h2>
       <p className="muted">
         {member.role === "monitor" ? t.monitor : t.student} · {t.joinedOn(new Date(member.joinedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" }))}

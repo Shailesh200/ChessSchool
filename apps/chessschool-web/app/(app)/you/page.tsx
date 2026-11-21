@@ -1,10 +1,12 @@
 "use client";
 
-import { AVATARS, BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { InviteCard } from "@/components/Growth";
+import { MemberFace } from "@/components/ClassPlay";
+import { bannerVar, FriendCodeCard, useMyDetails } from "@/components/Social";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Cody } from "@/components/Lottie";
@@ -20,6 +22,7 @@ export default function YouPage() {
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const nameForm = useRef<HTMLFormElement>(null);
+  const { mine } = useMyDetails();
   const course = useCourse();
   useEffect(() => {
     if (sheet !== "name") return;
@@ -46,7 +49,7 @@ export default function YouPage() {
     setNameError(null);
     setSheet("name");
   };
-  const saveName = (e: React.FormEvent) => {
+  const saveName = async (e: React.FormEvent) => {
     e.preventDefault();
     const clean = cleanName(draft);
     if (!clean) {
@@ -54,11 +57,28 @@ export default function YouPage() {
       cue("gentle-no");
       return;
     }
+    // Reserved names are left to the server: staff accounts may use them.
+    const problem = nameProblem(draft);
+    if (problem && problem !== "reserved") {
+      setNameError(copy.social.nameProblems[problem]);
+      cue("gentle-no");
+      return;
+    }
+    if (account) {
+      try {
+        await api.updateMe({ name: clean });
+      } catch (err) {
+        if ((err as { code?: string }).code === "name_not_allowed") {
+          setNameError(errorMessage(err));
+          cue("gentle-no");
+          return;
+        }
+      }
+    }
     setProfile({ name: clean });
     setSheet(null);
     cue("success");
     toast(copy.you.nameSaved(clean));
-    if (account) api.updateMe({ name: clean }).catch(() => {});
   };
   const setGoal = (m: DailyMinutes) => {
     setProfile({ dailyMinutes: m });
@@ -88,10 +108,10 @@ export default function YouPage() {
         }
       />
 
-      <Card className="me-card hero">
+      <Card className="me-card hero" style={mine?.details.banner ? { borderTop: `6px solid ${bannerVar(mine.details.banner)}` } : undefined}>
         <div className="me-row">
           <button type="button" className="me-avatar" aria-label={copy.you.avatar} onClick={() => setSheet("picture")}>
-            {profile.avatar === "cody" ? <Cody animation="idle" size={60} /> : <img src={`/coaches/${profile.avatar}.png`} alt="" width={72} height={72} />}
+            {mine?.photo ? <MemberFace id={profile.avatar} photo={mine.photo} size={72} /> : profile.avatar === "cody" ? <Cody animation="idle" size={60} /> : <img src={`/coaches/${profile.avatar}.png`} alt="" width={72} height={72} />}
           </button>
           <div className="me-id">
             <button type="button" className="me-name" onClick={openName} aria-label={`${display}. ${copy.you.editName}`}>
@@ -129,6 +149,8 @@ export default function YouPage() {
 
       <InviteCard />
 
+      <FriendCodeCard />
+
       <Link href="/trophies" className="card trophy-link" aria-label={copy.trophies.open}>
         <span className="trophy-link-top">
           <span className="eyebrow">{copy.trophies.title}</span>
@@ -157,6 +179,16 @@ export default function YouPage() {
         <h2>{copy.you.prefs}</h2>
       </div>
       <Card className="list">
+        {account ? (
+          <Link href="/you/edit" className="row row-link">
+            <Icon name="edit" />
+            <span className="row-text">
+              <span className="row-label">{copy.profileEdit.open}</span>
+              <span className="row-hint">{copy.profileEdit.openHint}</span>
+            </span>
+            <Icon name="chevron" />
+          </Link>
+        ) : null}
         <button className="row" onClick={openName}>
           <Icon name="profile" />
           <span className="row-text">

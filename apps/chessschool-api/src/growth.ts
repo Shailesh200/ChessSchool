@@ -8,6 +8,7 @@ import { FEATURES } from "./features";
 import { loadPuzzle } from "./puzzles";
 import { challenges, children, freezeBank, inviteAccepts, invites, profiles, shares, users } from "./schema";
 import { hashToken, newToken } from "./security";
+import { befriend, isBlockedBetween } from "./social";
 import { cardData, cardId, CARD_VERSION, isCardKind, renderCard, SHARE_ORIGIN, type Card, type CardStore } from "./share-card";
 
 /**
@@ -256,7 +257,10 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
     if (!row || row.kind !== "game") return fail(c, 404, "not_found");
     const at = now().getTime();
     if (row.expiresAt <= at || (row.joinBy !== null && row.joinBy <= at)) return fail(c, 410, "expired");
-    if ((await userFromRequest(c))?.id === row.creatorId) return fail(c, 409, "conflict");
+    const taker = await userFromRequest(c);
+    if (taker?.id === row.creatorId) return fail(c, 409, "conflict");
+    // Someone blocked (either way) can't take the seat; they see the same answer as a missing game.
+    if (taker && (await isBlockedBetween(db, taker.id, row.creatorId))) return fail(c, 404, "not_found");
     const seat = newToken();
     const base = baseMs(row.tc as TimeControl);
     // The clocks start when the friend sits down; a game may then run for weeks on the day clock.
@@ -359,6 +363,8 @@ export function mountGrowth(app: Hono<{ Variables: { user: UserRow } }>, { db, n
     if (!row) return fail(c, 404, "not_found");
     if (row.userId === user.id) return fail(c, 400, "invalid_input");
     const res = await db.insert(inviteAccepts).values({ invitedId: user.id, inviterId: row.userId, createdAt: now().getTime() }).onConflictDoNothing();
+    // The invite also makes them friends both ways (skipped when either blocked the other).
+    await befriend(db, user.id, row.userId, now().getTime());
     return c.json({ ok: true, accepted: Boolean(res.rowsAffected) });
   });
 

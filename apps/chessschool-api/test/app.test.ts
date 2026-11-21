@@ -987,7 +987,9 @@ describe("certificates", () => {
   });
 
   it("serves a finished unit as SVG with the learner's name escaped", async () => {
-    const token = await member(`<script>alert("x")</script> & Co`, lastOfUnit);
+    // Names are checked now, but accounts from before the checks can still hold anything.
+    const token = await member("Asha", lastOfUnit);
+    await db.update(users).set({ name: `<script>alert("x")</script> & Co` }).where(eq(users.id, (await call("GET", "/v1/me", undefined, token)).json.user.id));
     const res = await svg(`/v1/certificates/${unit}`, token);
     expect(res.status).toBe(200);
     expect(res.type).toContain("image/svg+xml");

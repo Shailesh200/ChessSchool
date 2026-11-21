@@ -11,6 +11,7 @@ import { googleVerifierFromEnv } from "./google";
 import { anthropicLessonWriter } from "./lesson-draft";
 import { anthropicBoardReader } from "./scan";
 import { cardStoreFromEnv } from "./share-card";
+import { photoStoreFromEnv } from "./social";
 import { cached } from "./growth-stats";
 import { sentryReleaseHealth } from "ota-server";
 
@@ -45,6 +46,7 @@ async function boot() {
     boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
     ota: otaFromEnv(db, process.env),
     cardStore: await cardStoreFromEnv(process.env),
+    photoStore: await photoStoreFromEnv(process.env),
     // Optional: with SENTRY_READ_TOKEN the growth dashboard shows crash-free sessions (asked at most hourly).
     crashFree: process.env.SENTRY_READ_TOKEN
       ? cached(async () => {

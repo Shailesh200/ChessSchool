@@ -4,6 +4,7 @@ import { copy } from "./copy";
 import type { UsageBatch } from "./usage";
 import type { Ratings } from "./rating";
 import { language } from "./i18n";
+import type { BlockedPlayer, MyDetails, NameProblem, PlayerProfile, PlayerReportReason, ProfileDetails, SafetyAction, SafetyReport, SupportMessage, SupportTopic } from "./social";
 
 export type RatingPoint = { at: number; rating: number };
 
@@ -17,7 +18,7 @@ import type { Account, AvatarId, DailyMinutes, FlairId, Prefs, Progress, Streak,
 export type ApiProfile = { name: string; who: Who | null; dailyMinutes: DailyMinutes; appearance: Prefs["appearance"]; sound: boolean; avatar: AvatarId; flair: FlairId | null; country?: string | null };
 export type ClassRole = "monitor" | "student";
 /** A classmate as the class screen shows them. Stats come from their saved progress (zero for a new account). */
-export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; joinedAt: number; lessons: number; xp: number; streak: Streak };
+export type ClassMember = { id: string; name: string; role: ClassRole; avatar: AvatarId; /** Uploaded photo (absent from older servers). */ photo?: string | null; joinedAt: number; lessons: number; xp: number; streak: Streak };
 export type ReportReason = "name" | "behaviour" | "other";
 export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; /** XP from lessons finished this week (absent from older servers). */ xp?: number; me: boolean }[] };
 /** Today's best board-vision score per game in one class (games nobody played are left out). */
@@ -26,7 +27,7 @@ export type ClassVision = { day: string; best: { game: string; score: number; id
 export type BoardScope = "global" | "country" | "friends";
 export type BoardMetric = "xp" | "rating" | "wins";
 /** `value`: XP this league week, playing rating, or the rating of the strongest bot beaten. Names are first names only. */
-export type BoardRow = { id: string; rank: number; name: string; avatar: AvatarId; country: string | null; value: number; friend: boolean; me: boolean };
+export type BoardRow = { id: string; rank: number; name: string; avatar: AvatarId; /** Uploaded photo (absent from older servers). */ photo?: string | null; country: string | null; value: number; friend: boolean; me: boolean };
 export type BoardResponse = { scope: BoardScope; metric: BoardMetric; rows: BoardRow[]; me: { rank: number | null; value: number }; needsCountry: boolean };
 /* ---------- sharing and growth (Phase 3) ---------- */
 export type ShareCardKind = "game_won" | "puzzle_streak" | "rating_milestone" | "certificate" | "league_promotion" | "mate_of_the_day" | "weekly";
@@ -96,7 +97,7 @@ export type AdminCourseVersion = { id: string; version: string; note: string; cr
 export type ClassRoom = { id: string; name: string; code: string; role: ClassRole; members: ClassMember[] };
 /** Lessons the class monitor set, due on a day (YYYY-MM-DD). `done` comes from each student's saved progress. */
 export type Homework = { id: string; lessons: string[]; due: string; createdAt: number; members: { id: string; name: string; avatar: AvatarId; done: boolean }[] };
-export type GamePlayer = { id: string; name: string; avatar: AvatarId };
+export type GamePlayer = { id: string; name: string; avatar: AvatarId; photo?: string | null };
 export type ClassGameResult = "1-0" | "0-1" | "1/2-1/2";
 /** A rated result. `event` is the game id or a puzzle attempt id. `child` rates a child profile. */
 export type RateInput = { event: string; child?: string } & (
@@ -161,7 +162,13 @@ export type ApiErrorCode =
   | "offline"
   | "server"
   | "consent_required"
-  | "GUEST_CLASS_LIMIT";
+  | "GUEST_CLASS_LIMIT"
+  /** A display name failed the checks; `message` is the NameProblem. */
+  | "name_not_allowed"
+  /** The account is paused by an admin after reports. */
+  | "suspended"
+  /** A feature the server isn't set up for (e.g. photo uploads without storage). */
+  | "unavailable";
 
 /** 403 `{ error: "GUEST_CLASS_LIMIT" }` from a lesson fetch or a progress save. */
 export function isGuestClassLimit(err: unknown): boolean {
@@ -189,11 +196,14 @@ const authErrorCopy: Partial<Record<ApiErrorCode, string>> = {
   apple_unconfigured: copy.auth.appleUnconfigured,
   rate_limited: copy.auth.errors.rateLimited,
   offline: copy.auth.errors.offline,
+  suspended: copy.social.suspended,
 };
 
 /** Friendly text for a failed auth call. A 409 email_in_use is not an offline error. */
 export function errorMessage(err: unknown): string {
   if (!(err instanceof ApiError)) return copy.auth.errors.generic;
+  if (err.code === "name_not_allowed") return copy.social.nameProblems[(err.message in copy.social.nameProblems ? err.message : "chars") as NameProblem];
+  if (err.code === "suspended") return copy.social.suspended;
   return authErrorCopy[err.code] ?? (err.status >= 500 || err.status === 0 ? copy.auth.errors.offline : copy.auth.errors.generic);
 }
 
@@ -354,6 +364,26 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     publishLesson: (lesson: unknown) => request<{ ok: true; version: string }>("POST", "/v1/admin/course/publish", { lesson }),
     courseVersions: () => request<{ versions: AdminCourseVersion[] }>("GET", "/v1/admin/course/versions"),
     rollbackCourse: (id: string) => request<{ ok: true; version: string }>("POST", `/v1/admin/course/versions/${encodeURIComponent(id)}/rollback`),
+    /* ---------- Phase 4: social safety, profile and support ---------- */
+    player: (id: string) => request<{ player: PlayerProfile }>("GET", `/v1/players/${encodeURIComponent(id)}`),
+    reportPlayer: (id: string, r: { reason: PlayerReportReason; note?: string; block: boolean }) => request<{ ok: true }>("POST", `/v1/players/${encodeURIComponent(id)}/report`, r),
+    /** Reports whoever sent a challenge link (their account id is never on the link). */
+    reportChallenge: (code: string, r: { reason: PlayerReportReason; note?: string; block: boolean }) => request<{ ok: true }>("POST", `/v1/challenges/${encodeURIComponent(code)}/report`, r),
+    blockPlayer: (id: string) => request<{ ok: true }>("POST", `/v1/players/${encodeURIComponent(id)}/block`, {}),
+    unblockPlayer: (id: string) => request<{ ok: true }>("DELETE", `/v1/players/${encodeURIComponent(id)}/block`),
+    blocks: () => request<{ blocked: BlockedPlayer[] }>("GET", "/v1/me/blocks"),
+    myDetails: () => request<MyDetails>("GET", "/v1/me/details"),
+    saveDetails: (details: Partial<ProfileDetails>) => request<MyDetails>("PUT", "/v1/me/details", details),
+    /** A square JPEG/PNG/WebP, already downscaled on the device (base64, no data: prefix). */
+    uploadPhoto: (input: { image: string; mediaType: "image/jpeg" | "image/png" | "image/webp" }) => request<MyDetails>("POST", "/v1/me/photo", input, 30_000),
+    removePhoto: () => request<MyDetails>("DELETE", "/v1/me/photo"),
+    /** Makes friends both ways with the owner of an invite / friend code. */
+    addFriendByCode: (code: string) => request<{ ok: true; friend: { id: string; name: string } }>("POST", "/v1/friends/code", { code }),
+    support: (input: { topic: SupportTopic; message: string; email?: string; platform: string; version: string; guestId?: string }) => request<{ ok: true }>("POST", "/v1/support", input),
+    /** Everything stored for the signed-in account. */
+    exportData: () => request<Record<string, unknown>>("GET", "/v1/me/export", undefined, 30_000),
+    adminSafety: () => request<{ reports: SafetyReport[]; support: SupportMessage[] }>("GET", "/v1/admin/safety"),
+    safetyAction: (id: string, action: SafetyAction) => request<{ ok: true }>("POST", `/v1/admin/safety/reports/${encodeURIComponent(id)}`, { action }),
   };
 }
 export type ApiClient = ReturnType<typeof createApiClient>;
