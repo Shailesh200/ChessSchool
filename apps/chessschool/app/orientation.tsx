@@ -1,10 +1,11 @@
 import { copy, PATH, type CodyAnimation } from "@chessschool/design";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Icon } from "@/components/Icon";
 import { Cody, Fx } from "@/components/Lottie";
 import { Button, Flow, IconButton, Steps, T } from "@/components/ui";
+import { track as pulse } from "@/lib/analytics";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
@@ -13,6 +14,7 @@ const BEAT_ICONS = ["learn", "sparkles", "profile"] as const;
 
 export default function Orientation() {
   const { state, completeOrientation, cue } = useApp();
+  useEffect(() => pulse("first_lesson_start", { lesson: "meet" }), []);
   const { c } = useTheme();
   const [beat, setBeat] = useState(0);
   const [done, setDone] = useState(false);

@@ -1,5 +1,3 @@
-"use client";
-
 import { createPulse, language, type PulseEvent } from "@chessschool/design";
 import { PULSE_ORIGIN } from "@shailesh200/pulse-tracker";
 

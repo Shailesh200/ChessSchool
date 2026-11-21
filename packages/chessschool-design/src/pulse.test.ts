@@ -31,3 +31,30 @@ describe("pulse analytics", () => {
     expect(posts).toHaveLength(2);
   });
 });
+
+describe("pulse event mapping", () => {
+  it("maps usage events, bot games and settings without personal data", async () => {
+    const { pulseForUsage, botGameProps, settingsProps } = await import("./pulse");
+    expect(pulseForUsage("lesson_start", { lesson: "meet" })).toEqual(["first_lesson_start", { lesson: "meet" }]);
+    expect(pulseForUsage("lesson_finish", { lesson: "forks" })).toEqual(["lesson_complete", { lesson: "forks" }]);
+    expect(pulseForUsage("app_open")).toBeNull();
+    const game = { winner: "b" as const, reason: "checkmate", history: ["e4", "e5"], setup: { you: "b" as const, opponent: { kind: "bot", bot: "rex" } } };
+    expect(botGameProps(game)).toEqual({ bot: "rex", result: "win", reason: "checkmate", moves: 2 });
+    expect(botGameProps({ ...game, setup: { ...game.setup, opponent: { kind: "friend" } } })).toBeNull();
+    expect(settingsProps({ sound: false, theme: "sunset", coach: null })).toEqual([{ key: "sound", value: false }, { key: "theme", value: "sunset" }, { key: "coach" }]);
+  });
+});
+
+describe("pulse events from API calls", () => {
+  it("names sign-in, challenges, AI help and leaderboard opens", async () => {
+    const { pulseForApi } = await import("./pulse");
+    expect(pulseForApi("POST", "/v1/auth/register", { email: "a@b.co", name: "Asha" }, {})).toEqual(["signup", { method: "password" }]);
+    expect(pulseForApi("POST", "/v1/auth/google", {}, {})).toEqual(["login", { method: "google" }]);
+    expect(pulseForApi("POST", "/v1/challenges", { kind: "game", tc: "10m" }, { challenge: { kind: "game", status: "waiting" } })).toEqual(["challenge_create", { kind: "game", tc: "10m" }]);
+    expect(pulseForApi("POST", "/v1/challenges/abc/moves", {}, { challenge: { kind: "game", status: "active" } })).toBeNull();
+    expect(pulseForApi("POST", "/v1/challenges/abc/moves", {}, { challenge: { kind: "game", status: "over", result: "1-0" } })).toEqual(["challenge_finish", { kind: "game", result: "1-0" }]);
+    expect(pulseForApi("POST", "/v1/coach/line", { kind: "hint" }, {})).toEqual(["ai_hint", { kind: "hint" }]);
+    expect(pulseForApi("POST", "/v1/coach/line", { kind: "bot" }, {})).toBeNull();
+    expect(pulseForApi("GET", "/v1/leaderboard?scope=global&metric=xp", undefined, {})).toEqual(["leaderboard_open", { scope: "global", metric: "xp" }]);
+  });
+});

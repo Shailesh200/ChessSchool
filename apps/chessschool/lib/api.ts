@@ -1,4 +1,5 @@
-import { ApiError, createApiClient, errorMessage } from "@chessschool/design";
+import { ApiError, createApiClient, errorMessage, pulseForApi } from "@chessschool/design";
+import { track } from "./analytics";
 import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "chessschool.v2.token";
@@ -12,7 +13,14 @@ export const token = {
   clear: () => SecureStore.deleteItemAsync(TOKEN_KEY),
 };
 
-const client = createApiClient({ baseUrl: API_URL, getToken: token.get });
+const client = createApiClient({
+  baseUrl: API_URL,
+  getToken: token.get,
+  onSuccess: (method, path, body, data) => {
+    const ev = pulseForApi(method, path, body, data);
+    if (ev) track(ev[0], ev[1]);
+  },
+});
 
 /** Every call fails fast as "offline" when no API URL is configured. */
 export const api = new Proxy(client, {

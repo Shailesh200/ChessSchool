@@ -123,3 +123,50 @@ export function createPulse(opts: PulseOptions) {
   };
 }
 export type Pulse = ReturnType<typeof createPulse>;
+
+/** The Pulse event for an in-house usage event, so one call site feeds both. */
+export function pulseForUsage(name: string, extra: { lesson?: string; value?: number } = {}): [PulseEvent, PulseProps | undefined] | null {
+  const lesson = extra.lesson ? { lesson: extra.lesson } : undefined;
+  switch (name) {
+    case "lesson_start":
+      return extra.lesson === "meet" ? ["first_lesson_start", lesson] : ["lesson_start", lesson];
+    case "lesson_finish":
+      return extra.lesson === "meet" ? ["first_lesson_finish", lesson] : ["lesson_complete", lesson];
+    case "puzzle_solved":
+    case "puzzle_failed":
+    case "share":
+      return [name, undefined];
+    default:
+      return null;
+  }
+}
+
+/** Props for a finished bot game: which bot, and the result from the learner's side. Nothing about the moves. */
+export function botGameProps(g: { winner: "w" | "b" | null; reason: string; history: string[]; setup: { you: "w" | "b"; opponent: { kind: string; bot?: string } } }): PulseProps | null {
+  if (g.setup.opponent.kind !== "bot") return null;
+  const result = g.winner === null ? "draw" : g.winner === g.setup.you ? "win" : "loss";
+  return cleanProps({ bot: g.setup.opponent.bot ?? "bot", result, reason: g.reason, moves: g.history.length }) ?? null;
+}
+
+/** Settings keys that changed, never their free-form values (booleans and short ids are kept). */
+export function settingsProps(patch: Record<string, unknown>): PulseProps[] {
+  return Object.entries(patch).map(([key, value]) => cleanProps({ key, value: typeof value === "string" || typeof value === "boolean" || typeof value === "number" ? value : undefined }) ?? {});
+}
+
+/** The Pulse event for a successful API call (sign-up, sign-in, challenges, AI help, leaderboard), if any. */
+export function pulseForApi(method: string, path: string, body: unknown, data: unknown): [PulseEvent, PulseProps | undefined] | null {
+  const p = path.split("?")[0] ?? "";
+  const q = new URLSearchParams(path.split("?")[1] ?? "");
+  const b = (body ?? {}) as Record<string, unknown>;
+  const ch = (data as { challenge?: { kind?: string; status?: string; result?: string | null } } | null)?.challenge;
+  if (method === "POST" && p === "/v1/auth/register") return ["signup", { method: "password" }];
+  const auth = method === "POST" ? /^\/v1\/auth\/(login|google|apple)$/.exec(p) : null;
+  if (auth) return ["login", { method: auth[1] === "login" ? "password" : auth[1]! }];
+  if (method === "POST" && p === "/v1/challenges") return ["challenge_create", cleanProps({ kind: ch?.kind, tc: b.tc })];
+  if (method === "POST" && /^\/v1\/challenges\/[^/]+\/accept$/.test(p)) return ["challenge_join", cleanProps({ kind: ch?.kind })];
+  if (method === "POST" && /^\/v1\/challenges\/[^/]+\/(moves|resign|draw|result)$/.test(p) && (ch?.status === "over" || p.endsWith("/result"))) return ["challenge_finish", cleanProps({ kind: ch?.kind, result: ch?.result ?? undefined })];
+  if (method === "POST" && p === "/v1/coach/explain") return ["ai_hint", { kind: "explain" }];
+  if (method === "POST" && p === "/v1/coach/line" && (b.kind === "hint" || b.kind === "comment")) return ["ai_hint", { kind: b.kind }];
+  if (method === "GET" && p === "/v1/leaderboard") return ["leaderboard_open", cleanProps({ scope: q.get("scope") ?? undefined, metric: q.get("metric") ?? undefined })];
+  return null;
+}

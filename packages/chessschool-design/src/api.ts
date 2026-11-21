@@ -205,6 +205,8 @@ export type ApiClientOptions = {
   getToken?: () => string | null | Promise<string | null>;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Told about each successful call (analytics hooks); never throws into the caller. */
+  onSuccess?: (method: string, path: string, body: unknown, data: unknown) => void;
 };
 
 /** GET /v1/leagues/current: guests get a sign-up card; "none" until the first XP of the week. */
@@ -213,7 +215,7 @@ export type LeagueResponse =
   | { status: "joined"; league: { week: string; closesAt: number; tier: import("./leagues").LeagueTier; members: { place: number; name: string; avatar: string | null; xp: number; you: boolean; zone: import("./leagues").Zone }[]; promoted?: import("./leagues").LeagueTier } };
 export type MateResponse = { day: string; today: string; puzzle: { id: string; fen: string; moves: string[] }; played: number; solved: number };
 
-export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000 }: ApiClientOptions) {
+export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000, onSuccess }: ApiClientOptions) {
   async function request<T>(method: string, path: string, body?: unknown, waitMs = timeoutMs): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -241,6 +243,11 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     if (!res.ok) {
       const code = data?.error ?? (res.status >= 500 ? "server" : res.status === 401 ? "unauthorized" : "invalid_input");
       throw new ApiError(res.status, code, data?.message);
+    }
+    try {
+      onSuccess?.(method, path, body, data);
+    } catch {
+      /* an observer must never break a call */
     }
     return data as T;
   }

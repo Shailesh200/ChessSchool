@@ -6,6 +6,7 @@ import { CoachPicker } from "@/components/CoachPicker";
 import { Cody } from "@/components/Lottie";
 import { Button, Flow, IconButton, Steps, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { track as pulse } from "@/lib/analytics";
 
 /** After the first lesson: coach, then the account offer (guests only). The language is chosen on the start screen. */
 export default function Welcome() {
@@ -14,7 +15,8 @@ export default function Welcome() {
   const w = copy.welcome.steps;
   const steps = state.account ? 2 : 3;
 
-  const finish = (to: "/today" | "/signup") => {
+  const finish = (to: "/today" | "/signup", skipped = false) => {
+    pulse(skipped ? "onboarding_skip" : "onboarding_step", { step, done: true, to: to.slice(1) });
     setSeenWelcome();
     if (to === "/today") cue("success");
     router.replace(to);
@@ -22,7 +24,7 @@ export default function Welcome() {
   const next = () => {
     cue("tap");
     if (step + 1 >= steps) finish("/today");
-    else setStep(step + 1);
+    else (setStep(step + 1), pulse("onboarding_step", { step: step + 1 }));
   };
 
   return (
@@ -31,7 +33,7 @@ export default function Welcome() {
         <>
           {step > 1 ? <IconButton icon="back" label={copy.welcome.back} onPress={() => setStep(step - 1)} /> : <View style={{ width: 48 }} />}
           <Steps count={steps - 1} current={step - 1} label={copy.orientation.progress(step, steps - 1)} />
-          <Pressable accessibilityRole="button" onPress={() => finish("/today")} hitSlop={10} style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: 8 }}>
+          <Pressable accessibilityRole="button" onPress={() => finish("/today", true)} hitSlop={10} style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: 8 }}>
             <T role="label" color="brandText">
               {copy.welcome.skip}
             </T>

@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/ui";
 import { GuestGateHost } from "@/components/PathList";
 import { PuzzlePackBoot } from "@/components/PuzzlePackBoot";
 import { ServiceWorker } from "@/components/ServiceWorker";
+import { ScreenViews } from "@/components/ScreenViews";
 import "./globals.css";
 
 const fredoka = Fredoka({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-fredoka", display: "swap" });
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AppStateProvider>
           <PuzzlePackBoot />
+          <ScreenViews />
           <ToastProvider>
             {children}
             <GuestGateHost />
