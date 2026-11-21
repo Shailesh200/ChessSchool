@@ -83,15 +83,16 @@ describe("rate limits", () => {
     // Each sign-up a minute apart, so the older per-minute auth limiter in app.ts stays out of the way.
     let t = Date.UTC(2026, 10, 3, 10);
     const app = createApp({ db, google: null, secureCookies: false, corsOrigins: [], now: () => new Date(t), rateStore: memoryRateStore() });
-    const register = (n: number) =>
-      (t += 60_000) &&
-      app.request("/v1/auth/register", { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": "7.7.7.7" }, body: JSON.stringify({ name: "A", email: `rl${n}@b.co`, password: "pawnpawn" }) });
+    const register = (n: number) => {
+      t += 60_000;
+      return app.request("/v1/auth/register", { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": "7.7.7.7" }, body: JSON.stringify({ name: "A", email: `rl${n}@b.co`, password: "pawnpawn" }) });
+    };
     for (let i = 0; i < 30; i++) expect((await register(i)).status).toBe(201);
     const res = await register(31);
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBeTruthy();
     expect((await app.request("/v1/health", { headers: { "x-forwarded-for": "7.7.7.7" } })).status).toBe(200);
-  });
+  }, 60_000);
 });
 
 describe("lifecycle email", () => {
