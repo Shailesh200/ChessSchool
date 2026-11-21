@@ -63,7 +63,8 @@ export function usePlayAi(botGame: boolean) {
   const [line, setLine] = useState<{ kind: "hint" | "comment"; text: string } | null>(null);
   const [botSay, setBotSay] = useState<string | null>(null);
   const say = (kind: "hint" | "comment", fen: string, move: string) => {
-    if (!on) return;
+    // Offline, the hint stays the engine's move with no AI line, and the bot plays its own pick.
+    if (!on || !(typeof navigator === "undefined" || navigator.onLine)) return;
     api
       .coachLine({ kind, fen, move, coach })
       .then((r) => r.text && setLine({ kind, text: r.text }))
@@ -80,7 +81,7 @@ export function usePlayAi(botGame: boolean) {
     /** The bot's move: options[0] is its model's own pick, used when AI is off, slow or fails. */
     botMove: async <M extends { san: string }>(fen: string, bot: string, options: M[]): Promise<M | null> => {
       setBotSay(null);
-      if (!on || options.length < 2) return options[0] ?? null;
+      if (!on || !(typeof navigator === "undefined" || navigator.onLine) || options.length < 2) return options[0] ?? null;
       try {
         const r = await api.botPick({ fen, bot, options: options.map((o) => o.san) });
         setBotSay(r.say);

@@ -1,5 +1,5 @@
 import { defaultSetup, playReduce, startGame, type PlayAction, type PlayState, type Puzzle, type Square } from "@chessschool/chess";
-import { clockSince, copy, formatClock, isLive, JOIN_MS, type Challenge, type TimeControl } from "@chessschool/design";
+import { challengeRecord, clockSince, copy, importGame, queueGameSave, formatClock, isLive, JOIN_MS, type Challenge, type TimeControl } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
@@ -38,7 +38,7 @@ function useClocks(ch: Challenge | null, receivedAt: number) {
  */
 export default function ChallengeScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
-  const { cue } = useApp();
+  const { cue, update } = useApp();
   const { c } = useTheme();
   const toast = useToast();
   const t = copy.challenge;
@@ -68,6 +68,15 @@ export default function ChallengeScreen() {
   useEffect(() => void load(), [load]);
 
   // Running games poll on both turns too: a resign, a draw offer or a timeout can come at any time.
+  // A finished game joins "My games" (and the account's copy) once; the friend's name is not kept.
+  const over = ch && ch.kind === "game" && ch.status === "over" ? ch : null;
+  useEffect(() => {
+    if (!over) return;
+    const rec = challengeRecord(over, Date.now());
+    if (rec) update((s) => (s.gameLog.some((g) => g.id === rec.id) ? s : s.account ? queueGameSave(importGame(s, rec), rec) : importGame(s, rec)));
+    // Once per finished challenge.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [over?.code]);
   const polling = Boolean(ch && ch.kind === "game" && !ch.expired && ch.status !== "over");
   const pollMs = ch?.tc && isLive(ch.tc) ? POLL_LIVE_MS : POLL_MS;
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { copy, importedRecord, importGame, type ImportedGame } from "@chessschool/design";
+import { copy, importedRecord, importGame, queueGameSave, type ImportedGame } from "@chessschool/design";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -28,7 +28,11 @@ export default function ImportGames() {
       .finally(() => setBusy(false));
   };
   const open = (g: ImportedGame) => {
-    update((s) => importGame(s, importedRecord(g)));
+    update((s) => {
+      const rec = importedRecord(g);
+      const next = importGame(s, rec);
+      return s.account ? queueGameSave(next, rec) : next;
+    });
     router.push(`/review/${encodeURIComponent(g.id)}`);
   };
 

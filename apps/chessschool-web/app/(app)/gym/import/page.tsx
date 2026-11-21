@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, importedRecord, importGame, type ImportedGame } from "@chessschool/design";
+import { copy, importedRecord, importGame, queueGameSave, type ImportedGame } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, Segmented, TextField, TopBar } from "@/components/ui";
@@ -31,7 +31,11 @@ export default function ImportGames() {
       .finally(() => setBusy(false));
   };
   const open = (g: ImportedGame) => {
-    update((s) => importGame(s, importedRecord(g)));
+    update((s) => {
+      const rec = importedRecord(g);
+      const next = importGame(s, rec);
+      return s.account ? queueGameSave(next, rec) : next;
+    });
     router.push(`/gym/review/${encodeURIComponent(g.id)}`);
   };
 
