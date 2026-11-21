@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Cody, Fx } from "@/components/Lottie";
 import { Button } from "@/components/ui";
+import { track as pulse } from "@/lib/analytics";
 import { useApp } from "@/lib/state";
 
 const POSES: CodyAnimation[] = ["wave", "thinking", "proud"];
@@ -13,6 +14,7 @@ const BEAT_ICONS = ["learn", "sparkles", "profile"] as const;
 
 export default function Orientation() {
   const { state, completeOrientation, cue } = useApp();
+  useEffect(() => pulse("first_lesson_start", { lesson: "meet" }), []);
   const router = useRouter();
   const [beat, setBeat] = useState(0);
   const [done, setDone] = useState(false);

@@ -68,6 +68,9 @@ importers:
       '@sentry/react-native':
         specifier: ~7.2.0
         version: 7.2.0(expo@54.0.38)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@shailesh200/pulse-tracker':
+        specifier: workspace:*
+        version: link:../../packages/pulse-tracker
       babel-preset-expo:
         specifier: ~54.0.11
         version: 54.0.12(@babel/core@7.29.7)(@babel/runtime@7.29.7)(expo@54.0.38)(react-refresh@0.18.0)
@@ -247,6 +250,9 @@ importers:
       '@sentry/nextjs':
         specifier: 10.66.0
         version: 10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))(next@16.4.6(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.20.5)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(webpack@5.108.4)
+      '@shailesh200/pulse-tracker':
+        specifier: workspace:*
+        version: link:../../packages/pulse-tracker
       lottie-react:
         specifier: ^2.4.1
         version: 2.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)

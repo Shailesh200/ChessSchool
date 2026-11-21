@@ -16,7 +16,8 @@
     "build:practice": "node scripts/build-practice-lessons.mjs",
     "voice:build": "tsx scripts/voice-build.ts",
     "voice:migrate": "tsx scripts/voice-migrate.ts",
-    "db:restore-check": "tsx scripts/db-restore-check.ts"
+    "db:restore-check": "tsx scripts/db-restore-check.ts",
+    "load-test": "tsx scripts/load-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

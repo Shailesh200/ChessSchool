@@ -72,6 +72,9 @@ export default function PrivacyPage() {
               platform and the app version. They never include your name, email, account
               or guest ID. This is on by default and you can turn it off at any time in
               Settings → &quot;Share anonymous usage&quot;; events are deleted after 180 days.
+              The same switch covers product analytics on our own Pulse server (screens opened
+              and steps such as a lesson or bot game started or finished, with ids like the
+              lesson or bot, never names, emails or anything you type).
             </li>
             <li>
               <strong>Child profiles:</strong> a parent account can add up to five children. For
@@ -84,6 +87,12 @@ export default function PrivacyPage() {
               Sunday we send the account&apos;s lessons finished, puzzles solved, streak and next
               unit to the account email (sent with Resend) and, in the app, as a notification
               (sent with Expo&apos;s push service). Turning it off stops it and deletes the setting.
+            </li>
+            <li>
+              <strong>Account emails:</strong> a welcome email when you make an account, and at
+              most one &quot;come back&quot; email a month after a week away. Every email has a
+              one-click unsubscribe link, and Settings has a switch for each kind. Child profiles
+              never receive email.
             </li>
             <li>
               <strong>Endgame trainer:</strong> to play perfect defence we look up the board

@@ -117,6 +117,7 @@ export default function LooksPage() {
         </div>
         <Switch icon="doc" label={copy.looks.coords} checked={prefs.coords} onChange={(v) => setPrefs({ coords: v })} />
         <Switch icon="eye" label={copy.looks.legalDots} checked={prefs.legalDots} onChange={(v) => setPrefs({ legalDots: v })} />
+        <Switch icon="eye" label={copy.platform.marks.label} hint={copy.platform.marks.hint} checked={prefs.markShapes} onChange={(v) => setPrefs({ markShapes: v })} />
         <Switch icon="star" label={copy.gym.promotion} hint={copy.gym.promotionHint} checked={prefs.promotion === "ask"} onChange={(v) => setPrefs({ promotion: v ? "ask" : "queen" })} />
       </Card>
 

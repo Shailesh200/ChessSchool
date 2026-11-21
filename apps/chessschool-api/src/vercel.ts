@@ -13,6 +13,7 @@ import { anthropicBoardReader } from "./scan";
 import { cardStoreFromEnv } from "./share-card";
 import { photoStoreFromEnv } from "./social";
 import { cached } from "./growth-stats";
+import { dbRateStore } from "./rate-limit";
 import { sentryReleaseHealth } from "ota-server";
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -47,6 +48,10 @@ async function boot() {
     ota: otaFromEnv(db, process.env),
     cardStore: await cardStoreFromEnv(process.env),
     photoStore: await photoStoreFromEnv(process.env),
+    rateStore: process.env.RATE_LIMITS === "off" ? null : dbRateStore(db),
+    // Unsubscribe links are signed with EMAIL_SECRET; until it is set, welcome and come-back emails stay off.
+    emailSecret: process.env.EMAIL_SECRET || null,
+    apiOrigin: process.env.API_ORIGIN ?? "https://api.chess-school.in",
     // Optional: with SENTRY_READ_TOKEN the growth dashboard shows crash-free sessions (asked at most hourly).
     crashFree: process.env.SENTRY_READ_TOKEN
       ? cached(async () => {

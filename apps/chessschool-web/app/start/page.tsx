@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { Cody } from "@/components/Lottie";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { track as pulse } from "@/lib/analytics";
 
 /** Once per browser, before anything else: the app language, then the terms in short. Agreeing covers the AI features. */
 function Start() {
@@ -15,6 +16,7 @@ function Start() {
   const next = useSearchParams().get("next");
   const s = copy.start;
   const agree = () => {
+    pulse("terms_accept", { lang: language() });
     const at = new Date().toISOString();
     update((st) => agreeTerms(st, at));
     cue("success");
@@ -27,7 +29,7 @@ function Start() {
         <Cody animation="wave" size={130} label={copy.a11y.mascot} />
         <div className="choices start-langs" role="radiogroup" aria-label={copy.welcome.steps.lang.title}>
           {LANGS.map((l) => (
-            <button key={l} type="button" role="radio" aria-checked={language() === l} className="choice" onClick={() => (setPrefs({ lang: l }), cue("tap"))}>
+            <button key={l} type="button" role="radio" aria-checked={language() === l} className="choice" onClick={() => (setPrefs({ lang: l }), pulse("language_pick", { lang: l }), cue("tap"))}>
               <span>
                 <strong>{LANG_NAMES[l]}</strong>
               </span>

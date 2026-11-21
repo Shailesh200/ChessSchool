@@ -112,6 +112,8 @@ export type Prefs = {
   easyFont: boolean;
   /** Turn animations off even when the device doesn't ask for it. */
   reduceMotion: boolean;
+  /** Outlines and stripes on board highlights, so they never depend on colour alone. */
+  markShapes: boolean;
 };
 
 export const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -256,7 +258,7 @@ export function createInitialState(guestId: string): LocalState {
     guestId,
     seenWelcome: false,
     profile: { name: "", who: null, dailyMinutes: 10, avatar: "cody", flair: null },
-    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "sunset", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null, boardColors: "theme", easyFont: false, reduceMotion: false },
+    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "sunset", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null, boardColors: "theme", easyFont: false, reduceMotion: false, markShapes: false },
     progress: emptyProgress(),
     account: null,
     pendingCeremony: null,
@@ -385,6 +387,7 @@ function hydratePrefs(base: Prefs, raw: unknown): Prefs {
     boardColors: isBoardColors(p.boardColors) ? p.boardColors : "theme",
     easyFont: p.easyFont === true,
     reduceMotion: p.reduceMotion === true,
+    markShapes: p.markShapes === true,
   };
 }
 

@@ -21,7 +21,7 @@ import {
   type PromotionPiece,
   type Square,
 } from "@chessschool/chess";
-import { copy, moveSpeech, squareSpeech } from "@chessschool/design";
+import { copy, markSpeech, moveSpeech, squareSpeech } from "@chessschool/design";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -116,7 +116,7 @@ export function Board({
   hideCoords,
 }: BoardProps) {
   const { state } = useApp();
-  const { legalDots } = state.prefs;
+  const { legalDots, markShapes } = state.prefs;
   const coords = state.prefs.coords && !hideCoords;
   const pieces = useMemo(() => readFen(fen), [fen]);
   const squares = useMemo(() => boardSquares(orientation), [orientation]);
@@ -231,7 +231,7 @@ export function Board({
   return (
     <div
       ref={ref}
-      className={`board${disabled ? " board-disabled" : ""}${mate ? " is-mate" : ""}`}
+      className={`board${disabled ? " board-disabled" : ""}${mate ? " is-mate" : ""}${markShapes ? " marks-shapes" : ""}`}
       role="group"
       aria-label={label}
       data-fen={fen}
@@ -249,7 +249,7 @@ export function Board({
         if (selected === sq) parts.push(copy.a11y.selected);
         if (isTarget) parts.push(copy.a11y.target);
         if (stars.includes(sq)) parts.push(copy.a11y.star);
-        if (lastMove && (lastMove.from === sq || lastMove.to === sq)) parts.push(copy.a11y.lastMove);
+        parts.push(...markSpeech({ last: Boolean(lastMove && (lastMove.from === sq || lastMove.to === sq)), hint: hints.includes(sq) || guide?.from === sq || guide?.to === sq }));
         const cls = [
           "sq",
           light ? "sq-light" : "sq-dark",

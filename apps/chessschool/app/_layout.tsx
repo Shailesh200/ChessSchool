@@ -18,6 +18,7 @@ import { usePuzzlePackBoot } from "@/lib/puzzlePack";
 import { useReducedMotion } from "@/lib/hooks";
 import { AppStateProvider, useApp } from "@/lib/state";
 import { ThemeProvider, useTheme } from "@/lib/theme";
+import { setAnalyticsAllowed, trackScreen } from "@/lib/analytics";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -89,7 +90,7 @@ function useBadgeToasts() {
 
 function Routes() {
   const { c } = useTheme();
-  const { state } = useApp();
+  const { state, ready } = useApp();
   const reduced = useReducedMotion();
   useReminderTaps(state.prefs.notifications === "granted");
   useBadgeToasts();
@@ -98,6 +99,12 @@ function Routes() {
   useEffect(() => {
     if (!state.termsAt && !["/", "/start", "/terms"].includes(path)) router.replace("/start");
   }, [state.termsAt, path]);
+  // A screen view per route, once saved prefs are loaded (so an opt-out is known before anything is sent).
+  useEffect(() => {
+    if (!ready) return;
+    setAnalyticsAllowed(state.prefs.shareUsage);
+    trackScreen(path);
+  }, [ready, path]); // eslint-disable-line react-hooks/exhaustive-deps
   // Reduce motion: screens cross-fade instead of sliding, and every Reanimated animation jumps to its end.
   const slide = reduced ? "fade" : "slide_from_bottom";
   return (

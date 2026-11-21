@@ -59,6 +59,8 @@ import {
   type PracticeItem,
   type UsageEventName,
 } from "@chessschool/design";
+import { setAnalyticsAllowed, track as pulseTrack, flushAnalytics } from "@/lib/analytics";
+import { botGameProps, pulseForUsage, settingsProps } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
@@ -141,11 +143,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       appVersion: Constants.expoConfig?.version ?? "0.0.0",
       enabled: () => latest.current.prefs.shareUsage,
     }),
-  );
+  );  /** One call feeds the in-house usage counts and Pulse. */
+  const both = useCallback((name: UsageEventName, extra?: { lesson?: string; step?: number; value?: number }) => {
+    usage.track(name, extra);
+    const ev = pulseForUsage(name, extra);
+    if (ev) pulseTrack(ev[0], ev[1]);
+  }, [usage]);
+  useEffect(() => setAnalyticsAllowed(state.prefs.shareUsage), [state.prefs.shareUsage]);
+
   useEffect(() => {
     if (!ready) return;
     usage.track("app_open");
-    const sub = AppState.addEventListener("change", (s) => s !== "active" && void usage.flush());
+    const sub = AppState.addEventListener("change", (s) => s !== "active" && (void usage.flush(), flushAnalytics()));
     return () => sub.remove();
   }, [ready, usage]);
 
@@ -262,7 +271,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ready,
       state,
       cue,
-      track: usage.track,
+      track: both,
       switchLearner: async (child) => {
         setState((s) => switchProfile(s, child?.id ?? null, child ? freshSlice(s, child.name, child.avatar) : undefined));
         const id = child?.id ?? null;
@@ -283,11 +292,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       answerIdea: (lessonId, remembered) => setState((s) => answerIdeaCard(s, lessonId, remembered, new Date())),
       setPracticeNext: (items) => setState((s) => ({ ...s, practiceNext: items })),
       setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
-      setPrefs: (p) => setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } })),
+      setPrefs: (p) => {
+        for (const props of settingsProps(p)) pulseTrack("settings_change", props);
+        setState((s) => ({ ...s, prefs: { ...s.prefs, ...p } }));
+      },
       setSeenWelcome: () => setState((s) => ({ ...s, seenWelcome: true })),
-      completeOrientation: () => earn((s) => completeNode(s, "meet", new Date())),
+      completeOrientation: () => {
+        pulseTrack("first_lesson_finish", { lesson: "meet" });
+        earn((s) => completeNode(s, "meet", new Date()));
+      },
       completeLesson: (id, meta, flow) => {
-        usage.track("lesson_finish", { lesson: id });
+        both("lesson_finish", { lesson: id });
         const now = new Date();
         earn((s) => recordCombo(completeNode(s, id, now, meta, flow?.perfect), flow?.best ?? 0, now));
       },
@@ -297,13 +312,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       },
       finishGame: (game, minutes) => {
         usage.track("game_finished");
+        const botProps = botGameProps(game);
+        if (botProps) pulseTrack("bot_game_end", botProps);
         earn((s) => recordGame(s, game, new Date(), minutes));
         // The endgame trainer defends from the tablebase, not the bot, so it is not rated.
         const bot = game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : null;
         if (bot && isBotId(bot) && !(ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "")) rate(ratedGame(game, botInfo(bot).rating));
       },
       finishPuzzle: (p) => {
-        usage.track(p.solved ? "puzzle_solved" : "puzzle_failed");
+        both(p.solved ? "puzzle_solved" : "puzzle_failed");
         earn((s) => recordPuzzle(s, p, new Date()));
         if (p.puzzleRating) rate(ratedPuzzle({ id: p.id, solved: p.solved, puzzleRating: p.puzzleRating }, Date.now()));
       },
@@ -322,7 +339,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         await googleSignOut();
         setState((s) => applySignOut(s));
       },
-      saveGame: (game) => setState((s) => ({ ...s, activeGame: game })),
+      saveGame: (game) => {
+        // A fresh game (no moves yet) against a bot is a start; later saves are the same game.
+        const opp = game && game.history.length === 0 ? game.setup.opponent : null;
+        if (opp?.kind === "bot") pulseTrack("bot_game_start", { bot: opp.bot, you: game!.setup.you });
+        setState((s) => ({ ...s, activeGame: game }));
+      },
       clearArrival: () => setState((s) => ({ ...s, arrival: null })),
       signedIn: async (auth) => {
         await token.set(auth.token);

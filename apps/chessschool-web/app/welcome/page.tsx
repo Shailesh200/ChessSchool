@@ -8,6 +8,7 @@ import { CoachPicker } from "@/components/CoachPicker";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { track as pulse } from "@/lib/analytics";
 
 /** After the first lesson: coach, then the account offer (guests only). The language is chosen on the start page. */
 export default function Welcome() {
@@ -22,7 +23,8 @@ export default function Welcome() {
     headingRef.current?.focus();
   }, [step]);
 
-  const finish = (to: "/today" | "/signup") => {
+  const finish = (to: "/today" | "/signup", skipped = false) => {
+    pulse(skipped ? "onboarding_skip" : "onboarding_step", { step, done: true, to: to.slice(1) });
     setSeenWelcome();
     if (to === "/today") cue("success");
     router.push(to);
@@ -30,7 +32,7 @@ export default function Welcome() {
   const next = () => {
     cue("tap");
     if (step + 1 >= steps) finish("/today");
-    else setStep(step + 1);
+    else (setStep(step + 1), pulse("onboarding_step", { step: step + 1 }));
   };
 
   return (
@@ -48,7 +50,7 @@ export default function Welcome() {
             <span key={i} className={i < step ? "on" : ""} />
           ))}
         </div>
-        <button className="link-btn" onClick={() => finish("/today")}>
+        <button className="link-btn" onClick={() => finish("/today", true)}>
           {copy.welcome.skip}
         </button>
       </header>

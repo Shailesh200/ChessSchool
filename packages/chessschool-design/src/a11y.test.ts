@@ -21,3 +21,15 @@ describe("board speech", () => {
     expect(moveSpeech({ ...base, check: true })).toBe("घोड़ा f3 पर। शह");
   });
 });
+
+describe("board highlights and targets", () => {
+  it("adds shapes only when asked, and always keeps the move-target dot", async () => {
+    const { squareMarks, markSpeech, hitSlopFor, MIN_TOUCH } = await import("./a11y");
+    expect(squareMarks({ last: true, hint: true, target: true }, false)).toEqual(["target"]);
+    expect(squareMarks({ last: true, hint: true, teach: true, target: true }, true)).toEqual(["last", "hint", "teach", "target"]);
+    expect(markSpeech({ last: true, hint: true })).toEqual(["last move", "hint"]);
+    expect(hitSlopFor(32)).toEqual({ top: 6, bottom: 6, left: 6, right: 6 });
+    expect(hitSlopFor(60, 20)).toEqual({ top: 12, bottom: 12, left: 0, right: 0 });
+    expect(MIN_TOUCH).toBe(44);
+  });
+});

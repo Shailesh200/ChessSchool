@@ -3,6 +3,7 @@ import { createApp } from "./app";
 import { anthropicBoardReader } from "./scan";
 import { providersFromEnv } from "./ai";
 import { openDb } from "./db";
+import { dbRateStore } from "./rate-limit";
 import { otaFromEnv } from "./ota";
 import { appleVerifierFromEnv } from "./apple";
 import { googleVerifierFromEnv } from "./google";
@@ -26,6 +27,9 @@ const app = createApp({
   boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
   coachAi: providersFromEnv(process.env),
   ota: otaFromEnv(db, process.env),
+  rateStore: process.env.RATE_LIMITS === "off" ? null : dbRateStore(db),
+  emailSecret: process.env.EMAIL_SECRET || null,
+  apiOrigin: process.env.API_ORIGIN ?? `http://localhost:${port}`,
 });
 
 const hostname = process.env.HOST ?? "0.0.0.0";

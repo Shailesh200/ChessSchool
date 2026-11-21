@@ -215,6 +215,8 @@ export type ApiClientOptions = {
   getToken?: () => string | null | Promise<string | null>;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Told about each successful call (analytics hooks); never throws into the caller. */
+  onSuccess?: (method: string, path: string, body: unknown, data: unknown) => void;
 };
 
 /** GET /v1/leagues/current: guests get a sign-up card; "none" until the first XP of the week. */
@@ -223,12 +225,14 @@ export type LeagueResponse =
   | { status: "joined"; league: { week: string; closesAt: number; tier: import("./leagues").LeagueTier; members: { place: number; name: string; avatar: string | null; xp: number; you: boolean; zone: import("./leagues").Zone }[]; promoted?: import("./leagues").LeagueTier } };
 export type MateResponse = { day: string; today: string; puzzle: { id: string; fen: string; moves: string[] }; played: number; solved: number };
 
-export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000 }: ApiClientOptions) {
+export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000, onSuccess }: ApiClientOptions) {
   async function request<T>(method: string, path: string, body?: unknown, waitMs = timeoutMs): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const token = getToken ? await getToken() : null;
     if (token) headers.Authorization = `Bearer ${token}`;
+    // Sign-up and sign-in tell the server the app language, so the welcome email matches it.
+    if (path.startsWith("/v1/auth/")) headers["X-CS-Lang"] = language();
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), waitMs);
     let res: Response;
@@ -249,6 +253,11 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     if (!res.ok) {
       const code = data?.error ?? (res.status >= 500 ? "server" : res.status === 401 ? "unauthorized" : "invalid_input");
       throw new ApiError(res.status, code, data?.message);
+    }
+    try {
+      onSuccess?.(method, path, body, data);
+    } catch {
+      /* an observer must never break a call */
     }
     return data as T;
   }
@@ -314,6 +323,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     rate: (input: RateInput) => request<{ ratings: Ratings; counted: boolean }>("POST", "/v1/me/rating", input),
     weekly: () => request<{ email: boolean; push: boolean }>("GET", "/v1/me/weekly"),
     setWeekly: (input: { email: boolean; pushToken?: string | null; lang: string }) => request<{ email: boolean; push: boolean }>("PUT", "/v1/me/weekly", input),
+    emailPrefs: () => request<{ winback: boolean; weekly: boolean; eligible: boolean }>("GET", "/v1/me/emails"),
+    setEmailPrefs: (input: { winback?: boolean; lang?: string }) => request<{ winback: boolean }>("PUT", "/v1/me/emails", input),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
     explainGame: (input: { startFen: string; moves: string[]; side: "w" | "b" | null; coach: string; consent: true }) =>
       request<{ moments: CoachNote[]; provider: string | null; cached: boolean }>("POST", `/v1/coach/explain${lang("?")}`, input, 50_000),

@@ -22,10 +22,12 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [weekly, setWeekly] = useState<boolean | null>(null);
+  const [winback, setWinback] = useState<boolean | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const [pinTry, setPinTry] = useState("");
   useEffect(() => {
     if (state.account) api.weekly().then((w) => setWeekly(w.email || w.push)).catch(() => {});
+    if (state.account) api.emailPrefs().then((e) => setWinback(e.eligible ? e.winback : null)).catch(() => {});
   }, [state.account]);
   const course = useCourse();
   const { prefs, account } = state;
@@ -135,6 +137,23 @@ export default function Settings() {
                   } catch {
                     setWeekly(!on);
                     toast(copy.auth.errors.offline);
+                  }
+                }}
+              />
+            ) : null}
+            {winback !== null && !isChildProfile(state) ? (
+              <SwitchRow
+                icon="mail"
+                label={copy.platform.emailSettings.winback}
+                hint={copy.platform.emailSettings.winbackHint}
+                value={winback}
+                onChange={async (on) => {
+                  setWinback(on);
+                  try {
+                    await api.setEmailPrefs({ winback: on, lang: language() });
+                  } catch {
+                    setWinback(!on);
+                    toast(copy.platform.emailSettings.error);
                   }
                 }}
               />

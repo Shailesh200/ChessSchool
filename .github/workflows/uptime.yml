@@ -2,13 +2,15 @@ name: Uptime
 
 # Every 5 minutes: is the API answering? Two attempts 30 seconds apart; the run fails (and GitHub emails
 # the repo owner) only when both fail. Read-only: one GET of the public health route.
+# A failure also opens (or comments on) a GitHub issue labelled "ops-alert"; a later green run closes it.
 
 on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  issues: write
 
 concurrency:
   group: uptime
@@ -28,3 +30,30 @@ jobs:
           if check; then echo "API is up (second attempt)"; exit 0; fi
           echo "::error::The API health check failed twice, 30 seconds apart"
           exit 1
+
+  alert:
+    needs: health
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Open, update or close the ops alert issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RESULT: ${{ needs.health.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="API is down (uptime check)"
+          num=$(gh issue list --label ops-alert --state open --search "in:title \"$title\"" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ "$RESULT" = "failure" ]; then
+            gh label create ops-alert --color B60205 --description "Automated ops alert" 2>/dev/null || true
+            # One issue per outage; later failures only comment every so often to avoid noise.
+            if [ -n "$num" ]; then
+              [ "$(date -u +%M)" -lt 5 ] && gh issue comment "$num" --body "Still failing: $RUN_URL" || true
+            else
+              gh issue create --title "$title" --label ops-alert --body "The health check failed twice: $RUN_URL"
+            fi
+          elif [ "$RESULT" = "success" ] && [ -n "$num" ]; then
+            gh issue close "$num" --comment "Back up: $RUN_URL"
+          fi

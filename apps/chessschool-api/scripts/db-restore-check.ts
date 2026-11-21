@@ -20,8 +20,13 @@ const report = await restoreCheck(createClient({ url, authToken: process.env.SOU
 for (const t of report.tables) console.log(`${t.name.padEnd(28)} ${String(t.copied).padStart(8)} rows`);
 console.log(`${report.tables.length} tables, ${report.tables.reduce((n, t) => n + t.copied, 0)} rows copied to ${out}`);
 if (!process.env.KEEP_RESTORE) rmSync(out, { force: true });
-if (report.problems.length) {
-  for (const p of report.problems) console.error(`PROBLEM ${p}`);
+// The backup job sets ROWS_ONLY=1: a schema the live API has not caught up with yet (a new table before a deploy)
+// must not stop the nightly backup, but a table that did not copy in full must.
+const schemaOnly = (p: string) => /: (table|column) is missing$/.test(p);
+const problems = process.env.ROWS_ONLY ? report.problems.filter((p) => !schemaOnly(p)) : report.problems;
+for (const p of report.problems.filter((p) => !problems.includes(p))) console.warn(`WARNING ${p}`);
+if (problems.length) {
+  for (const p of problems) console.error(`PROBLEM ${p}`);
   process.exit(1);
 }
 console.log("restore check passed");

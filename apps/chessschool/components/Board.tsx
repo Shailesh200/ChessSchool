@@ -19,7 +19,7 @@ import {
   type PromotionPiece,
   type Square,
 } from "@chessschool/chess";
-import { copy, moveSpeech, squareSpeech } from "@chessschool/design";
+import { copy, markSpeech, moveSpeech, squareSpeech } from "@chessschool/design";
 import { memo, useEffect, useMemo, useState } from "react";
 import { AccessibilityInfo, Image, PixelRatio, Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -96,6 +96,18 @@ function SlidingPiece({ piece, size, dx, dy, pop }: { piece: Piece; size: number
 }
 
 /** A pulsing red ring under a king in check. */
+/** "Shapes on highlights": dashed corners for the last move, stripes for a hint, a ring for a lesson square. */
+function ShapeMarks({ size, last, hint, teach, ink, hintColor }: { size: number; last: boolean; hint: boolean; teach: boolean; ink: string; hintColor: string }) {
+  const n = 6;
+  return (
+    <Svg pointerEvents="none" width={size} height={size} viewBox="0 0 100 100" style={{ position: "absolute" }}>
+      {last ? <Path d="M8 30V8h22M70 8h22v22M92 70v22H70M30 92H8V70" stroke={ink} strokeOpacity={0.7} strokeWidth={6} fill="none" strokeDasharray="10 6" /> : null}
+      {hint ? Array.from({ length: n }, (_, i) => <Line key={i} x1={i * 34 - 100} y1={100} x2={i * 34} y2={0} stroke={hintColor} strokeOpacity={0.6} strokeWidth={7} />) : null}
+      {teach ? <Circle cx={50} cy={50} r={32} stroke={ink} strokeOpacity={0.6} strokeWidth={5} fill="none" /> : null}
+    </Svg>
+  );
+}
+
 function CheckGlow({ color, reduced }: { color: string; reduced: boolean }) {
   const p = useSharedValue(0);
   useEffect(() => {
@@ -223,7 +235,7 @@ export function Board({
 }: BoardProps) {
   const { c } = useTheme();
   const { state } = useApp();
-  const { legalDots } = state.prefs;
+  const { legalDots, markShapes } = state.prefs;
   const coords = state.prefs.coords && !hideCoords;
   const reduced = useReducedMotion();
   // Square edge snapped to whole device pixels, so rows never show hairline seams.
@@ -359,7 +371,8 @@ export function Board({
                 if (selected === s) parts.push(copy.a11y.selected);
                 if (isTarget) parts.push(copy.a11y.target);
                 if (stars.includes(s)) parts.push(copy.a11y.star);
-                if (isLast) parts.push(copy.a11y.lastMove);
+                const isHint = hints.includes(s) || guide?.from === s || guide?.to === s;
+                parts.push(...markSpeech({ last: isLast, hint: isHint }));
                 const slid = !reduced && lastMove?.to === s && s !== mate;
                 const inner = sq * 0.88;
                 const lifted = dragFrom === s;
@@ -389,7 +402,8 @@ export function Board({
                     {highlight.includes(s) ? <View style={{ position: "absolute", inset: 0, backgroundColor: c.brand, opacity: 0.3 }} /> : null}
                     {selected === s ? <View style={{ position: "absolute", inset: 0, backgroundColor: c.boardSelect }} /> : null}
                     {mate === s ? <View pointerEvents="none" style={{ position: "absolute", inset: 0, backgroundColor: c.danger, opacity: 0.72 }} /> : check === s ? <CheckGlow color={c.boardCheck} reduced={reduced} /> : null}
-                    {hints.includes(s) || guide?.from === s || guide?.to === s ? <View style={{ position: "absolute", inset: 0, borderWidth: 5, borderColor: c.boardHint }} /> : null}
+                    {isHint ? <View style={{ position: "absolute", inset: 0, borderWidth: 5, borderColor: c.boardHint }} /> : null}
+                    {markShapes && (isLast || isHint || highlight.includes(s)) ? <ShapeMarks size={sq} last={isLast} hint={isHint} teach={highlight.includes(s)} ink={c.text} hintColor={c.boardHint} /> : null}
                     {coords && col === 0 ? (
                       <Text style={{ position: "absolute", top: 2, left: 3, fontSize: 10, fontFamily: fonts.bold, color: coordColor }}>{s[1]}</Text>
                     ) : null}

@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { Cody } from "@/components/Lottie";
 import { Button, Choice, Flow, T } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { track as pulse } from "@/lib/analytics";
 
 /**
  * Once per device, before anything else: the app language, then the terms in short. Agreeing covers the
@@ -14,6 +15,7 @@ export default function Start() {
   const { state, update, setPrefs, cue } = useApp();
   const s = copy.start;
   const agree = () => {
+    pulse("terms_accept", { lang: language() });
     const at = new Date().toISOString();
     update((st) => agreeTerms(st, at));
     cue("success");
@@ -36,7 +38,7 @@ export default function Start() {
       <View accessibilityRole="radiogroup" accessibilityLabel={copy.welcome.steps.lang.title} style={{ flexDirection: "row", gap: 10, alignSelf: "stretch" }}>
         {LANGS.map((l) => (
           <View key={l} style={{ flex: 1 }}>
-            <Choice label={LANG_NAMES[l]} selected={language() === l} onPress={() => (setPrefs({ lang: l }), cue("tap"))} />
+            <Choice label={LANG_NAMES[l]} selected={language() === l} onPress={() => (setPrefs({ lang: l }), pulse("language_pick", { lang: l }), cue("tap"))} />
           </View>
         ))}
       </View>
