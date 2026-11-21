@@ -21,6 +21,7 @@
   "dependencies": {
     "@chessschool/chess": "workspace:*",
     "@chessschool/design": "workspace:*",
+    "@shailesh200/pulse-tracker": "workspace:*",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
     "@expo-google-fonts/baloo-2": "^0.4.2",
     "@expo-google-fonts/fredoka": "^0.4.1",

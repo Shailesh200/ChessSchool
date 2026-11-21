@@ -27,3 +27,4 @@ export * from "./ratingChart";
 export * from "./leagues";
 export * from "./flow";
 export * from "./growth";
+export * from "./pulse";

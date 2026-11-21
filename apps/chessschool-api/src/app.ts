@@ -182,7 +182,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const admins = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 
 
-  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
+  app.use("/v1/*", cors({ origin: corsOrigins, credentials: true, allowHeaders: ["Content-Type", "Authorization", "If-None-Match", "X-CS-Lang"], exposeHeaders: ["ETag"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] }));
 
   app.onError(async (err, c) => {
     console.error(err);

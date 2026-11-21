@@ -219,6 +219,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const token = getToken ? await getToken() : null;
     if (token) headers.Authorization = `Bearer ${token}`;
+    // Sign-up and sign-in tell the server the app language, so the welcome email matches it.
+    if (path.startsWith("/v1/auth/")) headers["X-CS-Lang"] = language();
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), waitMs);
     let res: Response;
@@ -304,6 +306,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     rate: (input: RateInput) => request<{ ratings: Ratings; counted: boolean }>("POST", "/v1/me/rating", input),
     weekly: () => request<{ email: boolean; push: boolean }>("GET", "/v1/me/weekly"),
     setWeekly: (input: { email: boolean; pushToken?: string | null; lang: string }) => request<{ email: boolean; push: boolean }>("PUT", "/v1/me/weekly", input),
+    emailPrefs: () => request<{ winback: boolean; weekly: boolean; eligible: boolean }>("GET", "/v1/me/emails"),
+    setEmailPrefs: (input: { winback?: boolean; lang?: string }) => request<{ winback: boolean }>("PUT", "/v1/me/emails", input),
     tablebase: (fen: string) => request<{ move: string | null; category: string }>("GET", `/v1/tablebase?fen=${encodeURIComponent(fen)}`),
     explainGame: (input: { startFen: string; moves: string[]; side: "w" | "b" | null; coach: string; consent: true }) =>
       request<{ moments: CoachNote[]; provider: string | null; cached: boolean }>("POST", `/v1/coach/explain${lang("?")}`, input, 50_000),

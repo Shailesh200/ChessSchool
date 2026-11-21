@@ -136,6 +136,7 @@ export default function Looks() {
         </View>
         <SwitchRow icon="doc" label={copy.looks.coords} value={prefs.coords} onChange={(v) => setPrefs({ coords: v })} />
         <SwitchRow icon="eye" label={copy.looks.legalDots} value={prefs.legalDots} onChange={(v) => setPrefs({ legalDots: v })} />
+        <SwitchRow icon="eye" label={copy.platform.marks.label} hint={copy.platform.marks.hint} value={prefs.markShapes} onChange={(v) => setPrefs({ markShapes: v })} />
         <SwitchRow icon="star" label={copy.gym.promotion} hint={copy.gym.promotionHint} value={prefs.promotion === "ask"} onChange={(v) => setPrefs({ promotion: v ? "ask" : "queen" })} />
       </Card>
 
