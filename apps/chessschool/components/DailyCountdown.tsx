@@ -1,4 +1,4 @@
-import { selectDailyPuzzle, lockDailyPuzzle, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
+import { puzzleById, selectDailyPuzzle, lockDailyPuzzle, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
 import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight, watchLocalMidnight } from "@chessschool/design";
 import { useEffect, useState } from "react";
@@ -60,7 +60,8 @@ export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle | 
   }, [today, done]);
   const remotePuzzle = remote?.day === today ? remote.puzzle : null;
   useEffect(() => {
-    if (!serve || !remotePuzzle || done || daily.servedId === remotePuzzle.id) return;
+    // Only a puzzle this device can show for the rest of the day (in its pack, or small enough to keep as a snapshot).
+    if (!serve || !remotePuzzle || done || daily.servedId === remotePuzzle.id || (!puzzleById(remotePuzzle.id) && !/^[A-Za-z0-9-]{3,8}$/.test(remotePuzzle.id))) return;
     lockDailyPuzzle(today, remotePuzzle);
     serveDailyPuzzle(today, remotePuzzle.id, remotePuzzle);
   }, [serve, remotePuzzle, done, daily.servedId, today, serveDailyPuzzle]);
