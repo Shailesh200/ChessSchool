@@ -53,6 +53,7 @@ export default function Practice() {
           ))}
         </Card>
       ) : null}
+      <Button title={copy.analysisBoard.title} icon="bulb" variant="secondary" hint={copy.analysisBoard.body} onPress={() => router.push("/analysis")} />
     </Page>
   );
 }

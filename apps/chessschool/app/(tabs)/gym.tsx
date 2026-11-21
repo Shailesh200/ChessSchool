@@ -109,6 +109,7 @@ export default function Gym() {
         {MODES.map((m) => tile(m.key, copy.gym[m.key].name, copy.gym[m.key].body, m.icon, () => router.push(m.href), m.locked))}
         {tile("practice", copy.practice.title, copy.rooms.list.practice.promise, "practice", () => router.push("/practice"))}
         {tile("vision", copy.vision.title, copy.vision.tile, "eye", () => router.push("/vision"))}
+        {tile("analysis", copy.analysisBoard.title, copy.analysisBoard.body, "bulb", () => router.push("/analysis"))}
       </View>
     </Page>
   );

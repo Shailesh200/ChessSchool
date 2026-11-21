@@ -6,8 +6,8 @@ import { GAME_LOG_MAX, START_FEN, type GameRecord, type StoredSetup } from "./pr
  */
 export type GameKind = "bot" | "friend" | "challenge" | "imported" | "scanned";
 export type GameOutcomeForYou = "win" | "loss" | "draw";
-export const GAME_KINDS: readonly GameKind[] = ["bot", "challenge", "friend", "imported"];
-export const GAME_RESULTS: readonly GameOutcomeForYou[] = ["win", "loss", "draw"];
+export const GAME_KINDS = ["bot", "challenge", "friend", "imported"] as const satisfies readonly GameKind[];
+export const GAME_RESULTS = ["win", "loss", "draw"] as const satisfies readonly GameOutcomeForYou[];
 
 export function gameKind(g: GameRecord): GameKind {
   if (g.reason === "scanned") return "scanned";
