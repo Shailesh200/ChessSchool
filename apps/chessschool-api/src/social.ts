@@ -30,6 +30,7 @@ import {
   classes,
   classGames,
   classMembers,
+  dailySolves,
   feedback,
   follows,
   inviteAccepts,
@@ -41,6 +42,7 @@ import {
   ratingHistory,
   ratings,
   reports,
+  savedGames,
   sessions,
   shares,
   supportMessages,
@@ -430,7 +432,7 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
     };
     const kids = await db.select().from(children).where(eq(children.userId, me.id));
     const kidIds = kids.map((k) => k.id);
-    const [profile, details, prog, rate, history, kidProgress, memberships, games, made, friendsOut, friendsIn, blocked, reported, notes, support, league, vision, weekly, invite, invited, cards] = await Promise.all([
+    const [profile, details, prog, rate, history, kidProgress, memberships, games, made, friendsOut, friendsIn, blocked, reported, notes, support, league, vision, weekly, invite, invited, cards, savedRows, solves] = await Promise.all([
       db.query.profiles.findFirst({ where: eq(profiles.userId, me.id) }),
       myDetails(me.id),
       db.query.progress.findFirst({ where: eq(progress.userId, me.id) }),
@@ -452,6 +454,8 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
       db.query.invites.findFirst({ where: eq(invites.userId, me.id) }),
       db.select().from(inviteAccepts).where(or(eq(inviteAccepts.invitedId, me.id), eq(inviteAccepts.inviterId, me.id))),
       db.select().from(shares).where(eq(shares.userId, me.id)),
+      db.select({ learnerId: savedGames.learnerId, data: savedGames.data }).from(savedGames).where(eq(savedGames.userId, me.id)),
+      db.select({ day: dailySolves.day, puzzleId: dailySolves.puzzleId }).from(dailySolves).where(eq(dailySolves.solver, `u:${me.id}`)),
     ]);
     const data = {
       exportedAt: now().toISOString(),
@@ -478,6 +482,8 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
       invite: invite ? { code: invite.code, createdAt: invite.createdAt } : null,
       invites: invited,
       shareCards: cards,
+      savedGames: savedRows.map((g) => ({ learnerId: g.learnerId, game: parse(g.data) })),
+      dailyPuzzles: solves,
     };
     c.header("Content-Disposition", `attachment; filename="chessschool-data-${now().toISOString().slice(0, 10)}.json"`);
     c.header("Cache-Control", "no-store");

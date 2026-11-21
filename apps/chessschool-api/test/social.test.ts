@@ -216,10 +216,12 @@ describe("support and data export", () => {
     await call("POST", `/v1/friends/${b.user.id}`, {}, a.token);
     await call("POST", `/v1/players/${b.user.id}/report`, { reason: "other", note: "test" }, a.token);
     await call("POST", "/v1/support", { topic: "account", message: "Please check my account." }, a.token);
+    const saved = { id: "g1", endedAt: 1000, setup: { opponent: { kind: "bot", bot: "pip" }, you: "w", time: "none", startFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", takebacks: true, askPromotion: true }, history: ["e4", "e5"], winner: "w", reason: "resigned" };
+    expect((await call("PUT", "/v1/games/g1", { game: saved }, a.token)).status).toBe(200);
     const out = await call("GET", "/v1/me/export", undefined, a.token);
     expect(out.status).toBe(200);
     expect(out.headers.get("content-disposition")).toContain("chessschool-data-2026-11-20.json");
-    expect(out.json).toMatchObject({ account: { email: "a@b.co", name: "Asha" }, details: { details: { bio: "Hi" } }, reportsMade: [{ reportedId: b.user.id, reason: "other" }], support: [{ topic: "account" }] });
+    expect(out.json).toMatchObject({ account: { email: "a@b.co", name: "Asha" }, details: { details: { bio: "Hi" } }, reportsMade: [{ reportedId: b.user.id, reason: "other" }], support: [{ topic: "account" }], savedGames: [{ game: { id: "g1", history: ["e4", "e5"] } }] });
     expect(JSON.stringify(out.json)).not.toMatch(/passwordHash|\$2[aby]\$/);
     expect((await call("GET", "/v1/me/export")).status).toBe(401);
 
