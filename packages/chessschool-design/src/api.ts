@@ -71,6 +71,19 @@ export type GrowthStats = {
   crashFree: number | null;
 };
 
+/** GET /v1/admin/metrics: product numbers from the app's own tables (QA test accounts left out). */
+export type AdminMetrics = {
+  days: number;
+  accounts: { total: number; new: number; daily: { day: string; n: number }[]; methods: { password: number; google: number; apple: number }; activeLearners: number };
+  games: { total: number; bot: number; friend: number; other: number; won: number; lost: number; drawn: number; bots: { bot: string; played: number; won: number }[] };
+  challenges: { created: number; joined: number; finished: number; byClock: Record<string, number> };
+  dailyPuzzle: { solves: number; daily: { day: string; n: number }[] };
+  ai: { requests: number; users: number; daily: { day: string; n: number }[] };
+  countries: { country: string; n: number }[];
+  support: number;
+  reports: number;
+};
+
 export type UsageSummary = {
   days: number;
   installs: number;
@@ -363,6 +376,7 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     adminGrowth: () => request<GrowthStats>("GET", "/v1/admin/growth"),
     sendUsage: (batch: UsageBatch) => request<{ ok: true; stored: number }>("POST", "/v1/events", batch),
     adminUsage: (days: number) => request<UsageSummary>("GET", `/v1/admin/usage?days=${days}`),
+    adminMetrics: (days: number) => request<AdminMetrics>("GET", `/v1/admin/metrics?days=${days}`),
     adminReports: () => request<{ reports: AdminReport[] }>("GET", "/v1/admin/reports"),
     resolveReport: (id: string, status: "open" | "resolved") => request<{ ok: true }>("PATCH", `/v1/admin/reports/${id}`, { status }),
     adminCourse: () => request<AdminCourse>("GET", "/v1/admin/course"),

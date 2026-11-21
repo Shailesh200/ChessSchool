@@ -77,6 +77,7 @@ import { mountGrowth, payInvite } from "./growth";
 import { growthStats } from "./growth-stats";
 import type { CardStore } from "./share-card";
 import { mountLifecycle } from "./lifecycle";
+import { adminMetrics } from "./admin-metrics";
 import { rateLimits, type RateStore } from "./rate-limit";
 import {
   SESSION_COOKIE,
@@ -1020,6 +1021,11 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   app.get("/v1/admin/usage", requireAdmin, async (c) => {
     const days = Math.min(180, Math.max(1, Number.parseInt(c.req.query("days") ?? "30", 10) || 30));
     return c.json(await usageSummary(db, now().getTime(), days));
+  });
+
+  app.get("/v1/admin/metrics", requireAdmin, async (c) => {
+    const days = Math.min(180, Math.max(1, Number.parseInt(c.req.query("days") ?? "30", 10) || 30));
+    return c.json(await adminMetrics(db, now().getTime(), days));
   });
 
   /** Growth dashboard: return rates, daily over monthly users, shares, invite conversion, crash-free sessions. */

@@ -130,6 +130,9 @@ type Store = {
 
 const Ctx = createContext<Store | null>(null);
 
+/** Device-test builds never send usage or analytics, so the dashboard counts real people only. */
+const NO_TRACK = process.env.EXPO_PUBLIC_DEVICE_TEST === "1";
+
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<LocalState>(() => createInitialState("pending"));
   const [ready, setReady] = useState(false);
@@ -145,7 +148,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       install: () => latest.current.usageId,
       platform: Platform.OS === "ios" ? "ios" : "android",
       appVersion: Constants.expoConfig?.version ?? "0.0.0",
-      enabled: () => latest.current.prefs.shareUsage,
+      enabled: () => !NO_TRACK && latest.current.prefs.shareUsage,
     }),
   );  /** One call feeds the in-house usage counts and Pulse. */
   const both = useCallback((name: UsageEventName, extra?: { lesson?: string; step?: number; value?: number }) => {
@@ -153,7 +156,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     const ev = pulseForUsage(name, extra);
     if (ev) pulseTrack(ev[0], ev[1]);
   }, [usage]);
-  useEffect(() => setAnalyticsAllowed(state.prefs.shareUsage), [state.prefs.shareUsage]);
+  useEffect(() => setAnalyticsAllowed(!NO_TRACK && state.prefs.shareUsage), [state.prefs.shareUsage]);
 
   useEffect(() => {
     if (!ready) return;

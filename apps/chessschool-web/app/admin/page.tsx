@@ -1,13 +1,27 @@
 "use client";
 
-import { ApiError, copy, type AdminReport, type UsageSummary } from "@chessschool/design";
+import {
+  ApiError,
+  copy,
+  countryName,
+  flagOf,
+  type AdminMetrics,
+  type AdminReport,
+  type UsageSummary,
+} from "@chessschool/design";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { BarChart, fillDays } from "@/components/admin/BarChart";
 import { Button, Card, Segmented, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 
-type Load = { state: "loading" } | { state: "signin" } | { state: "forbidden" } | { state: "error" } | { state: "ok"; usage: UsageSummary; reports: AdminReport[] };
+type Load =
+  | { state: "loading" }
+  | { state: "signin" }
+  | { state: "forbidden" }
+  | { state: "error" }
+  | { state: "ok"; usage: UsageSummary; metrics: AdminMetrics; reports: AdminReport[] };
 const RANGES = [7, 30, 90] as const;
 
 /** Internal dashboard: anonymous usage and the class report queue. Only ADMIN_EMAILS accounts get data. */
@@ -19,14 +33,30 @@ export default function AdminPage() {
   const toast = useToast();
 
   const fetchAll = useCallback(() => {
-    Promise.all([api.adminUsage(days), api.adminReports()])
-      .then(([usage, r]) => setLoad({ state: "ok", usage, reports: r.reports }))
-      .catch((err) => setLoad({ state: err instanceof ApiError && err.status === 401 ? "signin" : err instanceof ApiError && err.status === 403 ? "forbidden" : "error" }));
+    Promise.all([api.adminUsage(days), api.adminMetrics(days), api.adminReports()])
+      .then(([usage, metrics, r]) =>
+        setLoad({ state: "ok", usage, metrics, reports: r.reports }),
+      )
+      .catch((err) =>
+        setLoad({
+          state:
+            err instanceof ApiError && err.status === 401
+              ? "signin"
+              : err instanceof ApiError && err.status === 403
+                ? "forbidden"
+                : "error",
+        }),
+      );
   }, [days]);
   useEffect(fetchAll, [fetchAll]);
 
   if (load.state !== "ok") {
-    const msg = { loading: "Loading…", signin: "Sign in with the admin account to see this page.", forbidden: "This account can't open the admin page.", error: "Couldn't load the numbers. Try again." }[load.state];
+    const msg = {
+      loading: "Loading…",
+      signin: "Sign in with the admin account to see this page.",
+      forbidden: "This account can't open the admin page.",
+      error: "Couldn't load the numbers. Try again.",
+    }[load.state];
     return (
       <div className="page page-narrow">
         <TopBar title="Admin" back={false} />
@@ -39,20 +69,15 @@ export default function AdminPage() {
     );
   }
 
-  const { usage, reports } = load;
+  const { usage, metrics, reports } = load;
   const title = (id: string) => course?.lessons.find((l) => l.id === id)?.title ?? id;
   const started = usage.lessons.reduce((n, l) => n + l.starts, 0);
   const finished = usage.lessons.reduce((n, l) => n + l.finishes, 0);
   const open = reports.filter((r) => r.status === "open");
   const shown = showResolved ? reports : open;
-  const lessons = [...usage.lessons].filter((l) => l.starts > 0).sort((a, b) => a.completion - b.completion || b.starts - a.starts);
-  // Every day in the range, so quiet days show as gaps rather than wider bars.
-  const byDay = new Map(usage.daily.map((d) => [d.day, d.installs]));
-  const daily = Array.from({ length: usage.days }, (_, i) => {
-    const day = new Date(Date.now() - (usage.days - 1 - i) * 86_400_000).toISOString().slice(0, 10);
-    return { day, installs: byDay.get(day) ?? 0 };
-  });
-  const peak = Math.max(1, ...daily.map((d) => d.installs));
+  const lessons = [...usage.lessons]
+    .filter((l) => l.starts > 0)
+    .sort((a, b) => a.completion - b.completion || b.starts - a.starts);
   const share = (p: string) => {
     const n = usage.platforms.find((x) => x.platform === p)?.installs ?? 0;
     return usage.installs ? Math.round((n / usage.installs) * 100) : 0;
@@ -69,8 +94,14 @@ export default function AdminPage() {
 
   return (
     <div className="page admin">
-      <TopBar title="Admin" back={false} action={
+      <TopBar
+        title="Admin"
+        back={false}
+        action={
           <span className="admin-links">
+            <Button variant="secondary" href="/admin/growth">
+              Growth
+            </Button>
             <Button variant="secondary" href="/admin/safety">
               Safety
             </Button>
@@ -78,37 +109,192 @@ export default function AdminPage() {
               Lesson editor
             </Button>
           </span>
-        } />
+        }
+      />
       <div className="admin-head">
-        <p className="page-lead">Anonymous installs only: no names, emails or accounts.</p>
-        <Segmented label="Range" value={days} onChange={setDays} options={RANGES.map((d) => ({ value: d, label: `${d} days` }))} />
+        <p className="page-lead">
+          Installs are anonymous app and website installs that opened at least once.
+          Test builds and QA accounts are left out.
+        </p>
+        <Segmented
+          label="Range"
+          value={days}
+          onChange={setDays}
+          options={RANGES.map((d) => ({ value: d, label: `${d} days` }))}
+        />
       </div>
 
       <div className="admin-kpis">
-        <Kpi label="Active installs" value={usage.installs.toLocaleString()} sub={`iOS ${share("ios")}% · Android ${share("android")}% · Web ${share("web")}%`} />
-        <Kpi label="Lesson completion" value={started ? `${Math.round((finished / started) * 100)}%` : "–"} sub={`${started.toLocaleString()} started · ${finished.toLocaleString()} finished`} />
-        <Kpi label="Puzzles solved" value={usage.puzzles.solved.toLocaleString()} sub={`${usage.puzzles.failed.toLocaleString()} failed attempts · ${usage.games.toLocaleString()} games`} />
-        <Kpi label="Open reports" value={String(open.length)} sub={open.length ? `Oldest ${ago(Math.min(...open.map((r) => r.createdAt)))}` : "Nothing waiting"} danger={open.length > 0} />
+        <Kpi
+          label="Active installs"
+          value={usage.installs.toLocaleString()}
+          sub={`iOS ${share("ios")}% · Android ${share("android")}% · Web ${share("web")}%`}
+        />
+        <Kpi
+          label="Accounts"
+          value={metrics.accounts.total.toLocaleString()}
+          sub={`${metrics.accounts.new} new · ${metrics.accounts.activeLearners} active learners`}
+        />
+        <Kpi
+          label="Lesson completion"
+          value={started ? `${Math.round((finished / started) * 100)}%` : "–"}
+          sub={`${started.toLocaleString()} started · ${finished.toLocaleString()} finished`}
+        />
+        <Kpi
+          label="Puzzles solved"
+          value={usage.puzzles.solved.toLocaleString()}
+          sub={`${usage.puzzles.failed.toLocaleString()} failed attempts · ${usage.games.toLocaleString()} games`}
+        />
+        <Kpi
+          label="Open reports"
+          value={String(open.length)}
+          sub={
+            open.length
+              ? `Oldest ${ago(Math.min(...open.map((r) => r.createdAt)))}`
+              : "Nothing waiting"
+          }
+          danger={open.length > 0}
+        />
       </div>
 
-      <Card>
-        <h2 className="card-title">Daily active installs</h2>
-        {usage.installs ? (
-          <>
-            <div className="admin-bars" role="list" aria-label="Daily active installs">
-              {daily.map((d) => (
-                <div key={d.day} role="listitem" className={`admin-bar${d.installs ? "" : " empty"}`} style={{ height: d.installs ? `${Math.max(2, (d.installs / peak) * 100)}%` : "2px" }} title={`${d.day}: ${d.installs}`} aria-label={`${d.day}: ${d.installs} installs`} />
+      <div className="admin-grid">
+        <Card>
+          <h2 className="card-title">Daily active installs</h2>
+          {usage.installs ? (
+            <BarChart
+              points={fillDays(
+                usage.daily.map((d) => ({ day: d.day, n: d.installs })),
+                usage.days,
+              )}
+              label="Daily active installs"
+              unit="installs"
+            />
+          ) : (
+            <p className="muted">No events in this range yet.</p>
+          )}
+        </Card>
+        <Card>
+          <h2 className="card-title">New accounts</h2>
+          <BarChart
+            points={fillDays(metrics.accounts.daily, metrics.days)}
+            label="New accounts"
+            unit="accounts"
+          />
+        </Card>
+      </div>
+
+      <h2 className="admin-section-title">Playing</h2>
+      <div className="admin-grid">
+        <Card>
+          <h2 className="card-title">Games saved</h2>
+          <ul className="admin-rows">
+            <Row k="Games" v={metrics.games.total} />
+            <Row k="Against bots" v={metrics.games.bot} />
+            <Row k="Against friends" v={metrics.games.friend} />
+            <Row
+              k="Won · lost · drawn"
+              v={`${metrics.games.won} · ${metrics.games.lost} · ${metrics.games.drawn}`}
+            />
+            <Row
+              k="Win rate"
+              v={`${metrics.games.total ? Math.round((metrics.games.won / metrics.games.total) * 100) : 0}%`}
+            />
+          </ul>
+          <p className="muted small">
+            Signed-in players only; guests keep games on their device.
+          </p>
+        </Card>
+        <Card>
+          <h2 className="card-title">Bots played</h2>
+          {metrics.games.bots.length ? (
+            <ul className="admin-rows">
+              {metrics.games.bots.map((b) => (
+                <Row
+                  key={b.bot}
+                  k={b.bot[0].toUpperCase() + b.bot.slice(1)}
+                  v={`${b.played} games · ${Math.round((b.won / b.played) * 100)}% won`}
+                />
               ))}
-            </div>
-            <div className="admin-axis">
-              <span>{daily[0].day}</span>
-              <span>{daily[daily.length - 1].day}</span>
-            </div>
-          </>
-        ) : (
-          <p className="muted">No events in this range yet.</p>
-        )}
-      </Card>
+            </ul>
+          ) : (
+            <p className="muted">No bot games in this range.</p>
+          )}
+        </Card>
+        <Card>
+          <h2 className="card-title">Friend challenges</h2>
+          <ul className="admin-rows">
+            <Row k="Links made" v={metrics.challenges.created} />
+            <Row
+              k="Friend joined"
+              v={`${metrics.challenges.joined} (${metrics.challenges.created ? Math.round((metrics.challenges.joined / metrics.challenges.created) * 100) : 0}%)`}
+            />
+            <Row k="Finished" v={metrics.challenges.finished} />
+            {Object.entries(metrics.challenges.byClock).map(([tc, n]) => (
+              <Row key={tc} k={`Clock: ${tc === "none" ? "no clock" : tc}`} v={n} />
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      <div className="admin-grid">
+        <Card>
+          <h2 className="card-title">Daily puzzle solves</h2>
+          <BarChart
+            points={fillDays(metrics.dailyPuzzle.daily, metrics.days)}
+            label="Daily puzzle solves"
+            unit="solves"
+          />
+        </Card>
+        <Card>
+          <h2 className="card-title">AI coach requests</h2>
+          <BarChart
+            points={fillDays(metrics.ai.daily, metrics.days)}
+            label="AI coach requests"
+            unit="requests"
+          />
+          <p className="muted small">
+            Hints and explanations; busiest day had {metrics.ai.users} players using it.
+          </p>
+        </Card>
+      </div>
+
+      <h2 className="admin-section-title">People</h2>
+      <div className="admin-grid">
+        <Card>
+          <h2 className="card-title">Sign-in methods</h2>
+          <ul className="admin-rows">
+            <Row k="Email and password" v={metrics.accounts.methods.password} />
+            <Row k="Google" v={metrics.accounts.methods.google} />
+            <Row k="Apple" v={metrics.accounts.methods.apple} />
+          </ul>
+        </Card>
+        <Card>
+          <h2 className="card-title">Countries</h2>
+          {metrics.countries.length ? (
+            <ul className="admin-rows">
+              {metrics.countries.map((c) => (
+                <Row
+                  key={c.country}
+                  k={`${flagOf(c.country)} ${countryName(c.country)}`}
+                  v={c.n}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No one has picked a country yet.</p>
+          )}
+        </Card>
+        <Card>
+          <h2 className="card-title">Support and safety</h2>
+          <ul className="admin-rows">
+            <Row k="Support messages" v={metrics.support} />
+            <Row k="Player reports" v={metrics.reports} />
+          </ul>
+          <Link href="/admin/safety" className="link">
+            Open the safety queue
+          </Link>
+        </Card>
+      </div>
 
       <div className="admin-split">
         <Card className="admin-lessons">
@@ -119,9 +305,13 @@ export default function AdminPage() {
               <thead>
                 <tr>
                   <th scope="col">Lesson</th>
-                  <th scope="col" className="num">Started</th>
+                  <th scope="col" className="num">
+                    Started
+                  </th>
                   <th scope="col">Completion</th>
-                  <th scope="col" className="num">Most quit at</th>
+                  <th scope="col" className="num">
+                    Most quit at
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -131,16 +321,29 @@ export default function AdminPage() {
                     <td className="num">{l.starts}</td>
                     <td>
                       <span className="admin-meter" aria-hidden>
-                        <span className={l.completion < 55 ? "low" : l.completion < 70 ? "mid" : "high"} style={{ width: `${l.completion}%` }} />
+                        <span
+                          className={
+                            l.completion < 55
+                              ? "low"
+                              : l.completion < 70
+                                ? "mid"
+                                : "high"
+                          }
+                          style={{ width: `${l.completion}%` }}
+                        />
                       </span>
                       {l.completion}%
                     </td>
-                    <td className="num">{l.topQuitStep === null ? "–" : `step ${l.topQuitStep + 1}`}</td>
+                    <td className="num">
+                      {l.topQuitStep === null ? "–" : `step ${l.topQuitStep + 1}`}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {lessons.length ? null : <p className="muted">No lessons started in this range.</p>}
+            {lessons.length ? null : (
+              <p className="muted">No lessons started in this range.</p>
+            )}
           </div>
         </Card>
 
@@ -151,13 +354,18 @@ export default function AdminPage() {
               {shown.map((r) => (
                 <li key={r.id} className="admin-report">
                   <div className="admin-report-meta">
-                    <span className={`chip ${r.reason === "name" ? "chip-accent" : r.reason === "behaviour" ? "chip-gold" : ""}`}>{copy.classroom.reasons[r.reason] ?? r.reason}</span>
+                    <span
+                      className={`chip ${r.reason === "name" ? "chip-accent" : r.reason === "behaviour" ? "chip-gold" : ""}`}
+                    >
+                      {copy.classroom.reasons[r.reason] ?? r.reason}
+                    </span>
                     <span className="muted">
                       {r.className ?? "Closed class"} · {ago(r.createdAt)}
                     </span>
                   </div>
                   <p>
-                    <strong>{r.reported ?? "Deleted account"}</strong> reported by {r.reporter ?? "a deleted account"}
+                    <strong>{r.reported ?? "Deleted account"}</strong> reported by{" "}
+                    {r.reporter ?? "a deleted account"}
                   </p>
                   {r.note ? <p className="muted">“{r.note}”</p> : null}
                   <Button variant="secondary" onClick={() => void resolve(r)}>
@@ -170,8 +378,14 @@ export default function AdminPage() {
             <p className="muted">No open reports.</p>
           )}
           {reports.length > open.length ? (
-            <button type="button" className="link" onClick={() => setShowResolved(!showResolved)}>
-              {showResolved ? "Hide resolved" : `Show resolved (${reports.length - open.length})`}
+            <button
+              type="button"
+              className="link"
+              onClick={() => setShowResolved(!showResolved)}
+            >
+              {showResolved
+                ? "Hide resolved"
+                : `Show resolved (${reports.length - open.length})`}
             </button>
           ) : null}
         </Card>
@@ -183,7 +397,26 @@ export default function AdminPage() {
   );
 }
 
-function Kpi({ label, value, sub, danger }: { label: string; value: string; sub: string; danger?: boolean }) {
+function Row({ k, v }: { k: string; v: string | number }) {
+  return (
+    <li>
+      <span>{k}</span>
+      <strong>{typeof v === "number" ? v.toLocaleString() : v}</strong>
+    </li>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  sub,
+  danger,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  danger?: boolean;
+}) {
   return (
     <Card className="admin-kpi">
       <span className="muted">{label}</span>

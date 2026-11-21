@@ -111,6 +111,9 @@ type Store = {
 };
 
 const Ctx = createContext<Store | null>(null);
+
+/** Automated browsers (smoke tests, Lighthouse) never send usage or analytics, so the dashboard counts real people only. */
+const NO_TRACK = typeof navigator !== "undefined" && navigator.webdriver === true;
 const newGuestId = () => crypto.randomUUID();
 
 function read(): LocalState {
@@ -136,14 +139,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     latest.current = state;
   });
   const [usage] = useState(() =>
-    createUsage({ send: api.sendUsage, install: () => latest.current.usageId, platform: "web", appVersion: version, enabled: () => latest.current.prefs.shareUsage }),
+    createUsage({ send: api.sendUsage, install: () => latest.current.usageId, platform: "web", appVersion: version, enabled: () => !NO_TRACK && latest.current.prefs.shareUsage }),
   );  /** One call feeds the in-house usage counts and Pulse. */
   const both = useCallback((name: UsageEventName, extra?: { lesson?: string; step?: number; value?: number }) => {
     usage.track(name, extra);
     const ev = pulseForUsage(name, extra);
     if (ev) pulseTrack(ev[0], ev[1]);
   }, [usage]);
-  useEffect(() => setAnalyticsAllowed(state.prefs.shareUsage), [state.prefs.shareUsage]);
+  useEffect(() => setAnalyticsAllowed(!NO_TRACK && state.prefs.shareUsage), [state.prefs.shareUsage]);
 
   useEffect(() => {
     if (!ready) return;

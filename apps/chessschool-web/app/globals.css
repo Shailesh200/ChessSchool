@@ -4730,6 +4730,126 @@ button.focus-card {
   color: var(--cs-text-muted);
   margin-top: 6px;
 }
+/* Admin bar charts: y-axis, gridlines, date ticks and a hover tooltip. */
+.chart {
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 180px auto;
+  column-gap: 8px;
+}
+.chart-y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transform: translateY(-0.5em);
+  height: calc(100% + 1em);
+}
+.chart-area {
+  position: relative;
+  min-width: 0;
+}
+.chart-grid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.chart-grid span {
+  border-top: 1px dashed var(--cs-line);
+}
+.chart-grid span:last-child {
+  border-top: 1px solid var(--cs-line);
+}
+.chart-bars {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+.chart-bar {
+  flex: 1;
+  min-width: 2px;
+  padding: 0;
+  border: 0;
+  background: var(--cs-brand);
+  border-radius: 4px 4px 0 0;
+  cursor: default;
+}
+.chart-bar.empty {
+  background: var(--cs-line);
+}
+.chart-bar.on,
+.chart-bar:focus-visible {
+  background: var(--cs-brand-text);
+  outline: none;
+}
+.chart-tip {
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, -110%);
+  background: var(--cs-text);
+  color: var(--cs-bg);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 2;
+}
+.chart-tip span {
+  opacity: 0.75;
+  font-size: 0.75rem;
+}
+.chart-x {
+  display: flex;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+}
+.chart-x span {
+  flex: 1;
+  min-width: 2px;
+  white-space: nowrap;
+  overflow: visible;
+}
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+.admin-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.admin-rows li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-rows li span:first-child {
+  color: var(--cs-text-muted);
+}
+.admin-section-title {
+  margin: 8px 0 0;
+  font-size: 1.125rem;
+}
 .admin-split {
   display: flex;
   flex-wrap: wrap;
