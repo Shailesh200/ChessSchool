@@ -17,3 +17,4 @@ export * from "./mistakes";
 export * from "./phase";
 export * from "./speech";
 export * from "./scan";
+export * from "./analysis";

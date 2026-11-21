@@ -5,6 +5,10 @@ import { setAnalyticsAllowed, track as pulseTrack, flushAnalytics } from "@/lib/
 import { botGameProps, pulseForUsage, settingsProps } from "@chessschool/design";
 import {
   STORAGE_KEY,
+  markWeek,
+  mergeGameLogs,
+  queueGameSave,
+  queueDailySolve,
   adoptRatings,
   addFreezes,
   FREEZE_MAX,
@@ -150,7 +154,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [ready, usage]);
 
   useEffect(() => {
-    setState(arrive(read(), new Date()));
+    setState(markWeek(arrive(read(), new Date()), dayKey(new Date())));
     setReady(true);
   }, []);
 
@@ -184,6 +188,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         setState((s) => applyMe(s, me));
         void settleInvites();
         const child = latest.current.activeChild;
+        void loadGames(child);
         return api.rating(child).then((r) => setState((s) => adoptRatings(s, child, r.ratings)));
       })
       .catch((err) => {
@@ -205,6 +210,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Signed in: debounce-push progress; the server merges, never overwrites.
+  /** The account's saved games join the device's log (the device's copy of a game wins). */
+  const loadGames = (child: string | null) =>
+    api
+      .games(child)
+      .then((r) => setState((s) => (s.activeChild === child ? { ...s, gameLog: mergeGameLogs(s.gameLog, r.games) } : s)))
+      .catch(() => {});
+
   /** Signed in on the account's own profile: accept an invite link opened earlier, then move any banked reward freezes into the streak. */
   const settleInvites = async () => {
     if (latest.current.activeChild) return;
@@ -251,9 +263,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const flushing = useRef(false);
   const queued = state.ratingQueue.length + state.writeQueue.length;
   useEffect(() => {
-    if (!ready || !accountId || !queued || flushing.current) return;
+    if (!ready || !queued || flushing.current || (!accountId && !latest.current.writeQueue.some((w) => w.kind === "daily"))) return;
     flushing.current = true;
-    void drainQueues(() => latest.current, setState, api).then((sent) => {
+    void drainQueues(() => latest.current, setState, api, { signedIn: Boolean(accountId) }).then((sent) => {
       flushing.current = false;
       // Anything queued while this ran goes out next.
       if (sent) setNetTick((n) => n + 1);
@@ -269,6 +281,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       switchLearner: async (child) => {
         setState((s) => switchProfile(s, child?.id ?? null, child ? freshSlice(s, child.name, child.avatar) : undefined));
         const id = child?.id ?? null;
+        void loadGames(id);
         api
           .rating(id)
           .then((r) => setState((s) => adoptRatings(s, id, r.ratings)))
@@ -308,14 +321,21 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         usage.track("game_finished");
         const botProps = botGameProps(game);
         if (botProps) pulseTrack("bot_game_end", botProps);
-        earn((s) => recordGame(s, game, new Date(), minutes));
+        earn((s) => {
+          const next = recordGame(s, game, new Date(), minutes);
+          return s.account ? queueGameSave(next, game) : next;
+        });
         // The endgame trainer defends from the tablebase, not the bot, so it is not rated.
         const bot = game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : null;
         if (bot && isBotId(bot) && !(ENDGAME_IDS as readonly string[]).includes(game.setup.startId ?? "")) rate(ratedGame(game, botInfo(bot).rating));
       },
       finishPuzzle: (p) => {
         both(p.solved ? "puzzle_solved" : "puzzle_failed");
-        earn((s) => recordPuzzle(s, p, new Date()));
+        earn((s) => {
+          const next = recordPuzzle(s, p, new Date());
+          // The shared "solved by" count; queued so a solve made offline still counts.
+          return p.daily && p.solved ? queueDailySolve(next, dayKey(new Date()), p.id) : next;
+        });
         if (p.puzzleRating) rate(ratedPuzzle({ id: p.id, solved: p.solved, puzzleRating: p.puzzleRating }, Date.now()));
       },
       serveDailyPuzzle: (day, id, puzzle) => setState((s) => serveDaily(s, day, id, puzzle)),

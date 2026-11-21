@@ -147,10 +147,24 @@ function dayHash(day: string): number {
 
 /** Date-seeded puzzle from the everyday band. Same result for every learner on that day. */
 function dateSeededPuzzle(day: string): Puzzle {
-  const all = allPuzzles();
-  const pool = all.filter((p) => p.rating >= 800 && p.rating <= 1500);
-  const list = pool.length ? pool : all;
-  return list[dayHash(day) % list.length];
+  return sharedDailyPuzzle(day, allPuzzles())!;
+}
+
+let sharedCache: { list: readonly Puzzle[]; sorted: Puzzle[] } | null = null;
+/**
+ * The one daily puzzle everyone gets on `day`: from the everyday band (800–1500) of `list`, ordered by id
+ * so the app, the website and the API pick the same one from the same pack. Null for an empty list.
+ */
+export function sharedDailyPuzzle<P extends { id: string; rating: number }>(day: string, list: readonly P[]): P | null {
+  if (!list.length) return null;
+  let sorted: P[];
+  if (sharedCache && (sharedCache.list as readonly unknown[]) === list) sorted = sharedCache.sorted as unknown as P[];
+  else {
+    const band = list.filter((p) => p.rating >= 800 && p.rating <= 1500);
+    sorted = [...(band.length ? band : list)].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    sharedCache = { list: list as unknown as Puzzle[], sorted: sorted as unknown as Puzzle[] };
+  }
+  return sorted[dayHash(day) % sorted.length];
 }
 
 /**

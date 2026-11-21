@@ -1,0 +1,163 @@
+/* Phase 4 games, practice and offline: My games filters, replay move list, analysis board, daily puzzle, weekly recap. */
+.filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0 0 2px;
+  list-style: none;
+  scrollbar-width: none;
+}
+.filter-chip,
+.move-chip {
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+  color: var(--cs-text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.filter-chip[aria-pressed="true"],
+.move-chip[aria-pressed="true"] {
+  border-color: var(--cs-brand);
+  background: var(--cs-brand-soft);
+  color: var(--cs-brand-text);
+}
+.move-list {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0 0 2px;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.move-list li {
+  flex: none;
+}
+.move-chip {
+  min-height: 32px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-color: transparent;
+}
+.move-chip.m-danger {
+  border-color: var(--cs-danger);
+  color: var(--cs-danger-text);
+}
+.move-chip.m-gold {
+  border-color: var(--cs-gold);
+  color: var(--cs-gold-text);
+}
+.move-chip.m-success {
+  border-color: var(--cs-success);
+  color: var(--cs-success-text);
+}
+.game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.game-actions > * {
+  flex: 1 1 140px;
+}
+.ab-line {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+}
+.ab-line strong {
+  font-variant-numeric: tabular-nums;
+}
+.ab-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ab-piece {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 2px solid var(--cs-line);
+  background: var(--cs-card);
+  color: var(--cs-text);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ab-piece[aria-checked="true"] {
+  border-color: var(--cs-brand);
+  background: var(--cs-brand-soft);
+}
+.ab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ab-row > * {
+  flex: 1 1 120px;
+}
+.ab-error {
+  color: var(--cs-danger-text);
+  margin: 0;
+}
+.ab-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+  flex: 1 1 140px;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+}
+.stat-tile {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--cs-sunken);
+}
+.stat-tile strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.stat-tile span {
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+}
+.daily-panel,
+.recap-card {
+  display: grid;
+  gap: 10px;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-head h2 {
+  flex: 1;
+  margin: 0;
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

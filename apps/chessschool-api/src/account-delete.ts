@@ -3,6 +3,7 @@ import type { Db } from "./db";
 import { growthDeletes } from "./growth";
 import { socialDeletes } from "./social";
 import { lifecycleDeletes } from "./lifecycle";
+import { playDeletes } from "./play";
 import { blocks, childProgress, children, coachUsage, classes, follows, classGames, classMembers, feedback, homework, leaderboardHidden, profiles, progress, leagueMembers, leaguePlayers, ratingEvents, ratingHistory, ratings, reports, scanUsage, sessions, tournaments, users, visionScores, weeklySummary } from "./schema";
 
 /**
@@ -52,6 +53,7 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
     ...growthDeletes(db, userId),
     ...socialDeletes(db, userId),
     ...lifecycleDeletes(db, userId),
+    ...playDeletes(db, userId),
     db.delete(users).where(eq(users.id, userId)),
   ]);
 }

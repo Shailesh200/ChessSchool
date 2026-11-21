@@ -639,6 +639,17 @@ function ResultSheet(props: {
         </View>
       </View>
       {props.share ? <ShareCardButton kind="game_won" data={props.share} /> : null}
+      {props.history.length ? (
+        <Button
+          title={copy.myGames.analyse}
+          icon="bulb"
+          variant="secondary"
+          onPress={() => {
+            props.onClose();
+            router.push(`/analysis?start=${encodeURIComponent(props.startFen)}&moves=${encodeURIComponent(props.history.join(" "))}&side=${props.side ?? "w"}` as never);
+          }}
+        />
+      ) : null}
       <Button title={copy.play.back} variant="ghost" onPress={props.onBack} />
     </Sheet>
   );

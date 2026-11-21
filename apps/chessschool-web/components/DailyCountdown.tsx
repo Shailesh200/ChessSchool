@@ -1,10 +1,11 @@
 "use client";
 
-import { selectDailyPuzzle, lockDailyPuzzle, themesForCompletedLessons, type Puzzle } from "@chessschool/chess";
+import { puzzleById, selectDailyPuzzle, lockDailyPuzzle, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { copy, dailyDone, dayKey, formatDailyCountdown, msUntilLocalMidnight, watchLocalMidnight } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { useApp } from "@/lib/state";
+import { api } from "@/lib/api";
 
 /** Local day, replaced at midnight and when the tab is shown again (a background timer may have been paused). */
 function useLocalDay(): string {
@@ -25,8 +26,12 @@ function useLocalDay(): string {
   return today;
 }
 
-/** Today's puzzle. Passing `serve` records it so the same id is not offered again. Null until the pack is ready. */
-export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle | null; done: boolean; ready: boolean } {
+/**
+ * Today's shared daily puzzle (the same for everyone, picked by date from the pack; the API's pick wins when
+ * it is reachable, so a device on an older pack still gets everyone's puzzle). Passing `serve` locks it for the
+ * day. `solved` is how many learners solved it today (null offline). Null puzzle until the pack is ready.
+ */
+export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle | null; done: boolean; ready: boolean; solved: number | null } {
   const { state, serveDailyPuzzle } = useApp();
   const ready = usePuzzlePackReady();
   const today = useLocalDay();
@@ -34,8 +39,6 @@ export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle | 
   const choice = ready
     ? selectDailyPuzzle({
         day: today,
-        completedThemes: themesForCompletedLessons(Object.keys(state.progress.completed)),
-        seenIds: daily.seen ?? [],
         servedDay: daily.servedDay,
         servedId: daily.servedId,
         stored: (daily.served as Puzzle | undefined) ?? null,
@@ -46,7 +49,26 @@ export function useDailyPuzzle(serve = true): { today: string; puzzle: Puzzle | 
     lockDailyPuzzle(today, choice.puzzle);
     serveDailyPuzzle(today, choice.puzzle.id, choice.puzzle);
   }, [serve, ready, choice.persist, choice.puzzle, today, serveDailyPuzzle]);
-  return { today, puzzle: choice.puzzle, done: dailyDone(state.progress, today), ready };
+  const done = dailyDone(state.progress, today);
+  const [remote, setRemote] = useState<{ day: string; puzzle: Puzzle; solved: number } | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .daily(today)
+      .then((r) => live && setRemote({ day: r.day, puzzle: { ...r.puzzle, themes: r.puzzle.themes as PuzzleThemeId[] }, solved: r.solved }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [today, done]);
+  const remotePuzzle = remote?.day === today ? remote.puzzle : null;
+  useEffect(() => {
+    // Only a puzzle this device can show for the rest of the day (in its pack, or small enough to keep as a snapshot).
+    if (!serve || !remotePuzzle || done || daily.servedId === remotePuzzle.id || (!puzzleById(remotePuzzle.id) && !/^[A-Za-z0-9-]{3,8}$/.test(remotePuzzle.id))) return;
+    lockDailyPuzzle(today, remotePuzzle);
+    serveDailyPuzzle(today, remotePuzzle.id, remotePuzzle);
+  }, [serve, remotePuzzle, done, daily.servedId, today, serveDailyPuzzle]);
+  return { today, puzzle: choice.puzzle, done, ready, solved: remote?.day === today ? remote.solved : null };
 }
 
 /** Live time until local midnight, shown once today's daily puzzle is solved. */

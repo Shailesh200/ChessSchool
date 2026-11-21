@@ -3,7 +3,8 @@
 import { PUZZLE_THEMES } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import Link from "next/link";
-import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
+import { useDailyPuzzle } from "@/components/DailyCountdown";
+import { DailyCard } from "@/components/Daily";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, TopBar } from "@/components/ui";
@@ -14,7 +15,7 @@ export default function PuzzlesPage() {
   const { state, ready } = useApp();
   const packReady = usePuzzlePackReady();
   const pz = state.progress.puzzles;
-  const { puzzle: daily, done } = useDailyPuzzle(ready && packReady);
+  const { puzzle: daily, today } = useDailyPuzzle(ready && packReady);
   if (!ready || !packReady || !daily) return <div className="page-skeleton" aria-busy="true" />;
   return (
     <div className="page">
@@ -34,19 +35,7 @@ export default function PuzzlesPage() {
           <Cody animation="thinking" size={110} className="gym-hero-cody" />
         </Card>
 
-        <Card className={`daily-card${done ? " is-done" : ""}`}>
-          <h2 className="card-title">
-            <Icon name="sun" /> {copy.puzzles.daily}
-          </h2>
-          <p className="muted">{done ? copy.puzzles.dailyDone : copy.puzzles.dailyBody}</p>
-          {done ? <DailyCountdown /> : null}
-          <p className="chip chip-accent">{copy.puzzles.dailyStreak(pz.daily.count)}</p>
-          {done ? null : (
-            <Button href={`/puzzles/solve?daily=1`} icon="play" variant="gold">
-              {copy.puzzles.daily} · {daily.rating}
-            </Button>
-          )}
-        </Card>
+        <DailyCard today={today} enabled={ready && packReady} className="daily-card" />
 
         <Card>
           <h2 className="card-title">

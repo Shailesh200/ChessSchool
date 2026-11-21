@@ -602,6 +602,11 @@ function ResultSheet(props: {
         </Button>
       </div>
       {props.share ? <ShareCardButton block kind="game_won" data={props.share} /> : null}
+      {props.history.length ? (
+        <Button block variant="secondary" icon="bulb" href={`/gym/analysis?start=${encodeURIComponent(props.startFen)}&moves=${encodeURIComponent(props.history.join(" "))}&side=${props.side ?? "w"}`}>
+          {copy.myGames.analyse}
+        </Button>
+      ) : null}
       <Button block variant="ghost" onClick={props.onBack}>
         {copy.play.back}
       </Button>

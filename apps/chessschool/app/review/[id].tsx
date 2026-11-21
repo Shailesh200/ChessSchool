@@ -1,8 +1,10 @@
 import { formatEval, keyMomentCard, opponentName, parseSetup, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type KeyMoment, type Square, type TryState } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
-import { useLocalSearchParams } from "expo-router";
+import { copy, gameKind, gamePgn } from "@chessschool/design";
+import { useConnectivity } from "@/lib/hooks";
+import { botName } from "@/components/Daily";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, Share, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
@@ -26,6 +28,7 @@ export default function ReviewGame() {
   const setup = useMemo(() => (gameSetup ? parseSetup(gameSetup) : null), [gameSetup]);
   const plies = useMemo(() => (history && setup ? reviewPlies(setup.startFen, history) : []), [history, setup]);
   const { notes, done } = useGameAnalysis(plies);
+  const connectivity = useConnectivity().status;
   const [ply, setPly] = useState(0);
   const [trying, setTrying] = useState<TryState | null>(null);
   const [shake, setShake] = useState(0);
@@ -59,6 +62,8 @@ export default function ReviewGame() {
     setPly(Math.max(0, Math.min(plies.length, n)));
   };
   const orientation = friend ? "w" : setup.you;
+  const other = gameKind(game) === "challenge" ? copy.myGames.friend : setup.opponent.kind === "bot" ? botName(setup.opponent.bot) : friend ? copy.myGames.friend : copy.gym.vsOnline;
+  const pgn = gamePgn(game, friend ? { white: copy.play.sides.w, black: copy.play.sides.b } : setup.you === "w" ? { white: copy.myGames.you, black: other } : { white: other, black: copy.myGames.you }, copy.myGames.pgnEvent);
   const sum = summarise(plies, notes, side);
   const cur = ply ? plies[ply - 1] : null;
   const note = cur ? notes[cur.ply] : null;
@@ -93,10 +98,13 @@ export default function ReviewGame() {
   else explain = copy.analysis.explain[kind](note?.better ?? null);
 
   const coachNote = cur && !trying ? coach.noteFor(cur.ply) : null;
-  const coachLine = !coach.signedIn
+  const offline = connectivity !== "online";
+  const coachLine = offline && coach.status !== "done"
+    ? copy.myGames.offlineNotes
+    : !coach.signedIn
     ? copy.coachAi.signIn
     : !coach.allowed
-      ? copy.coachAi.off
+      ? copy.myGames.engineOnly
       : coach.status === "loading"
         ? copy.coachAi.loading
         : coach.status === "error"
@@ -199,6 +207,23 @@ export default function ReviewGame() {
           </T>
         ) : null}
 
+        {plies.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={copy.myGames.moves} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 4 }}>
+            {plies.map((p) => {
+              const on = p.ply === ply && !trying;
+              const m = sum.moments.find((x) => x.ply === p.ply);
+              const [, mfg, medge] = toneColors[m ? momentTone(m.kind) : "neutral"];
+              return (
+                <Pressable key={p.ply} accessibilityRole="button" accessibilityLabel={copy.myGames.goTo(moveName(p))} accessibilityState={{ selected: on }} onPress={() => go(p.ply)} style={{ paddingHorizontal: 8, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: m ? medge : "transparent", backgroundColor: on ? c.brandSoft : c.card }}>
+                  <T role="micro" style={{ fontFamily: fonts.semibold, color: on ? c.brandText : m ? mfg : c.textMuted }}>
+                    {moveName(p)}
+                  </T>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+
         <View accessibilityLiveRegion="polite" style={{ gap: 4, minHeight: 88, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: tone === "neutral" ? c.line : edge, backgroundColor: bg }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             <T role="label" style={{ flex: 1, color: fg }} numberOfLines={1}>
@@ -267,6 +292,20 @@ export default function ReviewGame() {
             <Button title="" icon="chevron" variant="secondary" disabled={ply >= plies.length} label={copy.gym.next} onPress={() => go(ply + 1)} />
           </View>
         </View>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Button title={copy.myGames.sharePgn} icon="arrowRight" variant="ghost" onPress={() => void Share.share({ message: pgn }).catch(() => {})} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button title={copy.myGames.shareFen} icon="doc" variant="ghost" onPress={() => void Share.share({ message: trying ? trying.fen : cur ? cur.fen : setup.startFen }).catch(() => {})} />
+          </View>
+        </View>
+        <Button
+          title={copy.myGames.analyse}
+          icon="bulb"
+          variant="secondary"
+          onPress={() => router.push(`/analysis?start=${encodeURIComponent(setup.startFen)}&moves=${encodeURIComponent(plies.map((p) => p.san).join(" "))}&at=${ply}&side=${orientation}`)}
+        />
       </View>
     </SafeAreaView>
   );

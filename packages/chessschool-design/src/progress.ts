@@ -10,6 +10,7 @@ import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, theme
 import { emptyRatings, sanitizeRatingQueue, sanitizeRatings, type Ratings } from "./rating";
 import { sanitizeWriteQueue, type QueuedWrite } from "./offline";
 import { sanitizeCelebrated, sanitizeCelebrations, type Celebration } from "./celebrate";
+import { sanitizeWeeks, type WeekMark } from "./recap";
 
 export const STORAGE_KEY = "chessschool.v2.state";
 export const STATE_VERSION = 2;
@@ -75,6 +76,8 @@ export type PuzzleProgress = {
     servedDay?: string | null;
     servedId?: string | null;
     served?: DailyPuzzleSnapshot;
+    /** Spare days for the daily-puzzle streak (one per 7 days in a row, at most FREEZE_MAX); a missed day uses one. */
+    freezes?: number;
   };
 };
 
@@ -132,7 +135,7 @@ export type StoredSetup = {
 /** An unfinished game, so leaving the Gym never loses it. */
 export type SavedGame = { setup: StoredSetup; history: string[]; startedAt: number; clock: { w: number; b: number } | null };
 
-/** A finished game kept on this device for review (last 30). */
+/** A finished game kept on this device for review (last GAME_LOG_MAX; signed in, the account keeps a copy). */
 export type GameRecord = {
   id: string;
   endedAt: number;
@@ -148,7 +151,7 @@ export type GameRecord = {
 /** A position where the learner went wrong in their own game, replayed in practice as "find the better move". */
 export type MistakePosition = { ref: string; fen: string; from: string; to: string; better: string; skill: SkillId | null };
 export const MISTAKES_MAX = 20;
-export const GAME_LOG_MAX = 30;
+export const GAME_LOG_MAX = 100;
 export type Arrival = "kept" | "fresh";
 
 /** `ai`: the server's switch for this account's AI features (coach, hints, AI bots, scanner); missing means allowed. */
@@ -228,6 +231,10 @@ export type Habit = {
   playHours: Record<string, number>;
   streakRepair: StreakRepair | null;
   mate: MateRecord | null;
+  /** Running totals as each recent week began, newest first (recap.ts). */
+  weeks?: WeekMark[];
+  /** The week (its Monday) whose recap card was closed. */
+  recapSeen?: string;
 };
 export const PLAY_HOURS_MAX = 14;
 export const emptyHabit = (): Habit => ({ playHours: {}, streakRepair: null, mate: null });
@@ -361,6 +368,8 @@ export function hydrateHabit(raw: unknown): Habit {
     playHours: Object.fromEntries(hours),
     streakRepair: repair,
     mate: m && isDayKey(m.day) ? { day: m.day, tries, solved: m.solved === true, done: m.done === true } : null,
+    ...(Array.isArray(h.weeks) ? { weeks: sanitizeWeeks(h.weeks) } : {}),
+    ...(isDayKey(h.recapSeen) ? { recapSeen: h.recapSeen } : {}),
   };
 }
 
@@ -770,7 +779,7 @@ export function recordPuzzle(state: LocalState, p: { id: string; solved: boolean
   // The day is done only once the daily puzzle is solved, so a miss can be tried again.
   const daily =
     p.daily && p.solved && pz.daily.lastDay !== today
-      ? { lastDay: today, count: pz.daily.lastDay && daysBetween(pz.daily.lastDay, today) === 1 ? pz.daily.count + 1 : 1, seen, servedDay: today, servedId: p.id }
+      ? dailyStreakAfter({ ...pz.daily, seen, servedDay: today, servedId: p.id }, today)
       : { ...pz.daily, seen, ...(p.daily && p.solved ? { servedDay: today, servedId: p.id } : {}) };
   return trackQuests({
     ...s,
@@ -824,6 +833,21 @@ export function recordMateTry(state: LocalState, day: string, moves: boolean[], 
 }
 
 export const dailyDone = (progress: Progress, today: string) => progress.puzzles.daily.lastDay === today;
+
+type Daily = PuzzleProgress["daily"];
+/** Today's daily solve extends the daily streak; missed days use its freezes (earned like the main streak's). */
+export function dailyStreakAfter(daily: Daily, today: string): Daily {
+  const { served, ...rest } = daily;
+  const next = streakAfterActivity({ count: daily.count, lastDay: daily.lastDay, freezes: daily.freezes }, today);
+  const { freezes, ...base } = { ...rest, count: next.count, lastDay: next.lastDay, freezes: next.freezes ?? 0 };
+  return { ...base, ...(served ? { served } : {}), ...(freezes > 0 ? { freezes } : {}) };
+}
+
+/** The daily-puzzle streak to show today (alive through tomorrow, plus a day per freeze). */
+export const visibleDailyStreak = (progress: Progress, today: string) => {
+  const d = progress.puzzles.daily;
+  return visibleStreak({ count: d.count, lastDay: d.lastDay, freezes: d.freezes }, today);
+};
 
 /** Remember the puzzle shown for this local day so it is not served again. No-op when that id is already stored. */
 export function serveDaily(state: LocalState, day: string, id: string, puzzle?: { id: string; fen: string; moves: readonly string[]; rating: number; themes: readonly string[] } | null): LocalState {
@@ -1020,7 +1044,8 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
       recent: lead.recent,
       sprintBest: Math.max(pa.sprintBest, pb.sprintBest),
       daily: {
-        ...(dA === dB ? { lastDay: dayA.lastDay, count: Math.max(dayA.count, dayB.count) } : dA > dB ? dayA : dayB),
+        ...(dA === dB ? { lastDay: dayA.lastDay, count: Math.max(dayA.count, dayB.count) } : { lastDay: (dA > dB ? dayA : dayB).lastDay, count: (dA > dB ? dayA : dayB).count }),
+        ...withDailyFreezes(dA === dB ? Math.max(dayA.freezes ?? 0, dayB.freezes ?? 0) : ((dA > dB ? dayA : dayB).freezes ?? 0)),
         seen,
         servedDay: (dA >= dB ? dayA.servedDay : dayB.servedDay) ?? null,
         servedId: (dA >= dB ? dayA.servedId : dayB.servedId) ?? null,
@@ -1033,6 +1058,8 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
     ...withPerfect([...new Set([...(a.perfect ?? []), ...(b.perfect ?? [])])]),
   };
 }
+
+const withDailyFreezes = (n: number): { freezes?: number } => (n > 0 ? { freezes: Math.min(FREEZE_MAX, n) } : {});
 
 /** Leaves `perfect` out until there is one, so stored progress keeps its old shape. */
 const withPerfect = (ids: string[]): { perfect?: string[] } => (ids.length ? { perfect: ids } : {});
@@ -1164,6 +1191,7 @@ function sanitizePuzzles(raw: unknown): PuzzleProgress {
       servedDay: day(p.daily?.servedDay),
       servedId: typeof p.daily?.servedId === "string" && SEEN_ID.test(p.daily.servedId) ? p.daily.servedId : null,
       ...(served && served.id === (typeof p.daily?.servedId === "string" ? p.daily.servedId : "") ? { served } : {}),
+      ...withDailyFreezes(n(p.daily?.freezes, FREEZE_MAX)),
     },
   };
 }

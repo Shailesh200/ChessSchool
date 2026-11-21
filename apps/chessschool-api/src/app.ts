@@ -39,6 +39,7 @@ import {
 import { answerLine, parseLineInput } from "./coach-line";
 import { mountLeaderboard } from "./leaderboard";
 import { isSuspended, mountSocial, photosFor, type PhotoStore } from "./social";
+import { childPlayDeletes, mountPlay } from "./play";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { isVisionGame, isVisionScore, VISION_GAMES } from "@chessschool/chess";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -1578,6 +1579,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       db.delete(ratings).where(eq(ratings.learnerId, child.id)),
       db.delete(ratingEvents).where(eq(ratingEvents.learnerId, child.id)),
       db.delete(ratingHistory).where(eq(ratingHistory.learnerId, child.id)),
+      ...childPlayDeletes(db, child.id),
       db.delete(children).where(eq(children.id, child.id)),
     ]);
     return c.json({ ok: true });
@@ -1672,6 +1674,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   const growthLimiter = createRateLimiter(60, 10 * 60_000, () => now().getTime());
   mountGrowth(app, { db, now, requireUser, userFromRequest, limiter: growthLimiter, cardStore });
   mountLeaderboard(app, { db, now, requireUser, limiter: growthLimiter });
+  mountPlay(app, { db, now, requireUser, userFromRequest, limiter: createRateLimiter(120, 10 * 60_000, () => now().getTime()) });
 
   return app;
 }

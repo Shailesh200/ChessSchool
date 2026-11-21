@@ -78,6 +78,11 @@ function SolvePlay({ daily, theme, rating, recent, title, initial }: { daily: bo
                 </p>
               ) : null}
               {delta !== null ? <ChallengeButton block puzzleId={puzzle.id} solved={delta >= 0} /> : null}
+              {delta !== null ? (
+                <Button block variant="ghost" icon="bulb" href={`/gym/analysis?fen=${encodeURIComponent(puzzle.fen)}`}>
+                  {copy.myGames.analyse}
+                </Button>
+              ) : null}
               {daily ? (
                 <Button block href="/puzzles" icon="back">
                   {copy.puzzles.back}

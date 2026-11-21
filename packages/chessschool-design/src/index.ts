@@ -29,3 +29,5 @@ export * from "./flow";
 export * from "./growth";
 export * from "./social";
 export * from "./pulse";
+export * from "./games";
+export * from "./recap";

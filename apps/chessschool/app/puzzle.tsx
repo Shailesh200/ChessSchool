@@ -89,6 +89,7 @@ function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleTh
                 </T>
               ) : null}
               {delta !== null ? <ChallengeButton puzzleId={puzzle.id} solved={delta >= 0} /> : null}
+              {delta !== null ? <Button title={copy.myGames.analyse} icon="bulb" variant="ghost" onPress={() => router.push(`/analysis?fen=${encodeURIComponent(puzzle.fen)}`)} /> : null}
               {daily ? (
                 <Button title={copy.puzzles.back} icon="back" onPress={() => router.back()} />
               ) : (

@@ -2,6 +2,7 @@
 
 import { copy, flagOf, type BoardMetric, type BoardResponse, type BoardRow, type BoardScope } from "@chessschool/design";
 import Link from "next/link";
+import { isOfflineError } from "@chessschool/design";
 import { useCallback, useEffect, useState } from "react";
 import { MemberFace } from "@/components/ClassPlay";
 import { Icon } from "@/components/Icon";
@@ -18,14 +19,14 @@ export default function LeaderboardPage() {
   const [scope, setScope] = useState<BoardScope>("global");
   const [metric, setMetric] = useState<BoardMetric>("xp");
   const [board, setBoard] = useState<BoardResponse | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<false | "offline" | "error">(false);
   const load = useCallback(() => {
     setBoard(null);
     setFailed(false);
     api
       .board(scope, metric)
       .then(setBoard)
-      .catch(() => setFailed(true));
+      .catch((err) => setFailed(isOfflineError(err) ? "offline" : "error"));
   }, [scope, metric]);
   useEffect(() => {
     if (ready && state.account) load();
@@ -74,7 +75,7 @@ export default function LeaderboardPage() {
           </div>
           {failed ? (
             <div className="board-note">
-              <p role="alert">{copy.auth.errors.generic}</p>
+              <p role="alert">{failed === "offline" ? copy.offlineMode.needsConnection : copy.auth.errors.generic}</p>
               <Button variant="secondary" onClick={load}>
                 {copy.puzzles.retry}
               </Button>

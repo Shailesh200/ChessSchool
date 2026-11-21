@@ -64,3 +64,24 @@ export async function shareCard(kind: ShareCardKind, data: ShareCardData, who: {
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   return "saved";
 }
+
+/** Puts text on the clipboard. True when it worked. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Saves text as a file (a PGN download). */
+export function downloadText(name: string, text: string, type = "application/x-chess-pgn") {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+}
