@@ -1,7 +1,10 @@
 "use client";
 
 import { formatEval, keyMomentCard, opponentName, parseSetup, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type KeyMoment, type TryState } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { copy, gameKind, gamePgn, pgnFileName } from "@chessschool/design";
+import { botInfo, isBotId } from "@chessschool/chess";
+import { copyText, downloadText } from "@/lib/share";
+import { useConnectivity } from "@/lib/hooks";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Board } from "@/components/Board";
@@ -9,7 +12,7 @@ import { BoardStage } from "@/components/BoardStage";
 import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
 import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
-import { Button, Sheet, TopBar } from "@/components/ui";
+import { Button, Sheet, TopBar, useToast } from "@/components/ui";
 import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -24,6 +27,8 @@ export default function ReviewGame() {
   const setup = useMemo(() => (gameSetup ? parseSetup(gameSetup) : null), [gameSetup]);
   const plies = useMemo(() => (history && setup ? reviewPlies(setup.startFen, history) : []), [history, setup]);
   const { notes, done } = useGameAnalysis(plies);
+  const connectivity = useConnectivity().status;
+  const toast = useToast();
   const [ply, setPly] = useState(0);
   const [trying, setTrying] = useState<TryState | null>(null);
   const [shake, setShake] = useState(0);
@@ -69,6 +74,9 @@ export default function ReviewGame() {
   }
 
   const orientation = friend ? "w" : setup.you;
+  const other = gameKind(game) === "challenge" ? copy.myGames.friend : setup.opponent.kind === "bot" && isBotId(setup.opponent.bot) ? botInfo(setup.opponent.bot).name : friend ? copy.myGames.friend : copy.gym.vsOnline;
+  const pgn = gamePgn(game, friend ? { white: copy.play.sides.w, black: copy.play.sides.b } : setup.you === "w" ? { white: copy.myGames.you, black: other } : { white: other, black: copy.myGames.you }, copy.myGames.pgnEvent);
+  const copied = (ok: boolean) => ok && toast(copy.myGames.copied);
   const sum = summarise(plies, notes, side);
   const cur = ply ? plies[ply - 1] : null;
   const note = cur ? notes[cur.ply] : null;
@@ -104,10 +112,12 @@ export default function ReviewGame() {
   else if (kind === "great" || kind === "mate" || kind === "good") explain = copy.analysis.explain[kind];
   else explain = copy.analysis.explain[kind](note?.better ?? null);
 
-  const coachLine = !coach.signedIn
+  const coachLine = connectivity !== "online" && coach.status !== "done"
+    ? copy.myGames.offlineNotes
+    : !coach.signedIn
     ? copy.coachAi.signIn
     : !coach.allowed
-      ? copy.coachAi.off
+      ? copy.myGames.engineOnly
       : coach.status === "loading"
         ? copy.coachAi.loading
         : coach.status === "error"
@@ -184,6 +194,21 @@ export default function ReviewGame() {
             </ul>
           ) : done ? (
             <p className="muted">{copy.analysis.noMoments}</p>
+          ) : null}
+
+          {plies.length ? (
+            <ol className="move-list" aria-label={copy.myGames.moves}>
+              {plies.map((p) => {
+                const m = sum.moments.find((x) => x.ply === p.ply);
+                return (
+                  <li key={p.ply}>
+                    <button type="button" className={`move-chip${m ? ` m-${momentTone(m.kind)}` : ""}`} aria-pressed={p.ply === ply && !trying} aria-label={copy.myGames.goTo(moveName(p.ply))} onClick={() => go(p.ply)}>
+                      {moveName(p.ply)}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
           ) : null}
 
           <div className={`explain m-${tone}`} role="status" aria-live="polite">
@@ -266,6 +291,20 @@ export default function ReviewGame() {
               {""}
             </Button>
           </div>
+          <div className="game-actions">
+            <Button variant="ghost" icon="arrowRight" onClick={() => downloadText(pgnFileName(game, other), pgn)}>
+              {copy.myGames.downloadPgn}
+            </Button>
+            <Button variant="ghost" icon="doc" onClick={() => void copyText(pgn).then(copied)}>
+              {copy.myGames.copyPgn}
+            </Button>
+            <Button variant="ghost" icon="doc" onClick={() => void copyText(trying ? trying.fen : cur ? cur.fen : setup.startFen).then(copied)}>
+              {copy.myGames.copyFen}
+            </Button>
+          </div>
+          <Button variant="secondary" icon="bulb" href={`/gym/analysis?start=${encodeURIComponent(setup.startFen)}&moves=${encodeURIComponent(plies.map((p) => p.san).join(" "))}&at=${ply}&side=${orientation}`}>
+            {copy.myGames.analyse}
+          </Button>
         </div>
       </div>
     </div>

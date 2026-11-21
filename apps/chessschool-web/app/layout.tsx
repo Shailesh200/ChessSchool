@@ -8,6 +8,7 @@ import { GuestGateHost } from "@/components/PathList";
 import { PuzzlePackBoot } from "@/components/PuzzlePackBoot";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
+import "./play.css";
 
 const fredoka = Fredoka({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-fredoka", display: "swap" });
 const atkinson = Atkinson_Hyperlegible({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-atkinson", display: "swap", preload: false });
