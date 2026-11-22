@@ -29,12 +29,12 @@ import {
 import { copy } from "@chessschool/design";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar } from "@/components/GameParts";
-import { Button, Choice, Segmented, T, TextField, TopBar } from "@/components/ui";
+import { Button, Choice, Segmented, T, TopBar } from "@/components/ui";
 import { useEvaluation } from "@/lib/analysis";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
@@ -58,7 +58,6 @@ export default function AnalysisBoard() {
   const [orientation, setOrientation] = useState<Color>(params.side === "b" ? "b" : "w");
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [brush, setBrush] = useState<Piece | null>(PALETTE[0]);
-  const [fenText, setFenText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fen = lineFen(line);
   const { evaluation, done } = useEvaluation(editor ? null : fen);
@@ -78,7 +77,6 @@ export default function AnalysisBoard() {
   };
   const startEdit = () => {
     setEditor(editorFrom(fen));
-    setFenText(fen);
     setError(null);
   };
   const finishEdit = () => {
@@ -92,16 +90,6 @@ export default function AnalysisBoard() {
     setLine(startLine(editFen));
     setEditor(null);
   };
-  const loadFen = () => {
-    const pasted = readPastedFen(fenText);
-    if (!pasted) {
-      setError(t.badFen);
-      return;
-    }
-    setEditor(editorFrom(pasted));
-    setError(null);
-  };
-  const shareFen = () => void Share.share({ message: editFen ?? fen }).catch(() => {});
   const overLabel = evaluation?.over === "checkmate" ? t.checkmate : evaluation?.over === "stalemate" ? t.stalemate : null;
   const label = evaluationLabel(evaluation);
 
@@ -191,8 +179,6 @@ export default function AnalysisBoard() {
                 </View>
               ))}
             </View>
-            <TextField label={t.fen} hint={t.fenHint} value={fenText} onChangeText={setFenText} autoCapitalize="none" autoCorrect={false} />
-            <Button title={t.loadFen} variant="secondary" onPress={loadFen} />
             {error ? (
               <T role="small" color="dangerText">
                 {error}
@@ -239,7 +225,6 @@ export default function AnalysisBoard() {
               </View>
             </View>
             <Button title={t.edit} icon="edit" variant="secondary" onPress={startEdit} />
-            <Button title={copy.myGames.shareFen} icon="arrowRight" variant="ghost" onPress={shareFen} />
           </View>
         )}
       </ScrollView>

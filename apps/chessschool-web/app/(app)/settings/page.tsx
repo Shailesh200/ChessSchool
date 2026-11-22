@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, aiBlocked, aiExplainOn, coachOf, copy, isChildProfile, setAiExplain, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, coachOf, copy, isChildProfile, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -288,15 +288,6 @@ export default function SettingsPage() {
           {s.legal}
         </h2>
         <Switch icon="eye" label={s.shareUsage} hint={s.shareUsageHint} checked={prefs.shareUsage} onChange={(v) => setPrefs({ shareUsage: v })} />
-        {/* A child's switch only works once a parent PIN guards this page. */}
-        <Switch
-          icon="spark"
-          label={s.aiExplain}
-          hint={aiBlocked(state) ? s.aiOff : isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
-          checked={aiExplainOn(state)}
-          disabled={aiBlocked(state) || (isChildProfile(state) && !state.parentPin)}
-          onChange={(v) => update((st) => setAiExplain(st, v))}
-        />
         <a className="row" href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="shield" />
           <span className="row-text">

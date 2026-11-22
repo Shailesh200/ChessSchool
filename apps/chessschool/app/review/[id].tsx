@@ -1,17 +1,16 @@
-import { formatEval, keyMomentCard, opponentName, parseSetup, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type KeyMoment, type Square, type TryState } from "@chessschool/chess";
-import { copy, gameKind, gamePgn } from "@chessschool/design";
-import { useConnectivity } from "@/lib/hooks";
-import { botName } from "@/components/Daily";
+import { formatEval, moveFacts, moveNoAt, opponentName, parseSetup, playerHues, plyName, reviewPlies, showTry, startTry, summarise, tryReduce, type BoardArrow, type Color, type KeyMoment, type Square, type TryState } from "@chessschool/chess";
+import { copy, moveStory, playerHueColors } from "@chessschool/design";
+import { useConnectivity, useReducedMotion } from "@/lib/hooks";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, BackHandler, Easing, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
-import { KeyMomentCard } from "@/components/KeyMoment";
+import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
-import { Button, Sheet, T, TopBar } from "@/components/ui";
+import { Button, T, TopBar } from "@/components/ui";
 import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -20,7 +19,8 @@ import { fonts, useTheme } from "@/lib/theme";
 export default function ReviewGame() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { state, cue } = useApp();
-  const { c } = useTheme();
+  const { c, scheme } = useTheme();
+  const reduced = useReducedMotion();
   const game = state.gameLog.find((g) => g.id === decodeURIComponent(id));
   // Keyed on the setup and moves, not the record: marking a game reviewed must not restart the analysis.
   const gameSetup = game?.setup;
@@ -32,14 +32,26 @@ export default function ReviewGame() {
   const [ply, setPly] = useState(0);
   const [trying, setTrying] = useState<TryState | null>(null);
   const [shake, setShake] = useState(0);
-  const [keyOpen, setKeyOpen] = useState(true);
+  // "Try it" grows the board to fill the screen (and shrinks it back), like a map opening from a card.
+  const expanded = trying !== null;
+  const grow = useRef(new Animated.Value(0)).current;
+  const [panelH, setPanelH] = useState(0);
+  useEffect(() => {
+    Animated.timing(grow, { toValue: expanded ? 1 : 0, duration: reduced ? 0 : 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [expanded, grow, reduced]);
+  useEffect(() => {
+    if (!expanded) return;
+    // Hardware back shrinks the board back instead of leaving the screen.
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setTrying(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [expanded]);
   const friend = setup?.opponent.kind === "friend";
   const side = !setup || friend ? null : setup.you;
   const coach = useCoachNotes(game?.history, setup?.startFen ?? "", side);
   useReviewedSkills(game, plies, notes, done, side);
-  // Imported games land here, so their card opens here; bot and friend games showed it on the result sheet.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hasKey = useMemo(() => game?.reason === "imported" && done && keyMomentCard(plies, notes, side) !== null, [game?.reason, done, plies, side]);
   const firstNote = coach.notes[0]?.ply;
   useEffect(() => {
     if (firstNote) {
@@ -62,8 +74,11 @@ export default function ReviewGame() {
     setPly(Math.max(0, Math.min(plies.length, n)));
   };
   const orientation = friend ? "w" : setup.you;
-  const other = gameKind(game) === "challenge" ? copy.myGames.friend : setup.opponent.kind === "bot" ? botName(setup.opponent.bot) : friend ? copy.myGames.friend : copy.gym.vsOnline;
-  const pgn = gamePgn(game, friend ? { white: copy.play.sides.w, black: copy.play.sides.b } : setup.you === "w" ? { white: copy.myGames.you, black: other } : { white: other, black: copy.myGames.you }, copy.myGames.pgnEvent);
+  const other = setup.opponent.kind === "bot" ? opponentName(setup) : copy.myGames.friend;
+  const playerName = (by: Color) => (friend ? copy.play.sides[by] : by === setup.you ? copy.myGames.you : other);
+  // Each player's colour, kept on the game so it is the same every time the game is opened.
+  const hues = playerHues(setup.whiteHue, game.id);
+  const hue = (by: Color) => playerHueColors[hues[by]][scheme === "dark" ? "dark" : "light"];
   const sum = summarise(plies, notes, side);
   const cur = ply ? plies[ply - 1] : null;
   const note = cur ? notes[cur.ply] : null;
@@ -72,14 +87,17 @@ export default function ReviewGame() {
   const kind = moment?.kind ?? note?.verdict ?? "good";
   const tone = mine ? momentTone(kind) : "neutral";
   const toneColors = { danger: [c.dangerSoft, c.dangerText, c.danger], gold: [c.goldSoft, c.goldText, c.gold], success: [c.successSoft, c.successText, c.success], neutral: [c.card, c.text, c.line] } as const;
-  const canTry = Boolean(mine && note?.betterMove && note.better);
+  // The engine's board facts for this move: they word the explanation, and their better move is the one to try.
+  const facts = cur && note ? moveFacts(cur, note) : null;
+  const better = facts?.better ?? note?.better ?? null;
+  const betterMove = facts?.betterMove ?? note?.betterMove ?? null;
+  const canTry = Boolean(mine && betterMove && better && note?.verdict !== "good");
   const nextMoment = sum.moments.find((m) => m.ply > ply);
   const evalNow = trying ? (ply > 1 ? (notes[ply - 1]?.evalAfter ?? 0) : 0) : (note?.evalAfter ?? 0);
-  const moveName = (p: (typeof plies)[number]) => `${Math.ceil(p.ply / 2)}${p.by === "w" ? "." : "…"} ${p.san}`;
 
   const arrows: BoardArrow[] =
-    cur && note?.betterMove && mine && (!trying || trying.status !== "trying")
-      ? [...(trying ? [] : [{ from: cur.lastMove.from, to: cur.lastMove.to, tone: "played" as const }]), { from: note.betterMove.from, to: note.betterMove.to, tone: "better" as const }]
+    cur && betterMove && canTry && (!trying || trying.status !== "trying")
+      ? [...(trying ? [] : [{ from: cur.lastMove.from, to: cur.lastMove.to, tone: "played" as const }]), { from: betterMove.from, to: betterMove.to, tone: "better" as const }]
       : [];
 
   let explain: string;
@@ -89,16 +107,17 @@ export default function ReviewGame() {
       trying.status === "right"
         ? copy.analysis.tryRight
         : trying.status === "shown"
-          ? copy.analysis.tryShown(note?.better ?? "")
+          ? copy.analysis.tryShown(better ?? "")
           : trying.status === "wrong"
             ? copy.analysis.tryWrong
             : copy.analysis.tryPrompt(copy.play.sides[cur.by]);
-  else if (!mine) explain = copy.analysis.explain.opponent;
-  else if (kind === "great" || kind === "mate" || kind === "good") explain = copy.analysis.explain[kind];
-  else explain = copy.analysis.explain[kind](note?.better ?? null);
+  else if (mine && (kind === "great" || kind === "mate")) explain = copy.analysis.explain[kind];
+  else if (facts) explain = moveStory(facts, mine);
+  else explain = mine ? copy.analysis.looking : copy.analysis.explain.opponent;
 
   const coachNote = cur && !trying ? coach.noteFor(cur.ply) : null;
   const offline = connectivity !== "online";
+  // Coach explanations are premium AI; everyone else keeps the engine notes above.
   const coachLine = offline && coach.status !== "done"
     ? copy.myGames.offlineNotes
     : !coach.signedIn
@@ -114,6 +133,7 @@ export default function ReviewGame() {
             : coach.status === "done" && !coach.notes.length
               ? copy.coachAi.none
               : null;
+  const canAsk = coach.signedIn && coach.allowed && !offline && (coach.status === "idle" || coach.status === "error");
 
   const tap = (sq: Square) => {
     if (!trying) return;
@@ -126,13 +146,23 @@ export default function ReviewGame() {
     setTrying(next);
   };
   const [bg, fg, edge] = toneColors[tone];
+  // The panels under the board fold away while the board is big.
+  const fold = { maxHeight: panelH ? grow.interpolate({ inputRange: [0, 1], outputRange: [panelH, 0] }) : undefined, opacity: grow.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: "clamp" }), overflow: "hidden" as const };
+  const playerChip = (by: Color) => (
+    <View key={by} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: hue(by).soft }}>
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: hue(by).ink }} />
+      <T role="micro" numberOfLines={1} style={{ fontFamily: fonts.semibold, color: hue(by).ink }}>
+        {`${playerName(by)} · ${copy.play.sides[by]}`}
+      </T>
+    </View>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 12 }}>
-        <TopBar title={copy.analysis.title} />
+        <TopBar title={copy.analysis.title} onBack={expanded ? () => setTrying(null) : undefined} />
       </View>
-      <View style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 12, gap: 10, maxWidth: 640, width: "100%", alignSelf: "center" }}>
+      <View style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 12, gap: 10, maxWidth: expanded ? 900 : 640, width: "100%", alignSelf: "center" }}>
         <BoardStage
           top={
             <>
@@ -145,6 +175,11 @@ export default function ReviewGame() {
                   {formatEval(evalNow)}
                 </T>
               </View>
+              {expanded ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={copy.analysis.minimise} onPress={() => setTrying(null)} hitSlop={8} style={{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: c.sunken }}>
+                  <Icon name="close" size={20} color={c.text} />
+                </Pressable>
+              ) : null}
             </>
           }
         >
@@ -163,71 +198,89 @@ export default function ReviewGame() {
                 onTap={tap}
                 disabled={!trying || trying.status === "right" || trying.status === "shown"}
                 shake={shake}
-                label={arrows.length === 2 && cur && note?.better ? copy.analysis.arrowsLabel(cur.san, note.better) : undefined}
+                label={arrows.length === 2 && cur && better ? copy.analysis.arrowsLabel(cur.san, better) : undefined}
               />
             </View>
           )}
         </BoardStage>
 
-        <View style={{ gap: 4, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <T role="micro" color="textSubtle">
-              {copy.analysis.advantage}
-            </T>
-            <T role="micro" color="textSubtle">
-              {done ? copy.analysis.moveOf(Math.ceil(ply / 2), Math.ceil(plies.length / 2)) : copy.analysis.looking}
-            </T>
+        <Animated.View style={fold} pointerEvents={expanded ? "none" : "auto"} importantForAccessibility={expanded ? "no-hide-descendants" : "auto"} accessibilityElementsHidden={expanded}>
+          <View onLayout={(e) => !expanded && setPanelH(Math.ceil(e.nativeEvent.layout.height))} style={{ gap: 10 }}>
+            <View style={{ gap: 4, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <T role="micro" color="textSubtle">
+                  {copy.analysis.advantage}
+                </T>
+                <T role="micro" color="textSubtle">
+                  {done ? copy.analysis.moveOf(moveNoAt(plies, ply), plies.at(-1)?.moveNo ?? 0) : copy.analysis.looking}
+                </T>
+              </View>
+              <EvalGraph plies={plies} notes={notes} current={ply} marks={sum.moments} onPick={go} />
+            </View>
+
+            {sum.moments.length ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6 }}>
+                {sum.moments.map((m) => {
+                  const on = m.ply === ply;
+                  const [mbg, mfg, medge] = toneColors[momentTone(m.kind)];
+                  return (
+                    <Pressable
+                      key={`${m.ply}${m.kind}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      onPress={() => go(m.ply)}
+                      style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: on ? medge : "transparent", backgroundColor: on ? mbg : c.sunken }}
+                    >
+                      <T role="small" style={{ fontFamily: fonts.semibold, color: on ? mfg : c.textMuted }}>
+                        {`${moveNoAt(plies, m.ply)} · ${copy.analysis.kinds[m.kind]}`}
+                      </T>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : done ? (
+              <T role="small" color="textMuted">
+                {copy.analysis.noMoments}
+              </T>
+            ) : null}
+
+            {plies.length ? (
+              <>
+                <View accessibilityLabel={copy.analysis.players} style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                  {(orientation === "w" ? (["w", "b"] as const) : (["b", "w"] as const)).map(playerChip)}
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={copy.myGames.moves} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 4 }}>
+                  {plies.map((p) => {
+                    const on = p.ply === ply && !trying;
+                    const m = sum.moments.find((x) => x.ply === p.ply);
+                    const [, , medge] = toneColors[m ? momentTone(m.kind) : "neutral"];
+                    const h = hue(p.by);
+                    return (
+                      <Pressable
+                        key={p.ply}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${copy.myGames.goTo(plyName(p))}, ${playerName(p.by)}`}
+                        accessibilityState={{ selected: on }}
+                        onPress={() => go(p.ply)}
+                        style={{ paddingHorizontal: 8, paddingVertical: 6, borderRadius: 10, borderWidth: 2, borderColor: on ? h.ink : m ? medge : "transparent", backgroundColor: on ? h.ink : h.soft }}
+                      >
+                        <T role="micro" style={{ fontFamily: fonts.semibold, color: on ? c.card : h.ink }}>
+                          {plyName(p)}
+                        </T>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            ) : null}
           </View>
-          <EvalGraph plies={plies} notes={notes} current={ply} marks={sum.moments} onPick={go} />
-        </View>
+        </Animated.View>
 
-        {sum.moments.length ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6 }}>
-            {sum.moments.map((m) => {
-              const on = m.ply === ply;
-              const [mbg, mfg, medge] = toneColors[momentTone(m.kind)];
-              return (
-                <Pressable
-                  key={`${m.ply}${m.kind}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                  onPress={() => go(m.ply)}
-                  style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: on ? medge : "transparent", backgroundColor: on ? mbg : c.sunken }}
-                >
-                  <T role="small" style={{ fontFamily: fonts.semibold, color: on ? mfg : c.textMuted }}>
-                    {`${Math.ceil(m.ply / 2)} · ${copy.analysis.kinds[m.kind]}`}
-                  </T>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : done ? (
-          <T role="small" color="textMuted">
-            {copy.analysis.noMoments}
-          </T>
-        ) : null}
-
-        {plies.length ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={copy.myGames.moves} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 4 }}>
-            {plies.map((p) => {
-              const on = p.ply === ply && !trying;
-              const m = sum.moments.find((x) => x.ply === p.ply);
-              const [, mfg, medge] = toneColors[m ? momentTone(m.kind) : "neutral"];
-              return (
-                <Pressable key={p.ply} accessibilityRole="button" accessibilityLabel={copy.myGames.goTo(moveName(p))} accessibilityState={{ selected: on }} onPress={() => go(p.ply)} style={{ paddingHorizontal: 8, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: m ? medge : "transparent", backgroundColor: on ? c.brandSoft : c.card }}>
-                  <T role="micro" style={{ fontFamily: fonts.semibold, color: on ? c.brandText : m ? mfg : c.textMuted }}>
-                    {moveName(p)}
-                  </T>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : null}
-
-        <View accessibilityLiveRegion="polite" style={{ gap: 4, minHeight: 88, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: tone === "neutral" ? c.line : edge, backgroundColor: bg }}>
+        <View accessibilityLiveRegion="polite" style={{ gap: 4, minHeight: expanded ? 0 : 88, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: tone === "neutral" ? c.line : edge, backgroundColor: bg }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+            {cur ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: hue(cur.by).ink }} /> : null}
             <T role="label" style={{ flex: 1, color: fg }} numberOfLines={1}>
-              {cur ? `${moveName(cur)} · ${mine ? copy.analysis.kinds[kind] : copy.analysis.opponentMove}` : copy.gym.first}
+              {cur ? `${plyName(cur)} · ${mine ? copy.analysis.kinds[kind] : copy.analysis.opponentMove}` : copy.gym.first}
             </T>
             {note ? (
               <T role="small" color="textMuted">
@@ -238,9 +291,12 @@ export default function ReviewGame() {
           <T role="small">{explain}</T>
           {coachNote ? (
             <>
-              <T role="small" style={{ fontFamily: fonts.semibold }}>
-                {coachNote.text}
-              </T>
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                <Icon name="sparkles" size={14} color={c.brandText} />
+                <T role="small" style={{ flex: 1, fontFamily: fonts.semibold }}>
+                  {coachNote.text}
+                </T>
+              </View>
               <T role="micro" color="textSubtle">
                 {copy.coachAi.note}
               </T>
@@ -248,28 +304,16 @@ export default function ReviewGame() {
           ) : null}
         </View>
 
-        {coachLine ? (
-          <T role="small" color="textMuted" center>
-            {coachLine}
-          </T>
-        ) : coach.status === "idle" ? (
-          <Button title={copy.coachAi.button} icon="spark" variant="secondary" disabled={!done} onPress={coach.ask} />
-        ) : null}
-        <Sheet visible={keyOpen && hasKey} onClose={() => setKeyOpen(false)}>
-          <KeyMomentCard
-            plies={plies}
-            notes={notes}
-            done={done}
-            side={side}
-            orientation={orientation}
-            coachNoteFor={(p) => coach.noteFor(p)?.text ?? null}
-            onShow={(p) => {
-              setKeyOpen(false);
-              go(p);
-            }}
-          />
-          <Button title={copy.analysis.close} variant="ghost" onPress={() => setKeyOpen(false)} />
-        </Sheet>
+        <Animated.View style={fold} pointerEvents={expanded ? "none" : "auto"} importantForAccessibility={expanded ? "no-hide-descendants" : "auto"} accessibilityElementsHidden={expanded}>
+          <View style={{ gap: 8 }}>
+            {coachLine ? (
+              <T role="small" color="textMuted" center>
+                {coachLine}
+              </T>
+            ) : null}
+            {canAsk ? <Button title={coach.status === "error" ? copy.coachAi.retry : copy.coachAi.button} icon="sparkles" variant="secondary" disabled={!done} onPress={coach.ask} /> : null}
+          </View>
+        </Animated.View>
 
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ width: 64 }}>
@@ -282,8 +326,8 @@ export default function ReviewGame() {
               ) : (
                 <Button title={copy.analysis.showMe} icon="eye" variant="secondary" onPress={() => setTrying(showTry(trying))} />
               )
-            ) : canTry && cur && note?.betterMove ? (
-              <Button title={copy.analysis.tryBetter} icon="bulb" onPress={() => setTrying(startTry(cur.fenBefore, note.betterMove!))} />
+            ) : canTry && cur && betterMove ? (
+              <Button title={copy.analysis.tryBetter} icon="bulb" onPress={() => setTrying(startTry(cur.fenBefore, betterMove))} />
             ) : (
               <Button title={copy.analysis.nextMoment} icon="spark" variant="secondary" disabled={!nextMoment} onPress={() => nextMoment && go(nextMoment.ply)} />
             )}
@@ -292,20 +336,14 @@ export default function ReviewGame() {
             <Button title="" icon="chevron" variant="secondary" disabled={ply >= plies.length} label={copy.gym.next} onPress={() => go(ply + 1)} />
           </View>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Button title={copy.myGames.sharePgn} icon="arrowRight" variant="ghost" onPress={() => void Share.share({ message: pgn }).catch(() => {})} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button title={copy.myGames.shareFen} icon="doc" variant="ghost" onPress={() => void Share.share({ message: trying ? trying.fen : cur ? cur.fen : setup.startFen }).catch(() => {})} />
-          </View>
-        </View>
-        <Button
-          title={copy.myGames.analyse}
-          icon="bulb"
-          variant="secondary"
-          onPress={() => router.push(`/analysis?start=${encodeURIComponent(setup.startFen)}&moves=${encodeURIComponent(plies.map((p) => p.san).join(" "))}&at=${ply}&side=${orientation}`)}
-        />
+        {expanded ? null : (
+          <Button
+            title={copy.myGames.analyse}
+            icon="bulb"
+            variant="ghost"
+            onPress={() => router.push(`/analysis?start=${encodeURIComponent(setup.startFen)}&moves=${encodeURIComponent(plies.map((p) => p.san).join(" "))}&at=${ply}&side=${orientation}`)}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

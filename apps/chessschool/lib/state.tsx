@@ -1,4 +1,4 @@
-import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
+import { botInfo, ENDGAME_IDS, isBotId, setBotText } from "@chessschool/chess";
 import {
   STORAGE_KEY,
   markWeek,
@@ -64,7 +64,7 @@ import {
   type UsageEventName,
 } from "@chessschool/design";
 import { setAnalyticsAllowed, track as pulseTrack, flushAnalytics } from "@/lib/analytics";
-import { botGameProps, pulseForUsage, settingsProps } from "@chessschool/design";
+import { botGameProps, copy, pulseForUsage, settingsProps } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
@@ -398,7 +398,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // The language and font are applied before children render; changing either remounts the tree so every screen re-reads them.
   const lang = state.prefs.lang ?? langFor(Intl.DateTimeFormat().resolvedOptions().locale);
-  if (language() !== lang) setLanguage(lang);
+  if (language() !== lang) {
+    setLanguage(lang);
+    setBotText(copy.bots);
+  }
   setFontsFor(lang, state.prefs.easyFont);
   return (
     <Ctx.Provider value={store}>

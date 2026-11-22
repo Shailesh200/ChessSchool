@@ -4,7 +4,7 @@ import { capturedPieces, evalShare, materialEdge, type Color, type MoveNote, typ
 import { copy } from "@chessschool/design";
 import { PieceArt } from "./Board";
 import { Icon } from "./Icon";
-import { Button, Sheet, Switch, useToast } from "./ui";
+import { Button, Sheet, Switch } from "./ui";
 import { useApp } from "@/lib/state";
 
 /** Pieces `color` has taken, and how far ahead on material that leaves them. Always the same height. */
@@ -68,7 +68,6 @@ export const movePairs = (history: string[]) => {
 
 export function MovesSheet({ open, onClose, history }: { open: boolean; onClose: () => void; history: string[] }) {
   const { state, setPrefs } = useApp();
-  const toast = useToast();
   const pairs = movePairs(history);
   return (
     <Sheet open={open} onClose={onClose} labelledBy="moves-title">
@@ -89,16 +88,6 @@ export function MovesSheet({ open, onClose, history }: { open: boolean; onClose:
         <Switch icon="sound" label={copy.analysis.sounds} hint={copy.analysis.soundsHint} checked={state.prefs.sound} onChange={(v) => setPrefs({ sound: v })} />
       </div>
       <div className="sheet-actions">
-        <Button
-          variant="secondary"
-          icon="doc"
-          onClick={() => {
-            const text = pairs.map((p) => `${p.n}. ${p.w}${p.b ? ` ${p.b}` : ""}`).join(" ");
-            void navigator.clipboard?.writeText(text).then(() => toast(copy.analysis.copied), () => {});
-          }}
-        >
-          {copy.analysis.copyMoves}
-        </Button>
         <Button icon="close" onClick={onClose}>
           {copy.analysis.close}
         </Button>

@@ -10,8 +10,9 @@ import {
   moveCue,
   opponentName,
   parseSetup,
-  parseSpokenMove,
   playReduce,
+  plyName,
+  randomHue,
   playResult,
   reviewPlies,
   shuffleFen,
@@ -47,9 +48,8 @@ import { ShareCardButton } from "@/components/Growth";
 import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
-import { SpeakMove } from "@/components/SpeakMove";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
-import { AiBadge, AiCoachCard } from "@/components/AiCoach";
+import { AiCoachCard } from "@/components/AiCoach";
 import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -91,7 +91,6 @@ export default function Play() {
   const [record, setRecord] = useState<GameRecord | null>(null);
   const [movesOpen, setMovesOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
-  const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const ai = usePlayAi(game?.setup.opponent.kind === "bot");
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
@@ -118,6 +117,7 @@ export default function Play() {
       startFen: scanFen ?? (mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN),
       startName: scanFen ? copy.scan.savedTitle : mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
       startId: scanFen ? undefined : mode === "position" || mode === "endgame" ? pos.id : undefined,
+      whiteHue: randomHue(),
     };
   };
 
@@ -208,16 +208,7 @@ export default function Play() {
 
   useEffect(() => {
     setGuide(null);
-    setVoiceNote(null);
   }, [game?.fen, watch]);
-
-  const heard = (texts: string[]) => {
-    const g = ref.current;
-    if (!g) return;
-    const r = parseSpokenMove(g.fen, texts);
-    if (r.kind === "move") return act({ type: "move", move: r.move, now: Date.now() });
-    setVoiceNote(r.kind === "ambiguous" ? copy.play.voice.which(texts[0], r.options.map((o) => o.san).join(", ")) : copy.play.voice.unclear(texts[0] ?? ""));
-  };
 
   const ticking = Boolean(game?.clock && !game.over);
   useEffect(() => {
@@ -378,12 +369,7 @@ export default function Play() {
     if (isBot && game.setup.opponent.kind === "bot") {
       return (
         <CoachCard
-          avatar={
-            <View>
-              <BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} />
-              {ai.active ? <AiBadge style={{ position: "absolute", right: -6, bottom: -6 }} /> : null}
-            </View>
-          }
+          avatar={<BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} />}
           title={name}
           trailing={clock(color)}
         >
@@ -447,7 +433,6 @@ export default function Play() {
         <View style={{ flex: 1 }} />
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
-        <SpeakMove disabled={!canMove} onHeard={heard} onNote={setVoiceNote} />
       </View>
       <View style={{ flex: 1, paddingHorizontal: 0, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
@@ -509,8 +494,8 @@ export default function Play() {
                   {statusTitle}
                 </T>
               ) : null}
-              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={voiceNote ? 2 : 1}>
-                {voiceNote ?? statusSub}
+              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={1}>
+                {statusSub}
               </T>
             </View>
             <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
@@ -622,7 +607,7 @@ function ResultSheet(props: {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, alignSelf: "stretch", padding: 12, borderRadius: 16, backgroundColor: c.sunken }}>
             <Icon name="sparkles" size={20} color={c.gold} />
             <T role="small" style={{ flex: 1 }}>
-              {!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(`${Math.ceil(best.ply / 2)}${best.by === "w" ? "." : "…"} ${best.san}`) : copy.analysis.cody(sum.accuracy)}
+              {!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(plyName(best)) : copy.analysis.cody(sum.accuracy)}
             </T>
           </View>
           <KeyMomentCard plies={plies} notes={notes} done={done} side={props.side} orientation={props.side ?? "w"} shareable={!props.share} coachNoteFor={(p) => coach.noteFor(p)?.text ?? null} />
@@ -639,17 +624,6 @@ function ResultSheet(props: {
         </View>
       </View>
       {props.share ? <ShareCardButton kind="game_won" data={props.share} /> : null}
-      {props.history.length ? (
-        <Button
-          title={copy.myGames.analyse}
-          icon="bulb"
-          variant="secondary"
-          onPress={() => {
-            props.onClose();
-            router.push(`/analysis?start=${encodeURIComponent(props.startFen)}&moves=${encodeURIComponent(props.history.join(" "))}&side=${props.side ?? "w"}` as never);
-          }}
-        />
-      ) : null}
       <Button title={copy.play.back} variant="ghost" onPress={props.onBack} />
     </Sheet>
   );

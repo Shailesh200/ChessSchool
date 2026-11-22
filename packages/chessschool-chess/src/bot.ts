@@ -24,15 +24,21 @@ export type BotInfo = {
 };
 
 export const BOTS: readonly BotInfo[] = [
-  // 0.7 roster: 7 bots, 300 to 2100 on the chess.com scale. The 2-star bot plays like Professor Bishop did in 0.6.
+  // 0.7 roster: 7 bots, 300 to 2100 on the chess.com scale. Names follow the pieces, weakest to strongest; ids and ratings never change.
   { id: "pip", name: "Pip", level: 1, blurb: "Loves shiny captures, but rarely leaves a piece hanging.", label: "Beginner", rating: 300, strength: 1000, takebacks: true },
-  { id: "rooky", name: "Rooky", level: 2, blurb: "Thinks two moves ahead and guards his pieces.", label: "Novice", rating: 600, strength: 1250, takebacks: true },
+  { id: "rooky", name: "Sir Gallop", level: 2, blurb: "A cheerful knight who hops two moves ahead and guards his pieces.", label: "Novice", rating: 600, strength: 1250, takebacks: true },
   { id: "bishop", name: "Professor Bishop", level: 3, blurb: "Loves tricky diagonals and punishes loose pieces.", label: "Intermediate", rating: 900, strength: 1500, takebacks: true },
-  { id: "ivy", name: "Queen Ivy", level: 4, blurb: "Sharp tactics. Calculates deeply.", label: "Club player", rating: 1200, strength: 1800, takebacks: false },
-  { id: "atlas", name: "King Atlas", level: 5, blurb: "Tournament-strong. Very few mistakes.", label: "Strong club", rating: 1500, strength: 2050, takebacks: false },
-  { id: "raja", name: "Raja", level: 6, blurb: "A royal strategist who almost never slips.", label: "Expert", rating: 1800, strength: 2300, takebacks: false },
+  { id: "ivy", name: "Rooky", level: 4, blurb: "Rolls down open files with sharp tactics. Calculates deeply.", label: "Club player", rating: 1200, strength: 1800, takebacks: false },
+  { id: "atlas", name: "King Ivy", level: 5, blurb: "Tournament-strong. Very few mistakes.", label: "Strong club", rating: 1500, strength: 2050, takebacks: false },
+  { id: "raja", name: "King Atlas", level: 6, blurb: "A royal strategist who almost never slips.", label: "Expert", rating: 1800, strength: 2300, takebacks: false },
   { id: "cody", name: "Chaukor", level: 7, blurb: "The school's champion. Plays like a master.", label: "Master", rating: 2100, strength: 2500, takebacks: false },
 ];
+export type BotText = { name: string; blurb: string; label: string };
+const BOT_TEXT_EN: Record<BotId, BotText> = Object.fromEntries(BOTS.map((b) => [b.id, { name: b.name, blurb: b.blurb, label: b.label }])) as Record<BotId, BotText>;
+/** Puts the app language's bot names, bios and level words on BOTS (English when `text` is missing an entry). */
+export function setBotText(text: Partial<Record<BotId, Partial<BotText>>>) {
+  for (const b of BOTS) Object.assign(b, BOT_TEXT_EN[b.id], text[b.id] ?? {});
+}
 export const BOT_LEVELS: readonly BotId[] = BOTS.map((b) => b.id);
 export const botInfo = (id: BotId) => BOTS.find((b) => b.id === id)!;
 export const isBotId = (v: unknown): v is BotId => BOTS.some((b) => b.id === v);

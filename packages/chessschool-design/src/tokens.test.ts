@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardColorPalettes, palettes, themePalettes, THEMES, resolveTheme, withBoardColors, type Palette } from "./tokens";
+import { boardColorPalettes, palettes, playerHueColors, themePalettes, THEMES, resolveTheme, withBoardColors, type Palette } from "./tokens";
 
 function lum(hex: string) {
   const n = parseInt(hex.slice(1), 16);
@@ -82,6 +82,15 @@ describe("board colours", () => {
     for (const b of Object.values(boardColorPalettes)) {
       expect(contrast(b.boardCoordOnLight, b.boardLight)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(b.boardCoordOnDark, b.boardDark)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+describe("player colours", () => {
+  it.each(["light", "dark"] as const)("read on their tint and on the card in %s", (scheme) => {
+    for (const hue of Object.values(playerHueColors)) {
+      expect(contrast(hue[scheme].ink, hue[scheme].soft)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(hue[scheme].ink, palettes[scheme].card)).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

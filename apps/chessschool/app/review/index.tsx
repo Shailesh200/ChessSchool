@@ -1,5 +1,5 @@
 import { isBotId, opponentName, parseSetup } from "@chessschool/chess";
-import { ALL_GAMES, botsInLog, copy, filterGames, GAME_KINDS, GAME_RESULTS, gameKind, type GameFilter } from "@chessschool/design";
+import { ALL_GAMES, botsInLog, copy, filterGames, GAME_KINDS, GAME_RESULTS, gameKind, visibleGames, type GameFilter } from "@chessschool/design";
 import { useState } from "react";
 import { ScrollView } from "react-native";
 import { router } from "expo-router";
@@ -16,7 +16,9 @@ export default function ReviewList() {
   const { c } = useTheme();
   const [filter, setFilter] = useState<GameFilter>(ALL_GAMES);
   const games = filterGames(state.gameLog, filter);
-  const bots = botsInLog(state.gameLog);
+  // Imported games (a removed feature) stay stored but are never listed.
+  const log = visibleGames(state.gameLog);
+  const bots = botsInLog(log);
   const chip = (key: string, label: string, on: boolean, onPress: () => void) => (
     <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: on ? c.brand : c.line, backgroundColor: on ? c.brandSoft : c.card }}>
       <T role="small" style={{ color: on ? c.brandText : c.textMuted }}>
@@ -31,9 +33,8 @@ export default function ReviewList() {
   );
   return (
     <Page title={copy.myGames.title} banner={false}>
-      <Button title={copy.gym.importCta} icon="history" variant="secondary" onPress={() => router.push("/import")} />
       <Button title={copy.scan.cta} icon="eye" variant="secondary" onPress={() => router.push("/scan")} />
-      {state.gameLog.length ? (
+      {log.length ? (
         <>
           {row(copy.myGames.kindLabel, (["all", ...GAME_KINDS] as const).map((k) => chip(k, copy.myGames.kinds[k], filter.kind === k, () => setFilter({ ...filter, kind: k, bot: null }))))}
           {row(copy.myGames.resultLabel, (["all", ...GAME_RESULTS] as const).map((r) => chip(r, copy.myGames.results[r], filter.result === r, () => setFilter({ ...filter, result: r }))))}
@@ -79,7 +80,7 @@ export default function ReviewList() {
         <Card style={{ alignItems: "center", gap: 12 }}>
           <Cody animation="reading" size={140} label={copy.a11y.mascot} />
           <T role="bodyLg" color="textMuted" center>
-            {state.gameLog.length ? copy.myGames.none : copy.gym.reviewEmpty}
+            {log.length ? copy.myGames.none : copy.gym.reviewEmpty}
           </T>
         </Card>
       )}

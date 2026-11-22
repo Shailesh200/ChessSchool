@@ -5,17 +5,6 @@ import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
 import { T } from "./ui";
 
-/** The small "AI" pill on a bot's avatar or name. */
-export function AiBadge({ style }: { style?: object }) {
-  return (
-    <View style={[{ paddingHorizontal: 6, height: 18, borderRadius: 999, backgroundColor: aiTint.ink, alignItems: "center", justifyContent: "center" }, style]}>
-      <T role="micro" style={{ color: "#fff", fontFamily: fonts.bold, fontSize: 10, lineHeight: 12 }}>
-        {copy.ai.badge}
-      </T>
-    </View>
-  );
-}
-
 /** A line from the AI coach in a game (hint reason or mistake comment), framed in the AI's violet. */
 export function AiCoachCard({ kind, text }: { kind: "hint" | "comment"; text: string }) {
   const { c } = useTheme();

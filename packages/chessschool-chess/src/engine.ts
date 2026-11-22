@@ -187,7 +187,9 @@ export function quickEval(fen: string): number {
   const { negamax } = search(f, Date.now() + 400);
   try {
     return negamax(1, -Infinity, Infinity, 0, 3);
-  } catch {
-    return evaluate(f);
+  } catch (e) {
+    if (!(e instanceof Timeout)) throw e;
+    // A timeout leaves moves made deep in the search: score a fresh copy of the position, not that board.
+    return evaluate(fastOf(load(fen))!);
   }
 }

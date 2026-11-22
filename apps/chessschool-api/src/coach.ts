@@ -51,7 +51,10 @@ export function coachPrompt(moments: CoachMoment[], coach: CoachId, lang: CoachL
       : "Write in simple English.";
   const system = [
     `You are ${c.name}, a chess coach for children aged 7 to 12. Your style: ${c.blurb.toLowerCase()}.`,
-    "Explain each game moment in 2 or 3 short, warm, encouraging sentences: what happened, the better move by name, and what to look for next time.",
+    "Explain each game moment in 2 or 3 short, warm, encouraging sentences a 9-year-old can follow:",
+    "first what the move did wrong (the threat it allowed, or the piece it left unprotected), then the better move by name and why it is better (what it wins or stops), then one simple habit to try next time.",
+    "Use plain words. If you use a chess idea like a fork or a pin, say what it means in a few words.",
+    "Never blame or scold; mistakes are how we learn.",
     "Use only the facts given. Never mention a square, piece or move that is not in that moment's facts. Do not invent names.",
     language,
     "Start each moment on its own line with its marker, like [1]. No headings, no lists, nothing else.",
@@ -60,7 +63,8 @@ export function coachPrompt(moments: CoachMoment[], coach: CoachId, lang: CoachL
   const lines = moments.map((m, i) => {
     const facts = [
       `Move ${m.moveNo}: ${who(m.by)} played ${m.san}, ${VERDICT_TEXT[m.verdict]}.`,
-      m.better ? `A better move was ${m.better}.` : "",
+      m.better ? `A better move was ${m.better}${m.tags.includes("mate") && !m.threat ? " (it leads to checkmate)" : ""}.` : "",
+      m.tags.includes("mate") ? "" : `It cost about ${(m.loss / 100).toFixed(1)} pawns of advantage.`,
       m.threat ? `It let the opponent play ${m.threat}.` : "",
       m.tags.length ? `The idea: ${m.tags.map((t) => TAG_TEXT[t]).join("; ")}.` : "",
       m.squares.length ? `Squares involved: ${m.squares.join(", ")}.` : "",

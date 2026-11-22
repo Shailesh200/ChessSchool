@@ -8,6 +8,16 @@ import type { Translation } from "./i18n";
 export const hi: Translation = {
   tagline: "रोज़ कुछ शांत मिनट, और शतरंज में थोड़ा बेहतर।",
 
+  bots: {
+    pip: { name: "पिप", blurb: "चमकते मोहरे लेना पसंद है, पर मोहरा खुला कम ही छोड़ता है।", label: "शुरुआती" },
+    rooky: { name: "सर गैलप", blurb: "एक खुशमिज़ाज घोड़ा, जो दो चाल आगे सोचता है और अपने मोहरे बचाता है।", label: "नौसिखिया" },
+    bishop: { name: "प्रोफ़ेसर बिशप", blurb: "तिरछी चालों का शौकीन, खुले मोहरों को सज़ा देता है।", label: "मध्यम" },
+    ivy: { name: "रूकी", blurb: "खुली पंक्तियों पर तेज़ हमले करता है। गहराई से सोचता है।", label: "क्लब खिलाड़ी" },
+    atlas: { name: "किंग आइवी", blurb: "टूर्नामेंट जैसा मज़बूत। बहुत कम गलतियाँ।", label: "मज़बूत क्लब" },
+    raja: { name: "किंग एटलस", blurb: "एक शाही रणनीतिकार, जो लगभग कभी नहीं चूकता।", label: "माहिर" },
+    cody: { name: "चौकोर", blurb: "स्कूल का चैंपियन। उस्ताद की तरह खेलता है।", label: "उस्ताद" },
+  },
+
   tabs: { today: "सीखें", puzzles: "पहेलियाँ", gym: "जिम", rooms: "जिम", you: "प्रोफ़ाइल" },
 
   splash: { loading: "आपका स्कूल खुल रहा है…" },
@@ -459,7 +469,6 @@ export const hi: Translation = {
     last: "अंत",
     vsFriend: "पास और खेलें",
     vsOnline: "ऑनलाइन खेल",
-    importCta: "खेल लाएँ",
   },
 
   flashcards: {
@@ -504,9 +513,6 @@ export const hi: Translation = {
     soundsHint: "हर चाल पर हल्की खटखट, और शह पर घंटी।",
     mute: "चाल की आवाज़ बंद करें",
     unmute: "चाल की आवाज़ चालू",
-    copyMoves: "चालें कॉपी करें",
-    shareMoves: "चालें शेयर करें",
-    copied: "चालें कॉपी हो गईं।",
     close: "बंद करें",
     capturedLabel: (n: number, edge: number) => `${n} मोहरे लिए${edge > 0 ? `, ${edge} से आगे` : ""}`,
     lowTime: "10 सेकंड से कम!",
@@ -539,6 +545,26 @@ export const hi: Translation = {
       mate: "शह-मात। खेल खत्म!",
       opponent: "आपके विरोधी की चाल।",
     },
+    why: {
+      allowedMate: (san: string) => `सावधान! इससे विरोधी को ${san} से शह-मात का मौका मिल गया।`,
+      hanging: (piece: string, square: string) => `${square} पर आपका मोहरा (${piece}) बिना बचाव के रह गया, उसे लिया जा सकता है।`,
+      missedMate: (san: string) => `${san} से आपकी शह-मात थी!`,
+      freeCapture: (san: string, piece: string) => `${san} से एक ${piece} मुफ़्त में मिल जाता।`,
+      fork: (san: string) => `${san} एक फ़ोर्क था: एक मोहरा, दो निशाने।`,
+      pin: (san: string, piece: string) => `${san} से विरोधी का मोहरा (${piece}) पिन हो जाता, और वह सुरक्षित नहीं चल पाता।`,
+      threatFork: (san: string) => `इससे विरोधी को ${san} से फ़ोर्क का मौका मिला।`,
+      threatPin: (san: string) => `इससे विरोधी को ${san} से पिन का मौका मिला।`,
+      better: (san: string) => `${san} ज़्यादा मज़बूत चाल थी।`,
+      cost: (piece: string) => `इसमें लगभग एक ${piece} के बराबर नुकसान हुआ।`,
+      costPieces: { p: "प्यादे", n: "घोड़े या ऊँट", r: "हाथी", q: "रानी" },
+      tipSafety: "सुझाव: हर चाल से पहले देखें कि आपके सारे मोहरे सुरक्षित हैं।",
+      tipChecks: "सुझाव: हर चाल से पहले देखें कि विरोधी कौन-कौन सी शह दे सकता है।",
+      tipLook: "सुझाव: पहले शह, मोहरा लेने और हमले की चालें देखें!",
+      capture: (piece: string) => `बढ़िया, आपने ${piece} पर कब्ज़ा किया।`,
+      check: "शह! विरोधी को इसका जवाब देना होगा।",
+      opponentSlip: "यहाँ विरोधी से गलती हुई। क्या आप इसका फ़ायदा उठाने का तरीका ढूँढ सकते हैं?",
+      opponentLoose: (piece: string, square: string) => `विरोधी ने ${square} पर अपना मोहरा (${piece}) बिना बचाव के छोड़ दिया। क्या आप उसे ले सकते हैं?`,
+    },
     start: "शुरुआती स्थिति। खेल दोहराने के लिए आगे बढ़ें।",
     tryBetter: "आज़माकर देखें",
     tryPrompt: (side: string) => `${side} के लिए बेहतर चाल ढूँढें।`,
@@ -550,6 +576,8 @@ export const hi: Translation = {
     nextMoment: "अगला खास पल",
     noMoments: "कोई बड़ी गलती नहीं। बढ़िया खेला!",
     arrowsLabel: (played: string, better: string) => `लाल तीर: ${played} चली गई। हरा तीर: ${better} बेहतर थी।`,
+    minimise: "बोर्ड छोटा करें",
+    players: "खिलाड़ी",
   },
 
   puzzles: {
@@ -861,12 +889,8 @@ export const hi: Translation = {
   },
 
   ai: {
-    badge: "AI",
     coach: "AI कोच",
     hint: "AI कोच · संकेत",
-    onTitle: "AI कोच चालू है।",
-    onBody: "संकेत कारण बताते हैं, बॉट अपने अंदाज़ में खेलते हैं, और कोच गलतियों पर बात करता है।",
-    botLabel: (name: string) => `${name}, AI से खेलता है`,
   },
 
   board: {
@@ -1374,14 +1398,14 @@ export const hi: Translation = {
   },
 
   coachAi: {
-    button: "मेरा खेल समझाइए",
+    button: "कोच से पूछें",
+    retry: "कोच से फिर पूछें",
     title: "कोच की बातें",
     loading: "आपके कोच आपका खेल देख रहे हैं…",
     none: "समझाने लायक कोई बड़ी गलती नहीं। बहुत बढ़िया खेला!",
     failed: "कोच अभी यह खेल नहीं समझा पाए। थोड़ी देर बाद फिर कोशिश करें।",
     limit: "आज के लिए इतना ही। कल फिर आइए!",
     signIn: "कोच से समझने के लिए साइन इन करें।",
-    off: "AI से समझाना बंद है। माता-पिता इसे सेटिंग्स में चालू कर सकते हैं।",
     moveLabel: (moveNo: number, san: string) => `चाल ${moveNo}: ${san}`,
     note: "यह AI ने चौकोर के इंजन की खोज से लिखा है। इसमें गलती हो सकती है।",
   },
@@ -1410,7 +1434,7 @@ export const hi: Translation = {
     error: "अभी स्कैन नहीं हो पा रहा। थोड़ी देर बाद फिर कोशिश करें।",
     limit: "आज के स्कैन पूरे हो गए। कल फिर आइए!",
     signIn: "बोर्ड स्कैन करने के लिए साइन इन करें।",
-    off: "AI सुविधाएँ बंद हैं। माता-पिता सेटिंग्स में इन्हें चालू कर सकते हैं।",
+    off: "बोर्ड स्कैन करना एक प्रीमियम सुविधा है, जो इस प्रोफ़ाइल पर अभी उपलब्ध नहीं है।",
     noCamera: "कैमरा उपलब्ध नहीं है। इसके बजाय फ़ोटो चुनें।",
     noPermission: "इसके लिए ChessSchool को कैमरा इस्तेमाल करने की अनुमति चाहिए।",
     checkTitle: "स्थिति जाँचें",
@@ -1430,25 +1454,6 @@ export const hi: Translation = {
       check: "जिसकी चाल नहीं है, उसे शह नहीं हो सकती। किसकी चाल है, बदलें।",
       invalid: "यह स्थिति अभी खेली नहीं जा सकती।",
     },
-  },
-
-  importGames: {
-    title: "खेल लाएँ",
-    body: "Lichess या Chess.com से अपने खेल देखें, या PGN चिपकाएँ।",
-    sources: { lichess: "Lichess", chesscom: "Chess.com", pgn: "PGN चिपकाएँ" },
-    username: "यूज़रनेम",
-    find: "खेल खोजें",
-    pgnLabel: "PGN",
-    open: "खेल खोलें",
-    review: "समीक्षा",
-    empty: "इस खिलाड़ी के कोई सामान्य खेल नहीं मिले।",
-    notFound: "यह खिलाड़ी नहीं मिला।",
-    failed: "खेल नहीं आ सके। जाँचकर फिर कोशिश करें।",
-    badPgn: "यह PGN पढ़ा नहीं जा सका।",
-    signIn: "अपने खेल लाने के लिए साइन इन करें।",
-    privacy: "हम यूज़रनेम नहीं रखते। सिर्फ़ आपका खोला खेल इसी डिवाइस पर सहेजा जाता है।",
-    vs: (white: string, black: string) => `${white} बनाम ${black}`,
-    moves: (n: number) => `${Math.ceil(n / 2)} चालें`,
   },
 
   /** Phase 3 track C: celebrations, rating chart, key-moment card. */
@@ -1729,7 +1734,7 @@ export const hi: Translation = {
     kindLabel: "खेल का प्रकार",
     resultLabel: "नतीजा",
     botLabel: "बॉट",
-    kinds: { all: "सभी", bot: "बॉट", challenge: "दोस्त", friend: "एक डिवाइस पर दो", imported: "इम्पोर्ट किए" },
+    kinds: { all: "सभी", bot: "बॉट", challenge: "दोस्त", friend: "एक डिवाइस पर दो" },
     results: { all: "कोई भी नतीजा", win: "जीते", loss: "हारे", draw: "ड्रॉ" },
     anyBot: "कोई भी बॉट",
     none: "कोई खेल नहीं मिला। दूसरा फ़िल्टर आज़माएँ।",
@@ -1738,17 +1743,10 @@ export const hi: Translation = {
     goTo: (move: string) => `${move} पर जाएँ`,
     first: "पहली चाल",
     last: "आख़िरी चाल",
-    sharePgn: "PGN शेयर करें",
-    downloadPgn: "PGN डाउनलोड करें",
-    copyPgn: "PGN कॉपी करें",
-    copyFen: "FEN कॉपी करें",
-    shareFen: "FEN शेयर करें",
-    copied: "कॉपी हो गया",
     analyse: "इस स्थिति का विश्लेषण करें",
     you: "आप",
     friend: "दोस्त",
-    pgnEvent: "ChessSchool खेल",
-    engineOnly: "सिर्फ़ इंजन की बातें। सेटिंग्स में AI समझाना बंद है।",
+    engineOnly: "ये चौकोर के इंजन की बातें हैं। कोच से समझना एक प्रीमियम सुविधा है।",
     offlineNotes: "आप ऑफ़लाइन हैं। ये इंजन की बातें हैं; कोच की समझ के लिए इंटरनेट चाहिए।",
   },
 
@@ -1762,10 +1760,6 @@ export const hi: Translation = {
     toMove: "किसकी चाल",
     castling: "कैसलिंग",
     castle: { K: "सफ़ेद O-O", Q: "सफ़ेद O-O-O", k: "काला O-O", q: "काला O-O-O" },
-    fen: "FEN",
-    fenHint: "FEN चिपकाएँ और लोड दबाएँ।",
-    loadFen: "लोड",
-    badFen: "यह FEN पढ़ा नहीं जा सका।",
     problems: {
       kings: "हर ओर ठीक एक राजा चाहिए।",
       pawns: "प्यादे पहली या आख़िरी पंक्ति पर नहीं हो सकते।",
@@ -1785,7 +1779,6 @@ export const hi: Translation = {
     evalLabel: (v: string) => `आकलन ${v}`,
     checkmate: "शह-मात",
     stalemate: "स्टेलमेट",
-    copied: "FEN कॉपी हो गया",
     pieces: { k: "राजा", q: "रानी", r: "हाथी", b: "ऊँट", n: "घोड़ा", p: "प्यादा" },
   },
 

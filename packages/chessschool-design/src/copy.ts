@@ -8,6 +8,17 @@ export const copy = {
   brand: "ChessSchool",
   tagline: "A few calm minutes a day to get better at chess.",
 
+  /** Bot names, bios and level words by bot id (ids never change; @chessschool/chess setBotText puts these on BOTS). */
+  bots: {
+    pip: { name: "Pip", blurb: "Loves shiny captures, but rarely leaves a piece hanging.", label: "Beginner" },
+    rooky: { name: "Sir Gallop", blurb: "A cheerful knight who hops two moves ahead and guards his pieces.", label: "Novice" },
+    bishop: { name: "Professor Bishop", blurb: "Loves tricky diagonals and punishes loose pieces.", label: "Intermediate" },
+    ivy: { name: "Rooky", blurb: "Rolls down open files with sharp tactics. Calculates deeply.", label: "Club player" },
+    atlas: { name: "King Ivy", blurb: "Tournament-strong. Very few mistakes.", label: "Strong club" },
+    raja: { name: "King Atlas", blurb: "A royal strategist who almost never slips.", label: "Expert" },
+    cody: { name: "Chaukor", blurb: "The school's champion. Plays like a master.", label: "Master" },
+  },
+
   tabs: { today: "Learn", puzzles: "Puzzles", gym: "Gym", rooms: "Gym", you: "Profile" },
 
   splash: { loading: "Opening your school…" },
@@ -461,7 +472,6 @@ export const copy = {
     last: "End",
     vsFriend: "Pass & play",
     vsOnline: "Online game",
-    importCta: "Import games",
   },
 
   /** The one-minute daily review of lessons' key ideas, on Learn. */
@@ -509,9 +519,6 @@ export const copy = {
     soundsHint: "A soft knock for every move, and a chime for check.",
     mute: "Mute move sounds",
     unmute: "Unmute move sounds",
-    copyMoves: "Copy moves",
-    shareMoves: "Share moves",
-    copied: "Moves copied.",
     close: "Close",
     ahead: (n: number) => `+${n}`,
     capturedLabel: (n: number, edge: number) => `${n} captured${edge > 0 ? `, ahead by ${edge}` : ""}`,
@@ -545,6 +552,27 @@ export const copy = {
       mate: "Checkmate. Game over!",
       opponent: "Your opponent's move.",
     },
+    /** Plain-words reasons for a move, built from the engine's board facts (see moveStory). */
+    why: {
+      allowedMate: (san: string) => `Careful! This let your opponent checkmate with ${san}.`,
+      hanging: (piece: string, square: string) => `Your ${piece} on ${square} was left unprotected, so it can be taken.`,
+      missedMate: (san: string) => `You had checkmate with ${san}!`,
+      freeCapture: (san: string, piece: string) => `${san} would have won a free ${piece}.`,
+      fork: (san: string) => `${san} was a fork: one piece attacking two at once.`,
+      pin: (san: string, piece: string) => `${san} would have pinned the ${piece}, so it couldn't move safely.`,
+      threatFork: (san: string) => `It let your opponent play ${san}, a fork.`,
+      threatPin: (san: string) => `It let your opponent play ${san}, a pin.`,
+      better: (san: string) => `${san} was the stronger move.`,
+      cost: (piece: string) => `That cost about a ${piece}'s worth.`,
+      costPieces: { p: "pawn", n: "knight or bishop", r: "rook", q: "queen" },
+      tipSafety: "Tip: before each move, check that every piece of yours is safe.",
+      tipChecks: "Tip: before each move, look at every check your opponent could give.",
+      tipLook: "Tip: look for checks, captures and attacks first!",
+      capture: (piece: string) => `Nice, you took a ${piece}.`,
+      check: "Check! Your opponent has to answer it.",
+      opponentSlip: "Your opponent made a mistake here. Can you find a way to punish it?",
+      opponentLoose: (piece: string, square: string) => `Your opponent left their ${piece} on ${square} unprotected. Can you take it?`,
+    },
     start: "The starting position. Step forward to replay the game.",
     tryBetter: "Try it",
     tryPrompt: (side: string) => `Find the better move for ${side}.`,
@@ -556,6 +584,8 @@ export const copy = {
     nextMoment: "Next key moment",
     noMoments: "No big mistakes. Well played!",
     arrowsLabel: (played: string, better: string) => `Red arrow: ${played} was played. Green arrow: ${better} was better.`,
+    minimise: "Make the board smaller",
+    players: "Players",
   },
 
   puzzles: {
@@ -821,12 +851,8 @@ export const copy = {
   },
 
   ai: {
-    badge: "AI",
     coach: "AI coach",
     hint: "AI coach · hint",
-    onTitle: "AI coach is on.",
-    onBody: "Hints explain why, bots play in their own style, and the coach comments on mistakes.",
-    botLabel: (name: string) => `${name}, plays with AI`,
   },
 
   board: {
@@ -1338,14 +1364,14 @@ export const copy = {
 
   /** Public account-deletion page (Play requires a URL that does not need a login). */
   coachAi: {
-    button: "Explain my game",
+    button: "Ask coach",
+    retry: "Ask coach again",
     title: "Coach notes",
     loading: "Your coach is looking at your game…",
     none: "No big mistakes to explain. Well played!",
     failed: "Your coach couldn't explain this game right now. Try again later.",
     limit: "That's all the explanations for today. Come back tomorrow!",
     signIn: "Sign in to get your coach's explanations.",
-    off: "AI explanations are off. A parent can turn them on in Settings.",
     moveLabel: (moveNo: number, san: string) => `Move ${moveNo}: ${san}`,
     note: "Written by AI from what Chaukor's engine found. It can make mistakes.",
   },
@@ -1374,7 +1400,7 @@ export const copy = {
     error: "Scanning isn't working right now. Try again later.",
     limit: "That's all the scans for today. Come back tomorrow!",
     signIn: "Sign in to scan a board.",
-    off: "AI features are off. A parent can turn them on in Settings.",
+    off: "Board scanning is a premium feature and isn't available on this profile yet.",
     noCamera: "The camera isn't available. Choose a photo instead.",
     noPermission: "ChessSchool needs permission to use the camera for this.",
     checkTitle: "Check the position",
@@ -1394,25 +1420,6 @@ export const copy = {
       check: "The side not to move can't be in check. Change the side to move.",
       invalid: "This position can't be played yet.",
     },
-  },
-
-  importGames: {
-    title: "Import games",
-    body: "Review your games from Lichess or Chess.com, or paste a PGN.",
-    sources: { lichess: "Lichess", chesscom: "Chess.com", pgn: "Paste PGN" },
-    username: "Username",
-    find: "Find games",
-    pgnLabel: "PGN",
-    open: "Open game",
-    review: "Review",
-    empty: "No standard games found for that player.",
-    notFound: "We couldn't find that player.",
-    failed: "Couldn't load games. Check and try again.",
-    badPgn: "That PGN couldn't be read.",
-    signIn: "Sign in to import your games.",
-    privacy: "We don't keep the username. Only the game you open is saved, on this device.",
-    vs: (white: string, black: string) => `${white} vs ${black}`,
-    moves: (n: number) => `${Math.ceil(n / 2)} moves`,
   },
 
   /** Phase 3 track C: celebrations, rating chart, key-moment card. */
@@ -1752,7 +1759,7 @@ export const copy = {
     kindLabel: "Kind of game",
     resultLabel: "Result",
     botLabel: "Bot",
-    kinds: { all: "All", bot: "Bots", challenge: "Friends", friend: "Pass & play", imported: "Imported" },
+    kinds: { all: "All", bot: "Bots", challenge: "Friends", friend: "Pass & play" },
     results: { all: "Any result", win: "Won", loss: "Lost", draw: "Drawn" },
     anyBot: "Any bot",
     none: "No games match. Try another filter.",
@@ -1761,17 +1768,10 @@ export const copy = {
     goTo: (move: string) => `Go to ${move}`,
     first: "First move",
     last: "Last move",
-    sharePgn: "Share PGN",
-    downloadPgn: "Download PGN",
-    copyPgn: "Copy PGN",
-    copyFen: "Copy FEN",
-    shareFen: "Share FEN",
-    copied: "Copied",
     analyse: "Analyse this position",
     you: "You",
     friend: "Friend",
-    pgnEvent: "ChessSchool game",
-    engineOnly: "Engine notes only. AI explanations are off in Settings.",
+    engineOnly: "These are Chaukor's engine notes. Coach explanations are a premium feature.",
     offlineNotes: "You're offline. These are engine notes; the coach's explanations need a connection.",
   },
 
@@ -1785,10 +1785,6 @@ export const copy = {
     toMove: "Side to move",
     castling: "Castling",
     castle: { K: "White O-O", Q: "White O-O-O", k: "Black O-O", q: "Black O-O-O" },
-    fen: "FEN",
-    fenHint: "Paste a FEN and tap Load.",
-    loadFen: "Load",
-    badFen: "That FEN can't be read.",
     problems: {
       kings: "Each side needs exactly one king.",
       pawns: "Pawns can't stand on the first or last rank.",
@@ -1808,7 +1804,6 @@ export const copy = {
     evalLabel: (v: string) => `Evaluation ${v}`,
     checkmate: "Checkmate",
     stalemate: "Stalemate",
-    copied: "FEN copied",
     pieces: { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" },
   },
 

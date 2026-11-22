@@ -1,5 +1,5 @@
 import { detectMistakes, type Color, type MoveNote, type ReviewPly } from "@chessschool/chess";
-import { aiExplainOn, dayKey, recordReviewedGame, type CoachNote, type GameRecord } from "@chessschool/design";
+import { dayKey, hasPremiumAi, recordReviewedGame, type CoachNote, type GameRecord } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { isDeviceOnline } from "@/lib/hooks";
@@ -7,7 +7,10 @@ import { useApp } from "@/lib/state";
 
 export type CoachStatus = "idle" | "loading" | "done" | "error" | "limit";
 
-/** "Explain my game": the coach's notes per move (agreeing to the terms at the start covers sending the moves). */
+/**
+ * "Ask coach": the coach's notes per move. A premium AI feature (`hasPremiumAi`); without it the screens keep the
+ * engine notes. The API requires `consent: true`: agreeing to the terms at the start covers sending the moves, so it is always sent.
+ */
 export function useCoachNotes(moves: string[] | undefined, startFen: string, side: Color | null) {
   const { state, update } = useApp();
   const [status, setStatus] = useState<CoachStatus>("idle");
@@ -27,7 +30,7 @@ export function useCoachNotes(moves: string[] | undefined, startFen: string, sid
     status,
     notes,
     signedIn: Boolean(state.account),
-    allowed: aiExplainOn(state),
+    allowed: hasPremiumAi(state),
     ask: run,
     noteFor: (ply: number) => notes.find((n) => n.ply === ply) ?? null,
   };
@@ -58,7 +61,7 @@ export function useReviewedSkills(game: GameRecord | undefined, plies: ReviewPly
 export function usePlayAi(botGame: boolean) {
   const { state } = useApp();
   const coach = state.prefs.coach ?? "meera";
-  const on = botGame && Boolean(state.account) && aiExplainOn(state);
+  const on = botGame && hasPremiumAi(state);
   const [line, setLine] = useState<{ kind: "hint" | "comment"; text: string } | null>(null);
   const [botSay, setBotSay] = useState<string | null>(null);
   const say = (kind: "hint" | "comment", fen: string, move: string) => {
@@ -70,7 +73,7 @@ export function usePlayAi(botGame: boolean) {
       .catch(() => {});
   };
   return {
-    /** AI is on for this game (signed in, allowed for the account, Settings switch on). */
+    /** The learner has premium AI for this bot game. */
     active: on,
     line,
     botSay,

@@ -98,7 +98,6 @@ export type PracticeItem = { ref: string; step: Record<string, unknown> & { kind
 /** One explained moment from POST /v1/coach/explain (`tags` are @chessschool/chess mistake tags). */
 export type CoachNote = { ply: number; san: string; by: "w" | "b"; verdict: "inaccuracy" | "mistake" | "blunder"; better: string | null; tags: string[]; text: string };
 /** A game from Lichess, Chess.com or a pasted PGN, ready for the review screen. */
-export type ImportedGame = { id: string; white: string; black: string; result: string; endedAt: number; startFen: string; moves: string[]; you: "w" | "b" | null };
 export type AdminReport = { id: string; reason: ReportReason; note: string; status: "open" | "resolved"; createdAt: number; className: string | null; reported: string | null; reporter: string | null };
 /** A lesson as the admin lesson editor reads and writes it (steps as the lesson runner plays them). */
 export type AdminLesson = { id: string; unit: string; title: string; sub: string; minutes: number; xp: number; steps: Record<string, unknown>[] };
@@ -352,8 +351,6 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     /** Reads a board from a downscaled photo (base64, no data: prefix). The server never stores the image. */
     scanBoard: (input: { image: string; mediaType: "image/jpeg" | "image/png" | "image/webp"; consent: true }) =>
       request<{ placement: string; fen: string; side: "w" | "b" | null; confidence: number; problem: "kings" | "pawns" | "check" | "invalid" | null }>("POST", "/v1/scan", input, 170_000),
-    importGames: (source: "lichess" | "chesscom", username: string) => request<{ games: ImportedGame[] }>("POST", "/v1/import/games", { source, username }, 25_000),
-    importPgn: (pgn: string) => request<{ games: ImportedGame[] }>("POST", "/v1/import/pgn", { pgn }),
     practice: (input: { lessons: string[]; review: string[]; count: number; weak?: string[] }) => request<{ items: PracticeItem[] }>("POST", `/v1/practice${lang("?")}`, input),
     /** A 7-day share link to the certificate of a finished unit (403 while unfinished). `path` is relative to the API. */
     certificateLink: (unitId: string) => request<{ url: string; path: string; unit: string }>("POST", `/v1/certificates/${encodeURIComponent(unitId)}/link${lang("?")}`, {}),

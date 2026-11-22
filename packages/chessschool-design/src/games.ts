@@ -6,7 +6,8 @@ import { GAME_LOG_MAX, START_FEN, type GameRecord, type StoredSetup } from "./pr
  */
 export type GameKind = "bot" | "friend" | "challenge" | "imported" | "scanned";
 export type GameOutcomeForYou = "win" | "loss" | "draw";
-export const GAME_KINDS = ["bot", "challenge", "friend", "imported"] as const satisfies readonly GameKind[];
+/** Kinds the list filters by. Imported games (a removed feature) are kept in storage but never shown. */
+export const GAME_KINDS = ["bot", "challenge", "friend"] as const satisfies readonly GameKind[];
 export const GAME_RESULTS = ["win", "loss", "draw"] as const satisfies readonly GameOutcomeForYou[];
 
 export function gameKind(g: GameRecord): GameKind {
@@ -27,8 +28,11 @@ export function resultForYou(g: GameRecord): GameOutcomeForYou | null {
 export type GameFilter = { kind: GameKind | "all"; result: GameOutcomeForYou | "all"; bot?: string | null };
 export const ALL_GAMES: GameFilter = { kind: "all", result: "all", bot: null };
 
+/** The games the learner can see: everything but imported games (import was removed; old records stay harmless). */
+export const visibleGames = (log: readonly GameRecord[]): GameRecord[] => log.filter((g) => gameKind(g) !== "imported");
+
 export function filterGames(log: readonly GameRecord[], f: GameFilter): GameRecord[] {
-  return log.filter((g) => {
+  return visibleGames(log).filter((g) => {
     if (f.kind !== "all" && gameKind(g) !== f.kind) return false;
     if (f.result !== "all" && resultForYou(g) !== f.result) return false;
     if (f.bot && !(g.setup.opponent.kind === "bot" && g.setup.opponent.bot === f.bot)) return false;
@@ -131,6 +135,7 @@ export function sanitizeGameRecord(raw: unknown): GameRecord | null {
     ...(typeof s.startId === "string" && /^[a-z0-9-]{1,40}$/i.test(s.startId) ? { startId: s.startId } : {}),
     takebacks: s.takebacks === true,
     askPromotion: s.askPromotion !== false,
+    ...(s.whiteHue === "blue" || s.whiteHue === "orange" ? { whiteHue: s.whiteHue } : {}),
   };
   return { id: g.id, endedAt: Math.floor(g.endedAt), setup, history: [...(g.history as string[])], winner: g.winner as GameRecord["winner"], reason, ...(g.reviewed === true ? { reviewed: true } : {}) };
 }

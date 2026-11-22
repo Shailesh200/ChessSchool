@@ -4,7 +4,8 @@ import type { BotId, PieceType } from "@chessschool/chess";
 import { Cody } from "./Lottie";
 import { PieceArt } from "./Board";
 
-const PIECE: Record<BotId, PieceType | null> = { pip: "p", cody: null, rooky: "r", bishop: "b", ivy: "q", atlas: "k", raja: "n" };
+/** Each bot wears the piece of its name, weakest to strongest: Pip pawn, Sir Gallop knight, Professor Bishop, Rooky, King Ivy queen, King Atlas king. */
+const PIECE: Record<BotId, PieceType | null> = { pip: "p", cody: null, rooky: "n", bishop: "b", ivy: "r", atlas: "q", raja: "k" };
 const TINT: Record<BotId, string> = { pip: "tint-success", cody: "tint-brand", rooky: "tint-accent", bishop: "tint-gold", ivy: "tint-brand", atlas: "tint-accent", raja: "tint-gold" };
 
 /** Each bot is a Toy piece; Cody is Cody. */

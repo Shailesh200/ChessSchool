@@ -1,8 +1,8 @@
 "use client";
 
-import { botInfo, ENDGAME_IDS, isBotId } from "@chessschool/chess";
+import { botInfo, ENDGAME_IDS, isBotId, setBotText } from "@chessschool/chess";
 import { setAnalyticsAllowed, track as pulseTrack, flushAnalytics } from "@/lib/analytics";
-import { botGameProps, pulseForUsage, settingsProps } from "@chessschool/design";
+import { botGameProps, copy, pulseForUsage, settingsProps } from "@chessschool/design";
 import {
   STORAGE_KEY,
   markWeek,
@@ -387,7 +387,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // The language is applied before children render; changing it remounts the tree so every screen re-reads copy.
   const lang = ready ? (state.prefs.lang ?? langFor(navigator.language)) : "en";
-  if (language() !== lang) setLanguage(lang);
+  if (language() !== lang) {
+    setLanguage(lang);
+    setBotText(copy.bots);
+  }
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
