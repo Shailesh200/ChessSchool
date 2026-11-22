@@ -6,13 +6,16 @@ import { soundSources } from "./assets";
 const players = new Map<SoundCue, AudioPlayer>();
 let modeSet = false;
 
+/** Plays through the iPhone silent switch (the in-app mute buttons are the only mute); never interrupts the learner's music. */
+export function ensureAudioMode() {
+  if (modeSet) return;
+  modeSet = true;
+  void setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "mixWithOthers" }).catch(() => {});
+}
+
 export function playSound(cue: SoundCue) {
   try {
-    if (!modeSet) {
-      modeSet = true;
-      // Respect the silent switch; never interrupt the learner's music.
-      void setAudioModeAsync({ playsInSilentMode: false, interruptionMode: "mixWithOthers" }).catch(() => {});
-    }
+    ensureAudioMode();
     let p = players.get(cue);
     if (!p) {
       p = createAudioPlayer(soundSources[cue]);

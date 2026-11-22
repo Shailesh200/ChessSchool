@@ -3,6 +3,7 @@ import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { Directory, File, Paths } from "expo-file-system";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
+import { ensureAudioMode } from "./feedback";
 import { useApp } from "./state";
 
 /**
@@ -121,6 +122,7 @@ function start(src: string, rate: number) {
 
 /** Plays one clip, cutting off whatever the coach was saying straight away. */
 export function playClip(url: string, rate = 1) {
+  ensureAudioMode();
   const mine = ++turn;
   stopPlayer();
   const hit = cachedClip(url);
