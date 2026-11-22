@@ -1454,6 +1454,7 @@ export const copy = {
     usernameSaved: (u: string) => `You're @${u} now.`,
     usernameChecking: "Checking…",
     usernameFree: "Available",
+    copyUsername: "Copy username",
     usernameRules: "3 to 20 letters, numbers, _ or .",
     usernameProblems: {
       length: "Use 3 to 20 characters.",

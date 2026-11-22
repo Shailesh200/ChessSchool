@@ -357,7 +357,7 @@ export default function AdminPage() {
                     <span
                       className={`chip ${r.reason === "name" ? "chip-accent" : r.reason === "behaviour" ? "chip-gold" : ""}`}
                     >
-                      {copy.classroom.reasons[r.reason] ?? r.reason}
+                      {copy.reporting.reasons[r.reason] ?? r.reason}
                     </span>
                     <span className="muted">
                       {r.className ?? "Closed class"} · {ago(r.createdAt)}

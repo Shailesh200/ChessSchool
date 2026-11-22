@@ -1,12 +1,12 @@
 "use client";
 
-import { AVATARS, BANNERS, BIO_MAX, cleanName, copy, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
+import { AVATARS, BANNERS, BIO_MAX, cleanName, copy, normalizeUsername, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MemberFace } from "@/components/MemberFace";
 import { Icon } from "@/components/Icon";
-import { bannerVar, squareJpeg, useMyDetails } from "@/components/Social";
+import { bannerVar, saveUsername, squareJpeg, UsernameField, usernameError, useMyDetails, useUsernameStatus } from "@/components/Social";
 import { Button, Card, SaveBanner, TextField, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -15,7 +15,7 @@ type FieldErrors = Partial<Record<string, string>>;
 
 /** Profile editor: picture, name, bio, favourites, links and banner colour; board and theme looks are one click away. */
 export default function ProfileEditPage() {
-  const { state, ready, setProfile, cue } = useApp();
+  const { state, ready, setProfile, cue, update } = useApp();
   const router = useRouter();
   const toast = useToast();
   const t = copy.profileEdit;
@@ -27,6 +27,13 @@ export default function ProfileEditPage() {
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
+  const currentUsername = state.account?.username ?? null;
+  const [username, setUsername] = useState("");
+  const usernameStatus = useUsernameStatus(username || (currentUsername ?? ""), currentUsername);
+  useEffect(() => {
+    if (currentUsername) setUsername(currentUsername);
+  }, [currentUsername]);
   useEffect(() => {
     if (ready) setName(state.profile.name);
   }, [ready, state.profile.name]);
@@ -64,6 +71,7 @@ export default function ProfileEditPage() {
     } finally {
       setPhotoBusy(false);
       if (file.current) file.current.value = "";
+      if (camera.current) camera.current.value = "";
     }
   };
   const removePhoto = async () => {
@@ -89,8 +97,19 @@ export default function ProfileEditPage() {
     const problem = nameProblem(name);
     // Reserved names are left to the server: staff accounts may use them.
     if (problem && problem !== "reserved") return setErrors({ name: copy.social.nameProblems[problem] });
+    const newUsername = currentUsername !== null && username && normalizeUsername(username) !== currentUsername ? normalizeUsername(username) : null;
+    if (newUsername && usernameStatus !== "ok") return setErrors({ username: usernameError(usernameStatus === "checking" ? null : usernameStatus) ?? copy.social.usernameChecking });
     setSaving(true);
     try {
+      if (newUsername) {
+        const r = await saveUsername(newUsername);
+        if (!("username" in r)) {
+          setSaving(false);
+          cue("gentle-no");
+          return setErrors({ username: usernameError(r.problem) ?? copy.auth.errors.offline });
+        }
+        update((s) => (s.account ? { ...s, account: { ...s.account, username: r.username }, usernameAsked: true } : s));
+      }
       if (clean !== state.profile.name) {
         await api.updateMe({ name: clean });
         setProfile({ name: clean });
@@ -122,10 +141,16 @@ export default function ProfileEditPage() {
         <MemberFace id={state.profile.avatar} photo={mine?.photo} size={96} />
         <p className="muted small">{mine?.photoHidden ? t.photoHidden : t.photoHint}</p>
         <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => void upload(e.target.files?.[0])} />
-        <div className="profile-photo-actions">
+        <input ref={camera} type="file" accept="image/*" capture="user" hidden onChange={(e) => void upload(e.target.files?.[0])} />
+        <div className="profile-photo-pair">
           <Button type="button" variant="secondary" icon="edit" loading={photoBusy} onClick={() => file.current?.click()}>
-            {photoBusy ? t.uploading : t.upload}
+            {photoBusy ? t.uploading : t.fromLibrary}
           </Button>
+          <Button type="button" variant="secondary" icon="eye" disabled={photoBusy} onClick={() => camera.current?.click()}>
+            {t.fromCamera}
+          </Button>
+        </div>
+        <div className="profile-photo-actions">
           {mine?.photo ? (
             <Button type="button" variant="ghost" icon="trash" disabled={photoBusy} onClick={() => void removePhoto()}>
               {t.removePhoto}
@@ -144,6 +169,22 @@ export default function ProfileEditPage() {
 
       <Card className="profile-fields">
         <TextField label={t.name} placeholder={copy.auth.namePlaceholder} value={name} onChange={(e) => (setName(e.target.value), setErrors({}))} error={errors.name} maxLength={40} />
+        {currentUsername !== null ? <UsernameField value={username} onChange={(v) => (setUsername(v), setErrors({}))} current={currentUsername} label={t.username} hint={t.usernameHint} error={errors.username} /> : null}
+        <div className="field">
+          <span className="row-label" id="country-l">
+            {t.country}
+          </span>
+          <Link className="country-field" href="/country" aria-labelledby="country-l" aria-describedby="country-h">
+            <span className="country-field-flag" aria-hidden>
+              {state.profile.country ? flagOf(state.profile.country) : "🏳️"}
+            </span>
+            <span className="country-field-name">{state.profile.country ? countryName(state.profile.country) : copy.country.none}</span>
+            <Icon name="chevron" />
+          </Link>
+          <p className="field-hint" id="country-h">
+            {t.countryHint}
+          </p>
+        </div>
         <div className={`field${errors.bio ? " has-error" : ""}`}>
           <label htmlFor="bio">{t.bio}</label>
           <div className="field-box">
@@ -201,14 +242,6 @@ export default function ProfileEditPage() {
           <span className="row-text">
             <span className="row-label">{t.looks}</span>
             <span className="row-hint">{t.looksHint}</span>
-          </span>
-          <Icon name="chevron" />
-        </Link>
-        <Link className="row" href="/country">
-          <Icon name="flag" />
-          <span className="row-text">
-            <span className="row-label">{t.country}</span>
-            <span className="row-hint">{state.profile.country ? `${flagOf(state.profile.country)} ${countryName(state.profile.country)}` : copy.country.none}</span>
           </span>
           <Icon name="chevron" />
         </Link>

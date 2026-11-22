@@ -2735,6 +2735,29 @@ button.mode-tile {
   height: 100%;
   object-fit: cover;
 }
+/* Country flag badge on the bottom-right of a face (leaderboards, profiles). */
+.member-face-wrap {
+  position: relative;
+  flex: none;
+  display: inline-block;
+}
+.member-flag {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--cs-card);
+  background: var(--cs-card);
+  line-height: 1;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+}
+.me-username {
+  color: var(--cs-brand-text);
+  font-weight: 600;
+}
 .member-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3429,6 +3452,37 @@ button.mode-tile {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.profile-photo-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.country-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 2px solid var(--cs-line);
+  border-radius: 16px;
+  background: var(--cs-card);
+  color: var(--cs-text);
+  text-decoration: none;
+}
+.country-field:hover {
+  border-color: var(--cs-brand);
+}
+.country-field-flag {
+  font-size: 1.375rem;
+}
+.country-field-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .avatar-grid {
   display: flex;
@@ -6698,6 +6752,167 @@ button.game-row {
 .player-stats span {
   color: var(--cs-text-muted);
   font-size: 0.8125rem;
+}
+.player-banner {
+  position: relative;
+  height: 96px;
+}
+.player-rank-pill {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.22);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.player-head {
+  margin-top: -50px;
+}
+.player-username {
+  margin: 0;
+  color: var(--cs-brand-text);
+  font-weight: 600;
+}
+.player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.player-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--cs-sunken);
+  color: var(--cs-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.player-chip.is-brand {
+  background: var(--cs-brand-soft);
+  color: var(--cs-brand-text);
+}
+.player-chip.is-success {
+  background: var(--cs-success-soft);
+  color: var(--cs-success-text);
+}
+.player-stat-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.player-stat-grid li {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 12px 4px;
+  text-align: center;
+}
+.player-stat-grid li:nth-child(3n + 2),
+.player-stat-grid li:nth-child(3n + 3) {
+  border-left: 1px solid var(--cs-line);
+}
+.player-stat-grid li:nth-child(n + 4) {
+  border-top: 1px solid var(--cs-line);
+}
+.player-stat-grid strong {
+  font-size: 1.25rem;
+}
+.player-stat-grid span {
+  color: var(--cs-text-muted);
+  font-size: 0.75rem;
+}
+.player-stat-grid .tone-accent svg {
+  color: var(--cs-accent);
+}
+.player-stat-grid .tone-gold svg {
+  color: var(--cs-gold-text);
+}
+.player-stat-grid .tone-success svg {
+  color: var(--cs-success-text);
+}
+.player-stat-grid .tone-brand svg {
+  color: var(--cs-brand-text);
+}
+.player-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.player-games {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.player-games li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.player-game-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--cs-sunken);
+  color: var(--cs-text-muted);
+}
+.player-game-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.player-game-text strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.player-game-result {
+  font-weight: 700;
+  color: var(--cs-text-muted);
+}
+.player-games .is-win .player-game-icon {
+  background: var(--cs-success-soft);
+  color: var(--cs-success-text);
+}
+.player-games .is-win .player-game-result {
+  color: var(--cs-success-text);
+}
+.player-games .is-loss .player-game-icon {
+  background: var(--cs-danger-soft);
+  color: var(--cs-danger-text);
+}
+.player-games .is-loss .player-game-result {
+  color: var(--cs-danger-text);
+}
+.player-trophies {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.player-trophies li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--cs-gold);
+  background: var(--cs-gold-soft);
+  color: var(--cs-gold-text);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 .player-facts {
   margin: 0;

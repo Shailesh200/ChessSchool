@@ -1,12 +1,13 @@
 "use client";
 
-import { AVATARS, BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, FLAIRS, isUnitBadge, weekCard, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { InviteCard } from "@/components/Growth";
 import { MemberFace } from "@/components/MemberFace";
-import { bannerVar, FriendCodeCard, useMyDetails } from "@/components/Social";
+import { bannerVar, FriendsCard, useMyDetails } from "@/components/Social";
+import { ShareCardButton } from "@/components/ShareCard";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Cody } from "@/components/Lottie";
@@ -118,7 +119,8 @@ export default function YouPage() {
               <span>{display}</span>
               <Icon name="edit" size={18} />
             </button>
-            <span className="muted">{profile.flair ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
+            {account?.username ? <span className="me-username">{copy.social.at(account.username)}</span> : null}
+            <span className="muted">{profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
             <span className={`me-chip${account ? " is-member" : ""}`}>{account ? copy.you.member : copy.you.guest}</span>
             {account ? <span className="muted small">{account.email}</span> : null}
           </div>
@@ -147,9 +149,11 @@ export default function YouPage() {
 
       <SkillsCard skills={progress.skills} />
 
+      {account ? <ShareCardButton block kind="weekly" data={weekCard(progress, new Date())} label={copy.share.weeklyAction} /> : null}
+
       <InviteCard />
 
-      <FriendCodeCard />
+      <FriendsCard />
 
       <Link href="/trophies" className="card trophy-link" aria-label={copy.trophies.open}>
         <span className="trophy-link-top">
@@ -221,14 +225,6 @@ export default function YouPage() {
           </span>
           <Icon name="chevron" />
         </Link>
-        <Link href="/country" className="row row-link">
-          <Icon name="flag" />
-          <span className="row-text">
-            <span className="row-label">{copy.country.title}</span>
-            <span className="row-hint">{profile.country ? `${flagOf(profile.country)} ${countryName(profile.country)}` : copy.country.none}</span>
-          </span>
-          <Icon name="chevron" />
-        </Link>
         <Link href="/leaderboard" className="row row-link">
           <Icon name="trophy" />
           <span className="row-text">
@@ -242,22 +238,6 @@ export default function YouPage() {
           <span className="row-text">
             <span className="row-label">{copy.you.review}</span>
             <span className="row-hint">{copy.gym.review.body}</span>
-          </span>
-          <Icon name="chevron" />
-        </Link>
-        <Link href="/class" className="row row-link">
-          <Icon name="club" />
-          <span className="row-text">
-            <span className="row-label">{copy.you.class}</span>
-            <span className="row-hint">{copy.you.classHint}</span>
-          </span>
-          <Icon name="chevron" />
-        </Link>
-        <Link href="/learners" className="row row-link">
-          <Icon name="profile" />
-          <span className="row-text">
-            <span className="row-label">{copy.learners.title}</span>
-            <span className="row-hint">{copy.learners.hint}</span>
           </span>
           <Icon name="chevron" />
         </Link>
@@ -287,7 +267,7 @@ export default function YouPage() {
         </div>
         <h3>{copy.you.flair}</h3>
         <div className="flair-list" role="radiogroup" aria-label={copy.you.flair}>
-          {FLAIRS.map((id) => (
+          {FLAIRS.filter((id) => id !== "monitor").map((id) => (
             <button key={id} type="button" role="radio" aria-checked={profile.flair === id} className={`choice${profile.flair === id ? " is-on" : ""}`} onClick={() => saveLook({ flair: profile.flair === id ? null : id })}>
               {copy.you.flairs[id]}
             </button>

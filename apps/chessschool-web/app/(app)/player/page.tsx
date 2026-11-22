@@ -1,8 +1,10 @@
 "use client";
 
-import { copy, countryName, flagOf, SOCIALS, socialUrl, type PlayerProfile } from "@chessschool/design";
+import { copy, countryName, isUnitBadge, rankFor, SOCIALS, socialUrl, type BadgeId, type IconName, type PlayerGame, type PlayerProfile } from "@chessschool/design";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { botName } from "@/components/Daily";
+import { Icon } from "@/components/Icon";
 import { MemberFace } from "@/components/MemberFace";
 import { bannerVar } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
@@ -10,7 +12,7 @@ import { Button, Card, Sheet, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 
-/** A player's public profile (leaderboard row, friend): details, links, and add friend / report / block. */
+/** A player's public profile (leaderboard row, friend, link): rank, stats, trophies, recent games, details, links, and add friend / report / block. */
 function Player() {
   const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
@@ -77,35 +79,90 @@ function Player() {
     }
   };
 
+  const rank = rankFor(player.xp);
+  const trophies = (player.badges ?? []).filter((b) => !isUnitBadge(b as BadgeId) && b in copy.badges.list) as BadgeId[];
+  const stats: { label: string; value: string | number; icon: IconName; tone: string }[] = [
+    { label: t.streak, value: player.streak ?? 0, icon: "spark", tone: "accent" },
+    { label: t.xp, value: player.xp, icon: "bolt", tone: "gold" },
+    { label: t.lessons, value: player.lessons ?? 0, icon: "learn", tone: "success" },
+    { label: t.playRating, value: player.rating ?? t.unrated, icon: "gym", tone: "brand" },
+    { label: t.puzzleRating, value: player.puzzleRating ?? t.unrated, icon: "puzzle", tone: "brand" },
+    { label: t.bestWin, value: player.bestWin ?? "–", icon: "trophy", tone: "gold" },
+  ];
+  const since = new Date(player.joinedAt).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const opponent = (g: PlayerGame) => (g.opponent.kind === "bot" ? t.vsBot(botName(g.opponent.bot)) : g.opponent.kind === "online" ? t.vsOnline : t.vsFriend);
+
   return (
     <div className="page page-narrow player-page">
       <TopBar title={player.name} backHref="/leaderboard" />
       <Card className="player-card">
-        <div className="player-banner" style={{ background: bannerVar(d.banner) }} />
+        <div className="player-banner" style={{ background: bannerVar(d.banner) }}>
+          <span className="player-rank-pill">{`${copy.ranks[rank.rank]} · ${player.xp} ${t.xp}`}</span>
+        </div>
         <div className="player-head">
           <span className="player-face">
-            <MemberFace id={player.avatar} photo={player.photo} size={84} />
+            <MemberFace id={player.avatar} photo={player.photo} size={92} country={player.country} />
           </span>
-          <h2 className="player-name">
-            {player.name}
-            {player.country ? <span aria-label={countryName(player.country)}> {flagOf(player.country)}</span> : null}
-          </h2>
-          {player.country ? <p className="muted small">{countryName(player.country)}</p> : null}
+          <h2 className="player-name">{player.name}</h2>
+          {player.username ? <p className="player-username">{t.at(player.username)}</p> : null}
+          <div className="player-chips">
+            <span className="player-chip is-brand">{copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
+            {player.country ? <span className="player-chip">{countryName(player.country)}</span> : null}
+            {player.friend ? <span className="player-chip is-success">{t.friend}</span> : null}
+          </div>
           {d.bio ? <p className="player-bio">{d.bio}</p> : null}
-          <p className="muted small">{t.joined(new Date(player.joinedAt).toLocaleDateString(undefined, { month: "long", year: "numeric" }))}</p>
+          <p className="muted small">{t.memberSince(since)}</p>
         </div>
       </Card>
       <Card as="div">
-        <ul className="player-stats">
-          <li>
-            <strong>{player.rating ?? "–"}</strong>
-            <span>{t.rating}</span>
-          </li>
-          <li>
-            <strong>{player.xp}</strong>
-            <span>{t.xp}</span>
-          </li>
+        <ul className="player-stat-grid">
+          {stats.map((st) => (
+            <li key={st.label} className={`tone-${st.tone}`}>
+              <Icon name={st.icon} size={18} />
+              <strong>{st.value}</strong>
+              <span>{st.label}</span>
+            </li>
+          ))}
         </ul>
+      </Card>
+      <Card as="section" aria-labelledby="recent-h">
+        <div className="player-section-head">
+          <h2 id="recent-h" className="card-title">{t.recent}</h2>
+          {player.games ? <span className="muted small">{t.games(player.games.played, player.games.won)}</span> : null}
+        </div>
+        {player.recent?.length ? (
+          <ul className="player-games">
+            {player.recent.map((g) => (
+              <li key={g.id} className={`is-${g.result}`}>
+                <span className="player-game-icon" aria-hidden>
+                  <Icon name={g.result === "win" ? "trophy" : g.result === "loss" ? "close" : "gym"} size={18} />
+                </span>
+                <span className="player-game-text">
+                  <strong>{opponent(g)}</strong>
+                  <span className="muted small">{`${t.moves(g.moves)} · ${new Date(g.endedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`}</span>
+                </span>
+                <span className="player-game-result">{t.results[g.result]}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">{t.noGames}</p>
+        )}
+      </Card>
+      <Card as="section" aria-labelledby="trophies-h">
+        <h2 id="trophies-h" className="card-title">{`${t.trophies} · ${trophies.length}`}</h2>
+        {trophies.length ? (
+          <ul className="player-trophies">
+            {trophies.slice(-8).reverse().map((b) => (
+              <li key={b}>
+                <Icon name="trophy" size={14} />
+                {copy.badges.list[b].name}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">{t.noTrophies}</p>
+        )}
       </Card>
       {facts.length ? (
         <Card as="div">
@@ -143,7 +200,7 @@ function Player() {
           <Button block icon="profile" variant={player.friend ? "secondary" : "primary"} loading={busy && !confirmBlock} onClick={friend}>
             {player.friend ? t.removeFriend : t.addFriend}
           </Button>
-          <Button block icon="flag" variant="secondary" href={`/class/report?player=${encodeURIComponent(player.id)}&name=${encodeURIComponent(player.name)}`}>
+          <Button block icon="flag" variant="secondary" href={`/report?player=${encodeURIComponent(player.id)}&name=${encodeURIComponent(player.name)}`}>
             {t.report}
           </Button>
           <Button block icon="block" variant="ghost" onClick={() => setConfirmBlock(true)}>

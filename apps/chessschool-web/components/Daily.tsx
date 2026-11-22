@@ -8,7 +8,7 @@ import { Button, Card, Chip } from "@/components/ui";
 import { useApp } from "@/lib/state";
 
 const botRating = (id: string) => (isBotId(id) ? botInfo(id).rating : 0);
-const botName = (id: string) => (isBotId(id) ? botInfo(id).name : id);
+export const botName = (id: string) => (isBotId(id) ? botInfo(id).name : id);
 
 /** The shared daily puzzle: how many solved it today, the puzzle streak and its freezes. */
 export function DailyCard({ today, enabled = true, className = "" }: { today: string; enabled?: boolean; className?: string }) {

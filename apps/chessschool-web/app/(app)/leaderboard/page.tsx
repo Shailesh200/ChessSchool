@@ -96,12 +96,9 @@ export default function LeaderboardPage() {
               {board.rows.map((r) => (
                 <li key={r.id} className={`${r.me ? "is-me" : ""}${r.rank <= 3 ? ` is-top rank-${r.rank}` : ""}`}>
                   <span className="board-rank">{r.rank}</span>
-                  <MemberFace id={r.avatar} photo={r.photo} size={40} />
+                  <MemberFace id={r.avatar} photo={r.photo} size={40} country={r.country} />
                   <Link className="board-name" href={`/player?id=${encodeURIComponent(r.id)}`} aria-label={copy.social.viewProfile(r.me ? t.you : r.name)}>
-                    <strong>
-                      {r.me ? t.you : r.name}
-                      {r.country ? <span aria-label={r.country}> {flagOf(r.country)}</span> : null}
-                    </strong>
+                    <strong>{r.me ? t.you : r.name}</strong>
                     {r.friend ? <span className="muted small">{t.friend}</span> : null}
                   </Link>
                   <span className="board-value">{t.value(metric, r.value)}</span>

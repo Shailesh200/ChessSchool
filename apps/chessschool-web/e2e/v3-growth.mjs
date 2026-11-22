@@ -1,4 +1,4 @@
-// Phase 3 track D walkthrough: share card from the certificate-free path (weekly card on Learners),
+// Phase 3 track D walkthrough: share card from the certificate-free path (weekly card on Profile),
 // a puzzle challenge opened by a guest on a phone, an async game between two browsers, the invite
 // page, the app-link files and the growth dashboard guard.
 // Usage: node e2e/v3-growth.mjs [outDir]   (web on :3541, API on :3540; both local)
@@ -48,8 +48,8 @@ async function run() {
   await page.getByRole("button", { name: "Skip" }).click();
   await page.waitForURL("**/today");
 
-  log("weekly card: 2 taps from Learners to the share sheet with a PNG file");
-  await page.goto(`${BASE}/learners`);
+  log("weekly card: from Profile to the share sheet with a PNG file");
+  await page.goto(`${BASE}/you`);
   await page.getByRole("button", { name: "Share this week" }).click();
   await page.waitForFunction(() => window.__shared.length === 1, null, { timeout: 60_000 });
   const shared = (await page.evaluate(() => window.__shared))[0];
@@ -64,7 +64,7 @@ async function run() {
 
   log("browsers without file sharing download the card instead");
   await page.evaluate(() => (navigator.canShare = () => false));
-  await page.goto(`${BASE}/learners`);
+  await page.goto(`${BASE}/you`);
   await page.evaluate(() => (navigator.canShare = () => false));
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Share this week" }).click()]);
   check(download.suggestedFilename() === "chessschool-card.png", "downloaded chessschool-card.png");

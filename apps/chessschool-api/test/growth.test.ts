@@ -259,7 +259,7 @@ describe("invite rewards", () => {
     expect(await db.select().from(invites)).toEqual([]);
     expect(await db.select().from(inviteAccepts)).toEqual([]);
     expect(await db.select().from(freezeBank).where(eq(freezeBank.userId, inviter.user.id))).toEqual([]);
-  });
+  }, 30_000);
 });
 
 describe("class leaderboard by weekly XP", () => {

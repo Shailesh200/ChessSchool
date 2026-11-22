@@ -10,7 +10,7 @@ const ago = (at: number) => {
   const m = Math.round((Date.now() - at) / 60_000);
   return m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`;
 };
-const REASON: Record<string, string> = { ...copy.classroom.reasons, ...copy.social.reasons };
+const REASON: Record<string, string> = { ...copy.reporting.reasons, ...copy.social.reasons };
 
 /** Admin safety queue: class and player reports (dismiss, hide name or photo, suspend) and "Contact us" messages. ADMIN_EMAILS only. */
 export default function SafetyPage() {

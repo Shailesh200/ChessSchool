@@ -1432,6 +1432,7 @@ export const hi: Translation = {
     usernameSaved: (u: string) => `अब आप @${u} हैं।`,
     usernameChecking: "जाँच रहे हैं…",
     usernameFree: "उपलब्ध है",
+    copyUsername: "यूज़रनेम कॉपी करें",
     usernameRules: "3 से 20 अक्षर, अंक, _ या .",
     usernameProblems: {
       length: "3 से 20 अक्षर रखें।",
