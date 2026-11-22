@@ -3,13 +3,12 @@ import { copy, puzzleBackdrop } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Backdrop } from "@/components/Backdrop";
 import { useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { ChallengeButton } from "@/components/Growth";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
-import { Button, T, TopBar } from "@/components/ui";
+import { Button, T, TopBar, ModalSafeArea } from "@/components/ui";
 import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
@@ -19,9 +18,9 @@ export default function PuzzleScreen() {
   const { c } = useTheme();
   if (!ready) {
     return (
-      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+      <ModalSafeArea style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
         <ActivityIndicator />
-      </SafeAreaView>
+      </ModalSafeArea>
     );
   }
   return <PuzzleBody />;
@@ -35,7 +34,7 @@ function PuzzleBody() {
   const theme = (PUZZLE_THEMES.find((t) => t.id === params.theme)?.id ?? null) as PuzzleThemeId | null;
   if (daily && served.done) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, padding: 16, gap: 16 }}>
+      <ModalSafeArea style={{ flex: 1, backgroundColor: c.bg, padding: 16, gap: 16 }}>
         <TopBar title={copy.puzzles.daily} />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: c.successSoft }}>
@@ -46,14 +45,14 @@ function PuzzleBody() {
           </T>
         </View>
         <Button title={copy.puzzles.back} icon="back" onPress={() => router.back()} />
-      </SafeAreaView>
+      </ModalSafeArea>
     );
   }
   if (daily && !served.puzzle) {
     return (
-      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+      <ModalSafeArea style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
         <ActivityIndicator />
-      </SafeAreaView>
+      </ModalSafeArea>
     );
   }
   return <PuzzlePlay daily={daily} theme={theme} initial={served.puzzle} />;
@@ -68,7 +67,7 @@ function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleTh
   const title = daily ? copy.puzzles.daily : theme ? PUZZLE_THEMES.find((t) => t.id === theme)!.name : copy.puzzles.play;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <ModalSafeArea style={{ flex: 1, backgroundColor: c.bg }}>
       <Backdrop art={puzzleBackdrop(puzzle.id)} />
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={title} />
@@ -109,6 +108,6 @@ function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleTh
           }
         />
       </View>
-    </SafeAreaView>
+    </ModalSafeArea>
   );
 }

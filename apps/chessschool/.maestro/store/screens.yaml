@@ -13,11 +13,10 @@ env:
 
 - openLink: chessschool://lesson/board
 - runFlow: ../common/open-prompt.yaml
+# Long coach lines show in chunks; shoot on the first one so the sentence reads from its start.
 - extendedWaitUntil:
-    visible: "This is the board."
+    visible: "64 squares.*"
     timeout: 30000
-- waitForAnimationToEnd:
-    timeout: 5000
 - takeScreenshot: 02-lesson
 
 - openLink: chessschool://puzzle
@@ -46,7 +45,8 @@ env:
 - tapOn:
     id: "password-input"
 - inputText: ${PASSWORD}
-- hideKeyboard
+# The password field's return key submits ("go"); hideKeyboard is unreliable on iOS 26.
+- pressKey: Enter
 - tapOn:
     text: "Log in"
     optional: true

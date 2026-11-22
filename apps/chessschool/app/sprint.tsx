@@ -2,10 +2,9 @@ import { nextPuzzle, type Puzzle } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Cody } from "@/components/Lottie";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
-import { Button, Flow, T, TopBar } from "@/components/ui";
+import { Button, Flow, T, TopBar, ModalSafeArea } from "@/components/ui";
 import { usePuzzlePackReady } from "@/lib/puzzlePack";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
@@ -19,9 +18,9 @@ export default function Sprint() {
   const { c } = useTheme();
   if (!ready) {
     return (
-      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
+      <ModalSafeArea style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}>
         <ActivityIndicator />
-      </SafeAreaView>
+      </ModalSafeArea>
     );
   }
   return <SprintBody />;
@@ -99,7 +98,7 @@ function SprintBody() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <ModalSafeArea style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={copy.puzzles.sprint} />
       </View>
@@ -131,6 +130,6 @@ function SprintBody() {
           }}
         />
       </View>
-    </SafeAreaView>
+    </ModalSafeArea>
   );
 }

@@ -508,6 +508,12 @@ export function Banner() {
   );
 }
 
+/** Safe areas for full-screen modal routes: SafeAreaView reports no top inset there on iOS, so the header sat under the clock. */
+export function ModalSafeArea({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const i = useSafeAreaInsets();
+  return <View style={[style, { paddingTop: i.top, paddingBottom: i.bottom, paddingLeft: i.left, paddingRight: i.right }]}>{children}</View>;
+}
+
 /** Scrollable tab screen with safe areas and the connectivity banner. */
 export function Screen({ children, banner = true, contentStyle }: { children: React.ReactNode; banner?: boolean; contentStyle?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
