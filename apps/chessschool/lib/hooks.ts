@@ -1,8 +1,8 @@
 import NetInfo from "@react-native-community/netinfo";
 import { assessMove, type MoveNote, type ReviewPly } from "@chessschool/chess";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AccessibilityInfo, AppState } from "react-native";
-import { api, API_URL } from "./api";
+import { apiWatch } from "./api";
 import { useApp } from "./state";
 
 /** The OS "reduce motion" setting, or the in-app Reduce motion pref. */
@@ -20,42 +20,24 @@ export function useReducedMotion() {
 /** Whether the device has a connection right now (for code outside React). */
 let deviceOnline = true;
 NetInfo.addEventListener((s) => {
+  const was = deviceOnline;
   deviceOnline = s.isConnected !== false;
+  // Back on a network: look at the API again (quietly).
+  if (deviceOnline && !was) void apiWatch.check();
 });
 export const isDeviceOnline = () => deviceOnline;
+// One probe at launch and one each time the app comes back, shared by every screen's banner.
+void apiWatch.check();
+AppState.addEventListener("change", (s) => s === "active" && void apiWatch.check());
 
 export type Connectivity = "online" | "offline" | "api-down";
 
-/** Device offline, or API unreachable (including no API configured). */
+/** Device offline, or API unreachable (including no API configured). One watcher serves every screen. */
 export function useConnectivity(): { status: Connectivity; retry: () => void } {
   const [online, setOnline] = useState(true);
-  const [apiUp, setApiUp] = useState(true);
-  const [nonce, setNonce] = useState(0);
-
+  const apiUp = useSyncExternalStore(apiWatch.subscribe, apiWatch.up);
   useEffect(() => NetInfo.addEventListener((s) => setOnline(s.isConnected !== false)), []);
-
-  useEffect(() => {
-    const sub = AppState.addEventListener("change", (s) => s === "active" && setNonce((n) => n + 1));
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!online) return;
-    if (!API_URL) {
-      setApiUp(false);
-      return;
-    }
-    let alive = true;
-    api
-      .health()
-      .then(() => alive && setApiUp(true))
-      .catch(() => alive && setApiUp(false));
-    return () => {
-      alive = false;
-    };
-  }, [online, nonce]);
-
-  return { status: !online ? "offline" : apiUp ? "online" : "api-down", retry: () => setNonce((n) => n + 1) };
+  return { status: !online ? "offline" : apiUp ? "online" : "api-down", retry: () => void apiWatch.check() };
 }
 
 /**

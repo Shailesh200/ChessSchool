@@ -2,7 +2,7 @@
 
 import { assessMove, type MoveNote, type ReviewPly } from "@chessschool/chess";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { api } from "./api";
+import { apiWatch } from "./api";
 import { useApp } from "./state";
 
 function subscribeMedia(query: string) {
@@ -44,22 +44,14 @@ export function useConnectivity(): { status: Connectivity; retry: () => void } {
     () => navigator.onLine,
     () => true,
   );
-  const [apiUp, setApiUp] = useState(true);
-  const [nonce, setNonce] = useState(0);
+  const apiUp = useSyncExternalStore(apiWatch.subscribe, apiWatch.up, () => true);
 
+  // One probe per page load and on coming back online or to the tab; every banner shares the result.
   useEffect(() => {
-    if (!online) return;
-    let alive = true;
-    api
-      .health()
-      .then(() => alive && setApiUp(true))
-      .catch(() => alive && setApiUp(false));
-    return () => {
-      alive = false;
-    };
-  }, [online, nonce]);
+    if (online) void apiWatch.check();
+  }, [online]);
 
-  return { status: !online ? "offline" : apiUp ? "online" : "api-down", retry: () => setNonce((n) => n + 1) };
+  return { status: !online ? "offline" : apiUp ? "online" : "api-down", retry: () => void apiWatch.check() };
 }
 
 /**

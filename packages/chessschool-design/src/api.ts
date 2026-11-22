@@ -4,6 +4,7 @@ import { copy } from "./copy";
 import type { UsageBatch } from "./usage";
 import type { Ratings } from "./rating";
 import { language } from "./i18n";
+import { isRetryableStatus, RETRY_METHODS } from "./connectivity";
 import type { BlockedPlayer, MyDetails, NameProblem, PlayerProfile, PlayerReportReason, ProfileDetails, SafetyAction, SafetyReport, SupportMessage, SupportTopic } from "./social";
 
 export type RatingPoint = { at: number; rating: number };
@@ -230,6 +231,10 @@ export type ApiClientOptions = {
   timeoutMs?: number;
   /** Told about each successful call (analytics hooks); never throws into the caller. */
   onSuccess?: (method: string, path: string, body: unknown, data: unknown) => void;
+  /** Told when the server answered at all (any status), or when a call got no answer even after retries. */
+  onReach?: (reached: boolean) => void;
+  /** Quiet retries for GET/PUT that got no answer or a gateway error (default 2), with these waits between. */
+  retryDelaysMs?: readonly number[];
 };
 
 /** GET /v1/leagues/current: guests get a sign-up card; "none" until the first XP of the week. */
@@ -240,8 +245,33 @@ export type LeagueResponse =
 export type DailyResponse = { day: string; puzzle: { id: string; fen: string; moves: string[]; rating: number; themes: string[] }; solved: number };
 export type MateResponse = { day: string; today: string; puzzle: { id: string; fen: string; moves: string[] }; played: number; solved: number };
 
-export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 10_000, onSuccess }: ApiClientOptions) {
-  async function request<T>(method: string, path: string, body?: unknown, waitMs = timeoutMs): Promise<T> {
+export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 12_000, onSuccess, onReach, retryDelaysMs = [600, 1_800] }: ApiClientOptions) {
+  const tell = (reached: boolean) => {
+    try {
+      onReach?.(reached);
+    } catch {
+      /* an observer must never break a call */
+    }
+  };
+
+  /** One call, retried quietly when it was safe to resend and the server gave no real answer. Calls with their own wait (AI, bot moves) are not retried. */
+  async function request<T>(method: string, path: string, body?: unknown, waitMs?: number): Promise<T> {
+    const retries = waitMs === undefined && RETRY_METHODS.has(method) ? retryDelaysMs : [];
+    for (let i = 0; ; i++) {
+      try {
+        return await once<T>(method, path, body, waitMs ?? timeoutMs);
+      } catch (err) {
+        const status = err instanceof ApiError ? err.status : -1;
+        if (i >= retries.length || !isRetryableStatus(status)) {
+          if (status === 0) tell(false);
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, retries[i]));
+      }
+    }
+  }
+
+  async function once<T>(method: string, path: string, body: unknown, waitMs: number): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const token = getToken ? await getToken() : null;
@@ -265,6 +295,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       clearTimeout(timer);
     }
     const data = (await res.json().catch(() => null)) as { error?: ApiErrorCode; message?: string } | null;
+    // A 4xx (or a 500 from a route) still means the API is there; only gateway errors and no answer count as down.
+    if (!isRetryableStatus(res.status)) tell(true);
     if (!res.ok) {
       const code = data?.error ?? (res.status >= 500 ? "server" : res.status === 401 ? "unauthorized" : "invalid_input");
       throw new ApiError(res.status, code, data?.message);
@@ -278,7 +310,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
   }
 
   return {
-    health: () => request<{ ok: true; version: string }>("GET", "/v1/health"),
+    /** One try with its own wait: the connectivity watch (connectivity.ts) does the retrying. */
+    health: (waitMs = 8_000) => request<{ ok: true; version: string }>("GET", "/v1/health", undefined, waitMs),
     course: () => request<Course>("GET", `/v1/course?outline=1${lang("&")}`),
     lesson: (id: string, offline = false) => request<CourseLesson>("GET", `/v1/lessons/${encodeURIComponent(id)}?${offline ? "offline=1" : ""}${lang("&")}`),
     register: (input: { name: string; email: string; password: string; guest?: GuestPayload }) =>

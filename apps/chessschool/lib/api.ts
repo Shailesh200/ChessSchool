@@ -1,4 +1,4 @@
-import { ApiError, createApiClient, errorMessage, pulseForApi } from "@chessschool/design";
+import { ApiError, createApiClient, createApiWatch, errorMessage, pulseForApi } from "@chessschool/design";
 import { track } from "./analytics";
 import * as SecureStore from "expo-secure-store";
 
@@ -20,7 +20,11 @@ const client = createApiClient({
     const ev = pulseForApi(method, path, body, data);
     if (ev) track(ev[0], ev[1]);
   },
+  onReach: (reached) => (reached ? apiWatch.reportOk() : apiWatch.reportFail()),
 });
+
+/** One shared view of whether the API answers (the connectivity banner); probes retry quietly before it shows. */
+export const apiWatch = createApiWatch({ probe: () => (API_URL ? client.health() : Promise.reject(new ApiError(0, "offline"))), backoffMs: API_URL ? undefined : [] });
 
 /** Every call fails fast as "offline" when no API URL is configured. */
 export const api = new Proxy(client, {

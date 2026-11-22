@@ -30,7 +30,8 @@ const reportError = async (err: unknown) => {
 async function boot() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required");
-  const db = await openDb(url, process.env.DATABASE_AUTH_TOKEN);
+  // In parallel: the database bootstrap is network-bound, the stores only load the S3 SDK.
+  const [db, cardStore, photoStore] = await Promise.all([openDb(url, process.env.DATABASE_AUTH_TOKEN), cardStoreFromEnv(process.env), photoStoreFromEnv(process.env)]);
   const app = createApp({
     db,
     google: googleVerifierFromEnv(process.env),
@@ -46,8 +47,8 @@ async function boot() {
     lessonWriter: anthropicLessonWriter(process.env.ANTHROPIC_API_KEY),
     boardReader: anthropicBoardReader(process.env.ANTHROPIC_API_KEY),
     ota: otaFromEnv(db, process.env),
-    cardStore: await cardStoreFromEnv(process.env),
-    photoStore: await photoStoreFromEnv(process.env),
+    cardStore,
+    photoStore,
     rateStore: process.env.RATE_LIMITS === "off" ? null : dbRateStore(db),
     // Unsubscribe links are signed with EMAIL_SECRET; until it is set, welcome and come-back emails stay off.
     emailSecret: process.env.EMAIL_SECRET || null,

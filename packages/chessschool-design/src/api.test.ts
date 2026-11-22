@@ -35,3 +35,54 @@ describe("email_in_use", () => {
     }
   });
 });
+
+describe("quiet retries", () => {
+  const json = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  function make(responses: (Response | Error)[]) {
+    const calls: string[] = [];
+    const reach: boolean[] = [];
+    const api = createApiClient({
+      baseUrl: "https://api.test",
+      retryDelaysMs: [0, 0],
+      onReach: (r) => reach.push(r),
+      fetchImpl: async (input, init) => {
+        calls.push(`${init?.method} ${String(input)}`);
+        const next = responses.shift() ?? json(200);
+        if (next instanceof Error) throw next;
+        return next;
+      },
+    });
+    return { api, calls, reach };
+  }
+
+  it("retries a GET that got no answer or a gateway error, then succeeds", async () => {
+    const { api, calls, reach } = make([new TypeError("network"), json(503), json(200, { features: {} })]);
+    await expect(api.features()).resolves.toEqual({ features: {} });
+    expect(calls).toHaveLength(3);
+    expect(reach).toEqual([true]);
+  });
+
+  it("never retries a 4xx or a POST, and a 4xx counts as reaching the API", async () => {
+    const a = make([json(404, { error: "not_found" })]);
+    await expect(a.api.features()).rejects.toMatchObject({ status: 404 });
+    expect(a.calls).toHaveLength(1);
+    expect(a.reach).toEqual([true]);
+    const b = make([new TypeError("network")]);
+    await expect(b.api.addFriend("x")).rejects.toMatchObject({ status: 0, code: "offline" });
+    expect(b.calls).toHaveLength(1);
+    expect(b.reach).toEqual([false]);
+  });
+
+  it("gives up after the retries and reports no answer once", async () => {
+    const { api, calls, reach } = make([new TypeError("a"), new TypeError("b"), new TypeError("c")]);
+    await expect(api.me()).rejects.toMatchObject({ status: 0 });
+    expect(calls).toHaveLength(3);
+    expect(reach).toEqual([false]);
+  });
+
+  it("the health probe is a single try (the connectivity watch retries)", async () => {
+    const { api, calls } = make([new TypeError("a")]);
+    await expect(api.health()).rejects.toMatchObject({ status: 0 });
+    expect(calls).toHaveLength(1);
+  });
+});
