@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { challengeRecord, filterGames, gameKind, gamePgn, mergeGameLogs, movetext, pgnFileName, resultForYou, sanitizeGameRecord, botsInLog } from "./games";
+import { challengeRecord, filterGames, gameKind, gamePgn, mergeGameLogs, movetext, pgnFileName, resultForYou, sanitizeGameRecord, botsInLog, visibleGames } from "./games";
 import { START_FEN, type GameRecord } from "./progress";
 
 const base = (over: Partial<GameRecord> = {}): GameRecord => ({
@@ -31,6 +31,20 @@ describe("my games", () => {
     expect(filterGames(log, { kind: "challenge", result: "all" }).map((g) => g.id)).toEqual(["challenge:ABC"]);
     expect(filterGames(log, { kind: "bot", result: "all", bot: "rooky" }).map((g) => g.id)).toEqual(["g3"]);
     expect(botsInLog(log)).toEqual(["pip", "rooky"]);
+  });
+
+  it("never lists imported games (the feature is gone; old records stay stored)", () => {
+    const imported = base({ id: "lichess:x", reason: "imported", setup: { ...base().setup, opponent: { kind: "online" } } });
+    const log = [base(), imported];
+    expect(visibleGames(log).map((g) => g.id)).toEqual(["g1"]);
+    expect(filterGames(log, { kind: "all", result: "all" }).map((g) => g.id)).toEqual(["g1"]);
+    expect(sanitizeGameRecord(imported)?.id).toBe("lichess:x");
+  });
+
+  it("keeps the players' move-list colours", () => {
+    const g = base({ setup: { ...base().setup, whiteHue: "orange" } });
+    expect(sanitizeGameRecord(g)?.setup.whiteHue).toBe("orange");
+    expect(sanitizeGameRecord({ ...g, setup: { ...g.setup, whiteHue: "red" } })?.setup.whiteHue).toBeUndefined();
   });
 
   it("writes PGN with headers, numbering and the result", () => {

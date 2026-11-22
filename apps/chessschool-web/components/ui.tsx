@@ -241,7 +241,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
  * Sticky header: transparent at the top, frosted once the page scrolls.
  * With `large`, a big page title sits below it and the small title fades in when the big one scrolls away.
  */
-export function TopBar({ title, back = true, backHref, action, large }: { title?: string; back?: boolean; backHref?: string; action?: React.ReactNode; large?: boolean }) {
+export function TopBar({ title, back = true, backHref, onBack, action, large }: { title?: string; back?: boolean; backHref?: string; onBack?: () => void; action?: React.ReactNode; large?: boolean }) {
   const router = useRouter();
   const [stuck, setStuck] = useState(false);
   const [titleOn, setTitleOn] = useState(!large);
@@ -265,7 +265,7 @@ export function TopBar({ title, back = true, backHref, action, large }: { title?
           <button
             className="icon-btn"
             aria-label={copy.welcome.back}
-            onClick={() => (backHref ? router.push(backHref) : window.history.length > 1 ? router.back() : router.push("/today"))}
+            onClick={() => (onBack ? onBack() : backHref ? router.push(backHref) : window.history.length > 1 ? router.back() : router.push("/today"))}
           >
             <Icon name="back" />
           </button>

@@ -1,9 +1,8 @@
 "use client";
 
 import { BOTS } from "@chessschool/chess";
-import { aiExplainOn, botRatingOf, canUseGym, CARD_BACKDROPS, copy, type IconName } from "@chessschool/design";
+import { botRatingOf, canUseGym, CARD_BACKDROPS, copy, type IconName } from "@chessschool/design";
 import Link from "next/link";
-import { AiBadge } from "@/components/AiCoach";
 import { BotAvatar } from "@/components/BotAvatar";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { Icon } from "@/components/Icon";
@@ -23,8 +22,6 @@ const MODES: { key: keyof typeof copy.gym; href: string; icon: IconName; locked?
 
 export default function GymPage() {
   const { state, ready } = useApp();
-  // Bots play with AI for signed-in learners while AI is on (same rule as the game page).
-  const aiOn = Boolean(state.account) && aiExplainOn(state);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   if (!canUseGym(state.account)) return <GymGuestCard />;
   const bots = state.progress.bots;
@@ -50,24 +47,11 @@ export default function GymPage() {
         <h2 id="bots-title" className="card-title">
           {copy.gym.bots}
         </h2>
-        {aiOn ? (
-          <p className="ai-banner">
-            <span aria-hidden>
-              <Icon name="sparkles" size={18} />
-            </span>
-            <span>
-              <strong>{copy.ai.onTitle}</strong> {copy.ai.onBody}
-            </span>
-          </p>
-        ) : null}
         <ul className="bots">
           {BOTS.map((b) => (
             <li key={b.id}>
               <Link href={`/play?bot=${b.id}`} className="bot-card" aria-label={`${b.name}. ${b.label}. ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}. ${b.blurb}`}>
-                <span className="ai-avatar">
-                  <BotAvatar bot={b.id} size={56} />
-                  {aiOn ? <AiBadge className="ai-badge-corner" /> : null}
-                </span>
+                <BotAvatar bot={b.id} size={56} />
                 <span className="bot-name">{b.name}</span>
                 <span className="bot-level">
                   {"★".repeat(b.level)}

@@ -2,7 +2,7 @@ import type { Chess, Move } from "chess.js";
 import { readFen, squareAt, fileIndex, rankIndex, type Color, type PieceType, type Square } from "./board";
 import { quickEval } from "./engine";
 import { load, withTurn } from "./game";
-import { assessMove, decisiveMoment, EVAL_CAP, reviewPlies, type MoveNote, type MoveVerdict, type ReviewPly } from "./review";
+import { assessMove, decisiveMoment, EVAL_CAP, plyName, reviewPlies, type MoveNote, type MoveVerdict, type ReviewPly } from "./review";
 
 /**
  * Mistake detectors for the AI coach and the skills tracker. Each one is a plain board check
@@ -210,14 +210,14 @@ export function coachMoments(startFen: string, history: string[], side: Color | 
     .map(({ p }) => {
       const n = assessMove(p);
       if (n.verdict === "good") return null;
-      return { ply: p.ply, moveNo: Math.ceil(p.ply / 2), by: p.by, san: p.san, verdict: n.verdict, loss: n.loss, ...detectMistakes(p, n.better) };
+      return { ply: p.ply, moveNo: p.moveNo, by: p.by, san: p.san, verdict: n.verdict, loss: n.loss, ...detectMistakes(p, n.better) };
     })
     .filter((m): m is CoachMoment => m !== null)
     .sort((a, b) => a.ply - b.ply);
 }
 
 /** Everything the key-moment card shows: the decisive move, what was better, and why (detector tags). */
-export type KeyMomentCard = { ply: number; kind: "mistake" | "great"; by: Color; san: string; move: string; verdict: MoveVerdict; better: string | null; betterMove: MoveNote["betterMove"]; tags: MistakeTag[]; fenBefore: string; fen: string; lastMove: ReviewPly["lastMove"] };
+export type KeyMomentCard = { ply: number; kind: "mistake" | "great"; by: Color; san: string; move: string; verdict: MoveVerdict; better: string | null; betterMove: MoveNote["betterMove"]; tags: MistakeTag[]; fenBefore: string; fen: string; lastMove: ReviewPly["lastMove"]; facts: MoveFacts | null };
 
 /** The card for a reviewed game, or null when nothing stands out (or the analysis is not there yet). */
 export function keyMomentCard(plies: ReviewPly[], notes: Record<number, MoveNote>, side: Color | null): KeyMomentCard | null {
@@ -227,18 +227,107 @@ export function keyMomentCard(plies: ReviewPly[], notes: Record<number, MoveNote
   if (!pick || !p || !n) return null;
   const mistake = pick.kind === "mistake";
   const facts = mistake ? detectMistakes(p, n.better) : null;
+  const better = mistake ? (facts?.better ?? n.better) : null;
+  // The detector can name a different better move (a mate the quick search missed): the arrow must show that one.
+  const betterMove = !mistake || !better ? null : better === n.better ? n.betterMove : (play(p.fenBefore, better)?.move ?? null);
   return {
     ply: p.ply,
     kind: pick.kind,
     by: p.by,
     san: p.san,
-    move: `${Math.ceil(p.ply / 2)}${p.by === "w" ? "." : "…"} ${p.san}`,
+    move: plyName(p),
     verdict: n.verdict,
-    better: mistake ? (facts?.better ?? n.better) : null,
-    betterMove: mistake ? n.betterMove : null,
+    better,
+    betterMove: betterMove ? { from: betterMove.from as Square, to: betterMove.to as Square } : null,
     tags: facts?.tags ?? [],
     fenBefore: p.fenBefore,
     fen: p.fen,
     lastMove: p.lastMove,
+    facts: mistake ? moveFacts(p, n) : null,
   };
+}
+
+/** What a single move did, in board facts a child can follow: the review screen turns these into words. */
+export type MoveFacts = {
+  ply: number;
+  moveNo: number;
+  by: Color;
+  san: string;
+  verdict: MoveVerdict;
+  /** Centipawns the move gave away (mover's side). */
+  loss: number;
+  /** Roughly what the loss is worth in pieces (a pawn, a knight or bishop, a rook, a queen); null when small. */
+  lossPiece: PieceType | null;
+  better: string | null;
+  betterMove: MoveNote["betterMove"];
+  /** What the move took. */
+  captured: PieceType | null;
+  check: boolean;
+  mate: boolean;
+  /** The better move was a checkmate (now or next move). */
+  missedMate: boolean;
+  /** The reply that now mates the mover, if any. */
+  allowedMate: string | null;
+  /** The mover's piece the move left loose. */
+  hanging: { square: Square; piece: PieceType } | null;
+  /** A loose enemy piece the better move would have taken. */
+  freeCapture: { square: Square; piece: PieceType } | null;
+  /** The better move was a fork of these pieces. */
+  fork: PieceType[] | null;
+  /** The better move would have pinned this piece. */
+  pin: PieceType | null;
+  /** The opponent's reply the move allowed (a fork or a pin). */
+  threat: { san: string; kind: "fork" | "pin" } | null;
+};
+
+const lossPieceOf = (loss: number): PieceType | null => (loss >= 800 ? "q" : loss >= 450 ? "r" : loss >= 250 ? "n" : loss >= 90 ? "p" : null);
+
+/** The facts behind one reviewed move (`note` from assessMove). Mistakes get the detectors; good moves only the cheap facts. */
+export function moveFacts(p: ReviewPly, note: MoveNote): MoveFacts {
+  const r = play(p.fenBefore, p.san);
+  const base: MoveFacts = {
+    ply: p.ply,
+    moveNo: p.moveNo,
+    by: p.by,
+    san: p.san,
+    verdict: note.verdict,
+    loss: note.loss,
+    lossPiece: note.verdict === "good" ? null : lossPieceOf(note.loss),
+    better: note.better,
+    betterMove: note.betterMove,
+    captured: (r?.move.captured as PieceType | undefined) ?? null,
+    check: p.san.includes("+") || p.san.includes("#"),
+    mate: p.san.includes("#"),
+    missedMate: false,
+    allowedMate: null,
+    hanging: null,
+    freeCapture: null,
+    fork: null,
+    pin: null,
+    threat: null,
+  };
+  if (note.verdict === "good" || base.mate) return base;
+  const before = readFen(p.fenBefore);
+  const after = readFen(p.fen);
+  const d = detectMistakes(p, note.better);
+  const better = d.better;
+  const b = better ? play(p.fenBefore, better) : null;
+  const facts: MoveFacts = { ...base, better, betterMove: b ? { from: b.move.from as Square, to: b.move.to as Square } : note.betterMove };
+  facts.missedMate = Boolean(b && (b.chess.isCheckmate() || (d.tags.includes("mate") && mateInTwo(p.fenBefore) === better)));
+  facts.allowedMate = mateInOne(p.fen);
+  const wasHanging = new Set(hangingPieces(p.fenBefore, p.by));
+  const loose = hangingPieces(p.fen, p.by).filter((sq) => !wasHanging.has(sq) || sq === p.lastMove.to).sort((x, y) => VALUE[after.get(y)!.type] - VALUE[after.get(x)!.type]);
+  if (loose[0]) facts.hanging = { square: loose[0], piece: after.get(loose[0])!.type };
+  if (b?.move.captured && hangingPieces(p.fenBefore, other(p.by)).includes(b.move.to as Square)) facts.freeCapture = { square: b.move.to as Square, piece: before.get(b.move.to as Square)!.type };
+  if (better) {
+    const forked = forkTargets(p.fenBefore, better);
+    if (forked.length) facts.fork = forked.map((sq) => before.get(sq)!.type);
+    const pinned = forked.length ? null : pinnedBy(p.fenBefore, better);
+    if (pinned) facts.pin = before.get(pinned)!.type;
+  }
+  if (!facts.allowedMate && d.threat) {
+    const kind = forkTargets(p.fen, d.threat).length ? "fork" : pinnedBy(p.fen, d.threat) ? "pin" : null;
+    if (kind) facts.threat = { san: d.threat, kind };
+  }
+  return facts;
 }

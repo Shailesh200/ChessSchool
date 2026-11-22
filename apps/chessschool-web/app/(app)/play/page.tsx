@@ -11,8 +11,9 @@ import {
   moveCue,
   opponentName,
   parseSetup,
-  parseSpokenMove,
   playReduce,
+  plyName,
+  randomHue,
   playResult,
   reviewPlies,
   shuffleFen,
@@ -40,14 +41,13 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "@/components/Board";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { BoardStage } from "@/components/BoardStage";
-import { AiBadge, AiCoachCard } from "@/components/AiCoach";
+import { AiCoachCard } from "@/components/AiCoach";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
 import { KeyMomentCard } from "@/components/KeyMoment";
 import { ShareCardButton } from "@/components/ShareCard";
 import { Cody } from "@/components/Lottie";
-import { SpeakMove } from "@/components/SpeakMove";
 import { ActionDock, Button, Card, Sheet, Switch, TopBar } from "@/components/ui";
 import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
@@ -102,7 +102,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const [movesOpen, setMovesOpen] = useState(false);
   const [watch, setWatch] = useState<number | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
-  const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const ai = usePlayAi(game?.setup.opponent.kind === "bot");
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
@@ -130,6 +129,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
       startFen: scanFen ?? (mode === "shuffle" ? shuffleFen() : mode === "position" || mode === "endgame" ? pos.fen : START_FEN),
       startName: scanFen ? copy.scan.savedTitle : mode === "shuffle" ? copy.gym.shuffle.name : mode === "position" || mode === "endgame" ? pos.name : undefined,
       startId: scanFen ? undefined : mode === "position" || mode === "endgame" ? pos.id : undefined,
+      whiteHue: randomHue(),
     };
   };
 
@@ -244,7 +244,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
 
   useEffect(() => {
     setGuide(null);
-    setVoiceNote(null);
   }, [game?.fen, watch]);
 
   if (!canUseGym(state.account)) return <GymGuestCard backHref="/today" />;
@@ -366,22 +365,13 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const statusTitle = friend ? copy.gym.yourTurn(copy.play.sides[turn]) : game.botThinking ? copy.analysis.thinking(name) : game.check ? copy.play.check : copy.play.yourMove;
   const statusSub = !friend && !game.botThinking && lastSan && turn === game.setup.you ? copy.analysis.played(name, lastSan) : null;
 
-  const heard = (texts: string[]) => {
-    const r = parseSpokenMove(ref.current?.fen ?? game.fen, texts);
-    if (r.kind === "move") return act({ type: "move", move: r.move, now: Date.now() });
-    setVoiceNote(r.kind === "ambiguous" ? copy.play.voice.which(texts[0], r.options.map((o) => o.san).join(", ")) : copy.play.voice.unclear(texts[0] ?? ""));
-  };
-
   const bar = (color: Color) => {
     const isBot = !friend && color !== game.setup.you;
     const left = game.clock ? timeLeft(game, color, now) : 0;
     return (
       <div className="player">
         {isBot && game.setup.opponent.kind === "bot" ? (
-          <span className="ai-avatar">
-            <BotAvatar bot={game.setup.opponent.bot} />
-            {ai.active ? <AiBadge className="ai-badge-corner" /> : null}
-          </span>
+          <BotAvatar bot={game.setup.opponent.bot} />
         ) : (
           <span className="player-avatar" aria-hidden>
             {friend ? copy.play.sides[color][0] : <Icon name="profile" size={22} />}
@@ -441,7 +431,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             >
               <Icon name="bulb" />
             </button>
-            <SpeakMove disabled={!canMove} onHeard={heard} onNote={setVoiceNote} />
           </span>
         </div>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} className="play-stage">
@@ -487,7 +476,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                 <Cody animation={pose} size={48} />
                 <div className="play-status-text">
                   <strong>{statusTitle}</strong>
-                  <span className="muted">{voiceNote ?? statusSub ?? "\u00a0"}</span>
+                  <span className="muted">{statusSub ?? "\u00a0"}</span>
                 </div>
               </div>
               <div className="play-steps">
@@ -588,7 +577,7 @@ function ResultSheet(props: {
           </div>
           <p className="result-note">
             <Icon name="sparkles" size={20} />
-            <span>{!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(`${Math.ceil(best.ply / 2)}${best.by === "w" ? "." : "…"} ${best.san}`) : copy.analysis.cody(sum.accuracy)}</span>
+            <span>{!done ? copy.analysis.looking : best ? copy.analysis.bestMoment(plyName(best)) : copy.analysis.cody(sum.accuracy)}</span>
           </p>
           <KeyMomentCard plies={plies} notes={notes} done={done} side={props.side} orientation={props.side ?? "w"} shareable={!props.share} coachNoteFor={(p) => coach.noteFor(p)?.text ?? null} />
         </>
@@ -604,11 +593,6 @@ function ResultSheet(props: {
         </Button>
       </div>
       {props.share ? <ShareCardButton block kind="game_won" data={props.share} /> : null}
-      {props.history.length ? (
-        <Button block variant="secondary" icon="bulb" href={`/gym/analysis?start=${encodeURIComponent(props.startFen)}&moves=${encodeURIComponent(props.history.join(" "))}&side=${props.side ?? "w"}`}>
-          {copy.myGames.analyse}
-        </Button>
-      ) : null}
       <Button block variant="ghost" onClick={props.onBack}>
         {copy.play.back}
       </Button>

@@ -64,7 +64,27 @@ export type PlaySetup = {
   startId?: string;
   takebacks: boolean;
   askPromotion: boolean;
+  /** Move-list colour of the White player (Black gets the other one); picked at random when the game starts. */
+  whiteHue?: PlayerHue;
 };
+
+/** The two player colours of the move list and player labels (blue and orange stay apart for colour-blind players too). */
+export const PLAYER_HUES = ["blue", "orange"] as const;
+export type PlayerHue = (typeof PLAYER_HUES)[number];
+export const isPlayerHue = (v: unknown): v is PlayerHue => PLAYER_HUES.includes(v as PlayerHue);
+/** A random colour for White, for a new game. */
+export const randomHue = (rand: () => number = Math.random): PlayerHue => PLAYER_HUES[rand() < 0.5 ? 0 : 1];
+/** Each side's colour: the stored one, or (older games) one picked from a stable key such as the game id. */
+export function playerHues(whiteHue: unknown, key = ""): Record<Color, PlayerHue> {
+  let w: PlayerHue;
+  if (isPlayerHue(whiteHue)) w = whiteHue;
+  else {
+    let h = 0;
+    for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    w = PLAYER_HUES[h % 2];
+  }
+  return { w, b: w === "blue" ? "orange" : "blue" };
+}
 
 export const defaultSetup = (bot: BotId = "pip"): PlaySetup => ({
   opponent: { kind: "bot", bot },
@@ -321,8 +341,10 @@ export function parseSetup(v: unknown): PlaySetup | null {
     time: TIME_CONTROLS.some((t) => t.id === r.time) ? (r.time as TimeControlId) : "none",
     startFen: r.startFen,
     startName: typeof r.startName === "string" ? r.startName : undefined,
+    startId: typeof r.startId === "string" ? r.startId : undefined,
     takebacks: r.takebacks === true,
     askPromotion: r.askPromotion !== false,
+    ...(isPlayerHue(r.whiteHue) ? { whiteHue: r.whiteHue } : {}),
   };
 }
 

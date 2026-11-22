@@ -161,3 +161,110 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Phase 5: player colours in the analysis move list (blue and orange, picked per game; values from playerHueColors). */
+:root {
+  --hue-blue-ink: #1d4fb8;
+  --hue-blue-soft: #e3ecfc;
+  --hue-orange-ink: #9a3d06;
+  --hue-orange-soft: #fdebd8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --hue-blue-ink: #9cc0ff;
+    --hue-blue-soft: #1e2c4a;
+    --hue-orange-ink: #fdb585;
+    --hue-orange-soft: #3d2614;
+  }
+}
+:root[data-theme="dark"] {
+  --hue-blue-ink: #9cc0ff;
+  --hue-blue-soft: #1e2c4a;
+  --hue-orange-ink: #fdb585;
+  --hue-orange-soft: #3d2614;
+}
+.hue-blue {
+  --hue-ink: var(--hue-blue-ink);
+  --hue-soft: var(--hue-blue-soft);
+}
+.hue-orange {
+  --hue-ink: var(--hue-orange-ink);
+  --hue-soft: var(--hue-orange-soft);
+}
+.move-chip.hue {
+  background: var(--hue-soft);
+  color: var(--hue-ink);
+  border-width: 2px;
+}
+.move-chip.hue[aria-pressed="true"] {
+  background: var(--hue-ink);
+  border-color: var(--hue-ink);
+  color: var(--cs-card);
+}
+.player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--hue-soft);
+  color: var(--hue-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.hue-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  background: var(--hue-ink);
+}
+.player-chip .hue-dot {
+  margin: 0;
+}
+
+/* "Try it": the board grows to fill the screen and the panels fold away; back shrinks it again. */
+.analysis-page .stage-board {
+  transition: height 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.analysis-page.expanded .stage-board {
+  height: clamp(280px, min(calc(100vw - 32px), calc(100dvh - 260px)), 900px);
+}
+.analysis-page .fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
+}
+.analysis-page .fold > * {
+  min-height: 0;
+  overflow: hidden;
+}
+.analysis-page .fold > div {
+  display: grid;
+  gap: 12px;
+}
+.analysis-page.expanded .fold {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+}
+@media (min-width: 1000px) {
+  .analysis-page.expanded .stage-board {
+    height: calc(100dvh - 150px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .analysis-page .stage-board,
+  .analysis-page .fold {
+    transition: none;
+  }
+}

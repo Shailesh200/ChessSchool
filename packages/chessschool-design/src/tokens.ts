@@ -188,6 +188,16 @@ export const shadow = {
 /** The AI's own accent (badges, the coach card's frame): violet, apart from every theme's brand colour; works on light and dark. */
 export const aiTint = { ink: "#6E5BFF", soft: "rgba(110, 91, 255, 0.14)", text: "#5B4BD6" } as const;
 
+/**
+ * The two player colours of a game's move list and player labels (each game picks which side gets which).
+ * Blue and orange stay apart for red-green colour blindness; `ink` on `soft` passes WCAG AA in both schemes.
+ */
+export const playerHueColors = {
+  blue: { light: { ink: "#1D4FB8", soft: "#E3ECFC" }, dark: { ink: "#9CC0FF", soft: "#1E2C4A" } },
+  orange: { light: { ink: "#9A3D06", soft: "#FDEBD8" }, dark: { ink: "#FDB585", soft: "#3D2614" } },
+} as const;
+export type PlayerHueName = keyof typeof playerHueColors;
+
 export const motion = {
   duration: { tap: 140, base: 240, slow: 420, ceremony: 1100, splash: 1500 },
   easing: {

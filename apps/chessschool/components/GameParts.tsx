@@ -1,7 +1,7 @@
 import { capturedPieces, evalShare, materialEdge, type Color, type MoveNote, type MoveVerdict, type ReviewPly } from "@chessschool/chess";
 import { copy } from "@chessschool/design";
 import { useRef, useState } from "react";
-import { Pressable, ScrollView, Share, View, type LayoutChangeEvent } from "react-native";
+import { Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, ClipPath, Defs, Line, Polygon, Rect, Text as SvgText } from "react-native-svg";
 import { PieceArt } from "./Board";
 import { Icon } from "./Icon";
@@ -146,14 +146,6 @@ export function MovesSheet({ visible, onClose, history }: { visible: boolean; on
         <SwitchRow icon="sound" label={copy.analysis.sounds} hint={copy.analysis.soundsHint} value={state.prefs.sound} onChange={(v) => setPrefs({ sound: v })} />
       </View>
       <View style={{ flexDirection: "row", gap: 8, alignSelf: "stretch" }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            title={copy.analysis.shareMoves}
-            icon="doc"
-            variant="secondary"
-            onPress={() => void Share.share({ message: pairs.map((p) => `${p.n}. ${p.w}${p.b ? ` ${p.b}` : ""}`).join(" ") }).catch(() => {})}
-          />
-        </View>
         <View style={{ flex: 1 }}>
           <Button title={copy.analysis.close} icon="close" onPress={onClose} />
         </View>

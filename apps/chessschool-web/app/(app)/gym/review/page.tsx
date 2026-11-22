@@ -1,7 +1,7 @@
 "use client";
 
 import { isBotId, opponentName, parseSetup } from "@chessschool/chess";
-import { ALL_GAMES, botsInLog, copy, filterGames, GAME_KINDS, GAME_RESULTS, gameKind, type GameFilter } from "@chessschool/design";
+import { ALL_GAMES, botsInLog, copy, filterGames, GAME_KINDS, GAME_RESULTS, gameKind, visibleGames, type GameFilter } from "@chessschool/design";
 import { botInfo } from "@chessschool/chess";
 import { useState } from "react";
 import Link from "next/link";
@@ -15,7 +15,9 @@ export default function ReviewList() {
   const [filter, setFilter] = useState<GameFilter>(ALL_GAMES);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   const games = filterGames(state.gameLog, filter);
-  const bots = botsInLog(state.gameLog).filter(isBotId);
+  // Imported games (a removed feature) stay stored but are never listed.
+  const log = visibleGames(state.gameLog);
+  const bots = botsInLog(log).filter(isBotId);
   const chip = (key: string, label: string, on: boolean, onClick: () => void) => (
     <li key={key}>
       <button type="button" className="filter-chip" aria-pressed={on} onClick={onClick}>
@@ -26,13 +28,10 @@ export default function ReviewList() {
   return (
     <div className="page page-narrow">
       <TopBar backHref="/gym" title={copy.myGames.title} />
-      <Button variant="secondary" icon="history" href="/gym/import">
-        {copy.gym.importCta}
-      </Button>
       <Button variant="secondary" icon="eye" href="/gym/scan">
         {copy.scan.cta}
       </Button>
-      {state.gameLog.length ? (
+      {log.length ? (
         <>
           <ul className="filter-row" aria-label={copy.myGames.kindLabel}>
             {(["all", ...GAME_KINDS] as const).map((k) => chip(k, copy.myGames.kinds[k], filter.kind === k, () => setFilter({ ...filter, kind: k, bot: null })))}
@@ -75,7 +74,7 @@ export default function ReviewList() {
       ) : (
         <Card className="room-detail tint-brand">
           <Cody animation="reading" size={140} label={copy.a11y.mascot} />
-          <p className="lead">{state.gameLog.length ? copy.myGames.none : copy.gym.reviewEmpty}</p>
+          <p className="lead">{log.length ? copy.myGames.none : copy.gym.reviewEmpty}</p>
         </Card>
       )}
     </div>

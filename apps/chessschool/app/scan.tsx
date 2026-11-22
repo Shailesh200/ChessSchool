@@ -1,5 +1,5 @@
 import { editPlacement, setupFen, setupProblem, type Color, type PieceType } from "@chessschool/chess";
-import { aiExplainOn, copy, importGame, scannedRecord } from "@chessschool/design";
+import { copy, hasPremiumAi, importGame, scannedRecord } from "@chessschool/design";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -74,7 +74,7 @@ export default function ScanBoard() {
     }
   };
 
-  if (!state.account || !aiExplainOn(state)) {
+  if (!state.account || !hasPremiumAi(state)) {
     return (
       <Page title={t.title} banner={false}>
         <T role="bodyLg">{state.account ? t.off : t.signIn}</T>

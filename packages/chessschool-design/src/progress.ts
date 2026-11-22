@@ -4,7 +4,7 @@ import { isCoachId, VOICE_SPEEDS, type CoachId, type VoiceSpeed } from "./coache
 import { isLang, type Lang } from "./i18n";
 import type { ProfileSlice } from "./profiles";
 import { ideaRef, isReview, PRACTICE_KEEP, reviewAfter, type Review, seedIdea } from "./review";
-import type { ImportedGame, PracticeItem, RateInput } from "./api";
+import type { PracticeItem, RateInput } from "./api";
 import { emptyQuests, hydrateQuests, trackQuests, type Quests } from "./quests";
 import { lessonSkill, mergeSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, type SkillId, type Skills } from "./skills";
 import { emptyRatings, sanitizeRatingQueue, sanitizeRatings, type Ratings } from "./rating";
@@ -131,6 +131,8 @@ export type StoredSetup = {
   startId?: string;
   takebacks: boolean;
   askPromotion: boolean;
+  /** Move-list colour of White ("blue" or "orange"; Black has the other), picked when the game starts. */
+  whiteHue?: "blue" | "orange";
 };
 /** An unfinished game, so leaving the Gym never loses it. */
 export type SavedGame = { setup: StoredSetup; history: string[]; startedAt: number; clock: { w: number; b: number } | null };
@@ -1328,16 +1330,6 @@ export function recordReviewedGame(state: LocalState, gameId: string, mistakes: 
   }, today, { reviewed: 1 });
 }
 
-/** An imported game as a review-log entry. Player names are left out; a game without the learner's side reviews both sides. */
-export const importedRecord = (g: ImportedGame): GameRecord => ({
-  id: g.id,
-  endedAt: g.endedAt || Date.now(),
-  setup: { opponent: g.you ? { kind: "online" } : { kind: "friend" }, you: g.you ?? "w", time: "none", startFen: g.startFen, takebacks: false, askPromotion: true },
-  history: g.moves,
-  winner: g.result === "1-0" ? "w" : g.result === "0-1" ? "b" : null,
-  reason: "imported",
-});
-
 /** A scanned position kept in the review log with no moves yet. */
 export const scannedRecord = (fen: string, at: number): GameRecord => ({
   id: `scan:${at}`,
@@ -1348,19 +1340,21 @@ export const scannedRecord = (fen: string, at: number): GameRecord => ({
   reason: "scanned",
 });
 
-/** Adds an imported online game to the review log (it does not count as a game played). */
+/** Adds a game that was not played here (a scanned position) to the review log; it does not count as a game played. */
 export function importGame(state: LocalState, game: GameRecord): LocalState {
   return { ...state, gameLog: [game, ...state.gameLog.filter((x) => x.id !== game.id)].slice(0, GAME_LOG_MAX) };
 }
 
-/* ---------- AI explanations setting ---------- */
+/* ---------- premium AI ---------- */
 
 const profileKey = (s: LocalState) => s.activeChild ?? "main";
 /** Child profiles start with AI explanations off; a parent turns them on (Settings, behind the PIN). */
 export const isChildProfile = (s: LocalState) => s.activeChild !== null || s.profile.who === "child";
-/** Whether this profile uses the AI features: the server allows them for the account and the Settings switch is on. */
-export const aiExplainOn = (s: LocalState) => s.account?.ai !== false && (s.aiExplain[profileKey(s)] ?? !isChildProfile(s));
-/** The server switched AI off for this account (the Settings switch then has no effect). */
-export const aiBlocked = (s: LocalState) => s.account?.ai === false;
-export const setAiExplain = (s: LocalState, on: boolean): LocalState => ({ ...s, aiExplain: { ...s.aiExplain, [profileKey(s)]: on } });
+/**
+ * AI features (coach explanations, hint reasons, AI bot moves, the board scanner) are a premium entitlement:
+ * the one place to gate them later. For now every signed-in learner has it, unless the server switched AI off
+ * for the account. Child profiles stay on engine notes, unless a parent turned AI on for them earlier
+ * (the old Settings switch, kept in `aiExplain`). Without it, screens show the basic engine analysis.
+ */
+export const hasPremiumAi = (s: LocalState) => Boolean(s.account) && s.account?.ai !== false && (s.aiExplain[profileKey(s)] ?? !isChildProfile(s));
 export const agreeTerms = (s: LocalState, at: string): LocalState => (s.termsAt ? s : { ...s, termsAt: at });

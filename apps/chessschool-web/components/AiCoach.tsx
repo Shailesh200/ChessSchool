@@ -4,15 +4,6 @@ import { copy } from "@chessschool/design";
 import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
 
-/** The small "AI" pill on a bot's avatar or name. */
-export function AiBadge({ className = "" }: { className?: string }) {
-  return (
-    <span className={`ai-badge ${className}`} aria-hidden>
-      {copy.ai.badge}
-    </span>
-  );
-}
-
 /** A line from the AI coach in a game (hint reason or mistake comment), framed in the AI's violet. */
 export function AiCoachCard({ kind, text }: { kind: "hint" | "comment"; text: string }) {
   return (

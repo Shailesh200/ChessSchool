@@ -1,7 +1,7 @@
 "use client";
 
 import { editPlacement, setupFen, setupProblem, type Color, type PieceType } from "@chessschool/chess";
-import { aiExplainOn, copy, importGame, scannedRecord } from "@chessschool/design";
+import { copy, hasPremiumAi, importGame, scannedRecord } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Board, PieceArt } from "@/components/Board";
@@ -71,7 +71,7 @@ export default function ScanBoard() {
       <TopBar backHref="/gym/review" title={t.title} />
       {!state.account ? (
         <p className="lead">{t.signIn}</p>
-      ) : !aiExplainOn(state) ? (
+      ) : !hasPremiumAi(state) ? (
         <p className="lead">{t.off}</p>
       ) : !board ? (
         <>

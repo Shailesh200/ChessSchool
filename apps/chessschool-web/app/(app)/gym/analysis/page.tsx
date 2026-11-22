@@ -34,9 +34,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar } from "@/components/GameParts";
-import { Button, Segmented, TextField, TopBar, useToast } from "@/components/ui";
+import { Button, Segmented, TopBar } from "@/components/ui";
 import { useEvaluation } from "@/lib/analysis";
-import { copyText } from "@/lib/share";
 import { useApp } from "@/lib/state";
 
 const GLYPH: Record<string, string> = { wk: "♔", wq: "♕", wr: "♖", wb: "♗", wn: "♘", wp: "♙", bk: "♚", bq: "♛", br: "♜", bb: "♝", bn: "♞", bp: "♟" };
@@ -61,13 +60,11 @@ export default function AnalysisPage() {
 function AnalysisBoard() {
   const params = useSearchParams();
   const { cue } = useApp();
-  const toast = useToast();
   const t = copy.analysisBoard;
   const [line, setLine] = useState<AnalysisLine>(() => initialLine(params));
   const [orientation, setOrientation] = useState<Color>(params.get("side") === "b" ? "b" : "w");
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [brush, setBrush] = useState<Piece | null>(PALETTE[0]);
-  const [fenText, setFenText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fen = lineFen(line);
   const { evaluation, done } = useEvaluation(editor ? null : fen);
@@ -101,7 +98,6 @@ function AnalysisBoard() {
   };
   const startEdit = () => {
     setEditor(editorFrom(fen));
-    setFenText(fen);
     setError(null);
   };
   const finishEdit = () => {
@@ -114,12 +110,6 @@ function AnalysisBoard() {
     }
     setLine(startLine(editFen));
     setEditor(null);
-  };
-  const loadFen = () => {
-    const pasted = readPastedFen(fenText);
-    if (!pasted) return setError(t.badFen);
-    setEditor(editorFrom(pasted));
-    setError(null);
   };
   const startTurn = line.start.split(" ")[1] === "b" ? 1 : 0;
   const startNo = Number(line.start.split(" ")[5]) || 1;
@@ -190,10 +180,6 @@ function AnalysisBoard() {
                   </label>
                 ))}
               </fieldset>
-              <TextField label={t.fen} hint={t.fenHint} value={fenText} onChange={(e) => setFenText(e.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} />
-              <Button variant="secondary" onClick={loadFen}>
-                {t.loadFen}
-              </Button>
               {error ? (
                 <p className="ab-error" role="alert">
                   {error}
@@ -236,9 +222,6 @@ function AnalysisBoard() {
               </div>
               <Button variant="secondary" icon="edit" onClick={startEdit}>
                 {t.edit}
-              </Button>
-              <Button variant="ghost" icon="doc" onClick={() => void copyText(fen).then((ok) => ok && toast(t.copied))}>
-                {copy.myGames.copyFen}
               </Button>
             </>
           )}

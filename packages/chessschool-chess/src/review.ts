@@ -2,7 +2,13 @@ import { fileIndex, moveEffects, readFen, turnOf, type Color, type MoveRef, type
 import { bestMove, quickEval } from "./engine";
 import { kingInCheck, legalTargets, load, moveRef, tryMove } from "./game";
 
-export type ReviewPly = { ply: number; san: string; by: Color; fenBefore: string; fen: string; lastMove: MoveRef; check: string | null };
+/** `moveNo` is the move number printed in front of it, from the position's own count (a game can start mid-way, or with Black). */
+export type ReviewPly = { ply: number; moveNo: number; san: string; by: Color; fenBefore: string; fen: string; lastMove: MoveRef; check: string | null };
+
+/** "12. Nf3" or "12… Nc6". */
+export const plyName = (p: Pick<ReviewPly, "moveNo" | "by" | "san">) => `${p.moveNo}${p.by === "w" ? "." : "…"} ${p.san}`;
+/** The move number shown for a ply index into `plies` (0: before the first move). */
+export const moveNoAt = (plies: readonly Pick<ReviewPly, "moveNo">[], ply: number) => (ply <= 0 ? 0 : (plies[ply - 1]?.moveNo ?? 0));
 
 /** Every position of a game, for stepping through it. Stops at the first unreadable move. */
 export function reviewPlies(startFen: string, history: string[]): ReviewPly[] {
@@ -16,7 +22,7 @@ export function reviewPlies(startFen: string, history: string[]): ReviewPly[] {
     } catch {
       break;
     }
-    out.push({ ply: i + 1, san: m.san, by: turnOf(fenBefore), fenBefore, fen: chess.fen(), lastMove: moveRef(m), check: kingInCheck(chess) });
+    out.push({ ply: i + 1, moveNo: Number(fenBefore.split(" ")[5]) || 1, san: m.san, by: turnOf(fenBefore), fenBefore, fen: chess.fen(), lastMove: moveRef(m), check: kingInCheck(chess) });
   }
   return out;
 }
@@ -44,8 +50,9 @@ export function assessMove(p: ReviewPly): MoveNote {
   const evalAfter = clamp(p.by === "w" ? after : -after);
   if (verdict === "good") return { verdict, loss, better: null, betterMove: null, evalAfter };
   const alt = bestMove(p.fenBefore, { depth: 2, quiescence: 3, timeMs: 500, noise: 0 });
-  const differs = alt && alt.san !== p.san;
-  return { verdict, loss, better: differs ? alt.san : null, betterMove: differs ? { from: alt.from as Square, to: alt.to as Square } : null, evalAfter };
+  // The deeper search picks the move that was played: the quick eval only saw a horizon effect, so it was not a mistake.
+  if (!alt || alt.san === p.san) return { verdict: "good", loss: 0, better: null, betterMove: null, evalAfter };
+  return { verdict, loss, better: alt.san, betterMove: { from: alt.from as Square, to: alt.to as Square }, evalAfter };
 }
 
 export type KeyMoment = { ply: number; kind: MoveVerdict | "great" | "mate" };
@@ -76,8 +83,10 @@ export function summarise(plies: ReviewPly[], notes: Record<number, MoveNote>, s
     score += 100 * Math.exp(-note.loss / 350);
     n++;
     const pov = p.by === "w" ? 1 : -1;
-    const prev = p.ply > 2 ? notes[p.ply - 2] : null;
-    const swing = (note.evalAfter - (prev ? prev.evalAfter : 0)) * pov;
+    // The swing since the mover's previous move (or, for their first move, since the opponent's move before it).
+    // The very first move of the game has nothing to compare with: the start may not be level (endgames, set positions).
+    const prev = notes[p.ply - 2] ?? notes[p.ply - 1];
+    const swing = prev ? (note.evalAfter - prev.evalAfter) * pov : 0;
     if (note.verdict !== "good") moments.push({ ply: p.ply, kind: note.verdict });
     else if (swing >= bestSwing) {
       bestSwing = swing;

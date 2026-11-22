@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agreeTerms, aiExplainOn, answerPractice, createInitialState, completeNode, importGame, importedRecord, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, setAiExplain, type GameRecord } from "./progress";
+import { agreeTerms, hasPremiumAi, answerPractice, createInitialState, completeNode, importGame, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, type GameRecord } from "./progress";
 import { mistakeItems, practiceRequest } from "./review";
 import { lessonSkill, mergeSkills, rankedSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, weakSkills } from "./skills";
 import { switchProfile, freshSlice } from "./profiles";
@@ -46,9 +46,6 @@ describe("skills", () => {
   });
 
   it("turns reviewed-game mistakes into practice once per game", () => {
-    const rec = importedRecord({ id: "lichess:x", white: "a", black: "b", result: "0-1", endedAt: 7, startFen: START, moves: ["e4"], you: "b" });
-    expect(rec).toMatchObject({ winner: "b", setup: { opponent: { kind: "online" }, you: "b" } });
-    expect(JSON.stringify(rec)).not.toContain('"a"');
     let st = importGame(createInitialState("g"), game("lichess:abc"));
     expect(st.progress.games.played).toBe(0);
     const m = { fen: START, from: "e2", to: "e4", better: "e4", tags: ["hanging"] };
@@ -64,23 +61,22 @@ describe("skills", () => {
   });
 });
 
-describe("AI explanations setting", () => {
-  it("is on for adults, off for a child until turned on; the terms are agreed once per device", () => {
+describe("premium AI", () => {
+  it("is on for every signed-in adult, off for guests, child profiles and accounts the server switched off; the terms are agreed once per device", () => {
     let st = createInitialState("g");
-    expect(aiExplainOn(st)).toBe(true);
+    expect(hasPremiumAi(st)).toBe(false);
+    const account = { id: "u", email: "a@b.c", name: "A", provider: "password" as const };
+    st = { ...st, account };
+    expect(hasPremiumAi(st)).toBe(true);
     expect(st.termsAt).toBeNull();
     st = agreeTerms(st, "2026-11-17T10:00:00.000Z");
     expect(agreeTerms(st, "2026-12-01T00:00:00.000Z").termsAt).toBe("2026-11-17T10:00:00.000Z");
-    st = switchProfile(st, "kid1", freshSlice(st, "Kid", "cody"));
-    expect(aiExplainOn(st)).toBe(false);
-    expect(st.termsAt).toBe("2026-11-17T10:00:00.000Z");
-    st = setAiExplain(st, true);
-    expect(aiExplainOn(st)).toBe(true);
-    expect(aiExplainOn(switchProfile(st, null))).toBe(true);
-    // The server's per-account switch wins over the Settings one.
-    const blocked = { ...switchProfile(st, null), account: { id: "u", email: "a@b.c", name: "A", provider: "password" as const, ai: false } };
-    expect(aiExplainOn(blocked)).toBe(false);
-    expect(aiExplainOn({ ...blocked, account: { ...blocked.account, ai: true } })).toBe(true);
+    const kid = switchProfile(st, "kid1", freshSlice(st, "Kid", "cody"));
+    expect(hasPremiumAi(kid)).toBe(false);
+    expect(kid.termsAt).toBe("2026-11-17T10:00:00.000Z");
+    // A parent's earlier choice for a child still counts.
+    expect(hasPremiumAi({ ...kid, aiExplain: { kid1: true } })).toBe(true);
+    expect(hasPremiumAi({ ...st, account: { ...account, ai: false } })).toBe(false);
   });
 
   it("keeps a scanned position in the review log, playing from its side to move", () => {
