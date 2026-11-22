@@ -14,6 +14,7 @@ import { cardStoreFromEnv } from "./share-card";
 import { photoStoreFromEnv } from "./social";
 import { cached } from "./growth-stats";
 import { dbRateStore } from "./rate-limit";
+import { backfillUsernames } from "./usernames";
 import { sentryReleaseHealth } from "ota-server";
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -61,6 +62,8 @@ async function boot() {
         }, 60 * 60_000)
       : undefined,
   });
+  // Accounts from before usernames get theirs in the background (sign-in and /v1/me also fill them lazily).
+  void backfillUsernames(db).catch((err) => void reportError(err));
   return handle(app);
 }
 

@@ -226,6 +226,9 @@ export type PlayerReportReason = "name" | "photo" | "behaviour" | "cheating" | "
 export const PLAYER_REPORT_REASONS: readonly PlayerReportReason[] = ["name", "photo", "behaviour", "cheating", "other"];
 
 /** GET /v1/players/:id: what anyone signed in may see of an account. City and social links are left out for a child's account. */
+/** One finished game on a public profile, from that player's side. Friend and online opponents are never named. */
+export type PlayerGame = { id: string; endedAt: number; result: "win" | "loss" | "draw"; opponent: { kind: "bot"; bot: string } | { kind: "friend" } | { kind: "online" }; moves: number };
+/** Phase 5 fields (username to recent) are absent from older servers. */
 export type PlayerProfile = {
   id: string;
   name: string;
@@ -238,6 +241,17 @@ export type PlayerProfile = {
   joinedAt: number;
   friend: boolean;
   me: boolean;
+  username?: string | null;
+  streak?: number;
+  lessons?: number;
+  /** Null until they have tried a puzzle. */
+  puzzleRating?: number | null;
+  /** Rating of the strongest bot they beat. */
+  bestWin?: number | null;
+  games?: { played: number; won: number };
+  /** Trophy (badge) ids earned, as on their own Trophies screen. */
+  badges?: string[];
+  recent?: PlayerGame[];
 };
 /** GET /v1/me/details: your own details and photo (the photo is null while it is hidden after reports). */
 export type MyDetails = { details: ProfileDetails; photo: string | null; photoHidden: boolean };

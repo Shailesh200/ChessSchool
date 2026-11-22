@@ -6,6 +6,7 @@ import { deleteUserData } from "../src/account-delete";
 import type { Db } from "../src/db";
 import { blocks, follows, invites, profileDetails, reports, supportMessages, suspensions, users } from "../src/schema";
 import { PHOTO_HIDE_REPORTS, type PhotoStore } from "../src/social";
+import { backfillUsernames, ensureUsername } from "../src/usernames";
 import type { Sender } from "../src/weekly";
 import { seededDb } from "./course-fixture";
 
@@ -191,6 +192,82 @@ describe("profile details, photo and friends", () => {
     const pairs = (await db.select().from(follows)).map((f) => `${f.userId}>${f.friendId}`).sort();
     expect(pairs).toEqual([`${a.user.id}>${b.user.id}`, `${a.user.id}>${c.user.id}`, `${b.user.id}>${a.user.id}`, `${c.user.id}>${a.user.id}`].sort());
     expect((await call("GET", `/v1/players/${a.user.id}`, undefined, b.token)).json.player.friend).toBe(true);
+  });
+});
+
+describe("usernames", () => {
+  it("gives every new account a unique username from the first name and finds friends by it", async () => {
+    const a = await register("Asha Rao", "a@b.co");
+    const b = await register("Asha Iyer", "b@b.co");
+    const hindi = await register("आशा", "h@b.co");
+    expect(a.user.username).toMatch(/^asha\d{4}$/);
+    expect(b.user.username).toMatch(/^asha\d{4}$/);
+    expect(b.user.username).not.toBe(a.user.username);
+    expect(hindi.user.username).toMatch(/^chess\d{4}$/);
+    expect((await call("GET", "/v1/me", undefined, a.token)).json.user.username).toBe(a.user.username);
+
+    expect((await call("POST", "/v1/friends/username", { username: a.user.username }, a.token)).status).toBe(409);
+    expect((await call("POST", "/v1/friends/username", { username: "nobody_here" }, b.token)).status).toBe(404);
+    const added = await call("POST", "/v1/friends/username", { username: `@${a.user.username!.toUpperCase()}` }, b.token);
+    expect(added.json).toMatchObject({ ok: true, friend: { id: a.user.id, name: "Asha", username: a.user.username } });
+    // Older apps type it into the friend-code box.
+    const c = await register("Chen", "c@b.co");
+    expect((await call("POST", "/v1/friends/code", { code: a.user.username }, c.token)).json).toMatchObject({ ok: true, friend: { id: a.user.id } });
+    expect((await call("GET", `/v1/players/${a.user.id}`, undefined, b.token)).json.player.username).toBe(a.user.username);
+  });
+
+  it("changes a username: checked live, unique ignoring case, never reserved", async () => {
+    const a = await register("Asha", "a@b.co");
+    const b = await register("Bilal", "b@b.co");
+    expect((await call("GET", "/v1/usernames/check?u=Asha_R", undefined, a.token)).json).toMatchObject({ username: "asha_r", available: true, problem: null });
+    expect((await call("GET", "/v1/usernames/check?u=admin", undefined, a.token)).json).toMatchObject({ available: false, problem: "reserved" });
+    expect((await call("GET", `/v1/usernames/check?u=${a.user.username}`, undefined, a.token)).json.available).toBe(true);
+    expect((await call("GET", `/v1/usernames/check?u=${a.user.username}`, undefined, b.token)).json).toMatchObject({ available: false, problem: "taken" });
+    expect((await call("PUT", "/v1/me/username", { username: "Asha_R" }, a.token)).json).toEqual({ username: "asha_r" });
+    expect((await call("PUT", "/v1/me/username", { username: "ASHA_R" }, b.token))).toMatchObject({ status: 409, json: { message: "taken" } });
+    expect((await call("PUT", "/v1/me/username", { username: "no spaces" }, b.token))).toMatchObject({ status: 400, json: { message: "chars" } });
+    expect((await call("GET", "/v1/me", undefined, a.token)).json.user.username).toBe("asha_r");
+    // The database refuses a clash even past the route's check.
+    await expect(db.update(users).set({ username: "ASHA_R" }).where(eq(users.id, b.user.id))).rejects.toThrow();
+  });
+
+  it("fills in accounts from before usernames, lazily and in the backfill", async () => {
+    const a = await register("Asha", "a@b.co");
+    const b = await register("Bilal", "b@b.co");
+    await db.update(users).set({ username: null });
+    expect(await backfillUsernames(db)).toBe(2);
+    expect((await db.select().from(users)).every((u) => u.username)).toBe(true);
+    expect(await backfillUsernames(db)).toBe(0);
+    await db.update(users).set({ username: null }).where(eq(users.id, a.user.id));
+    expect((await call("GET", "/v1/me", undefined, a.token)).json.user.username).toMatch(/^asha\d{4}$/);
+    expect(b.user.username).toBeTruthy();
+  });
+
+  it("retries a clash with another account's username", async () => {
+    const a = await register("Asha", "a@b.co");
+    const fresh = { id: "u-new", name: "Asha", username: null as string | null };
+    await db.insert(users).values({ id: fresh.id, email: "new@b.co", name: "Asha", createdAt: 1 });
+    const digits = Number(a.user.username!.slice(4)) / 10_000;
+    const other = (digits + 0.5) % 1;
+    const rolls = [digits, digits, other];
+    expect(await ensureUsername(db, fresh, () => rolls.shift() ?? 0)).toBe(`asha${String(Math.floor(other * 10_000)).padStart(4, "0")}`);
+  });
+});
+
+describe("public profile", () => {
+  it("shows stats, trophies and recent games, without naming friend opponents", async () => {
+    const a = await register("Asha", "a@b.co");
+    const b = await register("Bilal", "b@b.co");
+    const game = (id: string, opponent: unknown, winner: "w" | "b" | null, endedAt: number) => ({ id, endedAt, setup: { opponent, you: "w", time: "none", startFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", takebacks: false, askPromotion: false }, history: ["e4", "e5"], winner, reason: "checkmate" });
+    await call("PUT", "/v1/games/g1", { game: game("g1", { kind: "bot", bot: "pip" }, "w", 1) }, a.token);
+    await call("PUT", "/v1/games/g2", { game: game("g2", { kind: "friend" }, "b", 2) }, a.token);
+    const p = (await call("GET", `/v1/players/${a.user.id}`, undefined, b.token)).json.player as PlayerProfile;
+    expect(p).toMatchObject({ username: a.user.username, streak: 0, lessons: 0, puzzleRating: null, games: { played: 0, won: 0 } });
+    expect(p.recent).toEqual([
+      { id: "g2", endedAt: 2, result: "loss", opponent: { kind: "friend" }, moves: 2 },
+      { id: "g1", endedAt: 1, result: "win", opponent: { kind: "bot", bot: "pip" }, moves: 2 },
+    ]);
+    expect(Array.isArray(p.badges)).toBe(true);
   });
 });
 

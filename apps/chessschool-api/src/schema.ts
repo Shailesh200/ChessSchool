@@ -12,6 +12,8 @@ export const users = sqliteTable("cs_users", {
   /** member: full account. guest: still inside the three-class cap. */
   kind: text("kind").notNull().default("member"),
   createdAt: integer("created_at").notNull(),
+  /** Phase 5: unique handle (stored lower case), shown as @name and used to add friends. Null until assigned. */
+  username: text("username"),
 });
 
 export const sessions = sqliteTable("cs_sessions", {
@@ -941,6 +943,9 @@ export const BOOTSTRAP_SQL = [
   )`,
   `CREATE INDEX IF NOT EXISTS cs_saved_games_learner ON cs_saved_games (learner_id, ended_at)`,
   `CREATE INDEX IF NOT EXISTS cs_saved_games_user ON cs_saved_games (user_id)`,
+  // Phase 5: usernames. Unique ignoring case; NULL (not yet assigned) is allowed many times. Filled lazily and at boot (usernames.ts).
+  `ALTER TABLE cs_users ADD COLUMN username TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS cs_users_username ON cs_users (username COLLATE NOCASE)`,
   `CREATE TABLE IF NOT EXISTS cs_daily_solves (
     day TEXT NOT NULL,
     solver TEXT NOT NULL,

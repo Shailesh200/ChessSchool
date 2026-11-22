@@ -79,6 +79,7 @@ import type { CardStore } from "./share-card";
 import { mountLifecycle } from "./lifecycle";
 import { adminMetrics } from "./admin-metrics";
 import { rateLimits, type RateStore } from "./rate-limit";
+import { ensureUsername, mountUsernames } from "./usernames";
 import {
   SESSION_COOKIE,
   SESSION_DAYS,
@@ -208,6 +209,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     name: u.name,
     provider: (u.passwordHash ? "password" : u.appleSub && !u.googleSub ? "apple" : "google") as Account["provider"],
     ai: aiEnabledFor(u),
+    username: u.username ?? null,
   });
 
   async function loadProfile(userId: string): Promise<ApiProfile> {
@@ -265,6 +267,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
   }
 
   async function authResponse(c: Context, user: UserRow, guest?: GuestPayload): Promise<AuthResponse> {
+    await ensureUsername(db, user);
     const prog = await mergeGuestInto(user, guest);
     const token = await startSession(c, user);
     const profile = await loadProfile(user.id);
@@ -362,7 +365,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
     if (existing) return fail(c, 409, "email_taken");
     const guest = guestOf(b);
-    const user: UserRow = { id: newId(), email, name, passwordHash: await hashPassword(password), googleSub: null, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+    const user: UserRow = { id: newId(), email, name, passwordHash: await hashPassword(password), googleSub: null, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime(), username: null };
     await db.insert(users).values(user);
     await applyGuestProfile(user.id, guest, true);
     return c.json(await authResponse(c, user, guest), 201);
@@ -393,7 +396,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
       if (byEmail) return c.json({ error: "email_in_use" }, 409);
       const staff = { staff: admins.has(identity.email.toLowerCase()) };
       const guestName = providerName(String(guest?.profile?.name ?? ""), staff);
-      user = { id: newId(), email: identity.email, name: guestName || providerName(identity.name ?? "", staff), passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime() };
+      user = { id: newId(), email: identity.email, name: guestName || providerName(identity.name ?? "", staff), passwordHash: null, googleSub: identity.sub, appleSub: null, guestId: guest?.guestId ?? null, kind: "member", createdAt: now().getTime(), username: null };
       await db.insert(users).values(user);
       await applyGuestProfile(user.id, guest, true);
     }
@@ -433,6 +436,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
           guestId: guest?.guestId ?? null,
           kind: "member",
           createdAt: now().getTime(),
+          username: null,
         };
         await db.insert(users).values(user);
         await applyGuestProfile(user.id, guest, true);
@@ -480,6 +484,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
 
   app.get("/v1/me", requireUser, async (c) => {
     const user = c.get("user");
+    await ensureUsername(db, user);
     return c.json({ user: toAccount(user), profile: { ...(await loadProfile(user.id)), name: user.name } });
   });
 
@@ -1051,6 +1056,7 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     return c.json({ ok: true });
   });
 
+  mountUsernames(app, { db, now, requireUser });
   mountSocial(app, { db, now, requireUser, requireAdmin, userFromRequest, photoStore, sender: weekly, adminEmails: [...admins] });
 
   /* ---------- lesson editor (/admin/lessons) ---------- */

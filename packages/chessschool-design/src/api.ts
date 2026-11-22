@@ -5,6 +5,7 @@ import type { UsageBatch } from "./usage";
 import type { Ratings } from "./rating";
 import { language } from "./i18n";
 import { isRetryableStatus, RETRY_METHODS } from "./connectivity";
+import type { UsernameProblem } from "./username";
 import type { BlockedPlayer, MyDetails, NameProblem, PlayerProfile, PlayerReportReason, ProfileDetails, SafetyAction, SafetyReport, SupportMessage, SupportTopic } from "./social";
 
 export type RatingPoint = { at: number; rating: number };
@@ -438,7 +439,11 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     uploadPhoto: (input: { image: string; mediaType: "image/jpeg" | "image/png" | "image/webp" }) => request<MyDetails>("POST", "/v1/me/photo", input, 30_000),
     removePhoto: () => request<MyDetails>("DELETE", "/v1/me/photo"),
     /** Makes friends both ways with the owner of an invite / friend code. */
-    addFriendByCode: (code: string) => request<{ ok: true; friend: { id: string; name: string } }>("POST", "/v1/friends/code", { code }),
+    /** Makes friends both ways with the owner of an @username (Phase 5; replaces friend codes). */
+    addFriendByUsername: (username: string) => request<{ ok: true; friend: { id: string; name: string; username?: string | null } }>("POST", "/v1/friends/username", { username }),
+    /** Live check while typing a new username; `problem` is null when it is free (or already yours). */
+    checkUsername: (u: string) => request<{ username: string; available: boolean; problem: UsernameProblem | null }>("GET", `/v1/usernames/check?u=${encodeURIComponent(u)}`),
+    setUsername: (username: string) => request<{ username: string }>("PUT", "/v1/me/username", { username }),
     support: (input: { topic: SupportTopic; message: string; email?: string; platform: string; version: string; guestId?: string }) => request<{ ok: true }>("POST", "/v1/support", input),
     /** Everything stored for the signed-in account. */
     exportData: () => request<Record<string, unknown>>("GET", "/v1/me/export", undefined, 30_000),

@@ -155,7 +155,8 @@ export const GAME_LOG_MAX = 100;
 export type Arrival = "kept" | "fresh";
 
 /** `ai`: the server's switch for this account's AI features (coach, hints, AI bots, scanner); missing means allowed. */
-export type Account = { id: string; email: string; name: string; provider: "password" | "google" | "apple"; ai?: boolean };
+/** `username`: the unique @handle (Phase 5; absent from older servers). */
+export type Account = { id: string; email: string; name: string; provider: "password" | "google" | "apple"; ai?: boolean; username?: string | null };
 
 export type LocalState = {
   version: typeof STATE_VERSION;

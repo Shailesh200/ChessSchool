@@ -1,7 +1,14 @@
 import {
   checkDetails,
+  dayKey,
+  earnedBadges,
   emptyDetails,
   firstName,
+  isProgress,
+  visibleStreak,
+  type GameRecord,
+  type PlayerGame,
+  type Progress,
   isAvatarId,
   isCountry,
   PLAYER_REPORT_REASONS,
@@ -53,6 +60,7 @@ import {
 } from "./schema";
 import { createRateLimiter, newId } from "./security";
 import type { Sender } from "./weekly";
+import { ensureUsername, userByUsername } from "./usernames";
 
 /**
  * Phase 4: reporting and blocking players anywhere (not only in a class), public profiles with
@@ -150,6 +158,23 @@ function readDetails(data: string | null | undefined): ProfileDetails {
   }
 }
 
+/** Finished games shown on a public profile. */
+export const RECENT_GAMES = 5;
+
+/** A saved game as a public profile shows it; null for anything unreadable or not a real game (an import or a scan). */
+export function playerGame(data: string): PlayerGame | null {
+  try {
+    const g = JSON.parse(data) as GameRecord;
+    if (!g?.setup?.opponent || typeof g.endedAt !== "number" || g.reason === "imported" || g.reason === "scanned") return null;
+    const o = g.setup.opponent;
+    const opponent: PlayerGame["opponent"] = o.kind === "bot" ? { kind: "bot", bot: String(o.bot) } : { kind: o.kind === "online" ? "online" : "friend" };
+    const result = g.winner === null ? "draw" : g.winner === g.setup.you ? "win" : "loss";
+    return { id: String(g.id), endedAt: g.endedAt, result, opponent, moves: Array.isArray(g.history) ? g.history.length : 0 };
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- R2 ---------- */
 
 export async function photoStoreFromEnv(env: NodeJS.ProcessEnv): Promise<PhotoStore | null> {
@@ -234,22 +259,26 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
     const me = c.get("user");
     const u = await visibleTo(me.id, c.req.param("id") ?? "");
     if (!u) return fail(c, 404, "not_found");
-    const [profile, extra, rating, prog, friend, photo] = await Promise.all([
+    const [profile, extra, rating, prog, friend, photo, games, username] = await Promise.all([
       db.query.profiles.findFirst({ where: eq(profiles.userId, u.id) }),
       db.query.profileDetails.findFirst({ where: eq(profileDetails.userId, u.id) }),
       db.query.ratings.findFirst({ where: and(eq(ratings.learnerId, u.id), eq(ratings.userId, u.id)) }),
       db.query.progress.findFirst({ where: eq(progress.userId, u.id) }),
       db.query.follows.findFirst({ where: and(eq(follows.userId, me.id), eq(follows.friendId, u.id)) }),
       photosFor(db, [u.id]),
+      db.select({ data: savedGames.data }).from(savedGames).where(and(eq(savedGames.learnerId, u.id), eq(savedGames.userId, u.id))).orderBy(desc(savedGames.endedAt)).limit(RECENT_GAMES),
+      ensureUsername(db, u),
     ]);
     const details = readDetails(extra?.data);
     // A child learns on this account: no city and no links for strangers.
     if (profile?.who === "child" && u.id !== me.id) Object.assign(details, { city: "", socials: {} });
     const r = rating ? sanitizeRatings(JSON.parse(rating.data)) : null;
-    let xp = 0;
+    let p: Progress | null = null;
     try {
-      xp = Number((JSON.parse(prog?.data ?? "{}") as { xp?: unknown }).xp) || 0;
+      const parsed = JSON.parse(prog?.data ?? "null");
+      p = isProgress(parsed) ? parsed : null;
     } catch {}
+    const xp = p?.xp ?? 0;
     const player: PlayerProfile = {
       id: u.id,
       name: firstName(u.name) || "Player",
@@ -262,6 +291,14 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
       joinedAt: u.createdAt,
       friend: Boolean(friend),
       me: u.id === me.id,
+      username,
+      streak: p ? visibleStreak(p.streak, dayKey(now())) : 0,
+      lessons: p ? Object.keys(p.completed).length : 0,
+      puzzleRating: p && p.puzzles.attempts > 0 ? p.puzzles.rating : null,
+      bestWin: r?.bestWin ?? null,
+      games: p ? { played: p.games.played, won: p.games.won } : { played: 0, won: 0 },
+      badges: p ? earnedBadges(p, r ?? undefined) : [],
+      recent: games.map((g) => playerGame(g.data)).filter((g): g is PlayerGame => g !== null),
     };
     return c.json({ player });
   });
@@ -337,11 +374,25 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
     if (!codeLimiter(me.id)) return fail(c, 429, "rate_limited");
     const code = String((await json(c)).code ?? "").trim().toLowerCase();
     const row = CODE.test(code) ? await db.query.invites.findFirst({ where: eq(invites.code, code) }) : null;
-    if (!row) return fail(c, 404, "not_found");
-    if (row.userId === me.id) return fail(c, 409, "conflict");
-    const other = await visibleTo(me.id, row.userId);
+    // Older apps still have a "friend code" box: a username typed there works too.
+    const ownerId = row?.userId ?? (await userByUsername(db, code))?.id;
+    if (!ownerId) return fail(c, 404, "not_found");
+    if (ownerId === me.id) return fail(c, 409, "conflict");
+    const other = await visibleTo(me.id, ownerId);
     if (!other || !(await befriend(db, me.id, other.id, clock()))) return fail(c, 404, "not_found");
     return c.json({ ok: true, friend: { id: other.id, name: firstName(other.name) || "Player" } });
+  });
+
+  /** Phase 5: add a friend by their @username (any case, with or without the @). */
+  app.post("/v1/friends/username", requireUser, async (c) => {
+    const me = c.get("user");
+    if (!codeLimiter(me.id)) return fail(c, 429, "rate_limited");
+    const target = await userByUsername(db, String((await json(c)).username ?? ""));
+    if (!target) return fail(c, 404, "not_found");
+    if (target.id === me.id) return fail(c, 409, "conflict");
+    const other = await visibleTo(me.id, target.id);
+    if (!other || !(await befriend(db, me.id, other.id, clock()))) return fail(c, 404, "not_found");
+    return c.json({ ok: true, friend: { id: other.id, name: firstName(other.name) || "Player", username: other.username } });
   });
 
   /* ----- your details and photo ----- */
