@@ -17,10 +17,12 @@ env:
 - extendedWaitUntil:
     visible: "This is the board."
     timeout: 30000
+# Let the chunks run to the end (an optional wait on text that never shows is a plain pause), then tap to wrap.
 - extendedWaitUntil:
-    visible: "game happens here."
-    timeout: 20000
-- tapOn: "game happens here."
+    visible: "never-shown-pause"
+    timeout: 10000
+    optional: true
+- tapOn: "64 squares.*"
 - takeScreenshot: 02-lesson
 
 - openLink: chessschool://puzzle
