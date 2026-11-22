@@ -1347,14 +1347,10 @@ export function importGame(state: LocalState, game: GameRecord): LocalState {
 
 /* ---------- premium AI ---------- */
 
-const profileKey = (s: LocalState) => s.activeChild ?? "main";
-/** Child profiles start with AI explanations off; a parent turns them on (Settings, behind the PIN). */
-export const isChildProfile = (s: LocalState) => s.activeChild !== null || s.profile.who === "child";
 /**
  * AI features (coach explanations, hint reasons, AI bot moves, the board scanner) are a premium entitlement:
  * the one place to gate them later. For now every signed-in learner has it, unless the server switched AI off
- * for the account. Child profiles stay on engine notes, unless a parent turned AI on for them earlier
- * (the old Settings switch, kept in `aiExplain`). Without it, screens show the basic engine analysis.
+ * for the account. Without it, screens show the basic engine analysis.
  */
-export const hasPremiumAi = (s: LocalState) => Boolean(s.account) && s.account?.ai !== false && (s.aiExplain[profileKey(s)] ?? !isChildProfile(s));
+export const hasPremiumAi = (s: LocalState) => Boolean(s.account) && s.account?.ai !== false;
 export const agreeTerms = (s: LocalState, at: string): LocalState => (s.termsAt ? s : { ...s, termsAt: at });

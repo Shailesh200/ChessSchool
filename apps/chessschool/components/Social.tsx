@@ -268,13 +268,3 @@ export function SupportSheet({ visible, onClose }: { visible: boolean; onClose: 
   );
 }
 
-/**
- * "Download my data": fetches everything stored for the account and opens the share sheet with it, so it can be saved to Files or sent.
- * shortcut: shares the JSON as text; attaching a .json file needs expo-file-system and expo-sharing in a store build.
- */
-export async function shareMyData(): Promise<boolean> {
-  const data = await api.exportData();
-  const text = JSON.stringify(data, null, 2);
-  const r = await Share.share({ title: copy.dataExport.shareTitle, message: text });
-  return r.action !== Share.dismissedAction;
-}

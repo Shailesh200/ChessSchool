@@ -1,4 +1,4 @@
-import { BANNERS, BIO_MAX, cleanName, copy, normalizeUsername, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, isChildProfile, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
+import { BANNERS, BIO_MAX, cleanName, copy, normalizeUsername, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -191,7 +191,7 @@ export default function ProfileEdit() {
         <TextField label={t.favOpening} placeholder={t.favOpeningPlaceholder} value={d.favOpening} onChangeText={(v) => set({ favOpening: v })} error={errors.favOpening} maxLength={SHORT_MAX} />
         <TextField label={t.goal} placeholder={t.goalPlaceholder} value={d.goal} onChangeText={(v) => set({ goal: v })} error={errors.goal} maxLength={GOAL_MAX} />
         <TextField label={t.playingSince} placeholder={t.playingSincePlaceholder} value={year} onChangeText={(v) => (setYear(v.replace(/\D/g, "").slice(0, 4)), setErrors({}))} error={errors.playingSince} keyboardType="number-pad" maxLength={4} />
-        <TextField label={t.city} placeholder={t.cityPlaceholder} hint={isChildProfile(state) ? t.childNote : t.cityHint} value={d.city} onChangeText={(v) => set({ city: v })} error={errors.city} maxLength={SHORT_MAX} />
+        <TextField label={t.city} placeholder={t.cityPlaceholder} hint={t.cityHint} value={d.city} onChangeText={(v) => set({ city: v })} error={errors.city} maxLength={SHORT_MAX} />
       </Card>
 
       <Card style={{ gap: 10 }}>
@@ -213,7 +213,7 @@ export default function ProfileEdit() {
           {t.socials}
         </T>
         <T role="small" color="textMuted">
-          {isChildProfile(state) ? t.childNote : t.socialsHint}
+          {t.socialsHint}
         </T>
         {SOCIALS.map((n) => (
           <TextField

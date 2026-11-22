@@ -130,7 +130,6 @@ export default function ProfileEditPage() {
       setSaving(false);
     }
   };
-  const child = state.profile.who === "child";
 
   return (
     <form className="page page-narrow profile-edit" onSubmit={save}>
@@ -211,7 +210,7 @@ export default function ProfileEditPage() {
         <TextField label={t.favOpening} placeholder={t.favOpeningPlaceholder} value={d.favOpening} onChange={(e) => set({ favOpening: e.target.value })} error={errors.favOpening} maxLength={SHORT_MAX} />
         <TextField label={t.goal} placeholder={t.goalPlaceholder} value={d.goal} onChange={(e) => set({ goal: e.target.value })} error={errors.goal} maxLength={GOAL_MAX} />
         <TextField label={t.playingSince} placeholder={t.playingSincePlaceholder} inputMode="numeric" value={year} onChange={(e) => (setYear(e.target.value.replace(/\D/g, "").slice(0, 4)), setErrors({}))} error={errors.playingSince} maxLength={4} />
-        <TextField label={t.city} placeholder={t.cityPlaceholder} hint={child ? t.childNote : t.cityHint} value={d.city} onChange={(e) => set({ city: e.target.value })} error={errors.city} maxLength={SHORT_MAX} />
+        <TextField label={t.city} placeholder={t.cityPlaceholder} hint={t.cityHint} value={d.city} onChange={(e) => set({ city: e.target.value })} error={errors.city} maxLength={SHORT_MAX} />
       </Card>
 
       <Card>
@@ -230,7 +229,7 @@ export default function ProfileEditPage() {
 
       <Card className="profile-fields">
         <h2 className="card-title">{t.socials}</h2>
-        <p className="muted small">{child ? t.childNote : t.socialsHint}</p>
+        <p className="muted small">{t.socialsHint}</p>
         {SOCIALS.map((n) => (
           <TextField key={n} label={t.networks[n]} placeholder={t.handlePlaceholder} value={d.socials[n] ?? ""} onChange={(e) => set({ socials: { ...d.socials, [n]: e.target.value } })} error={errors[`socials.${n}`]} autoCapitalize="none" autoCorrect="off" maxLength={120} />
         ))}

@@ -107,15 +107,8 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "ChessSchool listens only while you tap the mic to say your chess move. The audio stays on your device.",
+          "microphonePermission": false,
           "recordAudioAndroid": false
-        }
-      ],
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "ChessSchool listens only while you tap the mic to say your chess move. The audio stays on your device.",
-          "speechRecognitionPermission": "ChessSchool turns the move you say into a move on the board. Recognition runs on your device and nothing is sent to us."
         }
       ],
       "expo-updates",

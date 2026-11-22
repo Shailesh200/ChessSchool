@@ -418,7 +418,6 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     setUsername: (username: string) => request<{ username: string }>("PUT", "/v1/me/username", { username }),
     support: (input: { topic: SupportTopic; message: string; email?: string; platform: string; version: string; guestId?: string }) => request<{ ok: true }>("POST", "/v1/support", input),
     /** Everything stored for the signed-in account. */
-    exportData: () => request<Record<string, unknown>>("GET", "/v1/me/export", undefined, 30_000),
     adminSafety: () => request<{ reports: SafetyReport[]; support: SupportMessage[] }>("GET", "/v1/admin/safety"),
     safetyAction: (id: string, action: SafetyAction) => request<{ ok: true }>("POST", `/v1/admin/safety/reports/${encodeURIComponent(id)}`, { action }),
     /* ---------- games, daily puzzle (Phase 4) ---------- */

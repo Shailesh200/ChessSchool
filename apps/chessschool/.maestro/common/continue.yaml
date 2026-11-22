@@ -1,0 +1,8 @@
+appId: com.chessschool.app
+---
+# The Continue button can take a few seconds to appear on a slow simulator (feedback animation, coach voice loading);
+# wait for it instead of failing on the first look.
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+- tapOn: "Continue"

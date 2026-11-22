@@ -271,7 +271,6 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
     ]);
     const details = readDetails(extra?.data);
     // A child learns on this account: no city and no links for strangers.
-    if (profile?.who === "child" && u.id !== me.id) Object.assign(details, { city: "", socials: {} });
     const r = rating ? sanitizeRatings(JSON.parse(rating.data)) : null;
     let p: Progress | null = null;
     try {
@@ -467,78 +466,6 @@ export function mountSocial(app: Hono<Vars>, { db, now, requireUser, requireAdmi
       if (sent) await db.update(supportMessages).set({ emailed: true }).where(eq(supportMessages.id, row.id));
     }
     return c.json({ ok: true });
-  });
-
-  /* ----- download my data ----- */
-
-  app.get("/v1/me/export", requireUser, async (c) => {
-    const me = c.get("user");
-    if (!exportLimiter(me.id)) return fail(c, 429, "rate_limited");
-    const parse = (v: string | null | undefined) => {
-      try {
-        return v ? JSON.parse(v) : null;
-      } catch {
-        return v;
-      }
-    };
-    const kids = await db.select().from(children).where(eq(children.userId, me.id));
-    const kidIds = kids.map((k) => k.id);
-    const [profile, details, prog, rate, history, kidProgress, memberships, games, made, friendsOut, friendsIn, blocked, reported, notes, support, league, vision, weekly, invite, invited, cards, savedRows, solves] = await Promise.all([
-      db.query.profiles.findFirst({ where: eq(profiles.userId, me.id) }),
-      myDetails(me.id),
-      db.query.progress.findFirst({ where: eq(progress.userId, me.id) }),
-      db.select().from(ratings).where(eq(ratings.userId, me.id)),
-      db.select().from(ratingHistory).where(eq(ratingHistory.userId, me.id)),
-      kidIds.length ? db.select().from(childProgress).where(inArray(childProgress.childId, kidIds)) : Promise.resolve([]),
-      db.select({ classId: classMembers.classId, role: classMembers.role, joinedAt: classMembers.joinedAt, name: classes.name }).from(classMembers).leftJoin(classes, eq(classes.id, classMembers.classId)).where(eq(classMembers.userId, me.id)),
-      db.select().from(classGames).where(or(eq(classGames.whiteId, me.id), eq(classGames.blackId, me.id))),
-      db.select().from(challenges).where(eq(challenges.creatorId, me.id)),
-      db.select({ id: follows.friendId, at: follows.createdAt, name: users.name }).from(follows).leftJoin(users, eq(users.id, follows.friendId)).where(eq(follows.userId, me.id)),
-      db.select({ id: follows.userId, at: follows.createdAt }).from(follows).where(eq(follows.friendId, me.id)),
-      db.select().from(blocks).where(eq(blocks.blockerId, me.id)),
-      db.select({ id: reports.id, reportedId: reports.reportedId, reason: reports.reason, note: reports.note, status: reports.status, createdAt: reports.createdAt }).from(reports).where(eq(reports.reporterId, me.id)),
-      db.select().from(feedback).where(eq(feedback.userId, me.id)),
-      db.select().from(supportMessages).where(eq(supportMessages.userId, me.id)),
-      db.select().from(leagueMembers).where(eq(leagueMembers.userId, me.id)),
-      db.select().from(visionScores).where(eq(visionScores.userId, me.id)),
-      db.query.weeklySummary.findFirst({ where: eq(weeklySummary.userId, me.id) }),
-      db.query.invites.findFirst({ where: eq(invites.userId, me.id) }),
-      db.select().from(inviteAccepts).where(or(eq(inviteAccepts.invitedId, me.id), eq(inviteAccepts.inviterId, me.id))),
-      db.select().from(shares).where(eq(shares.userId, me.id)),
-      db.select({ learnerId: savedGames.learnerId, data: savedGames.data }).from(savedGames).where(eq(savedGames.userId, me.id)),
-      db.select({ day: dailySolves.day, puzzleId: dailySolves.puzzleId }).from(dailySolves).where(eq(dailySolves.solver, `u:${me.id}`)),
-    ]);
-    const data = {
-      exportedAt: now().toISOString(),
-      account: { id: me.id, email: me.email, name: me.name, createdAt: me.createdAt, signIn: me.passwordHash ? "password" : me.googleSub ? "google" : "apple" },
-      profile: profile ?? null,
-      details,
-      progress: parse(prog?.data),
-      ratings: rate.map((r) => ({ learnerId: r.learnerId, ratings: parse(r.data), updatedAt: r.updatedAt })),
-      ratingHistory: history,
-      children: kids.map((k) => ({ ...k, progress: parse(kidProgress.find((p) => p.childId === k.id)?.data) })),
-      classes: memberships,
-      classGames: games,
-      challenges: made.map(({ blackSeat: _seat, ...rest }) => rest),
-      friends: friendsOut.map((f) => ({ id: f.id, name: firstName(f.name ?? ""), since: f.at })),
-      friendOf: friendsIn.map((f) => ({ id: f.id, since: f.at })),
-      blocked: blocked.map((b) => ({ id: b.blockedId, at: b.createdAt })),
-      reportsMade: reported,
-      feedback: notes,
-      support,
-      leagues: league,
-      visionScores: vision,
-      // The push token is a device secret, so only whether reminders are on.
-      weeklySummary: weekly ? { email: weekly.email, push: Boolean(weekly.pushToken), lang: weekly.lang } : null,
-      invite: invite ? { code: invite.code, createdAt: invite.createdAt } : null,
-      invites: invited,
-      shareCards: cards,
-      savedGames: savedRows.map((g) => ({ learnerId: g.learnerId, game: parse(g.data) })),
-      dailyPuzzles: solves,
-    };
-    c.header("Content-Disposition", `attachment; filename="chessschool-data-${now().toISOString().slice(0, 10)}.json"`);
-    c.header("Cache-Control", "no-store");
-    return c.json(data);
   });
 
   /* ----- admin safety queue ----- */

@@ -37,8 +37,7 @@ export default function LeagueScreen() {
   }, [signedIn]);
 
   let body: React.ReactNode;
-  if (state.activeChild) body = <T role="body" color="textMuted">{t.child}</T>;
-  else if (!state.account || (res !== "offline" && res?.status === "guest"))
+  if (!state.account || (res !== "offline" && res?.status === "guest"))
     body = (
       <Card style={{ gap: 10 }}>
         <T role="heading" header>

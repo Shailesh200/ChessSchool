@@ -1,13 +1,13 @@
 "use client";
 
-import { REMINDER_HOURS, coachOf, copy, isChildProfile, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CoachPicker } from "@/components/CoachPicker";
 import { Icon } from "@/components/Icon";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
-import { downloadMyData, SupportSheet } from "@/components/Social";
+import { SupportSheet } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Segmented, Sheet, Switch, TopBar, useToast, SaveBanner } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -28,7 +28,6 @@ export default function SettingsPage() {
   }, [state.account]);
   const course = useCourse();
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach" | "support">(null);
-  const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
 
@@ -141,7 +140,7 @@ export default function SettingsPage() {
                 }}
               />
             ) : null}
-            {winback !== null && !isChildProfile(state) ? (
+            {winback !== null ? (
               <Switch
                 icon="mail"
                 label={copy.platform.emailSettings.winback}
@@ -179,27 +178,6 @@ export default function SettingsPage() {
               </span>
               <Icon name="chevron" />
             </Link>
-            <button
-              className="row"
-              disabled={exporting}
-              onClick={async () => {
-                setExporting(true);
-                try {
-                  await downloadMyData();
-                  toast(copy.dataExport.ready);
-                } catch {
-                  toast(copy.dataExport.failed);
-                } finally {
-                  setExporting(false);
-                }
-              }}
-            >
-              <Icon name="doc" />
-              <span className="row-text">
-                <span className="row-label">{exporting ? copy.dataExport.working : copy.dataExport.open}</span>
-                <span className="row-hint">{copy.dataExport.hint}</span>
-              </span>
-            </button>
             <button className="row row-danger" onClick={() => setSheet("delete")}>
               <Icon name="trash" />
               <span className="row-text">

@@ -1,4 +1,4 @@
-import { coachOf, copy, isChildProfile, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
 import { CoachPicker } from "@/components/CoachPicker";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
-import { shareMyData, SupportSheet } from "@/components/Social";
+import { SupportSheet } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -18,7 +18,6 @@ export default function Settings() {
   const { state, setPrefs, signOut, resetThisDevice, deleteAccount, cue, update } = useApp();
   const toast = useToast();
   const [sheet, setSheet] = useState<null | "reset" | "delete" | "feedback" | "news" | "coach" | "support">(null);
-  const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [weekly, setWeekly] = useState<boolean | null>(null);
@@ -129,7 +128,7 @@ export default function Settings() {
                 }}
               />
             ) : null}
-            {winback !== null && !isChildProfile(state) ? (
+            {winback !== null ? (
               <SwitchRow
                 icon="mail"
                 label={copy.platform.emailSettings.winback}
@@ -157,25 +156,6 @@ export default function Settings() {
               }}
             />
             <Row icon="block" label={copy.social.blockedTitle} hint={copy.social.blockedHint} chevron onPress={() => router.push("/blocked")} />
-            <Row
-              icon="doc"
-              label={exporting ? copy.dataExport.working : copy.dataExport.open}
-              hint={copy.dataExport.hint}
-              onPress={
-                exporting
-                  ? undefined
-                  : async () => {
-                      setExporting(true);
-                      try {
-                        await shareMyData();
-                      } catch {
-                        toast(copy.dataExport.failed);
-                      } finally {
-                        setExporting(false);
-                      }
-                    }
-              }
-            />
             <Row icon="trash" label={s.deleteAccount} danger chevron onPress={() => setSheet("delete")} />
           </>
         ) : (

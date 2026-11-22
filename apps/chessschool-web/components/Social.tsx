@@ -259,15 +259,3 @@ export function SupportSheet({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
-/** "Download my data": everything stored for the account as a .json file. */
-export async function downloadMyData(): Promise<void> {
-  const data = await api.exportData();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `chessschool-data-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-}

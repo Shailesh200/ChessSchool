@@ -42,13 +42,16 @@ export default function PrivacyPage() {
               your Google password.
             </li>
             <li>
-              <strong>Student profile:</strong> student ID, rank, avatar choice,
-              onboarding preferences (goal, house), and enrollment date.
+              <strong>Profile:</strong> display name, username, avatar or a photo you upload
+              (stored in our file storage, Cloudflare R2), and anything you choose to add in
+              Edit profile: country, city, bio, goal and links to your social accounts.
+              Other players see your public profile (name, username, avatar, country, rank,
+              ratings, streak, trophies and recent bot results).
             </li>
             <li>
-              <strong>Gameplay progress:</strong> XP, streak, graduated classes, lesson
-              mastery, homework, ratings, achievements, mistake log, activity history,
-              and related settings synced to your account.
+              <strong>Progress:</strong> XP, rank, streak, lessons finished, ratings,
+              trophies, saved games, daily puzzles, mistake log, activity history and
+              related settings synced to your account.
             </li>
             <li>
               <strong>Guest mode:</strong> if you use the app without an account,
@@ -77,12 +80,6 @@ export default function PrivacyPage() {
               lesson or bot, never names, emails or anything you type).
             </li>
             <li>
-              <strong>Child profiles:</strong> a parent account can add up to five children. For
-              each we store a first name, a picture choice and their learning progress, linked to
-              the parent&apos;s account. Removing a child, or deleting the account, deletes this.
-              The optional parent PIN stays on the device and is never sent to us.
-            </li>
-            <li>
               <strong>Weekly summary (optional):</strong> if you turn it on in Settings, each
               Sunday we send the account&apos;s lessons finished, puzzles solved, streak and next
               unit to the account email (sent with Resend) and, in the app, as a notification
@@ -91,8 +88,7 @@ export default function PrivacyPage() {
             <li>
               <strong>Account emails:</strong> a welcome email when you make an account, and at
               most one &quot;come back&quot; email a month after a week away. Every email has a
-              one-click unsubscribe link, and Settings has a switch for each kind. Child profiles
-              never receive email.
+              one-click unsubscribe link, and Settings has a switch for each kind.
             </li>
             <li>
               <strong>Endgame trainer:</strong> to play perfect defence we look up the board
@@ -100,11 +96,10 @@ export default function PrivacyPage() {
               tablebase.
             </li>
             <li>
-              <strong>Classes:</strong> when you join a class, its members see your
-              display name, avatar, join date, number of lessons finished, streak and
-              rank. You can report or block a classmate; reports (reason, an optional
-              note and who reported whom) are read only by the ChessSchool team. The
-              class monitor can remove members.
+              <strong>Friends and safety:</strong> you can add friends by username or invite
+              link and challenge them to games. You can report or block any player; reports
+              (reason, an optional note and who reported whom) and support messages are read
+              only by the ChessSchool team.
             </li>
             <li>
               <strong>Error monitoring:</strong> we send crash and error reports to{" "}
@@ -130,9 +125,10 @@ export default function PrivacyPage() {
           <p>We use your data solely to provide and improve ChessSchool:</p>
           <ul className="doc-list">
             <li>Authenticate you and sync progress across web and mobile</li>
-            <li>Track curriculum completion, exams, homework, and review schedules</li>
-            <li>Enable online pass-and-play and share-code multiplayer</li>
-            <li>Maintain your student profile and settings</li>
+            <li>Track lessons, puzzles, games, ranks and review schedules</li>
+            <li>Run friend challenges, leaderboards and weekly leagues</li>
+            <li>Maintain your profile and settings</li>
+            <li>Explain games with the AI coach when you tap Ask coach</li>
             <li>See which lessons are too hard, from anonymous usage (unless you turn it off)</li>
           </ul>
           <p>
@@ -198,8 +194,8 @@ export default function PrivacyPage() {
             We retain your account data while your account is active. You can delete
             your account at any time from the Account screen in the mobile app or web
             app. Deletion permanently removes your profile, progress, lesson records,
-            OAuth links, sessions, class memberships, and reports and blocks you made or
-            received from our servers. This action cannot be undone. Anonymous usage
+            OAuth links, sessions, saved games, uploaded photo, friends, and reports and blocks
+            you made or received from our servers. This action cannot be undone. Anonymous usage
             events are not tied to your account and are deleted after 180 days.
           </p>
           <p>
@@ -230,8 +226,9 @@ export default function PrivacyPage() {
           <h2>Your rights</h2>
           <p>
             Depending on your location, you may have rights to access, correct, or
-            delete your personal data. Account deletion in the app fulfills deletion
-            requests. You can turn off anonymous usage sharing in Settings at any
+            delete your personal data. You can correct your details in Edit profile, and
+            account deletion in the app fulfills deletion requests. For a copy of your
+            data, email us. You can turn off anonymous usage sharing in Settings at any
             time. For other requests, email{" "}
             <a href={`mailto:${CONTACT}`} className="link">
               {CONTACT}

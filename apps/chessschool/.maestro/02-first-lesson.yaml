@@ -8,28 +8,28 @@ name: Finishes the first lesson
 - extendedWaitUntil:
     visible: "This is the board."
     timeout: 30000
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - assertVisible: "Files and ranks."
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - tapOn:
     id: "square-e4"
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - tapOn:
     id: "square-d5"
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - tapOn:
     id: "square-h1"
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - assertVisible: "Here's how a game starts."
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - tapOn:
     id: "square-e1"
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - tapOn:
     id: "square-d1"
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - tapOn: "64"
-- tapOn: "Continue"
+- runFlow: common/continue.yaml
 - extendedWaitUntil:
     visible: "Lesson complete!"
     timeout: 15000

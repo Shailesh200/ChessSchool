@@ -36,7 +36,6 @@ export default function LeaguePage() {
 
   let body: React.ReactNode;
   if (!ready) body = null;
-  else if (state.activeChild) body = <p className="muted">{t.child}</p>;
   else if (!state.account || (res !== "offline" && res?.status === "guest"))
     body = (
       <Card aria-labelledby="league-guest">

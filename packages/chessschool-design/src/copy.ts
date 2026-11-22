@@ -1100,7 +1100,7 @@ export const copy = {
     notificationsDenied: "Notifications are off for ChessSchool. You can turn them on in your device settings.",
     notificationsUnsupported: "This browser can't show reminders.",
     notificationsWeb: "Reminders appear while ChessSchool is open in a tab or installed app.",
-    weekly: "Weekly summary for parents",
+    weekly: "Weekly summary",
     weeklyHint: "Every Sunday: lessons, puzzles, streak and what's next, by email to this account.",
     weeklyHintApp: "Every Sunday: lessons, puzzles, streak and what's next, by email and a notification.",
     offline: "Download for offline",
@@ -1166,7 +1166,7 @@ export const copy = {
       "ChessSchool is provided as-is while it is being built. Lessons are for learning and fun.",
       "Be kind in Club rooms. Accounts that harass others may be removed.",
       "Your coach uses AI to explain games, give hints, comment on moves, play as some bots and read board photos. For this it only gets chess moves, board positions or the board photo, never your name, email or anything you type. AI can be wrong, so treat its notes as tips.",
-      "AI explanations only run when you tap Ask coach; without them you still get the basic engine notes. On a child's profile the AI features stay off.",
+      "AI explanations only run when you tap Ask coach; without them you still get the basic engine notes.",
       "Your data is handled as described in our privacy policy.",
     ],
   },
@@ -1177,7 +1177,6 @@ export const copy = {
     points: [
       "Lessons, puzzles and games are here for learning and fun.",
       "Your coach uses AI to explain games, give hints and play as some bots. It only sees chess moves and positions, never who you are.",
-      "On a child's profile, AI stays off.",
       "Be kind to other players.",
     ],
     note: "By tapping Agree, you accept our Terms of use and Privacy policy.",
@@ -1191,11 +1190,11 @@ export const copy = {
     items: [
       {
         label: "Game explanations (optional)",
-        text: "After a game, the app can explain a move in plain words. To write that, we send the AI provider only the chess moves and board positions of the game. We never send names, emails, account or profile IDs, or anything a child has typed.",
+        text: "After a game, the app can explain a move in plain words. To write that, we send the AI provider only the chess moves and board positions of the game. We never send names, emails, account or profile IDs, or anything you type.",
       },
       {
         label: "Who sees them",
-        text: "Signed-in adults can ask the coach for an AI explanation; it is only sent when you tap Ask coach. On a child's profile AI explanations stay off.",
+        text: "Signed-in adults can ask the coach for an AI explanation; it is only sent when you tap Ask coach.",
       },
       {
         label: "Which providers",
@@ -1387,7 +1386,6 @@ export const copy = {
     guestTitle: "Join a weekly league",
     guestBody: "Sign up to race other learners in a weekly league. Your progress comes with you.",
     signup: "Sign up to join a league",
-    child: "Leagues are for grown-up accounts. Keep learning, every lesson still counts!",
     offline: "The league table needs a connection.",
     members: (n: number) => (n === 1 ? "1 learner" : `${n} learners`),
     rowA11y: (place: number, name: string, xp: number) => `Place ${place}: ${name}, ${xp} XP`,
@@ -1591,7 +1589,6 @@ export const copy = {
     save: "Save profile",
     saved: "Profile saved.",
     preview: "See my public profile",
-    childNote: "On a child's account, city and links are never shown to others.",
     problems: {
       long: "That's a bit long. Please shorten it.",
       link: "Links and phone numbers can't go here. Use the Links fields for usernames.",
@@ -1618,14 +1615,6 @@ export const copy = {
     failed: "Couldn't send. Check your connection and try again.",
   },
 
-  dataExport: {
-    open: "Download my data",
-    hint: "Everything we store for your account, as a file",
-    working: "Preparing your data…",
-    ready: "Your data is ready.",
-    failed: "Couldn't prepare your data. Check your connection and try again.",
-    shareTitle: "My ChessSchool data",
-  },
   /** Phase 4 platform: lifecycle emails, their settings and unsubscribe page, board highlight shapes. */
   platform: {
     email: {
