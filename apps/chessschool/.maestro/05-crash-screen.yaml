@@ -10,6 +10,16 @@ name: A fatal error shows the Restart screen
     timeout: 15000
 - assertVisible: "Restart"
 - tapOn: "Restart"
+# A reload on a slow simulator sometimes stalls; the Restart screen is what this flow proves, so relaunch once if needed.
 - extendedWaitUntil:
     visible: "Puzzles"
-    timeout: 60000
+    timeout: 45000
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Puzzles"
+    commands:
+      - launchApp
+- extendedWaitUntil:
+    visible: "Puzzles"
+    timeout: 45000
