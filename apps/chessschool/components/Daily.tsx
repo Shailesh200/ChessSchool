@@ -1,5 +1,5 @@
 import { botInfo, isBotId } from "@chessschool/chess";
-import { closeRecap, copy, showRecapCard, visibleDailyStreak, weeklyRecap, type WeeklyRecap } from "@chessschool/design";
+import { CARD_BACKDROPS, closeRecap, copy, showRecapCard, visibleDailyStreak, weeklyRecap, type WeeklyRecap } from "@chessschool/design";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
@@ -101,7 +101,7 @@ export function RecapCard({ today }: { today: string }) {
   const recap = useRecap(today);
   if (!recap || !showRecapCard(state, recap, today)) return null;
   return (
-    <Card tone="hero" style={{ gap: 10 }}>
+    <Card tone="hero" art={CARD_BACKDROPS.hero} style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <T role="heading" header style={{ flex: 1 }}>
           {copy.recap.cardTitle}

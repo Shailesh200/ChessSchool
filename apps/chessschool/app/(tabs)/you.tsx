@@ -1,4 +1,4 @@
-import { BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
+import { BADGES, CARD_BACKDROPS, FLAIRS, TABS_BACKDROP, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
@@ -84,8 +84,8 @@ export default function You() {
   ];
 
   return (
-    <Page title={copy.you.title} large action={<IconButton icon="settings" label={copy.you.settings} onPress={() => router.push("/settings")} />}>
-      <Card tone="hero" style={[{ gap: 14, borderWidth: 1, borderColor: c.line }, mine?.details.banner ? { borderTopWidth: 6, borderTopColor: c[mine.details.banner] } : null]}>
+    <Page title={copy.you.title} large art={TABS_BACKDROP} action={<IconButton icon="settings" label={copy.you.settings} onPress={() => router.push("/settings")} />}>
+      <Card tone="hero" art={CARD_BACKDROPS.hero} style={[{ gap: 14, borderWidth: 1, borderColor: c.line }, mine?.details.banner ? { borderTopWidth: 6, borderTopColor: c[mine.details.banner] } : null]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <Pressable accessibilityRole="button" accessibilityLabel={copy.you.avatar} onPress={() => setSheet("picture")}>
             <AvatarFace id={profile.avatar} photo={mine?.photo} size={72} />

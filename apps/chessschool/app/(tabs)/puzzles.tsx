@@ -1,5 +1,5 @@
 import { PUZZLE_THEMES } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { CARD_BACKDROPS, copy, TABS_BACKDROP } from "@chessschool/design";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { DailyCard } from "@/components/Daily";
@@ -19,18 +19,18 @@ export default function Puzzles() {
   const { puzzle: daily, today } = useDailyPuzzle(packReady);
   if (!packReady || !daily) {
     return (
-      <Page title={copy.puzzles.title} large>
+      <Page title={copy.puzzles.title} large art={TABS_BACKDROP}>
         <ActivityIndicator />
       </Page>
     );
   }
   return (
-    <Page title={copy.puzzles.title} large>
+    <Page title={copy.puzzles.title} large art={TABS_BACKDROP}>
       <T role="bodyLg" color="textMuted" style={{ marginTop: -8 }}>
         {copy.puzzles.body}
       </T>
 
-      <Card tone="hero" style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.line }}>
+      <Card tone="hero" art={CARD_BACKDROPS.rating} style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.line }}>
         <View style={{ flex: 1, gap: 6 }}>
           <T role="label" color="brandText">
             {copy.puzzles.rating}

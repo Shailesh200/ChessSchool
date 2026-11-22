@@ -1,5 +1,5 @@
 import { BOTS } from "@chessschool/chess";
-import { aiExplainOn, aiTint, botRatingOf, canUseGym, copy, type IconName } from "@chessschool/design";
+import { aiExplainOn, aiTint, botRatingOf, canUseGym, CARD_BACKDROPS, copy, TABS_BACKDROP, type IconName } from "@chessschool/design";
 import { router, type Href } from "expo-router";
 import { Pressable, View } from "react-native";
 import { AiBadge } from "@/components/AiCoach";
@@ -40,11 +40,11 @@ export default function Gym() {
   );
 
   return (
-    <Page title={copy.gym.title} large>
+    <Page title={copy.gym.title} large art={TABS_BACKDROP}>
       <T role="bodyLg" color="textMuted" style={{ marginTop: -8 }}>
         {copy.gym.body}
       </T>
-      <Card tone="hero" style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.line }}>
+      <Card tone="hero" art={CARD_BACKDROPS.hero} style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.line }}>
         <View style={{ flex: 1, gap: 8 }}>
           <T role="heading">{state.activeGame ? copy.play.resume : copy.gym.quick}</T>
           <T role="small" color="textMuted">

@@ -1,6 +1,6 @@
 "use client";
 
-import { AVATARS, BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
+import { AVATARS, BADGES, CARD_BACKDROPS, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -14,6 +14,7 @@ import { Button, Card, SaveBanner, Segmented, Sheet, TextField, TopBar, useToast
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
+import { Backdrop } from "@/components/Backdrop";
 
 export default function YouPage() {
   const { state, ready, setProfile, cue } = useApp();
@@ -108,7 +109,8 @@ export default function YouPage() {
         }
       />
 
-      <Card className="me-card hero" style={mine?.details.banner ? { borderTop: `6px solid ${bannerVar(mine.details.banner)}` } : undefined}>
+      <Card className="me-card hero has-art" style={mine?.details.banner ? { borderTop: `6px solid ${bannerVar(mine.details.banner)}` } : undefined}>
+        <Backdrop art={CARD_BACKDROPS.hero} />
         <div className="me-row">
           <button type="button" className="me-avatar" aria-label={copy.you.avatar} onClick={() => setSheet("picture")}>
             {mine?.photo ? <MemberFace id={profile.avatar} photo={mine.photo} size={72} /> : profile.avatar === "cody" ? <Cody animation="idle" size={60} /> : <img src={`/coaches/${profile.avatar}.png`} alt="" width={72} height={72} />}

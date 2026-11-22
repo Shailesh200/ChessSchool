@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { copy, type IconName } from "@chessschool/design";
+import { copy, TABS_BACKDROP, type IconName } from "@chessschool/design";
 import { useOfflineStock } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { Icon } from "./Icon";
 import { ConnectivityBanner } from "./ConnectivityBanner";
 import { Wordmark } from "./Wordmark";
 import { Button } from "./ui";
+import { Backdrop } from "./Backdrop";
 
 const TABS: { href: string; label: keyof typeof copy.tabs; icon: IconName; also?: string[] }[] = [
   { href: "/today", label: "today", icon: "learn", also: ["/practice"] },
@@ -17,6 +18,9 @@ const TABS: { href: string; label: keyof typeof copy.tabs; icon: IconName; also?
   { href: "/gym", label: "gym", icon: "gym", also: ["/play", "/rooms"] },
   { href: "/you", label: "you", icon: "profile", also: ["/settings"] },
 ];
+
+/** The four tab pages share one fixed background; deeper pages (play, solve) bring their own. */
+const TAB_ROOTS = ["/today", "/puzzles", "/gym", "/you"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -62,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </nav>
       <div className="shell-main">
+        {TAB_ROOTS.includes(path) ? <Backdrop art={TABS_BACKDROP} fixed /> : null}
         <ConnectivityBanner />
         <main id="main" className="content" tabIndex={-1}>
           {children}

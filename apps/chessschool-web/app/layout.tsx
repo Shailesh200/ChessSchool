@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Baloo_2, Fredoka } from "next/font/google";
-import { boardColorPalettes, copy, cssVars, palettes, THEMES, themePalettes } from "@chessschool/design";
+import { artStrength, boardColorPalettes, copy, cssVars, palettes, THEMES, themePalettes } from "@chessschool/design";
 import { AppStateProvider } from "@/lib/state";
 import { themeBootScript } from "@/lib/theme";
 import { ToastProvider } from "@/components/ui";
@@ -45,15 +45,16 @@ export const viewport: Viewport = {
 
 // Light by default, dark when the OS asks (unless the learner picked one), forced by data-theme.
 const themeCss = THEMES.filter((t) => t.id !== "classroom")
-  .map((t) => `:root[data-cs-theme="${t.id}"]{${cssVars(themePalettes[t.id as keyof typeof themePalettes])}color-scheme:${t.scheme}}`)
+  .map((t) => `:root[data-cs-theme="${t.id}"]{${cssVars(themePalettes[t.id as keyof typeof themePalettes])}--cs-art:${artStrength(t.scheme === "dark")};color-scheme:${t.scheme}}`)
   .join("\n");
 // Colour-blind friendly boards override only the board variables, on top of any theme.
 const boardCss = Object.entries(boardColorPalettes)
   .map(([id, b]) => `:root[data-cs-board="${id}"]{${cssVars(b)}}`)
   .join("\n");
-const tokenCss = `:root{${cssVars("light")}color-scheme:light}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${cssVars("dark")}color-scheme:dark}}
-:root[data-theme="dark"]{${cssVars("dark")}color-scheme:dark}
+// --cs-art: how strongly decorative background art shows (dark backgrounds need a little more).
+const tokenCss = `:root{${cssVars("light")}--cs-art:${artStrength(false)};color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${cssVars("dark")}--cs-art:${artStrength(true)};color-scheme:dark}}
+:root[data-theme="dark"]{${cssVars("dark")}--cs-art:${artStrength(true)};color-scheme:dark}
 ${themeCss}
 ${boardCss}`;
 

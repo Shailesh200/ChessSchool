@@ -1,11 +1,12 @@
 import { chooseMove, currentStep, hintSquares, parseUci, positionCue, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Square, type Step } from "@chessschool/chess";
-import { COMBO_MIN, copy, FLOW_CUES, isComboBeat, phrase, space, startTally, tallyAfter, type CodyAnimation, type Tally } from "@chessschool/design";
+import { COMBO_MIN, copy, FLOW_CUES, isComboBeat, LESSON_BACKDROP, phrase, space, startTally, tallyAfter, type CodyAnimation, type Tally } from "@chessschool/design";
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 import { useTheme } from "@/lib/theme";
+import { Backdrop } from "./Backdrop";
 import { Board } from "./Board";
 import { BOARD_INSET, BoardStage } from "./BoardStage";
 import { Icon } from "./Icon";
@@ -26,7 +27,12 @@ function LessonFrame({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const top = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0);
-  return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: top, paddingBottom: insets.bottom }}>{children}</View>;
+  return (
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: top, paddingBottom: insets.bottom }}>
+      <Backdrop art={LESSON_BACKDROP} />
+      {children}
+    </View>
+  );
 }
 
 function taughtRecap(steps: Step[]): string {

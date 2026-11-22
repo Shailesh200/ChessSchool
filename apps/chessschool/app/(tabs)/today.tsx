@@ -1,4 +1,4 @@
-import { copy, dayKey, focusCourse, greetingFor, minutesToday, nextReward, rankFor, space, streakAtRisk, todayQuests, visibleStreak, type Course, type LocalState, type Placement } from "@chessschool/design";
+import { copy, dayKey, TABS_BACKDROP, focusCourse, greetingFor, minutesToday, nextReward, rankFor, space, streakAtRisk, todayQuests, visibleStreak, type Course, type LocalState, type Placement } from "@chessschool/design";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import { LeagueCard, MateCard, MonthlyRow, StreakRepairCard } from "@/components
 import { Cody, Fx } from "@/components/Lottie";
 import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
 import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, ProgressBar, SaveBanner, Sheet, T } from "@/components/ui";
+import { Backdrop } from "@/components/Backdrop";
 import { RankCard } from "@/components/RankCard";
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
@@ -106,6 +107,7 @@ export default function Today() {
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
+      <Backdrop art={TABS_BACKDROP} />
       <Banner />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: current ? 128 : 40, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
         <View style={{ gap: 16 }}>

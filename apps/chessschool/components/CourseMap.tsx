@@ -1,7 +1,7 @@
-import { copy, courseTrail, type Course, type Progress, type TrailStop } from "@chessschool/design";
+import { artStrength, copy, courseTrail, MOTIFS, type Course, type MotifId, type Progress, type TrailStop } from "@chessschool/design";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { G, Path } from "react-native-svg";
 import { useTheme } from "@/lib/theme";
 import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
@@ -13,11 +13,14 @@ const NOW = 80;
 /** Node centre as a share of the width; follows the absolute unit index so the trail keeps its shape when the window moves. */
 const xAt = (i: number) => 0.5 + 0.26 * Math.sin(i * 1.1);
 const short = (t: string) => t.replace(/^(Unit|यूनिट) \d+ · /, "");
+/** Scenery at the screen edge beside each stop (its label is on the other side); follows the unit index like the trail. */
+const SCENERY: MotifId[] = ["lotus", "pawn", "rosette", "rook", "knight", "bishop", "queen", "king"];
+const SCENE = 36;
 const stateText = (s: TrailStop) => (s.state === "done" ? copy.today.done : s.state === "current" ? copy.today.focus.current : copy.lesson.locked);
 
 /** The course as a winding trail, one stop per unit. Shows a window around the current unit until "View all". */
 export function CourseMap({ course, progress, onOpen }: { course: Course; progress: Progress; onOpen: (lessonId: string) => void }) {
-  const { c } = useTheme();
+  const { c, scheme } = useTheme();
   const [width, setWidth] = useState(0);
   const [all, setAll] = useState(false);
   const trail = courseTrail(course, progress.completed);
@@ -34,6 +37,17 @@ export function CourseMap({ course, progress, onOpen }: { course: Course; progre
         {width ? (
           <>
             <Svg width={width} height={height} style={{ position: "absolute" }} pointerEvents="none">
+              {pts.map(([x, y], k) => {
+                const i = from + k;
+                const sx = x >= width / 2 ? width - SCENE / 2 - 2 : SCENE / 2 + 2;
+                return (
+                  <G key={i} opacity={0.1 * artStrength(scheme === "dark")} transform={`translate(${sx - SCENE / 2} ${y - SCENE / 2}) rotate(${i % 2 ? 8 : -8} ${SCENE / 2} ${SCENE / 2}) scale(${SCENE / 100})`}>
+                    {MOTIFS[SCENERY[i % SCENERY.length]].map((d, j) => (
+                      <Path key={j} d={d} fill={i % 3 === 0 ? c.accent : i % 3 === 1 ? c.brand : c.gold} />
+                    ))}
+                  </G>
+                );
+              })}
               <Path d={path(stops.length)} stroke={c.line} strokeWidth={12} strokeLinecap="round" fill="none" />
               {reached > 1 ? <Path d={path(reached)} stroke={c.brand} strokeWidth={12} strokeLinecap="round" fill="none" /> : null}
             </Svg>

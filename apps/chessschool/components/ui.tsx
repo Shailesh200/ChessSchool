@@ -1,5 +1,6 @@
-import { copy, minTarget, radius, shadow, space, type IconName, type TypeRole, type, type Palette } from "@chessschool/design";
+import { copy, minTarget, radius, shadow, space, type Backdrop as Art, type IconName, type TypeRole, type, type Palette } from "@chessschool/design";
 import { router } from "expo-router";
+import { Backdrop } from "./Backdrop";
 import { Cody } from "./Lottie";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
@@ -135,7 +136,8 @@ export function IconButton({ icon, label, onPress }: { icon: IconName; label: st
 
 /* ---------- surfaces ---------- */
 
-export function Card({ children, style, tone }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; tone?: "brand" | "success" | "hero" }) {
+/** `art` adds faint decorative art in the card's corner (hero cards). */
+export function Card({ children, style, tone, art }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; tone?: "brand" | "success" | "hero"; art?: Art }) {
   const { c, scheme } = useTheme();
   const bg = tone === "brand" ? c.brandSoft : tone === "success" ? c.successSoft : tone === "hero" ? c.heroFrom : c.card;
   return (
@@ -157,6 +159,7 @@ export function Card({ children, style, tone }: { children: React.ReactNode; sty
         style,
       ]}
     >
+      {art ? <Backdrop art={art} under={bg} radius={radius.lg} /> : null}
       {children}
     </View>
   );
@@ -533,6 +536,7 @@ export function Page({
   children,
   banner = true,
   contentStyle,
+  art,
 }: {
   title: string;
   large?: boolean;
@@ -542,6 +546,8 @@ export function Page({
   children: React.ReactNode;
   banner?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Background art that stays put while the content scrolls over it. */
+  art?: Art;
 }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -572,6 +578,7 @@ export function Page({
   );
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: c.bg }}>
+      {art ? <Backdrop art={art} /> : null}
       {banner ? <Banner /> : null}
       <View style={{ flex: 1 }}>
         <View pointerEvents={large && !scrolled ? "box-none" : "auto"} style={large ? { position: "absolute", top: 0, left: 0, right: 0, zIndex: 2 } : { zIndex: 2 }}>

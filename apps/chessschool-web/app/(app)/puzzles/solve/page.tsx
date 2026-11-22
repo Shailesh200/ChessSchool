@@ -1,7 +1,7 @@
 "use client";
 
 import { nextPuzzle, PUZZLE_THEMES, updateRating, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { copy, puzzleBackdrop } from "@chessschool/design";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
@@ -10,6 +10,7 @@ import { ChallengeButton } from "@/components/Growth";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { Backdrop } from "@/components/Backdrop";
 
 export default function SolvePage() {
   return (
@@ -59,6 +60,7 @@ function SolvePlay({ daily, theme, rating, recent, title, initial }: { daily: bo
 
   return (
     <div className="page play-page">
+      <Backdrop art={puzzleBackdrop(puzzle.id)} fixed />
       <TopBar backHref="/puzzles" title={title} />
       <div className="play puzzle-play">
         <PuzzlePlayer

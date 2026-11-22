@@ -6881,3 +6881,42 @@ button.game-row {
 .safety-actions {
   justify-content: flex-start;
 }
+
+/* ---------- Decorative background art (components/Backdrop.tsx) ---------- */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.backdrop > svg:first-child {
+  display: block;
+}
+.backdrop-fixed {
+  position: fixed;
+}
+.backdrop-motif {
+  position: absolute;
+}
+/* A card with art keeps the art above its own background and below its content. */
+.has-art {
+  position: relative;
+  isolation: isolate;
+}
+.cmap-trail svg.cmap-scene {
+  position: absolute;
+  inset: auto;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  pointer-events: none;
+  opacity: calc(0.1 * var(--cs-art, 1));
+}
+.cmap-trail svg.cmap-scene.left {
+  left: 2px;
+}
+.cmap-trail svg.cmap-scene.right {
+  right: 2px;
+}

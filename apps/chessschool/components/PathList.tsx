@@ -1,10 +1,11 @@
-import { copy, focusCourse, radius, space, type Course, type CourseLesson, type Progress } from "@chessschool/design";
+import { CARD_BACKDROPS, copy, focusCourse, radius, space, type Course, type CourseLesson, type Progress } from "@chessschool/design";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { CourseSkeleton } from "./Skeleton";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
+import { Backdrop } from "./Backdrop";
 import { PieceArt } from "./Board";
 import { Cody } from "./Lottie";
 import { Icon } from "./Icon";
@@ -63,6 +64,7 @@ export function PathList({
       {f.current && f.currentUnit ? (
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <View style={{ height: 150, backgroundColor: c.heroFrom, justifyContent: "flex-end", padding: 16 }}>
+            <Backdrop art={CARD_BACKDROPS.course} under={c.heroFrom} />
             <View style={{ position: "absolute", right: 6, bottom: -4 }}>
               <Cody animation="idle" size={128} />
             </View>
