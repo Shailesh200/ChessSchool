@@ -1,0 +1,100 @@
+name: Store screenshots
+
+# Takes the App Store screenshots from the current build on a 6.9" iPhone simulator
+# (apps/chessschool/.maestro/store/screens.yaml) and keeps them as the "store-screenshots" artifact.
+# Run it by pushing to the store-shots branch: git push -f origin HEAD:store-shots
+on:
+  workflow_dispatch:
+  push:
+    branches: [store-shots]
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+  SENTRY_DISABLE_AUTO_UPLOAD: "true"
+  EAS_BUILD_NO_EXPO_GO_WARNING: "true"
+  MAESTRO_CLI_NO_ANALYTICS: "1"
+  MAESTRO_VERSION: "2.6.1"
+  # The iOS test driver sometimes needs more than the default 2 minutes to start on a busy runner.
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.30.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g eas-cli@27.10.0
+      # pnpm hides Expo's own dependencies from config plugins that eas-cli loads directly.
+      - run: echo "NODE_PATH=$(dirname "$(realpath apps/chessschool/node_modules/expo)"):$PWD/node_modules/.pnpm/node_modules" >> "$GITHUB_ENV"
+      - name: Add the device-test build profile
+        working-directory: apps/chessschool
+        run: node scripts/device-test-profile.mjs
+      - name: Build for the simulator
+        working-directory: apps/chessschool
+        run: eas build --platform ios --profile device-test --local --non-interactive --output "$RUNNER_TEMP/app.tar.gz"
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Boot an iOS 26 simulator and install the app
+        run: |
+          mkdir -p "$RUNNER_TEMP/app" && tar -xzf "$RUNNER_TEMP/app.tar.gz" -C "$RUNNER_TEMP/app"
+          APP=$(find "$RUNNER_TEMP/app" -name '*.app' -maxdepth 3 | head -1); echo "app: $APP"
+          [ -n "$APP" ] || { echo "::error::The build produced no .app"; exit 1; }
+          # A 6.9" iPhone (1320 x 2868 screenshots), the size App Store Connect asks for.
+          UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const ks=Object.keys(d).filter(k=>/iOS-26/.test(k)).sort().reverse();for(const k of ks)for(const x of d[k])if(/^iPhone \d+ Pro Max$/.test(x.name)){console.error("runtime",k,x.name);console.log(x.udid);process.exit()}process.exit(1)')
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          # iOS 26 offers "Save Password?" after the bot flow logs in. That sheet belongs to a system
+          # process, so Maestro can neither see nor dismiss it and it hides the app. Turn password AutoFill
+          # off with the simulator's restriction settings (as a device-management profile would), then reboot.
+          xcrun simctl shutdown "$UDID"
+          python3 -I - "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data" <<'PY'
+          import os, plistlib, sys
+          base = sys.argv[1]
+          for rel in ("Containers/Shared/SystemGroup/systemgroup.com.apple.configurationprofiles/Library/ConfigurationProfiles/UserSettings.plist",
+                      "Library/UserConfigurationProfiles/EffectiveUserSettings.plist",
+                      "Library/UserConfigurationProfiles/PublicInfo/PublicEffectiveUserSettings.plist"):
+              path = os.path.join(base, rel)
+              data = {}
+              if os.path.exists(path):
+                  with open(path, "rb") as f:
+                      data = plistlib.load(f)
+              data.setdefault("restrictedBool", {})["allowPasswordAutoFill"] = {"value": False}
+              os.makedirs(os.path.dirname(path), exist_ok=True)
+              with open(path, "wb") as f:
+                  plistlib.dump(data, f, fmt=plistlib.FMT_BINARY)
+              print("password AutoFill off:", rel, "(file existed)" if data.keys() - {"restrictedBool"} else "(new file)")
+          PY
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          plutil -extract restrictedBool.allowPasswordAutoFill.value raw "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Library/UserConfigurationProfiles/EffectiveUserSettings.plist" || true
+          xcrun simctl install "$UDID" "$APP"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+      - name: Take the screenshots
+        env:
+          EMAIL: ${{ secrets.DEVICE_TEST_EMAIL }}
+          PASSWORD: ${{ secrets.DEVICE_TEST_PASSWORD }}
+        run: |
+          xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          mkdir -p "$RUNNER_TEMP/shots" && cd "$RUNNER_TEMP/shots"
+          maestro --device "$UDID" test -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" "$GITHUB_WORKSPACE/apps/chessschool/.maestro/store/screens.yaml"
+          ls -la
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: store-screenshots
+          path: ${{ runner.temp }}/shots/*.png
