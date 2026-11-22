@@ -56,16 +56,20 @@ export type FxAnimation = (typeof fxAnimations)[number];
 export const soundCues = ["tap", "success", "stamp", "gentle-no", "level-up", "move", "capture", "check", "mate", "castle", "promote", "low-time"] as const;
 export type SoundCue = (typeof soundCues)[number];
 
-/** Switchable app icons (assets/raster/app-icons/<id>.png, -fg.png, -preview.png). */
+/**
+ * Switchable app icons (assets/raster/app-icons/<id>.png, -fg.png, -preview.png), in unlock order.
+ * Ids are the native icon names the store builds register, so they stay fixed even when the art changes.
+ * Names and goals live in copy.looks.icons; the unlock rules are in appIcons.ts.
+ */
 export const APP_ICONS = [
-  { id: "classroom", name: "Classroom", background: "#E4E2FB" },
-  { id: "night", name: "Night", background: "#14152B" },
-  { id: "garden", name: "Garden", background: "#7FA36B" },
-  { id: "sunset", name: "Sunset", background: "#F08A6A" },
-  { id: "ocean", name: "Ocean", background: "#117A8C" },
-  { id: "midnight", name: "Midnight", background: "#000000" },
-  { id: "library", name: "Library", background: "#7A4A23" },
-  { id: "pixel", name: "Pixel", background: "#F6C343" },
+  { id: "classroom", background: "#FFE9DC" },
+  { id: "sunset", background: "#F59E5B" },
+  { id: "garden", background: "#2F7D5B" },
+  { id: "ocean", background: "#117A8C" },
+  { id: "library", background: "#6B3F1F" },
+  { id: "night", background: "#14152B" },
+  { id: "pixel", background: "#6C4BD8" },
+  { id: "midnight", background: "#0B0B12" },
 ] as const;
 export type AppIconId = (typeof APP_ICONS)[number]["id"];
 /** Native alternate-icon name (PascalCase, as the config plugin registers it). */

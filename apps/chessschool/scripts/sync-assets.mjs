@@ -9,7 +9,7 @@ mkdirSync(join(app, "assets"), { recursive: true });
 for (const f of ["icon.png", "adaptive-icon.png", "splash-icon.png", "favicon.png"]) copyFileSync(join(raster, f), join(app, "assets", f));
 // Switchable app icons (expo-alternate-app-icons reads them from local paths).
 mkdirSync(join(app, "assets/app-icons"), { recursive: true });
-for (const id of ["classroom", "night", "garden", "sunset", "ocean", "midnight", "library", "pixel"]) {
-  for (const suffix of ["", "-fg", "-preview"]) copyFileSync(join(raster, "app-icons", `${id}${suffix}.png`), join(app, "assets/app-icons", `${id}${suffix}.png`));
+for (const id of ["classroom", "sunset", "garden", "ocean", "library", "night", "pixel", "midnight"]) {
+  for (const suffix of ["", "-fg", "-bg", "-preview"]) copyFileSync(join(raster, "app-icons", `${id}${suffix}.png`), join(app, "assets/app-icons", `${id}${suffix}.png`));
 }
 console.log("synced store and app icons");

@@ -1,7 +1,7 @@
 "use client";
 
 import { chooseMove, currentStep, hintSquares, parseUci, runnerReduce, startRunner, type RunnerAction, type RunnerState, type Step } from "@chessschool/chess";
-import { COMBO_MIN, copy, FLOW_CUES, isComboBeat, phrase, startTally, tallyAfter, type CodyAnimation, type Tally } from "@chessschool/design";
+import { COMBO_MIN, copy, FLOW_CUES, isComboBeat, LESSON_BACKDROP, phrase, startTally, tallyAfter, type CodyAnimation, type Tally } from "@chessschool/design";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/state";
@@ -11,6 +11,7 @@ import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
 import { Options } from "./Options";
 import { Button } from "./ui";
+import { Backdrop } from "./Backdrop";
 
 function poseFor(s: RunnerState, step: Step | undefined): CodyAnimation {
   if (s.botThinking) return "thinking";
@@ -151,6 +152,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
   if (s.status === "finished") {
     return (
       <div className="lesson">
+        <Backdrop art={LESSON_BACKDROP} fixed />
         <header className="flow-top">
           <span className="icon-btn-spacer" />
           <div className="steps" aria-hidden>
@@ -180,6 +182,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
 
   return (
     <div className="lesson">
+      <Backdrop art={LESSON_BACKDROP} fixed />
       <header className="flow-top">
         <button
           className="icon-btn"

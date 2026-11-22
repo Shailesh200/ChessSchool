@@ -34,7 +34,7 @@ import {
   type Square,
   type TimeControlId,
 } from "@chessschool/chess";
-import { botRatingOf, canUseGym, copy, ENDGAME_MASTERY, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { botBackdrop, botRatingOf, canUseGym, copy, ENDGAME_MASTERY, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "@/components/Board";
@@ -53,6 +53,7 @@ import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
+import { Backdrop } from "@/components/Backdrop";
 
 type Side = Color | "random";
 type Mode = "bot" | "friend" | "shuffle" | "position" | "endgame";
@@ -415,6 +416,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
 
   return (
     <div className="page play-page">
+      <Backdrop art={botBackdrop(game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : "friend")} fixed />
       <TopBar backHref="/gym" title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       <div className="play">
         <div className="play-chrome">

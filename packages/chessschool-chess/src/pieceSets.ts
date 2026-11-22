@@ -1,5 +1,5 @@
 import type { Color, PieceType } from "./board";
-import { PIXEL_SET } from "./pieceSets.pixel";
+import { EXTRA_SETS, type ExtraSetId } from "./pieceSets.extra";
 import { PIECE_ART, PIECE_STROKE } from "./pieces";
 
 /** One drawing format for every set, so web (<svg>) and native (react-native-svg) share a renderer. */
@@ -10,26 +10,29 @@ export type PieceOp =
 export type PieceDrawing = { viewBox: string; ops: PieceOp[]; pixelated?: boolean };
 export type PieceArtwork = { kind: "vector"; drawing: PieceDrawing } | { kind: "asset"; asset: string; pixelated?: boolean };
 
-export type PieceSetId = "toy" | "clay" | "pixel" | "outline";
+/** "toy" is the Classic set (its id predates the name). */
+export type PieceSetId = "toy" | ExtraSetId;
 
 export type PieceSetInfo = { id: PieceSetId; name: string; blurb: string; source: "chessschool" };
 
 export const DEFAULT_PIECE_SET: PieceSetId = "toy";
 
 export const PIECE_SETS: readonly PieceSetInfo[] = [
-  { id: "toy", name: "Toy", blurb: "Chunky and friendly", source: "chessschool" },
-  { id: "clay", name: "Clay", blurb: "Soft, hand-made feel", source: "chessschool" },
-  { id: "pixel", name: "Pixel", blurb: "Retro game sprites", source: "chessschool" },
-  { id: "outline", name: "Outline", blurb: "High contrast, easiest to read", source: "chessschool" },
+  { id: "toy", name: "Classic", blurb: "Chunky and friendly", source: "chessschool" },
+  { id: "staunton", name: "Staunton", blurb: "Tournament shapes", source: "chessschool" },
+  { id: "flat", name: "Modern", blurb: "Clean, flat and two-tone", source: "chessschool" },
+  { id: "chaturanga", name: "Chaturanga", blurb: "Domes and arches from India", source: "chessschool" },
+  { id: "geometric", name: "Bold", blurb: "Strong shapes, easy to spot", source: "chessschool" },
+  { id: "bubble", name: "Bubble", blurb: "Round, soft and smiley", source: "chessschool" },
 ];
 export const isPieceSet = (v: unknown): v is PieceSetId => PIECE_SETS.some((s) => s.id === v);
 
 /**
  * Stored piece-set ids we no longer ship. Includes the Lichess upstream folder names
  * (pixel→arcade, chessnut, dubrovny, kiwen-suwi) in case an older save used those.
- * ChessSchool's own "pixel" set is not in this list.
+ * Clay, Pixel and Outline were retired in favour of the silhouette sets; a saved choice falls back to Classic.
  */
-const REMOVED_PIECE_SETS = new Set(["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]);
+const REMOVED_PIECE_SETS = new Set(["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi", "clay", "pixel", "outline"]);
 
 /** A saved preference for a removed set (or anything we don't ship) becomes Toy. */
 export function migratePieceSet(v: unknown): PieceSetId {
@@ -39,41 +42,41 @@ export function migratePieceSet(v: unknown): PieceSetId {
 
 export const isRemovedPieceSet = (v: unknown): boolean => typeof v === "string" && REMOVED_PIECE_SETS.has(v);
 
-type Palette = { fill: string; stroke: string; detail: string; dot: string; sw: number; shadow?: string };
-const STYLES: Record<"toy" | "clay" | "outline", Record<Color, Palette>> = {
-  toy: {
-    w: { fill: "#FFF7E8", stroke: "#2A2547", detail: "#B9B3D9", dot: "#2A2547", sw: PIECE_STROKE },
-    b: { fill: "#3B3770", stroke: "#15132B", detail: "#7E79D6", dot: "#FFF7E8", sw: PIECE_STROKE },
-  },
-  // Matte clay: same-hue outline, soft highlight and a contact shadow instead of ink lines.
-  clay: {
-    w: { fill: "#F3E4C8", stroke: "#B99A6B", detail: "#FFF6E4", dot: "#5A4630", sw: 3, shadow: "rgba(90, 60, 30, 0.22)" },
-    b: { fill: "#5653CC", stroke: "#34318F", detail: "#7A77EC", dot: "#FFF6E4", sw: 3, shadow: "rgba(20, 18, 60, 0.3)" },
-  },
-  outline: {
-    w: { fill: "#FFFFFF", stroke: "#000000", detail: "#000000", dot: "#000000", sw: 7 },
-    b: { fill: "#000000", stroke: "#000000", detail: "#FFFFFF", dot: "#FFFFFF", sw: 7 },
-  },
+const CLASSIC: Record<Color, { fill: string; stroke: string; detail: string; dot: string }> = {
+  w: { fill: "#FFF7E8", stroke: "#2A2547", detail: "#B9B3D9", dot: "#2A2547" },
+  b: { fill: "#3B3770", stroke: "#15132B", detail: "#7E79D6", dot: "#FFF7E8" },
 };
 
-function vector(style: keyof typeof STYLES, color: Color, type: PieceType): PieceDrawing {
+function classic(color: Color, type: PieceType): PieceDrawing {
   const art = PIECE_ART[type];
-  const p = STYLES[style][color];
+  const p = CLASSIC[color];
   const ops: PieceOp[] = [];
-  if (p.shadow) ops.push({ t: "ellipse", cx: 50, cy: 92, rx: 30, ry: 4, fill: p.shadow });
-  for (const d of art.body) ops.push({ t: "path", d, fill: p.fill, stroke: p.stroke, sw: p.sw, lj: "round" });
-  if (style === "clay") ops.push({ t: "ellipse", cx: 42, cy: 40, rx: 5, ry: 12, fill: "rgba(255,255,255,0.28)" });
-  for (const d of art.detail) ops.push({ t: "path", d, fill: "none", stroke: p.detail, sw: style === "outline" ? 4.5 : 3.5, lc: "round" });
+  for (const d of art.body) ops.push({ t: "path", d, fill: p.fill, stroke: p.stroke, sw: PIECE_STROKE, lj: "round" });
+  for (const d of art.detail) ops.push({ t: "path", d, fill: "none", stroke: p.detail, sw: 3.5, lc: "round" });
   for (const [cx, cy, r] of art.dots ?? []) ops.push({ t: "circle", cx, cy, r, fill: p.dot });
   return { viewBox: "0 0 100 100", ops };
 }
 
-/** Artwork for one piece in a set. Unknown sets fall back to Toy. */
+function extra(set: ExtraSetId, color: Color, type: PieceType): PieceDrawing {
+  const art = EXTRA_SETS[set].art[type];
+  const p = EXTRA_SETS[set].colors[color];
+  const ops: PieceOp[] = [];
+  for (const d of art.body) ops.push({ t: "path", d, fill: p.fill, stroke: p.stroke, sw: p.sw, lj: "round" });
+  for (const d of art.shade ?? []) ops.push({ t: "path", d, fill: p.shade, stroke: p.stroke, sw: p.sw, lj: "round" });
+  for (const d of art.detail ?? []) ops.push({ t: "path", d, fill: "none", stroke: p.detail, sw: p.dw, lc: "round", lj: "round" });
+  for (const [cx, cy, r] of art.dots ?? []) ops.push({ t: "circle", cx, cy, r, fill: p.dot });
+  return { viewBox: "0 0 100 100", ops };
+}
+
+const cache = new Map<string, PieceArtwork>();
+
+/** Artwork for one piece in a set. Unknown sets fall back to Classic. */
 export function pieceArtwork(set: PieceSetId, color: Color, type: PieceType): PieceArtwork {
-  if (set === "clay" || set === "outline") return { kind: "vector", drawing: vector(set, color, type) };
-  if (set === "pixel") {
-    const code = `${color}${type.toUpperCase()}`;
-    return { kind: "vector", drawing: { ...PIXEL_SET[code], pixelated: true } };
+  const key = `${set}${color}${type}`;
+  let art = cache.get(key);
+  if (!art) {
+    art = { kind: "vector", drawing: set in EXTRA_SETS ? extra(set as ExtraSetId, color, type) : classic(color, type) };
+    cache.set(key, art);
   }
-  return { kind: "vector", drawing: vector("toy", color, type) };
+  return art;
 }

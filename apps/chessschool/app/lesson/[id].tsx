@@ -1,7 +1,7 @@
-import type { Step } from "@chessschool/chess";
+import { spokenLines, type Step } from "@chessschool/chess";
 import { accuracy, copy, dayKey, elapsedSeconds, FLOW_CUES, goalMet, isPerfect, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable } from "react-native";
 import { LessonDone, type LessonSummary } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
@@ -22,7 +22,9 @@ export default function LessonScreen() {
   const [before, setBefore] = useState<Before | null>(null);
   const lesson = loaded ?? course?.lessons.find((l) => l.id === id);
   const hasSteps = Boolean(lesson?.steps);
-  const say = useCoachVoice(id);
+  const steps = lesson?.steps as Step[] | undefined;
+  const lines = useMemo(() => (steps ? spokenLines(steps) : []), [steps]);
+  const say = useCoachVoice(id, lines);
   // First run: no account and no welcome yet. The lesson leads on to welcome, never back to an empty stack.
   const firstRun = !state.account && !state.seenWelcome;
   const close = () => (firstRun ? router.replace("/welcome") : router.canGoBack() ? router.back() : router.replace("/today"));

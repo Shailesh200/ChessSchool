@@ -11,7 +11,7 @@
     "./assets/*": "./assets/*"
   },
   "scripts": {
-    "pieces": "node --experimental-strip-types scripts/build-piece-sets.mjs",
+    "pieces": "../chessschool-design/node_modules/.bin/tsx scripts/build-piece-sets.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

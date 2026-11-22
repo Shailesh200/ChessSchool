@@ -32,10 +32,11 @@ import {
   type TimeControlId,
   setupProblem,
 } from "@chessschool/chess";
-import { botRatingOf, canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { botBackdrop, botRatingOf, canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import { Backdrop } from "@/components/Backdrop";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board, PieceArt } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
@@ -431,6 +432,7 @@ export default function Play() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
+      <Backdrop art={botBackdrop(game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : "friend")} />
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       </View>

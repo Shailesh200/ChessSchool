@@ -1,11 +1,12 @@
 "use client";
 
 import { botInfo, isBotId } from "@chessschool/chess";
-import { closeRecap, copy, showRecapCard, visibleDailyStreak, weeklyRecap, type WeeklyRecap } from "@chessschool/design";
+import { CARD_BACKDROPS, closeRecap, copy, showRecapCard, visibleDailyStreak, weeklyRecap, type WeeklyRecap } from "@chessschool/design";
 import { DailyCountdown, useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { Button, Card, Chip } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { Backdrop } from "./Backdrop";
 
 const botRating = (id: string) => (isBotId(id) ? botInfo(id).rating : 0);
 export const botName = (id: string) => (isBotId(id) ? botInfo(id).name : id);
@@ -17,7 +18,8 @@ export function DailyCard({ today, enabled = true, className = "" }: { today: st
   const streak = visibleDailyStreak(state.progress, today);
   const freezes = state.progress.puzzles.daily.freezes ?? 0;
   return (
-    <Card className={`daily-panel ${className}`} aria-labelledby="daily-title">
+    <Card className={`daily-panel has-art ${className}`} aria-labelledby="daily-title">
+      <Backdrop art={CARD_BACKDROPS.hero} />
       <h2 id="daily-title" className="card-title">
         <Icon name={done ? "check" : "sun"} /> {copy.dailyPuzzle.title}
       </h2>

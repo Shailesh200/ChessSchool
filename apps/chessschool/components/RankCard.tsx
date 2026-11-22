@@ -1,4 +1,4 @@
-import { copy, rankFor, RANKS, type RankId } from "@chessschool/design";
+import { CARD_BACKDROPS, copy, rankFor, RANKS, type RankId } from "@chessschool/design";
 import type { PieceType } from "@chessschool/chess";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -20,7 +20,7 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
     [String(puzzleRating), copy.today.statPuzzles],
   ];
   return (
-    <Card style={{ gap: 18 }}>
+    <Card art={CARD_BACKDROPS.rank} style={{ gap: 18 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <T role="eyebrow" color="textMuted" header>
           {copy.today.rankTitle}

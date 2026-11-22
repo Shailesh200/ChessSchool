@@ -1,10 +1,11 @@
 "use client";
 
 import type { PieceType } from "@chessschool/chess";
-import { copy, rankFor, RANKS, type RankId } from "@chessschool/design";
+import { CARD_BACKDROPS, copy, rankFor, RANKS, type RankId } from "@chessschool/design";
 import Link from "next/link";
 import { PieceArt } from "./Board";
 import { Icon } from "./Icon";
+import { Backdrop } from "./Backdrop";
 
 const PIECE: Record<RankId, PieceType> = { pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k" };
 
@@ -18,7 +19,8 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
     [String(puzzleRating), copy.today.statPuzzles],
   ];
   return (
-    <section className="card rank-card" aria-labelledby="rank-title">
+    <section className="card rank-card has-art" aria-labelledby="rank-title">
+      <Backdrop art={CARD_BACKDROPS.rank} />
       <div className="rank-card-top">
         <h2 id="rank-title" className="eyebrow">
           {copy.today.rankTitle}

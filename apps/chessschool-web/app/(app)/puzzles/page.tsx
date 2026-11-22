@@ -1,7 +1,7 @@
 "use client";
 
 import { PUZZLE_THEMES } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { CARD_BACKDROPS, copy } from "@chessschool/design";
 import Link from "next/link";
 import { useDailyPuzzle } from "@/components/DailyCountdown";
 import { DailyCard } from "@/components/Daily";
@@ -10,6 +10,7 @@ import { Cody } from "@/components/Lottie";
 import { Button, Card, TopBar } from "@/components/ui";
 import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { useApp } from "@/lib/state";
+import { Backdrop } from "@/components/Backdrop";
 
 export default function PuzzlesPage() {
   const { state, ready } = useApp();
@@ -23,7 +24,8 @@ export default function PuzzlesPage() {
       <p className="page-lead">{copy.puzzles.body}</p>
 
       <div className="puzzle-hub">
-        <Card className="gym-hero">
+        <Card className="gym-hero has-art">
+          <Backdrop art={CARD_BACKDROPS.rating} />
           <div>
             <p className="hero-label">{copy.puzzles.rating}</p>
             <h2 className="rating-big">{pz.rating}</h2>

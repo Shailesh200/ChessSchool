@@ -1,7 +1,7 @@
 "use client";
 
 import { BOTS } from "@chessschool/chess";
-import { aiExplainOn, botRatingOf, canUseGym, copy, type IconName } from "@chessschool/design";
+import { aiExplainOn, botRatingOf, canUseGym, CARD_BACKDROPS, copy, type IconName } from "@chessschool/design";
 import Link from "next/link";
 import { AiBadge } from "@/components/AiCoach";
 import { BotAvatar } from "@/components/BotAvatar";
@@ -11,6 +11,7 @@ import { Cody } from "@/components/Lottie";
 import { ChallengeButton } from "@/components/Growth";
 import { Button, Card, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
+import { Backdrop } from "@/components/Backdrop";
 
 const MODES: { key: keyof typeof copy.gym; href: string; icon: IconName; locked?: boolean }[] = [
   { key: "friend", href: "/play?mode=friend", icon: "club" },
@@ -32,7 +33,8 @@ export default function GymPage() {
       <TopBar title={copy.gym.title} large back={false} />
       <p className="page-lead">{copy.gym.body}</p>
 
-      <Card className="gym-hero">
+      <Card className="gym-hero has-art">
+        <Backdrop art={CARD_BACKDROPS.hero} />
         <div>
           <h2 className="card-title">{state.activeGame ? copy.play.resume : copy.gym.quick}</h2>
           <p className="muted">{state.activeGame ? copy.play.resumeBody(Math.ceil(state.activeGame.history.length / 2)) : copy.gym.quickBody}</p>

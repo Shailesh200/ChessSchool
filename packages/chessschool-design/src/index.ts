@@ -9,6 +9,8 @@ export * from "./progress";
 export * from "./api";
 export * from "./course";
 export * from "./mascot";
+export * from "./appIcons";
+export * from "./backdrops";
 export * from "./session";
 export * from "./usage";
 export * from "./review";

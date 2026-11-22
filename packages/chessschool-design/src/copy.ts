@@ -52,6 +52,13 @@ export const copy = {
     voiceHint: "Your coach reads each step aloud.",
     speed: "Voice speed",
     speeds: { 0.85: "Slower", 1: "Normal", 1.15: "Faster" } as Record<number, string>,
+    /** What each coach says when picked in Settings (recorded by voice:build; keep in step with copy.hi). */
+    samples: {
+      meera: "Hello, I'm Meera! We'll take every move one gentle step at a time, and I'll be right here beside you.",
+      vikram: "Namaste, I'm Vikram. Every good move has a reason, and together we will find it.",
+      rohan: "Hey, I'm Rohan! Let's play, laugh, and grab some sneaky wins together. You've got this!",
+      tara: "Hi hi, I'm Tara! Ready to make some sparkly moves? Every win gets a little dance from me!",
+    } as Record<string, string>,
   },
 
   auth: {
@@ -795,6 +802,37 @@ export const copy = {
       greyBlue: { name: "Grey and blue", blurb: "High contrast, colour-blind friendly" },
     },
     credit: "",
+    /** Piece-set names by id ("toy" is Classic). */
+    sets: {
+      toy: { name: "Classic", blurb: "Chunky and friendly" },
+      staunton: { name: "Staunton", blurb: "Tournament shapes" },
+      flat: { name: "Modern", blurb: "Clean, flat and two-tone" },
+      chaturanga: { name: "Chaturanga", blurb: "Domes and arches from India" },
+      geometric: { name: "Bold", blurb: "Strong shapes, easy to spot" },
+      bubble: { name: "Bubble", blurb: "Round, soft and smiley" },
+    } as Record<string, { name: string; blurb: string }>,
+    icons: {
+      classroom: "Chaukor",
+      sunset: "Sunrise",
+      garden: "Garden",
+      ocean: "Ocean",
+      library: "Scholar",
+      night: "Starry night",
+      pixel: "Arcade",
+      midnight: "Royal",
+    } as Record<string, string>,
+    iconGoal: {
+      lesson: "Finish your first lesson",
+      streak: (n: number) => `Keep a ${n}-day streak`,
+      puzzles: (n: number) => `Solve ${n} puzzles`,
+      rank: (rank: string) => `Reach ${rank} rank`,
+      bot: (name: string) => `Beat ${name} or a stronger bot`,
+    },
+    iconProgress: (have: number, need: number) => `${have} of ${need}`,
+    iconXp: (have: number, need: number) => `${have} of ${need} XP`,
+    iconDefault: "Always yours",
+    iconOpen: "Unlocked",
+    iconLocked: (goal: string) => `Locked. ${goal} to unlock.`,
   },
 
   feedback: {

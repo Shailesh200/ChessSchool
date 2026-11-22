@@ -1,6 +1,6 @@
 "use client";
 
-import { copy, courseTrail, isGuestLockedLesson, type Course, type Progress, type TrailStop } from "@chessschool/design";
+import { copy, courseTrail, isGuestLockedLesson, MOTIFS, type Course, type MotifId, type Progress, type TrailStop } from "@chessschool/design";
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "./Icon";
@@ -11,6 +11,9 @@ const ROW = 104;
 const xAt = (i: number) => 50 + 26 * Math.sin(i * 1.1);
 const short = (t: string) => t.replace(/^(Unit|यूनिट) \d+ · /, "");
 const href = (id: string) => (id === "meet" ? "/orientation" : `/lesson/${id}`);
+/** Scenery at the edge beside each stop (its label is on the other side); follows the unit index like the trail. */
+const SCENERY: MotifId[] = ["lotus", "pawn", "rosette", "rook", "knight", "bishop", "queen", "king"];
+const SCENE_TONES = ["var(--cs-accent)", "var(--cs-brand)", "var(--cs-gold)"];
 const stateText = (s: TrailStop) => (s.state === "done" ? copy.today.done : s.state === "current" ? copy.today.focus.current : copy.lesson.locked);
 
 /** The course as a winding trail, one stop per unit. Shows a window around the current unit until "View all". */
@@ -31,6 +34,13 @@ export function CourseMap({ course, progress, onGate }: { course: Course; progre
           <path d={path(stops.length)} className="cmap-road" vectorEffect="non-scaling-stroke" />
           {reached > 1 ? <path d={path(reached)} className="cmap-road done" vectorEffect="non-scaling-stroke" /> : null}
         </svg>
+        {pts.map(([x, y], k) => (
+          <svg key={from + k} className={`cmap-scene ${x >= 50 ? "right" : "left"}`} viewBox="0 0 100 100" aria-hidden focusable="false" style={{ top: y, rotate: `${(from + k) % 2 ? 8 : -8}deg` }}>
+            {MOTIFS[SCENERY[(from + k) % SCENERY.length]].map((d, j) => (
+              <path key={j} d={d} style={{ fill: SCENE_TONES[(from + k) % 3] }} />
+            ))}
+          </svg>
+        ))}
         <ol>
           {stops.map((s, k) => {
             const [x, y] = pts[k];

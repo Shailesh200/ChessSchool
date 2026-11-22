@@ -29,9 +29,9 @@ export async function applyVoice(db: Db, manifests: VoiceManifest[]): Promise<Re
   return counts;
 }
 
-/** Clip URLs for one lesson's lines plus the runner's fixed phrases, keyed by voiceKey(text). */
-export async function lessonClips(db: Db, coach: string, steps: Step[]): Promise<Record<string, string>> {
-  const keys = [...new Set([...spokenLines(steps), ...SPOKEN_PHRASES].map(voiceKey))];
+/** Clip URLs for one lesson's lines plus the runner's fixed phrases (and any `extra` lines), keyed by voiceKey(text). */
+export async function lessonClips(db: Db, coach: string, steps: Step[], extra: string[] = []): Promise<Record<string, string>> {
+  const keys = [...new Set([...spokenLines(steps), ...SPOKEN_PHRASES, ...extra].map(voiceKey))];
   const rows = await db.select({ key: voiceClips.key, url: voiceClips.url }).from(voiceClips).where(and(eq(voiceClips.coach, coach), inArray(voiceClips.key, keys)));
   return Object.fromEntries(rows.map((r) => [r.key, r.url]));
 }

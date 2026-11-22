@@ -1,10 +1,10 @@
 "use client";
 
-import { PIECE_SETS } from "@chessschool/chess";
-import { APP_ICONS, type Appearance, BOARD_COLORS, copy, lockedUntil, palettes, resolveTheme, type RewardKind, THEMES, withBoardColors } from "@chessschool/design";
+import { botInfo, PIECE_SETS } from "@chessschool/chess";
+import { APP_ICONS, type Appearance, BOARD_COLORS, copy, iconGoalText, iconUnlock, lockedUntil, palettes, resolveTheme, type RewardKind, THEMES, withBoardColors } from "@chessschool/design";
 import { PieceArt } from "@/components/Board";
 import { Icon } from "@/components/Icon";
-import { Card, Segmented, Switch, TopBar, useToast } from "@/components/ui";
+import { Card, ProgressBar, Segmented, Switch, TopBar, useToast } from "@/components/ui";
 import { useMediaQuery } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
 
@@ -76,6 +76,7 @@ export default function LooksPage() {
         <div className="sets" role="radiogroup" aria-label={copy.looks.pieces}>
           {PIECE_SETS.map((set) => {
             const l = locked("pieces", set.id, { pieceSet: set.id });
+            const name = copy.looks.sets[set.id] ?? set;
             return (
               <button key={set.id} type="button" role="radio" aria-checked={prefs.pieceSet === set.id} aria-disabled={l.disabled} className={`set-card${l.className}`} onClick={l.onClick}>
                 <span className="set-preview" aria-hidden>
@@ -86,8 +87,8 @@ export default function LooksPage() {
                     <PieceArt piece={{ type: "q", color: "b" }} set={set.id} />
                   </span>
                 </span>
-                <strong>{set.name}</strong>
-                <span>{set.blurb}</span>
+                <strong>{name.name}</strong>
+                <span>{name.blurb}</span>
                 {l.note}
               </button>
             );
@@ -126,13 +127,39 @@ export default function LooksPage() {
         <p className="muted">{copy.looks.iconUnavailable}</p>
         <div className="icons" role="radiogroup" aria-label={copy.looks.icon}>
           {APP_ICONS.map((i) => {
-            const l = locked("icon", i.id, { appIcon: i.id });
+            const u = iconUnlock(state, i.id);
+            const text = iconGoalText(u, botInfo("bishop").name);
+            const name = copy.looks.icons[i.id] ?? i.id;
             return (
-              <button key={i.id} type="button" role="radio" aria-checked={prefs.appIcon === i.id} aria-disabled={l.disabled} className={`icon-choice${l.className}`} onClick={l.onClick}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- small local previews */}
-                <img src={`/assets/raster/app-icons/${i.id}-preview.png`} alt="" width={64} height={64} />
-                <span>{i.name}</span>
-                {l.note}
+              <button
+                key={i.id}
+                type="button"
+                role="radio"
+                aria-checked={prefs.appIcon === i.id}
+                aria-disabled={u.unlocked ? undefined : true}
+                aria-label={u.unlocked ? `${name}. ${text.goal}` : `${name}. ${copy.looks.iconLocked(text.goal)} ${text.progress}`}
+                className={`icon-choice${u.unlocked ? "" : " is-locked"}`}
+                onClick={() => (u.unlocked ? pick({ appIcon: i.id }) : toast(copy.looks.iconLocked(text.goal)))}
+              >
+                <span className="icon-choice-art" aria-hidden>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- small local previews */}
+                  <img src={`/assets/raster/app-icons/${i.id}-preview.png`} alt="" width={56} height={56} />
+                  {u.unlocked ? null : (
+                    <span className="icon-choice-lock">
+                      <Icon name="lock" size={13} />
+                    </span>
+                  )}
+                </span>
+                <span className="icon-choice-text">
+                  <strong>{name}</strong>
+                  <span>{text.goal}</span>
+                  {u.goal && !u.unlocked ? (
+                    <span className="icon-choice-progress">
+                      <ProgressBar value={u.fraction} label={`${name}: ${text.progress}`} />
+                      <span>{text.progress}</span>
+                    </span>
+                  ) : null}
+                </span>
               </button>
             );
           })}

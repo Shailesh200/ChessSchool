@@ -2,10 +2,11 @@ import { COACHES, copy, type CoachId } from "@chessschool/design";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/Icon";
 import { Badge, T } from "@/components/ui";
-import { playClip, useClips } from "@/lib/voice";
+import { useEffect } from "react";
+import { playClip, prefetchClip, sampleClip, useClips } from "@/lib/voice";
 import { useTheme } from "@/lib/theme";
 
-/** The four coaches as radio rows. Recorded coaches play a sample line when picked. */
+/** The four coaches as radio rows. Recorded coaches play a sample line when picked (downloaded ahead, so it starts at once). */
 export function CoachPicker({ value, onChange }: { value: CoachId | null; onChange: (id: CoachId) => void }) {
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={copy.coach.title} style={{ gap: 10, alignSelf: "stretch" }}>
@@ -18,9 +19,12 @@ export function CoachPicker({ value, onChange }: { value: CoachId | null; onChan
 
 function CoachRow({ id, name, blurb, selected, onPick }: { id: CoachId; name: string; blurb: string; selected: boolean; onPick: () => void }) {
   const { c } = useTheme();
-  // A line from the second lesson doubles as the sample.
+  // Any lesson's clip list carries the coach's greeting; "board" is the second lesson, recorded for every coach.
   const clips = useClips(id, "board");
-  const sample = clips ? Object.values(clips)[0] : undefined;
+  const sample = sampleClip(id, clips);
+  useEffect(() => {
+    if (sample) void prefetchClip(sample);
+  }, [sample]);
   return (
     <Pressable
       accessibilityRole="radio"

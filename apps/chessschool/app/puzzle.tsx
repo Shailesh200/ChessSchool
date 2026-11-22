@@ -1,9 +1,10 @@
 import { nextPuzzle, PUZZLE_THEMES, updateRating, type Puzzle, type PuzzleThemeId } from "@chessschool/chess";
-import { copy } from "@chessschool/design";
+import { copy, puzzleBackdrop } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Backdrop } from "@/components/Backdrop";
 import { useDailyPuzzle } from "@/components/DailyCountdown";
 import { Icon } from "@/components/Icon";
 import { ChallengeButton } from "@/components/Growth";
@@ -68,6 +69,7 @@ function PuzzlePlay({ daily, theme, initial }: { daily: boolean; theme: PuzzleTh
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      <Backdrop art={puzzleBackdrop(puzzle.id)} />
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={title} />
       </View>
