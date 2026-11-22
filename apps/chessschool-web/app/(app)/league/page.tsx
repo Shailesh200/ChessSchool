@@ -2,7 +2,7 @@
 
 import { closesIn, copy, isAvatarId, PROMOTE, pushCelebration, RELEGATE, type LeagueResponse } from "@chessschool/design";
 import { useEffect, useState } from "react";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { Button, Card, TopBar } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";

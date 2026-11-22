@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { InviteCard } from "@/components/Growth";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { bannerVar, FriendCodeCard, useMyDetails } from "@/components/Social";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";

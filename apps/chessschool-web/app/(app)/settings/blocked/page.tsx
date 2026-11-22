@@ -2,7 +2,7 @@
 
 import { copy, type BlockedPlayer } from "@chessschool/design";
 import { useEffect, useState } from "react";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { Button, Card, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";

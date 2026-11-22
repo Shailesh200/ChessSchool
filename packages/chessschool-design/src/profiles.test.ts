@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { completeNode, createInitialState } from "./progress";
-import { forgetProfile, freshSlice, switchProfile } from "./profiles";
+import { forgetProfile, freshSlice, mainProfile, switchProfile } from "./profiles";
 
 describe("child profiles on one device", () => {
   it("parks the account's learner, starts the child fresh, and switches back without mixing progress", () => {
@@ -31,5 +31,20 @@ describe("child profiles on one device", () => {
     const next = switchProfile({ ...s, parked: { kid1: old as never } }, "kid1");
     expect(next.ratings).toBeDefined();
     expect(next.mistakes).toEqual([]);
+  });
+});
+
+describe("after child profiles were removed", () => {
+  it("a device left on a child's profile opens on the account's own progress, keeping the child's on the device", () => {
+    let s = completeNode(createInitialState("g"), "board", new Date("2026-11-14T10:00:00"));
+    const parentXp = s.progress.xp;
+    s = switchProfile(s, "kid1", freshSlice(s, "Riya", "kira"));
+    s = { ...completeNode(s, "meet", new Date("2026-11-14T11:00:00")), parentPin: "1234" };
+    const back = mainProfile(s);
+    expect(back.activeChild).toBeNull();
+    expect(back.parentPin).toBeNull();
+    expect(back.progress.xp).toBe(parentXp);
+    expect(back.parked.kid1?.progress.completed.meet).toBeTruthy();
+    expect(mainProfile(back)).toEqual(back);
   });
 });

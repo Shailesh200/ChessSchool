@@ -247,7 +247,7 @@ describe("usernames", () => {
     const a = await register("Asha", "a@b.co");
     const fresh = { id: "u-new", name: "Asha", username: null as string | null };
     await db.insert(users).values({ id: fresh.id, email: "new@b.co", name: "Asha", createdAt: 1 });
-    const digits = Number(a.user.username!.slice(4)) / 10_000;
+    const digits = (Number(a.user.username!.slice(4)) + 0.5) / 10_000;
     const other = (digits + 0.5) % 1;
     const rolls = [digits, digits, other];
     expect(await ensureUsername(db, fresh, () => rolls.shift() ?? 0)).toBe(`asha${String(Math.floor(other * 10_000)).padStart(4, "0")}`);

@@ -122,7 +122,6 @@ function Routes() {
         <Stack.Screen name="sprint" options={{ animation: slide, presentation: "fullScreenModal", gestureEnabled: false }} />
         <Stack.Screen name="terms" options={{ presentation: "modal" }} />
         <Stack.Screen name="report" options={{ presentation: "modal" }} />
-        <Stack.Screen name="learners" />
         <Stack.Screen name="placement" options={{ animation: slide, presentation: "fullScreenModal", gestureEnabled: false }} />
       </Stack>
     </>

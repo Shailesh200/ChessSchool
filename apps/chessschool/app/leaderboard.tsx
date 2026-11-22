@@ -112,10 +112,10 @@ export default function Leaderboard() {
                   {String(r.rank)}
                 </T>
               </View>
-              <AvatarFace id={r.avatar} photo={r.photo} size={40} />
+              <AvatarFace id={r.avatar} photo={r.photo} size={40} country={r.country} />
               <View style={{ flex: 1, gap: 2 }}>
                 <T role="label" numberOfLines={1}>
-                  {`${r.me ? t.you : r.name}${r.country ? ` ${flagOf(r.country)}` : ""}`}
+                  {r.me ? t.you : r.name}
                 </T>
                 {r.friend ? (
                   <T role="micro" color="textMuted">

@@ -1,10 +1,10 @@
-import { BANNERS, BIO_MAX, cleanName, copy, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, isChildProfile, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
+import { BANNERS, BIO_MAX, cleanName, copy, normalizeUsername, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, isChildProfile, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
-import { pickPhoto, useMyDetails } from "@/components/Social";
+import { pickPhoto, saveUsername, UsernameField, usernameError, useMyDetails, useUsernameStatus } from "@/components/Social";
 import { Button, Card, Page, Row, SaveBanner, T, TextField, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -14,13 +14,16 @@ type FieldErrors = Partial<Record<string, string>>;
 
 /** Profile editor: picture, name, bio, favourites, links and banner colour; board and theme looks are one tap away. */
 export default function ProfileEdit() {
-  const { state, setProfile, cue } = useApp();
+  const { state, setProfile, cue, update } = useApp();
   const { c } = useTheme();
   const toast = useToast();
   const t = copy.profileEdit;
   const { mine, setMine } = useMyDetails();
   const [d, setD] = useState<ProfileDetails>(emptyDetails());
   const [name, setName] = useState(state.profile.name);
+  const currentUsername = state.account?.username ?? null;
+  const [username, setUsername] = useState(currentUsername ?? "");
+  const usernameStatus = useUsernameStatus(username, currentUsername);
   const [year, setYear] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
@@ -84,8 +87,19 @@ export default function ProfileEdit() {
     const problem = nameProblem(name);
     if (problem && problem !== "reserved") return setErrors({ name: copy.social.nameProblems[problem] });
     const since = year.trim() ? Number.parseInt(year, 10) : null;
+    const newUsername = currentUsername !== null && normalizeUsername(username) !== currentUsername ? normalizeUsername(username) : null;
+    if (newUsername && usernameStatus !== "ok") return setErrors({ username: usernameError(usernameStatus === "checking" ? null : usernameStatus) ?? copy.social.usernameChecking });
     setSaving(true);
     try {
+      if (newUsername) {
+        const r = await saveUsername(newUsername);
+        if (!("username" in r)) {
+          setSaving(false);
+          cue("gentle-no");
+          return setErrors({ username: usernameError(r.problem) ?? copy.auth.errors.offline });
+        }
+        update((s) => (s.account ? { ...s, account: { ...s.account, username: r.username }, usernameAsked: true } : s));
+      }
       if (clean !== state.profile.name) {
         await api.updateMe({ name: clean });
         setProfile({ name: clean });
@@ -120,8 +134,10 @@ export default function ProfileEdit() {
           {mine?.photoHidden ? t.photoHidden : t.photoHint}
         </T>
         <View style={{ alignSelf: "stretch", gap: 8 }}>
-          <Button title={photoBusy ? t.uploading : t.fromLibrary} icon="edit" variant="secondary" loading={photoBusy} onPress={() => void photo("library")} />
-          <Button title={t.fromCamera} icon="eye" variant="secondary" disabled={photoBusy} onPress={() => void photo("camera")} />
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button title={photoBusy ? t.uploading : t.fromLibrary} icon="edit" variant="secondary" loading={photoBusy} onPress={() => void photo("library")} style={{ flex: 1 }} />
+            <Button title={t.fromCamera} icon="eye" variant="secondary" disabled={photoBusy} onPress={() => void photo("camera")} style={{ flex: 1 }} />
+          </View>
           {mine?.photo ? <Button title={t.removePhoto} icon="trash" variant="ghost" disabled={photoBusy} onPress={() => void removePhoto()} /> : null}
         </View>
         <T role="label">{t.usePreset}</T>
@@ -130,6 +146,35 @@ export default function ProfileEdit() {
 
       <Card style={{ gap: 14 }}>
         <TextField label={t.name} placeholder={copy.auth.namePlaceholder} value={name} onChangeText={(v) => (setName(v), setErrors({}))} error={errors.name} maxLength={40} />
+        {currentUsername !== null ? (
+          <View style={{ gap: 4 }}>
+            <UsernameField value={username} onChange={(v) => (setUsername(v), setErrors({}))} current={currentUsername} label={t.username} hint={t.usernameHint} />
+            {errors.username ? (
+              <T role="small" color="dangerText">
+                {errors.username}
+              </T>
+            ) : null}
+          </View>
+        ) : null}
+        <View style={{ gap: 6 }}>
+          <T role="label">{t.country}</T>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.country}: ${state.profile.country ? countryName(state.profile.country) : copy.country.none}`}
+            accessibilityHint={t.countryHint}
+            onPress={() => router.push("/country")}
+            style={{ minHeight: 52, borderRadius: 16, borderWidth: 2, borderColor: c.line, backgroundColor: c.card, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14 }}
+          >
+            <T role="heading">{state.profile.country ? flagOf(state.profile.country) : "🏳️"}</T>
+            <T role="body" style={{ flex: 1 }} numberOfLines={1}>
+              {state.profile.country ? countryName(state.profile.country) : copy.country.none}
+            </T>
+            <Icon name="chevron" size={18} color={c.textMuted} />
+          </Pressable>
+          <T role="small" color="textMuted">
+            {t.countryHint}
+          </T>
+        </View>
         <TextField label={t.bio} placeholder={t.bioPlaceholder} value={d.bio} onChangeText={(v) => set({ bio: v })} error={errors.bio} hint={t.bioHint(BIO_MAX - d.bio.length)} maxLength={BIO_MAX} multiline style={{ minHeight: 80, textAlignVertical: "top" }} />
         <View style={{ gap: 8 }}>
           <T role="label">{t.favPiece}</T>
@@ -187,7 +232,6 @@ export default function ProfileEdit() {
 
       <Card style={{ padding: 6 }}>
         <Row icon="palette" label={t.looks} hint={t.looksHint} chevron onPress={() => router.push("/looks")} />
-        <Row icon="flag" label={t.country} hint={state.profile.country ? `${flagOf(state.profile.country)} ${countryName(state.profile.country)}` : copy.country.none} chevron onPress={() => router.push("/country")} />
         <Row icon="profile" label={t.preview} chevron onPress={() => router.push({ pathname: "/player", params: { id: state.account!.id } })} />
       </Card>
     </Page>

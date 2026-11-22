@@ -3,7 +3,7 @@
 import { copy, countryName, flagOf, SOCIALS, socialUrl, type PlayerProfile } from "@chessschool/design";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { bannerVar } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
 import { Button, Card, Sheet, TopBar, useToast } from "@/components/ui";

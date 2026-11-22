@@ -4,7 +4,7 @@ import { copy, flagOf, type BoardMetric, type BoardResponse, type BoardRow, type
 import Link from "next/link";
 import { isOfflineError } from "@chessschool/design";
 import { useCallback, useEffect, useState } from "react";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { Icon } from "@/components/Icon";
 import { Button, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";

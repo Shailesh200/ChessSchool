@@ -218,6 +218,8 @@ export type LocalState = {
   celebrated: string[];
   /** Usual play time, streak repair and the mate of the day (this learner, this device). */
   habit: Habit;
+  /** The "pick your username" prompt was answered (saved or skipped) on this device (Phase 5). */
+  usernameAsked?: boolean;
 };
 
 /** A streak broken by one missed day, waiting for REPAIR_LESSONS lessons before the window closes. */

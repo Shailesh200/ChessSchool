@@ -4,7 +4,7 @@ import { AVATARS, BANNERS, BIO_MAX, cleanName, copy, countryName, emptyDetails, 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { Icon } from "@/components/Icon";
 import { bannerVar, squareJpeg, useMyDetails } from "@/components/Social";
 import { Button, Card, SaveBanner, TextField, TopBar, useToast } from "@/components/ui";

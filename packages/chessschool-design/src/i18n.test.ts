@@ -18,7 +18,7 @@ describe("i18n", () => {
 
   it("keeps functions working in both languages", () => {
     setLanguage("hi");
-    expect(typeof copy.classroom.members(3)).toBe("string");
+    expect(typeof copy.social.games(3, 1)).toBe("string");
   });
 
   it("picks Hindi only for Hindi locales", () => {

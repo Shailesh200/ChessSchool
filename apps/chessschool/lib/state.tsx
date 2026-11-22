@@ -27,13 +27,8 @@ import {
   recordCombo,
   answerIdeaCard,
   createUsage,
-  forgetProfile,
-  freshSlice,
-  mergeProgress,
   placeBefore,
-  sanitizeProgress,
-  switchProfile,
-  type AvatarId,
+  mainProfile,
   langFor,
   language,
   setLanguage,
@@ -111,11 +106,6 @@ type Store = {
   toggleRoomReminder: (id: RoomId) => void;
   markNotificationOffered: () => void;
   cue: (c: SoundCue) => void;
-  /** Makes a child (or, with null, the account's own profile) the active learner. */
-  switchLearner: (child: { id: string; name: string; avatar: AvatarId } | null) => Promise<void>;
-  /** Removes a child from this device after the server deleted them. */
-  forgetLearner: (id: string) => void;
-  setParentPin: (pin: string | null) => void;
   /** Placement quiz result: lessons before `startAt` count as known. */
   placeBefore: (order: readonly string[], startAt: string) => void;
   /** Records a practice answer for spaced review. */
@@ -172,7 +162,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         try {
           parsed = raw ? JSON.parse(raw) : null;
         } catch {}
-        setState(markWeek(arrive(hydrateState(parsed, randomUUID), new Date()), dayKey(new Date())));
+        setState(markWeek(arrive(mainProfile(hydrateState(parsed, randomUUID)), new Date()), dayKey(new Date())));
       })
       .catch(() => setState(createInitialState(randomUUID())))
       .finally(() => setReady(true));
@@ -237,8 +227,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (!ready || !accountId || progressJson === lastPushed.current) return;
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => {
-      const child = latest.current.activeChild;
-      (child ? api.putChildProgress(child, JSON.parse(progressJson)) : api.putProgress(JSON.parse(progressJson)))
+      api.putProgress(JSON.parse(progressJson))
         .then(() => {
           lastPushed.current = progressJson;
         })
@@ -287,21 +276,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       state,
       cue,
       track: both,
-      switchLearner: async (child) => {
-        setState((s) => switchProfile(s, child?.id ?? null, child ? freshSlice(s, child.name, child.avatar) : undefined));
-        const id = child?.id ?? null;
-        void loadGames(id);
-        api
-          .rating(id)
-          .then((r) => setState((s) => adoptRatings(s, id, r.ratings)))
-          .catch(() => {});
-        if (!child) return;
-        // A child's progress may have been saved from another device.
-        const remote = await api.childProgress(child.id).catch(() => null);
-        if (remote) setState((s) => (s.activeChild === child.id ? { ...s, progress: sanitizeProgress(mergeProgress(s.progress, remote.progress), null) } : s));
-      },
-      forgetLearner: (id) => setState((s) => forgetProfile(s, id)),
-      setParentPin: (pin) => setState((s) => ({ ...s, parentPin: pin })),
       placeBefore: (order, startAt) => setState((s) => placeBefore(s, order, startAt, new Date())),
       answerReview: (ref, missed) => setState((s) => answerPractice(s, ref, missed, dayKey(new Date()))),
       update: (fn) => setState(fn),

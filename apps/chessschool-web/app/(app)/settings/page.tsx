@@ -9,7 +9,7 @@ import { Icon } from "@/components/Icon";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { downloadMyData, SupportSheet } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
-import { Button, Card, Segmented, Sheet, Switch, TextField, TopBar, useToast, SaveBanner } from "@/components/ui";
+import { Button, Card, Segmented, Sheet, Switch, TopBar, useToast, SaveBanner } from "@/components/ui";
 import { api } from "@/lib/api";
 import { saveLessonsOffline, useCourse } from "@/lib/course";
 import { notificationsSupported, requestNotifications } from "@/lib/notifications";
@@ -22,8 +22,6 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [weekly, setWeekly] = useState<boolean | null>(null);
   const [winback, setWinback] = useState<boolean | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
-  const [pinTry, setPinTry] = useState("");
   useEffect(() => {
     if (state.account) api.weekly().then((w) => setWeekly(w.email || w.push)).catch(() => {});
     if (state.account) api.emailPrefs().then((e) => setWinback(e.eligible ? e.winback : null)).catch(() => {});
@@ -39,27 +37,6 @@ export default function SettingsPage() {
   const notifOn = prefs.notifications === "granted";
   const notifHint = !notificationsSupported() ? s.notificationsUnsupported : prefs.notifications === "denied" ? s.notificationsDenied : s.notificationsHint;
 
-
-  if (state.parentPin && !unlocked) {
-    return (
-      <div className="page page-narrow">
-        <TopBar title={s.title} backHref="/you" />
-        <h2>{copy.learners.pinAsk}</h2>
-        <TextField
-          label={copy.learners.pinLabel}
-          value={pinTry}
-          inputMode="numeric"
-          type="password"
-          maxLength={4}
-          error={pinTry.length === 4 && pinTry !== state.parentPin ? copy.learners.pinWrong : null}
-          onChange={(e) => setPinTry(e.target.value.replace(/\D/g, "").slice(0, 4))}
-        />
-        <Button block disabled={pinTry !== state.parentPin} onClick={() => setUnlocked(true)}>
-          {copy.learners.unlock}
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="page page-narrow">
@@ -292,9 +269,9 @@ export default function SettingsPage() {
         <Switch
           icon="spark"
           label={s.aiExplain}
-          hint={aiBlocked(state) ? s.aiOff : isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
+          hint={aiBlocked(state) ? s.aiOff : s.aiExplainHint}
           checked={aiExplainOn(state)}
-          disabled={aiBlocked(state) || (isChildProfile(state) && !state.parentPin)}
+          disabled={aiBlocked(state)}
           onChange={(v) => update((st) => setAiExplain(st, v))}
         />
         <a className="row" href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">

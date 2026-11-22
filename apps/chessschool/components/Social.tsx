@@ -1,4 +1,4 @@
-import { copy, errorMessage, SUPPORT_TOPICS, validEmail, type InviteInfo, type MyDetails, type SupportTopic } from "@chessschool/design";
+import { copy, errorMessage, normalizeUsername, SUPPORT_TOPICS, USERNAME_MAX, usernameProblem, validEmail, type InviteInfo, type MyDetails, type SupportTopic, type UsernameProblem } from "@chessschool/design";
 import Constants from "expo-constants";
 import { useCallback, useEffect, useState } from "react";
 import { Platform, Share, TextInput, View } from "react-native";
@@ -53,56 +53,154 @@ export async function pickPhoto(source: "camera" | "library"): Promise<string | 
   }
 }
 
-/** Profile: your friend code and link, and a field to add a friend by theirs. Friends made this way are friends both ways. */
-export function FriendCodeCard() {
-  const { state, track, cue } = useApp();
+/** Why a username can't be used, in the app language (null while it is fine or still being checked). */
+export const usernameError = (problem: UsernameProblem | null) => (problem ? copy.social.usernameProblems[problem] : null);
+
+/**
+ * A username box with a live availability check (a pause after typing, then the server). `onState` reports whether
+ * the value can be saved: "ok" (free, or already yours), "checking", or a problem.
+ */
+export function UsernameField({ value, onChange, current, label = copy.social.username, hint }: { value: string; onChange: (v: string) => void; current: string | null; label?: string; hint?: string }) {
+  const status = useUsernameStatus(value, current);
+  const t = copy.social;
+  return (
+    <TextField
+      label={label}
+      hint={status === "checking" ? t.usernameChecking : status === "ok" && normalizeUsername(value) !== current ? t.usernameFree : (hint ?? t.usernameRules)}
+      error={status !== "ok" && status !== "checking" ? usernameError(status) : null}
+      placeholder={t.usernamePlaceholder}
+      value={value}
+      onChangeText={(v) => onChange(v.replace(/\s/g, "").slice(0, USERNAME_MAX + 1))}
+      autoCapitalize="none"
+      autoCorrect={false}
+      maxLength={USERNAME_MAX + 1}
+    />
+  );
+}
+
+/** "ok", "checking" or the problem with `value` as this account's username. */
+export function useUsernameStatus(value: string, current: string | null): "ok" | "checking" | UsernameProblem {
+  const clean = normalizeUsername(value);
+  const local = clean === current ? null : usernameProblem(clean);
+  const [remote, setRemote] = useState<{ u: string; problem: UsernameProblem | null } | null>(null);
+  useEffect(() => {
+    if (local || clean === current) return;
+    const timer = setTimeout(() => {
+      api.checkUsername(clean).then((r) => setRemote({ u: clean, problem: r.problem }), () => setRemote({ u: clean, problem: null }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [clean, current, local]);
+  if (clean === current) return "ok";
+  if (local) return local;
+  if (remote?.u !== clean) return "checking";
+  return remote.problem ?? "ok";
+}
+
+/** Saves a new username for the signed-in account; returns the problem instead when the server refuses it. */
+export async function saveUsername(raw: string): Promise<{ username: string } | { problem: UsernameProblem | null }> {
+  try {
+    return await api.setUsername(normalizeUsername(raw));
+  } catch (err) {
+    const e = err as { message?: string };
+    return { problem: e.message && e.message in copy.social.usernameProblems ? (e.message as UsernameProblem) : null };
+  }
+}
+
+/**
+ * Profile: your @username and invite link, and a field to add a friend by theirs (friends both ways).
+ * The first time it opens on a device, it offers to change the username we made at sign-up (skippable).
+ */
+export function FriendsCard() {
+  const { state, track, cue, update } = useApp();
   const toast = useToast();
   const t = copy.social;
   const [info, setInfo] = useState<InviteInfo | null>(null);
-  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const mine = state.account?.username ?? null;
+  const [pick, setPick] = useState(mine ?? "");
+  const pickStatus = useUsernameStatus(pick, mine);
   const on = Boolean(state.account) && !state.activeChild;
   useEffect(() => {
     if (on) api.myInvite().then(setInfo, () => {});
   }, [on]);
+  useEffect(() => setPick(mine ?? ""), [mine]);
   if (!on) return null;
+  const setMine = (username: string) => update((s) => (s.account ? { ...s, account: { ...s.account, username }, usernameAsked: true } : s));
+  const asking = !state.usernameAsked && Boolean(mine);
+
+  const savePick = async () => {
+    if (normalizeUsername(pick) === mine) return update((s) => ({ ...s, usernameAsked: true }));
+    setBusy(true);
+    const r = await saveUsername(pick);
+    setBusy(false);
+    if ("username" in r) {
+      setMine(r.username);
+      cue("success");
+      toast(t.usernameSaved(r.username));
+    } else {
+      cue("gentle-no");
+      setError(usernameError(r.problem) ?? copy.auth.errors.offline);
+    }
+  };
+
   const add = async () => {
-    const clean = code.trim().toLowerCase();
+    const clean = normalizeUsername(name);
     if (!clean) return;
     setBusy(true);
     setError(null);
     try {
-      const r = await api.addFriendByCode(clean);
+      const r = await api.addFriendByUsername(clean);
       cue("success");
-      toast(t.friendCodeAdded(r.friend.name));
-      setCode("");
+      toast(t.usernameAdded(r.friend.name));
+      setName("");
     } catch (err) {
       cue("gentle-no");
       const status = (err as { status?: number }).status;
-      setError(status === 409 ? t.friendCodeOwn : status === 404 ? t.friendCodeBad : errorMessage(err));
+      setError(status === 409 ? t.usernameOwn : status === 404 ? t.usernameBad : errorMessage(err));
     } finally {
       setBusy(false);
     }
   };
+
+  if (asking) {
+    return (
+      <Card style={{ gap: 10 }}>
+        <T role="heading" header>
+          {t.pickTitle}
+        </T>
+        <T role="small" color="textMuted">
+          {t.pickBody}
+        </T>
+        <UsernameField value={pick} onChange={(v) => (setPick(v), setError(null))} current={mine} />
+        {error ? (
+          <T role="small" color="dangerText">
+            {error}
+          </T>
+        ) : null}
+        <Button title={t.pickSave} loading={busy} disabled={pickStatus !== "ok"} onPress={() => void savePick()} />
+        <Button title={t.pickSkip} variant="ghost" disabled={busy} onPress={() => update((s) => ({ ...s, usernameAsked: true }))} />
+      </Card>
+    );
+  }
+
   return (
     <Card style={{ gap: 10 }}>
       <T role="heading" header>
-        {t.yourCode}
+        {t.yourUsername}
       </T>
-      {info ? (
-        <>
-          <T role="title" style={{ fontFamily: fonts.bold, letterSpacing: 2 }}>
-            {info.code}
-          </T>
-          <T role="small" color="textMuted">
-            {t.yourCodeHint}
-          </T>
-          <Button title={t.shareCode} variant="secondary" onPress={async () => (await shareLink(t.shareCodeText, info.url)) && track("share")} />
-        </>
+      {mine ? (
+        <T role="title" style={{ fontFamily: fonts.bold }}>
+          {t.at(mine)}
+        </T>
       ) : null}
-      <TextField label={t.friendCode} hint={t.friendCodeHint} placeholder={t.friendCodePlaceholder} value={code} onChangeText={(v) => (setCode(v), setError(null))} error={error} autoCapitalize="none" autoCorrect={false} maxLength={12} returnKeyType="done" onSubmitEditing={add} />
-      <Button title={t.friendCodeAdd} disabled={!code.trim()} loading={busy} onPress={add} />
+      <T role="small" color="textMuted">
+        {t.yourUsernameHint}
+      </T>
+      {info ? <Button title={t.shareCode} variant="secondary" onPress={async () => (await shareLink(t.shareCodeText, info.url)) && track("share")} /> : null}
+      <TextField label={t.addByUsername} hint={t.addByUsernameHint} placeholder={t.usernamePlaceholder} value={name} onChangeText={(v) => (setName(v.replace(/\s/g, "")), setError(null))} error={error} autoCapitalize="none" autoCorrect={false} maxLength={USERNAME_MAX + 1} returnKeyType="done" onSubmitEditing={add} />
+      <Button title={t.usernameAdd} disabled={!name.trim()} loading={busy} onPress={add} />
     </Card>
   );
 }

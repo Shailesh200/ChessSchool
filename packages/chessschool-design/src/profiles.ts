@@ -68,3 +68,14 @@ export function forgetProfile(s: LocalState, id: string): LocalState {
   const { [id]: _gone, ...parked } = back.parked;
   return { ...back, parked };
 }
+
+/**
+ * Child profiles were removed in Phase 5. A device that was on a child's profile goes back to the account's own
+ * profile (its progress syncs as before); the child's slice stays parked on the device, never deleted. The PIN goes.
+ */
+export function mainProfile(s: LocalState): LocalState {
+  const back = s.activeChild ? switchProfile(s, null) : s;
+  // switchProfile keeps the child only when the main slice is missing; then the device keeps learning on what it has.
+  return { ...back, activeChild: null, parentPin: null };
+}
+

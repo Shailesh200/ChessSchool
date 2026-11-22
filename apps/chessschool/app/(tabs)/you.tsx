@@ -1,11 +1,11 @@
-import { BADGES, FLAIRS, countryName, flagOf, isUnitBadge, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
+import { BADGES, FLAIRS, isUnitBadge, weekCard, cleanName, copy, errorMessage, nameProblem, dayKey, earnedBadges, focusCourse, ideasLearned, rankFor, visibleStreak, type AvatarId, type DailyMinutes, type FlairId } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
-import { InviteCard } from "@/components/Growth";
-import { FriendCodeCard, useMyDetails } from "@/components/Social";
+import { InviteCard, ShareCardButton } from "@/components/Growth";
+import { FriendsCard, useMyDetails } from "@/components/Social";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
@@ -106,8 +106,13 @@ export default function You() {
               </T>
               <Icon name="edit" size={18} color={c.textMuted} />
             </Pressable>
+            {account?.username ? (
+              <T role="label" color="brandText" numberOfLines={1}>
+                {copy.social.at(account.username)}
+              </T>
+            ) : null}
             <T role="small" color="textMuted">
-              {profile.flair ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
+              {profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
             </T>
             <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 10, minHeight: 24, borderRadius: 12, justifyContent: "center", backgroundColor: account ? c.successSoft : c.sunken }}>
               <T role="micro" style={{ color: account ? c.successText : c.textMuted, fontFamily: fonts.semibold }}>
@@ -156,9 +161,11 @@ export default function You() {
 
       <SkillsCard skills={progress.skills} />
 
+      {account ? <ShareCardButton kind="weekly" data={weekCard(progress, new Date())} label={copy.share.weeklyAction} /> : null}
+
       <InviteCard />
 
-      <FriendCodeCard />
+      <FriendsCard />
 
       <Pressable accessibilityRole="button" accessibilityLabel={copy.trophies.open} onPress={() => router.push("/trophies")}>
         <Card style={{ gap: 12 }}>
@@ -197,11 +204,8 @@ export default function You() {
           <Row icon="clock" label={copy.you.goal} hint={copy.you.goalOption(profile.dailyMinutes)} chevron onPress={() => setSheet("goal")} />
           <Row icon="profile" label={copy.you.avatar} hint={copy.you.avatarHint} chevron onPress={() => setSheet("picture")} />
           <Row icon="palette" label={copy.settings.looks} hint={copy.you.looksHint} chevron onPress={() => router.push("/looks")} />
-          <Row icon="flag" label={copy.country.title} hint={profile.country ? `${flagOf(profile.country)} ${countryName(profile.country)}` : copy.country.none} chevron onPress={() => router.push("/country")} />
           <Row icon="trophy" label={copy.board.open} hint={copy.board.global} chevron onPress={() => router.push("/leaderboard")} />
           <Row icon="history" label={copy.you.review} hint={copy.gym.review.body} chevron onPress={() => router.push("/review")} />
-          <Row icon="club" label={copy.you.class} hint={copy.you.classHint} chevron onPress={() => router.push("/class")} />
-          <Row icon="profile" label={copy.learners.title} hint={copy.learners.hint} chevron onPress={() => router.push("/learners")} />
         </Card>
       </View>
 
@@ -230,7 +234,7 @@ export default function You() {
           {copy.you.flair}
         </T>
         <View style={{ alignSelf: "stretch", gap: 8 }}>
-          {FLAIRS.map((id) => (
+          {FLAIRS.filter((id) => id !== "monitor").map((id) => (
             <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: profile.flair === id }} onPress={() => saveLook({ flair: profile.flair === id ? null : id })} style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: 14, borderRadius: 16, borderWidth: 2, borderColor: profile.flair === id ? c.brand : c.line, backgroundColor: c.card }}>
               <T role="label">{copy.you.flairs[id]}</T>
             </Pressable>

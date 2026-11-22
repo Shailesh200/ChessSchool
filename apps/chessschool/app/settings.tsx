@@ -8,7 +8,7 @@ import { CoachPicker } from "@/components/CoachPicker";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { shareMyData, SupportSheet } from "@/components/Social";
 import { Cody } from "@/components/Lottie";
-import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, TextField, useToast } from "@/components/ui";
+import { Button, Card, Page, Row, SaveBanner, Segmented, Sheet, SwitchRow, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { saveLessonsOffline, useCourse } from "@/lib/course";
 import { openSystemSettings, pushToken, requestNotifications } from "@/lib/notifications";
@@ -23,8 +23,6 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [weekly, setWeekly] = useState<boolean | null>(null);
   const [winback, setWinback] = useState<boolean | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
-  const [pinTry, setPinTry] = useState("");
   useEffect(() => {
     if (state.account) api.weekly().then((w) => setWeekly(w.email || w.push)).catch(() => {});
     if (state.account) api.emailPrefs().then((e) => setWinback(e.eligible ? e.winback : null)).catch(() => {});
@@ -33,16 +31,6 @@ export default function Settings() {
   const { prefs, account } = state;
   const s = copy.settings;
 
-
-  if (state.parentPin && !unlocked) {
-    return (
-      <Page title={s.title} banner={false}>
-        <T role="heading">{copy.learners.pinAsk}</T>
-        <TextField label={copy.learners.pinLabel} value={pinTry} onChangeText={(v) => setPinTry(v.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} error={pinTry.length === 4 && pinTry !== state.parentPin ? copy.learners.pinWrong : null} />
-        <Button title={copy.learners.unlock} disabled={pinTry !== state.parentPin} onPress={() => setUnlocked(true)} />
-      </Page>
-    );
-  }
 
   return (
     <Page title={s.title} banner={false}>
@@ -226,13 +214,12 @@ export default function Settings() {
           {s.legal}
         </T>
         <SwitchRow icon="eye" label={s.shareUsage} hint={s.shareUsageHint} value={prefs.shareUsage} onChange={(v) => setPrefs({ shareUsage: v })} />
-        {/* A child's switch only works once a parent PIN guards this screen. */}
         <SwitchRow
           icon="spark"
           label={s.aiExplain}
-          hint={aiBlocked(state) ? s.aiOff : isChildProfile(state) && !state.parentPin ? s.aiExplainNeedsPin : s.aiExplainHint}
+          hint={aiBlocked(state) ? s.aiOff : s.aiExplainHint}
           value={aiExplainOn(state)}
-          disabled={aiBlocked(state) || (isChildProfile(state) && !state.parentPin)}
+          disabled={aiBlocked(state)}
           onChange={(v) => update((st) => setAiExplain(st, v))}
         />
         <Row icon="shield" label={s.privacy} chevron onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL))} />

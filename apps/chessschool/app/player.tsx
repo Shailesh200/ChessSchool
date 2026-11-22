@@ -1,15 +1,17 @@
-import { copy, countryName, flagOf, SOCIALS, socialUrl, type PlayerProfile } from "@chessschool/design";
+import { copy, countryName, isUnitBadge, rankFor, SOCIALS, socialUrl, type BadgeId, type IconName, type PlayerGame, type PlayerProfile } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Linking, View } from "react-native";
 import { AvatarFace } from "@/components/AvatarFace";
+import { botName } from "@/components/Daily";
+import { Icon } from "@/components/Icon";
 import { Button, Card, Page, Row, Sheet, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
 
-/** A player's public profile (leaderboard row, friend, class member): details, links, and add friend / report / block. */
+/** A player's public profile (leaderboard row, friend, link): rank, stats, trophies, recent games, details, links, and add friend / report / block. */
 export default function PlayerScreen() {
   const { id = "" } = useLocalSearchParams<{ id?: string }>();
   const { state, cue } = useApp();
@@ -92,43 +94,143 @@ export default function PlayerScreen() {
     }
   };
 
+  const rank = rankFor(player.xp);
+  const trophies = (player.badges ?? []).filter((id) => !isUnitBadge(id as BadgeId) && id in copy.badges.list) as BadgeId[];
+  const stats: { label: string; value: string; icon: IconName; tint: string }[] = [
+    { label: t.streak, value: String(player.streak ?? 0), icon: "spark", tint: c.accent },
+    { label: t.xp, value: String(player.xp), icon: "bolt", tint: c.gold },
+    { label: t.lessons, value: String(player.lessons ?? 0), icon: "learn", tint: c.successText },
+    { label: t.playRating, value: player.rating ? String(player.rating) : t.unrated, icon: "gym", tint: c.brandText },
+    { label: t.puzzleRating, value: player.puzzleRating ? String(player.puzzleRating) : t.unrated, icon: "puzzle", tint: c.brandText },
+    { label: t.bestWin, value: player.bestWin ? String(player.bestWin) : "–", icon: "trophy", tint: c.goldText },
+  ];
+  const since = new Date(player.joinedAt).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const opponent = (g: PlayerGame) => (g.opponent.kind === "bot" ? t.vsBot(botName(g.opponent.bot)) : g.opponent.kind === "online" ? t.vsOnline : t.vsFriend);
+  const resultTint = (g: PlayerGame) => (g.result === "win" ? c.successText : g.result === "loss" ? c.dangerText : c.textMuted);
+
   return (
     <Page title={player.name} banner={false}>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <View style={{ height: 72, backgroundColor: banner }} />
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16, marginTop: -40, gap: 8 }}>
-          <View style={{ alignSelf: "flex-start", borderRadius: 48, borderWidth: 4, borderColor: c.card }}>
-            <AvatarFace id={player.avatar} photo={player.photo} size={84} />
+        <View style={{ height: 96, backgroundColor: banner }}>
+          <View style={{ position: "absolute", right: 16, top: 14, paddingHorizontal: 12, minHeight: 28, borderRadius: 14, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.22)" }}>
+            <T role="micro" style={{ color: "#fff", fontFamily: fonts.semibold }}>
+              {`${copy.ranks[rank.rank]} · ${player.xp} ${t.xp}`}
+            </T>
+          </View>
+        </View>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 18, marginTop: -48, gap: 6 }}>
+          <View style={{ alignSelf: "flex-start", borderRadius: 52, borderWidth: 4, borderColor: c.card, backgroundColor: c.card }}>
+            <AvatarFace id={player.avatar} photo={player.photo} size={92} country={player.country} />
           </View>
           <T role="title" numberOfLines={1}>
-            {`${player.name}${player.country ? ` ${flagOf(player.country)}` : ""}`}
+            {player.name}
           </T>
-          {player.country ? (
-            <T role="small" color="textMuted">
-              {countryName(player.country)}
+          {player.username ? (
+            <T role="label" color="brandText">
+              {t.at(player.username)}
             </T>
           ) : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            <View style={{ paddingHorizontal: 10, minHeight: 26, borderRadius: 13, justifyContent: "center", backgroundColor: c.brandSoft }}>
+              <T role="micro" style={{ color: c.brandText, fontFamily: fonts.semibold }}>
+                {copy.today.level(copy.ranks[rank.rank], rank.level)}
+              </T>
+            </View>
+            {player.country ? (
+              <View style={{ paddingHorizontal: 10, minHeight: 26, borderRadius: 13, justifyContent: "center", backgroundColor: c.sunken }}>
+                <T role="micro" color="textMuted">
+                  {countryName(player.country)}
+                </T>
+              </View>
+            ) : null}
+            {player.friend ? (
+              <View style={{ paddingHorizontal: 10, minHeight: 26, borderRadius: 13, justifyContent: "center", backgroundColor: c.successSoft }}>
+                <T role="micro" style={{ color: c.successText, fontFamily: fonts.semibold }}>
+                  {t.friend}
+                </T>
+              </View>
+            ) : null}
+          </View>
           {d.bio ? <T role="body">{d.bio}</T> : null}
           <T role="micro" color="textMuted">
-            {t.joined(new Date(player.joinedAt).toLocaleDateString(undefined, { month: "long", year: "numeric" }))}
+            {t.memberSince(since)}
           </T>
         </View>
       </Card>
 
-      <Card style={{ flexDirection: "row", paddingVertical: 12 }}>
-        {[
-          { label: t.rating, value: player.rating ? String(player.rating) : "–" },
-          { label: t.xp, value: String(player.xp) },
-        ].map((s, i) => (
-          <View key={s.label} accessible accessibilityLabel={`${s.label}: ${s.value}`} style={{ flex: 1, alignItems: "center", gap: 2, borderLeftWidth: i ? 1 : 0, borderColor: c.line }}>
-            <T role="heading" style={{ fontFamily: fonts.bold }}>
-              {s.value}
-            </T>
+      <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
+        <View accessibilityRole="list" style={{ flexDirection: "row", flexWrap: "wrap" }}>
+          {stats.map((st, i) => (
+            <View key={st.label} accessible accessibilityLabel={`${st.label}: ${st.value}`} style={{ width: "33.33%", alignItems: "center", gap: 2, paddingVertical: 12, borderTopWidth: i >= 3 ? 1 : 0, borderLeftWidth: i % 3 ? 1 : 0, borderColor: c.line }}>
+              <Icon name={st.icon} size={18} color={st.tint} />
+              <T role="heading" style={{ fontFamily: fonts.bold }}>
+                {st.value}
+              </T>
+              <T role="micro" color="textMuted" center>
+                {st.label}
+              </T>
+            </View>
+          ))}
+        </View>
+      </Card>
+
+      <Card style={{ gap: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <T role="eyebrow" color="textMuted" header>
+            {t.recent}
+          </T>
+          {player.games ? (
             <T role="micro" color="textMuted">
-              {s.label}
+              {t.games(player.games.played, player.games.won)}
             </T>
+          ) : null}
+        </View>
+        {player.recent?.length ? (
+          player.recent.map((g) => (
+            <View key={g.id} accessible accessibilityLabel={`${t.results[g.result]}, ${opponent(g)}, ${t.moves(g.moves)}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: g.result === "win" ? c.successSoft : g.result === "loss" ? c.dangerSoft : c.sunken }}>
+                <Icon name={g.result === "win" ? "trophy" : g.result === "loss" ? "close" : "gym"} size={18} color={resultTint(g)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <T role="label" numberOfLines={1}>
+                  {opponent(g)}
+                </T>
+                <T role="micro" color="textMuted">
+                  {`${t.moves(g.moves)} · ${new Date(g.endedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`}
+                </T>
+              </View>
+              <T role="label" style={{ color: resultTint(g), fontFamily: fonts.bold }}>
+                {t.results[g.result]}
+              </T>
+            </View>
+          ))
+        ) : (
+          <T role="small" color="textMuted">
+            {t.noGames}
+          </T>
+        )}
+      </Card>
+
+      <Card style={{ gap: 10 }}>
+        <T role="eyebrow" color="textMuted" header>
+          {`${t.trophies} · ${trophies.length}`}
+        </T>
+        {trophies.length ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {trophies.slice(-8).reverse().map((id) => (
+              <View key={id} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, minHeight: 32, borderRadius: 16, backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.gold }}>
+                <Icon name="trophy" size={14} color={c.goldText} />
+                <T role="micro" style={{ color: c.goldText, fontFamily: fonts.semibold }}>
+                  {copy.badges.list[id].name}
+                </T>
+              </View>
+            ))}
           </View>
-        ))}
+        ) : (
+          <T role="small" color="textMuted">
+            {t.noTrophies}
+          </T>
+        )}
       </Card>
 
       {facts.length ? (

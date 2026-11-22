@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Board } from "@/components/Board";
-import { MemberFace } from "@/components/ClassPlay";
+import { MemberFace } from "@/components/MemberFace";
 import { PuzzlePlayer } from "@/components/PuzzlePlayer";
 import { Button, useToast } from "@/components/ui";
 import { Wordmark } from "@/components/Wordmark";
@@ -161,7 +161,7 @@ export default function ChallengePage() {
         <MemberFace id={ch.creator.avatar} size={48} />
         <h1>{creator ? t.yours : ch.kind === "puzzle" ? t.titlePuzzle(name) : t.titleGame(name)}</h1>
         {!creator && state.account ? (
-          <Link className="challenge-report" href={`/class/report?challenge=${encodeURIComponent(code)}&name=${encodeURIComponent(ch.creator.name ?? copy.you.noName)}`}>
+          <Link className="challenge-report" href={`/report?challenge=${encodeURIComponent(code)}&name=${encodeURIComponent(ch.creator.name ?? copy.you.noName)}`}>
             {copy.social.report}
           </Link>
         ) : null}
