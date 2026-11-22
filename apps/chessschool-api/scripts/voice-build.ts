@@ -1,5 +1,5 @@
 import { SPOKEN_PHRASES, spokenLines, type Step } from "@chessschool/chess";
-import { coachOf, isCoachId, voiceKey } from "@chessschool/design";
+import { coachOf, coachSample, COACHES, isCoachId, voiceKey } from "@chessschool/design";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_COURSE_FILE, VOICE_DIR } from "./seed-course";
@@ -33,7 +33,9 @@ const text: CourseText | null = lang === "en" ? null : JSON.parse(readFileSync(j
 // shortcut: Hindi runs voice the lesson lines only; the runner's fixed praise phrases stay English until they are translated.
 const phrases = lang === "en" ? SPOKEN_PHRASES : [];
 const lines = new Map<string, string>();
-for (const t of [...phrases, ...course.lessons.flatMap((l) => spokenLines(localizeSteps(l.steps, text?.lessons[l.id]?.steps)))]) lines.set(voiceKey(t), t.replace(/\s+/g, " ").trim());
+// The Settings sample: this coach's own line in English; in Hindi every coach's line, since one voice reads them all.
+const samples = (lang === "en" ? [coachSample(coach, "en")] : COACHES.map((c) => coachSample(c.id, "hi"))).filter((t): t is string => Boolean(t));
+for (const t of [...samples, ...phrases, ...course.lessons.flatMap((l) => spokenLines(localizeSteps(l.steps, text?.lessons[l.id]?.steps)))]) lines.set(voiceKey(t), t.replace(/\s+/g, " ").trim());
 
 const file = join(VOICE_DIR, `${coach}.json`);
 const manifest: VoiceManifest = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : { coach, clips: {} };

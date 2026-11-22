@@ -374,7 +374,7 @@ export function hydrateHabit(raw: unknown): Habit {
 }
 
 /** Piece sets ChessSchool still ships. Keep in step with `PieceSetId` in @chessschool/chess. */
-const KEPT_PIECE_SETS = new Set(["toy", "clay", "pixel", "outline"]);
+const KEPT_PIECE_SETS = new Set(["toy", "staunton", "flat", "chaturanga", "geometric", "bubble"]);
 
 function hydratePrefs(base: Prefs, raw: unknown): Prefs {
   const p = { ...base, ...((raw as Partial<Prefs>) ?? {}) };

@@ -1,10 +1,10 @@
 "use client";
 
-import type { Step } from "@chessschool/chess";
+import { spokenLines, type Step } from "@chessschool/chess";
 import { accuracy, copy, dayKey, elapsedSeconds, firstLessonId, FLOW_CUES, goalMet, isGuestLockedLesson, isPerfect, lessonAccess, nextOpenLesson, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LessonDone, type LessonSummary } from "@/components/LessonDone";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { Button } from "@/components/ui";
@@ -38,7 +38,9 @@ export default function LessonPage() {
   }, [guestLocked, showGuestGate]);
 
   const hasSteps = Boolean(lesson?.steps);
-  const say = useCoachVoice(id);
+  const spoken = lesson?.steps as Step[] | undefined;
+  const lines = useMemo(() => (spoken ? spokenLines(spoken) : []), [spoken]);
+  const say = useCoachVoice(id, lines);
   // First run: no account and no welcome yet. The lesson leads on to welcome.
   const firstRun = ready && !state.account && !state.seenWelcome;
   // A new visitor with no connection cannot load the lesson: move on rather than wait forever.

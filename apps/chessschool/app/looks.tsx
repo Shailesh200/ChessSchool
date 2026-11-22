@@ -1,23 +1,24 @@
-import { PIECE_SETS } from "@chessschool/chess";
-import { APP_ICONS, type Appearance, BOARD_COLORS, copy, lockedUntil, palettes, resolveTheme, type RewardKind, THEMES, withBoardColors } from "@chessschool/design";
+import { botInfo, PIECE_SETS } from "@chessschool/chess";
+import { APP_ICONS, type Appearance, BOARD_COLORS, copy, iconGoalText, iconUnlock, lockedUntil, palettes, resolveTheme, type RewardKind, THEMES, withBoardColors } from "@chessschool/design";
 import { Image, Pressable, View } from "react-native";
 import { PieceArt } from "@/components/Board";
 import { Icon } from "@/components/Icon";
-import { Card, Page, Segmented, SwitchRow, T, useToast } from "@/components/ui";
+import { Card, Page, ProgressBar, Segmented, SwitchRow, T, useToast } from "@/components/ui";
 import { appIconsSupported, setAppIcon } from "@/lib/appIcon";
 import { useApp } from "@/lib/state";
-import { fonts, useTheme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 
 const ICON_PREVIEWS: Record<string, number> = {
   classroom: require("../assets/app-icons/classroom-preview.png"),
-  night: require("../assets/app-icons/night-preview.png"),
-  garden: require("../assets/app-icons/garden-preview.png"),
   sunset: require("../assets/app-icons/sunset-preview.png"),
+  garden: require("../assets/app-icons/garden-preview.png"),
   ocean: require("../assets/app-icons/ocean-preview.png"),
-  midnight: require("../assets/app-icons/midnight-preview.png"),
   library: require("../assets/app-icons/library-preview.png"),
+  night: require("../assets/app-icons/night-preview.png"),
   pixel: require("../assets/app-icons/pixel-preview.png"),
+  midnight: require("../assets/app-icons/midnight-preview.png"),
 };
+const ICON = 56;
 
 export default function Looks() {
   const { state, setPrefs, cue } = useApp();
@@ -89,8 +90,9 @@ export default function Looks() {
           {PIECE_SETS.map((set) => {
             const on = prefs.pieceSet === set.id;
             const need = lock("pieces", set.id);
+            const name = copy.looks.sets[set.id] ?? set;
             return (
-              <Pressable key={set.id} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: Boolean(need) }} accessibilityLabel={`${set.name}. ${need ? copy.quests.locked(need) : set.blurb}`} onPress={() => choose(need, { pieceSet: set.id })} style={[card(on), { flexGrow: 1, flexBasis: "45%", opacity: need ? 0.6 : 1 }]}>
+              <Pressable key={set.id} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: Boolean(need) }} accessibilityLabel={`${name.name}. ${need ? copy.quests.locked(need) : name.blurb}`} onPress={() => choose(need, { pieceSet: set.id })} style={[card(on), { flexGrow: 1, flexBasis: "45%", opacity: need ? 0.6 : 1 }]}>
                 <View style={{ flexDirection: "row", borderRadius: 12, overflow: "hidden" }}>
                   <View style={{ flex: 1, aspectRatio: 1, backgroundColor: c.boardLight, alignItems: "center", justifyContent: "center" }}>
                     <PieceArt piece={{ type: "n", color: "w" }} size={52} set={set.id} />
@@ -99,9 +101,9 @@ export default function Looks() {
                     <PieceArt piece={{ type: "q", color: "b" }} size={52} set={set.id} />
                   </View>
                 </View>
-                <T role="label">{set.name}</T>
+                <T role="label">{name.name}</T>
                 <T role="micro" color="textMuted">
-                  {set.blurb}
+                  {name.blurb}
                 </T>
                 {lockNote(need)}
               </Pressable>
@@ -147,28 +149,54 @@ export default function Looks() {
         <T role="small" color="textMuted">
           {iconsOk ? copy.looks.iconHint : copy.looks.iconUnavailable}
         </T>
-        <View accessibilityRole="radiogroup" accessibilityLabel={copy.looks.icon} style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={copy.looks.icon} style={{ gap: 10 }}>
           {APP_ICONS.map((i) => {
             const on = prefs.appIcon === i.id;
-            const need = lock("icon", i.id);
+            const u = iconUnlock(state, i.id);
+            const text = iconGoalText(u, botInfo("bishop").name);
+            const name = copy.looks.icons[i.id] ?? i.id;
             return (
               <Pressable
                 key={i.id}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: on, disabled: !iconsOk || Boolean(need) }}
-                accessibilityLabel={need ? `${i.name}. ${copy.quests.locked(need)}` : i.name}
+                accessibilityState={{ checked: on, disabled: !iconsOk || !u.unlocked }}
+                accessibilityLabel={u.unlocked ? `${name}. ${text.goal}` : `${name}. ${copy.looks.iconLocked(text.goal)} ${text.progress}`}
                 onPress={async () => {
-                  if (need) return toast(copy.quests.locked(need));
+                  if (!u.unlocked) return toast(copy.looks.iconLocked(text.goal));
                   if (!(await setAppIcon(i.id))) return toast(copy.looks.iconUnavailable);
                   pick({ appIcon: i.id });
                 }}
-                style={[card(on), { width: "22%", minWidth: 76, alignItems: "center", opacity: iconsOk && !need ? 1 : 0.6 }]}
+                style={[card(on), { flexDirection: "row", alignItems: "center", gap: 12, minHeight: ICON + 24 }]}
               >
-                <Image source={ICON_PREVIEWS[i.id]} style={{ width: 56, height: 56, borderRadius: 14 }} />
-                <T role="micro" style={{ fontFamily: fonts.semibold }} numberOfLines={1}>
-                  {i.name}
-                </T>
-                {lockNote(need)}
+                <View style={{ width: ICON, height: ICON }}>
+                  <Image source={ICON_PREVIEWS[i.id]} style={{ width: ICON, height: ICON, borderRadius: 14, opacity: u.unlocked ? 1 : 0.45 }} />
+                  {u.unlocked ? null : (
+                    <View style={{ position: "absolute", right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+                      <Icon name="lock" size={13} color={c.textMuted} />
+                    </View>
+                  )}
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <T role="label" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      {name}
+                    </T>
+                    {on ? <Icon name="check" size={16} color={c.brandText} /> : null}
+                  </View>
+                  <T role="micro" color="textMuted" numberOfLines={2}>
+                    {text.goal}
+                  </T>
+                  {u.goal && !u.unlocked ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <ProgressBar value={u.fraction} label={`${name}: ${text.progress}`} />
+                      </View>
+                      <T role="micro" color="textMuted" numberOfLines={1} style={{ flexShrink: 0 }}>
+                        {text.progress}
+                      </T>
+                    </View>
+                  ) : null}
+                </View>
               </Pressable>
             );
           })}

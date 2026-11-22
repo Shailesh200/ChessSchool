@@ -180,7 +180,8 @@
             "ios": "./assets/app-icons/classroom.png",
             "android": {
               "foregroundImage": "./assets/app-icons/classroom-fg.png",
-              "backgroundColor": "#E4E2FB"
+              "backgroundImage": "./assets/app-icons/classroom-bg.png",
+              "backgroundColor": "#FFE9DC"
             }
           },
           {
@@ -188,6 +189,7 @@
             "ios": "./assets/app-icons/night.png",
             "android": {
               "foregroundImage": "./assets/app-icons/night-fg.png",
+              "backgroundImage": "./assets/app-icons/night-bg.png",
               "backgroundColor": "#14152B"
             }
           },
@@ -196,7 +198,8 @@
             "ios": "./assets/app-icons/garden.png",
             "android": {
               "foregroundImage": "./assets/app-icons/garden-fg.png",
-              "backgroundColor": "#7FA36B"
+              "backgroundImage": "./assets/app-icons/garden-bg.png",
+              "backgroundColor": "#2F7D5B"
             }
           },
           {
@@ -204,7 +207,8 @@
             "ios": "./assets/app-icons/sunset.png",
             "android": {
               "foregroundImage": "./assets/app-icons/sunset-fg.png",
-              "backgroundColor": "#F08A6A"
+              "backgroundImage": "./assets/app-icons/sunset-bg.png",
+              "backgroundColor": "#F59E5B"
             }
           },
           {
@@ -212,6 +216,7 @@
             "ios": "./assets/app-icons/ocean.png",
             "android": {
               "foregroundImage": "./assets/app-icons/ocean-fg.png",
+              "backgroundImage": "./assets/app-icons/ocean-bg.png",
               "backgroundColor": "#117A8C"
             }
           },
@@ -220,7 +225,8 @@
             "ios": "./assets/app-icons/midnight.png",
             "android": {
               "foregroundImage": "./assets/app-icons/midnight-fg.png",
-              "backgroundColor": "#000000"
+              "backgroundImage": "./assets/app-icons/midnight-bg.png",
+              "backgroundColor": "#0B0B12"
             }
           },
           {
@@ -228,7 +234,8 @@
             "ios": "./assets/app-icons/library.png",
             "android": {
               "foregroundImage": "./assets/app-icons/library-fg.png",
-              "backgroundColor": "#7A4A23"
+              "backgroundImage": "./assets/app-icons/library-bg.png",
+              "backgroundColor": "#6B3F1F"
             }
           },
           {
@@ -236,7 +243,8 @@
             "ios": "./assets/app-icons/pixel.png",
             "android": {
               "foregroundImage": "./assets/app-icons/pixel-fg.png",
-              "backgroundColor": "#F6C343"
+              "backgroundImage": "./assets/app-icons/pixel-bg.png",
+              "backgroundColor": "#6C4BD8"
             }
           }
         ]

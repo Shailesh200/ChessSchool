@@ -366,7 +366,8 @@ describe("Phase 3 progress", () => {
     const h = hydrateState({ ...createInitialState("old"), activeGame: { history: ["e4"], you: "b", level: "steady", startedAt: 5 }, prefs: { theme: "nope", pieceSet: "pixel" } }, () => "n");
     expect(h.activeGame?.setup.opponent).toEqual({ kind: "bot", bot: "rooky" });
     expect(h.prefs.theme).toBe("classroom");
-    expect(h.prefs.pieceSet).toBe("pixel");
+    // Pixel was retired: the saved choice falls back to Classic.
+    expect(h.prefs.pieceSet).toBe("toy");
     expect(h.prefs.promotion).toBe("ask");
     for (const removed of ["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]) {
       expect(hydrateState({ ...createInitialState("old"), prefs: { pieceSet: removed } }, () => "n").prefs.pieceSet).toBe("toy");

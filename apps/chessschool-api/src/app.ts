@@ -1,5 +1,6 @@
 import {
   cleanName,
+  coachSample,
   dayKey,
   indiaDay,
   emptyProgress,
@@ -1262,7 +1263,9 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     if (!lesson) return fail(c, 404, "not_found");
     c.header("Cache-Control", "public, max-age=300");
     const voice = text ? HINDI_VOICE : coach;
-    return c.json({ coach, clips: await lessonClips(db, voice, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps)) });
+    // The coach's Settings sample rides along with every lesson, so the picker needs no extra request.
+    const sample = coachSample(coach, text ? "hi" : "en");
+    return c.json({ coach, clips: await lessonClips(db, voice, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps), sample ? [sample] : []) });
   });
 
   /**

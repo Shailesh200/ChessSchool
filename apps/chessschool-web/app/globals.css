@@ -3021,7 +3021,7 @@ button.mode-tile {
   gap: 10px;
 }
 .icons {
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   margin-top: 8px;
 }
 .swatch,
@@ -3040,9 +3040,58 @@ button.mode-tile {
   cursor: pointer;
 }
 .icon-choice {
-  justify-items: center;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 80px;
+}
+.icon-choice-art {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.icon-choice.is-locked {
+  opacity: 1;
+}
+.icon-choice.is-locked img {
+  opacity: 0.45;
+}
+.icon-choice-lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--cs-card);
+  border: 1px solid var(--cs-line);
+  color: var(--cs-text-muted);
+}
+.icon-choice-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.icon-choice-text strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.icon-choice-text > span {
   font-size: 0.8125rem;
-  font-weight: 600;
+  color: var(--cs-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.icon-choice-progress {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
 }
 .swatch.is-locked,
 .set-card.is-locked,

@@ -57,6 +57,12 @@ export const hi: Translation = {
     voiceHint: "आपका कोच हर कदम बोलकर पढ़ता है।",
     speed: "आवाज़ की गति",
     speeds: { 0.85: "धीमी", 1: "सामान्य", 1.15: "तेज़" },
+    samples: {
+      meera: "नमस्ते, मैं मीरा हूँ! हम हर चाल आराम से, एक-एक कदम सीखेंगे, और मैं हमेशा आपके साथ रहूँगी।",
+      vikram: "नमस्ते, मैं विक्रम हूँ। हर अच्छी चाल के पीछे एक वजह होती है, और हम उसे साथ मिलकर ढूँढेंगे।",
+      rohan: "अरे, मैं रोहन हूँ! चलो खेलें, हँसें और साथ मिलकर कुछ चालाक जीतें हासिल करें। तुम कर सकते हो!",
+      tara: "हाय हाय, मैं तारा हूँ! चमकदार चालें चलने को तैयार? हर जीत पर मैं एक छोटा सा नाच करूँगी!",
+    },
   },
 
   auth: {
@@ -847,6 +853,36 @@ export const hi: Translation = {
       blueOrange: { name: "नीला और नारंगी", blurb: "रंग-अंधता में आसान" },
       greyBlue: { name: "स्लेटी और नीला", blurb: "ज़्यादा कंट्रास्ट, रंग-अंधता में आसान" },
     },
+    sets: {
+      toy: { name: "क्लासिक", blurb: "मोटे और प्यारे" },
+      staunton: { name: "स्टॉन्टन", blurb: "टूर्नामेंट वाले आकार" },
+      flat: { name: "मॉडर्न", blurb: "साफ़, सपाट और दो रंग" },
+      chaturanga: { name: "चतुरंग", blurb: "भारत के गुंबद और मेहराब" },
+      geometric: { name: "बोल्ड", blurb: "मज़बूत आकार, आसानी से दिखें" },
+      bubble: { name: "बबल", blurb: "गोल, नरम और मुस्कुराते" },
+    },
+    icons: {
+      classroom: "चौकोर",
+      sunset: "सूर्योदय",
+      garden: "बाग़",
+      ocean: "समुद्र",
+      library: "विद्वान",
+      night: "तारों भरी रात",
+      pixel: "आर्केड",
+      midnight: "शाही",
+    },
+    iconGoal: {
+      lesson: "अपना पहला पाठ पूरा करें",
+      streak: (n: number) => `लगातार ${n} दिन खेलें`,
+      puzzles: (n: number) => `${n} पहेलियाँ हल करें`,
+      rank: (rank: string) => `${rank} रैंक तक पहुँचें`,
+      bot: (name: string) => `${name} या उससे मज़बूत बॉट को हराएँ`,
+    },
+    iconProgress: (have: number, need: number) => `${need} में से ${have}`,
+    iconXp: (have: number, need: number) => `${need} में से ${have} XP`,
+    iconDefault: "हमेशा आपका",
+    iconOpen: "खुल गया",
+    iconLocked: (goal: string) => `बंद है। खोलने के लिए: ${goal}।`,
   },
 
   feedback: {

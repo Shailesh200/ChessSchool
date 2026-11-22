@@ -2,7 +2,8 @@
 
 import { COACHES, copy, type CoachId } from "@chessschool/design";
 import { Icon } from "@/components/Icon";
-import { playClip, useClips } from "@/lib/voice";
+import { useEffect } from "react";
+import { playClip, prefetchClips, sampleClip, useClips } from "@/lib/voice";
 
 /** The four coaches as radio rows. Recorded coaches play a sample line when picked. */
 export function CoachPicker({ value, onChange }: { value: CoachId | null; onChange: (id: CoachId) => void }) {
@@ -16,9 +17,10 @@ export function CoachPicker({ value, onChange }: { value: CoachId | null; onChan
 }
 
 function CoachRow({ id, name, blurb, selected, onPick }: { id: CoachId; name: string; blurb: string; selected: boolean; onPick: () => void }) {
-  // A line from the second lesson doubles as the sample.
+  // Any lesson's clip list carries the coach's greeting; "board" is the second lesson, recorded for every coach.
   const clips = useClips(id, "board");
-  const sample = clips ? Object.values(clips)[0] : undefined;
+  const sample = sampleClip(id, clips);
+  useEffect(() => prefetchClips([sample]), [sample]);
   return (
     <button
       type="button"

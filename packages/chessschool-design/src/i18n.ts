@@ -35,3 +35,7 @@ export const language = () => current;
 
 /** The app language for a device locale such as "hi-IN". */
 export const langFor = (locale: string | undefined): Lang => (locale?.toLowerCase().startsWith("hi") ? "hi" : "en");
+
+const SAMPLES: Record<Lang, Record<string, string>> = { en: { ...copy.coach.samples }, hi: { ...copy.coach.samples, ...(hi.coach?.samples as Record<string, string> | undefined) } };
+/** The line a coach says when picked in Settings, in `lang` whatever the app language is (the API and voice:build use it). */
+export const coachSample = (coach: string, lang: Lang): string | undefined => SAMPLES[lang][coach];
