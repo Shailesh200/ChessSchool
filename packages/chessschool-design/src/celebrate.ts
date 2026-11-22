@@ -51,7 +51,8 @@ export function celebrationsBetween(prev: LocalState, next: LocalState, now: Dat
   }
   const r0 = rankFor(prev.progress.xp);
   const r1 = rankFor(next.progress.xp);
-  if (r1.index > r0.index) out.push({ id: `${who}:rank:${r1.rank}`, kind: "rank", rank: r1.rank });
+  // "rank2": the harder rank scale (Phase 5). Ranks first reached on the old scale celebrate again when earned on this one.
+  if (r1.index > r0.index) out.push({ id: `${who}:rank2:${r1.rank}`, kind: "rank", rank: r1.rank });
   const today = dayKey(now);
   const s0 = visibleStreak(prev.progress.streak, today);
   const s1 = visibleStreak(next.progress.streak, today);
@@ -78,7 +79,8 @@ function isCelebration(v: unknown): v is Celebration {
     case "unit":
       return typeof c.unit === "string";
     case "rank":
-      return RANK_IDS.has(c.rank);
+      // A rank queued on the old, easier scale is dropped quietly (it may no longer be true).
+      return RANK_IDS.has(c.rank) && c.id.includes(":rank2:");
     case "rating":
       return typeof c.rating === "number" && Number.isFinite(c.rating) && typeof c.milestone === "boolean";
     case "league":

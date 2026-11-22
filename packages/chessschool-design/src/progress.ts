@@ -961,13 +961,20 @@ export function ideasLearned(progress: Progress): number {
 
 /* ---------- ranks ---------- */
 
+/**
+ * XP only comes from lessons (10-30 each, +5 for a perfect first run): the full course is about 5,200 XP
+ * (6,200 with every perfect bonus). A regular learner finishes one or two lessons a day (~30-40 XP),
+ * so the steps grow smoothly: Knight with the first unit (125 XP), Bishop after a few weeks, Rook in ~1-2 months,
+ * Queen in ~2-3 months and King after ~4 months (about three quarters of the course).
+ * Changing these never celebrates a rank down: celebrations only fire when the rank goes up.
+ */
 export const RANKS = [
   { id: "pawn", xp: 0 },
-  { id: "knight", xp: 100 },
-  { id: "bishop", xp: 250 },
-  { id: "rook", xp: 450 },
-  { id: "queen", xp: 700 },
-  { id: "king", xp: 1000 },
+  { id: "knight", xp: 120 },
+  { id: "bishop", xp: 500 },
+  { id: "rook", xp: 1200 },
+  { id: "queen", xp: 2400 },
+  { id: "king", xp: 4000 },
 ] as const;
 export type RankId = (typeof RANKS)[number]["id"];
 

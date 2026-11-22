@@ -12,7 +12,7 @@ describe("celebrations", () => {
   it("each kind queues once and never again after it was shown", () => {
     const kinds: Celebration[] = [
       { id: "main:unit:unit1", kind: "unit", unit: "unit1" },
-      { id: "main:rank:knight", kind: "rank", rank: "knight" },
+      { id: "main:rank2:knight", kind: "rank", rank: "knight" },
       { id: "main:rating:900", kind: "rating", rating: 900, milestone: true },
       { id: "main:league:silver:2026-W47", kind: "league", league: "silver" },
       { id: "main:streak:7", kind: "streak", days: 7 },
@@ -32,7 +32,7 @@ describe("celebrations", () => {
     for (const n of unit1) s = finish(s, n.id);
     const ids = s.pendingCelebrations.map((c) => c.id);
     expect(ids).toContain("main:unit:unit1");
-    expect(ids).toContain("main:rank:knight");
+    expect(ids).toContain("main:rank2:knight");
     expect(ids.filter((id) => id === "main:unit:unit1")).toHaveLength(1);
   });
 
@@ -83,6 +83,15 @@ describe("celebrations", () => {
     const s = hydrateState(JSON.parse(JSON.stringify(raw)), () => "g2");
     expect(s.pendingCelebrations).toHaveLength(CELEBRATIONS_MAX);
     expect(s.celebrated).toEqual(["a"]);
+  });
+
+  it("the harder rank scale never celebrates a rank down and drops ranks queued on the old scale", () => {
+    const raw = { ...createInitialState("g"), pendingCelebrations: [{ id: "main:rank:queen", kind: "rank", rank: "queen" }] };
+    expect(hydrateState(JSON.parse(JSON.stringify(raw)), () => "g2").pendingCelebrations).toEqual([]);
+    const s = createInitialState("g");
+    const before = { ...s, progress: { ...s.progress, xp: 830 } };
+    expect(withCelebrations(before, { ...before, progress: { ...before.progress, xp: 860 } }, now).pendingCelebrations).toEqual([]);
+    expect(withCelebrations(before, { ...before, progress: { ...before.progress, xp: 1210 } }, now).pendingCelebrations.map((c) => c.id)).toEqual(["main:rank2:rook"]);
   });
 });
 

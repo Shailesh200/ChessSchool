@@ -106,9 +106,12 @@ describe("streaks", () => {
 
 describe("ranks", () => {
   it("starts at Pawn level 1 and climbs", () => {
-    expect(rankFor(0)).toMatchObject({ rank: "pawn", level: 1, next: "knight", toNext: 100 });
-    expect(rankFor(10)).toMatchObject({ rank: "pawn", toNext: 90, fraction: 0.1 });
-    expect(rankFor(100).rank).toBe("knight");
+    expect(rankFor(0)).toMatchObject({ rank: "pawn", level: 1, next: "knight", toNext: 120 });
+    expect(rankFor(12)).toMatchObject({ rank: "pawn", toNext: 108, fraction: 0.1 });
+    expect(rankFor(120).rank).toBe("knight");
+    // The learner who reported ranks were too easy: 830 XP used to be Queen.
+    expect(rankFor(830)).toMatchObject({ rank: "bishop", next: "rook", toNext: 370 });
+    expect(rankFor(3999).rank).toBe("queen");
     expect(rankFor(5000)).toMatchObject({ rank: "king", next: null, fraction: 1 });
   });
 });
