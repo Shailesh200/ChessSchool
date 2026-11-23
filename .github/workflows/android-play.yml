@@ -1,7 +1,8 @@
 name: Android Play draft
 
 # Runs by hand (Actions tab, once this file is on main) or when the `play` branch is
-# pushed: `git push -f origin <commit>:play`. Builds the Android app bundle on GitHub's
+# pushed: `git push -f origin <commit>:play`. Pushing `play-closed` instead puts the build on the
+# closed testing track (alpha) as a draft, for the testers you add in Play Console. Builds the Android app bundle on GitHub's
 # Linux runner with `eas build --local` (no Expo build credits) and uploads it to Play
 # Console as a DRAFT on the internal track (eas.json submit profile). Nothing rolls out
 # to testers until someone starts the rollout in Play Console. Bump
@@ -15,7 +16,7 @@ name: Android Play draft
 on:
   workflow_dispatch:
   push:
-    branches: [play]
+    branches: [play, play-closed]
 
 permissions:
   contents: read
@@ -80,6 +81,10 @@ jobs:
       - name: Upload to Play Console internal testing
         working-directory: apps/chessschool
         run: |
+          if [ "$GITHUB_REF_NAME" = "play-closed" ]; then
+            sed -i 's/"track": "internal"/"track": "alpha"/; s/"releaseStatus": "completed"/"releaseStatus": "draft"/' eas.json
+            grep -q '"track": "alpha"' eas.json || { echo "::error::Could not switch the submit track to closed testing"; exit 1; }
+          fi
           eas submit --platform android --profile production --path "$RUNNER_TEMP/ChessSchool.aab" --non-interactive --wait || {
             sed -i 's/"releaseStatus": "completed"/"releaseStatus": "draft"/' eas.json
             eas submit --platform android --profile production --path "$RUNNER_TEMP/ChessSchool.aab" --non-interactive --wait
