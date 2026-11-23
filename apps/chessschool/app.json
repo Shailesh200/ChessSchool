@@ -37,7 +37,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 50,
+      "versionCode": 51,
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -101,6 +101,7 @@
       ]
     },
     "plugins": [
+      "./plugins/with-optional-features",
       "expo-router",
       "expo-secure-store",
       "expo-font",
