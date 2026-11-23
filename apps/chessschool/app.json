@@ -25,7 +25,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "30",
+      "buildNumber": "31",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
