@@ -2,7 +2,7 @@ import type { Move } from "chess.js";
 import { rankMoves, type RankedMove } from "./engine";
 import { load } from "./game";
 import { sampleLoss } from "./mistakes";
-import { phaseOf } from "./phase";
+import { BANDS, phaseOf } from "./phase";
 
 export type BotId = "pip" | "rooky" | "bishop" | "ivy" | "atlas" | "raja" | "cody";
 /** @deprecated Phase 2 names, kept so saved games still load. */
@@ -110,6 +110,10 @@ function nearestByLoss(ranked: readonly RankedMove[], target: number, like: (m: 
  */
 export const modelRating = (rating: number) => 1100 + (rating - 1100) * 2.5;
 
+const TOP_BAND = BANDS[BANDS.length - 1];
+/** How far past the top band a bot must be to always play the engine's best move (Chaukor, 4600 on the model scale). */
+const ABOVE_DATA = 2200;
+
 const plyOf = (fen: string) => {
   const [, turn, , , , full] = fen.split(" ");
   return (Math.max(1, Number(full) || 1) - 1) * 2 + (turn === "b" ? 1 : 0);
@@ -144,6 +148,9 @@ export function botOptions(fen: string, bot: BotId | LegacyLevel, rand: () => nu
   const ranked = rankMoves(fen, lesson?.engine ?? ENGINE[id]);
   const tactical = moves.some((m) => m.captured || /[+#]$/.test(m.san));
   const phase = phaseOf(fen.split(" ")[0], plyOf(fen));
-  const target = sampleLoss(r, phase, tactical, rand);
+  // The Lichess data stops at the 2400 band, so every bot stretched past it used to draw the same losses and the
+  // top four played alike (bot-ladder 2026-11-26: Chaukor lost 5-1 to King Atlas). Past the ceiling, play the
+  // engine's best move more often the stronger the bot is: Rooky ~20%, King Ivy ~50%, King Atlas ~75%, Chaukor always.
+  const target = r > TOP_BAND && rand() < Math.min(1, (r - TOP_BAND) / ABOVE_DATA) ? 0 : sampleLoss(r, phase, tactical, rand);
   return nearestByLoss(ranked, target, (m) => liking(id, m, phase === "opening"), rand, n);
 }

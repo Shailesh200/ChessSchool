@@ -626,3 +626,12 @@ describe("piece sets", () => {
     }
   });
 });
+
+describe("bot strength order", () => {
+  it("the strongest bots play the engine's best move: Chaukor always mates in one", () => {
+    const fen = "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1";
+    const rand = seq(5);
+    const mates = Array.from({ length: 12 }, () => chooseMove(fen, "cody", rand)?.san).filter((san) => san === "Ra8#").length;
+    expect(mates).toBe(12);
+  }, 30_000);
+});
