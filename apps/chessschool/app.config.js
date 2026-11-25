@@ -24,7 +24,9 @@ function withoutGoogleUrlTypes(types) {
     .filter(Boolean);
 }
 
-module.exports = ({ config }) => {
+module.exports = ({ config: base }) => {
+  // Firebase (Android push) config: an EAS secret file in the production environment, never in this public repo.
+  const config = process.env.GOOGLE_SERVICES_JSON ? { ...base, android: { ...base.android, googleServicesFile: process.env.GOOGLE_SERVICES_JSON } } : base;
   if (process.env.CS_DISABLE_GOOGLE !== "1") return config;
 
   const next = { ...config };
