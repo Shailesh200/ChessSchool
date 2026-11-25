@@ -64,8 +64,11 @@ export function glicko2(p: Glicko, results: readonly { rating: number; rd: numbe
 
 /** The share of recent games we want the learner to win against each bot. */
 export const ADAPT_TARGET = 0.575;
-/** A bot drifts at most this far from its own rating. */
-export const ADAPT_RANGE = 300;
+/**
+ * A bot drifts at most this far from its own rating. Bots are 300 apart, so this stays under half the gap:
+ * a learner's adapted copies can never swap the roster's order (at ±300 Professor Bishop could pass King Ivy).
+ */
+export const ADAPT_RANGE = 140;
 const ADAPT_STEP = 64;
 
 /**

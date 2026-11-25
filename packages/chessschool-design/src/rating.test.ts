@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADAPT_TARGET, adoptRatings, applyResult, botRatingOf, emptyRatings, glicko2, nudgeBot, queueRating, ratingSent, sanitizeRatings } from "./rating";
+import { ADAPT_RANGE, ADAPT_TARGET, adoptRatings, applyResult, botRatingOf, emptyRatings, glicko2, nudgeBot, queueRating, ratingSent, sanitizeRatings } from "./rating";
 
 describe("Glicko-2", () => {
   it("matches Glickman's worked example", () => {
@@ -26,7 +26,7 @@ describe("Glicko-2", () => {
 
 describe("adaptive bots", () => {
   it("an adapted strength saved before the bots got stronger is pulled into range", () => {
-    expect(botRatingOf({ ...emptyRatings(), bots: { pip: 400 } }, "pip", 1000)).toBe(700);
+    expect(botRatingOf({ ...emptyRatings(), bots: { pip: 400 } }, "pip", 1000)).toBe(1000 - ADAPT_RANGE);
     expect(botRatingOf(emptyRatings(), "pip", 1000)).toBe(1000);
   });
 
@@ -34,18 +34,18 @@ describe("adaptive bots", () => {
     expect(nudgeBot(700, 700, 1)).toBeGreaterThan(700);
     expect(nudgeBot(700, 700, 0)).toBeLessThan(700);
     expect(nudgeBot(700, 700, 0.5)).toBeLessThan(700);
-    expect(nudgeBot(1000, 700, 1)).toBe(1000);
-    expect(nudgeBot(100, 400, 0)).toBe(100);
+    expect(nudgeBot(700 + ADAPT_RANGE, 700, 1)).toBe(700 + ADAPT_RANGE);
+    expect(nudgeBot(400 - ADAPT_RANGE, 400, 0)).toBe(400 - ADAPT_RANGE);
   });
 
   it("settles where the learner wins about 55-60%", () => {
-    // A learner of strength 900 playing a bot whose expected score follows the Elo curve.
+    // A learner of strength 800 (within reach of the bot's range) playing a bot whose expected score follows the Elo curve.
     let bot = 700;
     let seed = 7;
     const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
     const scores: number[] = [];
     for (let i = 0; i < 2000; i++) {
-      const p = 1 / (1 + 10 ** ((bot - 900) / 400));
+      const p = 1 / (1 + 10 ** ((bot - 800) / 400));
       const s = rand() < p ? 1 : 0;
       scores.push(s);
       bot = nudgeBot(bot, 700, s);
@@ -79,5 +79,13 @@ describe("offline rated results", () => {
     s = ratingSent(s, s.ratingQueue[0], server);
     expect(s.ratingQueue).toEqual([]);
     expect(s.ratings).toEqual(server);
+  });
+});
+
+describe("bot order", () => {
+  it("adapted strengths can't swap neighbouring bots (the roster is 300 apart)", () => {
+    expect(ADAPT_RANGE * 2).toBeLessThan(300);
+    const r = { ...emptyRatings(), bots: { bishop: 5000, atlas: 0 } };
+    expect(botRatingOf(r, "bishop", 900)).toBeLessThan(botRatingOf(r, "atlas", 1200));
   });
 });
