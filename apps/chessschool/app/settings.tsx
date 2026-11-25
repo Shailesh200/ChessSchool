@@ -1,4 +1,4 @@
-import { coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { aiCoachOn, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, REMINDER_HOURS, usualHour, VOICE_SPEEDS, setAiCoach, type Appearance } from "@chessschool/design";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -95,6 +95,7 @@ export default function Settings() {
           {copy.coach.title}
         </T>
         <Row icon="profile" label={coachOf(prefs.coach ?? "meera").name} hint={copy.coach.hint} chevron onPress={() => setSheet("coach")} />
+        {account ? <SwitchRow icon="spark" label={s.aiExplain} hint={s.aiExplainHint} value={aiCoachOn(state)} onChange={(v) => update((st) => setAiCoach(st, v))} /> : null}
         <SwitchRow icon={prefs.voice ? "sound" : "mute"} label={copy.coach.voice} hint={copy.coach.voiceHint} value={prefs.voice} onChange={(v) => setPrefs({ voice: v })} />
         {prefs.voice ? (
           <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>

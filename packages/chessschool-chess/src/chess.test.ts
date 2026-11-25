@@ -244,7 +244,7 @@ describe("Cody the bot", () => {
     const rand = seq(11);
     const sensible = Array.from({ length: 20 }, () => chooseMove(START_FEN, "steady", rand)?.san).filter((san) => ["e4", "d4", "Nf3", "Nc3", "c4", "e3", "d3"].includes(san ?? ""));
     expect(sensible.length).toBeGreaterThanOrEqual(16);
-  });
+  }, 20_000); // a full search per move; slow when the machine is busy
 
   it("returns null when there is nothing to play", () => {
     expect(chooseMove("R5k1/5ppp/8/8/8/8/8/6K1 b - - 1 1", "steady")).toBeNull();

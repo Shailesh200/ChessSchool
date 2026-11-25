@@ -1,6 +1,6 @@
 "use client";
 
-import { REMINDER_HOURS, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, type Appearance } from "@chessschool/design";
+import { REMINDER_HOURS, aiCoachOn, coachOf, copy, LANG_NAMES, LANGS, language, nextLessonIds, PRIVACY_URL, usualHour, VOICE_SPEEDS, setAiCoach, type Appearance } from "@chessschool/design";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -71,6 +71,7 @@ export default function SettingsPage() {
           </span>
           <Icon name="chevron" />
         </button>
+        {state.account ? <Switch icon="spark" label={s.aiExplain} hint={s.aiExplainHint} checked={aiCoachOn(state)} onChange={(v) => update((st) => setAiCoach(st, v))} /> : null}
         <Switch icon={prefs.voice ? "sound" : "mute"} label={copy.coach.voice} hint={copy.coach.voiceHint} checked={prefs.voice} onChange={(v) => setPrefs({ voice: v })} />
         {prefs.voice ? (
           <div className="row-block">

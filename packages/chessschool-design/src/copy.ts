@@ -879,6 +879,9 @@ export const copy = {
   ai: {
     coach: "AI coach",
     hint: "AI coach · hint",
+    readMore: "Opens the whole note",
+    dismiss: "Hide this note",
+    gotIt: "Got it",
   },
 
   board: {
@@ -889,7 +892,8 @@ export const copy = {
     xp: "XP this week",
     rating: "Rating",
     wins: "Bot wins",
-    value: (metric: "xp" | "rating" | "wins", n: number) => (metric === "xp" ? `${n} XP` : metric === "rating" ? String(n) : `beat ${n}`),
+    value: (metric: "score" | "xp" | "rating" | "wins", n: number) => (metric === "score" ? `${n} pts` : metric === "xp" ? `${n} XP` : metric === "rating" ? String(n) : `beat ${n}`),
+    scoreHint: "Points = your playing rating + the strongest bot you beat + 3 × your XP this week.",
     you: "You",
     friend: "Friend",
     add: (name: string) => `Add ${name} as a friend`,
@@ -1166,7 +1170,7 @@ export const copy = {
       "ChessSchool is provided as-is while it is being built. Lessons are for learning and fun.",
       "Be kind in Club rooms. Accounts that harass others may be removed.",
       "Your coach uses AI to explain games, give hints, comment on moves, play as some bots and read board photos. For this it only gets chess moves, board positions or the board photo, never your name, email or anything you type. AI can be wrong, so treat its notes as tips.",
-      "AI explanations only run when you tap Ask coach; without them you still get the basic engine notes.",
+      "AI explanations only run when you tap Ask coach; without them you still get the basic engine notes. You can turn the AI coach off in Settings at any time.",
       "Your data is handled as described in our privacy policy.",
     ],
   },
@@ -1186,7 +1190,7 @@ export const copy = {
   /** The "AI features" section of the privacy policy (web /privacy). */
   privacyAi: {
     title: "AI features",
-    intro: "ChessSchool uses AI (language models from outside companies) in two places. Here is exactly what they get and when they are used.",
+    intro: "ChessSchool uses AI (language models from outside companies) in two places. Here is exactly what they get, when they are used, and how to switch them off.",
     items: [
       {
         label: "Game explanations (optional)",
@@ -1194,7 +1198,7 @@ export const copy = {
       },
       {
         label: "Who sees them",
-        text: "Signed-in adults can ask the coach for an AI explanation; it is only sent when you tap Ask coach.",
+        text: "Signed-in adults can ask the coach for an AI explanation; it is only sent when you tap Ask coach. The AI coach can be turned off in Settings at any time.",
       },
       {
         label: "Which providers",
@@ -1446,6 +1450,10 @@ export const copy = {
 
   social: {
     viewProfile: (name: string) => `Open ${name}'s profile`,
+    friendsTitle: "Friends",
+    friendsHint: "Add friends by username and challenge them to games.",
+    friendsList: "Your friends",
+    friendsEmpty: "No friends yet. Add one by username above, or share your link.",
     profileTitle: "Player",
     loading: "Opening the profile…",
     notFound: "This profile isn't available.",

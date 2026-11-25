@@ -110,7 +110,7 @@ export async function saveUsername(raw: string): Promise<{ username: string } | 
  * Profile: your @username and invite link, and a field to add a friend by theirs (friends both ways).
  * The first time it opens on a device, it offers to change the username we made at sign-up (skippable).
  */
-export function FriendsCard() {
+export function FriendsCard({ onAdded }: { onAdded?: () => void } = {}) {
   const { state, track, cue, update } = useApp();
   const toast = useToast();
   const t = copy.social;
@@ -155,6 +155,7 @@ export function FriendsCard() {
       cue("success");
       toast(t.usernameAdded(r.friend.name));
       setName("");
+      onAdded?.();
     } catch (err) {
       cue("gentle-no");
       const status = (err as { status?: number }).status;

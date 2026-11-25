@@ -1582,6 +1582,11 @@ describe("leaderboard and friends", () => {
     expect(mine[0]!.country).toBe("IN");
     expect(global.me.rank).toBe(mine[0]!.rank);
 
+    // The combined score is rating + strongest bot beaten + 3 × this week's XP.
+    const value = async (metric: string) => ((await call("GET", `/v1/leaderboard?scope=global&metric=${metric}`, undefined, a.token)).json as BoardResponse).me.value;
+    expect(await value("score")).toBe((await value("rating")) + (await value("wins")) + 3 * (await value("xp")));
+    expect(await value("score")).toBeGreaterThan(await value("rating"));
+
     const country = (await call("GET", "/v1/leaderboard?scope=country&metric=rating", undefined, c.token)).json as BoardResponse;
     expect(country.needsCountry).toBe(true);
     const india = (await call("GET", "/v1/leaderboard?scope=country&metric=rating", undefined, b.token)).json as BoardResponse;
@@ -1590,6 +1595,9 @@ describe("leaderboard and friends", () => {
     expect((await call("POST", `/v1/friends/${a.user.id}`, {}, a.token)).status).toBe(400);
     expect((await call("POST", "/v1/friends/nobody", {}, a.token)).status).toBe(404);
     expect((await call("POST", `/v1/friends/${c.user.id}`, {}, a.token)).status).toBe(200);
+    const list = (await call("GET", "/v1/friends", undefined, a.token)).json as { friends: { id: string; name: string }[] };
+    expect(list.friends.map((f) => [f.id, f.name])).toEqual([[c.user.id, "Chen"]]);
+    expect((await call("GET", "/v1/friends")).status).toBe(401);
     const friends = (await call("GET", "/v1/leaderboard?scope=friends&metric=rating", undefined, a.token)).json as BoardResponse;
     expect(friends.rows.map((r) => r.id)).toEqual([a.user.id, c.user.id]);
     expect(friends.rows[1]!.friend).toBe(true);

@@ -25,9 +25,13 @@ export type ReportReason = "name" | "behaviour" | "other";
 export type Leaderboard = { week: { from: string; to: string }; hidden: boolean; entries: { id: string; name: string; avatar: AvatarId; lessons: number; /** XP from lessons finished this week (absent from older servers). */ xp?: number; me: boolean }[] };
 /** Today's best board-vision score per game in one class (games nobody played are left out). */
 export type ClassVision = { day: string; best: { game: string; score: number; id: string; name: string; avatar: AvatarId; me: boolean }[] };
+/** A friend on the Friends screen. */
+export type FriendRow = { id: string; name: string; username: string | null; avatar: string; photo: string | null; country: string | null };
+
 /** The global, country and friends boards (Leaderboard screen). */
 export type BoardScope = "global" | "country" | "friends";
-export type BoardMetric = "xp" | "rating" | "wins";
+/** `score` (Phase 5, the app's only board): playing rating + strongest bot beaten + 3 × this week's XP. The others stay for older apps. */
+export type BoardMetric = "score" | "xp" | "rating" | "wins";
 /** `value`: XP this league week, playing rating, or the rating of the strongest bot beaten. Names are first names only. */
 export type BoardRow = { id: string; rank: number; name: string; avatar: AvatarId; /** Uploaded photo (absent from older servers). */ photo?: string | null; country: string | null; value: number; friend: boolean; me: boolean };
 export type BoardResponse = { scope: BoardScope; metric: BoardMetric; rows: BoardRow[]; me: { rank: number | null; value: number }; needsCountry: boolean };
@@ -323,6 +327,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     logout: () => request<{ ok: true }>("POST", "/v1/auth/logout"),
     me: () => request<MeResponse>("GET", "/v1/me"),
     board: (scope: BoardScope, metric: BoardMetric) => request<BoardResponse>("GET", `/v1/leaderboard?scope=${scope}&metric=${metric}`),
+    /** Everyone I added, A to Z (Phase 5 Friends screen). */
+    friends: () => request<{ friends: FriendRow[] }>("GET", "/v1/friends"),
     addFriend: (id: string) => request<{ ok: true }>("POST", `/v1/friends/${encodeURIComponent(id)}`, {}),
     removeFriend: (id: string) => request<{ ok: true }>("DELETE", `/v1/friends/${encodeURIComponent(id)}`),
     updateMe: (patch: Partial<ApiProfile>) => request<MeResponse>("PATCH", "/v1/me", patch),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agreeTerms, hasPremiumAi, answerPractice, createInitialState, completeNode, importGame, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, type GameRecord } from "./progress";
+import { agreeTerms, hasPremiumAi, setAiCoach, answerPractice, createInitialState, completeNode, importGame, scannedRecord, mergeProgress, recordPuzzle, recordReviewedGame, sanitizeProgress, type GameRecord } from "./progress";
 import { mistakeItems, practiceRequest } from "./review";
 import { lessonSkill, mergeSkills, rankedSkills, sanitizeSkills, skillsAfter, tagSkills, themeSkills, weakSkills } from "./skills";
 
@@ -70,8 +70,9 @@ describe("premium AI", () => {
     expect(st.termsAt).toBeNull();
     st = agreeTerms(st, "2026-11-17T10:00:00.000Z");
     expect(agreeTerms(st, "2026-12-01T00:00:00.000Z").termsAt).toBe("2026-11-17T10:00:00.000Z");
-    // An old Settings switch left off no longer hides it.
-    expect(hasPremiumAi({ ...st, aiExplain: { main: false } })).toBe(true);
+    // The Settings switch turns it off, and back on.
+    expect(hasPremiumAi(setAiCoach(st, false))).toBe(false);
+    expect(hasPremiumAi(setAiCoach(setAiCoach(st, false), true))).toBe(true);
     expect(hasPremiumAi({ ...st, account: { ...account, ai: false } })).toBe(false);
   });
 

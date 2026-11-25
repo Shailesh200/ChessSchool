@@ -11,6 +11,8 @@ const INSET = BOARD_INSET;
  * Player bar, board, player bar, centred in the space. The board is the largest square that fits,
  * with a small inset so it never kisses the screen edge.
  * `fixed` locks each bar to its given height so coach copy cannot move the board.
+ * `byWidth` sizes the board from the screen width only (for a screen that scrolls), so text below it,
+ * a coach note or a large system font, can never shrink the board.
  */
 export function BoardStage({
   top,
@@ -18,6 +20,7 @@ export function BoardStage({
   topSize = BAR,
   bottomSize = BAR,
   fixed = false,
+  byWidth = false,
   children,
 }: {
   top: React.ReactNode;
@@ -25,6 +28,7 @@ export function BoardStage({
   topSize?: number;
   bottomSize?: number;
   fixed?: boolean;
+  byWidth?: boolean;
   children: (size: number, radius: number) => React.ReactNode;
 }) {
   const { width: screen } = useWindowDimensions();
@@ -38,6 +42,14 @@ export function BoardStage({
   const width = Math.min(box.w || screen, screen) - INSET * 2;
   const size = Math.max(0, Math.floor(Math.min(width, box.h - bars, MAX_BOARD)));
   const bar = (sizePx: number) => (fixed ? { height: sizePx, overflow: "hidden" as const } : { minHeight: sizePx });
+  if (byWidth)
+    return (
+      <View style={{ gap: GAP }}>
+        <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: INSET }, bar(topSize)]}>{top}</View>
+        <View style={{ alignItems: "center" }}>{children(Math.floor(Math.min(screen - INSET * 2, MAX_BOARD)), 8)}</View>
+        {bottom ? <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: INSET }, bar(bottomSize)]}>{bottom}</View> : null}
+      </View>
+    );
   return (
     <View onLayout={onLayout} style={{ flex: 1, minHeight: 0, justifyContent: "center", gap: GAP }}>
       {box.h ? (

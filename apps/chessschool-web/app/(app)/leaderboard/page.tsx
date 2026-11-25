@@ -17,7 +17,7 @@ export default function LeaderboardPage() {
   const t = copy.board;
   const country = state.profile.country ?? null;
   const [scope, setScope] = useState<BoardScope>("global");
-  const [metric, setMetric] = useState<BoardMetric>("xp");
+  const metric: BoardMetric = "score";
   const [board, setBoard] = useState<BoardResponse | null>(null);
   const [failed, setFailed] = useState<false | "offline" | "error">(false);
   const load = useCallback(() => {
@@ -47,11 +47,6 @@ export default function LeaderboardPage() {
     ["country", country ? `${flagOf(country)} ${t.country}` : t.country],
     ["friends", t.friends],
   ];
-  const metrics: [BoardMetric, string][] = [
-    ["xp", t.xp],
-    ["rating", t.rating],
-    ["wins", t.wins],
-  ];
   return (
     <div className="page page-narrow board-page">
       <TopBar title={t.title} />
@@ -66,13 +61,7 @@ export default function LeaderboardPage() {
               </button>
             ))}
           </div>
-          <div className="board-metrics" role="radiogroup" aria-label={t.title}>
-            {metrics.map(([id, label]) => (
-              <button key={id} type="button" role="radio" aria-checked={metric === id} className={metric === id ? "is-on" : ""} onClick={() => setMetric(id)}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <p className="muted small">{t.scoreHint}</p>
           {failed ? (
             <div className="board-note">
               <p role="alert">{failed === "offline" ? copy.offlineMode.needsConnection : copy.auth.errors.generic}</p>

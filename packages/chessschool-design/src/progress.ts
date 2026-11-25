@@ -1352,5 +1352,8 @@ export function importGame(state: LocalState, game: GameRecord): LocalState {
  * the one place to gate them later. For now every signed-in learner has it, unless the server switched AI off
  * for the account. Without it, screens show the basic engine analysis.
  */
-export const hasPremiumAi = (s: LocalState) => Boolean(s.account) && s.account?.ai !== false;
+export const hasPremiumAi = (s: LocalState) => Boolean(s.account) && s.account?.ai !== false && aiCoachOn(s);
+/** The learner's own "AI coach" switch in Settings (on unless turned off). */
+export const aiCoachOn = (s: LocalState) => s.aiExplain.main !== false;
+export const setAiCoach = (s: LocalState, on: boolean): LocalState => ({ ...s, aiExplain: { ...s.aiExplain, main: on } });
 export const agreeTerms = (s: LocalState, at: string): LocalState => (s.termsAt ? s : { ...s, termsAt: at });

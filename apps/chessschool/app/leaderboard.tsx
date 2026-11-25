@@ -18,7 +18,7 @@ export default function Leaderboard() {
   const t = copy.board;
   const country = state.profile.country ?? null;
   const [scope, setScope] = useState<BoardScope>("global");
-  const [metric, setMetric] = useState<BoardMetric>("xp");
+  const metric: BoardMetric = "score";
   const [board, setBoard] = useState<BoardResponse | null>(null);
   const [failed, setFailed] = useState<false | "offline" | "error">(false);
   const load = useCallback(() => {
@@ -48,11 +48,6 @@ export default function Leaderboard() {
     ["country", country ? `${flagOf(country)} ${t.country}` : t.country],
     ["friends", t.friends],
   ];
-  const metrics: [BoardMetric, string][] = [
-    ["xp", t.xp],
-    ["rating", t.rating],
-    ["wins", t.wins],
-  ];
   const medal = [c.gold, c.line, c.accent];
 
   if (!state.account) {
@@ -73,15 +68,9 @@ export default function Leaderboard() {
           </Pressable>
         ))}
       </View>
-      <View accessibilityRole="radiogroup" style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-        {metrics.map(([id, label]) => (
-          <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: metric === id }} onPress={() => setMetric(id)} style={{ minHeight: 36, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", backgroundColor: metric === id ? c.text : c.card, borderWidth: metric === id ? 0 : 1, borderColor: c.line }}>
-            <T role="small" style={{ fontFamily: fonts.bold, color: metric === id ? c.bg : c.text }}>
-              {label}
-            </T>
-          </Pressable>
-        ))}
-      </View>
+      <T role="small" color="textMuted">
+        {t.scoreHint}
+      </T>
 
       {failed ? (
         <View style={{ gap: 10 }}>

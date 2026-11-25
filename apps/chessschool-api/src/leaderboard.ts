@@ -11,7 +11,9 @@ export type BoardDeps = { db: Db; now: () => Date; requireUser: Guard; limiter: 
 
 export const BOARD_SIZE = 50;
 const SCOPES = new Set<BoardScope>(["global", "country", "friends"]);
-const METRICS = new Set<BoardMetric>(["xp", "rating", "wins"]);
+const METRICS = new Set<BoardMetric>(["score", "xp", "rating", "wins"]);
+/** Weekly XP counts three times so learners who mostly do lessons can still top a board led by bot players. */
+export const SCORE_XP_WEIGHT = 3;
 
 /**
  * Ranks values high to low; equal values share a rank (1, 2, 2, 4). Ties keep the order given.
@@ -29,6 +31,12 @@ export function rankRows<T extends { value: number }>(rows: T[]): (T & { rank: n
 /** Each account's value for one metric. Only accounts (never child profiles) and only non-zero values take part. */
 async function metricValues(db: Db, metric: BoardMetric, nowMs: number): Promise<Map<string, number>> {
   const out = new Map<string, number>();
+  if (metric === "score") {
+    // One board: playing rating + strongest bot beaten + 3 × this week's XP.
+    const parts = await Promise.all((["rating", "wins", "xp"] as const).map((m) => metricValues(db, m, nowMs)));
+    for (const [i, part] of parts.entries()) for (const [id, v] of part) out.set(id, (out.get(id) ?? 0) + (i === 2 ? v * SCORE_XP_WEIGHT : v));
+    return out;
+  }
   if (metric === "xp") {
     for (const r of await db.select({ id: leagueMembers.userId, xp: leagueMembers.xp }).from(leagueMembers).where(eq(leagueMembers.week, leagueWeek(nowMs)))) if (r.xp > 0) out.set(r.id, r.xp);
     return out;
@@ -78,6 +86,19 @@ export function mountLeaderboard(app: Hono<{ Variables: { user: UserRow } }>, { 
     });
     const mine = ranked.find((p) => p.id === me.id);
     return c.json({ scope, metric, rows: ranked.slice(0, BOARD_SIZE).map(toRow), me: { rank: mine?.rank ?? null, value: mine?.value ?? values.get(me.id) ?? 0 }, needsCountry: false } satisfies BoardResponse);
+  });
+
+  /** The people I've added, A to Z, for the Friends screen (blocked and suspended accounts left out). */
+  app.get("/v1/friends", requireUser, async (c) => {
+    const me = c.get("user");
+    const hidden = new Set([...(await blockedWith(db, me.id)), ...(await suspendedIds(db))]);
+    const ids = (await db.select({ id: follows.friendId }).from(follows).where(eq(follows.userId, me.id))).map((r) => r.id).filter((id) => !hidden.has(id));
+    const people = ids.length ? await db.select({ id: users.id, name: users.name, username: users.username, avatar: profiles.avatar, country: profiles.country }).from(users).leftJoin(profiles, eq(profiles.userId, users.id)).where(inArray(users.id, ids)) : [];
+    const photos = await photosFor(db, people.map((p) => p.id));
+    const friends = people
+      .map((p) => ({ id: p.id, name: firstName(p.name) || "Player", username: p.username ?? null, avatar: isAvatarId(p.avatar) ? p.avatar : "cody", photo: photos.get(p.id) ?? null, country: isCountry(p.country) ? p.country : null }))
+      .sort((x, y) => x.name.localeCompare(y.name));
+    return c.json({ friends });
   });
 
   /** Adds a friend (one way, no request to accept). Only full accounts can be added, and never yourself. */

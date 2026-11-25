@@ -5,7 +5,7 @@ import { Pressable, TextInput, View } from "react-native";
 import { AvatarFace, AvatarPicker } from "@/components/AvatarFace";
 import { Icon } from "@/components/Icon";
 import { InviteCard, ShareCardButton } from "@/components/Growth";
-import { FriendsCard, useMyDetails } from "@/components/Social";
+import { useMyDetails } from "@/components/Social";
 import { RatingChart } from "@/components/RatingChart";
 import { SkillsCard } from "@/components/SkillsCard";
 import { Button, Card, IconButton, Page, Row, SaveBanner, Segmented, Sheet, T, TextField, useToast } from "@/components/ui";
@@ -36,6 +36,9 @@ export default function You() {
     cue("tap");
     if (account) api.updateMe(patch).catch(() => {});
   };
+  // Signed in, name and picture live in Edit profile; guests edit them in sheets here.
+  const editName = () => (account ? router.push("/profile-edit") : (setDraft(profile.name), setNameError(null), setSheet("name")));
+  const editPicture = () => (account ? router.push("/profile-edit") : setSheet("picture"));
   const course = useCourse();
   // Certificates come from the server, so only signed-in learners have them.
   const finishedUnits = account && course ? focusCourse(course, progress.completed).unitsDone : [];
@@ -85,55 +88,55 @@ export default function You() {
 
   return (
     <Page title={copy.you.title} large art={TABS_BACKDROP} action={<IconButton icon="settings" label={copy.you.settings} onPress={() => router.push("/settings")} />}>
-      <Card tone="hero" art={CARD_BACKDROPS.hero} style={[{ gap: 14, borderWidth: 1, borderColor: c.line }, mine?.details.banner ? { borderTopWidth: 6, borderTopColor: c[mine.details.banner] } : null]}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel={copy.you.avatar} onPress={() => setSheet("picture")}>
-            <AvatarFace id={profile.avatar} photo={mine?.photo} size={72} />
+      <Card tone="hero" art={CARD_BACKDROPS.hero} style={[{ gap: 16, borderWidth: 1, borderColor: c.line }, mine?.details.banner ? { borderTopWidth: 6, borderTopColor: c[mine.details.banner] } : null]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={account ? copy.profileEdit.open : copy.you.avatar} onPress={editPicture} style={{ padding: 3, borderRadius: 999, borderWidth: 2, borderColor: c.brand }}>
+            <AvatarFace id={profile.avatar} photo={mine?.photo} size={84} country={profile.country ?? null} />
           </Pressable>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${profile.name.trim() || copy.you.noName}. ${copy.you.editName}`}
-              onPress={() => {
-                setDraft(profile.name);
-                setNameError(null);
-                setSheet("name");
-              }}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-            >
+          <View style={{ flex: 1, gap: 4 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`${profile.name.trim() || copy.you.noName}. ${copy.you.editName}`} onPress={editName} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <T role="title" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {profile.name.trim() || copy.you.noName}
               </T>
-              <Icon name="edit" size={18} color={c.textMuted} />
+              <Icon name="edit" size={16} color={c.textMuted} />
             </Pressable>
             {account?.username ? (
               <T role="label" color="brandText" numberOfLines={1}>
                 {copy.social.at(account.username)}
               </T>
             ) : null}
-            <T role="small" color="textMuted">
-              {profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
-            </T>
-            <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 10, minHeight: 24, borderRadius: 12, justifyContent: "center", backgroundColor: account ? c.successSoft : c.sunken }}>
-              <T role="micro" style={{ color: account ? c.successText : c.textMuted, fontFamily: fonts.semibold }}>
-                {account ? copy.you.member : copy.you.guest}
-              </T>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, minHeight: 26, borderRadius: 13, backgroundColor: c.goldSoft }}>
+                <Icon name="trophy" size={12} color={c.goldText} />
+                <T role="micro" style={{ color: c.goldText, fontFamily: fonts.semibold }}>
+                  {profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
+                </T>
+              </View>
+              <View style={{ paddingHorizontal: 10, minHeight: 26, borderRadius: 13, justifyContent: "center", backgroundColor: account ? c.successSoft : c.sunken }}>
+                <T role="micro" style={{ color: account ? c.successText : c.textMuted, fontFamily: fonts.semibold }}>
+                  {account ? copy.you.member : copy.you.guest}
+                </T>
+              </View>
             </View>
-            {account ? (
-              <T role="micro" color="textMuted" numberOfLines={1}>
-                {account.email}
-              </T>
-            ) : null}
           </View>
         </View>
-        <View style={{ gap: 6 }} accessible accessibilityLabel={rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank}>
+        <View style={{ gap: 6 }} accessible accessibilityLabel={`${progress.xp} XP. ${rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank}`}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+            <T role="heading">{`${progress.xp} XP`}</T>
+            <T role="micro" color="textMuted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank}
+            </T>
+          </View>
           <View style={{ height: 10, borderRadius: 5, backgroundColor: c.sunken, overflow: "hidden" }}>
             <View style={{ width: `${Math.round(rank.fraction * 100)}%`, height: "100%", borderRadius: 5, backgroundColor: c.brand }} />
           </View>
-          <T role="micro" color="textMuted">
-            {rank.next ? copy.you.toNext(rank.toNext, copy.ranks[rank.next]) : copy.you.topRank}
-          </T>
         </View>
+        {account ? (
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button title={copy.profileEdit.open} icon="edit" variant="secondary" onPress={() => router.push("/profile-edit")} style={{ flex: 1 }} />
+            <Button title={copy.social.friendsTitle} icon="profile" variant="secondary" onPress={() => router.push("/friends")} style={{ flex: 1 }} />
+          </View>
+        ) : null}
       </Card>
 
       {!account ? <SaveBanner title={copy.you.saveCard.title} /> : null}
@@ -164,8 +167,6 @@ export default function You() {
       {account ? <ShareCardButton kind="weekly" data={weekCard(progress, new Date())} label={copy.share.weeklyAction} /> : null}
 
       <InviteCard />
-
-      <FriendsCard />
 
       <Pressable accessibilityRole="button" accessibilityLabel={copy.trophies.open} onPress={() => router.push("/trophies")}>
         <Card style={{ gap: 12 }}>
@@ -200,9 +201,11 @@ export default function You() {
         </T>
         <Card style={{ padding: 6 }}>
           {account ? <Row icon="edit" label={copy.profileEdit.open} hint={copy.profileEdit.openHint} chevron onPress={() => router.push("/profile-edit")} /> : null}
-          <Row icon="profile" label={copy.you.name} hint={profile.name.trim() || copy.you.noName} chevron onPress={() => (setDraft(profile.name), setNameError(null), setSheet("name"))} />
+          {account ? <Row icon="profile" label={copy.social.friendsTitle} hint={copy.social.friendsHint} chevron onPress={() => router.push("/friends")} /> : null}
+          {/* Guests have no Edit profile, so name and picture stay here for them. */}
+          {!account ? <Row icon="profile" label={copy.you.name} hint={profile.name.trim() || copy.you.noName} chevron onPress={editName} /> : null}
           <Row icon="clock" label={copy.you.goal} hint={copy.you.goalOption(profile.dailyMinutes)} chevron onPress={() => setSheet("goal")} />
-          <Row icon="profile" label={copy.you.avatar} hint={copy.you.avatarHint} chevron onPress={() => setSheet("picture")} />
+          {!account ? <Row icon="profile" label={copy.you.avatar} hint={copy.you.avatarHint} chevron onPress={editPicture} /> : null}
           <Row icon="palette" label={copy.settings.looks} hint={copy.you.looksHint} chevron onPress={() => router.push("/looks")} />
           <Row icon="trophy" label={copy.board.open} hint={copy.board.global} chevron onPress={() => router.push("/leaderboard")} />
           <Row icon="history" label={copy.you.review} hint={copy.gym.review.body} chevron onPress={() => router.push("/review")} />

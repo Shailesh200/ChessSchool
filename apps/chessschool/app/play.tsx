@@ -36,7 +36,7 @@ import {
 import { botBackdrop, botRatingOf, canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { Backdrop } from "@/components/Backdrop";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board, PieceArt } from "@/components/Board";
@@ -436,8 +436,9 @@ export default function Play() {
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
       </View>
-      <View style={{ flex: 1, paddingHorizontal: 0, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
-        <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
+      {/* Scrolls rather than shrinking the board: coach notes and large system text push content down. */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 6, paddingBottom: 16, maxWidth: 720, width: "100%", alignSelf: "center" }}>
+        <BoardStage byWidth top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
           {(size, radius) => (
             <Board
               size={size}
@@ -506,7 +507,7 @@ export default function Play() {
           </>
         )}
         </View>
-      </View>
+      </ScrollView>
 
       <MovesSheet visible={movesOpen} onClose={() => setMovesOpen(false)} history={game.history} />
 

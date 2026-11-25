@@ -1,4 +1,4 @@
-import { BANNERS, BIO_MAX, cleanName, copy, normalizeUsername, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type ProfileDetails } from "@chessschool/design";
+import { BANNERS, BIO_MAX, FLAIRS, cleanName, copy, normalizeUsername, countryName, emptyDetails, errorMessage, flagOf, GOAL_MAX, nameProblem, PIECES, SHORT_MAX, SOCIALS, type AvatarId, type FlairId, type ProfileDetails } from "@chessschool/design";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -82,6 +82,12 @@ export default function ProfileEdit() {
     if (mine?.photo) void removePhoto();
   };
 
+  const pickFlair = (flair: FlairId | null) => {
+    setProfile({ flair });
+    cue("tap");
+    api.updateMe({ flair }).catch(() => {});
+  };
+
   const save = async () => {
     const clean = cleanName(name);
     const problem = nameProblem(name);
@@ -142,6 +148,14 @@ export default function ProfileEdit() {
         </View>
         <T role="label">{t.usePreset}</T>
         <AvatarPicker value={state.profile.avatar} onChange={pickPreset} />
+        <T role="label">{copy.you.flair}</T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+          {FLAIRS.filter((id) => id !== "monitor").map((id) => (
+            <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: state.profile.flair === id }} onPress={() => pickFlair(state.profile.flair === id ? null : id)} style={pill(state.profile.flair === id)}>
+              <T role="small">{copy.you.flairs[id]}</T>
+            </Pressable>
+          ))}
+        </View>
       </Card>
 
       <Card style={{ gap: 14 }}>

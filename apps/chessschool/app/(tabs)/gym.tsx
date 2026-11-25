@@ -56,31 +56,36 @@ export default function Gym() {
       <T role="heading" header>
         {copy.gym.bots}
       </T>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      <View style={{ gap: 10 }}>
         {BOTS.map((b) => (
           <Pressable
             key={b.id}
             accessibilityRole="button"
             accessibilityLabel={`${b.name}. ${b.label}. ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}. ${b.blurb}`}
             onPress={() => router.push(`/play?bot=${b.id}`)}
-            style={({ pressed }) => ({ flexGrow: 1, flexBasis: "46%", maxWidth: "100%", alignItems: "center", gap: 4, paddingVertical: 14, paddingHorizontal: 8, borderRadius: 20, borderWidth: 1, borderColor: pressed ? c.brand : c.line, backgroundColor: c.card })}
+            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: pressed ? c.brand : c.line, backgroundColor: c.card })}
           >
             <BotAvatar bot={b.id} size={56} />
-            <T role="label" center numberOfLines={1}>
-              {b.name}
-            </T>
-            <T role="micro" style={{ color: c.goldText, fontFamily: fonts.bold }}>
-              {"★".repeat(b.level)}
-            </T>
-            <T role="micro" color="textMuted" center>
-              {b.label}
-            </T>
-            <T role="micro" color="textMuted">
-              {copy.gym.record(bots[b.id]?.played ?? 0, bots[b.id]?.won ?? 0)}
-            </T>
-            <T role="micro" color="textMuted">
-              {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
-            </T>
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <T role="label" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {b.name}
+                </T>
+                <T role="micro" style={{ color: c.goldText, fontFamily: fonts.bold }}>
+                  {"★".repeat(b.level)}
+                </T>
+              </View>
+              <T role="micro" color="textMuted" numberOfLines={1}>
+                {`${b.label} · ${copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}`}
+              </T>
+              <T role="small" numberOfLines={2}>
+                {b.blurb}
+              </T>
+              <T role="micro" color="textMuted">
+                {copy.gym.record(bots[b.id]?.played ?? 0, bots[b.id]?.won ?? 0)}
+              </T>
+            </View>
+            <Icon name="chevron" size={18} color={c.textMuted} />
           </Pressable>
         ))}
       </View>
