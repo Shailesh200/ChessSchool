@@ -4,7 +4,7 @@ import { useTheme } from "@/lib/theme";
 import { PieceArt } from "./Board";
 import { Cody } from "./Lottie";
 
-/** Each bot wears the piece of its name, weakest to strongest: Pip pawn, Sir Gallop knight, Professor Bishop, Rooky, King Ivy queen, King Atlas king. */
+/** Each bot wears the piece of its name, weakest to strongest: Pip pawn, Sir Gallop knight, Professor Bishop, Rooky, Queen Ivy queen, King Atlas king. */
 const PIECE: Record<BotId, PieceType | null> = { pip: "p", cody: null, rooky: "n", bishop: "b", ivy: "r", atlas: "q", raja: "k" };
 
 /** Each bot is a Toy piece; Cody is Cody. */

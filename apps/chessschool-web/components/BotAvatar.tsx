@@ -4,7 +4,7 @@ import type { BotId, PieceType } from "@chessschool/chess";
 import { Cody } from "./Lottie";
 import { PieceArt } from "./Board";
 
-/** Each bot wears the piece of its name, weakest to strongest: Pip pawn, Sir Gallop knight, Professor Bishop, Rooky, King Ivy queen, King Atlas king. */
+/** Each bot wears the piece of its name, weakest to strongest: Pip pawn, Sir Gallop knight, Professor Bishop, Rooky, Queen Ivy queen, King Atlas king. */
 const PIECE: Record<BotId, PieceType | null> = { pip: "p", cody: null, rooky: "n", bishop: "b", ivy: "r", atlas: "q", raja: "k" };
 const TINT: Record<BotId, string> = { pip: "tint-success", cody: "tint-brand", rooky: "tint-accent", bishop: "tint-gold", ivy: "tint-brand", atlas: "tint-accent", raja: "tint-gold" };
 

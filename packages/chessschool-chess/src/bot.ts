@@ -29,7 +29,7 @@ export const BOTS: readonly BotInfo[] = [
   { id: "rooky", name: "Sir Gallop", level: 2, blurb: "A cheerful knight who hops two moves ahead and guards his pieces.", label: "Novice", rating: 600, strength: 1250, takebacks: true },
   { id: "bishop", name: "Professor Bishop", level: 3, blurb: "Loves tricky diagonals and punishes loose pieces.", label: "Intermediate", rating: 900, strength: 1500, takebacks: true },
   { id: "ivy", name: "Rooky", level: 4, blurb: "Rolls down open files with sharp tactics. Calculates deeply.", label: "Club player", rating: 1200, strength: 1800, takebacks: false },
-  { id: "atlas", name: "King Ivy", level: 5, blurb: "Tournament-strong. Very few mistakes.", label: "Strong club", rating: 1500, strength: 2050, takebacks: false },
+  { id: "atlas", name: "Queen Ivy", level: 5, blurb: "Tournament-strong. Very few mistakes.", label: "Strong club", rating: 1500, strength: 2050, takebacks: false },
   { id: "raja", name: "King Atlas", level: 6, blurb: "A royal strategist who almost never slips.", label: "Expert", rating: 1800, strength: 2300, takebacks: false },
   { id: "cody", name: "Chaukor", level: 7, blurb: "The school's champion. Plays like a master.", label: "Master", rating: 2100, strength: 2500, takebacks: false },
 ];
@@ -150,7 +150,7 @@ export function botOptions(fen: string, bot: BotId | LegacyLevel, rand: () => nu
   const phase = phaseOf(fen.split(" ")[0], plyOf(fen));
   // The Lichess data stops at the 2400 band, so every bot stretched past it used to draw the same losses and the
   // top four played alike (bot-ladder 2026-11-26: Chaukor lost 5-1 to King Atlas). Past the ceiling, play the
-  // engine's best move more often the stronger the bot is: Rooky ~20%, King Ivy ~50%, King Atlas ~75%, Chaukor always.
+  // engine's best move more often the stronger the bot is: Rooky ~20%, Queen Ivy ~50%, King Atlas ~75%, Chaukor always.
   const target = r > TOP_BAND && rand() < Math.min(1, (r - TOP_BAND) / ABOVE_DATA) ? 0 : sampleLoss(r, phase, tactical, rand);
   return nearestByLoss(ranked, target, (m) => liking(id, m, phase === "opening"), rand, n);
 }

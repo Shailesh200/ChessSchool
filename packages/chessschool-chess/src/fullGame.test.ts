@@ -149,7 +149,7 @@ describe("bot names", () => {
       ["rooky", "Sir Gallop", 600],
       ["bishop", "Professor Bishop", 900],
       ["ivy", "Rooky", 1200],
-      ["atlas", "King Ivy", 1500],
+      ["atlas", "Queen Ivy", 1500],
       ["raja", "King Atlas", 1800],
       ["cody", "Chaukor", 2100],
     ]);

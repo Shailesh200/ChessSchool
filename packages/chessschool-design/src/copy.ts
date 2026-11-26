@@ -17,7 +17,7 @@ export const copy = {
     rooky: { name: "Sir Gallop", blurb: "A cheerful knight who hops two moves ahead and guards his pieces.", label: "Novice" },
     bishop: { name: "Professor Bishop", blurb: "Loves tricky diagonals and punishes loose pieces.", label: "Intermediate" },
     ivy: { name: "Rooky", blurb: "Rolls down open files with sharp tactics. Calculates deeply.", label: "Club player" },
-    atlas: { name: "King Ivy", blurb: "Tournament-strong. Very few mistakes.", label: "Strong club" },
+    atlas: { name: "Queen Ivy", blurb: "Tournament-strong. Very few mistakes.", label: "Strong club" },
     raja: { name: "King Atlas", blurb: "A royal strategist who almost never slips.", label: "Expert" },
     cody: { name: "Chaukor", blurb: "The school's champion. Plays like a master.", label: "Master" },
   },
