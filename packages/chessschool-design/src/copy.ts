@@ -382,7 +382,6 @@ export const copy = {
     phrases: {} as Record<string, string>,
     close: "Close lesson",
     /** First-run lesson: a returning learner on a new device goes to log in. */
-    haveAccount: "I have an account",
     moreLine: "Tap for the next line.",
     progress: (i: number, n: number) => `Step ${i} of ${n}`,
     next: "Continue",
@@ -1222,8 +1221,9 @@ export const copy = {
       "Your coach uses AI to explain games, give hints and play as some bots. It only sees chess moves and positions, never who you are.",
       "Be kind to other players.",
     ],
-    note: "By tapping Agree, you accept our Terms of use and Privacy policy.",
-    agree: "Agree and continue",
+    note: "By continuing, you accept our Terms of use and Privacy policy.",
+    agree: "I'm new, let's start",
+    haveAccount: "I already have an account",
   },
 
   /** The "AI features" section of the privacy policy (web /privacy). */

@@ -10,7 +10,7 @@ import { localizeSteps, type CourseText } from "../src/course-text";
 /**
  * Records a coach's lines with ElevenLabs and uploads them to Cloudflare R2, earliest lessons first.
  * Every clip is also kept in the local voice cache; cached lines are uploaded without re-recording.
- * Usage: voice:build --coach meera [--lang hi] [--max-chars 70000] [--concurrency 4]
+ * Usage: voice:build --coach meera [--lang hi] [--max-chars 70000] [--reserve 15000] [--concurrency 4]
  * Without --max-chars it only reports what is missing. Progress is saved after every clip, so a
  * stopped run picks up where it left off. Load the result into the database with seed:course --apply.
  */
@@ -25,6 +25,8 @@ if (!isCoachId(coach)) {
   process.exit(1);
 }
 const maxChars = Number(arg("--max-chars") ?? 0);
+/** Characters each period that batch runs leave untouched, for new lines. Override with --reserve. */
+const RESERVE = Number(arg("--reserve") ?? 15_000);
 const concurrency = Math.max(1, Math.min(5, Number(arg("--concurrency") ?? 4)));
 
 const lang = arg("--lang") ?? "en";
@@ -56,8 +58,10 @@ if (!apiKey || !store) {
 }
 const sub = (await (await fetch("https://api.elevenlabs.io/v1/user/subscription", { headers: { "xi-api-key": apiKey } })).json()) as { character_count: number; character_limit: number };
 const left = sub.character_limit - sub.character_count;
-const budget = Math.min(maxChars, left);
-console.log(`ElevenLabs characters left this period: ${left}; this run may use ${budget}`);
+// Monthly batches never spend the last RESERVE characters: they stay for new lines (a new bot, coach or lesson).
+const budget = Math.max(0, Math.min(maxChars, left - RESERVE));
+console.log(`ElevenLabs characters left this period: ${left}; keeping ${RESERVE} in reserve; this run may use ${budget}`);
+if (left - RESERVE < needChars) console.warn(`Heads up: ${needChars} characters are still missing for ${coach} (${lang}); this period's credit only covers ${Math.max(0, left - RESERVE)} after the reserve.`);
 
 let queue: [string, string][] = [];
 let planned = 0;

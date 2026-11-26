@@ -8,25 +8,28 @@ import { useApp } from "@/lib/state";
 import { track as pulse } from "@/lib/analytics";
 
 /**
- * Once per device, before anything else: the app language, then the terms in short. Agreeing covers the
+ * Once per device, before anything else: the app language, the terms in short, then new or returning. Agreeing covers the
  * AI features, so nothing asks again later. Changing the language re-renders everything in it, lessons included.
  */
 export default function Start() {
   const { state, update, setPrefs, cue } = useApp();
   const s = copy.start;
-  const agree = () => {
+  // Asked before the first lesson starts, so someone logging in never has a lesson (and its coach voice) running behind.
+  const agree = (hasAccount: boolean) => {
     pulse("terms_accept", { lang: language() });
     const at = new Date().toISOString();
     update((st) => agreeTerms(st, at));
     cue("success");
-    router.replace(startRoute(agreeTerms(state, at)) as "/today");
+    if (hasAccount) router.push("/login");
+    else router.replace(startRoute(agreeTerms(state, at)) as "/today");
   };
   return (
     <Flow
       scroll
       footer={
         <>
-          <Button title={s.agree} onPress={agree} />
+          <Button title={s.agree} onPress={() => agree(false)} />
+          <Button title={s.haveAccount} variant="secondary" onPress={() => agree(true)} />
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}>
             <Button title={copy.terms.title} variant="ghost" block={false} onPress={() => router.push("/terms")} />
             <Button title={copy.settings.privacy} variant="ghost" block={false} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)} />

@@ -15,12 +15,14 @@ function Start() {
   const router = useRouter();
   const next = useSearchParams().get("next");
   const s = copy.start;
-  const agree = () => {
+  // Asked before the first lesson starts, so someone logging in never has a lesson (and its coach voice) running behind.
+  const agree = (hasAccount: boolean) => {
     pulse("terms_accept", { lang: language() });
     const at = new Date().toISOString();
     update((st) => agreeTerms(st, at));
     cue("success");
     // Only same-site paths: `next` comes from the URL.
+    if (hasAccount) return router.push("/login");
     router.replace(next?.startsWith("/") && !next.startsWith("//") ? next : startRoute(agreeTerms(state, at)));
   };
   return (
@@ -45,8 +47,11 @@ function Start() {
         <p className="muted small">{s.note}</p>
       </div>
       <footer className="flow-actions">
-        <Button block onClick={agree}>
+        <Button block onClick={() => agree(false)}>
           {s.agree}
+        </Button>
+        <Button block variant="secondary" onClick={() => agree(true)}>
+          {s.haveAccount}
         </Button>
         <p className="start-links">
           <Link href="/terms">{copy.terms.title}</Link> · <a href={PRIVACY_URL}>{copy.settings.privacy}</a>

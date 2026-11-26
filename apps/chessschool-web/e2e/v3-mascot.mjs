@@ -1,5 +1,4 @@
-// Chaukor + Sunset walkthrough: a fresh visitor gets Sunset and the first lesson with "I have an account",
-// that link leads to log in and then Today; the mascot plays lesson-complete on the done screen and
+// Chaukor + Sunset walkthrough: a fresh visitor gets Sunset and the first lesson; log in leads to Today; the mascot plays lesson-complete on the done screen and
 // streak-danger on Today in the evening; a stored Classroom theme survives a reload. Saves screenshots.
 // Usage: node e2e/v3-mascot.mjs [outDir]   (web on :3551, API on :3550; both local)
 import { chromium } from "@playwright/test";
@@ -68,7 +67,7 @@ async function solveStep(page) {
 }
 
 async function freshVisitor() {
-  log("fresh visitor: Sunset, first lesson, I have an account, lesson complete");
+  log("fresh visitor: Sunset, first lesson, lesson complete");
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   const seen = clips(page);
@@ -76,7 +75,6 @@ async function freshVisitor() {
   await page.waitForURL("**/lesson/board?first=1");
   await page.locator(".board").first().waitFor();
   check((await csTheme(page)) === "sunset", "a fresh visitor gets the Sunset theme");
-  check(await page.getByRole("link", { name: "I have an account" }).isVisible(), '"I have an account" shows on the first-run lesson');
   check(await drawn(page, ".lesson-stage"), "Chaukor draws in the lesson");
   await page.screenshot({ path: `${OUT}/01-first-lesson-sunset.png` });
 
@@ -94,7 +92,7 @@ async function freshVisitor() {
 }
 
 async function haveAccount() {
-  log("I have an account → log in → Today");
+  log("log in → Today");
   const email = `mascot-${Date.now()}@example.com`;
   const password = "chaukor-123";
   const res = await fetch(`${API}/v1/auth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Asha", email, password }) });
@@ -103,14 +101,8 @@ async function haveAccount() {
   const page = await ctx.newPage();
   await page.goto(BASE);
   await page.waitForURL("**/lesson/board?first=1");
-  await page.getByRole("link", { name: "I have an account" }).click();
-  await page.waitForURL("**/login");
-  check(await page.getByRole("button", { name: "Back" }).first().isVisible(), "log in offers a way back");
-  await page.getByRole("button", { name: "Back" }).first().click();
-  await page.waitForURL("**/lesson/board**");
-  check(true, "Back returns to the lesson");
-  await page.getByRole("link", { name: "I have an account" }).click();
-  await page.waitForURL("**/login");
+  // "I already have an account" is asked on the start screen now, before any lesson; go straight to log in.
+  await page.goto(`${BASE}/login`);
   await page.getByLabel("Email").fill(email);
   await page.locator("input[type=password]").fill(password);
   await page.screenshot({ path: `${OUT}/03-login.png` });

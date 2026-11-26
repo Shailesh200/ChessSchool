@@ -2,7 +2,6 @@
 
 import { spokenLines, type Step } from "@chessschool/chess";
 import { accuracy, copy, dayKey, elapsedSeconds, firstLessonId, FLOW_CUES, goalMet, isGuestLockedLesson, isPerfect, lessonAccess, nextOpenLesson, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LessonDone, type LessonSummary } from "@/components/LessonDone";
@@ -109,13 +108,6 @@ export default function LessonPage() {
       steps={steps}
       say={say}
       closeHref={firstRun ? "/welcome" : "/today"}
-      topAction={
-        firstRun ? (
-          <Link href="/login" className="lesson-account">
-            {copy.lesson.haveAccount}
-          </Link>
-        ) : null
-      }
       onClose={(step) => track("lesson_quit", { lesson: id, step })}
       onFinished={(n, tally) => {
         const firstLessonToday = !Object.values(state.progress.completed).some((day) => day === today);

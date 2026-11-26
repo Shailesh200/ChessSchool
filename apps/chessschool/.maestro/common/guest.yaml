@@ -13,9 +13,9 @@ appId: com.chessschool.app
     optional: true
 # Every fresh install agrees to the terms once, first.
 - extendedWaitUntil:
-    visible: "Agree and continue"
+    visible: "I.m new, let.s start"
     timeout: 60000
-- tapOn: "Agree and continue"
+- tapOn: "I.m new, let.s start"
 # Both the first lesson ("Step 1 of 9") and the welcome steps ("Step 1 of 3") show this.
 - extendedWaitUntil:
     visible: "Step 1 of.*"
