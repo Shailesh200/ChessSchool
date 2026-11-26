@@ -81,7 +81,8 @@ jobs:
           gzip -9 -c "$RUNNER_TEMP/backup.db" | openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -out "$RUNNER_TEMP/$name"
           rm -f "$RUNNER_TEMP/backup.db"
           # Prove the file opens before trusting it.
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -in "$RUNNER_TEMP/$name" | gunzip | head -c 16 | grep -q "SQLite format 3"
+          # head stops reading after 16 bytes, which breaks gunzip's pipe; without pipefail only grep's answer counts.
+          (set +o pipefail; openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -in "$RUNNER_TEMP/$name" | gunzip 2>/dev/null | head -c 16 | grep -q "SQLite format 3")
           endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
           aws s3 cp "$RUNNER_TEMP/$name" "s3://$BUCKET/backups/db/$name" --endpoint-url "$endpoint" --only-show-errors
           echo "Uploaded backups/db/$name ($(stat -c %s "$RUNNER_TEMP/$name") bytes)"
