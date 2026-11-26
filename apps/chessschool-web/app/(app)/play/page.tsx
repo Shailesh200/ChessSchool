@@ -25,6 +25,7 @@ import {
   timeLeft,
   setupProblem,
   turnOf,
+  materialEdge,
   winnerOf,
   type BotId,
   type Color,
@@ -35,7 +36,7 @@ import {
   type Square,
   type TimeControlId,
 } from "@chessschool/chess";
-import { botBackdrop, botRatingOf, canUseGym, copy, ENDGAME_MASTERY, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { botBackdrop, botRatingOf, canUseGym, copy, gameMood, ENDGAME_MASTERY, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "@/components/Board";
@@ -371,7 +372,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
     return (
       <div className="player">
         {isBot && game.setup.opponent.kind === "bot" ? (
-          <BotAvatar bot={game.setup.opponent.bot} />
+          <BotAvatar bot={game.setup.opponent.bot} size={48} mood={gameMood({ result: playResult(game), thinking: game.botThinking, edge: materialEdge(game.fen) * (game.setup.you === "w" ? -1 : 1) })} />
         ) : (
           <span className="player-avatar" aria-hidden>
             {friend ? copy.play.sides[color][0] : <Icon name="profile" size={22} />}

@@ -311,14 +311,33 @@ export const themePalettes: Record<Exclude<ThemeId, "classroom">, Palette> = {
 /* ---------- board colours (colour-blind friendly) ---------- */
 
 /** "theme" uses the app theme's board; the others avoid red/green and work for colour-blind players. */
-export type BoardColorsId = "theme" | "blueOrange" | "greyBlue";
-export const BOARD_COLORS: readonly BoardColorsId[] = ["theme", "blueOrange", "greyBlue"];
+export type BoardColorsId = "theme" | "green" | "brown" | "slate" | "walnut" | "ocean" | "lavender" | "blueOrange" | "greyBlue";
+export const BOARD_COLORS: readonly BoardColorsId[] = ["theme", "green", "brown", "slate", "walnut", "ocean", "lavender", "blueOrange", "greyBlue"];
 export const isBoardColors = (v: unknown): v is BoardColorsId => BOARD_COLORS.includes(v as BoardColorsId);
 
 type BoardKeys = Pick<Palette, "boardLight" | "boardDark" | "boardSelect" | "boardMove" | "boardHint" | "boardCheck" | "boardDot" | "boardCoordOnLight" | "boardCoordOnDark">;
 
+/** Plain two-tone boards; marks are shared so the highlight colours read the same on each. */
+const plain = (light: string, dark: string, coordOnLight: string, coordOnDark: string): BoardKeys => ({
+  boardLight: light,
+  boardDark: dark,
+  boardSelect: "rgba(255, 214, 10, 0.62)",
+  boardMove: "rgba(255, 214, 10, 0.4)",
+  boardHint: "rgba(0, 114, 178, 0.9)",
+  boardCheck: "rgba(229, 72, 77, 0.85)",
+  boardDot: "rgba(0, 0, 0, 0.3)",
+  boardCoordOnLight: coordOnLight,
+  boardCoordOnDark: coordOnDark,
+});
+
 /** Okabe-Ito hues: blue squares with orange/yellow marks, or grey squares with blue/orange marks. */
 export const boardColorPalettes: Record<Exclude<BoardColorsId, "theme">, BoardKeys> = {
+  green: plain("#EEEED2", "#769656", "#3F5A2A", "#16141F"),
+  brown: plain("#F0D9B5", "#B58863", "#6B4A2E", "#16141F"),
+  slate: plain("#DEE3E6", "#8CA2AD", "#3F5663", "#16141F"),
+  walnut: plain("#E8D9C0", "#A67D5D", "#5E4330", "#16141F"),
+  ocean: plain("#EAE9D2", "#4B7399", "#2F4E6E", "#FFFFFF"),
+  lavender: plain("#E4E1F2", "#9A90C8", "#4F4585", "#16141F"),
   blueOrange: {
     boardLight: "#EAF2FB",
     boardDark: "#2F6DB5",

@@ -217,7 +217,7 @@ export type RewardKind = "theme" | "pieces" | "icon";
 /** Looks that start locked and open after N quest days. Accessibility looks (High contrast) are never here; app icons have their own goals (appIcons.ts). */
 export const QUEST_REWARDS: readonly { kind: RewardKind; id: string; days: number }[] = [
   { kind: "theme", id: "ocean", days: 1 },
-  { kind: "pieces", id: "chaturanga", days: 3 },
+  { kind: "pieces", id: "fantasy", days: 3 },
   { kind: "theme", id: "midnight", days: 7 },
 ];
 

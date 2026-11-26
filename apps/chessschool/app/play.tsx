@@ -22,6 +22,7 @@ import {
   TIME_CONTROLS,
   timeLeft,
   turnOf,
+  materialEdge,
   winnerOf,
   type BotId,
   type Color,
@@ -33,7 +34,7 @@ import {
   type TimeControlId,
   setupProblem,
 } from "@chessschool/chess";
-import { botBackdrop, botRatingOf, canUseGym, copy, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
+import { botBackdrop, botRatingOf, canUseGym, copy, gameMood, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -370,7 +371,7 @@ export default function Play() {
     if (isBot && game.setup.opponent.kind === "bot") {
       return (
         <CoachCard
-          avatar={<BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} />}
+          avatar={<BotAvatar bot={game.setup.opponent.bot} size={BOT_AVATAR} mood={gameMood({ result, thinking: game.botThinking, edge: materialEdge(game.fen) * (game.setup.you === "w" ? -1 : 1) })} />}
           title={name}
           trailing={clock(color)}
         >

@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { Backdrop } from "@/components/Backdrop";
+import { RankEmblem } from "@/components/RankEmblem";
 
 export default function YouPage() {
   const { state, ready, setProfile, cue } = useApp();
@@ -122,7 +123,10 @@ export default function YouPage() {
               <Icon name="edit" size={18} />
             </button>
             {account?.username ? <span className="me-username">{copy.social.at(account.username)}</span> : null}
-            <span className="muted">{profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
+            <span className="muted rank-chip">
+              <RankEmblem rank={rank.rank} size={22} />
+              {profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
+            </span>
             <span className={`me-chip${account ? " is-member" : ""}`}>{account ? copy.you.member : copy.you.guest}</span>
             {account ? <span className="muted small">{account.email}</span> : null}
           </div>

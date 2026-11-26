@@ -1,15 +1,12 @@
-import { CARD_BACKDROPS, copy, rankFor, RANKS, type RankId } from "@chessschool/design";
-import type { PieceType } from "@chessschool/chess";
+import { CARD_BACKDROPS, copy, rankFor, RANKS } from "@chessschool/design";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { fonts, useTheme } from "@/lib/theme";
-import { PieceArt } from "./Board";
 import { Icon } from "./Icon";
+import { RankEmblem } from "./RankEmblem";
 import { Card, T } from "./ui";
 
-const PIECE: Record<RankId, PieceType> = { pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k" };
-
-/** Learn: "Your rank". A gold medal with the current rank's piece, progress to the next rank, the six-rank ladder and three stats. */
+/** Learn: "Your rank". The current rank's emblem, progress to the next rank, the six-rank ladder and three stats. */
 export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; streak: number; rating: number; puzzleRating: number }) {
   const { c } = useTheme();
   const r = rankFor(xp);
@@ -31,11 +28,7 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: c.gold, borderBottomWidth: 6, borderColor: c.goldEdge, alignItems: "center", justifyContent: "center", shadowColor: c.goldEdge, shadowOpacity: 0.35, shadowRadius: 9, shadowOffset: { width: 0, height: 8 }, elevation: 4 }}>
-          <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center" }}>
-            <PieceArt piece={{ type: PIECE[r.rank], color: "b" }} size={52} />
-          </View>
-        </View>
+        <RankEmblem rank={r.rank} size={104} />
         <View style={{ flex: 1, gap: 6 }}>
           <T role="title" style={{ fontSize: 30, lineHeight: 32 }}>
             {copy.ranks[r.rank]}
@@ -61,8 +54,8 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
             const now = i === r.index;
             return (
               <View key={rank.id} style={{ alignItems: "center", gap: 4, flex: 1 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: done ? c.successSoft : now ? c.goldSoft : c.sunken, borderWidth: now ? 2 : 0, borderColor: c.gold, opacity: done || now ? 1 : 0.6 }}>
-                  <PieceArt piece={{ type: PIECE[rank.id], color: "b" }} size={26} />
+                <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", opacity: done || now ? 1 : 0.4 }}>
+                  <RankEmblem rank={rank.id} size={now ? 40 : 34} />
                 </View>
                 <T role="micro" color={now ? "text" : "textMuted"} style={now ? { fontFamily: fonts.bold } : undefined}>
                   {copy.ranks[rank.id]}

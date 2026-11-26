@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
+import { RankEmblem } from "@/components/RankEmblem";
 
 export default function You() {
   const { state, setProfile, cue } = useApp();
@@ -107,7 +108,7 @@ export default function You() {
             ) : null}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, minHeight: 26, borderRadius: 13, backgroundColor: c.goldSoft }}>
-                <Icon name="trophy" size={12} color={c.goldText} />
+                <RankEmblem rank={rank.rank} size={22} />
                 <T role="micro" style={{ color: c.goldText, fontFamily: fonts.semibold }}>
                   {profile.flair && profile.flair !== "monitor" ? copy.you.flairs[profile.flair] : copy.today.level(copy.ranks[rank.rank], rank.level)}
                 </T>

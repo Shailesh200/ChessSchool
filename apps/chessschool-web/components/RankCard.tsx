@@ -1,15 +1,13 @@
 "use client";
 
-import type { PieceType } from "@chessschool/chess";
-import { CARD_BACKDROPS, copy, rankFor, RANKS, type RankId } from "@chessschool/design";
+import { CARD_BACKDROPS, copy, rankFor, RANKS } from "@chessschool/design";
 import Link from "next/link";
-import { PieceArt } from "./Board";
+import { RankEmblem } from "./RankEmblem";
 import { Icon } from "./Icon";
 import { Backdrop } from "./Backdrop";
 
-const PIECE: Record<RankId, PieceType> = { pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k" };
 
-/** Learn: "Your rank". A gold medal with the current rank's piece, progress to the next rank, the six-rank ladder and three stats. */
+/** Learn: "Your rank". The current rank's emblem, progress to the next rank, the six-rank ladder and three stats. */
 export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; streak: number; rating: number; puzzleRating: number }) {
   const r = rankFor(xp);
   const goal = r.next ? RANKS[r.index + 1].xp : xp;
@@ -28,11 +26,7 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
         <span className="muted small">{copy.today.rankStep(r.index + 1, RANKS.length)}</span>
       </div>
       <div className="rank-card-hero">
-        <span className="rank-medal" aria-hidden>
-          <span>
-            <PieceArt piece={{ type: PIECE[r.rank], color: "b" }} size={52} />
-          </span>
-        </span>
+        <RankEmblem rank={r.rank} size={104} />
         <div className="rank-card-name">
           <strong>{copy.ranks[r.rank]}</strong>
           <span className="muted small">{copy.today.rankXp(xp)}</span>
@@ -45,9 +39,7 @@ export function RankCard({ xp, streak, rating, puzzleRating }: { xp: number; str
       <ol className="rank-ladder" aria-label={copy.today.rankTitle}>
         {RANKS.map((rank, i) => (
           <li key={rank.id} className={i < r.index ? "is-done" : i === r.index ? "is-now" : ""} aria-current={i === r.index ? "step" : undefined}>
-            <span aria-hidden>
-              <PieceArt piece={{ type: PIECE[rank.id], color: "b" }} size={26} />
-            </span>
+            <RankEmblem rank={rank.id} size={i === r.index ? 40 : 34} />
             {copy.ranks[rank.id]}
           </li>
         ))}

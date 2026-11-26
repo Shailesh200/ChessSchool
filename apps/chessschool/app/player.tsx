@@ -10,6 +10,7 @@ import { Button, Card, Page, Row, Sheet, T, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { fonts, useTheme } from "@/lib/theme";
+import { RankEmblem } from "@/components/RankEmblem";
 
 /** A player's public profile (leaderboard row, friend, link): rank, stats, trophies, recent games, details, links, and add friend / report / block. */
 export default function PlayerScreen() {
@@ -131,7 +132,8 @@ export default function PlayerScreen() {
             </T>
           ) : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            <View style={{ paddingHorizontal: 10, minHeight: 26, borderRadius: 13, justifyContent: "center", backgroundColor: c.brandSoft }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 6, paddingRight: 10, minHeight: 26, borderRadius: 13, backgroundColor: c.brandSoft }}>
+              <RankEmblem rank={rank.rank} size={22} />
               <T role="micro" style={{ color: c.brandText, fontFamily: fonts.semibold }}>
                 {copy.today.level(copy.ranks[rank.rank], rank.level)}
               </T>

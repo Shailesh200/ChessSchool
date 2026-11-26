@@ -94,6 +94,7 @@ export default function LooksPage() {
             );
           })}
         </div>
+        <p className="muted small">{copy.looks.credit}</p>
       </Card>
 
       <Card className="settings-group">

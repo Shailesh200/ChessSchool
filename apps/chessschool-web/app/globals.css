@@ -7135,3 +7135,11 @@ button.game-row {
 .cmap-trail svg.cmap-scene.right {
   right: 2px;
 }
+
+/* Bot characters and rank emblems (art from @chessschool/design botArt). */
+.bot-figure { position: relative; display: inline-block; flex: none; }
+.bot-figure-body, .bot-figure-fx { position: absolute; inset: 0; display: block; }
+.bot-figure-body { transform-origin: 50% 88%; }
+.bot-figure svg, .rank-emblem svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.rank-emblem { display: inline-block; flex: none; line-height: 0; }
+.rank-chip { display: inline-flex; align-items: center; gap: 4px; }

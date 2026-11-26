@@ -587,32 +587,23 @@ describe("daily puzzle", () => {
 });
 
 describe("piece sets", () => {
-  it("ships Classic plus five silhouette sets and sends retired sets back to Classic", () => {
-    expect(PIECE_SETS.map((s) => s.id)).toEqual(["toy", "staunton", "flat", "chaturanga", "geometric", "bubble"]);
-    expect(PIECE_SETS[0].name).toBe("Classic");
-    expect(PIECE_SETS.every((s) => s.source === "chessschool")).toBe(true);
-    for (const id of ["toy", "staunton", "flat", "chaturanga", "geometric", "bubble"]) expect(migratePieceSet(id)).toBe(id);
-    for (const id of ["clay", "pixel", "outline", "spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]) {
+  it("ships the open sets plus Toy, defaults to Celtic and sends retired sets to the default", () => {
+    expect(PIECE_SETS.map((s) => s.id)).toEqual(["celtic", "classic", "spatial", "fantasy", "chessnut", "wood", "papercut", "toy"]);
+    expect(PIECE_SETS.filter((s) => s.source === "open").every((s) => s.credit)).toBe(true);
+    for (const s of PIECE_SETS) expect(migratePieceSet(s.id)).toBe(s.id);
+    for (const id of ["staunton", "flat", "chaturanga", "geometric", "bubble", "clay", "pixel"]) {
       expect(isRemovedPieceSet(id)).toBe(true);
-      expect(migratePieceSet(id)).toBe("toy");
+      expect(migratePieceSet(id)).toBe("celtic");
     }
-    expect(migratePieceSet(null)).toBe("toy");
-    expect(migratePieceSet("nope")).toBe("toy");
+    expect(migratePieceSet(null)).toBe("celtic");
   });
 
-  it("gives each set its own look and keeps the two sides apart", () => {
-    const fills = (set: (typeof PIECE_SETS)[number]["id"], c: "w" | "b") => {
-      const a = pieceArtwork(set, c, "k");
-      return a.kind === "vector" ? a.drawing.ops.map((o) => ("d" in o ? o.d : "")).join() : "";
-    };
-    const shapes = new Set(PIECE_SETS.map((s) => fills(s.id, "w")));
-    expect(shapes.size).toBe(PIECE_SETS.length);
-    for (const set of PIECE_SETS) {
-      const w = pieceArtwork(set.id, "w", "q");
-      const b = pieceArtwork(set.id, "b", "q");
-      if (w.kind === "vector" && b.kind === "vector") expect(w.drawing.ops[0].fill).not.toBe(b.drawing.ops[0].fill);
-    }
+  it("points each open set at its own image per piece and side", () => {
+    expect(pieceArtwork("celtic", "w", "q")).toEqual({ kind: "asset", asset: "celtic/wQ" });
+    expect(pieceArtwork("wood", "b", "n")).toEqual({ kind: "asset", asset: "wood/bN" });
+    expect(pieceArtwork("toy", "w", "k").kind).toBe("vector");
   });
+
 
   it("draws every piece in every set", () => {
     for (const set of PIECE_SETS) {

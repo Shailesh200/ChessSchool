@@ -370,10 +370,11 @@ describe("Phase 3 progress", () => {
     expect(h.activeGame?.setup.opponent).toEqual({ kind: "bot", bot: "rooky" });
     expect(h.prefs.theme).toBe("classroom");
     // Pixel was retired: the saved choice falls back to Classic.
-    expect(h.prefs.pieceSet).toBe("toy");
+    expect(h.prefs.pieceSet).toBe("celtic");
+    expect(hydrateState({ ...createInitialState("t"), prefs: { pieceSet: "toy", piecesV2: true } }, () => "n").prefs.pieceSet).toBe("toy");
     expect(h.prefs.promotion).toBe("ask");
-    for (const removed of ["spatial", "arcade", "bold", "heritage", "cartoon", "fantasy", "chessnut", "dubrovny", "kiwen-suwi"]) {
-      expect(hydrateState({ ...createInitialState("old"), prefs: { pieceSet: removed } }, () => "n").prefs.pieceSet).toBe("toy");
+    for (const removed of ["staunton", "bubble", "arcade", "bold", "heritage", "cartoon", "dubrovny", "kiwen-suwi"]) {
+      expect(hydrateState({ ...createInitialState("old"), prefs: { pieceSet: removed } }, () => "n").prefs.pieceSet).toBe("celtic");
     }
   });
 

@@ -96,6 +96,8 @@ export type Prefs = {
   reminderHour: number;
   theme: ThemeId;
   pieceSet: string;
+  /** Set once a save has had its old default (Toy) moved to Celtic. */
+  piecesV2?: boolean;
   coords: boolean;
   legalDots: boolean;
   promotion: "ask" | "queen";
@@ -270,7 +272,7 @@ export function createInitialState(guestId: string): LocalState {
     guestId,
     seenWelcome: false,
     profile: { name: "", who: null, dailyMinutes: 10, avatar: "cody", flair: null },
-    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "sunset", pieceSet: "toy", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null, boardColors: "theme", easyFont: false, reduceMotion: false, markShapes: false },
+    prefs: { appearance: "system", sound: true, haptics: true, notifications: "unknown", reminderHour: 18, theme: "sunset", pieceSet: "celtic", coords: true, legalDots: true, promotion: "ask", appIcon: "classroom", shareUsage: true, coach: null, voice: true, voiceSpeed: 1, lang: null, boardColors: "theme", easyFont: false, reduceMotion: false, markShapes: false },
     progress: emptyProgress(),
     account: null,
     pendingCeremony: null,
@@ -379,7 +381,7 @@ export function hydrateHabit(raw: unknown): Habit {
 }
 
 /** Piece sets ChessSchool still ships. Keep in step with `PieceSetId` in @chessschool/chess. */
-const KEPT_PIECE_SETS = new Set(["toy", "staunton", "flat", "chaturanga", "geometric", "bubble"]);
+const KEPT_PIECE_SETS = new Set(["celtic", "classic", "spatial", "fantasy", "chessnut", "wood", "papercut", "toy"]);
 
 function hydratePrefs(base: Prefs, raw: unknown): Prefs {
   const p = { ...base, ...((raw as Partial<Prefs>) ?? {}) };
@@ -387,7 +389,9 @@ function hydratePrefs(base: Prefs, raw: unknown): Prefs {
     ...p,
     // A saved state predates the Sunset default, so a missing or unknown theme stays Classroom.
     theme: isThemeId((raw as Partial<Prefs> | undefined)?.theme) ? p.theme : "classroom",
-    pieceSet: typeof p.pieceSet === "string" && KEPT_PIECE_SETS.has(p.pieceSet) ? p.pieceSet : "toy",
+    // Toy was the default before the open sets; saves from then move to Celtic once (piecesV2 marks it done).
+    pieceSet: typeof p.pieceSet === "string" && KEPT_PIECE_SETS.has(p.pieceSet) && !(p.pieceSet === "toy" && !p.piecesV2) ? p.pieceSet : "celtic",
+    piecesV2: true,
     coords: p.coords !== false,
     legalDots: p.legalDots !== false,
     promotion: p.promotion === "queen" ? "queen" : "ask",

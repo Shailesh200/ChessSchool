@@ -11,6 +11,7 @@ import { Cody } from "@/components/Lottie";
 import { Button, Card, Sheet, TopBar, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
+import { RankEmblem } from "@/components/RankEmblem";
 
 /** A player's public profile (leaderboard row, friend, link): rank, stats, trophies, recent games, details, links, and add friend / report / block. */
 function Player() {
@@ -106,7 +107,10 @@ function Player() {
           <h2 className="player-name">{player.name}</h2>
           {player.username ? <p className="player-username">{t.at(player.username)}</p> : null}
           <div className="player-chips">
-            <span className="player-chip is-brand">{copy.today.level(copy.ranks[rank.rank], rank.level)}</span>
+            <span className="player-chip is-brand rank-chip">
+              <RankEmblem rank={rank.rank} size={22} />
+              {copy.today.level(copy.ranks[rank.rank], rank.level)}
+            </span>
             {player.country ? <span className="player-chip">{countryName(player.country)}</span> : null}
             {player.friend ? <span className="player-chip is-success">{t.friend}</span> : null}
           </div>
