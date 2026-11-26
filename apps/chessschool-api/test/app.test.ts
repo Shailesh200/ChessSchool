@@ -649,7 +649,7 @@ describe("coach voice", () => {
 });
 
 describe("Hindi coach voice", () => {
-  it("serves Meera's Hindi clips whichever coach is asked for", async () => {
+  it("serves Meera's Hindi clips for a coach whose Hindi isn't recorded yet", async () => {
     const { applyVoice } = await import("../src/voice");
     const { applyCourseText } = await import("../src/course-text");
     const { voiceKey } = await import("@chessschool/design");
@@ -659,6 +659,17 @@ describe("Hindi coach voice", () => {
     const res = await call("GET", "/v1/voice/tara/board?lang=hi");
     expect(res.json).toEqual({ coach: "tara", clips: { [voiceKey("यह बोर्ड है।")]: "https://cdn/hi.mp3" } });
     expect((await call("GET", "/v1/voice/tara/board")).json.clips).toEqual({});
+  });
+
+  it("switches a coach to their own Hindi voice once their lesson is recorded", async () => {
+    const { applyVoice } = await import("../src/voice");
+    const { applyCourseText } = await import("../src/course-text");
+    const { voiceKey } = await import("@chessschool/design");
+    const line = voiceKey("यह बोर्ड है।");
+    await applyCourseText(db, { lang: "hi", units: {}, lessons: { board: { title: "बोर्ड", steps: [{ body: "यह बोर्ड है।" }] } } });
+    await applyVoice(db, [{ coach: "meera", clips: { [line]: "https://cdn/meera-hi.mp3" } }, { coach: "vikram", clips: { [line]: "https://cdn/vikram-hi.mp3" } }]);
+    expect((await call("GET", "/v1/voice/vikram/board?lang=hi")).json.clips[line]).toBe("https://cdn/vikram-hi.mp3");
+    expect((await call("GET", "/v1/voice/rohan/board?lang=hi")).json.clips[line]).toBe("https://cdn/meera-hi.mp3");
   });
 });
 

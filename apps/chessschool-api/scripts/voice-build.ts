@@ -33,8 +33,8 @@ const text: CourseText | null = lang === "en" ? null : JSON.parse(readFileSync(j
 // shortcut: Hindi runs voice the lesson lines only; the runner's fixed praise phrases stay English until they are translated.
 const phrases = lang === "en" ? SPOKEN_PHRASES : [];
 const lines = new Map<string, string>();
-// The Settings sample: this coach's own line in English; in Hindi every coach's line, since one voice reads them all.
-const samples = (lang === "en" ? [coachSample(coach, "en")] : COACHES.map((c) => coachSample(c.id, "hi"))).filter((t): t is string => Boolean(t));
+// The Settings sample in this coach's own voice. Meera also reads the other coaches' Hindi samples, as the stand-in voice.
+const samples = (lang === "hi" && coach === "meera" ? COACHES.map((c) => coachSample(c.id, "hi")) : [coachSample(coach, lang === "hi" ? "hi" : "en")]).filter((t): t is string => Boolean(t));
 for (const t of [...samples, ...phrases, ...course.lessons.flatMap((l) => spokenLines(localizeSteps(l.steps, text?.lessons[l.id]?.steps)))]) lines.set(voiceKey(t), t.replace(/\s+/g, " ").trim());
 
 const file = join(VOICE_DIR, `${coach}.json`);

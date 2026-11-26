@@ -36,6 +36,7 @@ import {
   type Lang,
   type HomeResponse,
   type Progress,
+  voiceKey,
 } from "@chessschool/design";
 import { answerLine, parseLineInput } from "./coach-line";
 import { mountLeaderboard } from "./leaderboard";
@@ -141,8 +142,8 @@ export type AppDeps = {
 };
 
 const REPORT_REASONS = ["name", "behaviour", "other"] as const;
-/** Hindi lines are recorded in this one coach voice, used whichever coach the learner picked. */
-const HINDI_VOICE = "meera";
+/** Every coach speaks Hindi in their own voice; Meera's Hindi stands in for a coach whose lesson isn't recorded yet. */
+const HINDI_FALLBACK_VOICE = "meera";
 /** Eight lessons of rising difficulty for the placement quiz (units 1, 2, 3, 5, 7, 12, 14, 18). */
 const PLACEMENT_LESSONS = ["check", "forks", "ladder", "skewer", "backRank", "squareOfPawn", "deflection", "calculation"] as const;
 
@@ -1268,10 +1269,21 @@ export function createApp({ db, google, apple = null, secureCookies, corsOrigins
     const [lesson, text] = await Promise.all([loadLesson(db, c.req.param("lesson") ?? ""), textFor(c)]);
     if (!lesson) return fail(c, 404, "not_found");
     c.header("Cache-Control", "public, max-age=300");
-    const voice = text ? HINDI_VOICE : coach;
     // The coach's Settings sample rides along with every lesson, so the picker needs no extra request.
     const sample = coachSample(coach, text ? "hi" : "en");
-    return c.json({ coach, clips: await lessonClips(db, voice, localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps), sample ? [sample] : []) });
+    const steps = localizeSteps(lesson.steps, text?.lessons[lesson.id]?.steps);
+    const extra = sample ? [sample] : [];
+    let clips = await lessonClips(db, coach, steps, extra);
+    if (text && coach !== HINDI_FALLBACK_VOICE) {
+      // A lesson stays in one voice: this coach's own Hindi once it has as many lines as Meera's, Meera's until then.
+      const fallback = await lessonClips(db, HINDI_FALLBACK_VOICE, steps, extra);
+      const sk = sample ? voiceKey(sample) : "";
+      const lines = (m: Record<string, string>) => Object.keys(m).filter((k) => k !== sk).length;
+      const { [sk]: ownSample, ...base } = lines(clips) >= lines(fallback) ? clips : fallback;
+      const sampleUrl = clips[sk] ?? fallback[sk] ?? ownSample;
+      clips = { ...base, ...(sampleUrl ? { [sk]: sampleUrl } : {}) };
+    }
+    return c.json({ coach, clips });
   });
 
   /**
