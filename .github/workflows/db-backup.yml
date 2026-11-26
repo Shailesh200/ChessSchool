@@ -17,10 +17,14 @@ name: Database backup
 # Restore: aws s3 cp s3://<bucket>/backups/db/<file> . --endpoint-url https://<account>.r2.cloudflarestorage.com
 #          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in <file> -pass env:BACKUP_PASSPHRASE | gunzip > restore.db
 
+# Schedules and the Run button only work once this file is on the default branch (main). Until then,
+# `git push -f origin <commit>:db-backup-run` runs it once.
 on:
   schedule:
     - cron: "0 21 * * *" # 02:30 India time
   workflow_dispatch:
+  push:
+    branches: [db-backup-run]
 
 permissions:
   contents: read
