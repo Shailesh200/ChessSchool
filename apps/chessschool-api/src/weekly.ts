@@ -58,7 +58,8 @@ export function senderFromEnv(env: NodeJS.ProcessEnv): Sender {
       const res = await fetch("https://exp.host/--/api/v2/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ to: token, title, body, sound: "default" }),
+        // richContent: Chaukor's picture where the device can show one (ignored elsewhere).
+        body: JSON.stringify({ to: token, title, body, sound: "default", richContent: { image: `${env.R2_PUBLIC_URL ?? "https://media.chess-school.in"}/notifications/chaukor.png` } }),
         signal: AbortSignal.timeout(10_000),
       });
       return res.ok;

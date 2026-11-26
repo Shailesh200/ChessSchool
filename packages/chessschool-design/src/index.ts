@@ -35,3 +35,4 @@ export * from "./games";
 export * from "./recap";
 export * from "./connectivity";
 export * from "./username";
+export * from "./reminders";

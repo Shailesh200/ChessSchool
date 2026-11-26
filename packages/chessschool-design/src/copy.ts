@@ -4,6 +4,9 @@ import type { RankId } from "./progress";
 
 export const PRIVACY_URL = "https://chess-school.in/privacy";
 
+/** Reminder lines: [title, body]. */
+type Lines = [title: string, body: string][];
+
 export const copy = {
   brand: "ChessSchool",
   tagline: "A few calm minutes a day to get better at chess.",
@@ -1043,9 +1046,37 @@ export const copy = {
   },
 
   reminders: {
-    titles: ["Chaukor saved you a seat.", "Five calm minutes?", "Your lesson is ready.", "A little chess today?"],
-    body: (name: string) => (name ? `${name}, today's lesson takes just a few minutes.` : "Today's lesson takes just a few minutes."),
-    streakBody: (n: number) => `Keep your ${n}-day streak going with one short lesson.`,
+    // [title, body] pairs in Chaukor's voice; one is picked per reminder so back-to-back days differ.
+    daily: (name: string): Lines => [
+      ["♟️ Your move!", "Chaukor has the board set up. One short lesson today?"],
+      ["Five calm minutes? ☕", name ? `${name}, today's lesson is ready when you are.` : "Today's lesson is ready when you are."],
+      ["Chaukor saved you a seat 🪑", "Pull up a chair. One lesson and you're done for the day."],
+      ["Knights don't move themselves 🐴", "Come make a move or two. Chaukor is waiting."],
+      ["A little chess today? ♞", "Every grandmaster started with one lesson a day."],
+    ],
+    goal: [
+      ["Almost there! 🎯", "A few more minutes and today's goal is done."],
+      ["Finish strong 💪", "You started today. One more lesson wraps it up."],
+      ["So close! ✨", "Chaukor is cheering. Just a little more practice today."],
+    ] as Lines,
+    streak: (n: number): Lines => [
+      [`🔥 ${n}-day streak!`, "Don't let it slip. One short lesson keeps it going."],
+      ["Your streak is calling 🔥", `${n} days in a row. Make it ${n + 1} today!`],
+      ["Chaukor is guarding your streak 🛡️", `It can't hold on alone. One lesson keeps your ${n}-day streak safe.`],
+      [`Day ${n + 1} is waiting ✨`, "A quick lesson and your streak keeps growing."],
+    ],
+    away: (days: number): Lines =>
+      days === 1
+        ? [
+            ["Chaukor missed you yesterday 🥺", "Today is a fresh board. Five minutes?"],
+            ["Where did you go? 👀", "Your lesson is right where you left it."],
+          ]
+        : [
+            [`It's been ${days} days 🥲`, "Chaukor keeps practising alone. Come back for one quick lesson?"],
+            ["The pieces are getting dusty 🧹", "One short lesson brings them back to life."],
+            ["Chaukor is still waiting ♟️", "No pressure. Your next lesson takes just a few minutes."],
+          ],
+    last: [["These reminders don't seem to work 😢", "Chaukor will stop sending them for now. Come back any time, the board is ready."]] as Lines,
   },
 
   you: {

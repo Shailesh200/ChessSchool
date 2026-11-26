@@ -1,6 +1,7 @@
-import { copy, dayKey, reminderPlan, visibleStreak, type LocalState, type NotificationStatus } from "@chessschool/design";
+import { copy, palettes, reminderMood, reminderPlan, reminderText, type LocalState, type NotificationStatus } from "@chessschool/design";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { Linking, Platform } from "react-native";
+import { File, Paths } from "expo-file-system";
+import { Image, Linking, Platform } from "react-native";
 
 // Loaded on demand: importing it at startup warns in Expo Go.
 const load = () => require("expo-notifications") as typeof import("expo-notifications");
@@ -20,6 +21,24 @@ export async function requestNotifications(): Promise<NotificationStatus> {
 }
 
 const CHANNEL = "daily";
+const BRAND = palettes.light.accent;
+
+/**
+ * Chaukor's picture for one iOS reminder. iOS moves an attachment's file into its own store, so each
+ * reminder gets its own copy. Null in development (the asset is served by Metro, not on disk).
+ */
+function chaukorPicture(i: number): string | null {
+  if (Platform.OS !== "ios") return null;
+  try {
+    const src = Image.resolveAssetSource(require("../assets/notifications/chaukor.png")).uri;
+    if (!src.startsWith("file:")) return null;
+    const copyTo = new File(Paths.cache, `reminder-${Date.now()}-${i}.png`);
+    new File(src).copy(copyTo);
+    return copyTo.uri;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Replaces the scheduled reminders with the next week's plan. Called whenever progress or the
@@ -36,17 +55,17 @@ export async function syncReminders(state: LocalState): Promise<void> {
     if (state.prefs.notifications !== "granted") return;
     if (!(await Notifications.getPermissionsAsync()).granted) return;
     if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync(CHANNEL, { name: copy.settings.notifications, importance: Notifications.AndroidImportance.DEFAULT });
+      await Notifications.setNotificationChannelAsync(CHANNEL, { name: copy.settings.notifications, importance: Notifications.AndroidImportance.DEFAULT, lightColor: BRAND });
     }
-    const now = new Date();
-    const streak = visibleStreak(state.progress.streak, dayKey(now));
-    const name = state.profile.name.trim();
-    for (const [i, date] of reminderPlan(state, now).entries()) {
+    const plan = reminderPlan(state, new Date());
+    for (const [i, date] of plan.entries()) {
+      const picture = chaukorPicture(i);
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: copy.reminders.titles[(date.getDate() + i) % copy.reminders.titles.length],
-          body: streak && i === 0 ? copy.reminders.streakBody(streak) : copy.reminders.body(name),
+          ...reminderText(reminderMood(state, date, i === plan.length - 1), state.profile.name, date.getDate()),
           data: { url: "/today" },
+          color: BRAND,
+          ...(picture ? { attachments: [{ identifier: "chaukor", url: picture, type: "public.png" }] } : {}),
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL },
       });

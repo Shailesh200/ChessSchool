@@ -25,7 +25,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.chessschool.app",
-      "buildNumber": "33",
+      "buildNumber": "34",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -37,7 +37,7 @@
     },
     "android": {
       "package": "com.chessschool.app",
-      "versionCode": 53,
+      "versionCode": 54,
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -133,7 +133,8 @@
       [
         "expo-notifications",
         {
-          "color": "#5B5BD6"
+          "icon": "./assets/notifications/icon.png",
+          "color": "#FF7A59"
         }
       ],
       [
