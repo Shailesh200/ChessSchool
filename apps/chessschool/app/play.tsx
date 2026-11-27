@@ -510,7 +510,7 @@ export default function Play() {
         </View>
       </View>
 
-      {ai.active ? <AiCoachButton style={{ position: "absolute", top: coachTop, right: 8 }} text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
+      {ai.active ? <AiCoachButton top={coachTop} text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
 
       <MovesSheet visible={movesOpen} onClose={() => setMovesOpen(false)} history={game.history} />
 

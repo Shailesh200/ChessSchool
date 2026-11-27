@@ -18,6 +18,20 @@ export const LINE_GLOBAL_DAILY = 20_000;
 export const BOT_USER_DAILY = 800;
 export const BOT_GLOBAL_DAILY = 100_000;
 export const BOT_MAX_OPTIONS = 5;
+/** A coach line in a game stays short: whole sentences up to this many words, else cut with "…". */
+export const MAX_LINE_WORDS = 30;
+
+export function capWords(text: string, max = MAX_LINE_WORDS): string {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= max) return text.trim();
+  let out = "";
+  for (const s of text.trim().split(/(?<=[.!?।])\s+/)) {
+    const next = out ? `${out} ${s}` : s;
+    if (next.split(/\s+/).length > max) break;
+    out = next;
+  }
+  return out || `${words.slice(0, max).join(" ")}…`;
+}
 /** Hints use the paid model (Haiku) first, up to these caps; past them, the free providers. */
 export const HINT_PAID_USER_DAILY = 30;
 export const HINT_PAID_GLOBAL_DAILY = 400;
@@ -145,12 +159,15 @@ async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInp
   }
   const key = createHash("sha256").update(JSON.stringify({ line: input.kind, fact, coach: input.coach, lang })).digest("hex");
   const hit = await db.query.coachCache.findFirst({ where: eq(coachCache.key, key) });
-  if (hit) return { text: (JSON.parse(hit.texts) as string[])[0] ?? null };
+  if (hit) {
+    const text = (JSON.parse(hit.texts) as string[])[0];
+    return { text: text ? capWords(text) : null };
+  }
   if (!(await countUse(db, userId, `${day}/line`, LINE_USER_DAILY, LINE_GLOBAL_DAILY))) return "limit";
   const got = await ask();
   if (!got) return null;
   await db.insert(coachCache).values({ key, texts: JSON.stringify([got.text]), provider: got.provider, createdAt: now }).onConflictDoNothing();
-  return { text: got.text };
+  return { text: capWords(got.text) };
 }
 
 /** Parses "2 | Nice, a free knight!" or "2"; the remark may name only the chosen move. */
