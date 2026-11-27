@@ -37,7 +37,7 @@ import {
 import { botBackdrop, botRatingOf, canUseGym, copy, gameMood, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Backdrop } from "@/components/Backdrop";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board, PieceArt } from "@/components/Board";
@@ -51,7 +51,7 @@ import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
-import { AiCoachCard } from "@/components/AiCoach";
+import { AiCoachButton } from "@/components/AiCoach";
 import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -63,6 +63,10 @@ type Mode = "bot" | "friend" | "shuffle" | "position" | "endgame";
 
 const BOT_AVATAR = 56;
 const BOT_BAR = 96;
+/** How long the learner may think before the AI coach explains the position by itself. */
+const STUCK_MS = 10_000;
+/** The one fixed row under the board (status and steps, or the result). */
+const PANEL = 60;
 const PLAYER_AVATAR = 48;
 const PLAYER_BAR = 52;
 
@@ -93,6 +97,7 @@ export default function Play() {
   const [record, setRecord] = useState<GameRecord | null>(null);
   const [movesOpen, setMovesOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+  const [coachTop, setCoachTop] = useState(0);
   const ai = usePlayAi(game?.setup.opponent.kind === "bot");
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
@@ -167,11 +172,6 @@ export default function Play() {
       saveGame({ setup: next.setup as StoredSetup, history: next.history, startedAt, clock: next.clock ? { w: timeLeft(next, "w", Date.now()), b: timeLeft(next, "b", Date.now()) } : null });
       if (next.history.length > prev.history.length) {
         cue(moveCue(next.history.at(-1)!));
-        // The learner's own move against a bot: the coach may comment on a mistake.
-        if (next.setup.opponent.kind === "bot" && turnOf(prev.fen) === next.setup.you) {
-          ai.clearLine();
-          ai.comment(prev.fen, next.history.at(-1)!);
-        }
       } else if (next.history.length < prev.history.length) cue("tap");
       const side = turnOf(next.fen);
       const human = next.setup.opponent.kind === "friend" || side === next.setup.you;
@@ -224,6 +224,24 @@ export default function Play() {
     // act reads the latest game through the ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticking]);
+
+  // Stuck on a move against a bot: the AI coach explains the position after a while, unasked.
+  const stuckFen = game && !game.over && !game.botThinking && watch === null && game.setup.opponent.kind === "bot" && turnOf(game.fen) === game.setup.you ? game.fen : null;
+  useEffect(() => {
+    if (!stuckFen || !ai.active) return;
+    const t = setTimeout(() => explain(stuckFen, false), STUCK_MS);
+    return () => clearTimeout(t);
+    // explain reads the latest game; the timer restarts only when the position changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stuckFen, ai.active]);
+
+  /** The engine's best move here: shown as an arrow when asked for a hint, and explained by the AI coach. */
+  const explain = (fen: string, arrow: boolean) => {
+    const m = bestMove(fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
+    if (!m) return;
+    if (arrow) setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
+    if (ref.current?.setup.opponent.kind === "bot") ai.explain(fen, m.san);
+  };
 
   /* ---------------- setup ---------------- */
   if (!canUseGym(state.account)) return <GymGuestCard back />;
@@ -375,16 +393,16 @@ export default function Play() {
           title={name}
           trailing={clock(color)}
         >
-          {game.over ? null : (
+          {/* One line either way, so the bot's chat never changes the bar's height. */}
+          {game.over ? null : !game.botThinking && ai.botSay ? (
+            <T role="small" numberOfLines={1} style={{ fontStyle: "italic" }}>
+              “{ai.botSay}”
+            </T>
+          ) : (
             <T role="bodyLg" numberOfLines={1}>
               {statusTitle}
             </T>
           )}
-          {!game.over && !game.botThinking && ai.botSay ? (
-            <View style={{ alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderTopLeftRadius: 4, backgroundColor: c.sunken }}>
-              <T role="small">{ai.botSay}</T>
-            </View>
-          ) : null}
           <CapturedTray startFen={game.setup.startFen} fen={shownFen} color={color} />
         </CoachCard>
       );
@@ -411,11 +429,9 @@ export default function Play() {
   const showHint = () => {
     if (!live || game.over || game.botThinking) return;
     if (!friend && turn !== game.setup.you) return;
-    const m = bestMove(game.fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
-    if (!m) return;
-    setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
-    if (!friend) ai.hint(game.fen, m.san);
+    explain(game.fen, true);
   };
+  const yourTurn = live && !game.over && !game.botThinking && !friend && turn === game.setup.you;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
@@ -423,7 +439,7 @@ export default function Play() {
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingBottom: 4 }}>
+      <View onLayout={(e) => setCoachTop(e.nativeEvent.layout.y)} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 8, paddingBottom: 4 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={copy.play.resign}
@@ -436,10 +452,12 @@ export default function Play() {
         <View style={{ flex: 1 }} />
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
+        {/* Room for the AI coach widget, which floats above everything (drawn last, below). */}
+        {ai.active ? <View style={{ width: 52 }} /> : null}
       </View>
-      {/* Scrolls rather than shrinking the board: coach notes and large system text push content down. */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 6, paddingBottom: 16, maxWidth: 720, width: "100%", alignSelf: "center" }}>
-        <BoardStage byWidth top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
+      {/* Nothing below the board grows: bars are fixed height and the panel is one fixed row, so the board never shifts. */}
+      <View style={{ flex: 1, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
+        <BoardStage fixed top={bar(topSide)} bottom={bar(bottomSide)} topSize={friend ? PLAYER_BAR : BOT_BAR} bottomSize={PLAYER_BAR}>
           {(size, radius) => (
             <Board
               size={size}
@@ -459,56 +477,40 @@ export default function Play() {
             />
           )}
         </BoardStage>
-        <View style={{ paddingHorizontal: 16, gap: 6 }}>
-        {!live ? (
-          <T role="small" color="brandText" center style={{ fontFamily: fonts.semibold }}>
-            {copy.gym.watching(at, game.history.length)}
-          </T>
-        ) : null}
-        {resultCopy ? (
-          <View accessibilityLiveRegion="polite" style={{ gap: 10, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Cody animation={codyEnd} size={52} label={copy.a11y.mascot} />
+        <View accessibilityLiveRegion="polite" style={{ height: PANEL, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {resultCopy ? (
+            <>
+              <Cody animation={codyEnd} size={44} label={copy.a11y.mascot} />
               <View style={{ flex: 1 }}>
-                <T role="label">{resultCopy.title}</T>
+                <T role="label" numberOfLines={1}>{resultCopy.title}</T>
                 <T role="small" color="textMuted" numberOfLines={1}>
                   {resultCopy.body}
                 </T>
               </View>
-            </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {reviewPath ? (
-                <View style={{ flex: 1 }}>
-                  <Button title={copy.analysis.see} icon="eye" onPress={() => router.push(reviewPath as never)} />
-                </View>
-              ) : null}
+              {reviewPath ? <Button title="" label={copy.analysis.see} icon="eye" block={false} onPress={() => router.push(reviewPath as never)} /> : null}
+              <Button title="" label={copy.play.again} icon="refresh" variant="secondary" block={false} onPress={again} />
+            </>
+          ) : (
+            <>
+              {friend ? <Cody animation={pose} size={40} /> : null}
               <View style={{ flex: 1 }}>
-                <Button title={copy.play.again} icon="refresh" variant="secondary" onPress={again} />
-              </View>
-            </View>
-          </View>
-        ) : (
-          <>
-          {ai.line ? <AiCoachCard kind={ai.line.kind} text={ai.line.text} /> : null}
-          <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            {friend ? <Cody animation={pose} size={40} /> : null}
-            <View style={{ flex: 1 }}>
-              {friend ? (
-                <T role="label" numberOfLines={1}>
-                  {statusTitle}
+                {friend && live ? (
+                  <T role="label" numberOfLines={1}>
+                    {statusTitle}
+                  </T>
+                ) : null}
+                <T role={friend && live ? "small" : "label"} color={live ? "textMuted" : "brandText"} numberOfLines={1}>
+                  {live ? statusSub : copy.gym.watching(at, game.history.length)}
                 </T>
-              ) : null}
-              <T role={friend ? "small" : "label"} color="textMuted" numberOfLines={1}>
-                {statusSub}
-              </T>
-            </View>
-            <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
-            <Button title="" label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} icon="redo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onPress={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))} />
-          </View>
-          </>
-        )}
+              </View>
+              <Button title="" label={game.setup.takebacks ? copy.gym.undo : copy.gym.prev} icon="undo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.history.length : at === 0} onPress={() => (game.setup.takebacks ? act({ type: "takeback", now: Date.now() }) : setWatch(at - 1))} />
+              <Button title="" label={game.setup.takebacks ? copy.gym.redo : copy.gym.next} icon="redo" variant="secondary" block={false} disabled={game.setup.takebacks ? Boolean(game.over) || game.botThinking || !game.undone.length : live} onPress={() => (game.setup.takebacks ? act({ type: "redo", now: Date.now() }) : setWatch(at + 1 >= game.history.length ? null : at + 1))} />
+            </>
+          )}
         </View>
-      </ScrollView>
+      </View>
+
+      {ai.active ? <AiCoachButton style={{ position: "absolute", top: coachTop, right: 8 }} text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
 
       <MovesSheet visible={movesOpen} onClose={() => setMovesOpen(false)} history={game.history} />
 

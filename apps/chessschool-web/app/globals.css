@@ -6558,18 +6558,6 @@ button.game-row {
   bottom: -4px;
   border: 2px solid var(--cs-card);
 }
-.ai-coach {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  border: 2px solid #6e5bff;
-  background: var(--cs-card);
-}
-.ai-coach p {
-  margin: 4px 0 0;
-}
 .ai-coach-label {
   display: inline-flex;
   align-items: center;
@@ -6585,6 +6573,67 @@ button.game-row {
   border-radius: 14px 14px 14px 4px;
   background: var(--cs-sunken);
   font-size: 0.875rem;
+}
+/* The bot's chat stays one line so the bar above the board never changes height. */
+.player-text .bot-say {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* The AI coach's corner widget: the note floats over the game, so the board never moves. */
+.ai-fab {
+  position: relative;
+  display: inline-flex;
+}
+.ai-fab-btn {
+  position: relative;
+  border: 1.5px solid #6e5bff;
+  padding: 8px !important;
+  overflow: visible;
+}
+.ai-fab-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #6e5bff;
+  border: 2px solid var(--cs-card);
+}
+.ai-fab-note {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(320px, calc(100vw - 32px));
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 18px 6px 18px 18px;
+  border: 1.5px solid #6e5bff;
+  background: var(--cs-card);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.ai-fab-note > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.ai-fab-note p {
+  margin: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.ai-fab-close {
+  border: 0;
+  background: none;
+  color: var(--cs-text-muted);
+  padding: 4px;
+  cursor: pointer;
 }
 .ai-banner {
   display: flex;

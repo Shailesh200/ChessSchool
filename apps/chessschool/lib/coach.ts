@@ -62,24 +62,29 @@ export function usePlayAi(botGame: boolean) {
   const { state } = useApp();
   const coach = state.prefs.coach ?? "meera";
   const on = botGame && hasPremiumAi(state);
-  const [line, setLine] = useState<{ kind: "hint" | "comment"; text: string } | null>(null);
+  // The note is tied to the position it explains, so it never shows after the board moves on.
+  const [line, setLine] = useState<{ fen: string; text: string } | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
   const [botSay, setBotSay] = useState<string | null>(null);
-  const say = (kind: "hint" | "comment", fen: string, move: string) => {
+  /** Why the best move here is good (on a stuck timer or when asked); one request per position. */
+  const explain = (fen: string, move: string) => {
     // Offline, the hint stays the engine's move with no AI line, and the bot plays its own pick.
-    if (!on || !isDeviceOnline()) return;
+    if (!on || !isDeviceOnline() || line?.fen === fen || asking === fen) return;
+    setAsking(fen);
     api
-      .coachLine({ kind, fen, move, coach })
-      .then((r) => r.text && setLine({ kind, text: r.text }))
-      .catch(() => {});
+      .coachLine({ kind: "hint", fen, move, coach })
+      .then((r) => r.text && setLine({ fen, text: r.text }))
+      .catch(() => {})
+      .finally(() => setAsking((a) => (a === fen ? null : a)));
   };
   return {
     /** The learner has premium AI for this bot game. */
     active: on,
-    line,
+    /** The coach's note for this position, or null. */
+    lineFor: (fen: string) => (line?.fen === fen ? line.text : null),
+    askingFor: (fen: string) => asking === fen,
     botSay,
-    clearLine: () => setLine(null),
-    hint: (fen: string, san: string) => say("hint", fen, san),
-    comment: (fenBefore: string, san: string) => say("comment", fenBefore, san),
+    explain,
     /** The bot's move: options[0] is its model's own pick, used when AI is off, slow or fails. */
     botMove: async <M extends { san: string }>(fen: string, bot: string, options: M[]): Promise<M | null> => {
       setBotSay(null);

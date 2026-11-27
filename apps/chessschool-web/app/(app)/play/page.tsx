@@ -42,7 +42,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "@/components/Board";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { BoardStage } from "@/components/BoardStage";
-import { AiCoachCard } from "@/components/AiCoach";
+import { AiCoachButton } from "@/components/AiCoach";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AccuracyRing, CapturedTray, MoveStrip, MovesSheet, SoundToggle, VerdictCounts } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
@@ -73,6 +73,9 @@ function PlayRoute() {
   if (!ready) return <div className="page-skeleton" aria-busy="true" />;
   return <PlayRoom key={params.toString()} params={params} />;
 }
+
+/** How long the learner may think before the AI coach explains the position by itself. */
+const STUCK_MS = 10_000;
 
 const fmt = (ms: number) => {
   const s = Math.ceil(ms / 1000);
@@ -186,11 +189,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
       saveGame({ setup: next.setup as StoredSetup, history: next.history, startedAt, clock: next.clock ? { w: timeLeft(next, "w", Date.now()), b: timeLeft(next, "b", Date.now()) } : null });
       if (next.history.length > prev.history.length) {
         cue(moveCue(next.history.at(-1)!));
-        // The learner's own move against a bot: the coach may comment on a mistake.
-        if (next.setup.opponent.kind === "bot" && turnOf(prev.fen) === next.setup.you) {
-          ai.clearLine();
-          ai.comment(prev.fen, next.history.at(-1)!);
-        }
       } else if (next.history.length < prev.history.length) cue("tap");
       const side = turnOf(next.fen);
       const human = next.setup.opponent.kind === "friend" || side === next.setup.you;
@@ -246,6 +244,24 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   useEffect(() => {
     setGuide(null);
   }, [game?.fen, watch]);
+
+  // Stuck on a move against a bot: the AI coach explains the position after a while, unasked.
+  const stuckFen = game && !game.over && !game.botThinking && watch === null && game.setup.opponent.kind === "bot" && turnOf(game.fen) === game.setup.you ? game.fen : null;
+  useEffect(() => {
+    if (!stuckFen || !ai.active) return;
+    const t = setTimeout(() => explain(stuckFen, false), STUCK_MS);
+    return () => clearTimeout(t);
+    // explain reads the latest game; the timer restarts only when the position changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stuckFen, ai.active]);
+
+  /** The engine's best move here: shown as an arrow when asked for a hint, and explained by the AI coach. */
+  const explain = (fen: string, arrow: boolean) => {
+    const m = bestMove(fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
+    if (!m) return;
+    if (arrow) setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
+    if (ref.current?.setup.opponent.kind === "bot") ai.explain(fen, m.san);
+  };
 
   if (!canUseGym(state.account)) return <GymGuestCard backHref="/today" />;
   if (!game) {
@@ -424,14 +440,12 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
               aria-label={copy.gym.hints}
               onClick={() => {
                 if (!live || game.over || game.botThinking || (!friend && turn !== game.setup.you)) return;
-                const m = bestMove(game.fen, { depth: 2, quiescence: 1, timeMs: 40, noise: 0 }, () => 0);
-                if (!m) return;
-                setGuide({ from: m.from as Square, to: m.to as Square, piece: { type: m.piece as Piece["type"], color: m.color } });
-                if (!friend) ai.hint(game.fen, m.san);
+                explain(game.fen, true);
               }}
             >
               <Icon name="bulb" />
             </button>
+            {ai.active ? <AiCoachButton text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => live && !game.over && !game.botThinking && turn === game.setup.you && explain(game.fen, false)} /> : null}
           </span>
         </div>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} className="play-stage">
@@ -472,7 +486,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             </div>
           ) : (
             <>
-              {ai.line ? <AiCoachCard kind={ai.line.kind} text={ai.line.text} /> : null}
               <div className="play-status" role="status" aria-live="polite">
                 <Cody animation={pose} size={48} />
                 <div className="play-status-text">

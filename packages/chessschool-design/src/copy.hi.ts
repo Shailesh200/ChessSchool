@@ -922,6 +922,7 @@ export const hi: Translation = {
   ai: {
     coach: "AI कोच",
     hint: "AI कोच · संकेत",
+    ask: "AI कोच से पूछें",
     readMore: "पूरा नोट खोलें",
     dismiss: "यह नोट छिपाएँ",
     gotIt: "ठीक है",

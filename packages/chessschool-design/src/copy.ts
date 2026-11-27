@@ -889,6 +889,7 @@ export const copy = {
   ai: {
     coach: "AI coach",
     hint: "AI coach · hint",
+    ask: "Ask the AI coach",
     readMore: "Opens the whole note",
     dismiss: "Hide this note",
     gotIt: "Got it",
