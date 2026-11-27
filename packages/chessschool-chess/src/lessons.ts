@@ -1,4 +1,4 @@
-import { fileIndex, rankIndex, squareAt, START_FEN, type Square } from "./board";
+import { fileIndex, rankIndex, squareAt, START_FEN, type Color, type Square } from "./board";
 import type { BotLevel } from "./bot";
 import { LESSONS_V2 } from "./lessons.v2";
 
@@ -13,6 +13,8 @@ type Base = {
   highlight?: Square[];
   /** A king to show as attacked. */
   check?: Square;
+  /** The learner's colour: the board shows this side at the bottom. White when absent. */
+  side?: Color;
 };
 
 export type MoveGoal = { type: "exact"; from: Square; to: Square } | { type: "capture" } | { type: "check" } | { type: "mate" } | { type: "promote" };
@@ -23,7 +25,7 @@ export type MoveStep = Base & { kind: "move"; goal: MoveGoal; hint: string; hint
 /** A single piece visits every star; the other side never moves. */
 export type StarsStep = Base & { kind: "stars"; stars: Square[]; hint: string };
 export type ChoiceStep = Base & { kind: "choice"; options: { label: string; correct?: boolean }[]; hint: string };
-/** A real game against Cody from `fen`; the learner is White. */
+/** A real game against a bot from `fen`; the learner plays `side` (White when absent). */
 export type GameStep = Base & { kind: "game"; level: BotLevel; minMoves: number };
 /**
  * A scripted sequence: `moves` alternate learner, reply, learner… (UCI). The learner always moves

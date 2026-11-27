@@ -1102,6 +1102,18 @@ export function isProgress(value: unknown): value is Progress {
 /** One lesson of the path, as far as progress checks need it. */
 export type PathStep = { id: string; xp: number; available?: boolean };
 
+/**
+ * The "Think like a player" lessons (content in @chessschool/chess `thinkTrack`, which ships with the app).
+ * They are always open, so the server keeps them outside the course order. A test keeps the lists in step.
+ */
+export const THINK_PATH: readonly { id: string; xp: number }[] = [
+  ["thinkStart", 20], ["thinkReply", 20],
+  ["thinkItalian", 25], ["thinkRuy", 25], ["thinkQueensGambit", 25], ["thinkLondon", 25],
+  ["thinkSicilian", 25], ["thinkFrench", 25], ["thinkCaroKann", 25], ["thinkKingsIndian", 25],
+  ["thinkPlan", 20], ["thinkAttack", 25], ["thinkDefend", 25], ["thinkOpenClosed", 20],
+  ["thinkEndgame", 20], ["thinkConvert", 20], ["thinkFightBack", 20],
+].map(([id, xp]) => ({ id: id as string, xp: xp as number }));
+
 /** Upper bound on XP when there is no path to measure it against. */
 const XP_CEILING = 1_000_000;
 
@@ -1120,6 +1132,13 @@ export function sanitizeProgress(p: Progress, path: readonly PathStep[] | null):
     for (const n of path) {
       const day = p.completed[n.id];
       if (n.available === false || !isDay(day)) break;
+      completed[n.id] = day;
+      xpCap += n.xp;
+    }
+    // The "Think like a player" track ships with the app and is always open, so it is not order-gated.
+    for (const n of THINK_PATH) {
+      const day = p.completed[n.id];
+      if (!isDay(day)) continue;
       completed[n.id] = day;
       xpCap += n.xp;
     }

@@ -886,6 +886,13 @@ export const copy = {
     tooShort: "Write a few words so we know what you mean.",
   },
 
+  think: {
+    title: "Think like a player",
+    sub: "How to think in the opening, middlegame and endgame, with 8 openings to practise",
+    open: "Open the trainer",
+    progress: (done: number, total: number) => `${done} of ${total} done`,
+  },
+
   ai: {
     coach: "AI coach",
     hint: "AI coach · hint",

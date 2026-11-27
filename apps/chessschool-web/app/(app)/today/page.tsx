@@ -9,6 +9,7 @@ import { usePuzzlePackReady } from "@/components/PuzzlePackBoot";
 import { Cody } from "@/components/Lottie";
 import { FirstRunNotificationSheet } from "@/components/NotificationSheet";
 import { PathList } from "@/components/PathList";
+import { ThinkCard } from "@/components/ThinkCard";
 import { Icon } from "@/components/Icon";
 import { CourseSkeleton } from "@/components/Skeleton";
 import { Button, Card, Chip, GoalRing, ProgressBar, SaveBanner } from "@/components/ui";
@@ -126,6 +127,7 @@ export default function TodayPage() {
           ) : null}
 
           <PathList progress={progress} />
+          <ThinkCard />
         </div>
 
         <aside className="today-side">

@@ -919,6 +919,13 @@ export const hi: Translation = {
     tooShort: "कुछ शब्द लिखें ताकि हम समझ सकें।",
   },
 
+  think: {
+    title: "खिलाड़ी की तरह सोचें",
+    sub: "ओपनिंग, मिडिलगेम और एंडगेम में कैसे सोचें, और 8 ओपनिंग का अभ्यास",
+    open: "ट्रेनर खोलें",
+    progress: (done: number, total: number) => `${total} में से ${done} पूरे`,
+  },
+
   ai: {
     coach: "AI कोच",
     hint: "AI कोच · संकेत",

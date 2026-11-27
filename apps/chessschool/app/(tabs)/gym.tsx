@@ -5,6 +5,7 @@ import { Pressable, View } from "react-native";
 import { BotAvatar } from "@/components/BotAvatar";
 import { GymGuestCard } from "@/components/GymGuestCard";
 import { Icon } from "@/components/Icon";
+import { ThinkCard } from "@/components/ThinkCard";
 import { Cody } from "@/components/Lottie";
 import { ChallengeButton } from "@/components/Growth";
 import { Button, Card, Page, T } from "@/components/ui";
@@ -52,6 +53,7 @@ export default function Gym() {
         <Cody animation="wave" size={104} />
       </Card>
       <ChallengeButton />
+      <ThinkCard />
 
       <T role="heading" header>
         {copy.gym.bots}

@@ -172,7 +172,7 @@ export function runnerReduce(s: RunnerState, a: RunnerAction): RunnerState {
       botThinking: false,
       gameOver: over,
       status: over ? "ready" : s.status,
-      feedback: over ? gameFeedback(over) : null,
+      feedback: over ? gameFeedback(over, step.side) : null,
     };
   }
 
@@ -193,7 +193,7 @@ export function runnerReduce(s: RunnerState, a: RunnerAction): RunnerState {
     return { ...s, selected: a.square, misses: s.misses + 1, feedback: { tone: "hint", text: step.hint } };
   }
 
-  const p = pick(s.fen, s.selected, s.targets, a.square, "w", true);
+  const p = pick(s.fen, s.selected, s.targets, a.square, step.side ?? "w", true);
   if (p.kind === "select") return { ...s, selected: p.selected, targets: p.targets, feedback: s.feedback?.tone === "good" ? null : s.feedback };
   if (p.kind === "clear") return { ...s, selected: null, targets: [] };
   if (p.kind === "promote") return { ...s, promotion: { from: p.from, to: p.to } };
@@ -248,7 +248,7 @@ function learnerMove(s: RunnerState, step: Step, move: Move, chess: Chess): Runn
     gameOver: over,
     botThinking: !over,
     status: over ? "ready" : "working",
-    feedback: over ? gameFeedback(over) : null,
+    feedback: over ? gameFeedback(over, step.side) : null,
   };
 }
 
@@ -258,8 +258,8 @@ export function sameMove(move: { from: string; to: string; promotion?: string },
   return uci.length < 5 || move.promotion === uci[4];
 }
 
-function gameFeedback(o: NonNullable<GameOutcome>): Feedback {
-  if (o.kind === "checkmate") return { tone: "good", text: o.winner === "w" ? "Checkmate! You won." : "Checkmate. Good game!" };
+function gameFeedback(o: NonNullable<GameOutcome>, learner: Color = "w"): Feedback {
+  if (o.kind === "checkmate") return { tone: "good", text: o.winner === learner ? "Checkmate! You won." : "Checkmate. Good game!" };
   return { tone: "good", text: "It's a draw. Good game!" };
 }
 

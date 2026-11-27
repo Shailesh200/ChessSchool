@@ -1,7 +1,7 @@
 "use client";
 
-import { spokenLines, type Step } from "@chessschool/chess";
-import { accuracy, copy, dayKey, elapsedSeconds, firstLessonId, FLOW_CUES, goalMet, isGuestLockedLesson, isPerfect, lessonAccess, nextOpenLesson, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
+import { isThinkLesson, spokenLines, thinkLesson, thinkNext, type Step } from "@chessschool/chess";
+import { accuracy, copy, dayKey, language, elapsedSeconds, firstLessonId, FLOW_CUES, goalMet, isGuestLockedLesson, isPerfect, lessonAccess, nextOpenLesson, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LessonDone, type LessonSummary } from "@/components/LessonDone";
@@ -19,10 +19,13 @@ export default function LessonPage() {
   const router = useRouter();
   const { state, ready, completeLesson, cue, showGuestGate, track } = useApp();
   const course = useCourse();
-  const { lesson: loaded, guestLimited } = useLesson(id);
+  const { lesson: loaded, guestLimited } = useLesson(isThinkLesson(id) ? undefined : id);
   const outline = course?.lessons.find((l) => l.id === id);
-  const lesson = loaded ?? outline;
-  const guestLocked = isGuestLockedLesson(outline) || isGuestLockedLesson(loaded) || guestLimited;
+  // "Think like a player" lessons ship with the app and are always open.
+  const think = useMemo(() => thinkLesson(id, language()), [id]);
+  const lesson = think ?? loaded ?? outline;
+  const guestLocked = !think && (isGuestLockedLesson(outline) || isGuestLockedLesson(loaded) || guestLimited);
+  const home = think ? "/think" : "/today";
   const [before, setBefore] = useState<Before | null>(null);
   const [misses, setMisses] = useState(0);
 
@@ -81,9 +84,9 @@ export default function LessonPage() {
   const b = before?.id === id ? before : null;
   const steps = lesson.steps as Step[];
   const interactive = steps.some((step) => step.kind !== "say");
-  const next = course ? nextOpenLesson(course, state.progress.completed, id) : null;
+  const next = think ? thinkNext(id, state.progress.completed, language()) : course ? nextOpenLesson(course, state.progress.completed, id) : null;
   // The first lesson is open on a first run, before the tour.
-  const access = course && !(firstRun && id === firstLessonId(course)) ? lessonAccess(course, state.progress.completed, id) : "current";
+  const access = !think && course && !(firstRun && id === firstLessonId(course)) ? lessonAccess(course, state.progress.completed, id) : "current";
   const prev = course ? course.lessons[course.lessons.findIndex((l) => l.id === id) - 1] : undefined;
 
   if (access === "locked") {
@@ -107,7 +110,7 @@ export default function LessonPage() {
       key={id}
       steps={steps}
       say={say}
-      closeHref={firstRun ? "/welcome" : "/today"}
+      closeHref={firstRun ? "/welcome" : home}
       onClose={(step) => track("lesson_quit", { lesson: id, step })}
       onFinished={(n, tally) => {
         const firstLessonToday = !Object.values(state.progress.completed).some((day) => day === today);
@@ -148,13 +151,13 @@ export default function LessonPage() {
                 {copy.lesson.nextLesson}
               </Button>
             ) : null}
-            {!next && !b.done && !firstRun ? (
+            {!next && !b.done && !firstRun && !think ? (
               <Button block href="/play" icon="play">
                 {copy.today.heroAllCta}
               </Button>
             ) : null}
             {firstRun ? null : (
-              <Button block variant={!b.done ? "secondary" : "primary"} href="/today" icon="learn">
+              <Button block variant={!b.done ? "secondary" : "primary"} href={home} icon="learn">
                 {copy.lesson.back}
               </Button>
             )}

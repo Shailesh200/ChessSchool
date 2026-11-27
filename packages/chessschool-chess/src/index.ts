@@ -18,3 +18,4 @@ export * from "./phase";
 export * from "./speech";
 export * from "./scan";
 export * from "./analysis";
+export * from "./think";

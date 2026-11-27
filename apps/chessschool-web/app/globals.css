@@ -7218,3 +7218,50 @@ button.game-row {
 .bot-figure svg, .rank-emblem svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .rank-emblem { display: inline-block; flex: none; line-height: 0; }
 .rank-chip { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- Think like a player ---------- */
+.think-card h2,
+.think-unit h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.125rem;
+}
+.think-card,
+.think-unit {
+  display: grid;
+  gap: 8px;
+}
+.think-card p,
+.think-unit > p {
+  margin: 0;
+}
+.think-lessons {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+}
+.think-lessons a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 4px;
+  border-top: 1px solid var(--cs-line);
+  color: inherit;
+  text-decoration: none;
+}
+.think-lessons a > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.think-lessons a:hover strong {
+  text-decoration: underline;
+}
+.think-unit {
+  margin-top: 12px;
+}

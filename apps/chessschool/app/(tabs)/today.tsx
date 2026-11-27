@@ -12,6 +12,7 @@ import { guestClassLocked, openLesson, PathList } from "@/components/PathList";
 import { Banner, Button, Card, Chip, Choice, GoalRing, IconButton, ProgressBar, SaveBanner, Sheet, T } from "@/components/ui";
 import { Backdrop } from "@/components/Backdrop";
 import { RankCard } from "@/components/RankCard";
+import { ThinkCard } from "@/components/ThinkCard";
 import { api } from "@/lib/api";
 import { useCourse } from "@/lib/course";
 import { requestNotifications } from "@/lib/notifications";
@@ -234,6 +235,8 @@ export default function Today() {
       ) : null}
 
       <PathList progress={progress} course={course} onGuestLock={() => setGate(true)} />
+
+      <ThinkCard />
 
       <DailyCard today={today} />
 

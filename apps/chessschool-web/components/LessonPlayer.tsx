@@ -241,6 +241,7 @@ export function LessonPlayer({ steps, closeHref, closeLabel = copy.lesson.close,
         >
           <Board
             fen={s.fen}
+            orientation={step.side ?? "w"}
             selected={step.kind === "tap" ? (s.status === "ready" ? s.selected : null) : s.selected}
             targets={s.targets}
             lastMove={s.lastMove}

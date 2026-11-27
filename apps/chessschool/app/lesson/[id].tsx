@@ -1,5 +1,5 @@
-import { spokenLines, type Step } from "@chessschool/chess";
-import { accuracy, copy, dayKey, elapsedSeconds, FLOW_CUES, goalMet, isPerfect, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
+import { isThinkLesson, spokenLines, thinkLesson, thinkNext, type Step } from "@chessschool/chess";
+import { accuracy, copy, dayKey, language, elapsedSeconds, FLOW_CUES, goalMet, isPerfect, PERFECT_BONUS, visibleStreak } from "@chessschool/design";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { LessonDone, type LessonSummary } from "@/components/LessonDone";
@@ -17,9 +17,11 @@ export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { state, completeLesson, cue, track } = useApp();
   const course = useCourse();
-  const loaded = useLesson(id);
+  const loaded = useLesson(isThinkLesson(id) ? undefined : id);
   const [before, setBefore] = useState<Before | null>(null);
-  const lesson = loaded ?? course?.lessons.find((l) => l.id === id);
+  // "Think like a player" lessons ship with the app and are always open.
+  const think = useMemo(() => thinkLesson(id, language()), [id]);
+  const lesson = think ?? loaded ?? course?.lessons.find((l) => l.id === id);
   const hasSteps = Boolean(lesson?.steps);
   const steps = lesson?.steps as Step[] | undefined;
   const lines = useMemo(() => (steps ? spokenLines(steps) : []), [steps]);
@@ -38,14 +40,14 @@ export default function LessonScreen() {
   }, [id, hasSteps, track]);
 
   if (id === "meet") return <Redirect href="/orientation" />;
-  if (course && !course.lessons.some((l) => l.id === id) && !loaded) return <Redirect href="/today" />;
+  if (!think && course && !course.lessons.some((l) => l.id === id) && !loaded) return <Redirect href="/today" />;
   if (!lesson?.steps) return <LessonSkeleton />;
 
   const today = dayKey(new Date());
   const streak = visibleStreak(state.progress.streak, today);
   const b = before?.id === id ? before : null;
   const here = course && lesson ? course.lessons.findIndex((l) => l.id === lesson.id) : -1;
-  const next = here < 0 || !course ? null : (course.lessons.slice(here + 1).find((l) => !state.progress.completed[l.id]) ?? null);
+  const next = think ? thinkNext(id, state.progress.completed, language()) : here < 0 || !course ? null : (course.lessons.slice(here + 1).find((l) => !state.progress.completed[l.id]) ?? null);
 
   return (
     <LessonPlayer
@@ -86,7 +88,7 @@ export default function LessonScreen() {
             ) : (
               <>
                 {next && !b.done ? <Button title={copy.lesson.nextLesson} icon="arrowRight" onPress={() => router.replace(`/lesson/${next.id}`)} /> : null}
-                <Button title={copy.lesson.back} icon="learn" variant={!b.done && next ? "secondary" : "primary"} onPress={() => router.replace("/today")} />
+                <Button title={copy.lesson.back} icon="learn" variant={!b.done && next ? "secondary" : "primary"} onPress={() => router.replace(think ? "/think" : "/today")} />
                 {!state.account ? <Button title={copy.lesson.save} icon="shield" variant="ghost" onPress={() => router.replace("/signup")} /> : null}
               </>
             )}

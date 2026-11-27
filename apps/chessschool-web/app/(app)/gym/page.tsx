@@ -8,6 +8,7 @@ import { GymGuestCard } from "@/components/GymGuestCard";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { ChallengeButton } from "@/components/Growth";
+import { ThinkCard } from "@/components/ThinkCard";
 import { Button, Card, TopBar } from "@/components/ui";
 import { useApp } from "@/lib/state";
 import { Backdrop } from "@/components/Backdrop";
@@ -42,6 +43,7 @@ export default function GymPage() {
         <Cody animation="wave" size={120} className="gym-hero-cody" />
       </Card>
       <ChallengeButton block />
+      <ThinkCard />
 
       <section aria-labelledby="bots-title" className="gym-section">
         <h2 id="bots-title" className="card-title">

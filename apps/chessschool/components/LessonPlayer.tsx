@@ -266,6 +266,7 @@ export function LessonPlayer({ steps, onClose, closeLabel = copy.lesson.close, t
               size={size}
               radius={radius}
               fen={s.fen}
+              orientation={step.side ?? "w"}
               selected={step.kind === "tap" ? (s.status === "ready" ? s.selected : null) : s.selected}
               targets={s.targets}
               lastMove={s.lastMove}
