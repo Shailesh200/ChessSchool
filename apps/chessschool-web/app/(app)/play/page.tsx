@@ -429,13 +429,13 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
     <div className="page play-page">
       <Backdrop art={botBackdrop(game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : "friend")} fixed />
       <TopBar backHref="/gym" title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
+      {ai.active ? <AiCoachButton text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => live && !game.over && !game.botThinking && turn === game.setup.you && explain(game.fen, false)} /> : null}
       <div className="play">
         <div className="play-chrome">
           <button type="button" className="icon-btn icon-btn-danger" aria-label={copy.play.resign} disabled={Boolean(game.over)} onClick={() => setConfirm(true)}>
             <Icon name="flag" />
           </button>
           <span className="play-chrome-right">
-            {ai.active ? <AiCoachButton text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => live && !game.over && !game.botThinking && turn === game.setup.you && explain(game.fen, false)} /> : null}
             <button type="button" className="icon-btn" aria-label={copy.analysis.movesTitle} onClick={() => setMovesOpen(true)}>
               <Icon name="history" />
             </button>

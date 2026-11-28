@@ -152,12 +152,8 @@ export default function ReviewGame() {
 
   return (
     <div className={`page play-page analysis-page${expanded ? " expanded" : ""}`}>
-      <TopBar
-        backHref="/gym/review"
-        onBack={expanded ? () => setTrying(null) : undefined}
-        title={copy.analysis.title}
-        action={aiOn ? <AiCoachButton text={coach.lineAt(ply)} asking={coach.status === "loading" || (!done && coach.status === "idle")} onAsk={askAi} /> : undefined}
-      />
+      <TopBar backHref="/gym/review" onBack={expanded ? () => setTrying(null) : undefined} title={copy.analysis.title} />
+      {aiOn ? <AiCoachButton text={coach.lineAt(ply)} asking={coach.status === "loading" || (!done && coach.status === "idle")} onAsk={askAi} /> : null}
       <div className="play">
         <BoardStage
           className="play-stage"

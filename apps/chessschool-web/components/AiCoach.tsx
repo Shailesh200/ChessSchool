@@ -5,40 +5,22 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { Cody } from "./Lottie";
 
-const W = 132;
-const H = 44;
+const SIZE = 56;
+
+/** Where the learner last left the button, kept while the page is open so it is in the same place on every screen. */
+let dock: { side: "left" | "right"; y: number | null } = { side: "right", y: null };
 
 /**
- * Chaukor AI: a draggable button that floats over the screen (it never moves the layout). Tapping it asks
- * for help; a note arrives as a one-line bubble under it, and tapping the bubble opens the whole note.
- * Drag it anywhere; it snaps to the nearer side and stays on screen. Until dragged it sits where it is
- * rendered: an empty slot of its size keeps that space free.
+ * Chaukor AI: a floating button docked to the edge of the screen. Drag it up and down an edge or across to
+ * the other one; it snaps to the nearer edge. Tapping it asks for help; a note opens as a one-line bubble
+ * beside it (tap it for the whole note). It floats over the page, so it never moves the layout.
  */
 export function AiCoachButton({ text, asking, onAsk }: { text: string | null; asking: boolean; onAsk: () => void }) {
-  const anchor = useRef<HTMLSpanElement>(null);
-  const [home, setHome] = useState<{ top: number; right: number } | null>(null);
-  useEffect(() => {
-    // The pill covers its reserved slot exactly; measured again whenever the page around it moves.
-    const place = () => {
-      const r = anchor.current?.getBoundingClientRect();
-      if (r) setHome({ top: Math.max(8, Math.min(window.innerHeight - H - 8, r.top)), right: Math.max(12, window.innerWidth - r.right) });
-    };
-    place();
-    const watch = new ResizeObserver(place);
-    watch.observe(document.body);
-    if (anchor.current?.parentElement) watch.observe(anchor.current.parentElement);
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      watch.disconnect();
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, []);
   const [open, setOpen] = useState(false);
   const [full, setFull] = useState(false);
-  const [spot, setSpot] = useState<{ side: "left" | "right"; y: number } | null>(null);
+  const [spot, setSpot] = useState(dock);
   const [live, setLive] = useState<{ x: number; y: number } | null>(null);
+  const [vh, setVh] = useState(800);
   const start = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   // The click that ends a drag is not a tap.
   const dragged = useRef(false);
@@ -46,8 +28,15 @@ export function AiCoachButton({ text, asking, onAsk }: { text: string | null; as
     setOpen(Boolean(text));
     setFull(false);
   }, [text]);
+  useEffect(() => {
+    const size = () => setVh(window.innerHeight);
+    size();
+    window.addEventListener("resize", size);
+    return () => window.removeEventListener("resize", size);
+  }, []);
+  const clampY = (v: number) => Math.max(8, Math.min(vh - SIZE - 96, v));
 
-  // Once pressed, the drag is followed on the window: a quick first move can leave the pill behind.
+  // Once pressed, the drag is followed on the window: a quick first move can leave the button behind.
   const down = (e: React.PointerEvent) => {
     dragged.current = false;
     start.current = { x: e.clientX, y: e.clientY, moved: false };
@@ -56,7 +45,7 @@ export function AiCoachButton({ text, asking, onAsk }: { text: string | null; as
       if (!s || (!s.moved && Math.abs(ev.clientX - s.x) + Math.abs(ev.clientY - s.y) < 8)) return;
       s.moved = true;
       ev.preventDefault();
-      setLive({ x: Math.max(0, Math.min(window.innerWidth - W, ev.clientX - W / 2)), y: Math.max(0, Math.min(window.innerHeight - H, ev.clientY - H / 2)) });
+      setLive({ x: Math.max(0, Math.min(window.innerWidth - SIZE, ev.clientX - SIZE / 2)), y: Math.max(0, Math.min(window.innerHeight - SIZE, ev.clientY - SIZE / 2)) });
     };
     const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", move);
@@ -67,7 +56,8 @@ export function AiCoachButton({ text, asking, onAsk }: { text: string | null; as
       if (!s?.moved) return;
       dragged.current = true;
       setLive(null);
-      setSpot({ side: ev.clientX < window.innerWidth / 2 ? "left" : "right", y: Math.max(8, Math.min(window.innerHeight - H - 8, ev.clientY - H / 2)) });
+      dock = { side: ev.clientX < window.innerWidth / 2 ? "left" : "right", y: ev.clientY - SIZE / 2 };
+      setSpot(dock);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -75,12 +65,9 @@ export function AiCoachButton({ text, asking, onAsk }: { text: string | null; as
   };
   const click = () => (text ? (open ? setFull((f) => !f) : setOpen(true)) : onAsk());
 
-  const side = spot?.side ?? "right";
-  const style: React.CSSProperties = live ? { left: live.x, top: live.y } : spot ? { top: spot.y, [side]: 12 } : home ? { top: home.top, right: home.right } : { visibility: "hidden" };
+  const style: React.CSSProperties = live ? { left: live.x, top: live.y } : { top: clampY(spot.y ?? vh * 0.42), [spot.side]: 0 };
   return (
-    <>
-    <span ref={anchor} className="ai-fab-anchor" aria-hidden />
-    <div className={`ai-fab ai-fab-${side}${live ? " is-dragging" : ""}`} style={style} onPointerDown={down}>
+    <div className={`ai-fab ai-fab-${spot.side}${live ? " is-dragging" : ""}`} style={style} onPointerDown={down}>
       <button
         type="button"
         className="ai-fab-btn"
@@ -90,11 +77,10 @@ export function AiCoachButton({ text, asking, onAsk }: { text: string | null; as
         aria-busy={asking}
         onClick={() => (dragged.current ? (dragged.current = false) : click())}
       >
-        {asking ? <span className="spinner ai-fab-spin" aria-hidden /> : <Cody size={28} />}
-        <span>{copy.ai.coach}</span>
+        {asking ? <span className="spinner ai-fab-spin" aria-hidden /> : <Cody size={38} />}
         {text && !open ? <i className="ai-fab-dot" aria-hidden /> : null}
       </button>
-      {open && text ? (
+      {open && text && !live ? (
         <div className={`ai-fab-note${full ? " is-full" : ""}`} role="status" aria-live="polite">
           <button type="button" className="ai-fab-text" aria-expanded={full} aria-label={full ? undefined : `${copy.ai.coach}: ${text}`} onClick={() => setFull((f) => !f)}>
             <span className="ai-fab-line">{text}</span>
@@ -105,6 +91,5 @@ export function AiCoachButton({ text, asking, onAsk }: { text: string | null; as
         </div>
       ) : null}
     </div>
-    </>
   );
 }

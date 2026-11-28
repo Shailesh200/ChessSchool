@@ -34,7 +34,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar } from "@/components/GameParts";
-import { AiCoachButton, useAiSlot } from "@/components/AiCoach";
+import { AiCoachButton } from "@/components/AiCoach";
 import { Button, Choice, Segmented, T, TopBar } from "@/components/ui";
 import { usePlayAi } from "@/lib/coach";
 import { useEvaluation } from "@/lib/analysis";
@@ -68,7 +68,6 @@ export default function AnalysisBoard() {
   const bestLine = useMemo(() => (evaluation?.best.length ? numberedLine(fen, evaluation.best) : ""), [evaluation, fen]);
   // Chaukor AI explains the engine's best move in this position (same short line as in a game).
   const ai = usePlayAi(true);
-  const aiSlot = useAiSlot();
   const best = done && !editor ? (evaluation?.best[0] ?? null) : null;
 
   const tap = (sq: Square) => {
@@ -100,9 +99,9 @@ export default function AnalysisBoard() {
   const label = evaluationLabel(evaluation);
 
   return (
-    <SafeAreaView {...aiSlot.rootProps} style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 12 }}>
-        <TopBar title={t.title} action={ai.active && !editor ? aiSlot.slot : undefined} />
+        <TopBar title={t.title} />
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 24, gap: 10, maxWidth: 640, width: "100%", alignSelf: "center" }}>
         <View style={{ height: 460, maxHeight: 520 }}>
@@ -234,7 +233,7 @@ export default function AnalysisBoard() {
           </View>
         )}
       </ScrollView>
-      {ai.active && !editor ? <AiCoachButton home={aiSlot.home} text={ai.lineFor(fen)} asking={ai.askingFor(fen) || (!done && !evaluation?.over)} onAsk={() => best && ai.explain(fen, best)} /> : null}
+      {ai.active && !editor ? <AiCoachButton text={ai.lineFor(fen)} asking={ai.askingFor(fen) || (!done && !evaluation?.over)} onAsk={() => best && ai.explain(fen, best)} /> : null}
     </SafeAreaView>
   );
 }

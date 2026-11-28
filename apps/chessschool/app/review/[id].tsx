@@ -11,7 +11,7 @@ import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, T, TopBar } from "@/components/ui";
-import { AiCoachButton, useAiSlot } from "@/components/AiCoach";
+import { AiCoachButton } from "@/components/AiCoach";
 import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -52,7 +52,6 @@ export default function ReviewGame() {
   const friend = setup?.opponent.kind === "friend";
   const side = !setup || friend ? null : setup.you;
   const coach = useCoachNotes(game?.history, setup?.startFen ?? "", side);
-  const aiSlot = useAiSlot();
   useReviewedSkills(game, plies, notes, done, side);
   const firstNote = coach.notes[0]?.ply;
   useEffect(() => {
@@ -148,9 +147,9 @@ export default function ReviewGame() {
   );
 
   return (
-    <SafeAreaView {...aiSlot.rootProps} style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 12 }}>
-        <TopBar title={copy.analysis.title} onBack={expanded ? () => setTrying(null) : undefined} action={aiOn ? aiSlot.slot : undefined} />
+        <TopBar title={copy.analysis.title} onBack={expanded ? () => setTrying(null) : undefined} />
       </View>
       <View style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 12, gap: 10, maxWidth: expanded ? 900 : 640, width: "100%", alignSelf: "center" }}>
         <BoardStage
@@ -311,7 +310,7 @@ export default function ReviewGame() {
           />
         )}
       </View>
-      {aiOn ? <AiCoachButton home={aiSlot.home} text={coach.lineAt(ply)} asking={coach.status === "loading" || (!done && coach.status === "idle")} onAsk={askAi} /> : null}
+      {aiOn ? <AiCoachButton text={coach.lineAt(ply)} asking={coach.status === "loading" || (!done && coach.status === "idle")} onAsk={askAi} /> : null}
     </SafeAreaView>
   );
 }

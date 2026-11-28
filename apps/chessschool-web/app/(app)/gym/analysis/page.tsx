@@ -121,11 +121,8 @@ function AnalysisBoard() {
 
   return (
     <div className="page play-page analysis-page">
-      <TopBar
-        backHref="/gym"
-        title={t.title}
-        action={ai.active && !editor ? <AiCoachButton text={ai.lineFor(fen)} asking={ai.askingFor(fen) || (!done && !evaluation?.over)} onAsk={() => best && ai.explain(fen, best)} /> : undefined}
-      />
+      <TopBar backHref="/gym" title={t.title} />
+      {ai.active && !editor ? <AiCoachButton text={ai.lineFor(fen)} asking={ai.askingFor(fen) || (!done && !evaluation?.over)} onAsk={() => best && ai.explain(fen, best)} /> : null}
       <div className="play">
         <BoardStage
           className="play-stage"

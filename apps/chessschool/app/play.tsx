@@ -51,7 +51,7 @@ import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
-import { AiCoachButton, useAiSlot } from "@/components/AiCoach";
+import { AiCoachButton } from "@/components/AiCoach";
 import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -98,7 +98,6 @@ export default function Play() {
   const [movesOpen, setMovesOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
   const ai = usePlayAi(game?.setup.opponent.kind === "bot");
-  const aiSlot = useAiSlot();
   const winW = useWindowDimensions().width;
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
@@ -442,7 +441,7 @@ export default function Play() {
   const yourTurn = live && !game.over && !game.botThinking && !friend && turn === game.setup.you;
 
   return (
-    <SafeAreaView {...aiSlot.rootProps} style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
       <Backdrop art={botBackdrop(game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : "friend")} />
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
@@ -458,8 +457,6 @@ export default function Play() {
           <Icon name="flag" color={c.onDanger} size={24} />
         </Pressable>
         <View style={{ flex: 1 }} />
-        {/* Chaukor AI's spot: it floats over the screen (drawn last, below) and can be dragged away. */}
-        {ai.active ? aiSlot.slot : null}
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
       </View>
@@ -518,7 +515,7 @@ export default function Play() {
         </View>
       </View>
 
-      {ai.active ? <AiCoachButton home={aiSlot.home} text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
+      {ai.active ? <AiCoachButton text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
 
       <MovesSheet visible={movesOpen} onClose={() => setMovesOpen(false)} history={game.history} />
 
