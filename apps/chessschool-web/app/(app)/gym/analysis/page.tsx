@@ -34,7 +34,9 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar } from "@/components/GameParts";
+import { AiCoachButton } from "@/components/AiCoach";
 import { Button, Segmented, TopBar } from "@/components/ui";
+import { usePlayAi } from "@/lib/coach";
 import { useEvaluation } from "@/lib/analysis";
 import { useApp } from "@/lib/state";
 
@@ -71,6 +73,9 @@ function AnalysisBoard() {
   const cp = evaluation ? (evaluation.mate !== null ? Math.sign(evaluation.mate || (evaluation.cp > 0 ? 1 : -1)) * 1500 : evaluation.cp) : 0;
   const editFen = editor ? editorFen(editor) : null;
   const bestLine = useMemo(() => (evaluation?.best.length ? numberedLine(fen, evaluation.best) : ""), [evaluation, fen]);
+  // Chaukor AI explains the engine's best move in this position (same short line as in a game).
+  const ai = usePlayAi(true);
+  const best = done && !editor ? (evaluation?.best[0] ?? null) : null;
   const overLabel = evaluation?.over === "checkmate" ? t.checkmate : evaluation?.over === "stalemate" ? t.stalemate : null;
   const label = evaluationLabel(evaluation);
 
@@ -116,7 +121,11 @@ function AnalysisBoard() {
 
   return (
     <div className="page play-page analysis-page">
-      <TopBar backHref="/gym" title={t.title} />
+      <TopBar
+        backHref="/gym"
+        title={t.title}
+        action={ai.active && !editor ? <AiCoachButton text={ai.lineFor(fen)} asking={ai.askingFor(fen) || (!done && !evaluation?.over)} onAsk={() => best && ai.explain(fen, best)} /> : undefined}
+      />
       <div className="play">
         <BoardStage
           className="play-stage"

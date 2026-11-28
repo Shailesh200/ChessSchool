@@ -45,15 +45,15 @@ export const isBotId = (v: unknown): v is BotId => BOTS.some((b) => b.id === v);
 /** Maps Phase 2 levels and unknown values onto the roster. */
 export const toBotId = (v: unknown): BotId => (isBotId(v) ? v : v === "steady" ? "rooky" : "pip");
 
-/** Search settings per bot; Ivy and Atlas think longer (up to ~2 s) so their low-loss moves are really good. */
+/** Search settings per bot: the stronger ones search deeper and think longer (up to 3 s) so their low-loss moves are really good. */
 const ENGINE: Record<BotId, { depth: number; quiescence: number; timeMs: number }> = {
   pip: { depth: 3, quiescence: 4, timeMs: 500 },
   rooky: { depth: 3, quiescence: 4, timeMs: 700 },
-  bishop: { depth: 4, quiescence: 5, timeMs: 1200 },
-  ivy: { depth: 5, quiescence: 6, timeMs: 1500 },
-  atlas: { depth: 5, quiescence: 7, timeMs: 1800 },
-  raja: { depth: 6, quiescence: 8, timeMs: 2000 },
-  cody: { depth: 6, quiescence: 9, timeMs: 2200 },
+  bishop: { depth: 4, quiescence: 5, timeMs: 1000 },
+  ivy: { depth: 4, quiescence: 6, timeMs: 1500 },
+  atlas: { depth: 5, quiescence: 7, timeMs: 2000 },
+  raja: { depth: 5, quiescence: 8, timeMs: 2500 },
+  cody: { depth: 6, quiescence: 9, timeMs: 3000 },
 };
 
 /**
@@ -93,14 +93,15 @@ export function pickByLoss(ranked: readonly RankedMove[], target: number, like: 
   return nearestByLoss(ranked, target, like, rand, 1)[0]!;
 }
 
+/** Centipawns a candidate may fit the drawn loss worse than the pick and still be offered. */
+const FIT = 25;
+
 /** The `n` candidates whose loss is closest to `target`, closest first. */
 function nearestByLoss(ranked: readonly RankedMove[], target: number, like: (m: Move) => number, rand: () => number, n: number): Move[] {
   const best = capped(ranked[0].score);
-  return ranked
-    .map((r) => ({ move: r.move, d: Math.abs(best - capped(r.score) - target) - like(r.move) + rand() * 6 }))
-    .sort((a, b) => a.d - b.d)
-    .slice(0, n)
-    .map((x) => x.move);
+  const near = ranked.map((r) => ({ move: r.move, d: Math.abs(best - capped(r.score) - target) - like(r.move) + rand() * 6 })).sort((a, b) => a.d - b.d);
+  // Only moves that fit the drawn loss about as well as the pick: the AI bot's choice among them must not weaken it.
+  return near.filter((x, i) => i === 0 || x.d <= near[0]!.d + FIT).slice(0, n).map((x) => x.move);
 }
 
 /**

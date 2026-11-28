@@ -2,13 +2,16 @@ import { createHash } from "node:crypto";
 import { coachMoments, load, PIECE_NAMES, reviewPlies, type CoachMoment, type Color, type MistakeTag, type PieceType } from "@chessschool/chess";
 import { coachOf, type CoachId } from "@chessschool/design";
 import { eq, sql } from "drizzle-orm";
-import type { AiProvider } from "./ai";
+import { byQuality, type AiProvider } from "./ai";
 import type { Db } from "./db";
 import { coachCache, coachUsage } from "./schema";
 
 export const COACH_MAX_PLIES = 300;
 export const COACH_USER_DAILY = 10;
 export const COACH_GLOBAL_DAILY = 500;
+/** Game explanations the paid model writes per learner and in all each day. */
+export const EXPLAIN_PAID_USER_DAILY = 3;
+export const EXPLAIN_PAID_GLOBAL_DAILY = 100;
 
 export type CoachInput = { startFen: string; moves: string[]; side: Color | null; coach: CoachId };
 export type CoachLang = "en" | "hi";
@@ -50,7 +53,7 @@ export function coachPrompt(moments: CoachMoment[], coach: CoachId, lang: CoachL
       ? "Write in simple Hindi (Devanagari). Address the learner as आप. Chess words: राजा king, रानी queen, हाथी rook, ऊँट bishop, घोड़ा knight, प्यादा pawn, शह check, शह-मात checkmate. Keep moves and squares in English letters, like Nf3 or e5."
       : "Write in simple English.";
   const system = [
-    `You are ${c.name}, a chess coach for children aged 7 to 12. Your style: ${c.blurb.toLowerCase()}.`,
+    `You are Chaukor AI, a chess coach for children aged 7 to 12, speaking as ${c.name}. Your style: ${c.blurb.toLowerCase()}.`,
     "Explain each game moment in 2 or 3 short, warm, encouraging sentences a 9-year-old can follow:",
     "first what the move did wrong (the threat it allowed, or the piece it left unprotected), then the better move by name and why it is better (what it wins or stops), then one simple habit to try next time.",
     "Use plain words. If you use a chess idea like a fork or a pin, say what it means in a few words.",
@@ -147,7 +150,16 @@ export async function explainGame(db: Db, providers: AiProvider[], input: CoachI
   if ((mine?.count ?? 0) >= COACH_USER_DAILY || Number(all?.n ?? 0) >= COACH_GLOBAL_DAILY) return "limit";
   await db.insert(coachUsage).values({ userId, day, count: 1 }).onConflictDoUpdate({ target: [coachUsage.userId, coachUsage.day], set: { count: sql`${coachUsage.count} + 1` } });
 
-  const got = await askChain(providers, moments, input.coach, lang, input.side);
+  // The paid model writes the first few explanations a day (they are what learners read most closely);
+  // past the caps the free models answer, with the paid one as the last resort.
+  const ranked = byQuality(providers);
+  const paidDay = `${day}/explain-paid`;
+  const paidMine = await db.query.coachUsage.findFirst({ where: sql`${coachUsage.userId} = ${userId} AND ${coachUsage.day} = ${paidDay}` });
+  const paidAll = await db.select({ n: sql<number>`coalesce(sum(${coachUsage.count}), 0)` }).from(coachUsage).where(eq(coachUsage.day, paidDay)).get();
+  const paidOk = ranked[0]?.name === "anthropic" && (paidMine?.count ?? 0) < EXPLAIN_PAID_USER_DAILY && Number(paidAll?.n ?? 0) < EXPLAIN_PAID_GLOBAL_DAILY;
+  if (paidOk) await db.insert(coachUsage).values({ userId, day: paidDay, count: 1 }).onConflictDoUpdate({ target: [coachUsage.userId, coachUsage.day], set: { count: sql`${coachUsage.count} + 1` } });
+  const chain = paidOk ? ranked : [...ranked.filter((p) => p.name !== "anthropic"), ...ranked.filter((p) => p.name === "anthropic")];
+  const got = await askChain(chain, moments, input.coach, lang, input.side);
   if (!got) return null;
   await db.insert(coachCache).values({ key, texts: JSON.stringify(got.texts), provider: got.provider, createdAt: now }).onConflictDoNothing();
   return { moments: shape(got.texts), provider: got.provider, cached: false };

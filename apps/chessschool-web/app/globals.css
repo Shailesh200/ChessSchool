@@ -2366,6 +2366,7 @@ a.path-inner:hover {
 .play-chrome-right,
 .play-steps {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .play-chrome .icon-btn,
@@ -2882,43 +2883,59 @@ button.mode-tile {
   text-align: center;
   justify-items: center;
 }
+.bot-hero {
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid var(--cs-line);
+  background: var(--cs-card);
+}
+.bot-hero-meta {
+  margin: 2px 0;
+  color: var(--cs-gold-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+/* One scrolling row of bot faces to switch opponent. */
 .bot-picker {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
   gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -4px;
+  padding: 2px 4px 4px;
 }
 .bot-chip {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  min-width: 0;
-  width: 100%;
-  min-height: 64px;
-  padding: 8px 12px;
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 76px;
+  padding: 8px 4px;
   border-radius: 16px;
-  border: 2px solid var(--cs-line);
+  border: 2px solid transparent;
   background: var(--cs-card);
   color: var(--cs-text);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-align: left;
   cursor: pointer;
 }
-.bot-chip-text {
-  display: grid;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
+.bot-chip:hover {
+  border-color: var(--cs-line);
 }
-.bot-chip-text .muted {
-  font-weight: 500;
+.bot-chip-name {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bot-chip .bot-level {
+  font-size: 0.625rem;
 }
 .bot-chip[aria-checked="true"] {
   border-color: var(--cs-brand);
-  box-shadow: 0 0 0 3px var(--cs-brand-soft);
+  background: var(--cs-brand-soft);
+  font-weight: 700;
 }
 .promo-row {
   display: grid;
@@ -4208,6 +4225,27 @@ button.mode-tile {
   height: clamp(240px, min(calc(100vw - 56px), calc(100dvh - 540px)), 560px);
   min-height: 0;
 }
+/* Phones and tablets: the board keeps its full row and the notes under it scroll on their own, so the
+   panel never slides under the board. */
+@media (max-width: 999px) {
+  .analysis-page .play {
+    grid-template-rows: max-content minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .analysis-page .play-panel {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    align-content: start;
+    padding-bottom: 8px;
+  }
+}
+@media (max-width: 767px) {
+  /* Clear of the tab bar, which floats over the bottom of the screen. */
+  .analysis-page .play-panel {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
 @media (min-width: 1000px) {
   .analysis-page .stage-board {
     height: calc(100dvh - 230px);
@@ -5455,44 +5493,6 @@ html[data-cs-motion="reduce"] *::after {
   box-shadow: 0 6px 18px rgba(28, 27, 46, 0.12);
 }
 
-/* Coach notes (AI explanations) on the game review */
-.coach-notes {
-  display: grid;
-  gap: 8px;
-}
-.coach-notes h2 {
-  margin: 4px 0 0;
-  font-size: 1rem;
-}
-.coach-notes ul {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.coach-notes p {
-  margin: 0;
-}
-.coach-note {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--cs-line);
-  background: var(--cs-card);
-  color: var(--cs-text);
-  font: inherit;
-  font-size: 0.9375rem;
-  cursor: pointer;
-}
-.coach-note.on {
-  border-color: var(--cs-brand);
-  background: var(--cs-brand-soft);
-}
-
 /* Profile skills card */
 .skills-list {
   display: grid;
@@ -6582,30 +6582,56 @@ button.game-row {
   text-overflow: ellipsis;
 }
 /* The AI coach's corner widget: the note floats over the game, so the board never moves. */
+/* Chaukor AI: a draggable pill that floats over the page; its note hangs under it. */
 .ai-fab {
-  position: relative;
-  display: inline-flex;
-  z-index: 40;
-  touch-action: none;
-}
-.ai-fab.is-floating {
-  align-items: center;
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
+  touch-action: none;
+  user-select: none;
 }
-.ai-fab.is-floating.ai-fab-right {
-  flex-direction: row-reverse;
+.ai-fab-anchor {
+  display: inline-block;
+  flex: none;
+  width: 132px;
+  height: 44px;
+}
+.ai-fab-left {
+  align-items: flex-start;
 }
 .ai-fab-btn {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px 0 8px;
+  border-radius: 22px;
   border: 1.5px solid #6e5bff;
-  padding: 8px !important;
-  overflow: visible;
+  background: var(--cs-card);
+  color: var(--cs-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
   cursor: grab;
+}
+.ai-fab.is-dragging .ai-fab-btn {
+  cursor: grabbing;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.24);
+}
+.ai-fab-spin {
+  width: 22px;
+  height: 22px;
+  margin: 3px;
 }
 .ai-fab-dot {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -2px;
+  right: -2px;
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -6617,18 +6643,13 @@ button.game-row {
   gap: 4px;
   align-items: center;
   width: max-content;
-  max-width: min(300px, calc(100vw - 96px));
+  max-width: min(300px, calc(100vw - 32px));
   padding: 6px 6px 6px 12px;
   border-radius: 18px;
   border: 1.5px solid #6e5bff;
   background: var(--cs-card);
+  color: var(--cs-text);
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.16);
-}
-/* In the toolbar the bubble hangs below the button; floating, it sits beside it. */
-.ai-fab:not(.is-floating) .ai-fab-note {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
 }
 .ai-fab-note.is-full {
   align-items: flex-start;
@@ -6636,17 +6657,18 @@ button.game-row {
 .ai-fab-text {
   flex: 1;
   min-width: 0;
-  display: grid;
-  gap: 4px;
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
   text-align: start;
   cursor: pointer;
 }
 .ai-fab-line {
+  display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -6655,6 +6677,7 @@ button.game-row {
   white-space: normal;
 }
 .ai-fab-close {
+  flex: none;
   border: 0;
   background: none;
   color: var(--cs-text-muted);

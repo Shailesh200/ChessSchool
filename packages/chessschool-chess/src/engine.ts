@@ -13,6 +13,7 @@ type Fast = {
   _board: ({ type: string; color: "w" | "b" } | undefined)[];
   _turn: "w" | "b";
   _isKingAttacked(color: "w" | "b"): boolean;
+  _hash: bigint;
 };
 const fastOf = (c: Chess) => {
   const f = c as unknown as Fast;
@@ -63,14 +64,33 @@ function search(f: Fast, deadline: number) {
   const tick = () => {
     if (++nodes % 512 === 0 && Date.now() > deadline) throw new Timeout();
   };
+  // Two quiet moves per ply that cut off a sibling: tried right after the captures.
+  const killers: string[][] = [];
+  const key = (m: IMove) => `${m.from}-${m.to}`;
+  // The best move found here by a shallower search (iterative deepening) is tried first.
+  const hashMove = new Map<bigint, string>();
+  const orderAt = (moves: IMove[], ply: number) => {
+    const k = killers[ply] ?? [];
+    const h = hashMove.get(f._hash);
+    const score = (m: IMove) => (h === key(m) ? 100_000 : m.captured ? VALUE[m.captured] * 10 - VALUE[m.piece] + 10_000 : m.promotion ? 9_000 : k.includes(key(m)) ? 5_000 : 0);
+    return moves.sort((a, b) => score(b) - score(a));
+  };
+  // Moves are generated pseudo-legal and checked only when searched: at a cut-off most siblings are never made.
+  const make = (m: IMove) => {
+    const us = f._turn;
+    f._makeMove(m);
+    if (!f._isKingAttacked(us)) return true;
+    f._undoMove();
+    return false;
+  };
   const quiesce = (alpha: number, beta: number, depth: number): number => {
     tick();
     const stand = evaluate(f);
     if (depth === 0) return stand;
     if (stand >= beta) return stand;
     if (stand > alpha) alpha = stand;
-    for (const m of order(f._moves({ legal: true }).filter((x) => x.captured || x.promotion))) {
-      f._makeMove(m);
+    for (const m of order(f._moves({ legal: false }).filter((x) => x.captured || x.promotion))) {
+      if (!make(m)) continue;
       const score = -quiesce(-beta, -alpha, depth - 1);
       f._undoMove();
       if (score >= beta) return score;
@@ -80,18 +100,32 @@ function search(f: Fast, deadline: number) {
   };
   const negamax = (depth: number, alpha: number, beta: number, ply: number, q: number): number => {
     tick();
-    const moves = f._moves({ legal: true });
-    if (!moves.length) return f._isKingAttacked(f._turn) ? -MATE + ply : 0;
-    if (depth === 0) return quiesce(alpha, beta, q);
+    if (depth === 0) {
+      // A mate still counts at the horizon (a stalemate there is left to the next search).
+      if (f._isKingAttacked(f._turn) && !f._moves({ legal: true }).length) return -MATE + ply;
+      return quiesce(alpha, beta, q);
+    }
     let best = -Infinity;
-    for (const m of order(moves)) {
-      f._makeMove(m);
+    let bestKey = "";
+    let any = false;
+    const here = f._hash;
+    for (const m of orderAt(f._moves({ legal: false }), ply)) {
+      if (!make(m)) continue;
+      any = true;
       const score = -negamax(depth - 1, -beta, -alpha, ply + 1, q);
       f._undoMove();
-      if (score > best) best = score;
+      if (score > best) {
+        best = score;
+        bestKey = key(m);
+      }
       if (score > alpha) alpha = score;
-      if (alpha >= beta) break;
+      if (alpha >= beta) {
+        if (!m.captured) killers[ply] = [key(m), ...(killers[ply] ?? []).filter((x) => x !== key(m))].slice(0, 2);
+        break;
+      }
     }
+    if (!any) return f._isKingAttacked(f._turn) ? -MATE + ply : 0;
+    if (hashMove.size < 200_000) hashMove.set(here, bestKey);
     return best;
   };
   return { negamax };

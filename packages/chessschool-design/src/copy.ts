@@ -839,7 +839,6 @@ export const copy = {
       ocean: { name: "Ocean", blurb: "Deep blue" },
       lavender: { name: "Lavender", blurb: "Soft purple" },
     },
-    credit: "Piece sets by Maurizio Monge (Celtic, Spatial, Fantasy; MIT), Colin M.L. Burnett (Classic; BSD), Alexis Luengas (Chessnut; Apache 2.0), RhosGFX (Wood; CC0) and Nikolay Anzarov (Papercut; CC BY 4.0).",
     /** Piece-set names by id ("toy" is Classic). */
     sets: {
       celtic: { name: "Celtic", blurb: "Glossy and chunky" },
@@ -894,9 +893,11 @@ export const copy = {
   },
 
   ai: {
-    coach: "AI coach",
-    hint: "AI coach · hint",
-    ask: "Ask the AI coach",
+    coach: "Chaukor AI",
+    hint: "Chaukor AI · hint",
+    ask: "Ask Chaukor AI",
+    /** Drag hint for screen readers and the widget's tooltip. */
+    move: "Drag to move",
     readMore: "Opens the whole note",
     dismiss: "Hide this note",
     gotIt: "Got it",
@@ -1167,8 +1168,8 @@ export const copy = {
     textSizeHint: "Text size follows your device settings.",
     shareUsage: "Share anonymous usage",
     shareUsageHint: "Helps us see which lessons are too hard. No name, email or account is sent.",
-    aiExplain: "AI coach",
-    aiExplainHint: "Explains your games, gives hint reasons and comments, and plays some bots. Only moves and positions are used.",
+    aiExplain: "Chaukor AI",
+    aiExplainHint: "Explains your games and moves, and plays some bots. Only moves and positions are used.",
     aiOff: "AI features are not available on this account yet.",
     reminderTime: "Reminder time",
     reminderHour: (h: number) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? "am" : "pm"}`,
@@ -1215,9 +1216,10 @@ export const copy = {
     body: [
       "ChessSchool is provided as-is while it is being built. Lessons are for learning and fun.",
       "Be kind in Club rooms. Accounts that harass others may be removed.",
-      "Your coach uses AI to explain games, give hints, comment on moves, play as some bots and read board photos. For this it only gets chess moves, board positions or the board photo, never your name, email or anything you type. AI can be wrong, so treat its notes as tips.",
-      "AI explanations only run when you tap Ask coach; without them you still get the basic engine notes. You can turn the AI coach off in Settings at any time.",
+      "Chaukor AI explains games, gives hints, comments on moves, plays as some bots and reads board photos. For this it only gets chess moves, board positions or the board photo, never your name, email or anything you type. AI can be wrong, so treat its notes as tips.",
+      "AI explanations only run when you ask Chaukor AI; without them you still get the basic engine notes. You can turn Chaukor AI off in Settings at any time.",
       "Your data is handled as described in our privacy policy.",
+      "Piece sets by Maurizio Monge (Celtic, Spatial, Fantasy; MIT), Colin M.L. Burnett (Classic; BSD), Alexis Luengas (Chessnut; Apache 2.0), RhosGFX (Wood; CC0) and Nikolay Anzarov (Papercut; CC BY 4.0).",
     ],
   },
 
@@ -1226,7 +1228,7 @@ export const copy = {
     title: "Before we start",
     points: [
       "Lessons, puzzles and games are here for learning and fun.",
-      "Your coach uses AI to explain games, give hints and play as some bots. It only sees chess moves and positions, never who you are.",
+      "Chaukor AI explains games, gives hints and plays as some bots. It only sees chess moves and positions, never who you are.",
       "Be kind to other players.",
     ],
     note: "By continuing, you accept our Terms of use and Privacy policy.",
@@ -1245,7 +1247,7 @@ export const copy = {
       },
       {
         label: "Who sees them",
-        text: "Signed-in adults can ask the coach for an AI explanation; it is only sent when you tap Ask coach. The AI coach can be turned off in Settings at any time.",
+        text: "Signed-in adults can ask Chaukor AI for an explanation; it is only sent when you ask. Chaukor AI can be turned off in Settings at any time.",
       },
       {
         label: "Which providers",
@@ -1314,16 +1316,18 @@ export const copy = {
 
   /** Public account-deletion page (Play requires a URL that does not need a login). */
   coachAi: {
-    button: "Ask coach",
-    retry: "Ask coach again",
-    title: "Coach notes",
-    loading: "Your coach is looking at your game…",
+    button: "Ask Chaukor AI",
+    retry: "Ask Chaukor AI again",
+    title: "Chaukor AI",
+    loading: "Chaukor AI is looking at your game…",
+    /** Shown when the current move has no note: tapping the widget jumps to the next one. */
+    next: "Tap to go to the next move Chaukor AI explained.",
     none: "No big mistakes to explain. Well played!",
-    failed: "Your coach couldn't explain this game right now. Try again later.",
+    failed: "Chaukor AI couldn't explain this game right now. Tap to try again.",
     limit: "That's all the explanations for today. Come back tomorrow!",
-    signIn: "Sign in to get your coach's explanations.",
+    signIn: "Sign in to ask Chaukor AI.",
     moveLabel: (moveNo: number, san: string) => `Move ${moveNo}: ${san}`,
-    note: "Written by AI from what Chaukor's engine found. It can make mistakes.",
+    note: "Chaukor AI writes this from the engine's findings. It can make mistakes.",
   },
 
   skills: {

@@ -358,10 +358,10 @@ describe("the bot roster", () => {
         chess.move(m.san);
         fen = chess.fen();
       }
-      // Each move stops at the bot's think time (2 s at most); allow some slack for a busy test machine.
-      expect(Date.now() - t, bot.name).toBeLessThan(12_000);
+      // Each move stops at the bot's think time (3 s at most); allow some slack for a busy test machine.
+      expect(Date.now() - t, bot.name).toBeLessThan(16_000);
     }
-  }, 60_000);
+  }, 90_000);
 
   it("stronger bots find mates and win material", () => {
     for (const id of ["bishop", "ivy", "atlas"] as const) {

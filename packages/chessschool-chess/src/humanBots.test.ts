@@ -104,10 +104,11 @@ describe("bots that err like people", () => {
 });
 
 describe("botOptions (the AI bot's choices)", () => {
-  it("offers up to n legal moves, the first being chooseMove's pick", () => {
+  it("offers up to n legal moves that fit as well as chooseMove's pick, which comes first", () => {
     const fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
     const opts = botOptions(fen, "rooky", seq(7), undefined, 4);
-    expect(opts.length).toBeGreaterThan(1);
+    // Only near-equal alternatives are offered, so the AI's style never costs the bot strength.
+    expect(opts.length).toBeGreaterThanOrEqual(1);
     expect(opts.length).toBeLessThanOrEqual(4);
     const legal = load(fen).moves();
     expect(opts.every((m) => legal.includes(m.san))).toBe(true);

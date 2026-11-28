@@ -93,12 +93,17 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
   const askedFen = params.get("fen");
   const scanFen = mode === "position" && askedFen && !setupProblem(askedFen) ? askedFen : null;
   const [bot, setBot] = useState<BotId>(isBotId(firstBot) ? firstBot : "pip");
+  const picker = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState<Side>(scanFen ? turnOf(scanFen) : "w");
   const [time, setTime] = useState<TimeControlId>("none");
   const [takebacks, setTakebacks] = useState(botInfo(bot).takebacks || mode === "friend");
   const [guide, setGuide] = useState<{ from: Square; to: Square; piece: Piece } | null>(null);
   const [position, setPosition] = useState(START_POSITIONS[0].id);
   const [game, setGame] = useState<PlayState | null>(null);
+  // Opened from a strong bot in the Gym, its face starts in view.
+  useEffect(() => {
+    picker.current?.querySelector('[aria-checked="true"]')?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [game === null]);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
   const [confirm, setConfirm] = useState(false);
@@ -290,14 +295,18 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             </div>
           ) : (
             <>
-              <div className="setup-head">
+              {/* The chosen bot, and one row of faces to switch: the Gym list already showed them all. */}
+              <div className="setup-head bot-hero">
                 <BotAvatar bot={bot} size={72} />
                 <div>
                   <h1>{info.name}</h1>
+                  <p className="bot-hero-meta">
+                    <span aria-hidden>{"★".repeat(info.level)}</span> {info.label} · {copy.gym.botRating(botRatingOf(state.ratings, bot, info.rating))}
+                  </p>
                   <p className="muted">{info.blurb}</p>
                 </div>
               </div>
-              <div className="bot-picker" role="radiogroup" aria-label={copy.gym.bots}>
+              <div ref={picker} className="bot-picker" role="radiogroup" aria-label={copy.gym.bots}>
                 {BOTS.map((b) => (
                   <button
                     key={b.id}
@@ -311,13 +320,8 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
                       setTakebacks(b.takebacks);
                     }}
                   >
-                    <BotAvatar bot={b.id} size={40} />
-                    <span className="bot-chip-text">
-                      <span>{b.name}</span>
-                      <span className="muted">
-                        {b.label} · {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
-                      </span>
-                    </span>
+                    <BotAvatar bot={b.id} size={44} />
+                    <span className="bot-chip-name">{b.name.split(" ").at(-1)}</span>
                     <span className="bot-level" aria-hidden>
                       {"★".repeat(b.level)}
                     </span>
@@ -431,6 +435,7 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             <Icon name="flag" />
           </button>
           <span className="play-chrome-right">
+            {ai.active ? <AiCoachButton text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => live && !game.over && !game.botThinking && turn === game.setup.you && explain(game.fen, false)} /> : null}
             <button type="button" className="icon-btn" aria-label={copy.analysis.movesTitle} onClick={() => setMovesOpen(true)}>
               <Icon name="history" />
             </button>
@@ -445,7 +450,6 @@ function PlayRoom({ params }: { params: URLSearchParams }) {
             >
               <Icon name="bulb" />
             </button>
-            {ai.active ? <AiCoachButton text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => live && !game.over && !game.botThinking && turn === game.setup.you && explain(game.fen, false)} /> : null}
           </span>
         </div>
         <BoardStage top={bar(topSide)} bottom={bar(bottomSide)} className="play-stage">

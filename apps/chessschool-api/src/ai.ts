@@ -78,6 +78,10 @@ export function anthropic(key: string, model = "claude-haiku-5-5"): AiProvider {
   };
 }
 
+/** Text answers go to the strongest model first, then the free ones by quality (the bot's quick pick keeps the env order). */
+const RANK: Record<string, number> = { anthropic: 0, groq: 1, "workers-ai": 2 };
+export const byQuality = (providers: AiProvider[]) => [...providers].sort((a, b) => (RANK[a.name] ?? 3) - (RANK[b.name] ?? 3));
+
 /** The chain from whichever keys are set; empty when none are (the coach route then answers 503). */
 export function providersFromEnv(env: Record<string, string | undefined>): AiProvider[] {
   const out: AiProvider[] = [];

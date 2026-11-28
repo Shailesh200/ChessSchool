@@ -1,7 +1,7 @@
 "use client";
 
 import { detectMistakes, type Color, type MoveNote, type ReviewPly } from "@chessschool/chess";
-import { dayKey, hasPremiumAi, recordReviewedGame, type CoachNote, type GameRecord } from "@chessschool/design";
+import { copy, dayKey, hasPremiumAi, recordReviewedGame, type CoachNote, type GameRecord } from "@chessschool/design";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -9,7 +9,7 @@ import { useApp } from "@/lib/state";
 export type CoachStatus = "idle" | "loading" | "done" | "error" | "limit";
 
 /**
- * "Ask coach": the coach's notes per move. A premium AI feature (`hasPremiumAi`); without it the screens keep the
+ * Chaukor AI on a game review: notes per key move. A premium AI feature (`hasPremiumAi`); without it the screens keep the
  * engine notes. The API requires `consent: true`: agreeing to the terms at the start covers sending the moves, so it is always sent.
  */
 export function useCoachNotes(moves: string[] | undefined, startFen: string, side: Color | null) {
@@ -34,6 +34,12 @@ export function useCoachNotes(moves: string[] | undefined, startFen: string, sid
     allowed: hasPremiumAi(state),
     ask: run,
     noteFor: (ply: number) => notes.find((n) => n.ply === ply) ?? null,
+    /** What the Chaukor AI widget says at this move: its note, or how the request went. */
+    lineAt: (ply: number) =>
+      notes.find((n) => n.ply === ply)?.text ??
+      (status === "error" ? copy.coachAi.failed : status === "limit" ? copy.coachAi.limit : status === "done" && !notes.length ? copy.coachAi.none : null),
+    /** The next move with a note after `ply` (wrapping round), for a tap on the widget. */
+    nextNote: (ply: number) => (notes.find((n) => n.ply > ply) ?? notes[0])?.ply ?? null,
   };
 }
 
@@ -55,7 +61,7 @@ export function useReviewedSkills(game: GameRecord | undefined, plies: ReviewPly
 }
 
 /**
- * In-game AI for a bot game, when signed in with AI on: the bot picks among its own candidate moves in its
+ * Chaukor AI in a bot game (and on the analysis board, with `botGame` true), when signed in with AI on: the bot picks among its own candidate moves in its
  * style (sometimes with a remark), the hint gets a one-line reason, and the learner's mistakes get a comment.
  * Any failure or slow answer falls back quietly: the bot plays its model's pick and no line shows.
  */

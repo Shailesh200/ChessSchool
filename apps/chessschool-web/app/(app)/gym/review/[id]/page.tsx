@@ -9,6 +9,7 @@ import { Board } from "@/components/Board";
 import { BoardStage } from "@/components/BoardStage";
 import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
+import { AiCoachButton } from "@/components/AiCoach";
 import { Cody } from "@/components/Lottie";
 import { Button, TopBar } from "@/components/ui";
 import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
@@ -130,22 +131,13 @@ export default function ReviewGame() {
   else if (facts) explain = moveStory(facts, mine);
   else explain = mine ? copy.analysis.looking : copy.analysis.explain.opponent;
 
-  const coachLine = connectivity !== "online" && coach.status !== "done"
-    ? copy.myGames.offlineNotes
-    : !coach.signedIn
-    ? copy.coachAi.signIn
-    : !coach.allowed
-      ? copy.myGames.engineOnly
-      : coach.status === "loading"
-        ? copy.coachAi.loading
-        : coach.status === "error"
-          ? copy.coachAi.failed
-          : coach.status === "limit"
-            ? copy.coachAi.limit
-            : coach.status === "done" && !coach.notes.length
-              ? copy.coachAi.none
-              : null;
-  const canAsk = coach.signedIn && coach.allowed && connectivity === "online" && (coach.status === "idle" || coach.status === "error");
+  // Chaukor AI floats over the review: tap to ask, then each key move's note shows in its bubble.
+  const aiOn = coach.signedIn && coach.allowed && (connectivity === "online" || coach.status === "done") && !expanded;
+  const askAi = () => {
+    if (coach.status === "idle" || coach.status === "error") return void (done && coach.ask());
+    const next = coach.nextNote(ply);
+    if (next) go(next);
+  };
 
   const tap = (sq: Parameters<typeof tryReduce>[1]) => {
     if (!trying) return;
@@ -160,7 +152,12 @@ export default function ReviewGame() {
 
   return (
     <div className={`page play-page analysis-page${expanded ? " expanded" : ""}`}>
-      <TopBar backHref="/gym/review" onBack={expanded ? () => setTrying(null) : undefined} title={copy.analysis.title} />
+      <TopBar
+        backHref="/gym/review"
+        onBack={expanded ? () => setTrying(null) : undefined}
+        title={copy.analysis.title}
+        action={aiOn ? <AiCoachButton text={coach.lineAt(ply)} asking={coach.status === "loading" || (!done && coach.status === "idle")} onAsk={askAi} /> : undefined}
+      />
       <div className="play">
         <BoardStage
           className="play-stage"
@@ -260,36 +257,6 @@ export default function ReviewGame() {
             <p>{explain}</p>
           </div>
 
-          <div className="fold" aria-hidden={expanded || undefined} inert={expanded || undefined}>
-          <section className="coach-notes" aria-label={copy.coachAi.title}>
-            {coachLine ? (
-              <p className="muted" role="status">
-                {coachLine}
-              </p>
-            ) : null}
-            {canAsk ? (
-              <Button variant="secondary" icon="sparkles" onClick={coach.ask} disabled={!done}>
-                {coach.status === "error" ? copy.coachAi.retry : copy.coachAi.button}
-              </Button>
-            ) : null}
-            {coach.notes.length ? (
-              <>
-                <h2>{copy.coachAi.title}</h2>
-                <ul>
-                  {coach.notes.map((n) => (
-                    <li key={n.ply}>
-                      <button type="button" className={`coach-note${n.ply === ply ? " on" : ""}`} aria-pressed={n.ply === ply} onClick={() => go(n.ply)}>
-                        <strong>{copy.coachAi.moveLabel(plies[n.ply - 1]?.moveNo ?? moveNoAt(plies, n.ply), n.san)}</strong>
-                        <span>{n.text}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <p className="muted small">{copy.coachAi.note}</p>
-              </>
-            ) : null}
-          </section>
-          </div>
 
           <div className="analysis-nav">
             <Button variant="secondary" icon="back" onClick={() => go(ply - 1)} disabled={!ply} aria-label={copy.gym.prev}>

@@ -11,6 +11,7 @@ import { EvalBar, EvalGraph, momentTone } from "@/components/GameParts";
 import { Icon } from "@/components/Icon";
 import { Cody } from "@/components/Lottie";
 import { Button, T, TopBar } from "@/components/ui";
+import { AiCoachButton, useAiSlot } from "@/components/AiCoach";
 import { useCoachNotes, useReviewedSkills } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { useApp } from "@/lib/state";
@@ -51,6 +52,7 @@ export default function ReviewGame() {
   const friend = setup?.opponent.kind === "friend";
   const side = !setup || friend ? null : setup.you;
   const coach = useCoachNotes(game?.history, setup?.startFen ?? "", side);
+  const aiSlot = useAiSlot();
   useReviewedSkills(game, plies, notes, done, side);
   const firstNote = coach.notes[0]?.ply;
   useEffect(() => {
@@ -115,25 +117,13 @@ export default function ReviewGame() {
   else if (facts) explain = moveStory(facts, mine);
   else explain = mine ? copy.analysis.looking : copy.analysis.explain.opponent;
 
-  const coachNote = cur && !trying ? coach.noteFor(cur.ply) : null;
-  const offline = connectivity !== "online";
-  // Coach explanations are premium AI; everyone else keeps the engine notes above.
-  const coachLine = offline && coach.status !== "done"
-    ? copy.myGames.offlineNotes
-    : !coach.signedIn
-    ? copy.coachAi.signIn
-    : !coach.allowed
-      ? copy.myGames.engineOnly
-      : coach.status === "loading"
-        ? copy.coachAi.loading
-        : coach.status === "error"
-          ? copy.coachAi.failed
-          : coach.status === "limit"
-            ? copy.coachAi.limit
-            : coach.status === "done" && !coach.notes.length
-              ? copy.coachAi.none
-              : null;
-  const canAsk = coach.signedIn && coach.allowed && !offline && (coach.status === "idle" || coach.status === "error");
+  // Chaukor AI floats over the review: tap to ask, then each key move's note shows in its bubble.
+  const aiOn = coach.signedIn && coach.allowed && (connectivity === "online" || coach.status === "done") && !expanded;
+  const askAi = () => {
+    if (coach.status === "idle" || coach.status === "error") return void (done && coach.ask());
+    const next = coach.nextNote(ply);
+    if (next) go(next);
+  };
 
   const tap = (sq: Square) => {
     if (!trying) return;
@@ -158,9 +148,9 @@ export default function ReviewGame() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView {...aiSlot.rootProps} style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 12 }}>
-        <TopBar title={copy.analysis.title} onBack={expanded ? () => setTrying(null) : undefined} />
+        <TopBar title={copy.analysis.title} onBack={expanded ? () => setTrying(null) : undefined} action={aiOn ? aiSlot.slot : undefined} />
       </View>
       <View style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 12, gap: 10, maxWidth: expanded ? 900 : 640, width: "100%", alignSelf: "center" }}>
         <BoardStage
@@ -289,31 +279,7 @@ export default function ReviewGame() {
             ) : null}
           </View>
           <T role="small">{explain}</T>
-          {coachNote ? (
-            <>
-              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-                <Icon name="sparkles" size={14} color={c.brandText} />
-                <T role="small" style={{ flex: 1, fontFamily: fonts.semibold }}>
-                  {coachNote.text}
-                </T>
-              </View>
-              <T role="micro" color="textSubtle">
-                {copy.coachAi.note}
-              </T>
-            </>
-          ) : null}
         </View>
-
-        <Animated.View style={fold} pointerEvents={expanded ? "none" : "auto"} importantForAccessibility={expanded ? "no-hide-descendants" : "auto"} accessibilityElementsHidden={expanded}>
-          <View style={{ gap: 8 }}>
-            {coachLine ? (
-              <T role="small" color="textMuted" center>
-                {coachLine}
-              </T>
-            ) : null}
-            {canAsk ? <Button title={coach.status === "error" ? copy.coachAi.retry : copy.coachAi.button} icon="sparkles" variant="secondary" disabled={!done} onPress={coach.ask} /> : null}
-          </View>
-        </Animated.View>
 
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ width: 64 }}>
@@ -345,6 +311,7 @@ export default function ReviewGame() {
           />
         )}
       </View>
+      {aiOn ? <AiCoachButton home={aiSlot.home} text={coach.lineAt(ply)} asking={coach.status === "loading" || (!done && coach.status === "idle")} onAsk={askAi} /> : null}
     </SafeAreaView>
   );
 }

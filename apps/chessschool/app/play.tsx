@@ -37,7 +37,7 @@ import {
 import { botBackdrop, botRatingOf, canUseGym, copy, gameMood, ENDGAME_MASTERY, radius, space, START_FEN, type CodyAnimation, type GameRecord, type StoredSetup } from "@chessschool/design";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { Backdrop } from "@/components/Backdrop";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Board, PieceArt } from "@/components/Board";
@@ -51,7 +51,7 @@ import { KeyMomentCard } from "@/components/KeyMoment";
 import { Cody } from "@/components/Lottie";
 import { Options } from "@/components/Options";
 import { Button, Card, CoachCard, Page, Sheet, SwitchRow, T, TopBar } from "@/components/ui";
-import { AiCoachButton } from "@/components/AiCoach";
+import { AiCoachButton, useAiSlot } from "@/components/AiCoach";
 import { useCoachNotes, usePlayAi } from "@/lib/coach";
 import { useGameAnalysis } from "@/lib/hooks";
 import { api } from "@/lib/api";
@@ -97,8 +97,9 @@ export default function Play() {
   const [record, setRecord] = useState<GameRecord | null>(null);
   const [movesOpen, setMovesOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
-  const [coachTop, setCoachTop] = useState(0);
   const ai = usePlayAi(game?.setup.opponent.kind === "bot");
+  const aiSlot = useAiSlot();
+  const winW = useWindowDimensions().width;
   const ref = useRef<PlayState | null>(null);
   const lowWarned = useRef<Record<Color, boolean>>({ w: false, b: false });
 
@@ -272,45 +273,52 @@ export default function Play() {
           </View>
         ) : (
           <>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {/* The chosen bot, and one row of faces to switch: the Gym list already showed them all. */}
+            <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <BotAvatar bot={bot} size={72} />
-              <View style={{ flex: 1, gap: 4 }}>
+              <View style={{ flex: 1, gap: 2 }}>
                 <T role="title" header>
                   {info.name}
                 </T>
-                <T role="body" color="textMuted">
+                <T role="small" style={{ fontFamily: fonts.semibold, color: c.goldText }}>
+                  {`${"★".repeat(info.level)}  ${info.label} · ${copy.gym.botRating(botRatingOf(state.ratings, bot, info.rating))}`}
+                </T>
+                <T role="small" color="textMuted">
                   {info.blurb}
                 </T>
               </View>
-            </View>
-            <View accessibilityRole="radiogroup" accessibilityLabel={copy.gym.bots} style={{ gap: 8 }}>
-              {BOTS.map((b) => (
-                <Pressable
-                  key={b.id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: bot === b.id }}
-                  accessibilityLabel={`${b.name}, ${b.label}`}
-                  onPress={() => {
-                    setBot(b.id);
-                    setTakebacks(b.takebacks);
-                  }}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2, borderColor: bot === b.id ? c.brand : c.line, backgroundColor: c.card }}
-                >
-                  <BotAvatar bot={b.id} size={44} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <T role="label" numberOfLines={1}>
-                      {b.name}
+            </Card>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              // Opened from a strong bot in the Gym, its face starts in view.
+              contentOffset={{ x: Math.max(0, BOTS.findIndex((b) => b.id === bot) * 84 - (winW - 120) / 2), y: 0 }}
+              accessibilityRole="radiogroup" accessibilityLabel={copy.gym.bots} style={{ flexGrow: 0, marginHorizontal: -4 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
+              {BOTS.map((b) => {
+                const on = bot === b.id;
+                return (
+                  <Pressable
+                    key={b.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={`${b.name}, ${b.label}`}
+                    onPress={() => {
+                      setBot(b.id);
+                      setTakebacks(b.takebacks);
+                    }}
+                    style={{ width: 76, alignItems: "center", gap: 4, paddingVertical: 8, borderRadius: 16, borderWidth: 2, borderColor: on ? c.brand : "transparent", backgroundColor: on ? c.brandSoft : c.card }}
+                  >
+                    <BotAvatar bot={b.id} size={44} />
+                    <T role="micro" numberOfLines={1} style={{ fontFamily: on ? fonts.bold : fonts.semibold, paddingHorizontal: 4 }}>
+                      {b.name.split(" ").at(-1)}
                     </T>
-                    <T role="micro" color="textMuted" numberOfLines={1}>
-                      {b.label} · {copy.gym.botRating(botRatingOf(state.ratings, b.id, b.rating))}
+                    <T role="micro" style={{ color: c.goldText, fontSize: 10 }}>
+                      {"★".repeat(b.level)}
                     </T>
-                  </View>
-                  <T role="micro" style={{ color: c.goldText, fontFamily: fonts.bold }}>
-                    {"★".repeat(b.level)}
-                  </T>
-                </Pressable>
-              ))}
-            </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </>
         )}
         {!scanFen && (mode === "position" || mode === "endgame") ? <Options label={copy.gym.positions} value={position} onChange={setPosition} options={(mode === "endgame" ? START_POSITIONS.filter((p) => (ENDGAME_IDS as readonly string[]).includes(p.id)) : START_POSITIONS).map((p) => ({ value: p.id, title: p.name, body: mode === "endgame" ? `${p.blurb} · ${(state.endgames[p.id] ?? 0) >= ENDGAME_MASTERY ? copy.gym.endgameMastered : copy.gym.endgameWins(state.endgames[p.id] ?? 0, ENDGAME_MASTERY)}` : p.blurb }))} /> : null}
@@ -434,12 +442,12 @@ export default function Play() {
   const yourTurn = live && !game.over && !game.botThinking && !friend && turn === game.setup.you;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
+    <SafeAreaView {...aiSlot.rootProps} style={{ flex: 1, backgroundColor: c.bg, overflow: "hidden" }}>
       <Backdrop art={botBackdrop(game.setup.opponent.kind === "bot" ? game.setup.opponent.bot : "friend")} />
       <View style={{ paddingHorizontal: 12 }}>
         <TopBar title={friend ? copy.gym.vsFriend : copy.play.vs(name)} action={<SoundToggle />} />
       </View>
-      <View onLayout={(e) => setCoachTop(e.nativeEvent.layout.y)} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 8, paddingBottom: 4 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 8, paddingBottom: 4 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={copy.play.resign}
@@ -450,10 +458,10 @@ export default function Play() {
           <Icon name="flag" color={c.onDanger} size={24} />
         </Pressable>
         <View style={{ flex: 1 }} />
+        {/* Chaukor AI's spot: it floats over the screen (drawn last, below) and can be dragged away. */}
+        {ai.active ? aiSlot.slot : null}
         <Button title="" label={copy.analysis.movesTitle} icon="history" variant="secondary" block={false} onPress={() => setMovesOpen(true)} />
         <Button title="" label={copy.gym.hints} icon="bulb" variant="secondary" block={false} onPress={showHint} />
-        {/* Room for the AI coach widget, which floats above everything (drawn last, below). */}
-        {ai.active ? <View style={{ width: 52 }} /> : null}
       </View>
       {/* Nothing below the board grows: bars are fixed height and the panel is one fixed row, so the board never shifts. */}
       <View style={{ flex: 1, gap: 6, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" }}>
@@ -510,7 +518,7 @@ export default function Play() {
         </View>
       </View>
 
-      {ai.active ? <AiCoachButton top={coachTop} text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
+      {ai.active ? <AiCoachButton home={aiSlot.home} text={ai.lineFor(game.fen)} asking={ai.askingFor(game.fen)} onAsk={() => yourTurn && explain(game.fen, false)} /> : null}
 
       <MovesSheet visible={movesOpen} onClose={() => setMovesOpen(false)} history={game.history} />
 

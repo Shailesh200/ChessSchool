@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { botInfo, coachMoments, isBotId, load, PIECE_NAMES, type BotId, type CoachMoment, type Color, type PieceType } from "@chessschool/chess";
 import { coachOf, type CoachId } from "@chessschool/design";
 import { eq, sql } from "drizzle-orm";
-import type { AiProvider } from "./ai";
+import { byQuality, type AiProvider } from "./ai";
 import { askChain, factCheck, type CoachLang } from "./coach";
 import type { Db } from "./db";
 import { coachCache, coachUsage } from "./schema";
@@ -73,43 +73,75 @@ export function parseLineInput(b: Record<string, unknown>, isCoach: (v: unknown)
 const turnOf = (fen: string): Color => (fen.split(" ")[1] === "b" ? "b" : "w");
 const moveNoOf = (fen: string) => Math.max(1, Number(fen.split(" ")[5]) || 1);
 
-/** Facts for the hint move, shaped like a coach moment so the same fact check applies. */
-function hintFacts(fen: string, m: Legal): CoachMoment {
+const VALUE: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 100 };
+const CENTRE = new Set(["d4", "e4", "d5", "e5"]);
+
+/**
+ * Facts for the hint move, shaped like a coach moment so the same fact check applies, plus plain
+ * sentences saying what the move is for: what it wins, saves, threatens or builds. The more concrete
+ * the facts, the less the model has to guess.
+ */
+export function hintFacts(fen: string, m: Legal): { fact: CoachMoment; notes: string[] } {
+  const us = turnOf(fen);
+  const them: Color = us === "w" ? "b" : "w";
+  const before = load(fen);
   const after = load(fen);
   after.move(m.san);
-  const them = turnOf(fen) === "w" ? "b" : "w";
-  // Enemy pieces (not pawns) under attack after the move: what the move threatens.
-  const targets: { sq: string; p: PieceType }[] = [];
-  const board = after.board();
-  for (const row of board) for (const cell of row) if (cell && cell.color === them && cell.type !== "p" && after.isAttacked(cell.square, turnOf(fen))) targets.push({ sq: cell.square, p: cell.type as PieceType });
+  const name = (p: PieceType) => PIECE_NAMES[p];
+  const squares = [m.from, m.to];
+  const pieces: PieceType[] = [m.piece, ...(m.captured ? [m.captured] : [])];
+  const notes: string[] = [];
   const tags: CoachMoment["tags"] = [];
-  if (after.isCheckmate()) tags.push("mate");
-  return {
-    ply: 0,
-    moveNo: moveNoOf(fen),
-    by: turnOf(fen),
-    san: m.san,
-    verdict: "inaccuracy",
-    loss: 0,
-    better: null,
-    threat: null,
-    tags,
-    squares: [m.from, m.to, ...targets.map((t) => t.sq)],
-    pieces: [m.piece, ...(m.captured ? [m.captured] : []), ...targets.map((t) => t.p)],
-  } as CoachMoment;
+  // A piece is in danger when attacked and either undefended or attacked by something cheaper.
+  const inDanger = (g: ReturnType<typeof load>, sq: string, p: PieceType, owner: Color) => {
+    const enemy = owner === "w" ? "b" : "w";
+    const by = g.attackers(sq as never, enemy);
+    if (!by.length) return false;
+    const cheapest = Math.min(...by.map((a) => VALUE[(g.get(a)?.type ?? "k") as PieceType]));
+    return cheapest < VALUE[p] || !g.attackers(sq as never, owner).length;
+  };
+  if (after.isCheckmate()) {
+    tags.push("mate");
+    notes.push("It is checkmate: the game is won.");
+  } else if (m.check) notes.push("It gives check, so the opponent must deal with the king first.");
+  if (m.captured) notes.push(inDanger(after, m.to, m.piece, us) ? `It takes a ${name(m.captured)}.` : `It wins a ${name(m.captured)} for free.`);
+  // What it rescues: our pieces in danger before the move that are safe after it.
+  for (const row of before.board())
+    for (const cell of row) {
+      if (!cell || cell.color !== us || cell.type === "k" || !inDanger(before, cell.square, cell.type as PieceType, us)) continue;
+      const now = cell.square === m.from ? m.to : cell.square;
+      if (!inDanger(after, now, cell.type as PieceType, us)) {
+        notes.push(`The ${name(cell.type as PieceType)} on ${cell.square} was in danger; after this move it is safe.`);
+        squares.push(cell.square);
+        pieces.push(cell.type as PieceType);
+      }
+    }
+  // What it threatens: enemy pieces that are now in danger.
+  for (const row of after.board())
+    for (const cell of row) {
+      if (!cell || cell.color !== them || cell.type === "k" || !inDanger(after, cell.square, cell.type as PieceType, them)) continue;
+      if (inDanger(before, cell.square, cell.type as PieceType, them)) continue;
+      notes.push(`It threatens to win the ${name(cell.type as PieceType)} on ${cell.square}.`);
+      squares.push(cell.square);
+      pieces.push(cell.type as PieceType);
+    }
+  if (m.san.startsWith("O-O")) {
+    notes.push("It castles: the king moves to safety and the rook joins the game.");
+    pieces.push("r");
+  } else if ((m.piece === "n" || m.piece === "b") && m.from[1] === (us === "w" ? "1" : "8") && moveNoOf(fen) <= 12) notes.push(`It develops the ${name(m.piece)}: brings it off the back row into the game.`);
+  else if (m.piece === "p" && CENTRE.has(m.to)) notes.push("It puts a pawn in the centre, which gives the pieces more room.");
+  if (!notes.length && !m.captured && inDanger(before, m.to, m.piece, us) === false && after.attackers(m.to as never, them).length === 0) notes.push(`The ${name(m.piece)} is safe on ${m.to} and does more there.`);
+  const fact = { ply: 0, moveNo: moveNoOf(fen), by: us, san: m.san, verdict: "inaccuracy", loss: 0, better: null, threat: null, tags, squares, pieces } as CoachMoment;
+  return { fact, notes };
 }
 
-function hintPrompt(f: CoachMoment, m: Legal, coach: CoachId, lang: CoachLang) {
+function hintPrompt(m: Legal, notes: string[], coach: CoachId, lang: CoachLang) {
   const c = coachOf(coach);
-  const facts = [
-    `The suggested move is ${m.san}: the ${PIECE_NAMES[m.piece]} goes from ${m.from} to ${m.to}.`,
-    m.captured ? `It captures a ${PIECE_NAMES[m.captured]}.` : "",
-    f.tags.includes("mate") ? "It is checkmate." : m.check ? "It gives check." : "",
-    f.pieces.length > 1 + (m.captured ? 1 : 0) ? `After it, the ${PIECE_NAMES[m.piece]} attacks: ${f.pieces.slice(1 + (m.captured ? 1 : 0)).map((p, i) => `${PIECE_NAMES[p]} on ${f.squares[2 + i]}`).join(", ")}.` : "",
-  ].filter(Boolean);
+  const facts = [`The best move is ${m.san}: the ${PIECE_NAMES[m.piece]} goes from ${m.from} to ${m.to}.`, ...notes];
   const system = [
-    `You are ${c.name}, a chess coach for children aged 7 to 12. Your style: ${c.blurb.toLowerCase()}.`,
-    "Give a hint in ONE short, warm sentence (at most 20 words) that names the concrete idea from the facts: checkmate, check, a capture, or which piece it attacks. Do not just say it is good.",
+    `You are Chaukor AI, a chess coach for children aged 7 to 12, speaking as ${c.name}. Your style: ${c.blurb.toLowerCase()}.`,
+    "Explain the best move in ONE or TWO short sentences (at most 25 words in all): name the move, then its main purpose from the facts (what it wins, saves, threatens or builds).",
+    "Be concrete. Never say only that it is a good or strong move, and never give general advice that is not in the facts.",
     "Use only the facts given. Never mention a square, piece or move that is not in the facts.",
     lang === "hi" ? "Write in simple, natural Hindi (Devanagari) with आप-form verbs; do not start with आप. Chess words: राजा, रानी, हाथी, ऊँट, घोड़ा, प्यादा, शह, शह-मात. Keep moves and squares in English letters." : "Write in simple English.",
   ].join(" ");
@@ -129,7 +161,7 @@ const oneLine = (raw: string) => raw.replace(/[*_#"]/g, "").replace(/\s+/g, " ")
 /** One coach line for a hint or a learner's mistake; `text: null` when the move needs no comment. Cached by facts. */
 async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInput, { coach: CoachId }>, lang: CoachLang, userId: string, day: string, now: number): Promise<LineAnswer | "limit" | null> {
   const side = turnOf(input.fen);
-  const free = providers.filter((p) => p.name !== "anthropic");
+  const free = byQuality(providers).filter((p) => p.name !== "anthropic");
   let fact: CoachMoment;
   let ask: () => Promise<{ text: string; provider: string } | null>;
   if (input.kind === "comment") {
@@ -144,8 +176,9 @@ async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInp
     };
   } else {
     const m = legalMove(input.fen, input.move)!;
-    fact = hintFacts(input.fen, m);
-    const { system, prompt } = hintPrompt(fact, m, input.coach, lang);
+    const h = hintFacts(input.fen, m);
+    fact = h.fact;
+    const { system, prompt } = hintPrompt(m, h.notes, input.coach, lang);
     ask = async () => {
       const paid = providers.find((p) => p.name === "anthropic");
       const chain = paid && (await countUse(db, userId, `${day}/hint-paid`, HINT_PAID_USER_DAILY, HINT_PAID_GLOBAL_DAILY)) ? [paid, ...free] : free;
@@ -157,7 +190,8 @@ async function coachLine(db: Db, providers: AiProvider[], input: Extract<LineInp
       return null;
     };
   }
-  const key = createHash("sha256").update(JSON.stringify({ line: input.kind, fact, coach: input.coach, lang })).digest("hex");
+  // v2: hints got richer facts and a new prompt, so older cached lines are not reused.
+  const key = createHash("sha256").update(JSON.stringify({ line: input.kind, v: 2, fact, coach: input.coach, lang })).digest("hex");
   const hit = await db.query.coachCache.findFirst({ where: eq(coachCache.key, key) });
   if (hit) {
     const text = (JSON.parse(hit.texts) as string[])[0];
